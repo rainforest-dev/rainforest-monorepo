@@ -1,0 +1,21 @@
+{
+  "name": "personal-website",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "nx exec -- astro dev",
+    "start": "nx exec -- astro dev",
+    "build": "nx exec -- astro build",
+    "preview": "astro preview",
+    "astro": "nx exec -- astro"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "outputs": [
+          "{projectRoot}/dist"
+        ]
+      }
+    }
+  }
+}

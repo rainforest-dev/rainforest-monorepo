@@ -3,13 +3,17 @@
     "default": {
       "runner": "nx-cloud",
       "options": {
-        "cacheableOperations": ["build", "lint", "test", "e2e", "check"],
+        "cacheableOperations": [
+          "build",
+          "lint",
+          "test",
+          "e2e",
+          "check"
+        ],
         "accessToken": "ZWVhNTI3ZjktYWU3MS00NDQ2LTg2Y2ItNmE4ZWU0M2M4NDQwfHJlYWQtd3JpdGU="
       }
     }
   },
   "extends": "nx/presets/npm.json",
-  "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "plugins": ["@nxtensions/astro"],
-  "defaultProject": "apps-personal-website"
+  "$schema": "./node_modules/nx/schemas/nx-schema.json"
 }
