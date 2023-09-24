@@ -13,6 +13,13 @@
       }
     }
   },
+  "targetDefaults": {
+    "dev": {
+      "dependsOn": [
+        "design-system:build"
+      ]
+    }
+  },
   "affected": {
     "defaultBase": "main"
   }

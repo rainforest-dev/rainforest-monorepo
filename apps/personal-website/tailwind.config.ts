@@ -1,5 +1,6 @@
 import type { Config } from 'tailwindcss';
 import defaultTheme from 'tailwindcss/defaultTheme';
+import { utils } from '../../dist/libs/design-system/plugins';
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -14,5 +15,5 @@ export default {
       ),
     },
   },
-  plugins: [],
+  plugins: [utils],
 } satisfies Config;

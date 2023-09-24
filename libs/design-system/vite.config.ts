@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [
     nxViteTsPaths(),
     dts({
-      entryRoot: 'src',
+      entryRoot: 'src/libs',
       tsConfigFilePath: path.join(__dirname, 'tsconfig.lib.json'),
       skipDiagnostics: true,
     }),
@@ -26,9 +26,23 @@ export default defineConfig({
   build: {
     lib: {
       // Could also be a dictionary or array of multiple entry points.
-      entry: 'src/index.ts',
-      name: 'design-system',
-      fileName: 'index',
+      entry: {
+        plugins: path.resolve(__dirname, 'src/lib/plugins/index.ts'),
+      },
+      fileName: (format, entryName) => {
+        // if entryName is not index,
+        // transfer to index in folder named by entryName
+        // format: es -> ejs
+        // format: cjs -> js
+        if (entryName !== 'index') {
+          return format === 'es'
+            ? `${entryName}/index.mjs`
+            : `${entryName}/index.js`;
+        }
+        // if entryName is index,
+        // return index in root folder
+        return format === 'es' ? `index.mjs` : `index.js`;
+      },
       // Change this to the formats you want to support.
       // Don't forget to update your package.json as well.
       formats: ['es', 'cjs'],

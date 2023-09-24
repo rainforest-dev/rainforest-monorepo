@@ -2,7 +2,11 @@
   "name": "@rainforest-tools/design-system",
   "version": "0.0.1",
   "dependencies": {},
-  "main": "./index.js",
-  "module": "./index.mjs",
-  "typings": "./index.d.ts"
+  "exports": {
+    "plugins": {
+      "import": "./plugins/import.mjs",
+      "require": "./plugins/index.js",
+      "types": "./plugins/index.d.ts"
+    }
+  }
 }
