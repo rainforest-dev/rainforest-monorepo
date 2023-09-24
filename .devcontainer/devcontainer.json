@@ -11,6 +11,7 @@
 	"customizations": {
 		"vscode": {
 			"settings": {
+				"editor.tabSize": 2,
 				"terminal.integrated.defaultProfile.linux": "zsh"
 			},
 			"extensions": [

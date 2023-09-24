@@ -3,8 +3,17 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Welcome to Astro.">
-	<main>
-		<div class="text-cyan-500">Hello, World!</div>
-		<span class="material-symbols-outlined">search</span>
-	</main>
+  <main class="flex-center full">
+    <a href="/about" class="flex gap-1 text-cyan-500 hover:text-cyan-600">
+      <div>Hello, Rainforest!</div>
+      <span class="material-symbols-outlined">info</span>
+    </a>
+    <div
+      class="w-1/3 h-1/2 bg-teal-500
+				after:content-[''] after:bg-[url('/images/profile.jpeg')] after:block after:full after:bg-cover after:bg-center
+				after:mix-blend-screen after:grayscale after:contrast-150"
+      transition:name="hero"
+    >
+    </div>
+  </main>
 </Layout>

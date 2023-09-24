@@ -1,0 +1,22 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="About">
+  <main class="flex-center flex-col gap-2 full">
+    <div
+      class="w-20 h-20 rounded-full bg-white border-2 border-teal-500 overflow-hidden
+        after:content-[''] after:bg-[url('/images/profile.jpeg')] after:block after:full after:bg-cover after:bg-top
+				after:mix-blend-multiply after:grayscale-0"
+      transition:name="hero"
+    >
+    </div>
+    <div class="flex-col-center">
+      <h1>About</h1>
+      <p>This is the about page.</p>
+    </div>
+    <a href="/">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+  </main>
+</Layout>
