@@ -7,6 +7,11 @@
       "import": "./plugins/import.mjs",
       "require": "./plugins/index.js",
       "types": "./plugins/index.d.ts"
+    },
+    "components/lit": {
+      "import": "./components/lit/index.mjs",
+      "require": "./components/lit/index.js",
+      "types": "./components/lit/index.d.ts"
     }
   }
 }

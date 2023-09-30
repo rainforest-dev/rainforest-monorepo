@@ -51,7 +51,6 @@
     "apps/*",
     "libraries/*"
   ],
-  "dependencies": {},
   "nx": {
     "includedScripts": []
   }

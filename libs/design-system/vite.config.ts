@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [
     nxViteTsPaths(),
     dts({
-      entryRoot: 'src/libs',
+      entryRoot: 'src/lib',
       tsConfigFilePath: path.join(__dirname, 'tsconfig.lib.json'),
       skipDiagnostics: true,
     }),
@@ -28,6 +28,10 @@ export default defineConfig({
       // Could also be a dictionary or array of multiple entry points.
       entry: {
         plugins: path.resolve(__dirname, 'src/lib/plugins/index.ts'),
+        'components/lit': path.resolve(
+          __dirname,
+          'src/lib/components/lit/index.ts'
+        ),
       },
       fileName: (format, entryName) => {
         // if entryName is not index,

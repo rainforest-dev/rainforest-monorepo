@@ -23,7 +23,10 @@
       ],
       "@rainforest-tools/design-system/plugins": [
         "libs/design-system/src/lib/plugins/index.ts"
-      ]
+      ],
+      "@rainforest-tools/design-system/components/lit": [
+        "libs/design-system/src/lib/components/lit/index.ts"
+      ],
     }
   },
   "exclude": [

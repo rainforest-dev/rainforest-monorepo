@@ -3,5 +3,16 @@
   "compilerOptions": {
     "jsx": "preserve",
     "jsxImportSource": "react",
-  }
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "baseUrl": ".",
+    "paths": {
+      "@rainforest-tools/design-system/*": [
+        "../../libs/design-system/src/lib/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
 }

@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { MyElement } from '../components/my-element.ts';
 ---
 
 <Layout title="About">
@@ -18,5 +19,6 @@ import Layout from '../layouts/Layout.astro';
     <a href="/">
       <span class="material-symbols-outlined">arrow_back</span>
     </a>
+    <MyElement client:load />
   </main>
 </Layout>
