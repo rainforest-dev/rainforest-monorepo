@@ -1,18 +1,15 @@
 {
-  "tasksRunnerOptions": {
-    "default": {
-      "runner": "nx-cloud",
-      "options": {
-        "cacheableOperations": ["build", "lint", "test", "e2e", "check"],
-        "accessToken": "ZWVhNTI3ZjktYWU3MS00NDQ2LTg2Y2ItNmE4ZWU0M2M4NDQwfHJlYWQtd3JpdGU="
-      }
+  "pluginsConfig": {
+    "@nx/js": {
+      "analyzeSourceFiles": true
     }
   },
   "extends": "nx/presets/npm.json",
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "targetDefaults": {
     "test": {
-      "inputs": ["default", "^default"]
+      "inputs": ["default", "^default"],
+      "cache": true
     },
     "lint": {
       "inputs": [
@@ -20,12 +17,31 @@
         "{workspaceRoot}/.eslintrc.json",
         "{workspaceRoot}/.eslintignore",
         "{workspaceRoot}/eslint.config.js"
-      ]
+      ],
+      "cache": true
+    },
+    "build": {
+      "cache": true
+    },
+    "e2e": {
+      "cache": true
+    },
+    "check": {
+      "cache": true
     }
   },
-  "pluginsConfig": {
-    "@nx/js": {
-      "analyzeSourceFiles": true
+  "generators": {
+    "@nx/react": {
+      "application": {
+        "babel": true
+      }
+    },
+    "@nx/next": {
+      "application": {
+        "style": "css",
+        "linter": "eslint"
+      }
     }
-  }
+  },
+  "nxCloudAccessToken": "MTM0ZGZiMTgtMTYwYi00YjNjLTkyMmUtYzhjYzg2MTE1Y2QxfHJlYWQtd3JpdGU="
 }
