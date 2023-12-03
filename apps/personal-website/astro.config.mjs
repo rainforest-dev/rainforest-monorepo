@@ -14,6 +14,20 @@ import path from 'path';
 // https://astro.build/config
 export default defineConfig({
   vite: {
+    // https://docs.astro.build/en/guides/troubleshooting/#adding-dependencies-to-astro-in-a-monorepo
+    ssr: {
+      noExternal: [
+        '@astrojs/lit',
+        '@astrojs/react',
+        '@astrojs/svelte',
+        '@astrojs/vue',
+        '@astrojs/mdx',
+        '@astrojs/partytown',
+        '@astrojs/prefetch',
+        '@astrojs/sitemap',
+        '@astrojs/tailwind',
+      ],
+    },
     resolve: {
       alias: {
         '@': path.resolve('./src'),
