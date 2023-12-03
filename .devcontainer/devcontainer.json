@@ -21,7 +21,8 @@
 				"GitHub.copilot",
 				"GitHub.copilot-chat",
 				"eamodio.gitlens",
-				"bradlc.vscode-tailwindcss"
+				"bradlc.vscode-tailwindcss",
+				"VisualStudioExptTeam.vscodeintellicode"
 			]
 		}
 	}
