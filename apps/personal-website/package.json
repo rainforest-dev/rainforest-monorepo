@@ -11,11 +11,6 @@
   },
   "nx": {
     "targets": {
-      "dev": {
-        "dependsOn": [
-          "design-system:build"
-        ]
-      },
       "build": {
         "outputs": [
           "{projectRoot}/dist"

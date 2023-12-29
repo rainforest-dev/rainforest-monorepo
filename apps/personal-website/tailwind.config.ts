@@ -1,7 +1,6 @@
 import type { Config } from 'tailwindcss';
 import defaultTheme from 'tailwindcss/defaultTheme';
-import { utils } from '../../dist/libs/design-system/plugins';
-// import { utils } from '@rainforest-tools/design-system/plugins';
+import { utils } from '../../libs/design-system/src/lib/plugins';
 
 /** @type {import('tailwindcss').Config} */
 export default {
