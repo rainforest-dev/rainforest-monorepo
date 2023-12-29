@@ -34,11 +34,6 @@ export default defineConfig({
         '@astrojs/tailwind',
       ],
     },
-    resolve: {
-      alias: {
-        '@': path.resolve('./src'),
-      },
-    },
   },
   integrations: [
     lit(),
