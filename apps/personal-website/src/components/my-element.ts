@@ -2,8 +2,12 @@ import { html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { TwLitElement } from '@rainforest-tools/design-system/components/lit';
 import '@material/web/button/filled-button';
+import '@material/web/button/outlined-button';
 import '@material/web/textfield/outlined-text-field';
-import { startRegistration } from '@simplewebauthn/browser';
+import {
+  startAuthentication,
+  startRegistration,
+} from '@simplewebauthn/browser';
 
 @customElement('my-element')
 export class MyElement extends TwLitElement {
@@ -24,6 +28,7 @@ export class MyElement extends TwLitElement {
           placeholder="Enter your name"
         ></md-outlined-text-field>
         <md-filled-button @click=${this.register}>Register</md-filled-button>
+        <md-outlined-button @click=${this.login}>Log in</md-outlined-button>
       </div>
     `;
   }
@@ -50,6 +55,31 @@ export class MyElement extends TwLitElement {
         body: JSON.stringify({
           username: this.name,
           data: registrationResponse,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+    ).json();
+    console.log(result);
+  }
+
+  async login() {
+    console.log('login', this.name);
+    const options = await (
+      await fetch('http://localhost:3000/passkey/login/options', {
+        body: JSON.stringify({ username: this.name }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+    ).json();
+    console.log(options);
+    const loginResponse = await startAuthentication(options);
+    console.log(loginResponse);
+    const result = await (
+      await fetch('http://localhost:3000/passkey/login', {
+        body: JSON.stringify({
+          username: this.name,
+          data: loginResponse,
         }),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',

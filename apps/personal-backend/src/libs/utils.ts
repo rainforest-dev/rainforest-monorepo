@@ -1,4 +1,7 @@
-// convert uint8array to base64 string
 export const uint8ArrayToBase64 = (u8a: Uint8Array) => {
-  return Buffer.from(u8a).toString('base64');
+  // return in web-safe base64
+  return btoa(String.fromCharCode(...u8a))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
 };
