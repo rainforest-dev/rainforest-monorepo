@@ -18,6 +18,7 @@
     "@vitest/coverage-c8": "~0.32.0",
     "@vitest/ui": "0.34.7",
     "@webcomponents/template-shadowroot": "^0.2.1",
+    "bun-types": "latest",
     "eslint": "8.48.0",
     "eslint-config-next": "13.4.1",
     "eslint-config-prettier": "9.0.0",
@@ -28,15 +29,15 @@
     "jsdom": "~22.1.0",
     "nx": "17.2.8",
     "prettier": "^2.6.2",
+    "prisma": "^5.7.1",
     "tailwindcss": "3.4.0",
+    "tslib": "^2.3.0",
     "typescript": "5.2.2",
     "verdaccio": "^5.0.4",
     "vite": "5.0.10",
     "vite-plugin-dts": "~2.3.0",
     "vite-plugin-glsl": "^1.1.2",
-    "vitest": "0.34.6",
-    "tslib": "^2.3.0",
-    "bun-types": "latest"
+    "vitest": "0.34.6"
   },
   "dependencies": {
     "@astrojs/lit": "4.0.1",
@@ -52,6 +53,10 @@
     "@elysiajs/cors": "^0.7.2",
     "@elysiajs/server-timing": "^0.7.1",
     "@elysiajs/swagger": "^0.7.4",
+    "@material/web": "^1.1.1",
+    "@prisma/client": "^5.7.1",
+    "@simplewebauthn/browser": "^8.3.4",
+    "@simplewebauthn/server": "^8.3.6",
     "astro": "4.0.8",
     "elysia": "latest",
     "lit": "3.1.0",
@@ -66,4 +71,3 @@
     "libs/*"
   ]
 }
-
