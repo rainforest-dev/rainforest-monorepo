@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { MyElement } from '../components/my-element.ts';
+import { MyElement } from '../components/my-element';
+import PrivateLayout from '../layouts/PrivateLayout.astro';
 ---
 
 <Layout title="About">
@@ -19,6 +20,8 @@ import { MyElement } from '../components/my-element.ts';
     <a href="/">
       <span class="material-symbols-outlined">arrow_back</span>
     </a>
-    <MyElement client:load />
+    <PrivateLayout client:idle>
+      <MyElement client:load />
+    </PrivateLayout>
   </main>
 </Layout>

@@ -22,7 +22,9 @@
 				"GitHub.copilot-chat",
 				"eamodio.gitlens",
 				"bradlc.vscode-tailwindcss",
-				"VisualStudioExptTeam.vscodeintellicode"
+				"VisualStudioExptTeam.vscodeintellicode",
+				"mongodb.mongodb-vscode",
+				"Prisma.prisma"
 			]
 		}
 	}
