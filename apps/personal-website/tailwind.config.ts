@@ -8,10 +8,11 @@ export default {
   theme: {
     extend: {
       fontFamily: Object.fromEntries(
-        Object.entries(defaultTheme.fontFamily).map(([key, value]) => [
-          key,
-          [value, 'Material Symbols Outlined'],
-        ])
+        Object.entries(defaultTheme.fontFamily).map(([key, value]) => {
+          const fontFamilies = [key, [value, 'Material Symbols Outlined']];
+          if (key === 'serif') fontFamilies.push('Lora');
+          return fontFamilies;
+        })
       ),
     },
   },
