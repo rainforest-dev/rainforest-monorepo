@@ -7,8 +7,16 @@ const props: Props = Astro.props;
 <!doctype html>
 <html lang="en">
   <Head {...props} />
-   I 'm a layout
   <body>
+    <nav class="fixed flex justify-between w-full py-4 px-10">
+      <div></div>
+      <div class="flex-row-center gap-10 text-[#9EC8B9] hover:*:text-[#092635]">
+        <a href="/about">About</a>
+        <a href="/projects">Projects</a>
+        <a href="/blogs">Blogs</a>
+        <a href="/contact">Contact</a>
+      </div>
+    </nav>
     <slot />
   </body>
 </html>
