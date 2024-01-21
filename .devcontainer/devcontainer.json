@@ -27,7 +27,12 @@
 				"Prisma.prisma"
 			]
 		}
-	}
+	},
+	"runArgs": [
+  		"--userns=keep-id:uid=1000,gid=1000"
+ 	],
+ 	"containerUser": "vscode",
+ 	"updateRemoteUserUID": true
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
