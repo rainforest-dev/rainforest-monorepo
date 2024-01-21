@@ -53,6 +53,7 @@
     "@elysiajs/cors": "^0.7.2",
     "@elysiajs/server-timing": "^0.7.1",
     "@elysiajs/swagger": "^0.7.4",
+    "@material/material-color-utilities": "^0.2.7",
     "@material/web": "^1.1.1",
     "@prisma/client": "^5.7.1",
     "@simplewebauthn/browser": "^8.3.4",

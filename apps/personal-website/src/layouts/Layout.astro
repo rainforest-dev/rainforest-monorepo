@@ -8,6 +8,7 @@ const props: Props = Astro.props;
 <html lang="en">
   <Head {...props} />
   <body>
+    <md3-provider />
     <nav class="fixed flex justify-between w-full py-4 px-10">
       <div></div>
       <div class="flex-row-center gap-10 text-[#9EC8B9] hover:*:text-[#092635]">
@@ -19,4 +20,25 @@ const props: Props = Astro.props;
     </nav>
     <slot />
   </body>
+  <script>
+    import {
+      themeFromSourceColor,
+      argbFromHex,
+      applyTheme,
+    } from '@material/material-color-utilities';
+
+    const theme = themeFromSourceColor(argbFromHex('#1B4242'));
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    console.log(JSON.stringify(theme));
+
+    class Md3Provider extends HTMLElement {
+      constructor() {
+        super();
+        applyTheme(theme, { target: document.body, dark: systemDark });
+      }
+    }
+
+    customElements.define('md3-provider', Md3Provider);
+  </script>
 </html>
