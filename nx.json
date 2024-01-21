@@ -43,5 +43,20 @@
       }
     }
   },
-  "nxCloudAccessToken": "MTM0ZGZiMTgtMTYwYi00YjNjLTkyMmUtYzhjYzg2MTE1Y2QxfHJlYWQtd3JpdGU="
+  "nxCloudAccessToken": "MTM0ZGZiMTgtMTYwYi00YjNjLTkyMmUtYzhjYzg2MTE1Y2QxfHJlYWQtd3JpdGU=",
+  "plugins": [
+    {
+      "plugin": "@nx/nuxt/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve"
+      }
+    },
+    {
+      "plugin": "@nx/vite/plugin",
+      "options": {
+        "testTargetName": "test"
+      }
+    }
+  ]
 }

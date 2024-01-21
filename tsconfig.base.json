@@ -10,14 +10,12 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "lib": [
-      "es2020",
-      "dom"
-    ],
+    "lib": ["es2020", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@personal-website/*": ["apps/personal-website/src/*"],
       "@rainforest-tools/design-system": [
         "libs/design-system/src/lib/index.ts"
       ],
@@ -26,14 +24,8 @@
       ],
       "@rainforest-tools/design-system/plugins": [
         "libs/design-system/src/lib/plugins/index.ts"
-      ],
-      "@personal-website/*": [
-        "apps/personal-website/src/*"
       ]
     }
   },
-  "exclude": [
-    "node_modules",
-    "tmp"
-  ]
+  "exclude": ["node_modules", "tmp"]
 }
