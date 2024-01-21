@@ -1,6 +1,6 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import PrivateLayout from '../layouts/PrivateLayout.astro';
+import Layout from '@personal-website/layouts/Layout.astro';
+import PrivateLayout from '@personal-website/layouts/PrivateLayout.astro';
 ---
 
 <Layout title="About">
@@ -20,7 +20,7 @@ import PrivateLayout from '../layouts/PrivateLayout.astro';
       <span class="material-symbols-outlined">arrow_back</span>
     </a>
     <PrivateLayout>
-      <my-element />
+      <my-element></my-element>
     </PrivateLayout>
   </main>
 </Layout>
