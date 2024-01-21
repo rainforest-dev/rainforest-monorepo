@@ -5,6 +5,7 @@
     "jsxImportSource": "react",
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
+    "strictNullChecks": true,
   },
   "include": [
     "src/**/*"
