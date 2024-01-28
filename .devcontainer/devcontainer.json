@@ -24,7 +24,10 @@
 				"bradlc.vscode-tailwindcss",
 				"VisualStudioExptTeam.vscodeintellicode",
 				"mongodb.mongodb-vscode",
-				"Prisma.prisma"
+				"Prisma.prisma",
+				"ms-playwright.playwright",
+				"Vue.volar",
+				"christian-kohler.npm-intellisense"
 			]
 		}
 	}
