@@ -6,6 +6,7 @@
       <nav>
         <NuxtLink to="/"> Home </NuxtLink>
         <NuxtLink to="/about"> About </NuxtLink>
+        <NuxtLink to="/course"> Course </NuxtLink>
       </nav>
     </header>
     <nuxt-page />
@@ -18,7 +19,7 @@ header {
   max-width: 100vw;
 }
 
-nav > a {
+nav>a {
   padding-left: 1rem;
   padding-right: 1rem;
 }

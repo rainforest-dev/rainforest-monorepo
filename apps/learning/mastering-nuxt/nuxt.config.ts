@@ -21,6 +21,7 @@ export default defineNuxtConfig({
     autoImport: false,
   },
 
+  modules: ['@nuxtjs/tailwindcss'],
   css: ['~/assets/css/styles.css'],
 
   vite: {
