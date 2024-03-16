@@ -24,7 +24,8 @@
 				"bradlc.vscode-tailwindcss",
 				"VisualStudioExptTeam.vscodeintellicode",
 				"mongodb.mongodb-vscode",
-				"Prisma.prisma"
+				"Prisma.prisma",
+				"Vue.volar"
 			]
 		}
 	},
