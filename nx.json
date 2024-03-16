@@ -8,10 +8,7 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "targetDefaults": {
     "test": {
-      "inputs": [
-        "default",
-        "^default"
-      ],
+      "inputs": ["default", "^default"],
       "cache": true
     },
     "lint": {
@@ -31,6 +28,18 @@
     },
     "check": {
       "cache": true
+    },
+    "@nxtensions/astro:build": {
+      "inputs": ["default", "^default"],
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "cache": true
+    },
+    "@nxtensions/astro:check": {
+      "inputs": ["default", "^default"],
+      "cache": true
+    },
+    "@nxtensions/astro:preview": {
+      "dependsOn": ["build"]
     }
   },
   "generators": {
@@ -47,5 +56,21 @@
     }
   },
   "nxCloudAccessToken": "MTM0ZGZiMTgtMTYwYi00YjNjLTkyMmUtYzhjYzg2MTE1Y2QxfHJlYWQtd3JpdGU=",
-  "useInferencePlugins": false
+  "useInferencePlugins": false,
+  "plugins": [
+    "@nxtensions/astro",
+    {
+      "plugin": "@nx/playwright/plugin",
+      "options": {
+        "targetName": "e2e"
+      }
+    },
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
+    }
+  ],
+  "defaultProject": "personal-website"
 }
