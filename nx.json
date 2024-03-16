@@ -8,7 +8,10 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "targetDefaults": {
     "test": {
-      "inputs": ["default", "^default"],
+      "inputs": [
+        "default",
+        "^default"
+      ],
       "cache": true
     },
     "lint": {
@@ -43,5 +46,6 @@
       }
     }
   },
-  "nxCloudAccessToken": "MTM0ZGZiMTgtMTYwYi00YjNjLTkyMmUtYzhjYzg2MTE1Y2QxfHJlYWQtd3JpdGU="
+  "nxCloudAccessToken": "MTM0ZGZiMTgtMTYwYi00YjNjLTkyMmUtYzhjYzg2MTE1Y2QxfHJlYWQtd3JpdGU=",
+  "useInferencePlugins": false
 }
