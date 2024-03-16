@@ -38,6 +38,9 @@ export default defineConfig({
     prefetch(),
     sitemap(),
     tailwind({
+      configFile: fileURLToPath(
+        new URL('./tailwind.config.ts', import.meta.url),
+      ),
       applyBaseStyles: false,
     }),
   ],
