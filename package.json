@@ -5,6 +5,7 @@
   "private": true,
   "devDependencies": {
     "@astrojs/check": "^0.5.2",
+    "@monodon/rust": "^1.4.0",
     "@nx/devkit": "18.1.1",
     "@nx/eslint": "18.1.1",
     "@nx/js": "18.1.1",

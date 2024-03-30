@@ -70,7 +70,8 @@
       "options": {
         "targetName": "lint"
       }
-    }
+    },
+    "@monodon/rust"
   ],
   "defaultProject": "personal-website"
 }
