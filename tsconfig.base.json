@@ -14,18 +14,7 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {
-      "@personal-website/*": ["apps/personal-website/src/*"],
-      "@rainforest-tools/design-system": [
-        "libs/design-system/src/lib/index.ts"
-      ],
-      "@rainforest-tools/design-system/components/lit": [
-        "libs/design-system/src/lib/components/lit/index.ts"
-      ],
-      "@rainforest-tools/design-system/plugins": [
-        "libs/design-system/src/lib/plugins/index.ts"
-      ]
-    }
+    "paths": {}
   },
   "exclude": ["node_modules", "tmp"]
 }

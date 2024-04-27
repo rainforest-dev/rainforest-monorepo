@@ -5,6 +5,6 @@ test('has title', async ({ page }) => {
 
   // Expect h1 to contain a substring.
   expect(await page.locator('main h1').innerText()).toContain(
-    'Welcome to Astro',
+    'Welcome to Astro'
   );
 });

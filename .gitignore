@@ -38,9 +38,5 @@ testem.log
 .DS_Store
 Thumbs.db
 
+.nx/cache
 .astro
-
-# Next.js
-.next
-
-**/.nx/cache
