@@ -1,0 +1,40 @@
+{
+  "name": "personal-backend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/personal-backend/src",
+  "targets": {
+    "build": {
+      "executor": "@nx-bun/nx:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "entrypoints": ["apps/personal-backend/src/main.ts"],
+        "outputPath": "dist/personal-backend",
+        "tsConfig": "apps/personal-backend/tsconfig.app.json",
+        "smol": false,
+        "bun": true
+      }
+    },
+    "serve": {
+      "executor": "@nx-bun/nx:run",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "personal-backend:build",
+        "tsConfig": "apps/personal-backend/tsconfig.app.json",
+        "watch": true,
+        "hot": true,
+        "bun": true,
+        "smol": false
+      }
+    },
+    "test": {
+      "executor": "@nx-bun/nx:test",
+      "options": {
+        "smol": false,
+        "bail": true,
+        "tsConfig": "apps/personal-backend/tsconfig.json",
+        "bun": true
+      }
+    }
+  }
+}
