@@ -35,9 +35,10 @@
     "eslint": "~8.57.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-playwright": "^0.15.3",
+    "eslint-plugin-simple-import-sort": "^12.1.0",
     "lit": "^3.1.0",
     "nx": "18.3.4",
-    "prettier": "^2.6.2",
+    "prettier": "^3.2.5",
     "react": "^17.0.2 || ^18.0.0",
     "react-dom": "^17.0.2 || ^18.0.0",
     "svelte": "^4.0.0 || ^5.0.0-next.90",
@@ -46,8 +47,12 @@
     "vue": "^3.2.30"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.0.2",
+    "@elysiajs/server-timing": "^1.0.2",
+    "@elysiajs/swagger": "^1.0.4",
     "@material/material-color-utilities": "^0.2.7",
     "@material/web": "^1.4.1",
-    "@nx-bun/nx": "^1.2.0"
+    "@nx-bun/nx": "^1.2.0",
+    "elysia": "^1.0.15"
   }
 }
