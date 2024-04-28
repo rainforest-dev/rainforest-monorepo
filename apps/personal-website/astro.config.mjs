@@ -13,5 +13,5 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
   },
-  integrations: [lit(), react(), vue(), svelte(), partytown(), sitemap()],
+  integrations: [lit(), vue(), react(),  svelte(), partytown(), sitemap()],
 });

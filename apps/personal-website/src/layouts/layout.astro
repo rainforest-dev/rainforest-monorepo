@@ -1,0 +1,43 @@
+---
+import '../app.css';
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Astro description" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+	</head>
+	<body>
+		<md3-provider />
+		<slot />
+	</body>
+	<script>
+    import {
+      themeFromSourceColor,
+      argbFromHex,
+      applyTheme,
+    } from '@material/material-color-utilities';
+
+    const theme = themeFromSourceColor(argbFromHex('#1B4242'));
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    class Md3Provider extends HTMLElement {
+      constructor() {
+        super();
+        applyTheme(theme, { target: document.body, dark: systemDark });
+      }
+    }
+
+    customElements.define('md3-provider', Md3Provider);
+	</script>
+</html>

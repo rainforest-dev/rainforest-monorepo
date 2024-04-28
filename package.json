@@ -44,5 +44,5 @@
     "typescript": "^5.4.5",
     "vue": "^3.2.30"
   },
-  "dependencies": {}
+  "dependencies": { "@material/material-color-utilities": "^0.2.7", "@material/web": "^1.4.1" }
 }
