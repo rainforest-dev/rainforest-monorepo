@@ -1,0 +1,29 @@
+{
+  "name": "personal-website",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/personal-website/src",
+  "targets": {
+    "build": {
+      "executor": "@nxtensions/astro:build",
+      "options": {}
+    },
+    "dev": {
+      "executor": "@nxtensions/astro:dev",
+      "options": {
+        "host": true
+      }
+    },
+    "preview": {
+      "executor": "@nxtensions/astro:preview",
+      "options": {}
+    },
+    "check": {
+      "executor": "@nxtensions/astro:check"
+    },
+    "sync": {
+      "executor": "@nxtensions/astro:sync"
+    }
+  },
+  "tags": []
+}
