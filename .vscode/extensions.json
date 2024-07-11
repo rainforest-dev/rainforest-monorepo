@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "nrwl.angular-console",
+    "esbenp.prettier-vscode",
+    "astro-build.astro-vscode",
+    "ms-playwright.playwright"
+  ]
+}
