@@ -1,0 +1,9 @@
+
+[workspace]
+resolver = '2'
+members = [
+	'apps/personal_backend',
+]
+
+[profile.release]
+lto = true
