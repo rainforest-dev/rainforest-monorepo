@@ -23,7 +23,8 @@
       "options": {
         "targetName": "lint"
       }
-    }
+    },
+    "@monodon/rust"
   ],
   "targetDefaults": {
     "@nxtensions/astro:build": {
