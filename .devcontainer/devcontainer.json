@@ -28,7 +28,8 @@
         "Prisma.prisma",
         "rust-lang.rust-analyzer",
         "ms-playwright.playwright",
-        "serayuzgur.crates"
+        "serayuzgur.crates",
+        "Vue.volar"
       ]
     }
   },

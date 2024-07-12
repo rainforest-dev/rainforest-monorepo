@@ -4,7 +4,17 @@
   "license": "MIT",
   "scripts": {},
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "@nanostores/lit": "^0.2.1",
+    "@nanostores/persistent": "^0.10.1",
+    "@nanostores/react": "^0.7.2",
+    "@nanostores/vue": "^0.10.0",
+    "@tanstack/vue-query": "^5.51.1",
+    "@types/lodash-es": "^4.17.12",
+    "date-fns": "^3.6.0",
+    "lodash-es": "^4.17.21",
+    "nanostores": "^0.10.3"
+  },
   "devDependencies": {
     "@astrojs/check": "^0.5.2",
     "@astrojs/lit": "^4.3.0",
