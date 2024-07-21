@@ -1,0 +1,11 @@
+---
+import type { ComponentProps } from 'astro/types';
+import Layout from '../layouts/index.astro';
+type Props = ComponentProps<typeof Layout>;
+---
+
+<Layout {...Astro.props}>
+  <main class="max-w-md mx-auto">
+    <slot />
+  </main>
+</Layout>
