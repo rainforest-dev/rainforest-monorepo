@@ -1,5 +1,5 @@
 ---
-layout: ../../layouts/Layout.astro
+layout: ../../layouts/blog.astro
 title: Popover API
 author: Rainforest
 description: 'The Popover API'
@@ -8,3 +8,18 @@ tags: ['frontend', 'browser-api']
 ---
 
 # Popover API
+
+import {
+  ExampleWithPopoverApi,
+  ExampleWithAnchorPostioning,
+} from '../../components/popover-api';
+
+## Popover API
+
+and the default position of popover will be fixed center
+
+<ExampleWithPopoverApi />
+
+## Popover API + [Anchor Positioning](./anchor-positioning)
+
+<ExampleWithAnchorPostioning />
