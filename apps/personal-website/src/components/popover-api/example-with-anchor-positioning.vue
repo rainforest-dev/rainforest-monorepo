@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full border h-40 flex items-center justify-center *:border relative">
+  <div class="example-container">
     <button :popovertarget="name">Open Popover</button>
 
     <div :id="name" popover>

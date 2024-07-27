@@ -12,4 +12,13 @@
   body {
     @apply p-0 m-0 size-full font-serif;
   }
+  button {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .example-container {
+    @apply w-full border h-40 flex items-center justify-center *:border relative;
+  }
 }
