@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
 @import url('https://fonts.googleapis.com/css2?family=Lora&display=swap');
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @theme {
   --font-family-serif: 'Lora', 'Material Symbols Outlined', serif;
