@@ -6,8 +6,31 @@ import Layout from '../layouts/index.astro';
   <main class="size-full flex flex-col items-center gap-3">
     <!-- hero -->
     <div class="w-full h-screen flex-center flex-col">
-      <h1 class="text-primary text-6xl">Home</h1>
-      <p>Welcome to my personal website!</p>
+      <div class="size-4/5 items-center flex py-10 px-20 relative">
+        <div class="absolute -z-10 inset-0">
+          <div
+            class="size-full rounded-xl relative z-0 bg-gray-100 overflow-clip
+                  after:content-[''] after:bg-gray-900 after:h-[200%] after:aspect-square after:absolute after:rotate-45 after:-z-10 after:-right-1/2 after:top-0"
+          >
+          </div>
+        </div>
+        <div class="flex flex-col">
+          <p>1997</p>
+          <h1 class="text-9xl mt-1 mb-16">Rainforest<br />Cheng</h1>
+          <div class="flex-row-center gap-4">
+            <button>Action 1</button>
+            <button>Action 2</button>
+          </div>
+        </div>
+        <img
+          src="/images/profile/3.png"
+          alt="profile photo"
+          class="object-cover object-center h-[120%] self-end -mb-10"
+        />
+        <ul class="text-gray-50">
+          <li>Senior Frontend Engineer</li>
+        </ul>
+      </div>
     </div>
   </main>
 </Layout>

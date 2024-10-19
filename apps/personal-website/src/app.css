@@ -24,6 +24,12 @@
   .flex-center {
     @apply flex items-center justify-center;
   }
+  .flex-row-center {
+    @apply flex items-center;
+  }
+  .flex-col-center {
+    @apply flex flex-col items-center;
+  }
 }
 
 @layer components {
