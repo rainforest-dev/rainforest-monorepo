@@ -1,12 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
 @import url('https://fonts.googleapis.com/css2?family=Lora&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin "@tailwindcss/typography";
 
 @theme {
   --font-family-serif: 'Lora', 'Material Symbols Outlined', serif;
   --font-family-sans: 'Material Symbols Outlined', sans-serif;
+  --color-primary: cyan;
 }
 
 @layer base {
@@ -16,6 +17,12 @@
   }
   button {
     @apply cursor-pointer;
+  }
+}
+
+@layer utilities {
+  .flex-center {
+    @apply flex items-center justify-center;
   }
 }
 
