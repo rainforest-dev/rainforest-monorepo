@@ -9,7 +9,6 @@
     ],
     "sharedGlobals": []
   },
-  "nxCloudAccessToken": "NWFjMTQwYjQtNGIyMy00YTIzLWJkODctMGQ1YTczODljYjQ5fHJlYWQtd3JpdGU=",
   "plugins": [
     "@nxtensions/astro",
     {
