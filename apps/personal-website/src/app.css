@@ -1,0 +1,33 @@
+/* google fonts */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+@import url('https://fonts.googleapis.com/css2?family=Lora&display=swap');
+/* tailwindcss */
+@import 'tailwindcss';
+/* tailwindcss plugins */
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+
+@theme {
+  --font-family-serif: 'Lora', 'Material Symbols Outlined', serif;
+  --font-family-sans: 'Material Symbols Outlined', sans-serif;
+  --color-primary: cyan;
+}
+
+@layer base {
+  html,
+  body {
+    @apply p-0 m-0 size-full font-serif;
+  }
+}
+
+@layer utilities {
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+  .flex-row-center {
+    @apply flex items-center;
+  }
+  .flex-col-center {
+    @apply flex flex-col items-center;
+  }
+}
