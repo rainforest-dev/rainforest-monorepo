@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {},
   "private": true,
-  "dependencies": {},
+  "dependencies": { "@material/material-color-utilities": "^0.3.0", "@nanostores/lit": "^0.2.2", "@nanostores/persistent": "^0.10.2", "@nanostores/react": "^0.8.0", "@nanostores/vue": "^0.10.0", "nanostores": "^0.11.3" },
   "devDependencies": {
     "@nx/js": "20.0.6",
     "@swc-node/register": "~1.9.1",
