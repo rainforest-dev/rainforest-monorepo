@@ -1,8 +1,64 @@
 ---
+import { Image } from 'astro:assets';
+import { Tag } from '../components';
 import Layout from '../layouts/index.astro';
-import { SourceColor, ColorSystem } from '../components';
+import { resume } from '../utils/constants';
 ---
 
 <Layout title="Hello! I'm Rainforest">
-  <main class="size-full flex-col flex-center gap-3">Home page</main>
+  <main class="size-full snap-y snap-mandatory overflow-auto">
+    <!-- hero -->
+    <section>
+      <div
+        class="size-4/5 items-center flex py-10 px-20 relative justify-between"
+      >
+        <div class="absolute -z-10 inset-0">
+          <div
+            class="size-full rounded-xl relative z-0 bg-gray-100 overflow-clip
+                  after:content-[''] after:bg-on-background after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
+          >
+          </div>
+        </div>
+        <div class="flex flex-col">
+          <p>1997</p>
+          <h1 class="text-8xl mt-1 mb-16 w-min text-secondary">
+            {resume.hero.title}
+          </h1>
+          <div class="flex-row-center gap-4">
+            <button>Action 1</button>
+            <button>Action 2</button>
+          </div>
+        </div>
+        <Image
+          height={600}
+          width={600}
+          src={`/images/profile/${Math.ceil(Math.random() * 4)}.png`}
+          alt="profile"
+          class="object-cover object-center h-[120%] self-end -mb-10"
+        />
+        <div class="flex flex-col max-w-[33%] text-background gap-6">
+          <ul class="list-disc">
+            {resume.hero.summaries.map((summary) => <li>{summary}</li>)}
+          </ul>
+          <ul class="flex *:size-4 gap-2">
+            {resume.hero.tags.map((tag) => <Tag name={tag} />)}
+          </ul>
+        </div>
+      </div>
+    </section>
+    <!-- experience -->
+    <section>
+      <h2>Experience</h2>
+    </section>
+    <section>
+      <h2>Skills</h2>
+      <h2>Education</h2>
+      <h2>Contact Me</h2>
+    </section>
+  </main>
+  <style>
+    section {
+      @apply w-full h-screen flex flex-col items-center justify-center snap-always snap-center;
+    }
+  </style>
 </Layout>

@@ -1,0 +1,25 @@
+---
+import type { ComponentProps } from 'astro/types';
+import { Icon } from 'astro-icon/components';
+
+interface Props extends ComponentProps<typeof Icon> {
+  name: string;
+}
+
+const { name: _name, ...rest } = Astro.props;
+let name = undefined;
+switch (_name) {
+  case 'vue':
+  case 'react':
+  case 'flutter':
+    name = `logos:${_name}`;
+    break;
+  case 'docker':
+    name = `logos:${_name}-icon`;
+    break;
+  default:
+    break;
+}
+---
+
+{name ? <Icon {...rest} name={name} /> : <span>{_name}</span>}
