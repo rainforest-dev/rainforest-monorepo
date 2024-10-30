@@ -33,7 +33,6 @@ const updateSourceColor = (event: Event) => {
 
 effect(() => {
   const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  console.log('Applying theme', theme.value);
   applyTheme(theme.value, {
     target: document.body,
     dark: systemDark,
