@@ -82,7 +82,8 @@ export const resume = {
       },
       type: 'job',
       position: 'Senior Frontend Engineer',
-      description: ['Dex', 'Hoogii', 'Pyke', 'OpenCGT'],
+      description:
+        'The engineering team utilizes Jira for project management and adheres to an agile development methodology, employing a two-week iteration cycle.',
       startAt: '2022-07',
       endAt: '2024-10',
       tags: [
@@ -100,23 +101,32 @@ export const resume = {
           name: 'Hashgreen Dex',
           description: [
             'The first decentralized exchange (DEX) on Chia blockchain',
+            'The frontend utilizes Next.js and Styled Components in conjunction with TailwindCSS for styling purposes.',
+            'Particularly focusing on SEO and performance optimization for a long list of hundreds of CATs to display.',
           ],
         },
         {
           name: 'Hoogii Wallet',
           description: [
             'A web3 cryptocurrency extension wallet on Google Chrome',
+            'Develop the Chrome extension using Vite and React, and ensure that it adheres to the manifest v3 specification.',
           ],
         },
         {
           name: 'HashgreenSwap',
           description: [
             'The first Automated Market Maker (AMM) on Chia blockchain',
+            'Introduced the monorepo tool, Nx, to maintain product and unit tests, end-to-end tests, loading tests, and UI libraries separately while ensuring greater maintainability.',
           ],
         },
         {
           name: 'OpenCGT',
-          description: [''],
+          description: [
+            'Develop B2B products utilizing the Next.js app router.',
+            'Implemented social logins utilizing Auth.js and Auth0.',
+            'Implemented role-based authorizations using Cabin.js.',
+            'Construct an automated Continuous Integration/Continuous Deployment pipeline utilizing NX to streamline the product release process and minimize manual effort.',
+          ],
         },
       ],
     },
