@@ -7,9 +7,14 @@ type ExperienceType = (typeof experienceTypes)[number];
 const Experience = () => {
   const [experience, setExperience] = useState<ExperienceType | undefined>();
   const items = useMemo(() => {
-    if (!experience) return resume.experience;
-    return resume.experience.filter((exp) => exp.type === experience);
-  }, [experience]);
+    const result = [...resume.experience].sort((a, b) => {
+      if (a.startAt < b.startAt) return 1;
+      if (a.startAt > b.startAt) return -1;
+      return 0;
+    });
+    if (!experience) return result;
+    return result.filter((exp) => exp.type === experience);
+  }, [experience, resume.experience]);
 
   const handleClick = (type: ExperienceType) => {
     if (experience && experience === type) {
@@ -19,30 +24,67 @@ const Experience = () => {
     setExperience(type);
   };
 
+  const renderDescription = (description: string | readonly string[]) => {
+    if (Array.isArray(description)) {
+      return (
+        <ul className="list-disc list-inside">
+          {description.map((desc) => (
+            <li key={desc}>{desc}</li>
+          ))}
+        </ul>
+      );
+    }
+    return <p>{description}</p>;
+  };
+
   return (
     <>
-      <ul className="flex flex-col gap-5">
-        {items.map((item) => (
-          <li>
-            <h3>{item.organization.name}</h3>
-            <p>{item.position}</p>
-            {Array.isArray(item.description) ? (
-              <ul>
-                {item.description.map((desc) => (
-                  <li>{desc}</li>
-                ))}
-              </ul>
-            ) : (
-              <p>{item.description}</p>
-            )}
-          </li>
-        ))}
-      </ul>
-      <div className="flex gap-10">
+      <div className="size-4/5 overflow-auto">
+        <ul className="flex flex-col gap-5 relative">
+          <div className="absolute w-0.5 h-full bg-on-background left-1/2 -translate-x-1/2" />
+          {items.map((item) => (
+            <li
+              key={`${item.organization.name}_${item.position}`}
+              className="flex-row-center odd:flex-row-reverse *:flex-1 odd:*:last:text-right even:*:first:text-right gap-10"
+            >
+              <div>{item.startAt}</div>
+              <div className="absolute size-1 bg-on-background left-1/2 -translate-x-1/2" />
+              <div>
+                <h3 className="text-2xl">{item.organization.name}</h3>
+                <p>{item.position}</p>
+                {renderDescription(item.description)}
+                {'projects' in item && item.projects.length && (
+                  <ul>
+                    {item.projects.map((project) => (
+                      <li key={project.name}>
+                        <h4 className="text-lg">{project.name}</h4>
+                        {renderDescription(project.description)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex gap-10 mt-10">
         {experienceTypes.map((type) => (
-          <button key={type} onClick={() => handleClick(type)}>
+          <label
+            key={type}
+            htmlFor={type}
+            className="border px-2 py-1 rounded cursor-pointer size-fit has-[:checked]:bg-primary has-[:checked]:text-on-primary"
+          >
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              id={type}
+              name={type}
+              checked={experience === type}
+              onChange={(e) => handleClick(type)}
+            />
             {type}
-          </button>
+          </label>
         ))}
       </div>
     </>
