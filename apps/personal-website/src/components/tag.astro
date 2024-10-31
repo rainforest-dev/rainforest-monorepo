@@ -15,7 +15,7 @@ const iconName = getBrandIconName(name);
 <div
   class={clsx('flex-row-center gap-2 py-1 px-2 rounded-full', containerClass)}
 >
-  {iconName ? <iconify-icon icon={iconName} height="none" class="size-4"></iconify-icon> : <></>}
+  {iconName ? <iconify-icon icon={iconName} height="none" class={clsx("size-4", iconClass)}></iconify-icon> : <></>}
   {name}
 </div>
 <script>
