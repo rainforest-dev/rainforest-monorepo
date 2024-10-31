@@ -28,5 +28,6 @@
     "@nxtensions/astro:preview": { "dependsOn": ["build"] }
   },
   "defaultProject": "personal-website",
-  "nxCloudAccessToken": "YmUzODk4MDAtNDliZS00ZmE1LWFiOTMtYzBiMWJhNDUzNDg5fHJlYWQtd3JpdGU="
+  "nxCloudAccessToken": "YmUzODk4MDAtNDliZS00ZmE1LWFiOTMtYzBiMWJhNDUzNDg5fHJlYWQtd3JpdGU=",
+  "nxCloudId": "672343b2c27b012e2c0fdcc7"
 }
