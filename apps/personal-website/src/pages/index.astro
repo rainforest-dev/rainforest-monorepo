@@ -3,14 +3,15 @@ import { Image } from 'astro:assets';
 import clsx from 'clsx';
 import Layout from '../layouts/index.astro';
 import { resume } from '../utils/constants';
-import { Nav, Experience } from '../components/home';
+import { Nav, Experience, FAB } from '../components/home';
 import { Tag } from '../components';
 import { getBrandIconName } from '../utils';
 ---
 
 <Layout title="Hello! I'm Rainforest">
-  <main class="size-full snap-y snap-mandatory overflow-auto scroll-smooth">
+  <main class="size-full snap-y snap-mandatory overflow-scroll scroll-smooth">
     <Nav />
+    <FAB client:load />
     <!-- hero -->
     <section class="flex-center container">
       <div class="h-3/4 items-center flex py-10 px-20 relative justify-between">
