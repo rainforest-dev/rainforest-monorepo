@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { resume } from '../../utils/constants';
+import { getBrandIconName } from '../../utils';
+import { Icon } from '@iconify-icon/react';
 
 const experienceTypes = ['job', 'education'] as const;
 type ExperienceType = (typeof experienceTypes)[number];
@@ -48,22 +50,36 @@ const Experience = () => {
               className="flex-row-center odd:flex-row-reverse *:flex-1 odd:*:last:text-right even:*:first:text-right gap-10"
             >
               <div>{item.startAt}</div>
-              <div className="absolute size-1 bg-on-background left-1/2 -translate-x-1/2" />
+              <div className="absolute size-2 bg-on-background left-1/2 -translate-x-1/2 rounded-full" />
               <div>
                 <h3 className="text-2xl">{item.organization.name}</h3>
-                <p>{item.position}</p>
+                <p className="text-lg text-primary/85">{item.position}</p>
                 {renderDescription(item.description)}
                 {'projects' in item && item.projects.length && (
                   <ul>
                     {item.projects.map((project) => (
                       <li key={project.name}>
-                        <h4 className="text-lg">{project.name}</h4>
+                        <h4 className="text-lg mb-1.5 mt-3">{project.name}</h4>
                         {renderDescription(project.description)}
                       </li>
                     ))}
                   </ul>
                 )}
-                <div className="flex">{item.tags.join(', ')}</div>
+                <div className="inline-flex gap-2 mt-4">
+                  {item.tags.map((tag) => {
+                    const icon = getBrandIconName(tag);
+                    return icon ? (
+                      <Icon
+                        key={tag}
+                        icon={icon}
+                        className="size-5"
+                        height="none"
+                      />
+                    ) : (
+                      <></>
+                    );
+                  })}
+                </div>
               </div>
             </li>
           ))}

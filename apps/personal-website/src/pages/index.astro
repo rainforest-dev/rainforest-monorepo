@@ -1,10 +1,11 @@
 ---
 import { Image } from 'astro:assets';
 import clsx from 'clsx';
-import { Tag, BrandIcon } from '../components';
 import Layout from '../layouts/index.astro';
 import { resume } from '../utils/constants';
 import { Experience } from '../components/home';
+import { Tag } from '../components';
+import { getBrandIconName } from '../utils';
 ---
 
 <Layout title="Hello! I'm Rainforest">
@@ -43,7 +44,9 @@ import { Experience } from '../components/home';
           <ul class="flex gap-2">
             {
               resume.hero.tags.map((tag) => (
-                <Tag name={tag} class="bg-background/85 text-on-background" />
+                <li>
+                  <Tag name={tag} class="bg-background/85 text-on-background" />
+                </li>
               ))
             }
           </ul>
@@ -75,9 +78,10 @@ import { Experience } from '../components/home';
                     </li>
                   ))}
                 </ul>
-                <BrandIcon
-                  name={skill.key}
+                <iconify-icon
+                  icon={getBrandIconName(skill.key)}
                   class="absolute right-5 bottom-4 size-12"
+                  height="none"
                 />
               </li>
             ))

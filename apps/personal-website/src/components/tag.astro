@@ -1,18 +1,23 @@
 ---
-import type { ComponentProps } from 'astro/types';
 import clsx from 'clsx';
-import BrandIcon from './brand-icon.astro';
+import { getBrandIconName } from '../utils';
 
-interface Props extends ComponentProps<typeof BrandIcon> {
-  tagClass?: string;
+interface Props {
+  name: string;
+  class?: string;
+  iconClass?: string;
 }
 
-const { name, class: containerClass, tagClass, ...rest } = Astro.props;
+const { name, class: containerClass, iconClass } = Astro.props;
+const iconName = getBrandIconName(name);
 ---
 
 <div
   class={clsx('flex-row-center gap-2 py-1 px-2 rounded-full', containerClass)}
 >
-  <BrandIcon {...rest} name={name} class={tagClass} />
+  {iconName ? <iconify-icon icon={iconName} height="none" class="size-4"></iconify-icon> : <></>}
   {name}
 </div>
+<script>
+import 'iconify-icon';
+</script>
