@@ -9,7 +9,7 @@
   <label for="source-color">Source Color</label>
 </template>
 <script lang="ts" setup>
-import { computed, effect, ref } from 'vue';
+import { computed, effect } from 'vue';
 import {
   argbFromHex,
   themeFromSourceColor,

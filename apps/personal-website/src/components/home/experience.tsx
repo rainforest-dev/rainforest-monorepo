@@ -98,7 +98,7 @@ const Experience = () => {
               id={type}
               name={type}
               checked={experience === type}
-              onChange={(e) => handleClick(type)}
+              onChange={() => handleClick(type)}
             />
             {type}
           </label>
