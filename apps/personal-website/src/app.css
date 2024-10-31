@@ -1,33 +1,96 @@
+/* google fonts */
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
 @import url('https://fonts.googleapis.com/css2?family=Lora&display=swap');
+/* tailwindcss */
 @import 'tailwindcss';
-
+/* tailwindcss plugins */
 @plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
 
 @theme {
   --font-family-serif: 'Lora', 'Material Symbols Outlined', serif;
   --font-family-sans: 'Material Symbols Outlined', sans-serif;
-  --color-primary: cyan;
+
+  /* primary color */
+  --color-primary: var(--md-sys-color-primary);
+  --color-on-primary: var(--md-sys-color-on-primary);
+  --color-primary-container: var(--md-sys-color-primary-container);
+  --color-on-primary-container: var(--md-sys-color-on-primary-container);
+  /* secondary */
+  --color-secondary: var(--md-sys-color-secondary);
+  --color-on-secondary: var(--md-sys-color-on-secondary);
+  --color-secondary-container: var(--md-sys-color-secondary-container);
+  --color-on-secondary-container: var(--md-sys-color-on-secondary-container);
+  /* tertiary */
+  --color-tertiary: var(--md-sys-color-tertiary);
+  --color-on-tertiary: var(--md-sys-color-on-tertiary);
+  --color-tertiary-container: var(--md-sys-color-tertiary-container);
+  --color-on-tertiary-container: var(--md-sys-color-on-tertiary-container);
+  /* error */
+  --color-error: var(--md-sys-color-error);
+  --color-on-error: var(--md-sys-color-on-error);
+  --color-error-container: var(--md-sys-color-error-container);
+  --color-on-error-container: var(--md-sys-color-on-error-container);
+  /* background */
+  --color-background: var(--md-sys-color-background);
+  --color-on-background: var(--md-sys-color-on-background);
+  /* surface */
+  --color-surface: var(--md-sys-color-surface);
+  --color-on-surface: var(--md-sys-color-on-surface);
+  --color-surface-variant: var(--md-sys-color-surface-variant);
+  --color-on-surface-variant: var(--md-sys-color-on-surface-variant);
+  /* outline */
+  --color-outline: var(--md-sys-color-outline);
+  --color-outline-variant: var(--md-sys-color-outline-variant);
+  /* shadow */
+  --color-shadow: var(--md-sys-color-shadow);
+  /* scrim */
+  --color-scrim: var(--md-sys-color-scrim);
+  /* inverse */
+  --color-inverse-surface: var(--md-sys-color-inverse-surface);
+  --color-inverse-on-surface: var(--md-sys-color-inverse-on-surface);
+  --color-inverse-primary: var(--md-sys-color-inverse-primary);
 }
 
 @layer base {
   html,
   body {
-    @apply p-0 m-0 size-full font-serif;
-  }
-  button {
-    @apply cursor-pointer;
+    @apply p-0 m-0 size-full font-serif bg-background text-on-background overflow-hidden;
   }
 }
 
-@layer utilities {
-  .flex-center {
-    @apply flex items-center justify-center;
-  }
+@utility flex-center {
+  @apply flex items-center justify-center;
 }
 
-@layer components {
-  .example-container {
-    @apply w-full border h-40 flex items-center justify-center *:border relative;
-  }
+@utility flex-row-center {
+  @apply flex items-center;
+}
+
+@utility flex-col-center {
+  @apply flex flex-col items-center;
+}
+
+@utility container-sm {
+  @apply w-full max-w-[var(--breakpoint-sm)];
+}
+
+@utility container-md {
+  @apply w-full max-w-[var(--breakpoint-md)];
+}
+
+@utility container-lg {
+  @apply w-full max-w-[var(--breakpoint-lg)];
+}
+
+@utility container-xl {
+  @apply w-full max-w-[var(--breakpoint-xl)];
+}
+
+@utility container-2xl {
+  @apply w-full max-w-[var(--breakpoint-2xl)];
+}
+
+@utility container {
+  @apply mx-auto sm:container-sm md:container-md lg:container-lg xl:container-xl 2xl:container-2xl;
 }

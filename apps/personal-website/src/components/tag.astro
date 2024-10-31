@@ -1,0 +1,23 @@
+---
+import clsx from 'clsx';
+import { getBrandIconName } from '../utils';
+
+interface Props {
+  name: string;
+  class?: string;
+  iconClass?: string;
+}
+
+const { name, class: containerClass, iconClass } = Astro.props;
+const iconName = getBrandIconName(name);
+---
+
+<div
+  class={clsx('flex-row-center gap-2 py-1 px-2 rounded-full', containerClass)}
+>
+  {iconName ? <iconify-icon icon={iconName} height="none" class={clsx("size-4", iconClass)}></iconify-icon> : <></>}
+  {name}
+</div>
+<script>
+import 'iconify-icon';
+</script>
