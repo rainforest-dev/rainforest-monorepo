@@ -1,12 +1,12 @@
 ---
 import '../app.css';
-interface Props {
-  title: string;
-}
+
+import type { Props } from './types';
 
 const { title } = Astro.props;
 ---
 
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -16,8 +16,27 @@ const { title } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
   </head>
-
-  <body class="container mx-auto">
+  <body>
     <slot />
   </body>
 </html>
+
+<script>
+  import {
+    applyTheme,
+    argbFromHex,
+    themeFromSourceColor,
+  } from '@material/material-color-utilities';
+  import { sourceColor } from '../stores';
+
+  if (sourceColor.value) {
+    const theme = themeFromSourceColor(argbFromHex(sourceColor.value));
+    const systemDark = window.matchMedia(
+      '(prefers-color-scheme: dark)'
+    ).matches;
+    applyTheme(theme, {
+      target: document.body,
+      dark: systemDark,
+    });
+  }
+</script>
