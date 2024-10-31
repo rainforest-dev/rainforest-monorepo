@@ -3,13 +3,14 @@ import { Image } from 'astro:assets';
 import clsx from 'clsx';
 import Layout from '../layouts/index.astro';
 import { resume } from '../utils/constants';
-import { Experience } from '../components/home';
+import { Nav, Experience } from '../components/home';
 import { Tag } from '../components';
 import { getBrandIconName } from '../utils';
 ---
 
 <Layout title="Hello! I'm Rainforest">
-  <main class="size-full snap-y snap-mandatory overflow-auto">
+  <main class="size-full snap-y snap-mandatory overflow-auto scroll-smooth">
+    <Nav />
     <!-- hero -->
     <section class="flex-center container">
       <div class="h-3/4 items-center flex py-10 px-20 relative justify-between">
@@ -54,11 +55,11 @@ import { getBrandIconName } from '../utils';
       </div>
     </section>
     <!-- experience -->
-    <section class="container py-40">
+    <section id="experience" class="container py-40">
       <h2 class="text-4xl mb-10">Experience</h2>
       <Experience client:load />
     </section>
-    <section class="container py-40">
+    <section id="skills" class="container py-40">
       <section>
         <h2 class="text-4xl mb-10">Skills</h2>
         <ul class="grid grid-cols-3 gap-10">
