@@ -10,6 +10,7 @@
 @theme {
   --font-family-serif: 'Lora', 'Material Symbols Outlined', serif;
   --font-family-sans: 'Material Symbols Outlined', sans-serif;
+
   /* primary color */
   --color-primary: var(--md-sys-color-primary);
   --color-on-primary: var(--md-sys-color-on-primary);
@@ -58,14 +59,38 @@
   }
 }
 
-@layer utilities {
-  .flex-center {
-    @apply flex items-center justify-center;
-  }
-  .flex-row-center {
-    @apply flex items-center;
-  }
-  .flex-col-center {
-    @apply flex flex-col items-center;
-  }
+@utility flex-center {
+  @apply flex items-center justify-center;
+}
+
+@utility flex-row-center {
+  @apply flex items-center;
+}
+
+@utility flex-col-center {
+  @apply flex flex-col items-center;
+}
+
+@utility container-sm {
+  @apply w-full max-w-[var(--breakpoint-sm)];
+}
+
+@utility container-md {
+  @apply w-full max-w-[var(--breakpoint-md)];
+}
+
+@utility container-lg {
+  @apply w-full max-w-[var(--breakpoint-lg)];
+}
+
+@utility container-xl {
+  @apply w-full max-w-[var(--breakpoint-xl)];
+}
+
+@utility container-2xl {
+  @apply w-full max-w-[var(--breakpoint-2xl)];
+}
+
+@utility container {
+  @apply mx-auto sm:container-sm md:container-md lg:container-lg xl:container-xl 2xl:container-2xl;
 }

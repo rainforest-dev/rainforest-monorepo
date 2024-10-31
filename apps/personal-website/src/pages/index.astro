@@ -1,6 +1,7 @@
 ---
 import { Image } from 'astro:assets';
-import { Tag } from '../components';
+import clsx from 'clsx';
+import { Tag, BrandIcon } from '../components';
 import Layout from '../layouts/index.astro';
 import { resume } from '../utils/constants';
 import { Experience } from '../components/home';
@@ -9,10 +10,8 @@ import { Experience } from '../components/home';
 <Layout title="Hello! I'm Rainforest">
   <main class="size-full snap-y snap-mandatory overflow-auto">
     <!-- hero -->
-    <section>
-      <div
-        class="size-4/5 items-center flex py-10 px-20 relative justify-between"
-      >
+    <section class="flex-center container">
+      <div class="h-3/4 items-center flex py-10 px-20 relative justify-between">
         <div class="absolute -z-10 inset-0">
           <div
             class="size-full rounded-xl relative z-0 bg-gray-100 overflow-clip
@@ -22,7 +21,7 @@ import { Experience } from '../components/home';
         </div>
         <div class="flex flex-col">
           <p>1997</p>
-          <h1 class="text-8xl mt-1 mb-16 w-min text-secondary">
+          <h1 class="text-7xl mt-1 mb-16 w-min text-secondary">
             {resume.hero.title}
           </h1>
           <div class="flex-row-center gap-4">
@@ -41,32 +40,45 @@ import { Experience } from '../components/home';
           <ul class="list-disc">
             {resume.hero.summaries.map((summary) => <li>{summary}</li>)}
           </ul>
-          <ul class="flex *:size-4 gap-2">
-            {resume.hero.tags.map((tag) => <Tag name={tag} />)}
+          <ul class="flex gap-2">
+            {
+              resume.hero.tags.map((tag) => (
+                <Tag name={tag} class="bg-background/85 text-on-background" />
+              ))
+            }
           </ul>
         </div>
       </div>
     </section>
     <!-- experience -->
-    <section>
+    <section class="container py-40">
       <h2 class="text-4xl mb-10">Experience</h2>
       <Experience client:load />
     </section>
-    <section>
+    <section class="container py-40">
       <section>
-        <h2>Skills</h2>
-        <ul>
+        <h2 class="text-4xl mb-10">Skills</h2>
+        <ul class="grid grid-cols-3 gap-10">
           {
             resume.skills.map((skill) => (
-              <li>
-                <h3>{skill.name}</h3>
-                <ul>
+              <li
+                class={clsx(
+                  'min-w-80 bg-gray-50 px-5 py-4 rounded min-h-80 shadow flex flex-col gap-5 relative',
+                  skill.description.length > 2 && 'col-span-2'
+                )}
+              >
+                <h3 class="text-xl">{skill.name}</h3>
+                <ul class="list-disc list-inside">
                   {skill.description.map((item) => (
                     <li>
                       <p>{item}</p>
                     </li>
                   ))}
                 </ul>
+                <BrandIcon
+                  name={skill.key}
+                  class="absolute right-5 bottom-4 size-12"
+                />
               </li>
             ))
           }
@@ -76,7 +88,7 @@ import { Experience } from '../components/home';
   </main>
   <style>
     main > section {
-      @apply w-full h-screen flex flex-col items-center justify-center snap-always snap-center;
+      @apply h-screen flex flex-col snap-always snap-center items-center;
     }
   </style>
 </Layout>

@@ -135,12 +135,20 @@ export const resume = {
     {
       key: 'nextjs',
       name: 'Next.js',
-      description: [],
+      description: [
+        "Proficient in Next.js App Router, utilizing React's latest features such as Server Components and Streaming with Suspense for optimal performance and scalability.",
+        'Strong understanding of server-side rendering and dynamic loading techniques using Next.js App Router.',
+        'Experience with Auth.js has enabled me to create secure and scalable authentication solutions using Next.js App Router, ensuring that user data is protected and authorized correctly.',
+        'I possess expertise in styling Next.js projects, having leveraged MUI and TailwindCSS to design visually appealing and user-friendly interfaces.',
+      ],
     },
     {
       key: 'vue',
       name: 'Vue',
-      description: [],
+      description: [
+        'Familiar with both Vue 2 Options API and latest Composition API',
+        'Have experience with state management packages such as Vuex and Pinia.',
+      ],
     },
     {
       key: 'flutter',
@@ -150,7 +158,10 @@ export const resume = {
     {
       key: 'docker',
       name: 'Docker',
-      description: [],
+      description: [
+        'Implemented a Docker-based Continuous Integration and Continuous Deployment (CI/CD) pipeline for my frontend project. This pipeline streamlines the build, testing, and deployment processes, thereby minimizing manual errors.',
+        'Automated routine tasks using a custom Docker-based script, ensuring consistency and efficiency across multiple environments.',
+      ],
     },
   ],
 } as const;
