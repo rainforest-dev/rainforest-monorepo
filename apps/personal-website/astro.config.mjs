@@ -18,7 +18,7 @@ export default defineConfig({
     vue(),
     icon({
       include: {
-        logos: ['vue', 'react', 'flutter', 'docker-icon'],
+        logos: ['vue', 'react', 'flutter', 'docker-icon', 'nextjs-icon'],
       },
     }),
   ],

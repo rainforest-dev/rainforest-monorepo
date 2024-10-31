@@ -63,6 +63,7 @@ const Experience = () => {
                     ))}
                   </ul>
                 )}
+                <div className="flex">{item.tags.join(', ')}</div>
               </div>
             </li>
           ))}
@@ -73,7 +74,7 @@ const Experience = () => {
           <label
             key={type}
             htmlFor={type}
-            className="border px-2 py-1 rounded cursor-pointer size-fit has-[:checked]:bg-primary has-[:checked]:text-on-primary"
+            className="border px-2 py-1 rounded cursor-pointer size-fit has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:hover]:bg-primary/80 has-[:hover]:text-on-primary"
           >
             <input
               type="checkbox"

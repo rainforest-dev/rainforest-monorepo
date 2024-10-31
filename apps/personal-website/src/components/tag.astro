@@ -1,25 +1,18 @@
 ---
 import type { ComponentProps } from 'astro/types';
-import { Icon } from 'astro-icon/components';
+import clsx from 'clsx';
+import BrandIcon from './brand-icon.astro';
 
-interface Props extends ComponentProps<typeof Icon> {
-  name: string;
+interface Props extends ComponentProps<typeof BrandIcon> {
+  tagClass?: string;
 }
 
-const { name: _name, ...rest } = Astro.props;
-let name = undefined;
-switch (_name) {
-  case 'vue':
-  case 'react':
-  case 'flutter':
-    name = `logos:${_name}`;
-    break;
-  case 'docker':
-    name = `logos:${_name}-icon`;
-    break;
-  default:
-    break;
-}
+const { name, class: containerClass, tagClass, ...rest } = Astro.props;
 ---
 
-{name ? <Icon {...rest} name={name} /> : <span>{_name}</span>}
+<div
+  class={clsx('flex-row-center gap-2 py-1 px-2 rounded-full', containerClass)}
+>
+  <BrandIcon {...rest} name={name} class={tagClass} />
+  {name}
+</div>
