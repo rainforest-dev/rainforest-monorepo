@@ -9,11 +9,13 @@ const posts = (await getCollection('blog')).sort(
 
 <Layout title="Blogs">
   <main
-    class="columns-5 container *:px-4 *:py-3 *:min-h-20 *:break-inside-avoid *:border"
+    class="columns-5 container overflow-scroll *:px-4 *:py-3 *:min-h-20 *:break-inside-avoid *:border"
   >
     {
-      posts.map(({ data: post }) => (
-        <div
+      posts.map(({ data: post, id }) => (
+        <a
+          class="inline-block"
+          href={`/blog/${id}`}
           style={{
             height: `${100 + 100 * Math.random()}px`,
             'background-color': `#${Math.floor(Math.random() * 16777215).toString(16)}`,
@@ -21,7 +23,7 @@ const posts = (await getCollection('blog')).sort(
         >
           <h2>{post.title}</h2>
           <p>{post.description}</p>
-        </div>
+        </a>
       ))
     }
     {
