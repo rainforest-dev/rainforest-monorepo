@@ -9,7 +9,7 @@ import { getBrandIconName } from '../utils';
 ---
 
 <Layout title="Hello! I'm Rainforest">
-  <main class="size-full snap-y snap-mandatory overflow-scroll scroll-smooth">
+  <main class="size-full contents">
     <Nav />
     <FAB client:load />
     <!-- hero -->
@@ -93,6 +93,9 @@ import { getBrandIconName } from '../utils';
     </section>
   </main>
   <style>
+    html {
+      @apply snap-y snap-mandatory scroll-smooth;
+    }
     main > section {
       @apply h-screen flex flex-col snap-always snap-center items-center;
     }
