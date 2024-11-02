@@ -55,7 +55,10 @@
 @layer base {
   html,
   body {
-    @apply p-0 m-0 size-full font-serif bg-background text-on-background overflow-hidden;
+    @apply p-0 m-0 size-full font-serif bg-background text-on-background;
+  }
+  button {
+    @apply cursor-pointer;
   }
 }
 
