@@ -3,39 +3,27 @@
     type="color"
     name="source-color"
     id="source-color"
-    :value="sourceColor"
+    :value="$sourceColor"
     @change="updateSourceColor"
   />
   <label for="source-color">Source Color</label>
 </template>
 <script lang="ts" setup>
-import { computed, effect } from 'vue';
-import {
-  argbFromHex,
-  themeFromSourceColor,
-  applyTheme,
-} from '@material/material-color-utilities';
 import { useStore } from '@nanostores/vue';
-import { sourceColor } from '../stores';
+import {
+  sourceColor,
+  updateSourceColor as _updateSourceColor,
+} from '../stores';
+import { applyTheme } from '../utils/md3-utilities';
 
 const $sourceColor = useStore(sourceColor);
-const theme = computed(() =>
-  themeFromSourceColor(argbFromHex($sourceColor.value))
-);
 
 const updateSourceColor = (event: Event) => {
-  sourceColor.set((event.target as HTMLInputElement).value);
-  document.documentElement.style.setProperty(
-    '--color-source-color',
-    $sourceColor.value
+  const sourceColor = (event.target as HTMLInputElement).value;
+  _updateSourceColor(sourceColor);
+  applyTheme(
+    sourceColor,
+    window.matchMedia('(prefers-color-scheme: dark)').matches
   );
 };
-
-effect(() => {
-  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  applyTheme(theme.value, {
-    target: document.body,
-    dark: systemDark,
-  });
-});
 </script>

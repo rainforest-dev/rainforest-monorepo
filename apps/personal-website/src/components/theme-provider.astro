@@ -1,0 +1,48 @@
+---
+import {
+  argbFromHex,
+  themeFromSourceColor,
+} from '@material/material-color-utilities';
+import { persistentColorSchemeKey, persistentKey } from '../stores';
+import { defaultSourceColor } from '../utils/constants';
+import { getSchemeProperties } from '../utils/md3-utilities';
+
+const dark = Astro.cookies.get(persistentColorSchemeKey)?.value === 'true';
+const sourceColor =
+  Astro.cookies.get(persistentKey)?.value ?? defaultSourceColor;
+const theme = themeFromSourceColor(argbFromHex(sourceColor));
+const scheme = dark ? theme.schemes.dark : theme.schemes.light;
+const properties = getSchemeProperties(scheme);
+
+const styleRaw = `
+  @layer theme {
+    :root {
+      ${Object.entries(properties)
+        .map(([k, v]) => `${k}: ${v};`)
+        .join('\n')}
+    }
+  }
+`;
+---
+
+<style is:inline set:html={styleRaw}></style>
+<script>
+  import Cookies from 'js-cookie';
+  import { sourceColor as $sourceColor, persistentKey } from '../stores';
+  const sourceColor = $sourceColor.get();
+  if (sourceColor) {
+    Cookies.set(persistentKey, sourceColor);
+  }
+</script>
+<script>
+  import { updateColorScheme, sourceColor } from '../stores';
+  import { applyTheme } from '../utils/md3-utilities';
+
+  window
+    .matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', (e) => {
+      const dark = e.matches;
+      updateColorScheme(dark);
+      sourceColor.value && applyTheme(sourceColor.value, dark);
+    });
+</script>
