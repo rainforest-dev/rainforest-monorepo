@@ -42,9 +42,3 @@
     </ul>
   </div>
 </template>
-<script lang="ts" setup>
-import { useStore } from '@nanostores/vue';
-import { sourceColor } from '../stores';
-
-const $sourceColor = useStore(sourceColor);
-</script>

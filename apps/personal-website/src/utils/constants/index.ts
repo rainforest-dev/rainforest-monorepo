@@ -1,3 +1,5 @@
+export const defaultSourceColor = '#66b2b2' as const;
+
 export const resume = {
   hero: {
     title: 'Rainforest Cheng',
