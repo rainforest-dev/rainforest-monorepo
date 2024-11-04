@@ -25,7 +25,8 @@ import { getBrandIconName } from '../utils';
         <div class="flex flex-col">
           <p>1997</p>
           <h1 class="text-7xl mt-1 mb-16 w-min text-secondary">
-            {resume.hero.title}
+            {resume.hero.name.first}
+            {resume.hero.name.last}
           </h1>
           <div class="flex-row-center gap-4">
             <button>Action 1</button>
@@ -41,6 +42,7 @@ import { getBrandIconName } from '../utils';
         />
         <div class="flex flex-col max-w-[33%] text-background gap-6">
           <ul class="list-disc">
+            <li>{`${resume.hero.position} from ${resume.hero.location}.`}</li>
             {resume.hero.summaries.map((summary) => <li>{summary}</li>)}
           </ul>
           <ul class="flex gap-2">
