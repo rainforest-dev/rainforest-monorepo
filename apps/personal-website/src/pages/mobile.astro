@@ -1,0 +1,139 @@
+---
+import { Image } from 'astro:assets';
+import Layout from '../layouts/index.astro';
+import { resume } from '../utils/constants';
+import clsx from 'clsx';
+import { getBrandIconName } from '../utils';
+
+const getItems = (type: (typeof resume.experience)[number]['type']) =>
+  [...resume.experience]
+    .filter((item) => item.type === type)
+    .sort((a, b) => {
+      if (a.startAt < b.startAt) return 1;
+      if (a.startAt > b.startAt) return -1;
+      return 0;
+    });
+
+const experience = getItems('job');
+const education = getItems('education');
+---
+
+<Layout title="Hello! I'm Rainforest">
+  <main class="contents">
+    <section class="h-screen bg-background">
+      <div class="relative w-full aspect-square">
+        <div
+          class="size-full bg-on-background rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0"
+        >
+          <Image
+            height={600}
+            width={600}
+            src={`/images/profile/${Math.ceil(Math.random() * 4)}.png`}
+            alt="profile"
+            class="object-contain object-center h-full z-10 absolute -bottom-10 left-1/2 -translate-x-1/2 -skew-y-12"
+          />
+        </div>
+        <div
+          class="text-9xl text-tertiary/50 rotate-270 origin-bottom inline-block m-4"
+        >
+          1997
+        </div>
+      </div>
+      <div class="flex container">
+        <div class="flex flex-col">
+          <h1 class="text-4xl text-secondary">
+            {resume.hero.name.first}
+          </h1>
+          <p>{resume.hero.position}</p>
+          <ul class="list-disc list-inside mt-4">
+            {resume.hero.summaries.map((summary) => <li>{summary}</li>)}
+          </ul>
+          <!-- <div class="flex-row-center gap-4 mt-16">
+            <button>Action 1</button>
+            <button>Action 2</button>
+          </div> -->
+        </div>
+      </div>
+    </section>
+    <section class="container py-5">
+      <h2 class="text-2xl mb-10">Experience</h2>
+      <ul class="flex flex-col gap-4 border-l">
+        {
+          experience.map((item) => (
+            <li class="relative pl-4">
+              <div class="size-1 bg-on-background rounded-full absolute left-0 -translate-x-1/2 top-7" />
+              <div class="text-xs">{item.startAt}</div>
+              <h3 class="">{item.organization.name}</h3>
+              <p class="text-sm text-primary/85">{item.position}</p>
+              {Array.isArray(item.description) ? (
+                <ul class="list-disc list-inside text-xs">
+                  {item.description.map((desc) => (
+                    <li>{desc}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="text-xs">{item.description}</p>
+              )}
+              {'projects' in item && item.projects.length && (
+                <ul>
+                  {item.projects.toReversed().map((project) => (
+                    <li>
+                      <h4 class="text-sm mb-0.5 mt-2">{project.name}</h4>
+                      {Array.isArray(project.description) ? (
+                        <ul class="list-disc list-inside text-xs">
+                          {project.description.map((desc) => (
+                            <li>{desc}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p class="text-xs">{project.description}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+    <section class="container py-5">
+      <h2 class="text-2xl mb-10">Skills</h2>
+      <ul class="grid grid-cols-1 gap-5">
+        {
+          resume.skills.map((skill) => (
+            <li class="min-w-80 bg-gray-50 px-5 py-4 rounded min-h-80 shadow flex flex-col gap-5 relative">
+              <h3 class="text-xl">{skill.name}</h3>
+              <ul class="list-disc list-inside">
+                {skill.description.map((item) => (
+                  <li>
+                    <p>{item}</p>
+                  </li>
+                ))}
+              </ul>
+              <iconify-icon
+                icon={getBrandIconName(skill.key)}
+                class="absolute right-5 bottom-4 size-12"
+                height="none"
+              />
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </main>
+  <style>
+    html {
+      @apply snap-y snap-mandatory scroll-smooth;
+    }
+    body {
+      background-color: var(--color-on-background);
+    }
+    main > section {
+      @apply snap-always snap-start;
+    }
+    section:not(:first-child) {
+      @apply min-h-screen;
+    }
+  </style>
+</Layout>

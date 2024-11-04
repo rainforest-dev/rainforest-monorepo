@@ -57,7 +57,7 @@ const Experience = () => {
                 {renderDescription(item.description)}
                 {'projects' in item && item.projects.length && (
                   <ul>
-                    {item.projects.map((project) => (
+                    {item.projects.toReversed().map((project) => (
                       <li key={project.name}>
                         <h4 className="text-lg mb-1.5 mt-3">{project.name}</h4>
                         {renderDescription(project.description)}

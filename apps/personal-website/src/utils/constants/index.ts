@@ -2,9 +2,10 @@ export const defaultSourceColor = '#66b2b2' as const;
 
 export const resume = {
   hero: {
-    title: 'Rainforest Cheng',
+    name: { first: 'Rainforest', last: 'Cheng' },
+    position: 'Senior frontend engineer',
+    location: 'Tainan, Taiwan',
     summaries: [
-      'Senior frontend engineer from Tainan, Taiwan.',
       '6 years of experience developing with Vue and React.',
       'Proficient in Continuous Integration/Continuous Deployment (CI/CD) and container technology for frontend development.',
       'Past work in digital twins, blockchain, elderly care, and cell gene therapy.',
