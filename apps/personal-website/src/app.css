@@ -10,6 +10,7 @@
 @theme {
   --font-family-serif: 'Lora', 'Material Symbols Outlined', serif;
   --font-family-sans: 'Material Symbols Outlined', sans-serif;
+  --font-family-resume-serif: Georgia, 'Material Symbols Outlined', serif;
 
   /* primary color */
   --color-primary: var(--md-sys-color-primary);
