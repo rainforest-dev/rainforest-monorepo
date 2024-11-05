@@ -35,15 +35,15 @@ export default function Timeline({ items = [] }: IProps) {
       {items.map((item) => (
         <li
           key={`${item.organization}_${item.position}`}
-          className="flex flex-col *:flex-1 pl-[1em]
-                      sm:pl-0 sm:flex-row sm:odd:flex-row-reverse sm:odd:*:last:text-right sm:even:*:first:text-right sm:gap-10"
+          className="flex flex-col *:flex-1 pl-[1em] relative
+                      sm:pl-0 sm:flex-row sm:items-center sm:odd:flex-row-reverse sm:odd:*:last:text-right sm:even:*:first:text-right sm:gap-10"
         >
+          <div className="text-xs sm:text-base">{item.date}</div>
           <div
             className="absolute size-2 bg-on-background rounded-full 
                           left-0 -translate-x-1/2 top-7 
-                          sm:left-1/2 sm:-translate-x-1/2"
+                          sm:top-auto sm:left-1/2 sm:-translate-x-1/2"
           />
-          <div className="text-xs sm:text-base">{item.date}</div>
           <div>
             <h3 className="sm:text-2xl">{item.organization}</h3>
             <p className="text-sm sm:text-lg text-primary/85">
