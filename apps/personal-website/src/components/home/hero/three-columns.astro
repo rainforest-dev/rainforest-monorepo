@@ -18,8 +18,8 @@ const year = new Date(hero.dateOfBirth).getFullYear();
   <div class="flex flex-col justify-center">
     <p>{year}</p>
     <h1 class="text-7xl mt-1 mb-16 w-min text-secondary">
-      {hero.name.first}
-      {hero.name.last}
+      {hero.name.informal.first}
+      {hero.name.informal.last}
     </h1>
     <div class="flex-row-center gap-4">
       <button>Action 1</button>
@@ -35,7 +35,11 @@ const year = new Date(hero.dateOfBirth).getFullYear();
   />
   <div class="flex flex-col justify-center text-background gap-6">
     <ul class="list-disc">
-      <li>{`${hero.position} from ${hero.location}.`}</li>
+      <li>
+        {
+          `${hero.jobPosition} from ${hero.location.city}, ${hero.location.country}.`
+        }
+      </li>
       {hero.summaries.map((summary) => <li>{summary}</li>)}
     </ul>
     <ul class="flex gap-2">

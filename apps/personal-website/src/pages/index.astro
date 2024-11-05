@@ -18,10 +18,10 @@ import { getBrandIconName } from '../utils';
     <FAB client:load />
     <!-- hero -->
     <section class="flex-center container h-screen xl:flex! hidden!">
-      <ThreeColumns {...resume.hero} />
+      <ThreeColumns {...resume.info} {...resume.hero} />
     </section>
     <section class="flex! xl:hidden! w-full bg-background">
-      <OneColumns {...resume.hero} />
+      <OneColumns {...resume.info} {...resume.hero} />
     </section>
     <!-- experience -->
     <section id="experience" class="py-10 sm:h-screen">
