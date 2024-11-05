@@ -1,17 +1,25 @@
 ---
-import { ATSFriendly } from '../components/resume';
 import Layout from '../layouts/index.astro';
+import { ATSFriendly } from '../components/resume';
 import { resume } from '../utils/constants';
 ---
 
 <Layout title="Resume | Rainforest">
   <main
-    class="w-screen h-screen overflow-scroll flex-col-center p-10 print:justify-start print:items-start bg-on-background"
+    class="w-screen h-screen flex-col-center p-10 bg-on-background overflow-scroll
+            print:justify-start print:items-start print:p-0 print:overflow-visible"
   >
     <div
-      class="w-[1050px] h-[1485px] my-auto scale-40 sm:scale-50 md:scale-75 lg:scale-100"
+      class="w-[1050px] h-[1485px] origin-top scale-30 sm:scale-50 md:scale-75 lg:scale-100
+              print:scale-100 print:origin-top-left"
     >
       <ATSFriendly {...resume} />
     </div>
   </main>
+  <style media="print">
+    @page {
+      size: A4;
+      margin: 0 !important;
+    }
+  </style>
 </Layout>
