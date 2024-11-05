@@ -1,0 +1,42 @@
+---
+import { Image } from 'astro:assets';
+import type { Props } from './types';
+
+const hero = Astro.props;
+---
+
+<div class="flex flex-col size-full">
+  <div class="relative aspect-square">
+    <div
+      class="size-full bg-on-background rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0"
+    >
+      <Image
+        height={600}
+        width={600}
+        src={`/images/profile/${Math.ceil(Math.random() * 4)}.png`}
+        alt="profile"
+        class="object-cover object-top h-full z-10 absolute -bottom-10 md:-bottom-20 left-1/2 -translate-x-1/2 -skew-y-12"
+      />
+    </div>
+    <div
+      class="text-9xl text-tertiary/50 rotate-270 origin-bottom inline-block m-4"
+    >
+      1997
+    </div>
+  </div>
+  <div class="flex container">
+    <div class="flex flex-col">
+      <h1 class="text-4xl text-secondary">
+        {hero.name.first}
+      </h1>
+      <p>{hero.position}</p>
+      <ul class="list-disc list-inside mt-4">
+        {hero.summaries.map((summary) => <li>{summary}</li>)}
+      </ul>
+      <!-- <div class="flex-row-center gap-4 mt-16">
+      <button>Action 1</button>
+      <button>Action 2</button>
+    </div> -->
+    </div>
+  </div>
+</div>

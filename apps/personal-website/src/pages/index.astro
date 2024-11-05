@@ -1,81 +1,49 @@
 ---
-import { Image } from 'astro:assets';
 import clsx from 'clsx';
 import Layout from '../layouts/index.astro';
 import { resume } from '../utils/constants';
-import { Nav, Experience, FAB } from '../components/home';
-import { Tag } from '../components';
+import {
+  Nav,
+  Experience,
+  FAB,
+  ThreeColumns,
+  OneColumns,
+} from '../components/home';
 import { getBrandIconName } from '../utils';
 ---
 
 <Layout title="Hello! I'm Rainforest">
-  <main class="size-full contents">
+  <main class="contents">
     <Nav />
     <FAB client:load />
     <!-- hero -->
-    <section class="flex-center container">
-      <div class="h-3/4 items-center flex py-10 px-20 relative justify-between">
-        <div class="absolute -z-10 inset-0">
-          <div
-            class="size-full rounded-xl relative z-0 bg-gray-100 overflow-clip
-                  after:content-[''] after:bg-on-background after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
-          >
-          </div>
-        </div>
-        <div class="flex flex-col">
-          <p>1997</p>
-          <h1 class="text-7xl mt-1 mb-16 w-min text-secondary">
-            {resume.hero.name.first}
-            {resume.hero.name.last}
-          </h1>
-          <div class="flex-row-center gap-4">
-            <button>Action 1</button>
-            <button>Action 2</button>
-          </div>
-        </div>
-        <Image
-          height={600}
-          width={600}
-          src={`/images/profile/${Math.ceil(Math.random() * 4)}.png`}
-          alt="profile"
-          class="object-cover object-center h-[120%] self-end -mb-10"
-        />
-        <div class="flex flex-col max-w-[33%] text-background gap-6">
-          <ul class="list-disc">
-            <li>{`${resume.hero.position} from ${resume.hero.location}.`}</li>
-            {resume.hero.summaries.map((summary) => <li>{summary}</li>)}
-          </ul>
-          <ul class="flex gap-2">
-            {
-              resume.hero.tags.map((tag) => (
-                <li>
-                  <Tag name={tag} class="bg-background/85 text-on-background" />
-                </li>
-              ))
-            }
-          </ul>
-        </div>
-      </div>
+    <section class="flex-center container h-screen xl:flex! hidden!">
+      <ThreeColumns {...resume.hero} />
+    </section>
+    <section class="flex! xl:hidden! w-full bg-background">
+      <OneColumns {...resume.hero} />
     </section>
     <!-- experience -->
-    <section id="experience" class="container py-40">
-      <h2 class="text-4xl mb-10">Experience</h2>
-      <Experience client:load />
+    <section id="experience" class="py-10 h-screen">
+      <div class="container flex-col-center size-full">
+        <h2 class="text-4xl mb-10">Experience</h2>
+        <Experience client:load />
+      </div>
     </section>
-    <section id="skills" class="container py-40">
-      <section>
+    <section id="skills" class="py-10 min-h-screen">
+      <div class="container">
         <h2 class="text-4xl mb-10">Skills</h2>
-        <ul class="grid grid-cols-3 gap-10">
+        <ul class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-8">
           {
             resume.skills.map((skill) => (
               <li
                 class={clsx(
-                  'min-w-80 bg-gray-50 px-5 py-4 rounded min-h-80 shadow flex flex-col gap-5 relative',
-                  skill.description.length > 2 && 'col-span-2'
+                  'min-w-80 bg-on-background text-background px-5 py-4 rounded min-h-80 shadow flex flex-col gap-5 relative',
+                  skill.description.length > 2 && 'md:col-span-2'
                 )}
               >
                 <h3 class="text-xl">{skill.name}</h3>
-                <ul class="list-disc list-inside">
+                <ul class="list-disc pl-[1em] *:overflow-hidden">
                   {skill.description.map((item) => (
                     <li>
                       <p>{item}</p>
@@ -91,7 +59,7 @@ import { getBrandIconName } from '../utils';
             ))
           }
         </ul>
-      </section>
+      </div>
     </section>
   </main>
   <style>
@@ -99,7 +67,16 @@ import { getBrandIconName } from '../utils';
       @apply snap-y snap-mandatory scroll-smooth;
     }
     main > section {
-      @apply h-screen flex flex-col snap-always snap-center items-center;
+      @apply snap-always snap-center;
+    }
+    @media (width < 80rem) {
+      html,
+      body {
+        background-color: var(--color-on-background);
+      }
+      section:not(:first-child) {
+        background-color: var(--color-background);
+      }
     }
   </style>
 </Layout>

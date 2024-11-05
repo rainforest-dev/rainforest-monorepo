@@ -3,6 +3,7 @@ export const defaultSourceColor = '#66b2b2' as const;
 export const resume = {
   hero: {
     name: { first: 'Rainforest', last: 'Cheng' },
+    dateOfBirth: '1997-02-18',
     position: 'Senior frontend engineer',
     location: 'Tainan, Taiwan',
     summaries: [

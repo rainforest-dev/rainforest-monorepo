@@ -1,0 +1,51 @@
+---
+import { Image } from 'astro:assets';
+import Tag from '../../tag.astro';
+import type { Props } from './types';
+
+const hero = Astro.props;
+const year = new Date(hero.dateOfBirth).getFullYear();
+---
+
+<div class="h-3/4 grid grid-cols-3 py-10 px-20 relative z-0 @container-normal">
+  <div class="absolute -z-10 inset-0">
+    <div
+      class="size-full rounded-xl relative z-0 bg-gray-100 dark:bg-gray-800 overflow-clip
+                  after:content-[''] after:bg-on-background after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
+    >
+    </div>
+  </div>
+  <div class="flex flex-col justify-center">
+    <p>{year}</p>
+    <h1 class="text-7xl mt-1 mb-16 w-min text-secondary">
+      {hero.name.first}
+      {hero.name.last}
+    </h1>
+    <div class="flex-row-center gap-4">
+      <button>Action 1</button>
+      <button>Action 2</button>
+    </div>
+  </div>
+  <Image
+    width={400}
+    height={600}
+    src={`/images/profile/${Math.ceil(Math.random() * 4)}.png`}
+    alt="profile"
+    class="object-cover object-center h-[120%] self-end -mb-10 overflow-visible"
+  />
+  <div class="flex flex-col justify-center text-background gap-6">
+    <ul class="list-disc">
+      <li>{`${hero.position} from ${hero.location}.`}</li>
+      {hero.summaries.map((summary) => <li>{summary}</li>)}
+    </ul>
+    <ul class="flex gap-2">
+      {
+        hero.tags.map((tag) => (
+          <li>
+            <Tag name={tag} class="bg-background/85 text-on-background" />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</div>
