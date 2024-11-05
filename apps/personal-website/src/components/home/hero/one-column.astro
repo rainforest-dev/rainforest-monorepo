@@ -27,9 +27,9 @@ const hero = Astro.props;
   <div class="flex container">
     <div class="flex flex-col">
       <h1 class="text-4xl text-secondary">
-        {hero.name.first}
+        {hero.name.informal.first}
       </h1>
-      <p>{hero.position}</p>
+      <p>{hero.jobPosition}</p>
       <ul class="list-disc list-inside mt-4">
         {hero.summaries.map((summary) => <li>{summary}</li>)}
       </ul>
