@@ -95,5 +95,7 @@
 }
 
 @utility container {
-  @apply mx-auto sm:container-sm md:container-md lg:container-lg xl:container-xl 2xl:container-2xl;
+  @apply sm:container-sm md:container-md lg:container-lg xl:max-w-none;
+  @apply mx-auto;
+  @apply px-4 sm:px-8;
 }

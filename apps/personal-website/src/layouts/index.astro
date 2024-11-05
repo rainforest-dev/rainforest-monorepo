@@ -2,6 +2,7 @@
 import '../app.css';
 import SpeedInsights from '@vercel/speed-insights/astro';
 import type { Props } from './types';
+import { ThemeProvider } from '../components';
 
 const { title } = Astro.props;
 ---
@@ -15,30 +16,12 @@ const { title } = Astro.props;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <meta name="theme-color" content="currentColor" />
 
     <SpeedInsights />
+    <ThemeProvider />
   </head>
   <body>
     <slot />
   </body>
 </html>
-
-<script>
-  import {
-    applyTheme,
-    argbFromHex,
-    themeFromSourceColor,
-  } from '@material/material-color-utilities';
-  import { sourceColor } from '../stores';
-
-  if (sourceColor.value) {
-    const theme = themeFromSourceColor(argbFromHex(sourceColor.value));
-    const systemDark = window.matchMedia(
-      '(prefers-color-scheme: dark)'
-    ).matches;
-    applyTheme(theme, {
-      target: document.body,
-      dark: systemDark,
-    });
-  }
-</script>
