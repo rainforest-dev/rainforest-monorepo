@@ -19,7 +19,7 @@ export default function Timeline({ items = [] }: IProps) {
   const renderDescription = (description: string | readonly string[]) => {
     if (Array.isArray(description)) {
       return (
-        <ul className="list-disc list-inside">
+        <ul className="list-disc list-inside text-xs sm:text-base">
           {description.map((desc) => (
             <li key={desc}>{desc}</li>
           ))}
@@ -30,24 +30,33 @@ export default function Timeline({ items = [] }: IProps) {
   };
 
   return (
-    <ul className="flex flex-col gap-5 relative">
-      <div className="absolute w-0.5 h-full bg-on-background left-1/2 -translate-x-1/2" />
+    <ul className="flex flex-col gap-4 sm:gap-5 relative">
+      <div className="absolute w-0.5 h-full bg-on-background left-0 -translate-x-1/2 sm:left-1/2" />
       {items.map((item) => (
         <li
           key={`${item.organization}_${item.position}`}
-          className="flex-row-center odd:flex-row-reverse *:flex-1 odd:*:last:text-right even:*:first:text-right gap-10"
+          className="flex flex-col *:flex-1 pl-[1em]
+                      sm:pl-0 sm:flex-row sm:odd:flex-row-reverse sm:odd:*:last:text-right sm:even:*:first:text-right sm:gap-10"
         >
-          <div>{item.date}</div>
-          <div className="absolute size-2 bg-on-background left-1/2 -translate-x-1/2 rounded-full" />
+          <div
+            className="absolute size-2 bg-on-background rounded-full 
+                          left-0 -translate-x-1/2 top-7 
+                          sm:left-1/2 sm:-translate-x-1/2"
+          />
+          <div className="text-xs sm:text-base">{item.date}</div>
           <div>
-            <h3 className="text-2xl">{item.organization}</h3>
-            <p className="text-lg text-primary/85">{item.position}</p>
+            <h3 className="sm:text-2xl">{item.organization}</h3>
+            <p className="text-sm sm:text-lg text-primary/85">
+              {item.position}
+            </p>
             {renderDescription(item.description)}
             {
               <ul>
                 {item.projects?.toReversed().map((project) => (
                   <li key={project.name}>
-                    <h4 className="text-lg mb-1.5 mt-3">{project.name}</h4>
+                    <h4 className="text-sm mb-0.5 mt-2 sm:text-lg sm:mb-1.5 sm:mt-3">
+                      {project.name}
+                    </h4>
                     {renderDescription(project.description)}
                   </li>
                 ))}
