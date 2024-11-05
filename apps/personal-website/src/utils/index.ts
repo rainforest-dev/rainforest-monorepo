@@ -65,3 +65,9 @@ export const getExperience = (
   if (!type) return sorted;
   return sorted.filter((exp) => exp.type === type);
 };
+
+export const getLinkedInUrl = (username: string) =>
+  `https://www.linkedin.com/in/${username}`;
+
+export const getGitHubUrl = (username: string) =>
+  `https://github.com/${username}`;
