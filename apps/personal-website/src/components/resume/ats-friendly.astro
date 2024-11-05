@@ -1,0 +1,101 @@
+---
+import { getExperience, getGitHubUrl, getLinkedInUrl } from '../../utils';
+import type { Props } from './types';
+
+const { info, hero, experience: _experience, skills: _skills } = Astro.props;
+const linkedInUrl = getLinkedInUrl(info.links.linkedin);
+const gitHubUrl = getGitHubUrl(info.links.github);
+const experience = getExperience(_experience, 'job');
+const education = getExperience(_experience, 'education');
+const skills = _skills;
+---
+
+<article
+  class="size-full bg-background py-10 px-20 print:p-0 print:bg-none
+                prose prose-sm max-w-none
+                prose-headings:m-0 prose-h2:mb-3 prose-li:m-0 prose-p:mt-0 prose-p:mb-2"
+>
+  <section>
+    <h1>{info.name.formal.first} {info.name.formal.last}</h1>
+    <h2>{info.jobPosition}</h2>
+    <ul class="list-none pl-0 mt-4 mb-5">
+      <li><a href={`tel:${info.phone}`}>{info.phone}</a></li>
+      <li><a href={`mailto:${info.email}`}>{info.email}</a></li>
+      <li>{info.location.city}, {info.location.country}</li>
+      <li>
+        LinkedIn: {info.links.linkedin} (<a href={linkedInUrl} target="_blank"
+          >{linkedInUrl}</a
+        >)
+      </li>
+      <li>
+        GitHub: {info.links.github} (<a href={gitHubUrl} target="_blank"
+          >{gitHubUrl}</a
+        >)
+      </li>
+      <li>
+        Website: <a href={info.links.website} target="_blank"
+          >{info.links.website}</a
+        >
+      </li>
+    </ul>
+    <h5>Key Skills</h5>
+    <p>{hero.tags.join(', ')}</p>
+  </section>
+  <section>
+    <h2>Experience</h2>
+    <ul>
+      {
+        experience.map((item) => (
+          <li>
+            <>
+              <time>{item.startAt}</time> - <time>{item.endAt}</time>
+            </>
+            <h3>{item.organization.name}</h3>
+            <h5>{item.position}</h5>
+            <p>{item.description}</p>
+            <ul class="list-none pl-0">
+              {'projects' in item &&
+                item.projects.map((project) => (
+                  <li>
+                    <h4>{project.name}</h4>
+                    <ul>
+                      {project.description.map((desc) => (
+                        <li>{desc}</li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+            </ul>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+  <section class="grid grid-cols-2 w-full break-after-auto">
+    <section>
+      <h2>Education</h2>
+      <ul>
+        {
+          education.map((item) => (
+            <li>
+              <h3>{item.organization.name}</h3>
+              <h5>
+                {item.position}
+                {'department' in item.organization
+                  ? ` in ${item.organization.department}`
+                  : ''}
+              </h5>
+              <p>{item.description}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+    <section>
+      <h2>Skills</h2>
+      <ul>
+        {skills.map((skill) => <li>{skill.name}</li>)}
+      </ul>
+    </section>
+  </section>
+</article>

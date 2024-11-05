@@ -1,17 +1,38 @@
 export const defaultSourceColor = '#66b2b2' as const;
 
 export const resume = {
-  hero: {
-    name: { first: 'Rainforest', last: 'Cheng' },
+  info: {
+    name: {
+      formal: {
+        first: 'Yu-Lin',
+        last: 'Cheng',
+      },
+      informal: {
+        first: 'Rainforest',
+        last: 'Cheng',
+      },
+    },
     dateOfBirth: '1997-02-18',
-    position: 'Senior frontend engineer',
-    location: 'Tainan, Taiwan',
+    location: {
+      city: 'Tainan',
+      country: 'Taiwan',
+    },
+    email: 'rainforestnick@gmail.com',
+    phone: '+886981352355',
+    links: {
+      linkedin: 'yulin-cheng',
+      github: 'rainforest-dev',
+      website: 'https://rainforest.tools',
+    },
+    jobPosition: 'Senior Frontend Engineer',
+  },
+  hero: {
     summaries: [
       '6 years of experience developing with Vue and React.',
       'Proficient in Continuous Integration/Continuous Deployment (CI/CD) and container technology for frontend development.',
       'Past work in digital twins, blockchain, elderly care, and cell gene therapy.',
     ],
-    tags: ['vue', 'react', 'flutter', 'docker'],
+    tags: ['next', 'docker', 'vue', 'flutter'],
   },
   experience: [
     {
@@ -33,7 +54,7 @@ export const resume = {
         link: '',
       },
       type: 'job',
-      position: 'Research And Development Assistant',
+      position: 'Research and Development Assistant',
       description:
         'Utilize Swift and Vue for the development of a digital twin product.',
       startAt: '2018-07',

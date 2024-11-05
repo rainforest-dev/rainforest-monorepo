@@ -52,3 +52,22 @@ export const transformExperience = (
     technologies: [...experience.tags],
   };
 };
+
+export const getExperience = (
+  experience: (typeof resume)['experience'],
+  type?: (typeof resume)['experience'][number]['type']
+) => {
+  const sorted = [...experience].sort((a, b) => {
+    if (a.startAt < b.startAt) return 1;
+    if (a.startAt > b.startAt) return -1;
+    return 0;
+  });
+  if (!type) return sorted;
+  return sorted.filter((exp) => exp.type === type);
+};
+
+export const getLinkedInUrl = (username: string) =>
+  `https://www.linkedin.com/in/${username}`;
+
+export const getGitHubUrl = (username: string) =>
+  `https://github.com/${username}`;
