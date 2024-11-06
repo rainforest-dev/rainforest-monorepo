@@ -1,6 +1,7 @@
 import { Icon } from '@iconify-icon/react';
-import { getBrandIconName } from '../../utils';
 import { format } from 'date-fns';
+
+import { getBrandIconName } from '../../utils';
 import { resumeDateFormat } from '../../utils/constants';
 
 interface IProps {

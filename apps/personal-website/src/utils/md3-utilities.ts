@@ -1,12 +1,13 @@
-import _plugin from 'tailwindcss/plugin';
 import {
+  applyTheme as _applyTheme,
   argbFromHex,
   hexFromArgb,
-  themeFromSourceColor,
-  applyTheme as _applyTheme,
   type Scheme,
+  themeFromSourceColor,
 } from '@material/material-color-utilities';
 import Cookies from 'js-cookie';
+import _plugin from 'tailwindcss/plugin';
+
 import { defaultSourceColor } from './constants';
 
 interface IOptions {

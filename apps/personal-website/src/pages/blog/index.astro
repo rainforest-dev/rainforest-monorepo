@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+
 import Layout from '../../layouts/index.astro';
 
 const posts = (await getCollection('blog')).sort(
