@@ -7,6 +7,7 @@
   "dependencies": {
     "@iconify-icon/react": "^2.1.0",
     "@material/material-color-utilities": "^0.3.0",
+    "@material/web": "^2.2.0",
     "@nanostores/lit": "^0.2.2",
     "@nanostores/persistent": "^0.10.2",
     "@nanostores/react": "^0.8.0",
@@ -16,6 +17,7 @@
     "@types/react-dom": "^18.3.1",
     "@webcomponents/template-shadowroot": "^0.2.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "iconify-icon": "^2.1.0",
     "js-cookie": "^3.0.5",
     "lit": "^3.2.1",
