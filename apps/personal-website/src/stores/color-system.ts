@@ -1,7 +1,7 @@
 import { persistentAtom } from '@nanostores/persistent';
 import Cookies from 'js-cookie';
 
-import { defaultSourceColor } from '../utils/constants';
+import { defaultSourceColor } from '@utils/constants';
 
 export const persistentColorSchemeKey = 'dark';
 export const colorScheme = persistentAtom<boolean>(

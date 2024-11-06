@@ -10,11 +10,8 @@
 </template>
 <script lang="ts" setup>
 import { useStore } from '@nanostores/vue';
-import {
-  sourceColor,
-  updateSourceColor as _updateSourceColor,
-} from '../stores';
-import { applyTheme } from '../utils/md3-utilities';
+import { sourceColor, updateSourceColor as _updateSourceColor } from '@stores';
+import { applyTheme } from '@utils/md3-utilities';
 
 const $sourceColor = useStore(sourceColor);
 

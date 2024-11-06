@@ -4,9 +4,9 @@ import {
   themeFromSourceColor,
 } from '@material/material-color-utilities';
 
-import { persistentColorSchemeKey, persistentKey } from '../stores';
-import { defaultSourceColor } from '../utils/constants';
-import { getSchemeProperties } from '../utils/md3-utilities';
+import { persistentColorSchemeKey, persistentKey } from '@stores';
+import { defaultSourceColor } from '@utils/constants';
+import { getSchemeProperties } from '@utils/md3-utilities';
 
 const dark = Astro.cookies.get(persistentColorSchemeKey)?.value === 'true';
 const sourceColor =
@@ -30,15 +30,15 @@ const styleRaw = `
 <script>
   import Cookies from 'js-cookie';
 
-  import { persistentKey, sourceColor as $sourceColor } from '../stores';
+  import { persistentKey, sourceColor as $sourceColor } from '@stores';
   const sourceColor = $sourceColor.get();
   if (sourceColor) {
     Cookies.set(persistentKey, sourceColor);
   }
 </script>
 <script>
-  import { sourceColor, updateColorScheme } from '../stores';
-  import { applyTheme } from '../utils/md3-utilities';
+  import { sourceColor, updateColorScheme } from '@stores';
+  import { applyTheme } from '@utils/md3-utilities';
 
   window
     .matchMedia('(prefers-color-scheme: dark)')
