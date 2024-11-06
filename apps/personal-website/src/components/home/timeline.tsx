@@ -1,5 +1,7 @@
 import { Icon } from '@iconify-icon/react';
 import { getBrandIconName } from '../../utils';
+import { format } from 'date-fns';
+import { resumeDateFormat } from '../../utils/constants';
 
 interface IProps {
   items: {
@@ -38,7 +40,9 @@ export default function Timeline({ items = [] }: IProps) {
           className="flex flex-col *:flex-1 pl-[1em] relative
                       sm:pl-0 sm:flex-row sm:items-center sm:odd:flex-row-reverse sm:odd:*:last:text-right sm:even:*:first:text-right sm:gap-10"
         >
-          <div className="text-xs sm:text-base">{item.date}</div>
+          <div className="text-xs sm:text-base">
+            {format(new Date(item.date), resumeDateFormat)}
+          </div>
           <div
             className="absolute size-2 bg-on-background rounded-full 
                           left-0 -translate-x-1/2 top-7 
