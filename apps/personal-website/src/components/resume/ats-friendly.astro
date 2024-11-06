@@ -1,6 +1,8 @@
 ---
+import { format } from 'date-fns';
 import { getExperience, getGitHubUrl, getLinkedInUrl } from '../../utils';
 import type { Props } from './types';
+import { resumeDateFormat } from '../../utils/constants';
 
 const { info, hero, experience: _experience, skills: _skills } = Astro.props;
 const linkedInUrl = getLinkedInUrl(info.links.linkedin);
@@ -11,7 +13,7 @@ const skills = _skills;
 ---
 
 <article
-  class="size-full bg-background text-on-background py-10 px-20
+  class="size-full bg-background text-on-background py-10 px-20 font-resume-serif
                 prose prose-sm max-w-none
                 prose-headings:text-on-background prose-a:text-on-background prose-li:text-on-background prose-headings:m-0 prose-h2:mb-3 prose-li:m-0 prose-p:mt-0 prose-p:mb-2"
 >
@@ -48,7 +50,8 @@ const skills = _skills;
         experience.map((item) => (
           <li>
             <>
-              <time>{item.startAt}</time> - <time>{item.endAt}</time>
+              <time>{format(new Date(item.startAt), resumeDateFormat)}</time> -{' '}
+              <time>{format(new Date(item.endAt), resumeDateFormat)}</time>
             </>
             <h3>{item.organization.name}</h3>
             <h5>{item.position}</h5>
