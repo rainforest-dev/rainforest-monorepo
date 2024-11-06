@@ -1,5 +1,7 @@
 export const defaultSourceColor = '#66b2b2' as const;
 
+export const resumeDateFormat = 'MMM yyyy' as const;
+
 export const resume = {
   info: {
     name: {
