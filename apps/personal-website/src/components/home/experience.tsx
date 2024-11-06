@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
-
 import { getExperience, transformExperience } from '@utils';
 import { resume } from '@utils/constants';
+import { useMemo, useState } from 'react';
+
 import Timeline from './timeline';
 
 const experienceTypes = ['job', 'education'] as const;

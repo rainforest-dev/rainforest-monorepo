@@ -1,7 +1,6 @@
 ---
-import { getCollection } from 'astro:content';
-
 import Layout from '@layouts/index.astro';
+import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
