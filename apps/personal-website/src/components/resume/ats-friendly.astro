@@ -1,8 +1,9 @@
 ---
 import { format } from 'date-fns';
+
 import { getExperience, getGitHubUrl, getLinkedInUrl } from '../../utils';
-import type { Props } from './types';
 import { resumeDateFormat } from '../../utils/constants';
+import type { Props } from './types';
 
 const { info, hero, experience: _experience, skills: _skills } = Astro.props;
 const linkedInUrl = getLinkedInUrl(info.links.linkedin);

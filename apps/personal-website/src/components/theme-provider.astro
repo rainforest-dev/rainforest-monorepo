@@ -3,6 +3,7 @@ import {
   argbFromHex,
   themeFromSourceColor,
 } from '@material/material-color-utilities';
+
 import { persistentColorSchemeKey, persistentKey } from '../stores';
 import { defaultSourceColor } from '../utils/constants';
 import { getSchemeProperties } from '../utils/md3-utilities';
@@ -28,14 +29,15 @@ const styleRaw = `
 <style is:inline set:html={styleRaw}></style>
 <script>
   import Cookies from 'js-cookie';
-  import { sourceColor as $sourceColor, persistentKey } from '../stores';
+
+  import { persistentKey, sourceColor as $sourceColor } from '../stores';
   const sourceColor = $sourceColor.get();
   if (sourceColor) {
     Cookies.set(persistentKey, sourceColor);
   }
 </script>
 <script>
-  import { updateColorScheme, sourceColor } from '../stores';
+  import { sourceColor, updateColorScheme } from '../stores';
   import { applyTheme } from '../utils/md3-utilities';
 
   window
@@ -43,6 +45,6 @@ const styleRaw = `
     .addEventListener('change', (e) => {
       const dark = e.matches;
       updateColorScheme(dark);
-      sourceColor.value && applyTheme(sourceColor.value, dark);
+      if (sourceColor.value) applyTheme(sourceColor.value, dark);
     });
 </script>

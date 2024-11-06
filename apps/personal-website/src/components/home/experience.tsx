@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
+
+import { getExperience, transformExperience } from '../../utils';
 import { resume } from '../../utils/constants';
 import Timeline from './timeline';
-import { getExperience, transformExperience } from '../../utils';
 
 const experienceTypes = ['job', 'education'] as const;
 type ExperienceType = (typeof experienceTypes)[number];
@@ -13,7 +14,7 @@ const Experience = () => {
     [experience, resume.experience]
   );
 
-  const handleClick = (type: ExperienceType) => {
+  const handleClick = (type: ExperienceType): void => {
     if (experience && experience === type) {
       setExperience(undefined);
       return;
