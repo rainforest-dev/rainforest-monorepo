@@ -1,8 +1,8 @@
 import { Icon } from '@iconify-icon/react';
 import { format } from 'date-fns';
 
-import { getBrandIconName } from '../../utils';
-import { resumeDateFormat } from '../../utils/constants';
+import { getBrandIconName } from '@utils';
+import { resumeDateFormat } from '@utils/constants';
 
 interface IProps {
   items: {
@@ -57,7 +57,7 @@ export default function Timeline({ items = [] }: IProps) {
             {renderDescription(item.description)}
             {
               <ul>
-                {item.projects?.toReversed().map((project) => (
+                {(item.projects ?? []).reverse().map((project) => (
                   <li key={project.name}>
                     <h4 className="text-sm mb-0.5 mt-2 sm:text-lg sm:mb-1.5 sm:mt-3">
                       {project.name}

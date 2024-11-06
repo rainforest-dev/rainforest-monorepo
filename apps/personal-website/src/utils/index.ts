@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 
-import type Timeline from '../components/home/timeline';
+import type Timeline from '@components/home/timeline';
 import type { resume } from './constants';
 
 export const getBrandIconName = (_name: string) => {

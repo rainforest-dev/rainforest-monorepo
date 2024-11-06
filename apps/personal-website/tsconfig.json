@@ -6,6 +6,16 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "experimentalDecorators": true,
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    "baseUrl": ".",
+    "paths": {
+      "@components": ["src/components/index.ts"],
+      "@components/*": ["src/components/*"],
+      "@layouts/*": ["src/layouts/*"],
+      "@stores": ["src/stores/index.ts"],
+      "@stores/*": ["src/stores/*"],
+      "@utils": ["src/utils/index.ts"],
+      "@utils/*": ["src/utils/*"]
+    }
   }
 }
