@@ -1,4 +1,8 @@
 ---
+import '@material/web/button/filled-button';
+import '@material/web/button/outlined-button';
+import '@material/web/icon/icon';
+
 import { Image } from 'astro:assets';
 
 import Tag from '../../tag.astro';
@@ -23,8 +27,16 @@ const year = new Date(hero.dateOfBirth).getFullYear();
       {hero.name.informal.last}
     </h1>
     <div class="flex-row-center gap-4">
-      <button>Action 1</button>
-      <button>Action 2</button>
+      <md-filled-button href="/blog" class="px-6">Blog</md-filled-button>
+      <md-outlined-button
+        href="/resume"
+        target="_blank"
+        has-icon
+        trailing-icon
+        class="px-6 gap-2"
+        >Resume
+        <md-icon slot="icon">open_in_new</md-icon>
+      </md-outlined-button>
     </div>
   </div>
   <Image
