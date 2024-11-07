@@ -8,7 +8,6 @@
 </template>
 <script lang="ts" setup>
 const handleClick = () => {
-  const main = document.querySelector('main');
-  main?.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 </script>
