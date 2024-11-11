@@ -24,5 +24,8 @@
     "@lit/react": "^1.0.6",
     "@material/web": "^2.2.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.6.3"
+  }
 }

@@ -33,6 +33,7 @@
     "vue": "^3.5.12"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.4",
     "@eslint/js": "^9.8.0",
     "@nx/eslint": "20.0.6",
     "@nx/eslint-plugin": "20.0.6",
