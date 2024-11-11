@@ -40,7 +40,6 @@ export default _plugin.withOptions(
         return [`--md-sys-color-${token}`, color];
       })
     );
-    console.log(properties);
     return ({ addBase }) => {
       addBase({ ':root': properties });
     };
@@ -49,8 +48,10 @@ export default _plugin.withOptions(
 
 export const applyTheme = (sourceColor: string, dark: boolean) => {
   const theme = themeFromSourceColor(argbFromHex(sourceColor));
+  console.log(theme.palettes);
   _applyTheme(theme, {
     target: document.documentElement,
     dark,
+    paletteTones: [],
   });
 };

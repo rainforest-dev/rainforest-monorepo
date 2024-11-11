@@ -1,8 +1,19 @@
+import { createComponent } from '@lit/react';
+import { MdFilterChip } from '@material/web/chips/filter-chip';
 import { getExperience, transformExperience } from '@utils';
 import { resume } from '@utils/constants';
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import Timeline from './timeline';
+
+const FilterChip = createComponent({
+  tagName: 'md-filter-chip',
+  elementClass: MdFilterChip,
+  react: React,
+  events: {
+    onClick: 'click',
+  },
+});
 
 const experienceTypes = ['job', 'education'] as const;
 type ExperienceType = (typeof experienceTypes)[number];
@@ -10,7 +21,7 @@ type ExperienceType = (typeof experienceTypes)[number];
 const Experience = () => {
   const [experience, setExperience] = useState<ExperienceType | undefined>();
   const items = useMemo(
-    () => getExperience(resume.experience).map(transformExperience),
+    () => getExperience(resume.experience, experience).map(transformExperience),
     [experience, resume.experience]
   );
 
@@ -29,21 +40,13 @@ const Experience = () => {
       </div>
       <div className="flex gap-10 mt-10">
         {experienceTypes.map((type) => (
-          <label
+          <FilterChip
             key={type}
-            htmlFor={type}
-            className="border px-2 py-1 rounded cursor-pointer size-fit has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:hover]:bg-primary/80 has-[:hover]:text-on-primary"
+            selected={experience === type}
+            onClick={() => handleClick(type)}
           >
-            <input
-              type="checkbox"
-              className="sr-only peer"
-              id={type}
-              name={type}
-              checked={experience === type}
-              onChange={() => handleClick(type)}
-            />
             {type}
-          </label>
+          </FilterChip>
         ))}
       </div>
     </>

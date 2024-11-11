@@ -33,7 +33,7 @@ export default function Timeline({ items = [] }: IProps) {
 
   return (
     <ul className="flex flex-col gap-4 sm:gap-5 relative">
-      <div className="absolute w-0.5 h-full bg-on-background left-0 -translate-x-1/2 sm:left-1/2" />
+      <div className="absolute w-0.5 h-full bg-on-surface left-0 -translate-x-1/2 sm:left-1/2" />
       {items.map((item) => (
         <li
           key={`${item.organization}_${item.position}`}
@@ -44,7 +44,7 @@ export default function Timeline({ items = [] }: IProps) {
             {format(new Date(item.date), resumeDateFormat)}
           </div>
           <div
-            className="absolute size-2 bg-on-background rounded-full 
+            className="absolute size-2 bg-on-surface rounded-full 
                           left-0 -translate-x-1/2 top-7 
                           sm:top-auto sm:left-1/2 sm:-translate-x-1/2"
           />

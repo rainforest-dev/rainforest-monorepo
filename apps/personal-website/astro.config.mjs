@@ -11,7 +11,16 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
 
-  integrations: [react(), vue()],
+  integrations: [
+    react(),
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.startsWith('md-'),
+        },
+      },
+    }),
+  ],
   output: 'server',
   adapter: vercel({
     webAnalytics: {
