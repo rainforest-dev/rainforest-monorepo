@@ -20,7 +20,9 @@
     "@nanostores/persistent": "^0.10.2",
     "js-cookie": "^3.0.5",
     "@material/material-color-utilities": "^0.3.0",
-    "tailwindcss": "^4.0.0-alpha.30"
+    "tailwindcss": "^4.0.0-alpha.30",
+    "@lit/react": "^1.0.6",
+    "@material/web": "^2.2.0"
   },
   "devDependencies": {}
 }
