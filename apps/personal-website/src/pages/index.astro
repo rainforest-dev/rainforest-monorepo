@@ -1,26 +1,26 @@
 ---
-import clsx from 'clsx';
-import Layout from '../layouts/index.astro';
-import { resume } from '../utils/constants';
 import {
-  Nav,
   Experience,
-  FAB,
-  ThreeColumns,
+  Nav,
   OneColumns,
-} from '../components/home';
-import { getBrandIconName } from '../utils';
+  ScrollToTop,
+  ThreeColumns,
+} from '@components/home';
+import Layout from '@layouts/index.astro';
+import { getBrandIconName } from '@utils';
+import { resume } from '@utils/constants';
+import clsx from 'clsx';
 ---
 
 <Layout title="Hello! I'm Rainforest">
   <main class="contents">
-    <Nav />
-    <FAB client:load />
+    <Nav client:load />
+    <ScrollToTop client:load />
     <!-- hero -->
     <section class="flex-center container h-screen xl:flex! hidden!">
       <ThreeColumns {...resume.info} {...resume.hero} />
     </section>
-    <section class="flex! xl:hidden! w-full bg-background">
+    <section class="flex! xl:hidden! w-full bg-surface">
       <OneColumns {...resume.info} {...resume.hero} />
     </section>
     <!-- experience -->
@@ -38,7 +38,7 @@ import { getBrandIconName } from '../utils';
             resume.skills.map((skill) => (
               <li
                 class={clsx(
-                  'min-w-80 bg-on-background text-background px-5 py-4 rounded min-h-80 shadow flex flex-col gap-5 relative',
+                  'min-w-80 bg-surface-variant text-on-surface-variant px-5 py-4 rounded min-h-80 shadow flex flex-col gap-5 relative',
                   skill.description.length > 2 && 'md:col-span-2'
                 )}
               >
@@ -72,10 +72,10 @@ import { getBrandIconName } from '../utils';
     @media (width < 80rem) {
       html,
       body {
-        background-color: var(--color-on-background);
+        background-color: var(--color-on-surface);
       }
       section:not(:first-child) {
-        background-color: var(--color-background);
+        background-color: var(--color-surface);
       }
     }
   </style>

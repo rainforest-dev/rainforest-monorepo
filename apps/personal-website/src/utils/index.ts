@@ -1,6 +1,7 @@
+import type Timeline from '@components/home/timeline';
 import type { ComponentProps } from 'react';
+
 import type { resume } from './constants';
-import type Timeline from '../components/home/timeline';
 
 export const getBrandIconName = (_name: string) => {
   let name = undefined;
@@ -46,7 +47,9 @@ export const transformExperience = (
       'projects' in experience
         ? experience.projects.map((project) => ({
             name: project.name,
-            description: project.description as any,
+            description: (Array.isArray(project.description)
+              ? [...project.description]
+              : project.description) as string[] | string,
           }))
         : [],
     technologies: [...experience.tags],

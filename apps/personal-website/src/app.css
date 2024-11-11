@@ -12,6 +12,8 @@
   --font-family-sans: 'Material Symbols Outlined', sans-serif;
   --font-family-resume-serif: Georgia, 'Material Symbols Outlined', serif;
 
+  --breakpoint-3xl: 112rem;
+
   /* primary color */
   --color-primary: var(--md-sys-color-primary);
   --color-on-primary: var(--md-sys-color-on-primary);
@@ -56,7 +58,7 @@
 @layer base {
   html,
   body {
-    @apply p-0 m-0 size-full font-serif bg-background text-on-background;
+    @apply p-0 m-0 size-full font-serif bg-surface text-on-surface;
   }
   button {
     @apply cursor-pointer;
@@ -95,8 +97,12 @@
   @apply w-full max-w-[var(--breakpoint-2xl)];
 }
 
+@utility container-3xl {
+  @apply w-full max-w-[var(--breakpoint-3xl)];
+}
+
 @utility container {
-  @apply sm:container-sm md:container-md lg:container-lg xl:max-w-none;
+  @apply sm:container-sm md:container-md lg:container-lg xl:container-xl 2xl:container-2xl min-[112rem]:container-3xl;
   @apply mx-auto;
-  @apply px-4 sm:px-8;
+  @apply px-4 sm:px-0;
 }
