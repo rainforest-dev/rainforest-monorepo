@@ -42,10 +42,8 @@
     </ul>
   </div>
   <ul class="w-full grid grid-cols-4 *:h-10 text-sm *:p-1">
-    <li class="bg-background text-on-background">Background</li>
-    <li class="bg-on-background text-background">On Background</li>
-    <li class="bg-outline text-background">Outline</li>
-    <li class="bg-outline-variant text-on-background">Outline Variant</li>
+    <li class="bg-outline text-surface">Outline</li>
+    <li class="bg-outline-variant text-on-surface">Outline Variant</li>
     <li class="bg-surface text-on-surface">Surface</li>
     <li class="bg-on-surface text-surface">On Surface</li>
     <li class="bg-surface-variant text-on-surface-variant">Surface Variant</li>
@@ -56,6 +54,6 @@
     <li class="bg-inverse-on-surface text-inverse-surface">
       Inverse On Surface
     </li>
-    <li class="bg-inverse-primary text-on-background">Inverse Primary</li>
+    <li class="bg-inverse-primary text-on-surface">Inverse Primary</li>
   </ul>
 </template>

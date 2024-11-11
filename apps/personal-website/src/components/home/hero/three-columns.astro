@@ -16,7 +16,7 @@ const year = new Date(hero.dateOfBirth).getFullYear();
   <div class="absolute -z-10 inset-0">
     <div
       class="size-full rounded-xl relative z-0 bg-gray-100 dark:bg-gray-800 overflow-clip
-                  after:content-[''] after:bg-on-background after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
+                  after:content-[''] after:bg-on-surface after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
     >
     </div>
   </div>
@@ -46,7 +46,7 @@ const year = new Date(hero.dateOfBirth).getFullYear();
     alt="profile"
     class="object-cover object-center h-[120%] w-full self-end -mb-10"
   />
-  <div class="flex flex-col justify-center text-background gap-6">
+  <div class="flex flex-col justify-center text-surface gap-6">
     <ul class="list-disc">
       <li>
         {
@@ -59,7 +59,7 @@ const year = new Date(hero.dateOfBirth).getFullYear();
       {
         hero.tags.map((tag) => (
           <li>
-            <Tag name={tag} class="bg-background/85 text-on-background" />
+            <Tag name={tag} class="bg-surface/85 text-on-surface" />
           </li>
         ))
       }
