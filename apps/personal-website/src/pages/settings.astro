@@ -1,11 +1,11 @@
 ---
-import Layout from '../layouts/index.astro';
-import { SourceColor, ColorSystem } from '../components';
+import { ColorSystem, SourceColor } from '@components';
+import Layout from '@layouts/index.astro';
 ---
 
 <Layout title="Settings">
-  <main class="size-full flex-col flex-center gap-3">
-    <SourceColor client:load />
+  <main class="size-full container flex-col flex-center gap-3">
+    <SourceColor client:only="vue" />
     <ColorSystem />
   </main>
 </Layout>

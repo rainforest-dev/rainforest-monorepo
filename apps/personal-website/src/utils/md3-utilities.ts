@@ -1,12 +1,13 @@
-import _plugin from 'tailwindcss/plugin';
 import {
+  applyTheme as _applyTheme,
   argbFromHex,
   hexFromArgb,
-  themeFromSourceColor,
-  applyTheme as _applyTheme,
   type Scheme,
+  themeFromSourceColor,
 } from '@material/material-color-utilities';
 import Cookies from 'js-cookie';
+import _plugin from 'tailwindcss/plugin';
+
 import { defaultSourceColor } from './constants';
 
 interface IOptions {
@@ -39,7 +40,6 @@ export default _plugin.withOptions(
         return [`--md-sys-color-${token}`, color];
       })
     );
-    console.log(properties);
     return ({ addBase }) => {
       addBase({ ':root': properties });
     };
@@ -48,8 +48,10 @@ export default _plugin.withOptions(
 
 export const applyTheme = (sourceColor: string, dark: boolean) => {
   const theme = themeFromSourceColor(argbFromHex(sourceColor));
+  console.log(theme.palettes);
   _applyTheme(theme, {
     target: document.documentElement,
     dark,
+    paletteTones: [],
   });
 };

@@ -34,7 +34,7 @@ export const resume = {
       'Proficient in Continuous Integration/Continuous Deployment (CI/CD) and container technology for frontend development.',
       'Past work in digital twins, blockchain, elderly care, and cell gene therapy.',
     ],
-    tags: ['next', 'docker', 'vue', 'flutter'],
+    tags: ['nextjs', 'docker', 'vue', 'flutter'],
   },
   experience: [
     {

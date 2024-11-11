@@ -1,5 +1,6 @@
 ---
 import { Image } from 'astro:assets';
+
 import type { Props } from './types';
 
 const hero = Astro.props;
@@ -8,7 +9,7 @@ const hero = Astro.props;
 <div class="flex flex-col size-full">
   <div class="relative aspect-square">
     <div
-      class="size-full bg-on-background rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0"
+      class="size-full bg-on-surface rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0"
     >
       <Image
         height={600}
