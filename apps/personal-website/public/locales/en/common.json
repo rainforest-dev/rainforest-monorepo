@@ -1,0 +1,18 @@
+{
+  "info-name-first_formal": "Yu-Lin",
+  "info-name-last_formal": "Cheng",
+  "info-name-first_informal": "Rainforest",
+  "info-name-last_informal": "Cheng",
+  "info-fullname_formal": "$t(info-name-first_formal)\n$t(info-name-last_formal)",
+  "info-fullname_informal": "$t(info-name-first_informal)\n$t(info-name-last_informal)",
+  "info-location_city": "Taipei",
+  "info-location_country": "Taiwan",
+  "info-job-position": "Senior Frontend Engineer",
+  "nextjs": "Next.js",
+  "tailwindcss": "Tailwind CSS",
+  "mui": "MUI",
+  "fastapi": "FastAPI",
+  "blog": "Blog",
+  "resume": "Resume",
+  "experience": "Experience"
+}

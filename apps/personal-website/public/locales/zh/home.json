@@ -1,0 +1,8 @@
+{
+  "hero-summaries": [
+    "6年使用Vue和React開發經驗。",
+    "擅長使用流程自動化工具及容器技術簡化前端任務",
+    "過去參與數位孿生、區塊鏈、長照、細胞基因治療等專案。"
+  ],
+  "hero-brief": "$t(common:info-job-position)來自$t(common:info-location_country)$t(common:info-location_city)."
+}

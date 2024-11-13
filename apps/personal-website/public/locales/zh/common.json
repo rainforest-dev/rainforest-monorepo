@@ -1,0 +1,14 @@
+{
+  "info-name-first_formal": "羽霖",
+  "info-name-last_formal": "鄭",
+  "info-name-first_informal": "羽霖",
+  "info-name-last_informal": "鄭",
+  "info-fullname_formal": "$t(info-name-last_formal)$t(info-name-first_formal)",
+  "info-fullname_informal": "$t(info-name-last_informal)$t(info-name-first_informal)",
+  "info-location_city": "台北",
+  "info-location_country": "台灣",
+  "info-job-position": "資深前端工程師",
+  "blog": "部落格",
+  "resume": "履歷",
+  "experience": "經歷"
+}

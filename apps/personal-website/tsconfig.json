@@ -15,7 +15,9 @@
       "@stores": ["src/stores/index.ts"],
       "@stores/*": ["src/stores/*"],
       "@utils": ["src/utils/index.ts"],
-      "@utils/*": ["src/utils/*"]
+      "@utils/*": ["src/utils/*"],
+      "@types": ["src/types/index.ts"],
+      "@types/*": ["src/types/*"]
     }
   }
 }

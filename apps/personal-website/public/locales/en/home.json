@@ -1,0 +1,8 @@
+{
+  "hero-summaries": [
+    "6 years of experience developing with Vue and React.",
+    "Proficient in Continuous Integration/Continuous Deployment (CI/CD) and container technology for frontend development.",
+    "Past work in digital twins, blockchain, elderly care, and cell gene therapy."
+  ],
+  "hero-brief": "$t(common:info-job-position) from $t(common:info-location_city), $t(common:info-location_country)."
+}
