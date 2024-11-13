@@ -3,14 +3,18 @@ import '../app.css';
 
 import { ThemeProvider } from '@components';
 import SpeedInsights from '@vercel/speed-insights/astro';
+import { dir as _dir } from 'i18next';
 
 import type { Props } from './types';
 
 const { title } = Astro.props;
+
+const lang = Astro.currentLocale;
+const dir = _dir(lang);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang} dir={dir}>
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content="Astro description" />

@@ -2,6 +2,26 @@ export const defaultSourceColor = '#66b2b2' as const;
 
 export const resumeDateFormat = 'MMM yyyy' as const;
 
+export const tags = {
+  skills: [
+    'nextjs',
+    'vue',
+    'docker',
+    'flutter',
+    'react',
+    'tailwindcss',
+    'mui',
+    'auth0',
+    'qwik',
+    'playwright',
+    'vitest',
+    'python',
+    'pytorch',
+    'fastapi',
+    'swift',
+  ],
+} as const;
+
 export const resume = {
   info: {
     name: {

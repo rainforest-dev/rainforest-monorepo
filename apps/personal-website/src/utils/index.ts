@@ -74,3 +74,5 @@ export const getLinkedInUrl = (username: string) =>
 
 export const getGitHubUrl = (username: string) =>
   `https://github.com/${username}`;
+
+export * from './i18n';
