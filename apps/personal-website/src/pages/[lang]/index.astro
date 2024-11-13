@@ -9,7 +9,7 @@ import {
 import Layout from '@layouts/index.astro';
 import { IHeroProps } from '@types';
 import { getBrandIconName } from '@utils';
-import { resume } from '@utils/constants';
+import { resume, skills } from '@utils/constants';
 import { useTranslation } from '@utils/i18n';
 import clsx from 'clsx';
 
@@ -60,21 +60,23 @@ const heroProps: IHeroProps = {
         <h2 class="text-4xl mb-10">Skills</h2>
         <ul class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-8">
           {
-            resume.skills.map((skill) => (
+            skills.map((skill) => (
               <li
                 class={clsx(
                   'min-w-80 bg-surface-variant text-on-surface-variant px-5 py-4 rounded min-h-80 shadow flex flex-col gap-5 relative',
                   skill.description.length > 2 && 'md:col-span-2'
                 )}
               >
-                <h3 class="text-xl">{skill.name}</h3>
-                <ul class="list-disc pl-[1em] *:overflow-hidden">
-                  {skill.description.map((item) => (
-                    <li>
-                      <p>{item}</p>
-                    </li>
-                  ))}
-                </ul>
+                <h3 class="text-xl capitalize">{t(skill.key)}</h3>
+                {Array.isArray(skill.description) ? (
+                  <ul class="list-disc pl-[1em]">
+                    {skill.description.map((item) => (
+                      <li>{t(item)}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{t(skill.description)}</p>
+                )}
                 <iconify-icon
                   icon={getBrandIconName(skill.key)}
                   class="absolute right-5 bottom-4 size-12"

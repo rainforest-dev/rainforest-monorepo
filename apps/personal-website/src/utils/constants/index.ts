@@ -1,4 +1,4 @@
-import { IExperience, IOrganization } from '@types';
+import { IExperience, IOrganization, ISkill } from '@types';
 
 export const defaultSourceColor = '#66b2b2' as const;
 
@@ -155,6 +155,30 @@ export const experience: IExperience[] = [
         technologies: ['nextjs', 'auth0', 'mui', 'playwright', 'vitest'],
       },
     ],
+  },
+];
+
+export const skills: ISkill[] = [
+  {
+    key: 'nextjs',
+    description: [
+      'skill-nextjs-descriptions.0',
+      'skill-nextjs-descriptions.1',
+      'skill-nextjs-descriptions.2',
+      'skill-nextjs-descriptions.3',
+    ],
+  },
+  {
+    key: 'vue',
+    description: ['skill-vue-descriptions.0', 'skill-vue-descriptions.1'],
+  },
+  {
+    key: 'flutter',
+    description: [],
+  },
+  {
+    key: 'docker',
+    description: ['skill-docker-descriptions.0', 'skill-docker-descriptions.1'],
   },
 ];
 
