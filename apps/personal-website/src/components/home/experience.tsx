@@ -30,7 +30,7 @@ const Experience = () => {
   return (
     <>
       <div className="size-full sm:h-4/5 sm:overflow-auto grow-1">
-        <Timeline items={items} />
+        <Timeline experience={items} />
       </div>
       <div className="flex gap-10 mt-10">
         {experienceTypes.map((type) => (

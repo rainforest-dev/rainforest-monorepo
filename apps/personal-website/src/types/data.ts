@@ -39,3 +39,8 @@ export interface IExperience {
   endAt?: `${number}-${number}`;
   technologies?: SkillTag[];
 }
+
+export interface ISkill {
+  key: string;
+  description: Description;
+}

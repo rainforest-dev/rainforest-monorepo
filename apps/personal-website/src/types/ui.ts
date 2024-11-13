@@ -1,4 +1,4 @@
-import { IExperience, ILocation, IName, SkillTag } from './data';
+import { IExperience, ILocation, IName, ISkill, SkillTag } from './data';
 
 export interface IHeroProps {
   name: IName;
@@ -10,7 +10,11 @@ export interface IHeroProps {
 }
 
 export interface ITimelineProps {
-  items: IExperience[];
+  experience: IExperience[];
 }
 
-export type IResumeProps = IHeroProps;
+export interface ISkillProps {
+  skills: ISkill[];
+}
+
+export type IResumeProps = IHeroProps & ISkillProps;

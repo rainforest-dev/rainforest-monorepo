@@ -5,10 +5,10 @@ import { resumeDateFormat } from '@utils/constants';
 import { useTranslation } from '@utils/i18n/react';
 import { format } from 'date-fns';
 
-export default function Timeline({ items = [] }: ITimelineProps) {
+export default function Timeline({ experience = [] }: ITimelineProps) {
   const { t } = useTranslation(getLangFromUrl(location.href), 'home');
   const renderDescription = (
-    description: ITimelineProps['items'][number]['description']
+    description: ITimelineProps['experience'][number]['description']
   ) => {
     if (Array.isArray(description)) {
       return (
@@ -25,7 +25,7 @@ export default function Timeline({ items = [] }: ITimelineProps) {
   return (
     <ul className="flex flex-col gap-4 sm:gap-5 relative">
       <div className="absolute w-0.5 h-full bg-on-surface left-0 -translate-x-1/2 sm:left-1/2" />
-      {items.map((item) => {
+      {experience.map((item) => {
         const technologies = getTopTechnologies(item);
         return (
           <li
