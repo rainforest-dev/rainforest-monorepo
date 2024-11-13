@@ -39,11 +39,6 @@ import { useTemplateRef } from 'vue';
 
 const menu = useTemplateRef<MdMenu>('menu');
 
-const toggleMenu = () => {
-  console.log(menu.value?.open, document.querySelector('md-menu')?.open);
-  if (menu.value) menu.value.open = !menu.value.open;
-};
-
 const handleClick = () => {
   // remove the anchor part of the URL after clicking on a link after 300ms
   requestAnimationFrame(() => {

@@ -1,36 +1,30 @@
-import { createComponent } from '@lit/react';
-import { MdFilterChip } from '@material/web/chips/filter-chip';
-import { getExperience, transformExperience } from '@utils';
-import { resume } from '@utils/constants';
-import React, { useMemo, useState } from 'react';
+import { FilterChip } from '@components';
+import { getExperience, getLangFromUrl } from '@utils';
+import { experience } from '@utils/constants';
+import { useTranslation } from '@utils/i18n/react';
+import { useMemo, useState } from 'react';
 
 import Timeline from './timeline';
-
-const FilterChip = createComponent({
-  tagName: 'md-filter-chip',
-  elementClass: MdFilterChip,
-  react: React,
-  events: {
-    onClick: 'click',
-  },
-});
 
 const experienceTypes = ['job', 'education'] as const;
 type ExperienceType = (typeof experienceTypes)[number];
 
 const Experience = () => {
-  const [experience, setExperience] = useState<ExperienceType | undefined>();
+  const { t } = useTranslation(getLangFromUrl(location.href), 'home');
+  const [experienceType, setExperienceType] = useState<
+    ExperienceType | undefined
+  >();
   const items = useMemo(
-    () => getExperience(resume.experience, experience).map(transformExperience),
-    [experience, resume.experience]
+    () => getExperience(experience, experienceType),
+    [experienceType, experience]
   );
 
   const handleClick = (type: ExperienceType): void => {
-    if (experience && experience === type) {
-      setExperience(undefined);
+    if (experienceType && experienceType === type) {
+      setExperienceType(undefined);
       return;
     }
-    setExperience(type);
+    setExperienceType(type);
   };
 
   return (
@@ -42,10 +36,10 @@ const Experience = () => {
         {experienceTypes.map((type) => (
           <FilterChip
             key={type}
-            selected={experience === type}
+            selected={experienceType === type}
             onClick={() => handleClick(type)}
           >
-            {type}
+            {t(`experience-type-${type}`)}
           </FilterChip>
         ))}
       </div>

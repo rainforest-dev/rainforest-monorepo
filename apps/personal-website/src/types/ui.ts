@@ -1,4 +1,4 @@
-import { ILocation, IName, SkillTag } from './data';
+import { IExperience, ILocation, IName, SkillTag } from './data';
 
 export interface IHeroProps {
   name: IName;
@@ -8,3 +8,9 @@ export interface IHeroProps {
   summaries: string[];
   tags: SkillTag[];
 }
+
+export interface ITimelineProps {
+  items: IExperience[];
+}
+
+export type IResumeProps = IHeroProps;

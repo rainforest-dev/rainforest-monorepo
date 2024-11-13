@@ -4,7 +4,7 @@ import ChainedBackend, { ChainedBackendOptions } from 'i18next-chained-backend';
 import HttpBackend from 'i18next-http-backend';
 import resourcesToBackend from 'i18next-resources-to-backend';
 
-import { fallbackLng, getOptions } from './settings';
+import { fallbackLng, getOptions, supportedLngs } from './settings';
 
 const initI18next = async (lng: string, ns?: string | string[]) => {
   const instance = i18next.createInstance();
@@ -29,6 +29,13 @@ const initI18next = async (lng: string, ns?: string | string[]) => {
       },
     });
   return instance;
+};
+
+export const getLangFromUrl = (url: URL | string) => {
+  if (typeof url === 'string') url = new URL(url);
+  const [, lang] = url.pathname.split('/');
+  if (([...supportedLngs] as string[]).includes(lang)) return lang;
+  return fallbackLng;
 };
 
 export const useTranslation = async (
