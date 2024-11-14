@@ -1,5 +1,4 @@
 import eslintPluginAstro from 'eslint-plugin-astro';
-import jsoncParser from 'jsonc-eslint-parser';
 
 import baseConfig from '../../eslint.config.js';
 
