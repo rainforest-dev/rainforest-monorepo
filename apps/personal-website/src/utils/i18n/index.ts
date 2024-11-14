@@ -1,5 +1,6 @@
+import { Description, IExperience, ISkill, Skill } from '@types';
 import type { i18n as I18nInstance, TFunction } from 'i18next';
-import i18next from 'i18next';
+import i18next, { t } from 'i18next';
 import ChainedBackend, { ChainedBackendOptions } from 'i18next-chained-backend';
 import HttpBackend from 'i18next-http-backend';
 import resourcesToBackend from 'i18next-resources-to-backend';
@@ -48,5 +49,48 @@ export const useTranslation = async (
     i18n: instance,
   };
 };
+
+export const translateDescription = (
+  t: TFunction,
+  description: Description
+) => {
+  if (Array.isArray(description)) {
+    return description.map((desc) => t(desc));
+  }
+  return t(description);
+};
+
+export const translateExperience = (
+  t: TFunction,
+  experience: IExperience
+): IExperience => {
+  return {
+    ...experience,
+    organization: {
+      ...experience.organization,
+      name: t(experience.organization.name),
+      department: experience.organization.department
+        ? t(experience.organization.department)
+        : undefined,
+    },
+    position: t(experience.position),
+    description: experience.description
+      ? translateDescription(t, experience.description)
+      : undefined,
+    projects: experience.projects?.map((project) => ({
+      ...project,
+      name: t(project.name),
+      description: project.description
+        ? translateDescription(t, project.description)
+        : undefined,
+    })),
+  };
+};
+
+export const translateSkill = (t: TFunction, skill: ISkill): Skill => ({
+  ...skill,
+  label: t(skill.key),
+  description: translateDescription(t, skill.description),
+});
 
 export * from './settings';

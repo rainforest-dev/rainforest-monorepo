@@ -9,7 +9,7 @@ import {
 import Layout from '@layouts/index.astro';
 import { IHeroProps } from '@types';
 import { getBrandIconName } from '@utils';
-import { resume, skills } from '@utils/constants';
+import { hero, info, skills } from '@utils/constants';
 import { useTranslation } from '@utils/i18n';
 import clsx from 'clsx';
 
@@ -22,7 +22,7 @@ const heroProps: IHeroProps = {
     last: t('info-name-last', { context: 'informal' }),
     fullname: t('info-fullname', { context: 'informal' }),
   },
-  dateOfBirth: new Date(resume.info.dateOfBirth),
+  dateOfBirth: new Date(info.dateOfBirth),
   jobPosition: t('info-job-position'),
   location: {
     city: t('info-location', { context: 'city' }),
@@ -33,7 +33,7 @@ const heroProps: IHeroProps = {
     t('home:hero-summaries.1'),
     t('home:hero-summaries.2'),
   ],
-  tags: [...resume.hero.tags],
+  tags: hero.tags,
 };
 ---
 

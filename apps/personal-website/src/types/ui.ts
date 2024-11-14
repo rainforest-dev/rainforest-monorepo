@@ -1,5 +1,16 @@
 import { IExperience, ILocation, IName, ISkill, SkillTag } from './data';
 
+export interface IContactProps {
+  email: string;
+  phone: string;
+  links: {
+    linkedin: string;
+    github: string;
+    website: string;
+    [key: string]: string;
+  };
+}
+
 export interface IHeroProps {
   name: IName;
   dateOfBirth: Date;
@@ -13,8 +24,15 @@ export interface ITimelineProps {
   experience: IExperience[];
 }
 
+export type Skill = ISkill & { label: string };
+
 export interface ISkillProps {
-  skills: ISkill[];
+  skills: Skill[];
 }
 
-export type IResumeProps = IHeroProps & ISkillProps;
+export type IResumeProps = IContactProps &
+  Omit<IHeroProps, 'tags'> &
+  ITimelineProps &
+  ISkillProps & {
+    tags: string[];
+  };

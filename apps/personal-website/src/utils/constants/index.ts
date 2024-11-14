@@ -1,4 +1,4 @@
-import { IExperience, IOrganization, ISkill } from '@types';
+import { IExperience, IOrganization, ISkill, SkillTag } from '@types';
 
 export const defaultSourceColor = '#66b2b2' as const;
 
@@ -36,7 +36,7 @@ export const info = {
 };
 
 export const hero = {
-  tags: ['nextjs', 'docker', 'vue', 'flutter'],
+  tags: ['nextjs', 'docker', 'vue', 'flutter'] as SkillTag[],
 };
 
 export const organizations: Record<string, IOrganization> = {

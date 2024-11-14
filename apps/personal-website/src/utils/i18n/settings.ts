@@ -1,3 +1,5 @@
+import { enUS, type Locale, zhTW } from 'date-fns/locale';
+
 export const fallbackLng = 'en' as const;
 export const supportedLngs = [fallbackLng, 'zh'] as const;
 export const cookieName = 'i18next' as const;
@@ -14,3 +16,10 @@ export const getOptions = (
   defaultNS,
   ns: [defaultNS, ...(Array.isArray(ns) ? ns : ns ? [ns] : [])],
 });
+
+export const locales: {
+  [key in (typeof supportedLngs)[number]]: Locale;
+} = {
+  en: enUS,
+  zh: zhTW,
+};
