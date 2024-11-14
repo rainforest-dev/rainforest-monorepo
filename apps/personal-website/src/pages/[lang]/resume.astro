@@ -1,7 +1,38 @@
 ---
 import { ATSFriendly } from '@components/resume';
 import Layout from '@layouts/index.astro';
-import { resume } from '@utils/constants';
+import type { IResumeProps } from '@types';
+import { experience, hero, info, skills } from '@utils/constants';
+import {
+  translateExperience,
+  translateSkill,
+  useTranslation,
+} from '@utils/i18n';
+
+const { t } = await useTranslation(Astro.currentLocale, 'home');
+
+const resumeProps: IResumeProps = {
+  ...info,
+  name: {
+    first: t('info-name-first', { context: 'formal' }),
+    last: t('info-name-last', { context: 'formal' }),
+    fullname: t('info-fullname', { context: 'formal' }),
+  },
+  dateOfBirth: new Date(info.dateOfBirth),
+  jobPosition: t('info-job-position'),
+  location: {
+    city: t('info-location', { context: 'city' }),
+    country: t('info-location', { context: 'country' }),
+  },
+  summaries: [
+    t('home:hero-summaries.0'),
+    t('home:hero-summaries.1'),
+    t('home:hero-summaries.2'),
+  ],
+  tags: hero.tags.map((tag) => t(tag)),
+  experience: experience.map((item) => translateExperience(t, item)),
+  skills: skills.map((item) => translateSkill(t, item)),
+};
 ---
 
 <Layout title="Resume | Rainforest">
@@ -13,7 +44,7 @@ import { resume } from '@utils/constants';
       class="w-[1050px] h-[1485px] origin-top scale-30 sm:scale-50 md:scale-75 lg:scale-100
               print:scale-100 print:origin-top-left"
     >
-      <ATSFriendly {...resume} />
+      <ATSFriendly {...resumeProps} />
     </div>
   </main>
   <style media="print">
