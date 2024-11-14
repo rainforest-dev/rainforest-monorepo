@@ -6,7 +6,7 @@ import { useTranslation } from '@utils/i18n/react';
 import { format } from 'date-fns';
 
 export default function Timeline({ experience = [] }: ITimelineProps) {
-  const { t } = useTranslation(getLangFromUrl(location.href), 'home');
+  const { t } = useTranslation(getLangFromUrl(), 'home');
   const renderDescription = (
     description: ITimelineProps['experience'][number]['description']
   ) => {

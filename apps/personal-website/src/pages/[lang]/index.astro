@@ -39,7 +39,7 @@ const heroProps: IHeroProps = {
 
 <Layout title="Hello! I'm Rainforest">
   <main class="contents">
-    <Nav client:load />
+    <Nav client:only="vue" />
     <ScrollToTop client:load />
     <!-- hero -->
     <section class="flex-center container h-screen xl:flex! hidden!">
@@ -57,7 +57,7 @@ const heroProps: IHeroProps = {
     </section>
     <section id="skills" class="py-10 min-h-screen">
       <div class="container">
-        <h2 class="text-4xl mb-10">Skills</h2>
+        <h2 class="text-4xl mb-10">{t('skills')}</h2>
         <ul class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-8">
           {
             skills.map((skill) => (

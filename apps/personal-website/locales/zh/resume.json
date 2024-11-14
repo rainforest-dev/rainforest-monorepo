@@ -1,7 +1,6 @@
 {
   "key-skills": "技能",
   "education": "學歷",
-  "skills": "技能",
   "website": "個人網頁",
   "education-description": "{{major}}, {{degree}}"
 }

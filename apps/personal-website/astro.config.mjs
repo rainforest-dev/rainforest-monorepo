@@ -19,6 +19,7 @@ export default defineConfig({
   integrations: [
     react(),
     vue({
+      appEntrypoint: 'src/pages/_app',
       template: {
         compilerOptions: {
           isCustomElement: (tag) => tag.startsWith('md-'),

@@ -1,3 +1,5 @@
+export const isServerSide = typeof window === 'undefined';
+
 export const getBrandIconName = (_name: string) => {
   let name = undefined;
   switch (_name) {

@@ -4,6 +4,7 @@ export const fallbackLng = 'en' as const;
 export const supportedLngs = [fallbackLng, 'zh'] as const;
 export const cookieName = 'i18next' as const;
 export const defaultNS = 'common' as const;
+export const showDefaultLanguage = false as const;
 
 export const getOptions = (
   lng: string = fallbackLng,

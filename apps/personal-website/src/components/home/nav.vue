@@ -6,10 +6,10 @@
     <div class="flex-row-center gap-10">
       <ul class="flex-row-center gap-10">
         <li>
-          <a href="#experience" @click="handleClick">Experience</a>
+          <a href="#experience" @click="handleClick">{{ t('experience') }}</a>
         </li>
         <li>
-          <a href="#skills" @click="handleClick">Skills</a>
+          <a href="#skills" @click="handleClick">{{ t('skills') }}</a>
         </li>
       </ul>
       <div class="relative">
@@ -21,7 +21,7 @@
         </md-icon-button>
         <md-menu ref="menu" anchor="language-picker-anchor">
           <md-menu-item v-for="lang in supportedLngs">
-            <a slot="headline" :href="`/${lang}`">{{ lang }}</a>
+            <a slot="headline" :href="`/${lang}`">{{ t(lang) }}</a>
           </md-menu-item>
         </md-menu>
       </div>
@@ -36,6 +36,9 @@ import '@material/web/menu/menu-item';
 
 import { supportedLngs } from '@utils';
 import { useTemplateRef } from 'vue';
+import { useTranslation } from 'i18next-vue';
+
+const { t } = useTranslation();
 
 const menu = useTemplateRef<MdMenu>('menu');
 

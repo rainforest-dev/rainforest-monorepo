@@ -4,7 +4,7 @@ import '@material/web/button/outlined-button';
 import '@material/web/icon/icon';
 
 import type { IHeroProps as Props } from '@types';
-import { useTranslation } from '@utils/i18n';
+import { useTranslatedPath, useTranslation } from '@utils/i18n';
 import { Image } from 'astro:assets';
 
 import Tag from '../../tag.astro';
@@ -12,7 +12,9 @@ import Tag from '../../tag.astro';
 const props = Astro.props;
 const year = props.dateOfBirth.getFullYear();
 
-const { t } = await useTranslation(Astro.currentLocale, 'home');
+const lang = Astro.currentLocale;
+const { t } = await useTranslation(lang, 'home');
+const translatePath = useTranslatedPath(lang);
 ---
 
 <div class="h-3/4 grid grid-cols-3 py-10 px-20 relative z-0">
@@ -29,9 +31,11 @@ const { t } = await useTranslation(Astro.currentLocale, 'home');
       {props.name.fullname}
     </h1>
     <div class="flex-row-center gap-4">
-      <md-filled-button href="/blog" class="px-6">{t('blog')}</md-filled-button>
+      <md-filled-button href={translatePath('/blog')} class="px-6"
+        >{t('blog')}</md-filled-button
+      >
       <md-outlined-button
-        href="/resume"
+        href={translatePath('/resume')}
         target="_blank"
         has-icon
         trailing-icon

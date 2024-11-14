@@ -2,15 +2,15 @@ import { FilterChip } from '@components';
 import { getExperience, getLangFromUrl } from '@utils';
 import { experience } from '@utils/constants';
 import { useTranslation } from '@utils/i18n/react';
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 
 import Timeline from './timeline';
 
 const experienceTypes = ['job', 'education'] as const;
 type ExperienceType = (typeof experienceTypes)[number];
 
-const Experience = () => {
-  const { t } = useTranslation(getLangFromUrl(location.href), 'home');
+const _Experience = () => {
+  const { t } = useTranslation(getLangFromUrl(), 'home');
   const [experienceType, setExperienceType] = useState<
     ExperienceType | undefined
   >();
@@ -47,4 +47,10 @@ const Experience = () => {
   );
 };
 
-export default Experience;
+export default function Experience() {
+  return (
+    <Suspense fallback="loading...">
+      <_Experience />
+    </Suspense>
+  );
+}
