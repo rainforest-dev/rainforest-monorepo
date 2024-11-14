@@ -9,12 +9,35 @@ import {
 import Layout from '@layouts/index.astro';
 import { IHeroProps } from '@types';
 import { getBrandIconName } from '@utils';
+import { experience, tags } from '@utils/constants';
 import { hero, info, skills } from '@utils/constants';
-import { useTranslation } from '@utils/i18n';
+import {
+  supportedLngs,
+  translateExperience,
+  useTranslation,
+} from '@utils/i18n';
 import clsx from 'clsx';
+import { ComponentProps } from 'react';
 
 const { lang } = Astro.params;
 const { t } = await useTranslation(lang, 'home');
+
+const navProps: Parameters<typeof Nav>[0] = {
+  anchors: [
+    {
+      label: t('experience'),
+      href: '#experience',
+    },
+    {
+      label: t('skills'),
+      href: '#skills',
+    },
+  ],
+  langs: supportedLngs.map((l) => ({
+    label: t(`common:${l}`),
+    href: `/${l}`,
+  })),
+};
 
 const heroProps: IHeroProps = {
   name: {
@@ -35,11 +58,19 @@ const heroProps: IHeroProps = {
   ],
   tags: hero.tags,
 };
+
+const experienceProps: ComponentProps<typeof Experience> = {
+  experience: experience.map((item) => translateExperience(t, item)),
+  filters: tags.experience.map((tag) => ({
+    type: tag,
+    label: t(`experience-type-${tag}`),
+  })),
+};
 ---
 
 <Layout title="Hello! I'm Rainforest">
   <main class="contents">
-    <Nav client:only="vue" />
+    <Nav client:load {...navProps} />
     <ScrollToTop client:load />
     <!-- hero -->
     <section class="flex-center container h-screen xl:flex! hidden!">
@@ -52,7 +83,7 @@ const heroProps: IHeroProps = {
     <section id="experience" class="py-10 sm:h-screen">
       <div class="container flex-col-center size-full">
         <h2 class="text-4xl mb-10">{t('experience')}</h2>
-        <Experience client:only="react" />
+        <Experience client:load {...experienceProps} />
       </div>
     </section>
     <section id="skills" class="py-10 min-h-screen">
