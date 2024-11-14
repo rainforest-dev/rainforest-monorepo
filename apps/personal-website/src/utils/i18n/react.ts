@@ -1,34 +1,17 @@
-import i18n from 'i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-import resourcesToBackend from 'i18next-resources-to-backend';
+import i18next from 'i18next';
 import { useEffect, useState } from 'react';
 import {
   initReactI18next,
   useTranslation as _useTranslation,
 } from 'react-i18next';
 
-import { fallbackLng, getOptions, supportedLngs } from './settings';
+import { isServerSide } from '..';
+import { createInstance, fallbackLng, initI18nextClient } from '.';
 
-const isServerSide = typeof window === 'undefined';
-
-i18n
-  .use(initReactI18next)
-  .use(LanguageDetector)
-  .use(
-    resourcesToBackend(
-      (lng: string, ns: string) =>
-        import(`../../../public/locales/${lng}/${ns}.json`)
-    )
-  )
-  .init({
-    ...getOptions(),
-    debug: true,
-    lng: undefined,
-    detection: {
-      order: ['path', 'htmlTag', 'cookie', 'navigator'],
-    },
-    preload: isServerSide ? supportedLngs : [],
-  });
+let instance = i18next.createInstance();
+instance.use(initReactI18next);
+instance = createInstance(instance);
+await initI18nextClient(instance);
 
 export const useTranslation = (
   lng: string = fallbackLng,

@@ -1,4 +1,6 @@
 {
+  "en": "English",
+  "zh": "繁體中文",
   "info-name-first_formal": "Yu-Lin",
   "info-name-last_formal": "Cheng",
   "info-name-first_informal": "Rainforest",
@@ -14,5 +16,6 @@
   "fastapi": "FastAPI",
   "blog": "Blog",
   "resume": "Resume",
-  "experience": "Experience"
+  "experience": "Experience",
+  "skills": "Skills"
 }

@@ -1,42 +1,48 @@
 import { Description, IExperience, ISkill, Skill } from '@types';
 import type { i18n as I18nInstance, TFunction } from 'i18next';
-import i18next, { t } from 'i18next';
-import ChainedBackend, { ChainedBackendOptions } from 'i18next-chained-backend';
-import HttpBackend from 'i18next-http-backend';
+import i18next from 'i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
 import resourcesToBackend from 'i18next-resources-to-backend';
 
+import { isServerSide } from '..';
 import { fallbackLng, getOptions, supportedLngs } from './settings';
 
-const initI18next = async (lng: string, ns?: string | string[]) => {
-  const instance = i18next.createInstance();
-  await instance
-    .use(ChainedBackend)
+export const createInstance = (
+  instance: I18nInstance = i18next.createInstance()
+): I18nInstance => {
+  instance
+    .use(LanguageDetector)
     .use(
       resourcesToBackend(
         (lng: string, ns: string) =>
-          import(`../../../public/locales/${lng}/${ns}.json`)
+          import(`../../../locales/${lng}/${ns}.json`)
       )
-    )
-    .init<ChainedBackendOptions>({
-      ...getOptions(lng, ns),
-      // debug: true,
-      backend: {
-        backends: [HttpBackend],
-        backendOptions: [
-          {
-            loadPath: '/locales/{{lng}}/{{ns}}.json',
-          },
-        ],
-      },
-    });
+    );
+
   return instance;
 };
 
-export const getLangFromUrl = (url: URL | string) => {
-  if (typeof url === 'string') url = new URL(url);
-  const [, lang] = url.pathname.split('/');
-  if (([...supportedLngs] as string[]).includes(lang)) return lang;
-  return fallbackLng;
+const initI18next = async (lng: string, ns?: string | string[]) => {
+  const instance = createInstance();
+  await instance.init({
+    ...getOptions(lng, ns),
+  });
+  return instance;
+};
+
+export const initI18nextClient = async (instance = createInstance()) => {
+  await instance.init({
+    ...getOptions(),
+    lng: undefined,
+    detection: {
+      order: ['path', 'htmlTag', 'cookie', 'navigator'],
+    },
+    interpolation: {
+      escapeValue: false, // React already escapes values
+    },
+    preload: isServerSide ? supportedLngs : [],
+  });
+  return instance;
 };
 
 export const useTranslation = async (
@@ -93,4 +99,5 @@ export const translateSkill = (t: TFunction, skill: ISkill): Skill => ({
   description: translateDescription(t, skill.description),
 });
 
+export * from './route';
 export * from './settings';

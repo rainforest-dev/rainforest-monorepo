@@ -26,7 +26,11 @@
     "i18next": "^23.16.5",
     "i18next-chained-backend": "^4.6.2",
     "i18next-http-backend": "^2.6.2",
-    "i18next-resources-to-backend": "^1.2.1"
+    "i18next-resources-to-backend": "^1.2.1",
+    "vue": "^3.5.12",
+    "i18next-browser-languagedetector": "^8.0.0",
+    "react-i18next": "^15.1.1",
+    "i18next-vue": "^5.0.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
