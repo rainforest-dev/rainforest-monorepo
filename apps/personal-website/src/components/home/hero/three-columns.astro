@@ -3,13 +3,18 @@ import '@material/web/button/filled-button';
 import '@material/web/button/outlined-button';
 import '@material/web/icon/icon';
 
+import type { IHeroProps as Props } from '@types';
+import { useTranslatedPath, useTranslation } from '@utils/i18n';
 import { Image } from 'astro:assets';
 
 import Tag from '../../tag.astro';
-import type { Props } from './types';
 
-const hero = Astro.props;
-const year = new Date(hero.dateOfBirth).getFullYear();
+const props = Astro.props;
+const year = props.dateOfBirth.getFullYear();
+
+const lang = Astro.currentLocale;
+const { t } = await useTranslation(lang, 'home');
+const translatePath = useTranslatedPath(lang);
 ---
 
 <div class="h-3/4 grid grid-cols-3 py-10 px-20 relative z-0">
@@ -22,19 +27,20 @@ const year = new Date(hero.dateOfBirth).getFullYear();
   </div>
   <div class="flex flex-col justify-center">
     <p>{year}</p>
-    <h1 class="text-7xl mt-1 mb-16 w-min text-secondary">
-      {hero.name.informal.first}
-      {hero.name.informal.last}
+    <h1 class="text-7xl mt-1 mb-16 text-secondary">
+      {props.name.fullname}
     </h1>
     <div class="flex-row-center gap-4">
-      <md-filled-button href="/blog" class="px-6">Blog</md-filled-button>
+      <md-filled-button href={translatePath('/blog')} class="px-6"
+        >{t('blog')}</md-filled-button
+      >
       <md-outlined-button
-        href="/resume"
+        href={translatePath('/resume')}
         target="_blank"
         has-icon
         trailing-icon
         class="px-6 gap-2"
-        >Resume
+        >{t('resume')}
         <md-icon slot="icon">open_in_new</md-icon>
       </md-outlined-button>
     </div>
@@ -49,15 +55,13 @@ const year = new Date(hero.dateOfBirth).getFullYear();
   <div class="flex flex-col justify-center text-surface gap-6">
     <ul class="list-disc">
       <li>
-        {
-          `${hero.jobPosition} from ${hero.location.city}, ${hero.location.country}.`
-        }
+        {t('home:hero-brief')}
       </li>
-      {hero.summaries.map((summary) => <li>{summary}</li>)}
+      {props.summaries.map((summary) => <li>{summary}</li>)}
     </ul>
     <ul class="flex gap-2">
       {
-        hero.tags.map((tag) => (
+        props.tags.map((tag) => (
           <li>
             <Tag name={tag} class="bg-surface/85 text-on-surface" />
           </li>

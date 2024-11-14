@@ -1,7 +1,4 @@
-import type Timeline from '@components/home/timeline';
-import type { ComponentProps } from 'react';
-
-import type { resume } from './constants';
+export const isServerSide = typeof window === 'undefined';
 
 export const getBrandIconName = (_name: string) => {
   let name = undefined;
@@ -35,42 +32,11 @@ export const getBrandIconName = (_name: string) => {
   return name;
 };
 
-export const transformExperience = (
-  experience: (typeof resume)['experience'][number]
-): ComponentProps<typeof Timeline>['items'][number] => {
-  return {
-    date: experience.startAt,
-    organization: experience.organization.name,
-    position: experience.position,
-    description: experience.description,
-    projects:
-      'projects' in experience
-        ? experience.projects.map((project) => ({
-            name: project.name,
-            description: (Array.isArray(project.description)
-              ? [...project.description]
-              : project.description) as string[] | string,
-          }))
-        : [],
-    technologies: [...experience.tags],
-  };
-};
-
-export const getExperience = (
-  experience: (typeof resume)['experience'],
-  type?: (typeof resume)['experience'][number]['type']
-) => {
-  const sorted = [...experience].sort((a, b) => {
-    if (a.startAt < b.startAt) return 1;
-    if (a.startAt > b.startAt) return -1;
-    return 0;
-  });
-  if (!type) return sorted;
-  return sorted.filter((exp) => exp.type === type);
-};
-
 export const getLinkedInUrl = (username: string) =>
   `https://www.linkedin.com/in/${username}`;
 
 export const getGitHubUrl = (username: string) =>
   `https://github.com/${username}`;
+
+export * from './experience';
+export * from './i18n';

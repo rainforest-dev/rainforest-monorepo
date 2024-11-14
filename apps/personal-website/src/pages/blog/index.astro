@@ -1,10 +1,12 @@
 ---
 import Layout from '@layouts/index.astro';
+import { useTranslatedPath } from '@utils';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
+const translatePath = useTranslatedPath(Astro.currentLocale);
 ---
 
 <Layout title="Blogs">
@@ -15,7 +17,7 @@ const posts = (await getCollection('blog')).sort(
       posts.map(({ data: post, id }) => (
         <a
           class="inline-block"
-          href={`/blog/${id}`}
+          href={translatePath(`/blog/${id}`)}
           style={{
             height: `${100 + 100 * Math.random()}px`,
             'background-color': `#${Math.floor(Math.random() * 16777215).toString(16)}`,

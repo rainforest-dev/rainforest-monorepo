@@ -1,22 +1,25 @@
 ---
+import { Tag as TagType } from '@types';
 import { getBrandIconName } from '@utils';
+import { useTranslation } from '@utils/i18n';
 import clsx from 'clsx';
 
 interface Props {
-  name: string;
+  name: TagType;
   class?: string;
   iconClass?: string;
 }
 
 const { name, class: containerClass, iconClass } = Astro.props;
 const iconName = getBrandIconName(name);
+const { t } = await useTranslation('en', 'common');
 ---
 
 <div
-  class={clsx('flex-row-center gap-2 py-1 px-2 rounded-full', containerClass)}
+  class={clsx('flex-row-center gap-2 py-1 px-2 rounded-full capitalize', containerClass)}
 >
   {iconName ? <iconify-icon icon={iconName} height="none" class={clsx("size-4", iconClass)}></iconify-icon> : <></>}
-  {name}
+  {t(name)}
 </div>
 <script>
 import 'iconify-icon';

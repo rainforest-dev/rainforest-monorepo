@@ -1,16 +1,21 @@
 ---
+import type { IResumeProps as Props } from '@types';
 import { getExperience, getGitHubUrl, getLinkedInUrl } from '@utils';
 import { resumeDateFormat } from '@utils/constants';
+import { locales, useTranslation } from '@utils/i18n';
 import { format } from 'date-fns';
 
-import type { Props } from './types';
-
-const { info, hero, experience: _experience, skills: _skills } = Astro.props;
+const { experience: _experience, skills: _skills, ...info } = Astro.props;
 const linkedInUrl = getLinkedInUrl(info.links.linkedin);
 const gitHubUrl = getGitHubUrl(info.links.github);
 const experience = getExperience(_experience, 'job');
 const education = getExperience(_experience, 'education');
 const skills = _skills;
+
+const lang = Astro.currentLocale;
+const { t } = await useTranslation(lang, 'resume');
+const locale =
+  lang && lang in locales ? locales[lang as keyof typeof locales] : locales.en;
 ---
 
 <article
@@ -19,7 +24,7 @@ const skills = _skills;
                 prose-headings:text-on-surface prose-a:text-on-surface prose-li:text-on-surface prose-headings:m-0 prose-h2:mb-3 prose-li:m-0 prose-p:mt-0 prose-p:mb-2"
 >
   <section>
-    <h1>{info.name.formal.first} {info.name.formal.last}</h1>
+    <h1>{info.name.fullname}</h1>
     <h2>{info.jobPosition}</h2>
     <ul class="list-none pl-0 mt-4 mb-5">
       <li><a href={`tel:${info.phone}`}>{info.phone}</a></li>
@@ -36,37 +41,48 @@ const skills = _skills;
         >)
       </li>
       <li>
-        Website: <a href={info.links.website} target="_blank"
+        {t('website')}: <a href={info.links.website} target="_blank"
           >{info.links.website}</a
         >
       </li>
     </ul>
-    <h5>Key Skills</h5>
-    <p>{hero.tags.join(', ')}</p>
+    <h5>{t('key-skills')}</h5>
+    <p class="capitalize">{info.tags.join(', ')}</p>
   </section>
   <section>
-    <h2>Experience</h2>
+    <h2>{t('experience')}</h2>
     <ul>
       {
         experience.map((item) => (
           <li>
             <>
-              <time>{format(new Date(item.startAt), resumeDateFormat)}</time> -{' '}
-              <time>{format(new Date(item.endAt), resumeDateFormat)}</time>
+              <time>
+                {format(new Date(item.startAt), resumeDateFormat, { locale })}
+              </time>{' '}
+              -{' '}
+              {item.endAt && (
+                <time>
+                  {format(new Date(item.endAt), resumeDateFormat, { locale })}
+                </time>
+              )}
             </>
             <h3>{item.organization.name}</h3>
             <h5>{item.position}</h5>
             <p>{item.description}</p>
             <ul class="list-none pl-0">
-              {'projects' in item &&
+              {item.projects &&
                 item.projects.map((project) => (
                   <li>
                     <h4>{project.name}</h4>
-                    <ul>
-                      {project.description.map((desc) => (
-                        <li>{desc}</li>
-                      ))}
-                    </ul>
+                    {Array.isArray(project.description) ? (
+                      <ul>
+                        {project.description.map((desc) => (
+                          <li>{desc}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>{project.description}</p>
+                    )}
                   </li>
                 ))}
             </ul>
@@ -77,17 +93,17 @@ const skills = _skills;
   </section>
   <section class="grid grid-cols-2 w-full break-after-auto">
     <section>
-      <h2>Education</h2>
+      <h2>{t('education')}</h2>
       <ul>
         {
           education.map((item) => (
             <li>
               <h3>{item.organization.name}</h3>
               <h5>
-                {item.position}
-                {'department' in item.organization
-                  ? ` in ${item.organization.department}`
-                  : ''}
+                {t('education-description', {
+                  degree: item.position,
+                  major: item.organization.department,
+                })}
               </h5>
               <p>{item.description}</p>
             </li>
@@ -96,9 +112,9 @@ const skills = _skills;
       </ul>
     </section>
     <section>
-      <h2>Skills</h2>
+      <h2>{t('skills')}</h2>
       <ul>
-        {skills.map((skill) => <li>{skill.name}</li>)}
+        {skills.map((skill) => <li class="capitalize">{skill.label}</li>)}
       </ul>
     </section>
   </section>
