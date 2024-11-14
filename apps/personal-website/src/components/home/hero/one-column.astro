@@ -1,9 +1,9 @@
 ---
+import type { IHeroProps as Props } from '@types';
 import { Image } from 'astro:assets';
 
-import type { Props } from './types';
-
-const hero = Astro.props;
+const props = Astro.props;
+const year = props.dateOfBirth.getFullYear();
 ---
 
 <div class="flex flex-col size-full">
@@ -22,17 +22,17 @@ const hero = Astro.props;
     <div
       class="text-9xl text-tertiary/50 rotate-270 origin-bottom inline-block m-4"
     >
-      1997
+      {year}
     </div>
   </div>
   <div class="flex container">
     <div class="flex flex-col">
       <h1 class="text-4xl text-secondary">
-        {hero.name.informal.first}
+        {props.name.first}
       </h1>
-      <p>{hero.jobPosition}</p>
+      <p>{props.jobPosition}</p>
       <ul class="list-disc list-inside mt-4">
-        {hero.summaries.map((summary) => <li>{summary}</li>)}
+        {props.summaries.map((summary) => <li>{summary}</li>)}
       </ul>
       <!-- <div class="flex-row-center gap-4 mt-16">
       <button>Action 1</button>

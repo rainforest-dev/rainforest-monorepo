@@ -1,0 +1,42 @@
+{
+  "hero-summaries": [
+    "6年使用Vue和React開發經驗。",
+    "擅長使用流程自動化工具及容器技術簡化前端任務",
+    "過去參與數位孿生、區塊鏈、長照、細胞基因治療等專案。"
+  ],
+  "hero-brief": "$t(common:info-job-position)來自$t(common:info-location_country)$t(common:info-location_city).",
+  "ntu": "國立臺灣大學",
+  "ce": "土木工程學系",
+  "caece": "土木工程學系電腦輔助工程組",
+  "webim": "衛武資訊",
+  "gss": "叡揚資訊",
+  "jubo": "智齡科技",
+  "codegreen": "美商科綠",
+  "degree-bachelor": "大學",
+  "degree-master": "碩士",
+  "position-rd-assistant": "研發助理",
+  "position-frontend-intern": "前端實習生",
+  "position-software-intern": "軟體實習生",
+  "position-senior-frontend-engineer": "資深前端工程師",
+  "project-dex-descriptions": [
+    "The first decentralized exchange (DEX) on Chia blockchain",
+    "The frontend utilizes Next.js and Styled Components in conjunction with TailwindCSS for styling purposes.",
+    "Particularly focusing on SEO and performance optimization for a long list of hundreds of CATs to display."
+  ],
+  "project-hoogii-descriptions": [
+    "A web3 cryptocurrency extension wallet on Google Chrome",
+    "Develop the Chrome extension using Vite and React, and ensure that it adheres to the manifest v3 specification."
+  ],
+  "project-pyke-descriptions": [
+    "The first Automated Market Maker (AMM) on Chia blockchain",
+    "Introduced the monorepo tool, Nx, to maintain product and unit tests, end-to-end tests, loading tests, and UI libraries separately while ensuring greater maintainability."
+  ],
+  "project-opencgt-descriptions": [
+    "Develop B2B products utilizing the Next.js app router.",
+    "Implemented social logins utilizing Auth.js and Auth0.",
+    "Implemented role-based authorizations using Cabin.js.",
+    "Construct an automated Continuous Integration/Continuous Deployment pipeline utilizing NX to streamline the product release process and minimize manual effort."
+  ],
+  "experience-type-job": "工作",
+  "experience-type-education": "學歷"
+}
