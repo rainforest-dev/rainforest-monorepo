@@ -12,8 +12,9 @@ export interface ILocation {
 }
 
 export type SkillTag = (typeof tags)['skills'][number];
+export type ExperienceTag = (typeof tags)['experience'][number];
 
-export type Tag = SkillTag;
+export type Tag = SkillTag | ExperienceTag;
 
 export type Description = string | string[];
 
@@ -30,7 +31,7 @@ export interface IProject {
 }
 
 export interface IExperience {
-  type: 'job' | 'education';
+  type: ExperienceTag;
   organization: IOrganization;
   position: string;
   description?: Description;

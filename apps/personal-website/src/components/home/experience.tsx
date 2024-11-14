@@ -1,25 +1,24 @@
 import { FilterChip } from '@components';
-import { getExperience, getLangFromUrl } from '@utils';
-import { experience } from '@utils/constants';
-import { useTranslation } from '@utils/i18n/react';
-import { Suspense, useMemo, useState } from 'react';
+import { ExperienceTag } from '@types';
+import { getExperience } from '@utils';
+import { ComponentProps, useMemo, useState } from 'react';
 
 import Timeline from './timeline';
 
-const experienceTypes = ['job', 'education'] as const;
-type ExperienceType = (typeof experienceTypes)[number];
+interface IProps extends ComponentProps<typeof Timeline> {
+  filters: { type: ExperienceTag; label: string }[];
+}
 
-const _Experience = () => {
-  const { t } = useTranslation(getLangFromUrl(), 'home');
+const Experience = ({ experience, filters }: IProps) => {
   const [experienceType, setExperienceType] = useState<
-    ExperienceType | undefined
+    ExperienceTag | undefined
   >();
   const items = useMemo(
     () => getExperience(experience, experienceType),
     [experienceType, experience]
   );
 
-  const handleClick = (type: ExperienceType): void => {
+  const handleClick = (type: ExperienceTag): void => {
     if (experienceType && experienceType === type) {
       setExperienceType(undefined);
       return;
@@ -33,13 +32,13 @@ const _Experience = () => {
         <Timeline experience={items} />
       </div>
       <div className="flex gap-10 mt-10">
-        {experienceTypes.map((type) => (
+        {filters.map(({ type, label }) => (
           <FilterChip
             key={type}
             selected={experienceType === type}
             onClick={() => handleClick(type)}
           >
-            {t(`experience-type-${type}`)}
+            {label}
           </FilterChip>
         ))}
       </div>
@@ -47,10 +46,4 @@ const _Experience = () => {
   );
 };
 
-export default function Experience() {
-  return (
-    <Suspense fallback="loading...">
-      <_Experience />
-    </Suspense>
-  );
-}
+export default Experience;

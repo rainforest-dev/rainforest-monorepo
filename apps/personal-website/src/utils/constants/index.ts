@@ -22,6 +22,7 @@ export const tags = {
     'fastapi',
     'swift',
   ],
+  experience: ['job', 'education'],
 } as const;
 
 export const info = {
