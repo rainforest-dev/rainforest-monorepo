@@ -22,6 +22,7 @@
     "@nanostores/react": "^0.8.0",
     "@nanostores/vue": "^0.10.0",
     "@strapi/plugin-cloud": "5.4.0",
+    "@strapi/plugin-i18n": "^4.25.13",
     "@strapi/plugin-users-permissions": "5.4.0",
     "@strapi/strapi": "5.4.0",
     "@tailwindcss/vite": "4.0.0-beta.2",

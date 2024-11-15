@@ -1,11 +1,17 @@
 ---
 import Layout from '@layouts/index.astro';
-import { useTranslatedPath } from '@utils';
+import { IArticle } from '@types';
+import { fetchApi, useTranslatedPath } from '@utils';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
+const articles = await fetchApi<IArticle[]>({
+  endpoint: 'articles',
+  wrappedByKey: 'data',
+});
+console.log({ posts, articles });
 const translatePath = useTranslatedPath(Astro.currentLocale);
 ---
 
