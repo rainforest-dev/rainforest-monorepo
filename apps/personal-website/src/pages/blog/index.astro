@@ -15,29 +15,10 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
   >
     {
       posts.map(({ data: post, id }) => (
-        <a
-          class="inline-block"
-          href={translatePath(`/blog/${id}`)}
-          style={{
-            height: `${100 + 100 * Math.random()}px`,
-            'background-color': `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-          }}
-        >
+        <a class="inline-block" href={translatePath(`/blog/${id}`)}>
           <h2>{post.title}</h2>
           <p>{post.description}</p>
         </a>
-      ))
-    }
-    {
-      Array.from({ length: 100 }).map((item, index) => (
-        <div
-          style={{
-            height: `${100 + 100 * Math.random()}px`,
-            'background-color': `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-          }}
-        >
-          {index + posts.length + 1}
-        </div>
       ))
     }
   </main>
