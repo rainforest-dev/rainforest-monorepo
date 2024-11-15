@@ -4,13 +4,23 @@ import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 import vue from '@astrojs/vue';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
 
 import { fallbackLng, supportedLngs } from './src/utils/i18n/settings';
 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://rainforest.tools',
+  env: {
+    schema: {
+      STRAPI_URL: envField.string({
+        context: 'server',
+        access: 'public',
+        default: 'http://localhost:1337',
+      }),
+      STRAPI_TOKEN: envField.string({ context: 'server', access: 'secret' }),
+    },
+  },
   i18n: {
     defaultLocale: fallbackLng,
     locales: [...supportedLngs],

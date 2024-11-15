@@ -43,3 +43,4 @@ export const getGitHubUrl = (username: string) =>
 export * from './experience';
 export * from './i18n';
 export * from './ui';
+export * from './strapi';
