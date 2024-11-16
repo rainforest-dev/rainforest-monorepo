@@ -28,7 +28,7 @@ const styleRaw = `
 <style is:inline set:html={styleRaw}></style>
 <script>
   import { persistentKey, sourceColor as $sourceColor } from '@stores';
-import Cookies from 'js-cookie';
+  import Cookies from 'js-cookie';
   const sourceColor = $sourceColor.get();
   if (sourceColor) {
     Cookies.set(persistentKey, sourceColor);

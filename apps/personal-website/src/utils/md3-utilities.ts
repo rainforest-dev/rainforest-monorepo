@@ -48,10 +48,9 @@ export default _plugin.withOptions(
 
 export const applyTheme = (sourceColor: string, dark: boolean) => {
   const theme = themeFromSourceColor(argbFromHex(sourceColor));
-  console.log(theme.palettes);
+  console.log(theme);
   _applyTheme(theme, {
     target: document.documentElement,
     dark,
-    paletteTones: [],
   });
 };

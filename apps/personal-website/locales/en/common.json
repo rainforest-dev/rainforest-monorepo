@@ -7,7 +7,7 @@
   "info-name-last_informal": "Cheng",
   "info-fullname_formal": "$t(info-name-first_formal)\n$t(info-name-last_formal)",
   "info-fullname_informal": "$t(info-name-first_informal)\n$t(info-name-last_informal)",
-  "info-location_city": "Taipei",
+  "info-location_city": "Tainan",
   "info-location_country": "Taiwan",
   "info-job-position": "Senior Frontend Engineer",
   "nextjs": "Next.js",
@@ -17,5 +17,16 @@
   "blog": "Blog",
   "resume": "Resume",
   "experience": "Experience",
-  "skills": "Skills"
+  "skills": "Skills",
+  "resources": "Resources",
+  "social-media": "Social Media",
+  "contact-me-title": "Contact Me",
+  "contact-me-description": "Feel free to reach out to me via email or social media.",
+  "contact-me-from-person": "Name",
+  "contact-me-from-company": "Company",
+  "contact-me-email": "Email",
+  "contact-me-email-required": "Please enter a valid email address.",
+  "contact-me-subject": "Subject",
+  "contact-me-message": "Message",
+  "contact-me-submit": "Submit"
 }

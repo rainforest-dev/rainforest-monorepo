@@ -12,7 +12,6 @@
       <div class="relative">
         <md-icon-button
           id="language-picker-anchor"
-          class="!text-surface !fill-surface"
           @click="menu.open = !menu?.open"
         >
           <md-icon>language</md-icon>
