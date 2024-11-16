@@ -10,11 +10,11 @@ import {
 } from '@utils';
 import { info } from '@utils/constants';
 
+import ContactForm from './contact-form.astro';
+
 const { lang } = Astro.params;
 const { t } = await useTranslation(lang);
 const translatePath = useTranslatedPath(lang);
-
-const errorMessage = t('contact-me-email-required');
 ---
 
 <footer class="container md:flex hidden justify-between pt-10 pb-20">
@@ -46,97 +46,8 @@ const errorMessage = t('contact-me-email-required');
       </li>
     </ul>
   </div>
-  <div class="flex flex-col gap-2">
-    <h2 class="text-xl font-semibold">{t('contact-me-title')}</h2>
-    <p class="mb-2">{t('contact-me-description')}</p>
-    <div class="flex gap-2">
-      <md-outlined-text-field label={t('contact-me-from-person')} name="name"
-      ></md-outlined-text-field>
-      <md-outlined-text-field
-        label={t('contact-me-from-company')}
-        name="company"></md-outlined-text-field>
-    </div>
-    <md-outlined-text-field
-      label={t('contact-me-email')}
-      type="email"
-      required
-      name="email"
-      data-error-message={errorMessage}></md-outlined-text-field>
-    <md-outlined-text-field label={t('contact-me-subject')} name="subject"
-    ></md-outlined-text-field>
-    <md-outlined-text-field
-      label={t('contact-me-message')}
-      type="textarea"
-      name="message"></md-outlined-text-field>
-    <md-filled-button
-      class="mt-4 px-6 w-1/2 self-end"
-      id="contact-me-submit"
-      disabled>{t('contact-me-submit')}</md-filled-button
-    >
-  </div>
+  <ContactForm />
 </footer>
-
-<script>
-  import { MdFilledButton } from '@material/web/button/filled-button';
-  import { MdOutlinedTextField } from '@material/web/textfield/outlined-text-field';
-  import { info } from '@utils/constants';
-
-  const nameField = document.querySelector(
-    'md-outlined-text-field[name="name"]'
-  ) as MdOutlinedTextField;
-  const companyField = document.querySelector(
-    'md-outlined-text-field[name="company"]'
-  ) as MdOutlinedTextField;
-  const emailField = document.querySelector(
-    'md-outlined-text-field[name="email"]'
-  ) as MdOutlinedTextField;
-  const subjectField = document.querySelector(
-    'md-outlined-text-field[name="subject"]'
-  ) as MdOutlinedTextField;
-  const messageField = document.querySelector(
-    'md-outlined-text-field[name="message"]'
-  ) as MdOutlinedTextField;
-  const submitButton = document.getElementById(
-    'contact-me-submit'
-  ) as MdFilledButton;
-
-  const handleFormChange = () => {
-    const name = nameField.value;
-    const company = companyField.value;
-    const email = emailField.value;
-    let subject = subjectField.value;
-    const message = messageField.value;
-
-    if (submitButton) {
-      if (email) {
-        const from = name && company ? `${name} (${company})` : name || company;
-        if (subject && from) subject = `${subject} - ${from}`;
-        else if (from) subject = from;
-        submitButton.href = `mailto:${info.email}?subject=${subject}&body=${message}`;
-        submitButton.disabled = false;
-      } else {
-        submitButton.href = '';
-        submitButton.disabled = true;
-      }
-    }
-  };
-
-  nameField?.addEventListener('change', handleFormChange);
-  companyField?.addEventListener('change', handleFormChange);
-  emailField?.addEventListener('change', handleFormChange);
-  subjectField?.addEventListener('change', handleFormChange);
-  messageField?.addEventListener('change', handleFormChange);
-
-  emailField?.addEventListener('change', () => {
-    if (emailField.error) emailField.error = false;
-  });
-  emailField?.addEventListener('blur', () => {
-    if (!emailField.value) {
-      emailField.error = true;
-      emailField.errorText = emailField.dataset.errorMessage || '';
-    }
-  });
-</script>
 
 <style scoped>
   .material-symbols-outlined {

@@ -29,7 +29,6 @@ export const getSchemeProperties = (scheme: Scheme) => {
 
 export default _plugin.withOptions(
   ({ sourceColor = defaultSourceColor, dark = false }: IOptions = {}) => {
-    console.log(Cookies.get('source-color'));
     const theme = themeFromSourceColor(argbFromHex(sourceColor));
     const scheme = dark ? theme.schemes.dark : theme.schemes.light;
     const properties = Object.fromEntries(
@@ -48,7 +47,6 @@ export default _plugin.withOptions(
 
 export const applyTheme = (sourceColor: string, dark: boolean) => {
   const theme = themeFromSourceColor(argbFromHex(sourceColor));
-  console.log(theme);
   _applyTheme(theme, {
     target: document.documentElement,
     dark,
