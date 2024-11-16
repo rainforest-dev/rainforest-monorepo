@@ -1,9 +1,10 @@
 ---
 import {
   Experience,
+  FAB,
+  Footer,
   Nav,
   OneColumns,
-  ScrollToTop,
   ThreeColumns,
 } from '@components/home';
 import Layout from '@layouts/index.astro';
@@ -71,7 +72,7 @@ const experienceProps: ComponentProps<typeof Experience> = {
 <Layout title="Hello! I'm Rainforest">
   <main class="contents">
     <Nav client:load {...navProps} />
-    <ScrollToTop client:load />
+    <FAB client:load />
     <!-- hero -->
     <section class="flex-center container h-screen xl:flex! hidden!">
       <ThreeColumns {...heroProps} />
@@ -86,8 +87,8 @@ const experienceProps: ComponentProps<typeof Experience> = {
         <Experience client:load {...experienceProps} />
       </div>
     </section>
-    <section id="skills" class="py-10 min-h-screen">
-      <div class="container">
+    <section id="skills" class="py-10 min-h-screen flex flex-col">
+      <div class="container grow min-h-[90vh]">
         <h2 class="text-4xl mb-10">{t('skills')}</h2>
         <ul class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-8">
           {
@@ -118,6 +119,7 @@ const experienceProps: ComponentProps<typeof Experience> = {
           }
         </ul>
       </div>
+      <Footer />
     </section>
   </main>
   <style>
