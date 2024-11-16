@@ -1,5 +1,6 @@
 ---
 import {
+  ContactForm,
   Experience,
   FAB,
   Footer,
@@ -10,7 +11,7 @@ import {
 import Layout from '@layouts/index.astro';
 import { IHeroProps } from '@types';
 import { getBrandIconName } from '@utils';
-import { experience, tags } from '@utils/constants';
+import { experience, links, tags } from '@utils/constants';
 import { hero, info, skills } from '@utils/constants';
 import {
   supportedLngs,
@@ -38,6 +39,22 @@ const navProps: Parameters<typeof Nav>[0] = {
     label: t(`common:${l}`),
     href: `/${l}`,
   })),
+  sections: [
+    {
+      title: t('resources'),
+      links: links.internal.map((link) => ({
+        label: t(link.key),
+        href: link.href,
+      })),
+    },
+    {
+      title: t('social-media'),
+      links: links.external.map((link) => ({
+        label: t(link.key),
+        href: link.href,
+      })),
+    },
+  ],
 };
 
 const heroProps: IHeroProps = {
@@ -71,7 +88,9 @@ const experienceProps: ComponentProps<typeof Experience> = {
 
 <Layout title="Hello! I'm Rainforest">
   <main class="contents">
-    <Nav client:load {...navProps} />
+    <Nav client:load {...navProps}>
+      <ContactForm slot="sider" />
+    </Nav>
     <FAB client:load />
     <!-- hero -->
     <section class="flex-center container h-screen xl:flex! hidden!">
