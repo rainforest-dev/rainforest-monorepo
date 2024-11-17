@@ -11,7 +11,7 @@
     <div class="hidden md:flex-row-center gap-10">
       <ul class="flex-row-center gap-10">
         <li v-for="{ label, href } in anchors">
-          <a :href="href" @click="handleClick">{{ label }}</a>
+          <a :href="href" @click="removeUrlHashAfterNavigation">{{ label }}</a>
         </li>
       </ul>
       <div class="relative">
@@ -84,7 +84,7 @@ import '@material/web/menu/menu-item';
 import { computed, ref, useTemplateRef } from 'vue';
 import clsx from 'clsx';
 import { useWindowScroll } from '@vueuse/core';
-import { isServerSide } from '@utils';
+import { isServerSide, removeUrlHashAfterNavigation } from '@utils';
 
 interface ILink {
   label: string;
@@ -103,17 +103,6 @@ interface IProps {
 const { anchors, langs, sections } = defineProps<IProps>();
 
 const menu = useTemplateRef<MdMenu>('menu');
-
-const handleClick = () => {
-  // remove the anchor part of the URL after clicking on a link after 300ms
-  requestAnimationFrame(() => {
-    window.history.replaceState(
-      null,
-      '',
-      window.location.href.replace(window.location.hash, '')
-    );
-  });
-};
 
 const open = ref(false);
 

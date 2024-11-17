@@ -68,6 +68,7 @@ const translatePath = useTranslatedPath(lang);
 <script>
   import { MdFilledButton } from '@material/web/button/filled-button';
   import { MdIconButton } from '@material/web/iconbutton/icon-button';
+  import { removeUrlHashAfterNavigation } from '@utils';
 
   const contactMeButton = document.getElementById(
     'contact-me-button'
@@ -82,7 +83,7 @@ const translatePath = useTranslatedPath(lang);
       contactMeButton.href = '';
       contactMeButton.onclick = handleOpenContactForm;
     } else {
-      contactMeButton.onclick = null;
+      contactMeButton.onclick = removeUrlHashAfterNavigation;
       contactMeButton.href = '#contact-form-footer';
     }
   };
