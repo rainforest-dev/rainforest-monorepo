@@ -17,6 +17,7 @@
       <div class="relative">
         <md-icon-button
           id="language-picker-anchor"
+          aria-label="language-picker"
           @click="menu.open = !menu?.open"
         >
           <md-icon
