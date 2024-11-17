@@ -13,6 +13,7 @@ export interface IContactProps {
 
 export interface IHeroProps {
   name: IName;
+  profile: string;
   dateOfBirth: Date;
   jobPosition: string;
   location: ILocation;

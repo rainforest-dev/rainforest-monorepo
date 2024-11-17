@@ -63,6 +63,7 @@ const heroProps: IHeroProps = {
     last: t('info-name-last', { context: 'informal' }),
     fullname: t('info-fullname', { context: 'informal' }),
   },
+  profile: `/images/profile/${Math.ceil(Math.random() * 4)}.png`,
   dateOfBirth: new Date(info.dateOfBirth),
   jobPosition: t('info-job-position'),
   location: {
@@ -86,7 +87,7 @@ const experienceProps: ComponentProps<typeof Experience> = {
 };
 ---
 
-<Layout title="Hello! I'm Rainforest">
+<Layout title={t('metadata-title')} description={t('metadata-description')}>
   <main class="contents">
     <Nav client:load {...navProps}>
       <ContactForm slot="sider" id="contact-form-menu" />
