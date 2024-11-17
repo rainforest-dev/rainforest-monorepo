@@ -5,11 +5,20 @@
   "info-name-last_informal": "鄭",
   "info-fullname_formal": "$t(info-name-last_formal)$t(info-name-first_formal)",
   "info-fullname_informal": "$t(info-name-last_informal)$t(info-name-first_informal)",
-  "info-location_city": "台北",
+  "info-location_city": "台南",
   "info-location_country": "台灣",
   "info-job-position": "資深前端工程師",
   "blog": "部落格",
   "resume": "履歷",
   "experience": "經歷",
-  "skills": "技能"
+  "skills": "技能",
+  "resources": "資源",
+  "social-media": "社群連結",
+  "contact-me-title": "聯絡我",
+  "contact-me-description": "歡迎透過電子郵件或社群媒體與我聯絡。",
+  "contact-me-from-person": "名字",
+  "contact-me-from-company": "公司",
+  "contact-me-subject": "主旨",
+  "contact-me-message": "訊息",
+  "contact-me-submit": "送出"
 }

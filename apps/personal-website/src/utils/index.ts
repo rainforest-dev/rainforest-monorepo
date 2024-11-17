@@ -17,6 +17,8 @@ export const getBrandIconName = (_name: string) => {
     case 'qwik':
     case 'pytorch':
     case 'fastapi':
+    case 'linkedin':
+    case 'github':
       name = `logos:${_name}-icon`;
       break;
     case 'mui':
@@ -40,3 +42,4 @@ export const getGitHubUrl = (username: string) =>
 
 export * from './experience';
 export * from './i18n';
+export * from './ui';

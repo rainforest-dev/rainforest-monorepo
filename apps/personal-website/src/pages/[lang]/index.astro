@@ -1,15 +1,17 @@
 ---
 import {
+  ContactForm,
   Experience,
+  FAB,
+  Footer,
   Nav,
   OneColumns,
-  ScrollToTop,
   ThreeColumns,
 } from '@components/home';
 import Layout from '@layouts/index.astro';
 import { IHeroProps } from '@types';
 import { getBrandIconName } from '@utils';
-import { experience, tags } from '@utils/constants';
+import { experience, links, tags } from '@utils/constants';
 import { hero, info, skills } from '@utils/constants';
 import {
   supportedLngs,
@@ -37,6 +39,22 @@ const navProps: Parameters<typeof Nav>[0] = {
     label: t(`common:${l}`),
     href: `/${l}`,
   })),
+  sections: [
+    {
+      title: t('resources'),
+      links: links.internal.map((link) => ({
+        label: t(link.key),
+        href: link.href,
+      })),
+    },
+    {
+      title: t('social-media'),
+      links: links.external.map((link) => ({
+        label: t(link.key),
+        href: link.href,
+      })),
+    },
+  ],
 };
 
 const heroProps: IHeroProps = {
@@ -70,8 +88,10 @@ const experienceProps: ComponentProps<typeof Experience> = {
 
 <Layout title="Hello! I'm Rainforest">
   <main class="contents">
-    <Nav client:load {...navProps} />
-    <ScrollToTop client:load />
+    <Nav client:load {...navProps}>
+      <ContactForm slot="sider" id="contact-form-menu" />
+    </Nav>
+    <FAB client:load />
     <!-- hero -->
     <section class="flex-center container h-screen xl:flex! hidden!">
       <ThreeColumns {...heroProps} />
@@ -86,8 +106,8 @@ const experienceProps: ComponentProps<typeof Experience> = {
         <Experience client:load {...experienceProps} />
       </div>
     </section>
-    <section id="skills" class="py-10 min-h-screen">
-      <div class="container">
+    <section id="skills" class="py-10 min-h-screen flex flex-col">
+      <div class="container grow min-h-[90vh]">
         <h2 class="text-4xl mb-10">{t('skills')}</h2>
         <ul class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-8">
           {
@@ -118,6 +138,7 @@ const experienceProps: ComponentProps<typeof Experience> = {
           }
         </ul>
       </div>
+      <Footer />
     </section>
   </main>
   <style>
