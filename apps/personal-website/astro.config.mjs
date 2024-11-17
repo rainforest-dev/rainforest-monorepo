@@ -21,7 +21,8 @@ export default defineConfig({
     vue({
       template: {
         compilerOptions: {
-          isCustomElement: (tag) => tag.startsWith('md-'),
+          isCustomElement: (tag) =>
+            tag.startsWith('md-') || ['iconify-icon'].includes(tag),
         },
       },
     }),

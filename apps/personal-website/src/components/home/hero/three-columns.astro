@@ -17,10 +17,10 @@ const { t } = await useTranslation(lang, 'home');
 const translatePath = useTranslatedPath(lang);
 ---
 
-<div class="h-3/4 grid grid-cols-3 py-10 px-20 relative z-0">
-  <div class="absolute -z-10 inset-0">
+<div class="h-3/4 grid grid-cols-3 py-10 px-20 relative z-0 rounded-xl">
+  <div class="absolute -z-10 inset-0 rounded-[inherit] overflow-clip">
     <div
-      class="size-full rounded-xl relative z-0 bg-gray-100 dark:bg-gray-800 overflow-clip
+      class="size-full relative z-0 bg-gray-100 dark:bg-gray-800 overflow-clip
                   after:content-[''] after:bg-on-surface after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
     >
     </div>
@@ -31,8 +31,8 @@ const translatePath = useTranslatedPath(lang);
       {props.name.fullname}
     </h1>
     <div class="flex-row-center gap-4">
-      <md-filled-button href={translatePath('/blog')} class="px-6"
-        >{t('blog')}</md-filled-button
+      <md-filled-button href="#contact-form-footer" class="px-6"
+        >{t('contact-me-title')}</md-filled-button
       >
       <md-outlined-button
         href={translatePath('/resume')}
@@ -70,3 +70,12 @@ const translatePath = useTranslatedPath(lang);
     </ul>
   </div>
 </div>
+
+<script>
+  import { removeUrlHashAfterNavigation } from '@utils';
+
+  const contactMeButton = document.querySelector(
+    'md-filled-button[href="#contact-form-footer"]'
+  );
+  contactMeButton?.addEventListener('click', removeUrlHashAfterNavigation);
+</script>
