@@ -17,7 +17,9 @@ const { t } = await useTranslation(lang);
 const translatePath = useTranslatedPath(lang);
 ---
 
-<footer class="container md:flex hidden justify-between pt-10 pb-20">
+<footer
+  class="container md:flex flex-wrap gap-10 hidden justify-between pt-10 pb-20"
+>
   <div class="flex flex-col gap-2">
     <h2 class="text-xl font-semibold">{t('resources')}</h2>
     <ul class="space-y-1">
@@ -46,7 +48,7 @@ const translatePath = useTranslatedPath(lang);
       </li>
     </ul>
   </div>
-  <ContactForm />
+  <ContactForm id="contact-form-footer" />
 </footer>
 
 <style scoped>

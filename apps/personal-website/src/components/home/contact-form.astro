@@ -4,12 +4,17 @@ import '@material/web/button/filled-button';
 
 import { useTranslation } from '@utils';
 
+interface Props {
+  id: string;
+}
+const { id } = Astro.props;
+
 const { lang } = Astro.params;
 const { t } = await useTranslation(lang);
 const errorMessage = t('contact-me-email-required');
 ---
 
-<contact-form class="flex flex-col gap-2">
+<contact-form class="flex flex-col gap-2" id={id}>
   <h2 class="text-xl font-semibold">{t('contact-me-title')}</h2>
   <p class="mb-2">{t('contact-me-description')}</p>
   <div class="flex gap-2">
