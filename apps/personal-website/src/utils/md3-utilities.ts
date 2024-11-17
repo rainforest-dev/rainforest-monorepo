@@ -5,7 +5,6 @@ import {
   type Scheme,
   themeFromSourceColor,
 } from '@material/material-color-utilities';
-import Cookies from 'js-cookie';
 import _plugin from 'tailwindcss/plugin';
 
 import { defaultSourceColor } from './constants';
