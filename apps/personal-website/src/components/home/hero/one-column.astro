@@ -5,7 +5,7 @@ import '@material/web/icon/icon';
 
 import type { IHeroProps as Props } from '@types';
 import { useTranslatedPath, useTranslation } from '@utils';
-import { Image } from 'astro:assets';
+import { Picture } from 'astro:assets';
 
 const props = Astro.props;
 const year = props.dateOfBirth.getFullYear();
@@ -20,12 +20,16 @@ const translatePath = useTranslatedPath(lang);
     <div
       class="size-full bg-on-surface rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0 z-0"
     >
-      <Image
+      <Picture
         height={600}
         width={600}
-        src={`/images/profile/${Math.ceil(Math.random() * 4)}.png`}
+        src={props.profile}
         alt="profile"
-        class="object-cover object-top h-full z-10 absolute -bottom-10 md:-bottom-20 left-1/2 -translate-x-1/2 -skew-y-12"
+        pictureAttributes={{
+          class:
+            'h-full z-10 absolute -bottom-10 md:-bottom-20 left-1/2 -translate-x-1/2 ',
+        }}
+        class="object-cover object-top -skew-y-12 size-full"
       />
     </div>
     <div
