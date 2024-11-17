@@ -70,3 +70,12 @@ const translatePath = useTranslatedPath(lang);
     </ul>
   </div>
 </div>
+
+<script>
+  import { removeUrlHashAfterNavigation } from '@utils';
+
+  const contactMeButton = document.querySelector(
+    'md-filled-button[href="#contact-form-footer"]'
+  );
+  contactMeButton?.addEventListener('click', removeUrlHashAfterNavigation);
+</script>
