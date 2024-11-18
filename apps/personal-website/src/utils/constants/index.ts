@@ -28,7 +28,7 @@ export const tags = {
 
 export const info = {
   dateOfBirth: '1997-02-18',
-  email: 'rainforestnick@gmail.com',
+  email: 'contact@rainforest.tools',
   phone: '+886981352355',
   links: {
     linkedin: 'yulin-cheng',
