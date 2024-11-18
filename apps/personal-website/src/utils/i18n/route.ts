@@ -1,6 +1,8 @@
 import { isServerSide } from '..';
 import { fallbackLng, showDefaultLanguage, supportedLngs } from './settings';
 
+export const persistentLocaleKey = 'locale' as const;
+
 export const getLangFromUrl = (url?: URL | string) => {
   if (isServerSide) return fallbackLng;
   if (!url) url = location.href;

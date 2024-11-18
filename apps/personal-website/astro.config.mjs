@@ -1,5 +1,6 @@
 // @ts-check
 import react from '@astrojs/react';
+import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 import vue from '@astrojs/vue';
 import tailwindcss from '@tailwindcss/vite';
@@ -9,6 +10,7 @@ import { fallbackLng, supportedLngs } from './src/utils/i18n/settings';
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://rainforest.tools',
   i18n: {
     defaultLocale: fallbackLng,
     locales: [...supportedLngs],
@@ -26,6 +28,7 @@ export default defineConfig({
         },
       },
     }),
+    sitemap(),
   ],
   output: 'server',
   adapter: vercel({
