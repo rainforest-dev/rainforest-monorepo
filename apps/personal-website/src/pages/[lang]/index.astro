@@ -18,11 +18,14 @@ import {
   translateExperience,
   useTranslation,
 } from '@utils/i18n';
+import { getRelativeLocaleUrl } from 'astro:i18n';
 import clsx from 'clsx';
 import { ComponentProps } from 'react';
 
 const { lang } = Astro.params;
 const { t } = await useTranslation(lang, 'home');
+
+const pathnameWithoutLang = Astro.url.pathname.replaceAll(`/${lang}`, '');
 
 const navProps: Parameters<typeof Nav>[0] = {
   anchors: [
@@ -36,8 +39,9 @@ const navProps: Parameters<typeof Nav>[0] = {
     },
   ],
   langs: supportedLngs.map((l) => ({
+    key: l,
     label: t(`common:${l}`),
-    href: `/${l}`,
+    href: getRelativeLocaleUrl(l, pathnameWithoutLang),
   })),
   sections: [
     {
