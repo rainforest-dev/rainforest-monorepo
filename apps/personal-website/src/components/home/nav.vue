@@ -31,8 +31,10 @@
           >
         </md-icon-button>
         <md-menu ref="menu" anchor="language-picker-anchor">
-          <md-menu-item v-for="{ label, href } in langs">
-            <a slot="headline" :href="href">{{ label }}</a>
+          <md-menu-item v-for="{ label, href, key } in langs">
+            <a slot="headline" :href="href" @click="cacheLocale(key)">{{
+              label
+            }}</a>
           </md-menu-item>
         </md-menu>
       </div>
@@ -85,7 +87,12 @@ import '@material/web/menu/menu-item';
 import { computed, ref, useTemplateRef } from 'vue';
 import clsx from 'clsx';
 import { useWindowScroll } from '@vueuse/core';
-import { isServerSide, removeUrlHashAfterNavigation } from '@utils';
+import {
+  isServerSide,
+  persistentLocaleKey,
+  removeUrlHashAfterNavigation,
+} from '@utils';
+import Cookies from 'js-cookie';
 
 interface ILink {
   label: string;
@@ -94,7 +101,7 @@ interface ILink {
 
 interface IProps {
   anchors: ILink[];
-  langs: ILink[];
+  langs: (ILink & { key: string })[];
   sections: {
     title: string;
     links: ILink[];
@@ -111,4 +118,10 @@ const { y } = useWindowScroll();
 const page = computed(() => {
   return isServerSide ? 0 : y.value / window.innerHeight;
 });
+
+const cacheLocale = (locale: string) => {
+  Cookies.set(persistentLocaleKey, locale, {
+    path: '/',
+  });
+};
 </script>
