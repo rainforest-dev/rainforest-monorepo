@@ -38,7 +38,11 @@
         </template>
         <slot name="sider"></slot>
       </aside>
-      <md-icon-button @click="open = !open" id="menu-trigger">
+      <md-icon-button
+        @click="open = !open"
+        id="menu-trigger"
+        aria-label="menu-and-close"
+      >
         <md-icon
           :class="
             clsx(
