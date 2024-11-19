@@ -29,6 +29,7 @@ export default defineConfig({
       },
     }),
     sitemap(),
+    (await import('astro-compress')).default(),
   ],
   output: 'server',
   adapter: vercel({
