@@ -89,8 +89,10 @@ const TimelineItem = ({
 
 export default function Timeline({ experience = [] }: ITimelineProps) {
   return (
-    <ul className="flex flex-col gap-4 sm:gap-5 relative">
-      <div className="absolute w-0.5 h-full bg-on-surface left-0 -translate-x-1/2 sm:left-1/2" />
+    <ul
+      className="flex flex-col gap-4 sm:gap-5 relative
+                  after:content-[''] after:absolute after:w-0.5 after:h-full after:bg-on-surface after:left-0 after:-translate-x-1/2 after:sm:left-1/2"
+    >
       {experience.map((item) => {
         return (
           <TimelineItem
