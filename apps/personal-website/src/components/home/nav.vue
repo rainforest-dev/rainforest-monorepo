@@ -14,40 +14,18 @@
           <a :href="href" @click="removeUrlHashAfterNavigation">{{ label }}</a>
         </li>
       </ul>
-      <div class="relative">
-        <md-icon-button
-          id="language-picker-anchor"
-          aria-label="language-picker"
-          @click="menu.open = !menu?.open"
-        >
-          <md-icon
-            :class="
-              clsx(
-                'xl:text-on-surface',
-                page > 0 ? 'text-on-surface' : 'text-surface'
-              )
-            "
-            >language</md-icon
-          >
-        </md-icon-button>
-        <md-menu ref="menu" anchor="language-picker-anchor">
-          <md-menu-item v-for="{ label, href, key } in langs">
-            <a slot="headline" :href="href" @click="cacheLocale(key)">{{
-              label
-            }}</a>
-          </md-menu-item>
-        </md-menu>
-      </div>
+      <LanguagePicker :langs="langs" />
     </div>
     <div class="md:hidden block">
       <aside
         :class="
           clsx(
-            'fixed inset-0 bg-surface-variant text-on-surface-variant',
+            'fixed inset-0 bg-surface-variant text-on-surface-variant px-4',
             open ? 'flex-center flex-col gap-10' : 'hidden'
           )
         "
       >
+        <LanguagePicker :langs="langs" />
         <template v-for="section in sections">
           <div class="flex-col-center gap-4 capitalize">
             <h2 class="text-xl font-semibold">{{ section.title }}</h2>
@@ -81,36 +59,30 @@
 <script lang="ts" setup>
 import '@material/web/iconbutton/icon-button';
 import '@material/web/icon/icon';
-import { MdMenu } from '@material/web/menu/menu';
 import '@material/web/menu/menu-item';
 
-import { computed, ref, useTemplateRef } from 'vue';
+import { computed, ref } from 'vue';
 import clsx from 'clsx';
 import { useWindowScroll } from '@vueuse/core';
-import {
-  isServerSide,
-  persistentLocaleKey,
-  removeUrlHashAfterNavigation,
-} from '@utils';
-import Cookies from 'js-cookie';
+import { isServerSide, removeUrlHashAfterNavigation } from '@utils';
+import LanguagePicker, {
+  IProps as ILanguagePickerProps,
+} from './language-picker.vue';
 
 interface ILink {
   label: string;
   href: string;
 }
 
-interface IProps {
+type Props = {
   anchors: ILink[];
-  langs: (ILink & { key: string })[];
   sections: {
     title: string;
     links: ILink[];
   }[];
-}
+} & ILanguagePickerProps;
 
-const { anchors, langs, sections } = defineProps<IProps>();
-
-const menu = useTemplateRef<MdMenu>('menu');
+const { anchors, langs, sections } = defineProps<Props>();
 
 const open = ref(false);
 
@@ -118,10 +90,4 @@ const { y } = useWindowScroll();
 const page = computed(() => {
   return isServerSide ? 0 : y.value / window.innerHeight;
 });
-
-const cacheLocale = (locale: string) => {
-  Cookies.set(persistentLocaleKey, locale, {
-    path: '/',
-  });
-};
 </script>
