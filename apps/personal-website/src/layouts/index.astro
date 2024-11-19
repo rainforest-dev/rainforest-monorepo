@@ -25,6 +25,16 @@ const url = Astro.url.toString();
     <meta name="theme-color" content="currentColor" />
     <link rel="sitemap" href="/sitemap-index.xml" />
 
+    <!-- Google Fonts -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=arrow_back,arrow_upward,chat_bubble,close,language,mail,menu,open_in_new&display=block"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Lora&display=swap"
+    />
+
     <title>{title}</title>
     <meta name="title" content={title} />
     <meta name="description" content={description} />
@@ -42,6 +52,11 @@ const url = Astro.url.toString();
     <meta property="twitter:title" content={title} />
     <meta property="twitter:description" content={description} />
     <meta property="twitter:image" content="/images/thumbnail/1.jpg" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
 
     <SpeedInsights />
     <ThemeProvider />
