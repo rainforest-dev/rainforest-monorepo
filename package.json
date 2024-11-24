@@ -1,9 +1,13 @@
 {
   "name": "@rainforest-monorepo/source",
   "version": "0.0.0",
-  "license": "MIT",
-  "scripts": {},
   "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {},
   "dependencies": {
     "@astrojs/react": "3.6.2",
     "@astrojs/sitemap": "^3.2.1",
@@ -43,9 +47,9 @@
     "@eslint/js": "^9.8.0",
     "@nx/eslint": "20.0.6",
     "@nx/eslint-plugin": "20.0.6",
-    "@nx/js": "20.0.6",
-    "@nx/vite": "20.0.6",
-    "@nx/web": "20.0.6",
+    "@nx/js": "20.1.2",
+    "@nx/vite": "20.1.2",
+    "@nx/web": "20.1.2",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
@@ -66,12 +70,22 @@
     "tslib": "^2.3.0",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.0.0",
+    "verdaccio": "^5.0.4",
     "vite": "^5.0.0",
     "vite-plugin-dts": "~3.8.1",
     "vitest": "^1.3.1"
   },
-  "workspaces": [
-    "apps/*",
-    "libs/*"
-  ]
+  "nx": {
+    "includedScripts": [],
+    "targets": {
+      "local-registry": {
+        "executor": "@nx/js:verdaccio",
+        "options": {
+          "port": 4873,
+          "config": ".verdaccio/config.yml",
+          "storage": "tmp/local-registry/storage"
+        }
+      }
+    }
+  }
 }
