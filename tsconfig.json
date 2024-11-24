@@ -5,6 +5,9 @@
   "references": [
     {
       "path": "./apps/personal-website"
+    },
+    {
+      "path": "./libs/rainforest-ui"
     }
   ]
 }
