@@ -4,23 +4,30 @@ import {
   getSchemeProperties,
   themeFromSourceColor,
 } from '@rainforest-dev/rainforest-ui';
-import { persistentColorSchemeKey, persistentKey } from '@stores';
+import { persistentKey } from '@stores';
 import { defaultSourceColor } from '@utils/constants';
 
-const dark = Astro.cookies.get(persistentColorSchemeKey)?.value === 'true';
 const sourceColor =
   Astro.cookies.get(persistentKey)?.value ?? defaultSourceColor;
 const theme = themeFromSourceColor(argbFromHex(sourceColor));
-const scheme = dark ? theme.schemes.dark : theme.schemes.light;
-const properties = getSchemeProperties(scheme);
+const getSchemeStyles = (properties: { [key: string]: number }) => {
+  return Object.entries(properties)
+    .map(([k, v]) => `${k}: ${hexFromArgb(v)};`)
+    .join('\n');
+};
 
 const styleRaw = `
   @layer theme, base, components, utilities, app;
   @layer app {
-    :root {
-      ${Object.entries(properties)
-        .map(([k, v]) => `${k}: ${hexFromArgb(v)};`)
-        .join('\n')}
+    @media (prefers-color-scheme: light) {
+      :root {
+        ${getSchemeStyles(getSchemeProperties(theme.schemes.light))}
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        ${getSchemeStyles(getSchemeProperties(theme.schemes.dark))}
+      }
     }
   }
 `;
@@ -35,7 +42,7 @@ const styleRaw = `
     Cookies.set(persistentKey, sourceColor);
   }
 </script>
-<script>
+<!-- <script>
   import { sourceColor, updateColorScheme } from '@stores';
   import { applyTheme } from '@utils/md3-utilities';
 
@@ -46,4 +53,4 @@ const styleRaw = `
       updateColorScheme(dark);
       if (sourceColor.value) applyTheme(sourceColor.value, dark);
     });
-</script>
+</script> -->

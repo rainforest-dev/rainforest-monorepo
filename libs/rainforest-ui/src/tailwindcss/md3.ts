@@ -1,4 +1,8 @@
-import { argbFromHex, hexFromArgb } from '@material/material-color-utilities';
+import {
+  argbFromHex,
+  type DynamicScheme,
+  hexFromArgb,
+} from '@material/material-color-utilities';
 import plugin from 'tailwindcss/plugin';
 
 import {
@@ -9,21 +13,27 @@ import {
 
 interface IOptions {
   sourceColor?: string;
-  dark?: boolean;
 }
 
 export default plugin.withOptions(
-  ({ sourceColor = '#66b2b2', dark = false }: IOptions = {}) => {
+  ({ sourceColor = '#66b2b2' }: IOptions = {}) => {
     const theme = themeFromSourceColor(argbFromHex(sourceColor));
-    const scheme = dark ? theme.schemes.dark : theme.schemes.light;
-    const properties = Object.fromEntries(
-      Object.entries(getSchemeProperties(scheme)).map(([key, value]) => {
-        const color = hexFromArgb(value);
-        return [key, color];
-      })
-    );
+    const getProperties = (scheme: DynamicScheme) =>
+      Object.fromEntries(
+        Object.entries(getSchemeProperties(scheme)).map(([key, value]) => {
+          const color = hexFromArgb(value);
+          return [key, color];
+        })
+      );
     return ({ addBase }) => {
-      addBase({ ':root': properties });
+      addBase({
+        '@media (prefers-color-scheme: light)': {
+          ':root': getProperties(theme.schemes.light),
+        },
+        '@media (prefers-color-scheme: dark)': {
+          ':root': getProperties(theme.schemes.dark),
+        },
+      });
     };
   },
   () => {
