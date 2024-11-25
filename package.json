@@ -21,7 +21,7 @@
     "@nanostores/persistent": "^0.10.2",
     "@nanostores/react": "^0.8.0",
     "@nanostores/vue": "^0.10.0",
-    "@tailwindcss/vite": "^4.0.0-alpha.30",
+    "@tailwindcss/vite": "4.0.0-beta.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vercel/speed-insights": "^1.1.0",
@@ -39,7 +39,7 @@
     "nanostores": "^0.11.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tailwindcss": "^4.0.0-alpha.30",
+    "tailwindcss": "4.0.0-beta.2",
     "vue": "^3.5.12"
   },
   "devDependencies": {
