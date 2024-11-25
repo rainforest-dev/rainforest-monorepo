@@ -27,9 +27,14 @@ export default defineConfig({
     },
     lib: {
       // Could also be a dictionary or array of multiple entry points.
-      entry: 'src/index.ts',
-      name: 'rainforest-ui',
-      fileName: 'index',
+      entry: {
+        index: 'src/index.ts',
+        'tailwindcss/md3': 'src/tailwindcss/md3.ts',
+      },
+      fileName: (format, entryName) => {
+        // remove the src/ and replace suffix with format
+        return `${entryName}.${format === 'es' ? 'js' : 'cjs'}`;
+      },
       // Change this to the formats you want to support.
       // Don't forget to update your package.json as well.
       formats: ['es', 'cjs'],

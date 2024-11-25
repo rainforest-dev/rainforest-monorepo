@@ -55,7 +55,7 @@ const locale =
       {
         experience.map((item) => (
           <li>
-            <>
+            <Fragment>
               <time>
                 {format(new Date(item.startAt), resumeDateFormat, { locale })}
               </time>{' '}
@@ -65,7 +65,7 @@ const locale =
                   {format(new Date(item.endAt), resumeDateFormat, { locale })}
                 </time>
               )}
-            </>
+            </Fragment>
             <h3>{item.organization.name}</h3>
             <h5>{item.position}</h5>
             <p>{item.description}</p>
