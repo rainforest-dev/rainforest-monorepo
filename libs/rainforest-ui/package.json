@@ -8,6 +8,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.cjs"
+    },
+    "./tailwindcss/*": {
+      "types": "./dist/tailwindcss/*.d.ts",
+      "import": "./dist/tailwindcss/*.js",
+      "default": "./dist/tailwindcss/*.cjs"
     }
   },
   "main": "./dist/index.js",
@@ -19,7 +24,8 @@
     "!**/*.tsbuildinfo"
   ],
   "dependencies": {
-    "@material/material-color-utilities": "^0.3.0"
+    "@material/material-color-utilities": "^0.3.0",
+    "tailwindcss": "4.0.0-beta.2"
   },
   "nx": {
     "sourceRoot": "libs/rainforest-ui/src",

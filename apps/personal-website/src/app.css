@@ -3,7 +3,7 @@
 /* tailwindcss plugins */
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
-@plugin "./utils/md3-utilities.ts";
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/md3";
 
 @theme {
   --font-family-serif: 'Lora', 'Material Symbols Outlined', serif;
