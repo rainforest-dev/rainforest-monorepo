@@ -1,11 +1,11 @@
 ---
+import { argbFromHex, hexFromArgb } from '@material/material-color-utilities';
 import {
-  argbFromHex,
+  getSchemeProperties,
   themeFromSourceColor,
-} from '@material/material-color-utilities';
+} from '@rainforest-dev/rainforest-ui';
 import { persistentColorSchemeKey, persistentKey } from '@stores';
 import { defaultSourceColor } from '@utils/constants';
-import { getSchemeProperties } from '@utils/md3-utilities';
 
 const dark = Astro.cookies.get(persistentColorSchemeKey)?.value === 'true';
 const sourceColor =
@@ -15,10 +15,11 @@ const scheme = dark ? theme.schemes.dark : theme.schemes.light;
 const properties = getSchemeProperties(scheme);
 
 const styleRaw = `
-  @layer theme {
+  @layer theme, base, components, utilities, app;
+  @layer app {
     :root {
       ${Object.entries(properties)
-        .map(([k, v]) => `${k}: ${v};`)
+        .map(([k, v]) => `${k}: ${hexFromArgb(v)};`)
         .join('\n')}
     }
   }

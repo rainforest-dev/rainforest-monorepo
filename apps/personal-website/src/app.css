@@ -3,6 +3,7 @@
 /* tailwindcss plugins */
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
+@plugin "./utils/md3-utilities.ts";
 
 @theme {
   --font-family-serif: 'Lora', 'Material Symbols Outlined', serif;
@@ -10,55 +11,12 @@
   --font-family-resume-serif: Georgia, 'Material Symbols Outlined', serif;
 
   --breakpoint-3xl: 112rem;
-
-  /* primary color */
-  --color-primary: var(--md-sys-color-primary);
-  --color-on-primary: var(--md-sys-color-on-primary);
-  --color-primary-container: var(--md-sys-color-primary-container);
-  --color-on-primary-container: var(--md-sys-color-on-primary-container);
-  /* secondary */
-  --color-secondary: var(--md-sys-color-secondary);
-  --color-on-secondary: var(--md-sys-color-on-secondary);
-  --color-secondary-container: var(--md-sys-color-secondary-container);
-  --color-on-secondary-container: var(--md-sys-color-on-secondary-container);
-  /* tertiary */
-  --color-tertiary: var(--md-sys-color-tertiary);
-  --color-on-tertiary: var(--md-sys-color-on-tertiary);
-  --color-tertiary-container: var(--md-sys-color-tertiary-container);
-  --color-on-tertiary-container: var(--md-sys-color-on-tertiary-container);
-  /* error */
-  --color-error: var(--md-sys-color-error);
-  --color-on-error: var(--md-sys-color-on-error);
-  --color-error-container: var(--md-sys-color-error-container);
-  --color-on-error-container: var(--md-sys-color-on-error-container);
-  /* background */
-  --color-background: var(--md-sys-color-background);
-  --color-on-background: var(--md-sys-color-on-background);
-  /* surface */
-  --color-surface: var(--md-sys-color-surface);
-  --color-on-surface: var(--md-sys-color-on-surface);
-  --color-surface-variant: var(--md-sys-color-surface-variant);
-  --color-on-surface-variant: var(--md-sys-color-on-surface-variant);
-  /* outline */
-  --color-outline: var(--md-sys-color-outline);
-  --color-outline-variant: var(--md-sys-color-outline-variant);
-  /* shadow */
-  --color-shadow: var(--md-sys-color-shadow);
-  /* scrim */
-  --color-scrim: var(--md-sys-color-scrim);
-  /* inverse */
-  --color-inverse-surface: var(--md-sys-color-inverse-surface);
-  --color-inverse-on-surface: var(--md-sys-color-inverse-on-surface);
-  --color-inverse-primary: var(--md-sys-color-inverse-primary);
 }
 
 @layer base {
   html,
   body {
     @apply p-0 m-0 size-full font-serif bg-surface text-on-surface;
-  }
-  button {
-    @apply cursor-pointer;
   }
 }
 

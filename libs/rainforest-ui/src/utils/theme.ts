@@ -2,6 +2,7 @@ import {
   clampDouble,
   type DynamicScheme,
   Hct,
+  hexFromArgb,
   SchemeContent,
   SchemeExpressive,
   SchemeFidelity,
@@ -158,7 +159,10 @@ export const getColorRoles = () => {
   return roles;
 };
 
-export const getSchemeProperties = (scheme: DynamicScheme) => {
+export const getSchemeProperties = (
+  scheme: DynamicScheme,
+  prefix = '--md-sys-color-'
+) => {
   const roles = getColorRoles();
 
   const isSchemeKey = (key: string): key is keyof typeof scheme =>
@@ -170,10 +174,25 @@ export const getSchemeProperties = (scheme: DynamicScheme) => {
         const schemeValue = scheme[value];
         // check if the value is number
         if (typeof schemeValue === 'number') {
-          acc.push([key, schemeValue]);
+          acc.push([`${prefix}${key}`, schemeValue]);
         }
       }
       return acc;
     }, [] as [string, number][])
   );
+};
+
+export interface IApplyThemeOptions {
+  dark?: boolean;
+  target?: HTMLElement;
+}
+
+export const applyTheme = (theme: Theme, options?: IApplyThemeOptions) => {
+  const target = options?.target || document.body;
+  const dark = options?.dark ?? false;
+
+  const scheme = dark ? theme.schemes.dark : theme.schemes.light;
+  for (const [key, palette] of Object.entries(getSchemeProperties(scheme))) {
+    target.style.setProperty(key, hexFromArgb(palette));
+  }
 };
