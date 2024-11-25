@@ -17,11 +17,13 @@ const { t } = await useTranslation(lang, 'home');
 const translatePath = useTranslatedPath(lang);
 ---
 
-<div class="h-3/4 flex-row-center py-10 px-20 relative z-0 rounded-xl">
+<div
+  class="h-3/4 flex-row-center py-10 px-20 relative z-0 rounded-xl shadow-lg"
+>
   <div class="absolute -z-10 inset-0 rounded-[inherit] overflow-clip">
     <div
-      class="size-full relative z-0 bg-gray-100 dark:bg-gray-800 overflow-clip
-                  after:content-[''] after:bg-on-surface after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
+      class="size-full relative z-0 bg-surface-container-highest overflow-clip
+                  after:bg-inverse-surface after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
     >
     </div>
   </div>
@@ -51,7 +53,9 @@ const translatePath = useTranslatedPath(lang);
     src={props.profile}
     alt="profile"
     loading="eager"
-    pictureAttributes={{ class: 'self-end -mb-10 h-[120%] w-full' }}
+    pictureAttributes={{
+      class: 'self-end -mb-10 h-[120%] w-full',
+    }}
     class="object-cover object-center size-full"
   />
   <div class="flex flex-col justify-center text-surface gap-6">
