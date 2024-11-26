@@ -15,19 +15,31 @@ const getSchemeStyles = (properties: { [key: string]: number }) => {
     .map(([k, v]) => `${k}: ${hexFromArgb(v)};`)
     .join('\n');
 };
+const lightSchemeStyles = getSchemeStyles(
+  getSchemeProperties(theme.schemes.light)
+);
+const darkSchemeStyles = getSchemeStyles(
+  getSchemeProperties(theme.schemes.dark)
+);
 
 const styleRaw = `
   @layer theme, base, components, utilities, app;
   @layer app {
     @media (prefers-color-scheme: light) {
       :root {
-        ${getSchemeStyles(getSchemeProperties(theme.schemes.light))}
+        ${lightSchemeStyles}
       }
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        ${getSchemeStyles(getSchemeProperties(theme.schemes.dark))}
+        ${darkSchemeStyles}
       }
+    }
+    [data-scheme='light'] {
+      ${lightSchemeStyles}
+    }
+    [data-scheme='dark'] {
+      ${darkSchemeStyles}
     }
   }
 `;

@@ -1,7 +1,7 @@
 <template>
-  <div class="w-full grid grid-cols-4 gap-8 capitalize">
+  <div class="w-full grid grid-cols-4 gap-8 capitalize text-xs">
     <div class="flex flex-col gap-4">
-      <ul class="flex flex-col *:odd:h-28 *:even:h-8 text-sm *:p-1">
+      <ul class="flex flex-col *:odd:h-16 *:even:h-8 *:p-1">
         <li class="bg-primary text-on-primary">primary</li>
         <li class="bg-on-primary text-primary">on primary</li>
         <li class="bg-primary-container text-on-primary-container">
@@ -12,7 +12,7 @@
         </li>
       </ul>
       <ul
-        class="flex flex-col *:first:h-28 *:first:*:p-1 *:not-first:h-8 *:not-first:p-1 text-sm"
+        class="flex flex-col *:first:h-16 *:first:*:p-1 *:not-first:h-8 *:not-first:p-1"
       >
         <li class="flex *:flex-1">
           <div class="bg-primary-fixed text-on-primary-fixed">
@@ -29,7 +29,7 @@
       </ul>
     </div>
     <div class="flex flex-col gap-4">
-      <ul class="flex flex-col *:odd:h-28 *:even:h-8 text-sm *:p-1">
+      <ul class="flex flex-col *:odd:h-16 *:even:h-8 *:p-1">
         <li class="bg-secondary text-on-secondary">secondary</li>
         <li class="bg-on-secondary text-secondary">on secondary</li>
         <li class="bg-secondary-container text-on-secondary-container">
@@ -40,7 +40,7 @@
         </li>
       </ul>
       <ul
-        class="flex flex-col *:first:h-28 *:first:*:p-1 *:not-first:h-8 *:not-first:p-1 text-sm"
+        class="flex flex-col *:first:h-16 *:first:*:p-1 *:not-first:h-8 *:not-first:p-1"
       >
         <li class="flex *:flex-1">
           <div class="bg-secondary-fixed text-on-secondary-fixed">
@@ -59,7 +59,7 @@
       </ul>
     </div>
     <div class="flex flex-col gap-4">
-      <ul class="flex flex-col *:odd:h-28 *:even:h-8 text-sm *:p-1">
+      <ul class="flex flex-col *:odd:h-16 *:even:h-8 *:p-1">
         <li class="bg-tertiary text-on-tertiary">tertiary</li>
         <li class="bg-on-tertiary text-tertiary">on tertiary</li>
         <li class="bg-tertiary-container text-on-tertiary-container">
@@ -70,7 +70,7 @@
         </li>
       </ul>
       <ul
-        class="flex flex-col *:first:h-28 *:first:*:p-1 *:not-first:h-8 *:not-first:p-1 text-sm"
+        class="flex flex-col *:first:h-16 *:first:*:p-1 *:not-first:h-8 *:not-first:p-1"
       >
         <li class="flex *:flex-1">
           <div class="bg-tertiary-fixed text-on-tertiary-fixed">
@@ -88,7 +88,7 @@
         </li>
       </ul>
     </div>
-    <ul class="flex flex-col *:odd:h-28 *:even:h-8 text-sm *:p-1">
+    <ul class="flex flex-col *:odd:h-16 *:even:h-8 *:p-1">
       <li class="bg-error text-on-error">Error</li>
       <li class="bg-on-error text-error">On Error</li>
       <li class="bg-error-container text-on-error-container">
@@ -99,12 +99,12 @@
       </li>
     </ul>
     <div class="flex flex-col col-span-3 **:p-1">
-      <ul class="flex *:flex-1 h-28">
+      <ul class="flex *:flex-1 h-16">
         <li class="bg-surface-dim text-on-surface">surface dim</li>
         <li class="bg-surface text-on-surface">surface</li>
         <li class="bg-surface-bright text-on-surface">surface bright</li>
       </ul>
-      <ul class="flex *:flex-1 h-28">
+      <ul class="flex *:flex-1 h-16">
         <li class="bg-surface-container-lowest text-on-surface">
           surface container lowest
         </li>
@@ -119,7 +119,7 @@
           surface container highest
         </li>
       </ul>
-      <ul class="flex *:flex-1 h-24">
+      <ul class="flex *:flex-1 h-16">
         <li class="bg-on-surface text-surface">on surface</li>
         <li class="bg-on-surface-variant text-surface">on surface variant</li>
         <li class="bg-outline text-surface">outline</li>
