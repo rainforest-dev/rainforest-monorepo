@@ -32,32 +32,6 @@
   @apply flex flex-col items-center;
 }
 
-@utility container-sm {
-  @apply w-full max-w-[var(--breakpoint-sm)];
-}
-
-@utility container-md {
-  @apply w-full max-w-[var(--breakpoint-md)];
-}
-
-@utility container-lg {
-  @apply w-full max-w-[var(--breakpoint-lg)];
-}
-
-@utility container-xl {
-  @apply w-full max-w-[var(--breakpoint-xl)];
-}
-
-@utility container-2xl {
-  @apply w-full max-w-[var(--breakpoint-2xl)];
-}
-
-@utility container-3xl {
-  @apply w-full max-w-[var(--breakpoint-3xl)];
-}
-
 @utility container {
-  @apply sm:container-sm md:container-md lg:container-lg xl:container-xl 2xl:container-2xl min-[112rem]:container-3xl;
-  @apply mx-auto;
-  @apply px-4 sm:px-0;
+  @apply mx-auto px-8 sm:px-0;
 }
