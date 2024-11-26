@@ -1,22 +1,25 @@
 <template>
-  <input
-    type="color"
-    name="source-color"
-    id="source-color"
-    :value="$sourceColor"
-    @change="updateSourceColor"
-  />
-  <label for="source-color">Source Color</label>
+  <div>
+    <input
+      type="color"
+      name="source-color"
+      id="source-color"
+      v-model="sourceColor"
+      @change="reload"
+      class="sr-only"
+    />
+    <label
+      for="source-color"
+      :style="{ backgroundColor: $sourceColor.value }"
+      class="size-8 block rounded-full ring-1 ring-offset-2"
+    ></label>
+  </div>
 </template>
 <script lang="ts" setup>
-import { useStore } from '@nanostores/vue';
-import { sourceColor, updateSourceColor as _updateSourceColor } from '@stores';
+import { useVModel } from '@nanostores/vue';
+import { $sourceColor } from '@stores';
 
-const $sourceColor = useStore(sourceColor);
+const sourceColor = useVModel($sourceColor);
 
-const updateSourceColor = (event: Event) => {
-  const sourceColor = (event.target as HTMLInputElement).value;
-  _updateSourceColor(sourceColor);
-  location.reload();
-};
+const reload = () => location.reload();
 </script>
