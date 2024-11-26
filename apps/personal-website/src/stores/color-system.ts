@@ -1,6 +1,48 @@
-import { persistentAtom } from '@nanostores/persistent';
+import {
+  persistentAtom,
+  type PersistentEvents,
+  type PersistentListener,
+  setPersistentEngine,
+} from '@nanostores/persistent';
 import { defaultSourceColor } from '@utils/constants';
 import Cookies from 'js-cookie';
+
+let listeners: PersistentListener[] = [];
+const onChange = (key: string, newValue: string) => {
+  const event = { key, newValue };
+  for (const listener of listeners) listener(event);
+};
+
+const storage = new Proxy(
+  {},
+  {
+    set(_, name: string, value) {
+      Cookies.set(name, value);
+      onChange(name, value);
+      return true;
+    },
+    get(_, name: string) {
+      return Cookies.get(name);
+    },
+    deleteProperty(_, name: string) {
+      Cookies.remove(name);
+      onChange(name, '');
+      return true;
+    },
+  }
+);
+
+const events: PersistentEvents = {
+  addEventListener(key, cb) {
+    listeners.push(cb);
+  },
+  removeEventListener(key, cb) {
+    listeners = listeners.filter((i) => i !== cb);
+  },
+  perKey: false,
+};
+
+setPersistentEngine(storage, events);
 
 export const persistentColorSchemeKey = 'dark';
 export const colorScheme = persistentAtom<boolean>(
@@ -17,11 +59,7 @@ export const updateColorScheme = (scheme: boolean) => {
 };
 
 export const persistentKey = 'source-color';
-export const sourceColor = persistentAtom<string>(
+export const $sourceColor = persistentAtom<string>(
   persistentKey,
-  Cookies.get(persistentKey) ?? defaultSourceColor
+  defaultSourceColor
 );
-export const updateSourceColor = (color: string) => {
-  sourceColor.set(color);
-  Cookies.set(persistentKey, color);
-};
