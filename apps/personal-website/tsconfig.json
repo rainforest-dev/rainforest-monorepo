@@ -19,5 +19,10 @@
       "@types": ["src/types/index.ts"],
       "@types/*": ["src/types/*"]
     }
-  }
+  },
+  "references": [
+    {
+      "path": "../../libs/rainforest-ui"
+    }
+  ]
 }

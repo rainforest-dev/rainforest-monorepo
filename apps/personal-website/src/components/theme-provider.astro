@@ -1,25 +1,45 @@
 ---
+import { argbFromHex, hexFromArgb } from '@material/material-color-utilities';
 import {
-  argbFromHex,
+  getSchemeProperties,
   themeFromSourceColor,
-} from '@material/material-color-utilities';
-import { persistentColorSchemeKey, persistentKey } from '@stores';
+} from '@rainforest-dev/rainforest-ui';
+import { persistentKey } from '@stores';
 import { defaultSourceColor } from '@utils/constants';
-import { getSchemeProperties } from '@utils/md3-utilities';
 
-const dark = Astro.cookies.get(persistentColorSchemeKey)?.value === 'true';
 const sourceColor =
   Astro.cookies.get(persistentKey)?.value ?? defaultSourceColor;
 const theme = themeFromSourceColor(argbFromHex(sourceColor));
-const scheme = dark ? theme.schemes.dark : theme.schemes.light;
-const properties = getSchemeProperties(scheme);
+const getSchemeStyles = (properties: { [key: string]: number }) => {
+  return Object.entries(properties)
+    .map(([k, v]) => `${k}: ${hexFromArgb(v)};`)
+    .join('\n');
+};
+const lightSchemeStyles = getSchemeStyles(
+  getSchemeProperties(theme.schemes.light)
+);
+const darkSchemeStyles = getSchemeStyles(
+  getSchemeProperties(theme.schemes.dark)
+);
 
 const styleRaw = `
-  @layer theme {
-    :root {
-      ${Object.entries(properties)
-        .map(([k, v]) => `${k}: ${v};`)
-        .join('\n')}
+  @layer theme, base, components, utilities, app;
+  @layer app {
+    @media (prefers-color-scheme: light) {
+      :root {
+        ${lightSchemeStyles}
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        ${darkSchemeStyles}
+      }
+    }
+    [data-scheme='light'] {
+      ${lightSchemeStyles}
+    }
+    [data-scheme='dark'] {
+      ${darkSchemeStyles}
     }
   }
 `;
@@ -34,7 +54,7 @@ const styleRaw = `
     Cookies.set(persistentKey, sourceColor);
   }
 </script>
-<script>
+<!-- <script>
   import { sourceColor, updateColorScheme } from '@stores';
   import { applyTheme } from '@utils/md3-utilities';
 
@@ -45,4 +65,4 @@ const styleRaw = `
       updateColorScheme(dark);
       if (sourceColor.value) applyTheme(sourceColor.value, dark);
     });
-</script>
+</script> -->
