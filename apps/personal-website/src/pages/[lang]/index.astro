@@ -1,8 +1,8 @@
 ---
+import { SourceColor } from '@components';
 import {
   ContactForm,
   Experience,
-  FAB,
   Footer,
   Nav,
   OneColumns,
@@ -96,7 +96,9 @@ const experienceProps: ComponentProps<typeof Experience> = {
     <Nav client:load {...navProps}>
       <ContactForm slot="sider" id="contact-form-menu" />
     </Nav>
-    <FAB client:load />
+    <div class="fixed right-10 bottom-10 z-10">
+      <SourceColor client:only="vue" />
+    </div>
     <!-- hero -->
     <section class="flex-center container h-screen xl:flex! hidden!">
       <ThreeColumns {...heroProps} />
