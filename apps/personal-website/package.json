@@ -1,5 +1,5 @@
 {
-  "name": "apps-personal-website",
+  "name": "personal-website",
   "version": "0.0.1",
   "type": "module",
   "scripts": {
@@ -15,7 +15,6 @@
     "@astrojs/vue": "5.0.0-beta.1",
     "@iconify-icon/react": "^2.1.0",
     "@lit/react": "^1.0.6",
-    "@material/material-color-utilities": "^0.3.0",
     "@material/web": "^2.2.0",
     "@nanostores/persistent": "^0.10.2",
     "@tailwindcss/vite": "^4.0.0-alpha.30",
@@ -27,10 +26,29 @@
     "i18next-resources-to-backend": "^1.2.1",
     "js-cookie": "^3.0.5",
     "react": "^18.3.1",
-    "tailwindcss": "^4.0.0-alpha.30"
+    "@rainforest-dev/rainforest-ui": "*"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
     "typescript": "^5.6.3"
+  },
+  "nx": {
+    "targets": {
+      "dev": {
+        "dependsOn": [
+          "^build"
+        ]
+      },
+      "build": {
+        "dependsOn": [
+          "^build"
+        ]
+      },
+      "lint": {
+        "dependsOn": [
+          "^lint"
+        ]
+      }
+    }
   }
 }
