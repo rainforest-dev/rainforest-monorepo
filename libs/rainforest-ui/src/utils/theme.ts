@@ -182,17 +182,54 @@ export const getSchemeProperties = (
   );
 };
 
+export const schemePropertiesToCssInJs = (properties: {
+  [key: string]: number;
+}) =>
+  Object.fromEntries(
+    Object.entries(properties).map(([key, value]) => {
+      const color = hexFromArgb(value);
+      return [key, color];
+    })
+  );
+
+export const schemePropertiesToCss = (properties: { [key: string]: number }) =>
+  Object.entries(properties)
+    .map(([k, v]) => `${k}: ${hexFromArgb(v)};`)
+    .join('\n');
+
 export interface IApplyThemeOptions {
-  dark?: boolean;
   target?: HTMLElement;
 }
 
 export const applyTheme = (theme: Theme, options?: IApplyThemeOptions) => {
   const target = options?.target || document.body;
-  const dark = options?.dark ?? false;
 
-  const scheme = dark ? theme.schemes.dark : theme.schemes.light;
-  for (const [key, palette] of Object.entries(getSchemeProperties(scheme))) {
-    target.style.setProperty(key, hexFromArgb(palette));
-  }
+  const lightSchemeStyles = schemePropertiesToCss(
+    getSchemeProperties(theme.schemes.light)
+  );
+  const darkSchemeStyles = schemePropertiesToCss(
+    getSchemeProperties(theme.schemes.dark)
+  );
+
+  // !breaking change here and unused in codebase
+  target.style.cssText = `
+    @layer app {
+      @media (prefers-color-scheme: light) {
+        :root {
+          ${lightSchemeStyles}
+        }
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          ${darkSchemeStyles}
+        }
+      }
+      [data-scheme='light'] {
+        ${lightSchemeStyles}
+      }
+      [data-scheme='dark'] {
+        ${darkSchemeStyles}
+      }
+    }
+  `;
 };

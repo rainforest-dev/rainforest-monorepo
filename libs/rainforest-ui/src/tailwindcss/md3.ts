@@ -1,13 +1,10 @@
-import {
-  argbFromHex,
-  type DynamicScheme,
-  hexFromArgb,
-} from '@material/material-color-utilities';
+import { argbFromHex } from '@material/material-color-utilities';
 import plugin from 'tailwindcss/plugin';
 
 import {
   getColorRoles,
   getSchemeProperties,
+  schemePropertiesToCssInJs,
   themeFromSourceColor,
 } from '../utils/theme.js';
 
@@ -18,20 +15,17 @@ interface IOptions {
 export default plugin.withOptions(
   ({ sourceColor = '#66b2b2' }: IOptions = {}) => {
     const theme = themeFromSourceColor(argbFromHex(sourceColor));
-    const getProperties = (scheme: DynamicScheme) =>
-      Object.fromEntries(
-        Object.entries(getSchemeProperties(scheme)).map(([key, value]) => {
-          const color = hexFromArgb(value);
-          return [key, color];
-        })
-      );
     return ({ addBase }) => {
       addBase({
         '@media (prefers-color-scheme: light)': {
-          ':root': getProperties(theme.schemes.light),
+          ':root': schemePropertiesToCssInJs(
+            getSchemeProperties(theme.schemes.light)
+          ),
         },
         '@media (prefers-color-scheme: dark)': {
-          ':root': getProperties(theme.schemes.dark),
+          ':root': schemePropertiesToCssInJs(
+            getSchemeProperties(theme.schemes.dark)
+          ),
         },
       });
     };
