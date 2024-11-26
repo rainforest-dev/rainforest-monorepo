@@ -20,7 +20,7 @@
       <aside
         :class="
           clsx(
-            'fixed inset-0 bg-surface-variant text-on-surface-variant px-4',
+            'fixed inset-0 bg-surface text-on-surface px-4',
             open ? 'flex-center flex-col gap-10' : 'hidden'
           )
         "
