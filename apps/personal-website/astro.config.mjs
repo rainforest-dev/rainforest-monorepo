@@ -37,7 +37,5 @@ export default defineConfig({
       enabled: true,
     },
     imageService: true,
-    isr: true,
-    edgeMiddleware: true,
   }),
 });
