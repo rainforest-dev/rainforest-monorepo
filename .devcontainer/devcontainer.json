@@ -28,7 +28,6 @@
         "Prisma.prisma",
         "rust-lang.rust-analyzer",
         "ms-playwright.playwright",
-        "serayuzgur.crates",
         "Vue.volar",
         "unifiedjs.vscode-mdx"
       ]

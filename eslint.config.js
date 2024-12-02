@@ -1,6 +1,5 @@
 const nx = require('@nx/eslint-plugin');
 const simpleImportSort = require('eslint-plugin-simple-import-sort');
-const jsoncParser = require('jsonc-eslint-parser');
 
 module.exports = [
   ...nx.configs['flat/base'],
@@ -39,23 +38,6 @@ module.exports = [
     rules: {
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
-    },
-  },
-  {
-    files: ['**/*.json'],
-    rules: {
-      '@nx/dependency-checks': [
-        'error',
-        {
-          ignoredFiles: [
-            '{projectRoot}/eslint.config.{js,cjs,mjs}',
-            '{projectRoot}/vite.config.{js,ts,mjs,mts}',
-          ],
-        },
-      ],
-    },
-    languageOptions: {
-      parser: jsoncParser,
     },
   },
 ];
