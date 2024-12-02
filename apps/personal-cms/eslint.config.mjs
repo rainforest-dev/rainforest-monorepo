@@ -1,13 +1,11 @@
-import eslintPluginAstro from 'eslint-plugin-astro';
 import jsoncParser from 'jsonc-eslint-parser';
 
 import baseConfig from '../../eslint.config.js';
 
 export default [
   ...baseConfig,
-  ...eslintPluginAstro.configs.recommended,
   {
-    ignores: ['**/.vercel', '**/.astro'],
+    ignores: ['types/generated'],
   },
   {
     files: ['**/*.json'],
@@ -19,7 +17,13 @@ export default [
             '{projectRoot}/eslint.config.{js,cjs,mjs}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
           ],
-          ignoredDependencies: ['@rainforest-dev/rainforest-ui'],
+          ignoredDependencies: [
+            'react',
+            'react-dom',
+            'react-router-dom',
+            'styled-components',
+            'sharp',
+          ],
         },
       ],
     },

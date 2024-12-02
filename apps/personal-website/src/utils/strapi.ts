@@ -1,5 +1,3 @@
-import { STRAPI_TOKEN, STRAPI_URL } from 'astro:env/server';
-
 interface IProps {
   endpoint: string;
   query?: Record<string, string>;
@@ -24,7 +22,7 @@ export const fetchApi = async <T>({
   if (endpoint.startsWith('/')) {
     endpoint = endpoint.slice(1);
   }
-  const url = new URL(`${STRAPI_URL}/api/${endpoint}`);
+  const url = new URL(`${import.meta.env.STRAPI_URL}/api/${endpoint}`);
   if (query) {
     Object.entries(query).forEach(([key, value]) => {
       url.searchParams.append(key, value);
@@ -32,7 +30,7 @@ export const fetchApi = async <T>({
   }
   const res = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${STRAPI_TOKEN}`,
+      Authorization: `Bearer ${import.meta.env.STRAPI_TOKEN}`,
     },
   });
   let data = await res.json();

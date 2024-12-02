@@ -3,10 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
-  "workspaces": [
-    "apps/*",
-    "libs/*"
-  ],
   "scripts": {},
   "dependencies": {
     "@astrojs/react": "3.6.2",
@@ -21,14 +17,13 @@
     "@nanostores/persistent": "^0.10.2",
     "@nanostores/react": "^0.8.0",
     "@nanostores/vue": "^0.10.0",
-    "@strapi/plugin-cloud": "5.4.0",
-    "@strapi/plugin-i18n": "^4.25.13",
     "@strapi/plugin-users-permissions": "5.4.0",
     "@strapi/strapi": "5.4.0",
-    "@tailwindcss/vite": "4.0.0-beta.2",
+    "@tailwindcss/vite": "4.0.0-beta.4",
     "@vercel/speed-insights": "^1.1.0",
     "@vueuse/core": "^11.2.0",
     "@webcomponents/template-shadowroot": "^0.2.1",
+    "ajv": "^8.17.1",
     "astro": "5.0.0-beta.6",
     "better-sqlite3": "11.3.0",
     "clsx": "^2.1.1",
@@ -46,7 +41,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.0.0",
     "styled-components": "^6.0.0",
-    "tailwindcss": "4.0.0-beta.2",
+    "tailwindcss": "4.0.0-beta.4",
     "vue": "^3.5.12"
   },
   "devDependencies": {
@@ -81,7 +76,7 @@
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.0.0",
     "verdaccio": "^5.0.4",
-    "vite": "6.0.0-beta.2",
+    "vite": "6.0.2",
     "vite-plugin-dts": "~3.8.1",
     "vitest": "^1.3.1"
   },
@@ -97,9 +92,6 @@
         }
       }
     }
-  },
-  "overrides": {
-    "vite": "$vite"
   },
   "trustedDependencies": [
     "@vercel/speed-insights"

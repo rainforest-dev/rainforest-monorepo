@@ -1,3 +1,5 @@
+import 'nanostores';
+
 import {
   persistentAtom,
   type PersistentEvents,
@@ -33,10 +35,10 @@ const storage = new Proxy(
 );
 
 const events: PersistentEvents = {
-  addEventListener(key, cb) {
+  addEventListener(_, cb) {
     listeners.push(cb);
   },
-  removeEventListener(key, cb) {
+  removeEventListener(_, cb) {
     listeners = listeners.filter((i) => i !== cb);
   },
   perKey: false,
