@@ -110,7 +110,7 @@ const experienceProps: ComponentProps<typeof Experience> = {
     <section id="experience" class="py-10 sm:h-screen">
       <div class="container flex-col-center size-full">
         <h2 class="text-4xl mb-10">{t('experience')}</h2>
-        <Experience client:load {...experienceProps} />
+        <Experience client:only="react" {...experienceProps} />
       </div>
     </section>
     <section id="skills" class="py-10 min-h-screen flex flex-col">
