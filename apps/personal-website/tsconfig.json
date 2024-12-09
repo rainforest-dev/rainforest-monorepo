@@ -6,6 +6,8 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "experimentalDecorators": true,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
     "useDefineForClassFields": false,
     "baseUrl": ".",
     "paths": {

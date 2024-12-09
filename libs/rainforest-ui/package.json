@@ -24,8 +24,7 @@
     "!**/*.tsbuildinfo"
   ],
   "dependencies": {
-    "@material/material-color-utilities": "^0.3.0",
-    "tailwindcss": "4.0.0-beta.2"
+    "@material/material-color-utilities": "^0.3.0"
   },
   "nx": {
     "sourceRoot": "libs/rainforest-ui/src",
