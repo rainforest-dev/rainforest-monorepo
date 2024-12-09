@@ -19,12 +19,9 @@
         "nrwl.angular-console",
         "astro-build.astro-vscode",
         "esbenp.prettier-vscode",
-        "GitHub.copilot",
-        "GitHub.copilot-chat",
         "eamodio.gitlens",
         "bradlc.vscode-tailwindcss",
         "VisualStudioExptTeam.vscodeintellicode",
-        "mongodb.mongodb-vscode",
         "Prisma.prisma",
         "rust-lang.rust-analyzer",
         "ms-playwright.playwright",
@@ -39,7 +36,7 @@
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "bun install && bunx playwright install-deps && bunx playwright install"
+  "postCreateCommand": "pnpm install"
   // Configure tool-specific properties.
   // "customizations": {},
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
