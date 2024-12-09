@@ -6,7 +6,7 @@ import BaseLayout from './index.astro';
 
 type Props = CollectionEntry<'blog'>['data'];
 const { title, pubDate, description, author: _author, image } = Astro.props;
-const author = (await getEntry(_author.collection, _author.id)).data;
+const author = (await getEntry(_author.collection, _author.id))?.data;
 ---
 
 <BaseLayout title={title}>
@@ -16,7 +16,7 @@ const author = (await getEntry(_author.collection, _author.id)).data;
     </button>
     <p>{pubDate.toDateString()}</p>
     <p><em>{description}</em></p>
-    <p>Written by: {author.name}</p>
+    <p>Written by: {author?.name}</p>
     <img src={image?.src} width="300" alt={image?.alt} />
     <slot />
   </article>
