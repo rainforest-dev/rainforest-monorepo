@@ -1,6 +1,6 @@
 ---
 name: 'OpenCGT'
-languages: 'zh'
+language: 'zh'
 technologies: ['nextjs', 'auth0', 'mui', 'playwright', 'vitest']
 organization: 'codegreen'
 experience: '6'

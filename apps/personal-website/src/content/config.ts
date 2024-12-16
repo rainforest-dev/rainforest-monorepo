@@ -34,7 +34,7 @@ const organizations = defineCollection({
   loader: glob({ pattern: '**/*.json', base: './src/data/organizations' }),
   schema: z.object({
     name: z.string(),
-    languages: z.enum(supportedLngs),
+    language: z.enum(supportedLngs),
     department: z.string().optional(),
     link: z.string().url().optional(),
   }),
@@ -44,11 +44,11 @@ const experiences = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/data/experiences' }),
   schema: z.object({
     type: z.enum(['education', 'job']),
+    language: z.enum(supportedLngs),
     organization: reference('organizations'),
     position: z.string(),
     startAt: z.string(),
     endAt: z.string().optional(),
-    description: z.array(z.string()).optional(),
     technologies: z.array(z.enum(tags.skills)).optional(),
     projects: z.array(reference('projects')).optional(),
   }),
@@ -58,8 +58,7 @@ const projects = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/data/projects' }),
   schema: z.object({
     name: z.string(),
-    languages: z.enum(supportedLngs),
-    description: z.array(z.string()),
+    language: z.enum(supportedLngs),
     technologies: z.array(z.enum(tags.skills)),
     organization: reference('organizations'),
     experience: reference('experiences'),

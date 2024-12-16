@@ -1,6 +1,6 @@
 ---
 name: 'HashgreenSwap'
-languages: 'en'
+language: 'en'
 technologies: ['nextjs', 'tailwindcss', 'vitest']
 organization: 'codegreen'
 experience: '6'

@@ -1,6 +1,6 @@
 ---
 name: 'Hoogii Wallet'
-languages: 'zh'
+language: 'zh'
 technologies: ['react', 'tailwindcss']
 organization: 'codegreen'
 experience: '6'
