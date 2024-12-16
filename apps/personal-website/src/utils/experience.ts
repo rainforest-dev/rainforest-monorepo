@@ -7,7 +7,7 @@ export const getTopTechnologies = (
   },
   top = 10
 ) => {
-  if (experience.technologies) {
+  if (experience.technologies?.length) {
     return experience.technologies.slice(0, top);
   }
   if (!experience.projects) {
