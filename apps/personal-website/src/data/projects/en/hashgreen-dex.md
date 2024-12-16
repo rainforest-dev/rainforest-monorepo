@@ -1,6 +1,6 @@
 ---
 name: 'Hashgreen Dex'
-languages: 'en'
+language: 'en'
 technologies: ['nextjs', 'tailwindcss']
 organization: 'codegreen'
 experience: '6'
