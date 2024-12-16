@@ -2,8 +2,8 @@
 import { ATSFriendly } from '@components/resume';
 import Layout from '@layouts/index.astro';
 import type { IResumeProps } from '@types';
-import { hero, info, skills } from '@utils/constants';
-import { translateSkill, useTranslation } from '@utils/i18n';
+import { hero, info } from '@utils/constants';
+import { useTranslation } from '@utils/i18n';
 
 const { t } = await useTranslation(Astro.currentLocale, 'home');
 
@@ -27,7 +27,6 @@ const resumeProps: IResumeProps = {
     t('home:hero-summaries.2'),
   ],
   tags: hero.tags.map((tag) => t(tag)),
-  skills: skills.map((item) => translateSkill(t, item)),
 };
 ---
 

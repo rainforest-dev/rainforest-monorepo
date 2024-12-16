@@ -65,10 +65,19 @@ const projects = defineCollection({
   }),
 });
 
+const skills = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/data/skills' }),
+  schema: z.object({
+    name: z.string(),
+    icon: z.enum(tags.skills),
+  }),
+});
+
 export const collections = {
   blog,
   authors,
   organizations,
   experiences,
   projects,
+  skills,
 };

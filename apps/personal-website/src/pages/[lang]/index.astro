@@ -12,10 +12,10 @@ import Layout from '@layouts/index.astro';
 import { IHeroProps } from '@types';
 import { getBrandIconName } from '@utils';
 import { links } from '@utils/constants';
-import { hero, info, skills } from '@utils/constants';
+import { hero, info } from '@utils/constants';
 import { supportedLngs, useTranslation } from '@utils/i18n';
+import { getCollection, render } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
-import clsx from 'clsx';
 
 const { lang = 'en' } = Astro.params;
 const { t } = await useTranslation(lang, 'home');
@@ -76,6 +76,10 @@ const heroProps: IHeroProps = {
   ],
   tags: hero.tags,
 };
+
+const skills = await getCollection('skills', (item) =>
+  item.id.startsWith(lang)
+);
 ---
 
 <Layout title={t('metadata-title')} description={t('metadata-description')}>
@@ -106,30 +110,20 @@ const heroProps: IHeroProps = {
         <h2 class="text-4xl mb-10">{t('skills')}</h2>
         <ul class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-8">
           {
-            skills.map((skill) => (
-              <li
-                class={clsx(
-                  'min-w-80 bg-surface-container text-on-surface px-5 py-4 rounded min-h-80 shadow-lg flex flex-col gap-5 relative',
-                  skill.description.length > 2 && 'md:col-span-2'
-                )}
-              >
-                <h3 class="text-xl capitalize">{t(skill.key)}</h3>
-                {Array.isArray(skill.description) ? (
-                  <ul class="list-disc pl-[1em]">
-                    {skill.description.map((item) => (
-                      <li>{t(item)}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>{t(skill.description)}</p>
-                )}
-                <iconify-icon
-                  icon={getBrandIconName(skill.key)}
-                  class="absolute right-5 bottom-4 size-12"
-                  height="none"
-                />
-              </li>
-            ))
+            skills.map(async (skill) => {
+              const { Content } = await render(skill);
+              return (
+                <li class="min-w-80 bg-surface-container text-on-surface px-5 py-4 rounded min-h-80 shadow-lg flex flex-col gap-5 relative **:[li]:list-disc **:[li]:list-inside">
+                  <h3 class="text-xl capitalize">{skill.data.name}</h3>
+                  <Content />
+                  <iconify-icon
+                    icon={getBrandIconName(skill.data.icon)}
+                    class="absolute right-5 bottom-4 size-12"
+                    height="none"
+                  />
+                </li>
+              );
+            })
           }
         </ul>
       </div>
