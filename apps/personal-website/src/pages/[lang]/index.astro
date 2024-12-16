@@ -2,27 +2,22 @@
 import { SourceColor } from '@components';
 import {
   ContactForm,
-  Experience,
   Footer,
   Nav,
   OneColumns,
   ThreeColumns,
 } from '@components/home';
+import Experiences from '@components/home/experiences/index.astro';
 import Layout from '@layouts/index.astro';
 import { IHeroProps } from '@types';
 import { getBrandIconName } from '@utils';
-import { experience, links, tags } from '@utils/constants';
+import { links } from '@utils/constants';
 import { hero, info, skills } from '@utils/constants';
-import {
-  supportedLngs,
-  translateExperience,
-  useTranslation,
-} from '@utils/i18n';
+import { supportedLngs, useTranslation } from '@utils/i18n';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import clsx from 'clsx';
-import { ComponentProps } from 'react';
 
-const { lang } = Astro.params;
+const { lang = 'en' } = Astro.params;
 const { t } = await useTranslation(lang, 'home');
 
 const pathnameWithoutLang = Astro.url.pathname.replaceAll(`/${lang}`, '');
@@ -81,14 +76,6 @@ const heroProps: IHeroProps = {
   ],
   tags: hero.tags,
 };
-
-const experienceProps: ComponentProps<typeof Experience> = {
-  experience: experience.map((item) => translateExperience(t, item)),
-  filters: tags.experience.map((tag) => ({
-    type: tag,
-    label: t(`experience-type-${tag}`),
-  })),
-};
 ---
 
 <Layout title={t('metadata-title')} description={t('metadata-description')}>
@@ -110,7 +97,8 @@ const experienceProps: ComponentProps<typeof Experience> = {
     <section id="experience" class="py-10 sm:h-screen">
       <div class="container flex-col-center size-full">
         <h2 class="text-4xl mb-10">{t('experience')}</h2>
-        <Experience client:only="react" {...experienceProps} />
+        <!-- <Experience client:only="react" {...experienceProps} /> -->
+        <Experiences />
       </div>
     </section>
     <section id="skills" class="py-10 min-h-screen flex flex-col">

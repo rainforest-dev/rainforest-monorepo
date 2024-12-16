@@ -2,8 +2,8 @@
 name: 'OpenCGT'
 language: 'zh'
 technologies: ['nextjs', 'auth0', 'mui', 'playwright', 'vitest']
-organization: 'codegreen'
-experience: '6'
+organization: 'zh/codegreen'
+experience: 'zh/6'
 ---
 
 - 使用 Next.js App Router 開發 B2B 產品。

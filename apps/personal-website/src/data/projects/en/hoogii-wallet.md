@@ -2,8 +2,8 @@
 name: 'Hoogii Wallet'
 language: 'en'
 technologies: ['react', 'tailwindcss']
-organization: 'codegreen'
-experience: '6'
+organization: 'en/codegreen'
+experience: 'en/6'
 ---
 
 - A web3 cryptocurrency extension wallet on Google Chrome

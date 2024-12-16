@@ -2,8 +2,8 @@
 name: 'Hashgreen Dex'
 language: 'en'
 technologies: ['nextjs', 'tailwindcss']
-organization: 'codegreen'
-experience: '6'
+organization: 'en/codegreen'
+experience: 'en/6'
 ---
 
 - The first decentralized exchange (DEX) on Chia blockchain

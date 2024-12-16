@@ -2,8 +2,8 @@
 name: 'HashgreenSwap'
 language: 'zh'
 technologies: ['nextjs', 'tailwindcss', 'vitest']
-organization: 'codegreen'
-experience: '6'
+organization: 'zh/codegreen'
+experience: 'zh/6'
 ---
 
 - Chia 區塊鏈上的第一個自動市場製造商（AMM）
