@@ -23,12 +23,7 @@ export interface IHeroProps {
 
 export type Skill = ISkill & { label: string };
 
-export interface ISkillProps {
-  skills: Skill[];
-}
-
 export type IResumeProps = IContactProps &
-  Omit<IHeroProps, 'tags'> &
-  ISkillProps & {
+  Omit<IHeroProps, 'tags'> & {
     tags: string[];
   };

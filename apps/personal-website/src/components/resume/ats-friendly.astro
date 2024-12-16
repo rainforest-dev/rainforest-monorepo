@@ -7,7 +7,7 @@ import { render } from 'astro:content';
 import { getCollection, getEntries, getEntry } from 'astro:content';
 import { format } from 'date-fns';
 
-const { skills: _skills, ...info } = Astro.props;
+const info = Astro.props;
 
 const lang = Astro.currentLocale ?? 'en';
 const { t } = await useTranslation(lang, 'resume');
@@ -30,7 +30,9 @@ const education = (
     return isLangMatch && isEducationMatch;
   })
 ).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
-const skills = _skills;
+const skills = await getCollection('skills', (item) =>
+  item.id.startsWith(lang)
+);
 ---
 
 <article
@@ -129,7 +131,7 @@ const skills = _skills;
     <section>
       <h2>{t('skills')}</h2>
       <ul>
-        {skills.map((skill) => <li class="capitalize">{skill.label}</li>)}
+        {skills.map((skill) => <li class="capitalize">{skill.data.name}</li>)}
       </ul>
     </section>
   </section>
