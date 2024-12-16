@@ -43,14 +43,14 @@ const organizations = defineCollection({
 const experiences = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/data/experiences' }),
   schema: z.object({
-    type: z.enum(['education', 'job']),
+    type: z.enum(tags.experience),
     language: z.enum(supportedLngs),
     organization: reference('organizations'),
     position: z.string(),
-    startAt: z.string(),
-    endAt: z.string().optional(),
-    technologies: z.array(z.enum(tags.skills)).optional(),
-    projects: z.array(reference('projects')).optional(),
+    startAt: z.coerce.date(),
+    endAt: z.coerce.date().optional(),
+    technologies: z.array(z.enum(tags.skills)).default([]),
+    projects: z.array(reference('projects')).default([]),
   }),
 });
 

@@ -2,8 +2,8 @@
 name: 'Hoogii Wallet'
 language: 'zh'
 technologies: ['react', 'tailwindcss']
-organization: 'codegreen'
-experience: '6'
+organization: 'zh/codegreen'
+experience: 'zh/6'
 ---
 
 - Google Chrome 上的 web3 加密貨幣錢包

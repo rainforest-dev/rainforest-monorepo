@@ -2,8 +2,8 @@
 name: 'OpenCGT'
 language: 'en'
 technologies: ['nextjs', 'auth0', 'mui', 'playwright', 'vitest']
-organization: 'codegreen'
-experience: '6'
+organization: 'en/codegreen'
+experience: 'en/6'
 ---
 
 - Develop B2B products utilizing the Next.js app router.

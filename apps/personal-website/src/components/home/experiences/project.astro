@@ -1,0 +1,18 @@
+---
+import { type DataEntryMap, render } from 'astro:content';
+
+type Props = DataEntryMap['projects'][string];
+
+const { name } = Astro.props.data;
+
+const { Content } = await render(Astro.props);
+---
+
+<li
+  class="**:[li]:list-disc **:[li]:list-inside **:[li]:text-xs sm:**:[li]:text-base"
+>
+  <h4 class="text-sm mb-0.5 mt-2 sm:text-lg sm:mb-1.5 sm:mt-3">
+    {name}
+  </h4>
+  <Content />
+</li>

@@ -32,12 +32,12 @@ export interface IProject {
 
 export interface IExperience {
   type: ExperienceTag;
-  organization: IOrganization;
+  organization?: IOrganization;
   position: string;
   description?: Description;
   projects?: IProject[];
-  startAt: `${number}-${number}`;
-  endAt?: `${number}-${number}`;
+  startAt: Date;
+  endAt?: Date;
   technologies?: SkillTag[];
 }
 

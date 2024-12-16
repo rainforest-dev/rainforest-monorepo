@@ -2,8 +2,8 @@
 name: 'Hashgreen Dex'
 language: 'zh'
 technologies: ['nextjs', 'tailwindcss']
-organization: 'codegreen'
-experience: '6'
+organization: 'zh/codegreen'
+experience: 'zh/6'
 ---
 
 - Chia 區塊鏈上的第一個去中心化交易所（DEX）

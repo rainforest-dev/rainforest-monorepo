@@ -2,8 +2,8 @@
 name: 'HashgreenSwap'
 language: 'en'
 technologies: ['nextjs', 'tailwindcss', 'vitest']
-organization: 'codegreen'
-experience: '6'
+organization: 'en/codegreen'
+experience: 'en/6'
 ---
 
 - The first Automated Market Maker (AMM) on Chia blockchain
