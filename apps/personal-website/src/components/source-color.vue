@@ -2,42 +2,58 @@
   <div class="relative">
     <button
       id="source-color"
-      :style="{ backgroundColor: $sourceColor.value }"
-      class="size-8 block rounded-full ring-4 ring-tertiary/80 ring-offset-3 hover:size-10 active:size-10 duration-300 cursor-pointer"
-      @click="openMenu"
-    ></button>
+      class="size-10 block rounded-full ring-4 ring-tertiary/80 ring-offset-3 duration-300 cursor-pointer"
+      @click="toggleMenu"
+      :style="{
+        backgroundColor: $sourceColor.value,
+      }"
+    >
+      <img
+        :src="sourceImage"
+        alt="source image"
+        class="size-full rounded-full [[src='']]:hidden"
+      />
+    </button>
     <md-menu ref="menu" id="source-color-menu" anchor="source-color">
-      <div class="relative p-4">
-        <label for="source-color-image" class="w-full h-6 block">
-          <img
-            :src="sourceImage"
-            alt="source image"
-            class="object-cover size-full"
+      <div class="px-4 py-2 space-y-2">
+        <div class="relative">
+          <label
+            for="source-color-image"
+            :style="{
+              borderColor: $sourceColor.value,
+            }"
+            class="w-full aspect-square block cursor-pointer border rounded"
+          >
+            <img
+              :src="sourceImage"
+              alt="source image"
+              class="object-cover size-full [[src='']]:hidden"
+            />
+          </label>
+          <input
+            type="file"
+            name="source-color-image"
+            id="source-color-image"
+            accept="image/*"
+            @change="handleImageChange"
+            class="sr-only size-auto inset-4"
           />
-        </label>
-        <input
-          type="file"
-          name="source-color-image"
-          id="source-color-image"
-          accept="image/*"
-          @change="handleImageChange"
-          class="sr-only size-auto inset-4"
-        />
-      </div>
-      <div class="relative p-4">
-        <label
-          for="source-color-picker"
-          class="w-full h-6 block"
-          :style="{ backgroundColor: $sourceColor.value }"
-        ></label>
-        <input
-          type="color"
-          name="source-color-picker"
-          id="source-color-picker"
-          v-model="sourceColor"
-          @change="reload"
-          class="sr-only size-auto inset-4"
-        />
+        </div>
+        <div class="relative">
+          <label
+            for="source-color-picker"
+            class="w-full h-6 block cursor-pointer rounded"
+            :style="{ backgroundColor: $sourceColor.value }"
+          ></label>
+          <input
+            type="color"
+            name="source-color-picker"
+            id="source-color-picker"
+            v-model="sourceColor"
+            @change="handleColorChange"
+            class="sr-only size-auto inset-4"
+          />
+        </div>
       </div>
     </md-menu>
   </div>
@@ -51,16 +67,23 @@ import { useVModel } from '@nanostores/vue';
 import { sourceColorFromImageBytes } from '@rainforest-dev/rainforest-ui';
 import { $sourceColor } from '@stores';
 import { useLocalStorage } from '@vueuse/core';
-import { effect, useTemplateRef } from 'vue';
+import { useTemplateRef } from 'vue';
 
 const menu = useTemplateRef<MdMenu>('menu');
-const openMenu = () => {
-  if (menu.value) menu.value.open = true;
+const toggleMenu = () => {
+  if (menu.value) menu.value.open = !menu.value.open;
 };
 const sourceColor = useVModel($sourceColor);
 const sourceImage = useLocalStorage('source-image', '');
+console.log(sourceImage.value);
 
 const reload = () => location.reload();
+
+const handleColorChange = () => {
+  if (sourceImage.value) sourceImage.value = '';
+  reload();
+};
+
 const handleImageChange = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (file) {
