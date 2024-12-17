@@ -1,4 +1,4 @@
-import { Description, IExperience, ISkill, Skill } from '@types';
+import { Description, ISkill, Skill } from '@types';
 import type { i18n as I18nInstance, TFunction } from 'i18next';
 import i18next from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
@@ -64,33 +64,6 @@ export const translateDescription = (
     return description.map((desc) => t(desc));
   }
   return t(description);
-};
-
-export const translateExperience = (
-  t: TFunction,
-  experience: IExperience
-): IExperience => {
-  return {
-    ...experience,
-    organization: {
-      ...experience.organization,
-      name: t(experience.organization.name),
-      department: experience.organization.department
-        ? t(experience.organization.department)
-        : undefined,
-    },
-    position: t(experience.position),
-    description: experience.description
-      ? translateDescription(t, experience.description)
-      : undefined,
-    projects: experience.projects?.map((project) => ({
-      ...project,
-      name: t(project.name),
-      description: project.description
-        ? translateDescription(t, project.description)
-        : undefined,
-    })),
-  };
 };
 
 export const translateSkill = (t: TFunction, skill: ISkill): Skill => ({

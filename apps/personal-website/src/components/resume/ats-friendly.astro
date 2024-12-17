@@ -1,21 +1,38 @@
 ---
 import type { IResumeProps as Props } from '@types';
-import { getExperience, getGitHubUrl, getLinkedInUrl } from '@utils';
+import { getGitHubUrl, getLinkedInUrl } from '@utils';
 import { resumeDateFormat } from '@utils/constants';
 import { locales, useTranslation } from '@utils/i18n';
+import { render } from 'astro:content';
+import { getCollection, getEntries, getEntry } from 'astro:content';
 import { format } from 'date-fns';
 
-const { experience: _experience, skills: _skills, ...info } = Astro.props;
-const linkedInUrl = getLinkedInUrl(info.links.linkedin);
-const gitHubUrl = getGitHubUrl(info.links.github);
-const experience = getExperience(_experience, 'job');
-const education = getExperience(_experience, 'education');
-const skills = _skills;
+const info = Astro.props;
 
-const lang = Astro.currentLocale;
+const lang = Astro.currentLocale ?? 'en';
 const { t } = await useTranslation(lang, 'resume');
 const locale =
   lang && lang in locales ? locales[lang as keyof typeof locales] : locales.en;
+
+const linkedInUrl = getLinkedInUrl(info.links.linkedin);
+const gitHubUrl = getGitHubUrl(info.links.github);
+const experiences = (
+  await getCollection('experiences', (item) => {
+    const isLangMatch = item.id.startsWith(lang);
+    const isJobMatch = item.data.type === 'job';
+    return isLangMatch && isJobMatch;
+  })
+).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
+const education = (
+  await getCollection('experiences', (item) => {
+    const isLangMatch = item.id.startsWith(lang);
+    const isEducationMatch = item.data.type === 'education';
+    return isLangMatch && isEducationMatch;
+  })
+).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
+const skills = await getCollection('skills', (item) =>
+  item.id.startsWith(lang)
+);
 ---
 
 <article
@@ -53,41 +70,37 @@ const locale =
     <h2>{t('experience')}</h2>
     <ul>
       {
-        experience.map((item) => (
-          <li>
-            <Fragment>
-              <time>
-                {format(new Date(item.startAt), resumeDateFormat, { locale })}
-              </time>{' '}
-              -{' '}
-              {item.endAt && (
-                <time>
-                  {format(new Date(item.endAt), resumeDateFormat, { locale })}
-                </time>
-              )}
-            </Fragment>
-            <h3>{item.organization.name}</h3>
-            <h5>{item.position}</h5>
-            <p>{item.description}</p>
-            <ul class="list-none pl-0">
-              {item.projects &&
-                item.projects.map((project) => (
-                  <li>
-                    <h4>{project.name}</h4>
-                    {Array.isArray(project.description) ? (
-                      <ul>
-                        {project.description.map((desc) => (
-                          <li>{desc}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>{project.description}</p>
-                    )}
-                  </li>
-                ))}
-            </ul>
-          </li>
-        ))
+        experiences.map(async (item) => {
+          const { startAt, endAt, position } = item.data;
+          const organization = await getEntry(item.data.organization);
+          const projects = await getEntries(item.data.projects);
+          const { Content } = await render(item);
+          return (
+            <li>
+              <Fragment>
+                <time>{format(startAt, resumeDateFormat, { locale })}</time> -{' '}
+                {endAt && (
+                  <time>{format(endAt, resumeDateFormat, { locale })}</time>
+                )}
+              </Fragment>
+              <h3>{organization.data.name}</h3>
+              <h5>{position}</h5>
+              <Content />
+              <ul class="list-none pl-0">
+                {projects &&
+                  projects.map(async (project) => {
+                    const { Content } = await render(project);
+                    return (
+                      <li>
+                        <h4>{project.data.name}</h4>
+                        <Content />
+                      </li>
+                    );
+                  })}
+              </ul>
+            </li>
+          );
+        })
       }
     </ul>
   </section>
@@ -96,25 +109,29 @@ const locale =
       <h2>{t('education')}</h2>
       <ul>
         {
-          education.map((item) => (
-            <li>
-              <h3>{item.organization.name}</h3>
-              <h5>
-                {t('education-description', {
-                  degree: item.position,
-                  major: item.organization.department,
-                })}
-              </h5>
-              <p>{item.description}</p>
-            </li>
-          ))
+          education.map(async (item) => {
+            const organization = await getEntry(item.data.organization);
+            const { Content } = await render(item);
+            return (
+              <li>
+                <h3>{organization.data.name}</h3>
+                <h5>
+                  {t('education-description', {
+                    degree: item.data.position,
+                    major: organization.data.department,
+                  })}
+                </h5>
+                <Content />
+              </li>
+            );
+          })
         }
       </ul>
     </section>
     <section>
       <h2>{t('skills')}</h2>
       <ul>
-        {skills.map((skill) => <li class="capitalize">{skill.label}</li>)}
+        {skills.map((skill) => <li class="capitalize">{skill.data.name}</li>)}
       </ul>
     </section>
   </section>

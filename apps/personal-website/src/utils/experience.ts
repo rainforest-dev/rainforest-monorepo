@@ -1,7 +1,13 @@
 import { IExperience } from '@types';
 
-export const getTopTechnologies = (experience: IExperience, top = 10) => {
-  if (experience.technologies) {
+export const getTopTechnologies = (
+  experience: {
+    technologies?: string[];
+    projects?: { technologies: string[] }[];
+  },
+  top = 10
+) => {
+  if (experience.technologies?.length) {
     return experience.technologies.slice(0, top);
   }
   if (!experience.projects) {
