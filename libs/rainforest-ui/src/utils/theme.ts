@@ -1,8 +1,10 @@
 import {
+  argbFromRgb,
   clampDouble,
   type DynamicScheme,
   Hct,
   hexFromArgb,
+  QuantizerCelebi,
   SchemeContent,
   SchemeExpressive,
   SchemeFidelity,
@@ -12,6 +14,7 @@ import {
   SchemeRainbow,
   SchemeTonalSpot,
   SchemeVibrant,
+  Score,
   type TonalPalette,
 } from '@material/material-color-utilities';
 
@@ -233,3 +236,31 @@ export const applyTheme = (theme: Theme, options?: IApplyThemeOptions) => {
     }
   `;
 };
+
+/**
+ * Get the source color from image bytes.
+ *
+ * @param imageBytes The image bytes
+ * @return Source color - the color most suitable for creating a UI theme
+ */
+export function sourceColorFromImageBytes(imageBytes: Uint8ClampedArray) {
+  // Convert Image data to Pixel Array
+  const pixels: number[] = [];
+  for (let i = 0; i < imageBytes.length; i += 4) {
+    const r = imageBytes[i];
+    const g = imageBytes[i + 1];
+    const b = imageBytes[i + 2];
+    const a = imageBytes[i + 3];
+    if (a < 255) {
+      continue;
+    }
+    const argb = argbFromRgb(r, g, b);
+    pixels.push(argb);
+  }
+
+  // Convert Pixels to Material Colors
+  const result = QuantizerCelebi.quantize(pixels, 128);
+  const ranked = Score.score(result);
+  const top = ranked[0];
+  return top;
+}

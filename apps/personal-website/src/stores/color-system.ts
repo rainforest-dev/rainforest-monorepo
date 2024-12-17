@@ -61,5 +61,5 @@ export const updateColorScheme = (scheme: boolean) => {
 export const persistentKey = 'source-color';
 export const $sourceColor = persistentAtom<string>(
   persistentKey,
-  defaultSourceColor
+  Cookies.get(persistentKey) || defaultSourceColor
 );
