@@ -1,0 +1,59 @@
+---
+import { getBrandIconName, getTopTechnologies } from '@utils';
+import { resumeDateFormat } from '@utils/constants';
+import { type DataEntryMap, getEntries, getEntry, render } from 'astro:content';
+import { format } from 'date-fns';
+
+import Project from './project.astro';
+
+type Props = DataEntryMap['experiences'][string];
+
+const { data } = Astro.props;
+const { startAt, position } = data
+
+const organization = (await getEntry(data.organization)).data;
+const projects = await getEntries(data.projects || []);
+const technologies = getTopTechnologies({
+  technologies: data.technologies,
+  projects: projects.map((project) => ({
+    technologies: project.data.technologies,
+  })),
+});
+const {Content} = await render(Astro.props)
+---
+
+<li
+  class="flex flex-col *:flex-1 pl-[1em] relative
+          sm:pl-0 sm:flex-row sm:items-center sm:even:flex-row-reverse sm:even:*:last:text-right sm:odd:*:first:text-right sm:gap-10"
+>
+  <div class="text-xs sm:text-base">
+    {format(new Date(startAt), resumeDateFormat)}
+  </div>
+  <div
+    class="absolute size-2 bg-on-surface rounded-full 
+                      left-0 -translate-x-1/2 top-7 
+                      sm:top-auto sm:left-1/2 sm:-translate-x-1/2"
+  />
+  <div>
+    <h3 class="sm:text-2xl">{organization.name}</h3>
+    <p class="text-sm sm:text-lg text-primary/85">{position}</p>
+    <Content />
+    {
+      <ul>
+        {projects.map((project) => (
+          <Project {...project} />
+        ))}
+      </ul>
+    }
+    <div class="inline-flex gap-2 mt-4">
+      {technologies.map((tag) => {
+        const icon = getBrandIconName(tag);
+        return icon ? (
+          <iconify-icon icon={icon} class="size-5" height="none" />
+        ) : (
+          <></>
+        );
+      })}
+    </div>
+  </div>
+</li>

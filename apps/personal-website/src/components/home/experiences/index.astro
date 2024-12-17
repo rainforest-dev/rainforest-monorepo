@@ -1,0 +1,34 @@
+---
+import { getCollection } from 'astro:content';
+
+import Item from './item.astro';
+
+const { lang = 'en' } = Astro.params;
+
+const experiences = (
+  await getCollection('experiences', (item) => {
+    const isLangMatch = item.id.startsWith(lang);
+    return isLangMatch;
+  })
+).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
+---
+
+<script>
+  import '@material/web/chips/chip-set';
+  import '@material/web/chips/filter-chip';
+</script>
+<Fragment>
+  <div class="size-full sm:h-4/5 sm:overflow-auto grow-1">
+    <ul
+      id="experiences"
+      class="flex flex-col gap-4 sm:gap-5 relative
+              after:content-[''] after:absolute after:w-0.5 after:h-full after:bg-on-surface after:left-0 after:-translate-x-1/2 after:sm:left-1/2"
+    >
+      {
+        experiences.map((experience) => {
+          return <Item {...experience} />;
+        })
+      }
+    </ul>
+  </div>
+</Fragment>
