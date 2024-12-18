@@ -6,5 +6,4 @@ organization: 'en/codegreen'
 experience: 'en/6'
 ---
 
-- A web3 cryptocurrency extension wallet on Google Chrome
-- Develop the Chrome extension using Vite and React, and ensure that it adheres to the manifest v3 specification.
+- As part of a collaborative effort with another frontend engineer, was responsible for designing and implementing the core functionality for app-to-extension interactions, including exposing APIs to browsers and ensuring seamless communication between our web3 cryptocurrency wallet extension and external applications.
