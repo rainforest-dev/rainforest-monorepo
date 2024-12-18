@@ -6,7 +6,7 @@ organization: 'en/codegreen'
 experience: 'en/6'
 ---
 
-- Develop B2B products utilizing the Next.js app router.
-- Implemented social logins utilizing Auth.js and Auth0.
-- Implemented role-based authorizations using Casbin.js.
-- Construct an automated Continuous Integration/Continuous Deployment pipeline utilizing NX to streamline the product release process and minimize manual effort.
+- Led the frontend development for a B2B product built with Next.js, collaborating closely with designers and backend engineers to deliver a seamless user experience.
+- Designed and implemented social logins using Auth.js and Auth0, ensuring secure and efficient user authentication.
+- Implemented role-based authorizations using Casbin.js, providing fine-grained control over user access and permissions.
+- Set up an automated Continuous Integration/Continuous Deployment pipeline utilizing NX, streamlining the product release process and minimizing manual effort.
