@@ -1,0 +1,12 @@
+/* tailwindcss plugins */
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/md3";
+
+@theme {
+  --font-family-serif: 'Lora', 'Material Symbols Outlined', serif;
+  --font-family-sans: 'Material Symbols Outlined', sans-serif;
+  --font-family-resume-serif: Georgia, 'Material Symbols Outlined', serif;
+
+  --breakpoint-3xl: 112rem;
+}
