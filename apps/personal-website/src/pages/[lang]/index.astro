@@ -108,10 +108,9 @@ const skills = await getCollection('skills', (item) =>
       <OneColumns {...heroProps} />
     </section>
     <!-- experience -->
-    <section id="experience" class="py-10 sm:h-screen">
+    <section id="experience" class="py-10">
       <div class="container flex-col-center size-full">
         <h2 class="text-4xl mb-10">{t('experience')}</h2>
-        <!-- <Experience client:only="react" {...experienceProps} /> -->
         <Experiences />
       </div>
     </section>
