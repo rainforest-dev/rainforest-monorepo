@@ -51,7 +51,7 @@
             id="source-color-picker"
             v-model="sourceColor"
             @change="handleColorChange"
-            class="sr-only size-auto inset-4"
+            class="sr-only size-auto inset-0"
           />
         </div>
       </div>
