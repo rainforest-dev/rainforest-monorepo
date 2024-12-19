@@ -11,6 +11,7 @@
     "useDefineForClassFields": false,
     "baseUrl": ".",
     "paths": {
+      "@assets/*": ["src/assets/*"],
       "@components": ["src/components/index.ts"],
       "@components/*": ["src/components/*"],
       "@layouts/*": ["src/layouts/*"],
