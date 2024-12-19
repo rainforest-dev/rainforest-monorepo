@@ -20,7 +20,7 @@
       <aside
         :class="
           clsx(
-            'fixed inset-0 bg-surface text-on-surface px-4',
+            'fixed inset-0 bg-surface text-on-surface px-4 py-6 overflow-auto',
             open ? 'flex-center flex-col gap-10' : 'hidden'
           )
         "
@@ -65,7 +65,7 @@ import '@material/web/iconbutton/icon-button';
 import '@material/web/icon/icon';
 import '@material/web/menu/menu-item';
 
-import { computed, ref } from 'vue';
+import { computed, effect, ref } from 'vue';
 import clsx from 'clsx';
 import { useWindowScroll } from '@vueuse/core';
 import { isServerSide, removeUrlHashAfterNavigation } from '@utils';
@@ -94,4 +94,28 @@ const { y } = useWindowScroll();
 const page = computed(() => {
   return isServerSide ? 0 : y.value / window.innerHeight;
 });
+
+effect(() => {
+  if (isServerSide) return;
+  if (open.value || page.value > 0) {
+    // change head meta theme-color to white
+    (
+      document.querySelector("meta[name='theme-color']") as HTMLMetaElement
+    ).content = window
+      .getComputedStyle(document.body)
+      .getPropertyValue('--md-sys-color-surface');
+  } else {
+    (
+      document.querySelector("meta[name='theme-color']") as HTMLMetaElement
+    ).content = 'currentColor';
+  }
+});
 </script>
+
+<style>
+html {
+  &:has(aside:not(.hidden)) {
+    @apply overflow-hidden;
+  }
+}
+</style>

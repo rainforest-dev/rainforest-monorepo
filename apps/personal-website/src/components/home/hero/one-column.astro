@@ -21,8 +21,6 @@ const translatePath = useTranslatedPath(lang);
       class="size-full bg-inverse-surface rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0 z-0"
     >
       <Picture
-        height={600}
-        width={600}
         src={props.profile}
         alt="profile"
         loading="eager"
@@ -31,6 +29,7 @@ const translatePath = useTranslatedPath(lang);
             'h-full z-10 absolute -bottom-10 md:-bottom-20 left-1/2 -translate-x-1/2 ',
         }}
         class="object-cover object-top -skew-y-12 size-full"
+        densities={[0.1, 0.5, 1]}
       />
     </div>
     <div
