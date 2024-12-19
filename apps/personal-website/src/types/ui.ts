@@ -1,3 +1,5 @@
+import type { ImageMetadata } from 'astro';
+
 import { ILocation, IName, ISkill, SkillTag } from './data';
 
 export interface IContactProps {
@@ -13,7 +15,7 @@ export interface IContactProps {
 
 export interface IHeroProps {
   name: IName;
-  profile: string;
+  profile: Promise<{ default: ImageMetadata }> | ImageMetadata;
   dateOfBirth: Date;
   jobPosition: string;
   location: ILocation;
