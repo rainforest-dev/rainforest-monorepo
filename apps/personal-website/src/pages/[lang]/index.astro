@@ -101,10 +101,10 @@ const skills = await getCollection('skills', (item) =>
       <SourceColor client:only="vue" />
     </div>
     <!-- hero -->
-    <section class="flex-center container h-screen xl:flex! hidden!">
+    <section class="flex-center container h-screen xl:flex hidden">
       <ThreeColumns {...heroProps} />
     </section>
-    <section class="flex! xl:hidden! w-full bg-surface">
+    <section class="flex xl:hidden w-full">
       <OneColumns {...heroProps} />
     </section>
     <!-- experience -->
@@ -140,8 +140,10 @@ const skills = await getCollection('skills', (item) =>
     </section>
   </main>
   <style>
+    @import 'tailwindcss/theme' theme(reference);
+    @import '../../theme.css' theme(reference);
     html {
-      @apply snap-y snap-mandatory scroll-smooth;
+      @apply snap-y snap-mandatory scroll-smooth bg-inverse-surface xl:bg-surface;
     }
     main > section {
       @apply snap-always snap-start;
