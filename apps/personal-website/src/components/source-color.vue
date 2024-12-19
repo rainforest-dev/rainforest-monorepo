@@ -7,11 +7,13 @@
       :style="{
         backgroundColor: $sourceColor.value,
       }"
+      title="Source Color Picker"
     >
       <img
         :src="sourceImage"
         alt="source image"
-        class="size-full rounded-full [[src='']]:hidden"
+        class="size-full rounded-full"
+        v-if="sourceImage"
       />
     </button>
     <md-menu ref="menu" id="source-color-menu" anchor="source-color">
@@ -21,14 +23,20 @@
             for="source-color-image"
             :style="{
               borderColor: $sourceColor.value,
+              color: $sourceColor.value,
             }"
-            class="w-full aspect-square block cursor-pointer border rounded"
+            class="w-full aspect-square cursor-pointer border rounded flex-center"
+            title="Source Image"
           >
             <img
               :src="sourceImage"
               alt="source image"
-              class="object-cover size-full [[src='']]:hidden"
+              class="object-cover size-full peer"
+              v-if="sourceImage"
             />
+            <span class="material-symbols-outlined text-5xl!" v-else>
+              image
+            </span>
           </label>
           <input
             type="file"
@@ -44,6 +52,7 @@
             for="source-color-picker"
             class="w-full h-6 block cursor-pointer rounded"
             :style="{ backgroundColor: $sourceColor.value }"
+            title="Source Color"
           ></label>
           <input
             type="color"
