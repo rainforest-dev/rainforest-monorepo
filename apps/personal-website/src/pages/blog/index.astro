@@ -1,4 +1,5 @@
 ---
+import { SourceColor } from '@components';
 import Layout from '@layouts/index.astro';
 import { useTranslatedPath } from '@utils';
 import { getCollection } from 'astro:content';
@@ -10,16 +11,29 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
 ---
 
 <Layout title="Blogs">
-  <main
-    class="columns-5 container overflow-scroll *:px-4 *:py-3 *:min-h-20 *:break-inside-avoid *:border"
-  >
-    {
-      posts.map(({ data: post, id }) => (
-        <a class="inline-block" href={translatePath(`/blog/${id}`)}>
-          <h2>{post.title}</h2>
-          <p>{post.description}</p>
-        </a>
-      ))
-    }
+  <nav class="flex-row-center justify-between container">
+    <div>
+      <a href="/">Home</a>
+    </div>
+    <div>
+      <a href="">GitHub</a>
+      <a href="">LinkedIn</a>
+    </div>
+  </nav>
+  <main class="container py-10">
+    <h1 class="text-9xl text-center mb-10">Rainforest Cheng</h1>
+    <div class="columns-3xs *:px-4 *:py-3 *:border border">
+      {
+        posts.map(({ data: post, id }) => (
+          <a class="inline-block" href={translatePath(`/blog/${id}`)}>
+            <h2>{post.title}</h2>
+            <p>{post.description}</p>
+          </a>
+        ))
+      }
+    </div>
+    <div class="fixed right-10 bottom-10 z-10">
+      <SourceColor client:only="vue" />
+    </div>
   </main>
 </Layout>
