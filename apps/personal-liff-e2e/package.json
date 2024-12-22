@@ -1,0 +1,12 @@
+{
+  "name": "personal-liff-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "projectType": "application",
+    "sourceRoot": "apps/personal-liff-e2e/src",
+    "implicitDependencies": [
+      "personal-liff"
+    ]
+  }
+}
