@@ -1,7 +1,13 @@
 ---
 import { SourceColor } from '@components';
 import Layout from '@layouts/index.astro';
-import { useTranslatedPath } from '@utils';
+import {
+  getBrandIconName,
+  getGitHubUrl,
+  getLinkedInUrl,
+  useTranslatedPath,
+} from '@utils';
+import { info } from '@utils/constants';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog')).sort(
@@ -11,13 +17,27 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
 ---
 
 <Layout title="Blogs">
+  <script>
+    import '@material/web/iconbutton/icon-button';
+  </script>
   <nav class="flex-row-center justify-between container">
     <div>
-      <a href="/">Home</a>
+      <md-icon-button href="/">
+        <span class="material-symbols-outlined"> home </span>
+      </md-icon-button>
     </div>
     <div>
-      <a href="">GitHub</a>
-      <a href="">LinkedIn</a>
+      <md-icon-button href={getGitHubUrl(info.links.github)} target="_blank">
+        <iconify-icon icon={getBrandIconName('github')} height="none"
+        ></iconify-icon>
+      </md-icon-button>
+      <md-icon-button
+        href={getLinkedInUrl(info.links.linkedin)}
+        target="_blank"
+      >
+        <iconify-icon icon={getBrandIconName('linkedin')} height="none"
+        ></iconify-icon>
+      </md-icon-button>
     </div>
   </nav>
   <main class="container py-10">
