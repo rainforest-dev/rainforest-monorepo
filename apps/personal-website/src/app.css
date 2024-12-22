@@ -15,7 +15,7 @@
 }
 
 @utility flex-row-center {
-  @apply flex items-center;
+  @apply flex flex-row items-center;
 }
 
 @utility flex-col-center {
