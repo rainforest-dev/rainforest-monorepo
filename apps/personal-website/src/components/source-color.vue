@@ -84,7 +84,6 @@ const toggleMenu = () => {
 };
 const sourceColor = useVModel($sourceColor);
 const sourceImage = useLocalStorage('source-image', '');
-console.log(sourceImage.value);
 
 const reload = () => location.reload();
 
