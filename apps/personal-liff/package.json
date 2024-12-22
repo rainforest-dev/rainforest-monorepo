@@ -1,0 +1,16 @@
+{
+  "name": "@rainforest-monorepo/personal-liff",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@line/liff": "^2.25.1",
+    "next": "14.2.16",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "nx": {
+    "name": "personal-liff",
+    "projectType": "application",
+    "sourceRoot": "apps/personal-liff"
+  }
+}
