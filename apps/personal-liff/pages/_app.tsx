@@ -1,9 +1,13 @@
-import './styles.css';
+import '@mantine/core/styles.css';
+import './app.css';
 
 import type { Liff } from '@line/liff';
+import { createTheme, MantineProvider } from '@mantine/core';
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import { JSX, useEffect, useState } from 'react';
+
+const theme = createTheme({});
 
 function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   const [liffObject, setLiffObject] = useState<Liff | null>(null);
@@ -17,7 +21,10 @@ function MyApp({ Component, pageProps }: AppProps): JSX.Element {
       .then((liff) => {
         console.log('LIFF init...');
         liff
-          .init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID! })
+          .init({
+            liffId: process.env.NEXT_PUBLIC_LIFF_ID!,
+            withLoginOnExternalBrowser: true,
+          })
           .then(() => {
             console.log('LIFF init succeeded.');
             setLiffObject(liff);
@@ -36,10 +43,14 @@ function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   return (
     <>
       <Head>
-        <title>Welcome to personal-liff!</title>
+        <title>Rainforest's Line</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className="app">
-        <Component {...pageProps} />
+      <main>
+        <MantineProvider theme={theme}>
+          <Component {...pageProps} />
+        </MantineProvider>
       </main>
     </>
   );
