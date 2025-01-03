@@ -1,4 +1,5 @@
 // @ts-check
+import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
@@ -30,6 +31,7 @@ export default defineConfig({
     }),
     sitemap(),
     (await import('astro-compress')).default(),
+    mdx(),
   ],
   output: 'server',
   adapter: vercel({
