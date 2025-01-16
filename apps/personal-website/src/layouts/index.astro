@@ -3,11 +3,12 @@ import '../app.css';
 
 import { ThemeProvider } from '@components';
 import SpeedInsights from '@vercel/speed-insights/astro';
+import { ClientRouter } from 'astro:transitions';
 import { dir as _dir } from 'i18next';
 
 import type { Props } from './types';
 
-const { title, description } = Astro.props;
+const { title, description, viewTransition = { enabled: false } } = Astro.props;
 
 const lang = Astro.currentLocale;
 const dir = _dir(lang);
@@ -87,6 +88,7 @@ const googleFontsLink = `https://fonts.googleapis.com/css2?family=Material+Symbo
 
     <SpeedInsights />
     <ThemeProvider />
+    {viewTransition.enabled && <ClientRouter />}
   </head>
   <body>
     <slot />
