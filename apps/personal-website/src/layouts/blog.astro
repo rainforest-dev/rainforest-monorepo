@@ -25,7 +25,7 @@ const { title, pubDate, author: _author, image } = Astro.props.data;
         width={512}
         height={512}
         alt={image?.alt}
-        class="w-full max-h-75 object-cover"
+        class="w-full max-h-75 md:max-h-1/2 object-cover"
         transition:name={`blog-${id}`}
       />
     )
@@ -36,8 +36,12 @@ const { title, pubDate, author: _author, image } = Astro.props.data;
   >
     <md-icon>arrow_back</md-icon>
   </md-filled-tonal-icon-button>
-  <article class="container prose md:prose-lg lg:prose-xl pb-20">
+  <article
+    class="container prose md:prose-xl lg:prose-2xl pb-20 -translate-y-0 md:-translate-y-75 py-4"
+  >
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>
-    <slot />
+    <div class="bg-surface/25 px-4 backdrop-blur-sm">
+      <slot />
+    </div>
   </article>
 </BaseLayout>
