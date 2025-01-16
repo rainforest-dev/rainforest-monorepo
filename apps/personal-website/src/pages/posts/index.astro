@@ -1,0 +1,15 @@
+---
+import { Post } from '@components/blog';
+import Layout from '@layouts/index.astro';
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('blog', ({ data }) =>
+  data.tags.includes('type:quick-post')
+);
+---
+
+<Layout title="Quick Posts">
+  <main class="container py-10">
+    {posts.map((post) => <Post {...post} />)}
+  </main>
+</Layout>
