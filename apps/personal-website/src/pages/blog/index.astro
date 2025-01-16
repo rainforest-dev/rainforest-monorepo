@@ -17,7 +17,7 @@ const posts = (await getCollection('blog')).sort(
 const translatePath = useTranslatedPath(Astro.currentLocale);
 ---
 
-<Layout title="Blogs">
+<Layout title="Blogs" viewTransition={{ enabled: true }}>
   <script>
     import '@material/web/iconbutton/icon-button';
   </script>
@@ -60,6 +60,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
                   class="size-full object-cover m-0!"
                   src={post.image.src}
                   alt={post.image.alt}
+                  transition:name={`blog-${id}`}
                 />
               ) : (
                 <span class="material-symbols-outlined">image</span>

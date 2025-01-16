@@ -1,14 +1,15 @@
 ---
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
-import { getEntry } from 'astro:content';
+// import { getEntry } from 'astro:content';
 import { format } from 'date-fns';
 
 import BaseLayout from './index.astro';
 
-type Props = CollectionEntry<'blog'>['data'];
-const { title, pubDate, author: _author, image } = Astro.props;
-const author = (await getEntry(_author.collection, _author.id))?.data;
+type Props = CollectionEntry<'blog'>;
+const id = Astro.props.id;
+const { title, pubDate, author: _author, image } = Astro.props.data;
+// const author = (await getEntry(_author.collection, _author.id))?.data;
 ---
 
 <script>
@@ -16,13 +17,7 @@ const author = (await getEntry(_author.collection, _author.id))?.data;
   import '@material/web/icon/icon';
 </script>
 
-<BaseLayout title={title}>
-  <md-filled-tonal-icon-button
-    onclick="history.back()"
-    class="fixed top-10 left-10 text-primary"
-  >
-    <md-icon>arrow_back</md-icon>
-  </md-filled-tonal-icon-button>
+<BaseLayout title={title} viewTransition={{ enabled: true }}>
   {
     image?.src && (
       <Image
@@ -31,9 +26,16 @@ const author = (await getEntry(_author.collection, _author.id))?.data;
         height={512}
         alt={image?.alt}
         class="w-full max-h-75 object-cover"
+        transition:name={`blog-${id}`}
       />
     )
   }
+  <md-filled-tonal-icon-button
+    onclick="history.back()"
+    class="fixed top-10 left-10 text-primary"
+  >
+    <md-icon>arrow_back</md-icon>
+  </md-filled-tonal-icon-button>
   <article class="container prose md:prose-lg lg:prose-xl pb-20">
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>
     <slot />
