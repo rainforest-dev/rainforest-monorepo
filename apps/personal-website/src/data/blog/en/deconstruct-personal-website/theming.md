@@ -4,7 +4,7 @@ pubDate: '2024-12-20'
 description: 'Theming with Tailwind CSS V4 Beta and Material Design 3.'
 author: rainforest
 image:
-  src: '/assets/theming.png'
+  src: '/images/blog/thumbnail - 2.jpeg'
   alt: 'Theming'
 tags:
   - 'series:deconstruct-personal-website'
