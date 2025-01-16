@@ -4,7 +4,7 @@ pubDate: 2024-12-19
 description: 'Setting up the project for my personal website.'
 author: rainforest
 image:
-  src: '/assets/project-init.png'
+  src: '/images/blog/thumbnail - 1.jpeg'
   alt: 'Project Init'
 tags:
   - 'series:deconstruct-personal-website'
