@@ -49,7 +49,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
       {
         posts.map(({ data: post, id }) => (
           <a
-            class="inline-flex flex-col gap-4 md:first:col-span-full md:first:flex-row-center @container prose-sm max-w-none"
+            class="inline-flex flex-col gap-4 md:first:col-span-full md:first:flex-row-center @container prose-sm dark:prose-invert max-w-none"
             href={translatePath(`/blog/${id}`)}
           >
             <div class="@2xl:w-1/3 w-full @2xl:max-w-96 aspect-square flex-center border grow-0">
