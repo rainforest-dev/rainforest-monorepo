@@ -85,8 +85,11 @@ const toggleMenu = () => {
 const sourceColor = useVModel($sourceColor);
 const sourceImage = useLocalStorage('source-image', '');
 
+const reload = () => location.reload();
+
 const handleColorChange = () => {
   if (sourceImage.value) sourceImage.value = '';
+  reload();
 };
 
 const handleImageChange = (event: Event) => {
@@ -110,6 +113,7 @@ const handleImageChange = (event: Event) => {
       const color = hexFromArgb(argb);
       if (color && color !== sourceColor.value) {
         sourceColor.value = color;
+        reload();
       }
     };
     reader.readAsDataURL(file);
