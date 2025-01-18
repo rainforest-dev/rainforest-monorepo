@@ -18,6 +18,13 @@ import type { ImageMetadata } from 'astro';
 import { getCollection, render } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 
+export const prerender = true;
+export async function getStaticPaths() {
+  return supportedLngs.map((lng) => ({
+    params: { lang: lng },
+  }));
+}
+
 const profiles = import.meta.glob<{ default: ImageMetadata }>(
   '/src/assets/images/profile/*.{jpeg,jpg,png,gif}'
 );
