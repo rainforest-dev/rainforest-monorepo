@@ -1,7 +1,7 @@
 /* tailwindcss */
 @import 'tailwindcss';
-
 @import './theme.css';
+@config './tailwindcss.config.js';
 
 @layer base {
   html,
