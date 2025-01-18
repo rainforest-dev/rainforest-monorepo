@@ -87,7 +87,7 @@ const googleFontsLink = `https://fonts.googleapis.com/css2?family=Material+Symbo
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" crossorigin />
 
     <SpeedInsights />
-    <ThemeProvider />
+    <ThemeProvider server:defer />
     {viewTransition.enabled && <ClientRouter />}
   </head>
   <body>
