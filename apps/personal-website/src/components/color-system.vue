@@ -208,6 +208,14 @@ const handleTabChange = (event: Event) => {
       </p>
       <a href="#"> Link to somewhere </a>
       <blockquote>Blockquote example</blockquote>
+      <code> function helloWorld() { console.log("Hello, world!"); } </code>
+      <pre>
+        <code>
+          function helloWorld() {
+            console.log("Hello, world!");
+          }
+        </code>
+      </pre>
       <ul>
         <li>List item one</li>
         <li>List item two</li>
