@@ -21,7 +21,8 @@
       "@utils/*": ["src/utils/*"],
       "@types": ["src/types/index.ts"],
       "@types/*": ["src/types/*"]
-    }
+    },
+    "types": ["@webgpu/types"]
   },
   "references": [
     {
