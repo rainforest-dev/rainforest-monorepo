@@ -1,6 +1,7 @@
 ---
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import clsx from 'clsx';
 // import { getEntry } from 'astro:content';
 import { format } from 'date-fns';
 
@@ -37,10 +38,13 @@ const { title, pubDate, author: _author, image } = Astro.props.data;
     <md-icon>arrow_back</md-icon>
   </md-filled-tonal-icon-button>
   <article
-    class="container prose md:prose-xl lg:prose-2xl pb-20 -translate-y-0 md:-translate-y-75 py-4"
+    class={clsx(
+      'container prose md:prose-xl lg:prose-2xl pb-20 py-4',
+      image?.src && '-translate-y-0 md:-translate-y-75'
+    )}
   >
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>
-    <div class="bg-surface/25 px-4 backdrop-blur-sm">
+    <div class={clsx(image?.src && 'bg-surface/25 px-4 backdrop-blur-sm')}>
       <slot />
     </div>
   </article>
