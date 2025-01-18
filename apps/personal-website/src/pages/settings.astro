@@ -6,12 +6,12 @@ import Layout from '@layouts/index.astro';
 <Layout title="Settings">
   <main class="container flex-col-center gap-3 py-10">
     <SourceColor client:only="vue" />
-    <div class="flex flex-col lg:flex-row">
+    <div class="flex flex-col lg:flex-row size-full">
       <div class="w-full bg-surface p-8 border" data-scheme="light">
-        <ColorSystem />
+        <ColorSystem client:load />
       </div>
       <div class="w-full bg-surface p-8" data-scheme="dark">
-        <ColorSystem />
+        <ColorSystem client:load />
       </div>
     </div>
   </main>

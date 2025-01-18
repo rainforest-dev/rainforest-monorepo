@@ -4,7 +4,14 @@ import { ATSFriendly } from '@components/resume';
 import Layout from '@layouts/index.astro';
 import type { IResumeProps } from '@types';
 import { hero, info } from '@utils/constants';
-import { useTranslation } from '@utils/i18n';
+import { supportedLngs, useTranslation } from '@utils/i18n';
+
+export const prerender = true;
+export async function getStaticPaths() {
+  return supportedLngs.map((lng) => ({
+    params: { lang: lng },
+  }));
+}
 
 const { t } = await useTranslation(Astro.currentLocale, 'home');
 
