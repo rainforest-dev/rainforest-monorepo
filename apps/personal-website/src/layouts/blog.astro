@@ -1,4 +1,5 @@
 ---
+import { Comments } from '@components/blog';
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import clsx from 'clsx';
@@ -39,8 +40,8 @@ const { title, pubDate, author: _author, image } = Astro.props.data;
   </md-filled-tonal-icon-button>
   <article
     class={clsx(
-      'container prose md:prose-xl lg:prose-2xl pb-20 py-4',
-      image?.src && '-translate-y-0 md:-translate-y-75'
+      'container prose md:prose-xl lg:prose-2xl py-4',
+      image?.src && '-mt-0 md:-mt-75'
     )}
   >
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>
@@ -48,4 +49,7 @@ const { title, pubDate, author: _author, image } = Astro.props.data;
       <slot />
     </div>
   </article>
+  <section class="container pb-20">
+    <Comments />
+  </section>
 </BaseLayout>
