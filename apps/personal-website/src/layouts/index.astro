@@ -16,11 +16,10 @@ const dir = _dir(lang);
 
 <!doctype html>
 <html lang={lang} dir={dir}>
-  <head>
-    <Head {...rest} />
+  <Head {...rest}>
     <ThemeProvider server:defer />
     {viewTransition.enabled && <ClientRouter />}
-  </head>
+  </Head>
   <body>
     <slot />
   </body>
