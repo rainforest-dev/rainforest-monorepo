@@ -2,94 +2,24 @@
 import '../app.css';
 
 import { ThemeProvider } from '@components';
-import SpeedInsights from '@vercel/speed-insights/astro';
 import { ClientRouter } from 'astro:transitions';
 import { dir as _dir } from 'i18next';
 
+import Head from './head.astro';
 import type { Props } from './types';
 
-const { title, description, viewTransition = { enabled: false } } = Astro.props;
+const { viewTransition = { enabled: false }, ...rest } = Astro.props;
 
 const lang = Astro.currentLocale;
 const dir = _dir(lang);
-
-const url = Astro.url.toString();
-
-const icons = [
-  'arrow_back',
-  'arrow_upward',
-  'chat_bubble',
-  'close',
-  'home',
-  'image',
-  'language',
-  'mail',
-  'menu',
-  'open_in_new',
-];
-const googleFontsLink = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=${icons
-  .sort((a, b) => a.localeCompare(b))
-  .join(',')}&display=block`;
 ---
 
 <!doctype html>
 <html lang={lang} dir={dir}>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="generator" content={Astro.generator} />
-    <meta name="theme-color" content="currentColor" />
-    <link rel="sitemap" href="/sitemap-index.xml" />
-
-    <!-- Google Fonts -->
-    <link
-      rel="preload"
-      href={googleFontsLink}
-      as="style"
-      onload="this.onload=null;this.rel='stylesheet'"
-    />
-    <link
-      rel="preload"
-      href="https://fonts.googleapis.com/css2?family=Lora&display=swap"
-      as="style"
-      onload="this.onload=null;this.rel='stylesheet'"
-    />
-    <noscript>
-      <link rel="stylesheet" href={googleFontsLink} />
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Lora&display=swap"
-      />
-    </noscript>
-
-    <title>{title}</title>
-    <meta name="title" content={title} />
-    <meta name="description" content={description} />
-
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content={url} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:image" content="/images/thumbnail/1.jpg" />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={url} />
-    <meta property="twitter:title" content={title} />
-    <meta property="twitter:description" content={description} />
-    <meta property="twitter:image" content="/images/thumbnail/1.jpg" />
-
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" crossorigin />
-
-    <SpeedInsights />
+  <Head {...rest}>
     <ThemeProvider server:defer />
     {viewTransition.enabled && <ClientRouter />}
-  </head>
+  </Head>
   <body>
     <slot />
   </body>
