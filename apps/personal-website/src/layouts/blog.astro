@@ -10,7 +10,13 @@ import BaseLayout from './index.astro';
 
 type Props = CollectionEntry<'blog'>;
 const id = Astro.props.id;
-const { title, pubDate, author: _author, image } = Astro.props.data;
+const {
+  title,
+  description,
+  pubDate,
+  author: _author,
+  image,
+} = Astro.props.data;
 // const author = (await getEntry(_author.collection, _author.id))?.data;
 ---
 
@@ -19,7 +25,12 @@ const { title, pubDate, author: _author, image } = Astro.props.data;
   import '@material/web/icon/icon';
 </script>
 
-<BaseLayout title={title} viewTransition={{ enabled: true }}>
+<BaseLayout
+  title={title}
+  description={description}
+  imageUrl={image?.src}
+  viewTransition={{ enabled: true }}
+>
   {
     image?.src && (
       <Image
