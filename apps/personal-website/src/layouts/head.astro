@@ -3,8 +3,11 @@ import SpeedInsights from '@vercel/speed-insights/astro';
 
 import type { HeadProps as Props } from './types';
 
-const _imageUrl = new URL('/images/thumbnail/1.jpg', Astro.url.origin);
-const { title, description, imageUrl = _imageUrl } = Astro.props;
+const {
+  title,
+  description,
+  imageUrl = new URL('/images/thumbnail/1.jpg', Astro.site),
+} = Astro.props;
 const url = Astro.url.toString();
 
 const icons = [
@@ -88,6 +91,13 @@ const googleFontsLink = `https://fonts.googleapis.com/css2?family=Material+Symbo
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="dns-prefetch" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://fonts.googleapis.com" crossorigin />
+
+  <link
+    rel="alternate"
+    type="application/rss+xml"
+    title={title}
+    href={new URL('rss.xml', Astro.site)}
+  />
 
   <SpeedInsights />
   <slot />

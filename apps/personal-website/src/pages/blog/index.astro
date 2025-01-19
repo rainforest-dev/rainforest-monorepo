@@ -6,6 +6,7 @@ import {
   getGitHubUrl,
   getLinkedInUrl,
   useTranslatedPath,
+  useTranslation,
 } from '@utils';
 import { info } from '@utils/constants';
 import { Image } from 'astro:assets';
@@ -14,10 +15,15 @@ import { getCollection } from 'astro:content';
 const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
+const { t } = await useTranslation('en', 'blog');
 const translatePath = useTranslatedPath(Astro.currentLocale);
 ---
 
-<Layout title="Blogs" viewTransition={{ enabled: true }}>
+<Layout
+  title={t('metadata-title')}
+  description={t('metadata-description')}
+  viewTransition={{ enabled: true }}
+>
   <script>
     import '@material/web/iconbutton/icon-button';
   </script>
