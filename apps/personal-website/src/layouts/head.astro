@@ -1,5 +1,6 @@
 ---
 import SpeedInsights from '@vercel/speed-insights/astro';
+import { pwaInfo } from 'virtual:pwa-info';
 
 import type { HeadProps as Props } from './types';
 
@@ -98,6 +99,9 @@ const googleFontsLink = `https://fonts.googleapis.com/css2?family=Material+Symbo
     title={title}
     href={new URL('rss.xml', Astro.site)}
   />
+
+  <!-- PWA Manifest -->
+  {pwaInfo && <Fragment set:html={pwaInfo.webManifest.linkTag} />}
 
   <SpeedInsights />
   <slot />
