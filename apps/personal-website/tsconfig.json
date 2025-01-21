@@ -22,7 +22,7 @@
       "@types": ["src/types/index.ts"],
       "@types/*": ["src/types/*"]
     },
-    "types": ["@webgpu/types"]
+    "types": ["@webgpu/types", "@types/dom-chromium-ai"]
   },
   "references": [
     {

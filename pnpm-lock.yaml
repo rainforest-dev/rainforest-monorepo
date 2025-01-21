@@ -252,6 +252,9 @@ importers:
       '@tailwindcss/typography':
         specifier: ^0.5.15
         version: 0.5.15(tailwindcss@4.0.0-beta.6)
+      '@types/dom-chromium-ai':
+        specifier: ^0.0.4
+        version: 0.0.4
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
@@ -2895,6 +2898,9 @@ packages:
 
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
+
+  '@types/dom-chromium-ai@0.0.4':
+    resolution: {integrity: sha512-zEJAmJcrszLhklp+UsEwn81Y65zUoGqZex80hMIvRiOKHhiC35wjtPpih7BBq9wkhCAra66TAgAmmwb7jXO3UA==}
 
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
@@ -12833,6 +12839,8 @@ snapshots:
   '@types/debug@4.1.12':
     dependencies:
       '@types/ms': 0.7.34
+
+  '@types/dom-chromium-ai@0.0.4': {}
 
   '@types/eslint-scope@3.7.7':
     dependencies:
