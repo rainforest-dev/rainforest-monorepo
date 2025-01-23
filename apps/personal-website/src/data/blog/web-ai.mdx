@@ -4,17 +4,59 @@ pubDate: 2024-12-28
 description: A survey of edge AI applications on web platforms explores how AI technologies are being utilized at the edge to enhance performance, reduce latency, and improve user experience in web-based applications. This includes examining various use cases such as real-time data analysis, image recognition for content moderation, and personalized recommendations based on user behavior. The survey also highlights challenges and opportunities in deploying edge AI in a web context.
 author: rainforest
 image:
-  src: 'https://docs.astro.build/assets/full-logo-light.png'
-  alt: 'The Astro logo with the word One.'
+  src: '/images/blog/thumbnail - 3.jpeg'
+  alt: 'Web AI'
 tags:
   - ai
   - web-gpu
 ---
 
+import { Baseline } from '@components/blog';
+import { CheckGPU } from '@components/blog/demo';
+
 ## GPU support check
+
+<Baseline featureId="webgpu" />
+
+<CheckGPU client:load />
 
 ## Edge AI on Web Platforms
 
 ### LLM
+
+#### WebLLM
+
+```ts
+import { CreateMLCEngine } from '@mlc-ai/web-llm';
+
+const engine = await CreateMLCEngine(selectedModel, {
+  initProgressCallback: ({ progress }) => {
+    console.log(`Initialization progress: ${(progress * 100).toFixed()}%`);
+  },
+});
+
+const messages = [
+  {
+    role: 'user',
+    content: message.value,
+  },
+];
+const chunks = await engine.chat.completions.create({
+  // @ts-ignore
+  messages,
+  stream: true,
+});
+
+reply.value = ''; // Reset the reply before appending new content
+for await (const chunk of chunks) {
+  reply.value += chunk.choices[0].delta.content || '';
+}
+```
+
+{/* <WebLLM client:load /> */}
+
+#### Prompt API
+
+{/* <WebLLM api="prompt-api" client:load /> */}
 
 ### Stable Diffusion
