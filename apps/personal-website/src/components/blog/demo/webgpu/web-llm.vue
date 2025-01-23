@@ -24,30 +24,22 @@
     </div>
   </div>
 </template>
-<script lang="ts" setup>
-import { CreateMLCEngine } from '@mlc-ai/web-llm';
-import { computed, ref } from 'vue';
+<script setup>
+import { ref, defineProps } from 'vue';
 import { marked } from 'marked';
 import '@material/web/textfield/outlined-text-field.js';
 import '@material/web/button/filled-button.js';
 
-const { api = 'web-llm' } = defineProps<{ api: 'web-llm' | 'prompt-api' }>();
-
-const isAIFeatureSupported = computed(() => {
-  switch (api) {
-    case 'prompt-api':
-      return 'ai' in self;
-    default:
-      return true;
-  }
+const { api = 'web-llm' } = defineProps({
+  api: 'web-llm' | 'prompt-api',
 });
-console.log(api, isAIFeatureSupported.value);
 
 const selectedModel = 'Llama-3.2-3B-Instruct-q4f32_1-MLC';
 
+const { CreateMLCEngine } = await import('https://esm.run/@mlc-ai/web-llm');
 const engine = await CreateMLCEngine(selectedModel, {
-  initProgressCallback: ({ progress }) => {
-    console.log(`Initialization progress: ${(progress * 100).toFixed()}%`);
+  initProgressCallback: ({ text }) => {
+    console.log(text);
   },
 });
 
