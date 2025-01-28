@@ -6,9 +6,12 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "types": ["node", "vite/client"]
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "types": ["vite/client", "node"],
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
   },
   "include": ["src/**/*.ts"],
   "references": [],
