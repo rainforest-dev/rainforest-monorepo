@@ -26,7 +26,8 @@
         "rust-lang.rust-analyzer",
         "ms-playwright.playwright",
         "Vue.volar",
-        "unifiedjs.vscode-mdx"
+        "unifiedjs.vscode-mdx",
+        "runem.lit-plugin"
       ]
     }
   },

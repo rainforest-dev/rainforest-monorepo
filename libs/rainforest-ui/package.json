@@ -13,6 +13,11 @@
       "types": "./dist/tailwindcss/*.d.ts",
       "import": "./dist/tailwindcss/*.js",
       "default": "./dist/tailwindcss/*.cjs"
+    },
+    "./lit/*": {
+      "types": "./dist/lit/*.d.ts",
+      "import": "./dist/lit/*.js",
+      "default": "./dist/lit/*.cjs"
     }
   },
   "main": "./dist/index.js",
@@ -25,10 +30,15 @@
   ],
   "dependencies": {
     "@material/material-color-utilities": "^0.3.0",
+    "lit": "3.2.1",
     "tailwindcss": "4.0.0-beta.6"
   },
   "nx": {
     "sourceRoot": "libs/rainforest-ui/src",
     "name": "rainforest-ui"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "glob": "^11.0.1"
   }
 }
