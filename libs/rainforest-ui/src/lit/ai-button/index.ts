@@ -1,5 +1,7 @@
-import { css, html, LitElement } from 'lit';
+import { css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+
+import { RfTwLit } from '../tw-lit';
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -8,16 +10,26 @@ declare global {
 }
 
 @customElement('rf-ai-button')
-export class AiButton extends LitElement {
-  static override styles = css``;
+export class AiButton extends RfTwLit {
+  static override styles = [
+    ...super.styles,
+    css`
+      .button {
+        background-color: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        padding: 8px 16px;
+        border-radius: 4px;
+      }
+    `,
+  ];
 
   @property()
   name = 'Rainforest';
 
   override render() {
     return html`
-      <button>Hey ${this.name}!</button>
-      <button>Hello <slot /> !</button>
+      <button class="button">Hey ${this.name}!</button>
+      <button class="appearence-none bg-blue-500">Hello <slot></slot> !</button>
     `;
   }
 }

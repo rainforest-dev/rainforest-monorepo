@@ -147,8 +147,7 @@ const skills = await getCollection('skills', (item) =>
     </section>
   </main>
   <style>
-    @import 'tailwindcss/theme' theme(reference);
-    @import '../../theme.css' theme(reference);
+    @reference '../../app.css';
     html {
       @apply snap-y snap-mandatory overscroll-none scroll-smooth bg-inverse-surface xl:bg-surface;
     }
