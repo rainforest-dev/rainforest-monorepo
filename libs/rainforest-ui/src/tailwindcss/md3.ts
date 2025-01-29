@@ -37,7 +37,9 @@ export default plugin.withOptions(
     );
     return {
       theme: {
-        colors,
+        extend: {
+          colors,
+        },
       },
     };
   }
