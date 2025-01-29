@@ -191,7 +191,13 @@ export const schemePropertiesToCssInJs = (properties: {
   Object.fromEntries(
     Object.entries(properties).map(([key, value]) => {
       const color = hexFromArgb(value);
-      return [key, color];
+      return [
+        `@property ${key}`,
+        {
+          syntax: '<color>',
+          initialValue: color,
+        },
+      ];
     })
   );
 
