@@ -11,10 +11,7 @@
     "module": "ESNext",
     "types": ["vite/client", "node"],
     "experimentalDecorators": true,
-    "useDefineForClassFields": false,
-    "paths": {
-      "@lit/*": ["src/lit/*"]
-    }
+    "useDefineForClassFields": false
   },
   "include": ["src/**/*.ts"],
   "references": [],
