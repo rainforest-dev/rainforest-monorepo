@@ -6,6 +6,8 @@ import clsx from 'clsx';
 // import { getEntry } from 'astro:content';
 import { format } from 'date-fns';
 
+import { SourceColor } from '@/components';
+
 import BaseLayout from './index.astro';
 
 type Props = CollectionEntry<'blog'>;
@@ -60,6 +62,9 @@ const {
       <slot />
     </div>
   </article>
+  <div class="fixed right-10 bottom-10 z-10">
+    <SourceColor client:only="vue" />
+  </div>
   <section class="container pb-20">
     <Comments />
   </section>

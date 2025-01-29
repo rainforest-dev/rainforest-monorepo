@@ -1,6 +1,4 @@
 <template>
-  <button class="bg-primary">Hello</button>
-
   <rf-ai-button>World</rf-ai-button>
 </template>
 
