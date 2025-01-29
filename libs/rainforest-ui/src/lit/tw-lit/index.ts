@@ -11,7 +11,7 @@ declare global {
 
 @customElement('rf-tw-lit')
 export class RfTwLit extends LitElement {
-  static override styles = [unsafeCSS(style.replace(':root', ':host'))];
+  static override styles = [unsafeCSS(style.replaceAll(':root', ':host'))];
   override render() {
     return html`<slot class="text-red-500"></slot>`;
   }
