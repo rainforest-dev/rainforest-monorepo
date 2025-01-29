@@ -52,3 +52,6 @@ out
 
 test-output
 .env*.local
+
+
+storybook-static
