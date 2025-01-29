@@ -1,16 +1,16 @@
 import { css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
-import { RfTwLit } from '../tw-lit';
+import { RfMd3Lit } from '../md3-lit';
 
 declare global {
   interface HTMLElementTagNameMap {
-    'rf-ai-button': AiButton;
+    'rf-ai-button': RfAiButton;
   }
 }
 
 @customElement('rf-ai-button')
-export class AiButton extends RfTwLit {
+export class RfAiButton extends RfMd3Lit {
   static override styles = [
     ...super.styles,
     css`
@@ -30,7 +30,7 @@ export class AiButton extends RfTwLit {
   override render() {
     return html`
       <button class="button">Hey ${this.name}!</button>
-      <button class="appearence-none bg-blue-500">Hello <slot></slot> !</button>
+      <button class="bg-blue-500">Hello <slot></slot> !</button>
     `;
   }
 }
