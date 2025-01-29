@@ -3,10 +3,16 @@ import { customElement } from 'lit/decorators.js';
 
 import style from './theme.css?inline';
 
+declare global {
+  interface HTMLElementTagNameMap {
+    'rf-tw-lit': RfTwLit;
+  }
+}
+
 @customElement('rf-tw-lit')
 export class RfTwLit extends LitElement {
-  static override styles = [unsafeCSS(style)];
+  static override styles = [unsafeCSS(style.replace(':root', ':host'))];
   override render() {
-    return html`<slot></slot>`;
+    return html`<slot class="text-red-500"></slot>`;
   }
 }

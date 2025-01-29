@@ -14,6 +14,7 @@ export class AiButton extends RfTwLit {
   static override styles = [
     ...super.styles,
     css`
+      @reference 'tailwindcss';
       .button {
         background-color: var(--md-sys-color-primary);
         color: var(--md-sys-color-on-primary);
