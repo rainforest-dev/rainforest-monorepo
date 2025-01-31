@@ -318,6 +318,9 @@ importers:
       '@material/material-color-utilities':
         specifier: ^0.3.0
         version: 0.3.0
+      '@tailwindcss/typography':
+        specifier: ^0.5.15
+        version: 0.5.16(tailwindcss@4.0.0)
       lit:
         specifier: 3.2.1
         version: 3.2.1
