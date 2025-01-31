@@ -13,4 +13,38 @@ import { TwLit } from '@components/blog/demo';
 
 <TwLit client:load />
 
-TwLit
+## CSS in JS
+
+```ts
+import style from './theme.css?inline';
+
+@customElement('md3-lit')
+export class RfMd3Lit extends RfTwLit {
+  static override styles = [unsafeCSS(style.replaceAll(':root', ':host'))];
+}
+```
+
+## Define properties with defaults
+
+```ts
+@customElement('md3-lit')
+export class RfMd3Lit extends RfTwLit {
+  static {
+    if (!isServer) {
+      const styleSheets = Object.entries(
+        getSchemeProperties(defaultTheme.schemes.light)
+      ).map(
+        ([key, color]) =>
+          unsafeCSS(`
+      @property ${key} {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: ${hexFromArgb(color)};
+      }
+    `).styleSheet as CSSStyleSheet
+      );
+      document.adoptedStyleSheets.push(...styleSheets);
+    }
+  }
+}
+```
