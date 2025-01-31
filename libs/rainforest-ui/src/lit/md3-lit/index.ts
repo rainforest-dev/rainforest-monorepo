@@ -6,6 +6,8 @@ import { getSchemeProperties, themeFromSourceColor } from '../../utils/theme';
 import { RfTwLit } from '../tw-lit';
 import style from './theme.css?inline';
 
+console.log(style);
+
 declare global {
   interface HTMLElementTagNameMap {
     'rf-md3-lit': RfMd3Lit;
@@ -25,7 +27,7 @@ export class RfMd3Lit extends RfTwLit {
           unsafeCSS(`
       @property ${key} {
         syntax: "<color>";
-        inherits: false;
+        inherits: true;
         initial-value: ${hexFromArgb(color)};
       }
     `).styleSheet as CSSStyleSheet
