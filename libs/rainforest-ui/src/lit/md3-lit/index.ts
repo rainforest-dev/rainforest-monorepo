@@ -4,6 +4,7 @@ import { customElement } from 'lit/decorators.js';
 
 import { getSchemeProperties, themeFromSourceColor } from '../../utils/theme';
 import { RfTwLit } from '../tw-lit';
+import style from './theme.css?inline';
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -32,4 +33,6 @@ export class RfMd3Lit extends RfTwLit {
       document.adoptedStyleSheets.push(...styleSheets);
     }
   }
+
+  static override styles = [unsafeCSS(style.replaceAll(':root', ':host'))];
 }

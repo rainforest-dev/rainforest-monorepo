@@ -37,7 +37,7 @@ export default defineConfig({
         'tailwindcss/md3': 'src/tailwindcss/md3.ts',
         ...Object.fromEntries(
           glob
-            .sync('src/lit/**/*.ts')
+            .sync('src/{lit,utils}/**/!(*.spec|*.test).ts')
             .map((e) => [e.replace('src/', '').replace('.ts', ''), e])
         ),
       },
