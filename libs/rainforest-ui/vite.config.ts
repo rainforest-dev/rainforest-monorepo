@@ -1,6 +1,9 @@
 /// <reference types='vitest' />
+import tailwindcss from '@tailwindcss/vite';
+import { glob } from 'glob';
 import * as path from 'path';
 import { defineConfig } from 'vite';
+// import { analyzer } from 'vite-bundle-analyzer';
 import dts from 'vite-plugin-dts';
 
 export default defineConfig({
@@ -11,6 +14,8 @@ export default defineConfig({
       entryRoot: 'src',
       tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
     }),
+    tailwindcss(),
+    // analyzer(),
   ],
   // Uncomment this if you are using workers.
   // worker: {
@@ -30,6 +35,11 @@ export default defineConfig({
       entry: {
         index: 'src/index.ts',
         'tailwindcss/md3': 'src/tailwindcss/md3.ts',
+        ...Object.fromEntries(
+          glob
+            .sync('src/{lit,utils}/**/!(*.spec|*.test).ts')
+            .map((e) => [e.replace('src/', '').replace('.ts', ''), e])
+        ),
       },
       fileName: (format, entryName) => {
         // remove the src/ and replace suffix with format
@@ -41,8 +51,8 @@ export default defineConfig({
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
-      external: [],
     },
+    ssr: true,
   },
   test: {
     watch: false,

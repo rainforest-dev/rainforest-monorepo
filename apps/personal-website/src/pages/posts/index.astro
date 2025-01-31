@@ -9,7 +9,16 @@ const posts = await getCollection('blog', ({ data }) =>
 ---
 
 <Layout title="Quick Posts">
-  <main class="container py-10">
-    {posts.map((post) => <Post {...post} />)}
+  <main class="container py-10 space-y-8">
+    {
+      posts
+        .sort((a, b) => {
+          return (
+            new Date(b.data.pubDate).getTime() -
+            new Date(a.data.pubDate).getTime()
+          );
+        })
+        .map((post) => <Post {...post} />)
+    }
   </main>
 </Layout>

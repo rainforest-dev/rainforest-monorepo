@@ -26,7 +26,9 @@ export default defineConfig({
       template: {
         compilerOptions: {
           isCustomElement: (tag) =>
-            tag.startsWith('md-') || ['iconify-icon'].includes(tag),
+            tag.startsWith('md-') ||
+            tag.startsWith('rf-') ||
+            ['iconify-icon'].includes(tag),
         },
       },
     }),

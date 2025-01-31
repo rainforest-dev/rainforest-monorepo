@@ -3,7 +3,7 @@
 # compiled output
 dist
 tmp
-/out-tsc
+out-tsc
 
 # dependencies
 node_modules
@@ -52,3 +52,6 @@ out
 
 test-output
 .env*.local
+
+
+storybook-static
