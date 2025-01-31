@@ -1,7 +1,7 @@
 <template>
-  <rf-ai-button>World</rf-ai-button>
+  <rf-design-system-colors></rf-design-system-colors>
 </template>
 
 <script setup lang="ts">
-import '@rainforest-dev/rainforest-ui/lit/ai-button/index';
+import '@rainforest-dev/rainforest-ui/lit/design-system/colors';
 </script>
