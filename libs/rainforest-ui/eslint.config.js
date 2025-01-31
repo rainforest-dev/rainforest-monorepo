@@ -1,9 +1,11 @@
+import { configs } from 'eslint-plugin-lit';
 import jsoncParser from 'jsonc-eslint-parser';
 
 import baseConfig from '../../eslint.config.js';
 
 export default [
   ...baseConfig,
+  configs['flat/recommended'],
   {
     files: ['**/*.json'],
     rules: {
