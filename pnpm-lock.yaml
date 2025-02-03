@@ -243,8 +243,8 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1
       iconify-icon:
-        specifier: ^2.2.0
-        version: 2.2.0
+        specifier: ^2.3.0
+        version: 2.3.0
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
@@ -6289,8 +6289,8 @@ packages:
       typescript:
         optional: true
 
-  iconify-icon@2.2.0:
-    resolution: {integrity: sha512-PDYyUWgsI8tp5uTwRAfwfrmjkC9WEzWbUFuByAiZAIuCFigho7u+ApIYJ9fKoZyyp8SBCpnq/dVHewNv4or6bg==}
+  iconify-icon@2.3.0:
+    resolution: {integrity: sha512-C0beI9oTDxQz6voI5CKl7MiJf0Lw4UU8K4G4t6pcUDClLmCvuMOpcvd8MAztQ2SfoH0iv7WHdxBFjekKPFKH2Q==}
 
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
@@ -12714,7 +12714,7 @@ snapshots:
 
   '@iconify-icon/react@2.2.0(react@19.0.0)':
     dependencies:
-      iconify-icon: 2.2.0
+      iconify-icon: 2.3.0
       react: 19.0.0
 
   '@iconify/types@2.0.0': {}
@@ -19414,7 +19414,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.7.2
 
-  iconify-icon@2.2.0:
+  iconify-icon@2.3.0:
     dependencies:
       '@iconify/types': 2.0.0
 
