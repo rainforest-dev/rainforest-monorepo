@@ -183,8 +183,8 @@ importers:
         specifier: 5.0.6
         version: 5.0.6(@types/node@22.10.1)(astro@5.2.2(@types/node@22.10.1)(jiti@2.4.2)(less@4.1.3)(lightningcss@1.29.1)(rollup@2.79.2)(sass@1.83.0)(stylus@0.64.0)(terser@5.37.0)(typescript@5.7.2)(yaml@2.7.0))(jiti@2.4.2)(less@4.1.3)(lightningcss@1.29.1)(rollup@2.79.2)(sass@1.83.0)(stylus@0.64.0)(terser@5.37.0)(vue@3.5.13(typescript@5.7.2))(yaml@2.7.0)
       '@iconify-icon/react':
-        specifier: ^2.1.0
-        version: 2.2.0(react@19.0.0)
+        specifier: ^2.3.0
+        version: 2.3.0(react@19.0.0)
       '@lit/react':
         specifier: ^1.0.6
         version: 1.0.6(@types/react@19.0.1)
@@ -1438,8 +1438,8 @@ packages:
     resolution: {integrity: sha512-c7hNEllBlenFTHBky65mhq8WD2kbN9Q6gk0bTk8lSBvc554jpXSkST1iePudpt7+A/AQvuHs9EMqjHDXMY1lrA==}
     engines: {node: '>=18.18'}
 
-  '@iconify-icon/react@2.2.0':
-    resolution: {integrity: sha512-8knPjqV+Se3g1fEZwXgBZ/6tfcabNUH8/jCPIUofBpqHbJKvxIGuj0UdqPWWzjYxxHEUdyXDe8TnkO6Tp1UynA==}
+  '@iconify-icon/react@2.3.0':
+    resolution: {integrity: sha512-7at8wGF+igiCS2XMaIrkZokD0zxz0pNa5SZn5tJAkZMJezeJlYiFXI5rYkiEpUpMaNYhYTqGLB90I/0sKJZkUw==}
     peerDependencies:
       react: '>=16'
 
@@ -6286,6 +6286,9 @@ packages:
 
   iconify-icon@2.2.0:
     resolution: {integrity: sha512-PDYyUWgsI8tp5uTwRAfwfrmjkC9WEzWbUFuByAiZAIuCFigho7u+ApIYJ9fKoZyyp8SBCpnq/dVHewNv4or6bg==}
+
+  iconify-icon@2.3.0:
+    resolution: {integrity: sha512-C0beI9oTDxQz6voI5CKl7MiJf0Lw4UU8K4G4t6pcUDClLmCvuMOpcvd8MAztQ2SfoH0iv7WHdxBFjekKPFKH2Q==}
 
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
@@ -12707,9 +12710,9 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.1': {}
 
-  '@iconify-icon/react@2.2.0(react@19.0.0)':
+  '@iconify-icon/react@2.3.0(react@19.0.0)':
     dependencies:
-      iconify-icon: 2.2.0
+      iconify-icon: 2.3.0
       react: 19.0.0
 
   '@iconify/types@2.0.0': {}
@@ -19408,6 +19411,10 @@ snapshots:
       '@babel/runtime': 7.26.0
 
   iconify-icon@2.2.0:
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  iconify-icon@2.3.0:
     dependencies:
       '@iconify/types': 2.0.0
 
