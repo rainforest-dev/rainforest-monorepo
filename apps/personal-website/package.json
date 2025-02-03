@@ -51,7 +51,7 @@
     "@tailwindcss/typography": "^0.5.15",
     "@types/dom-chromium-ai": "^0.0.4",
     "@types/js-cookie": "^3.0.6",
-    "@types/node": "^22.10.1",
+    "@types/node": "^22.13.0",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
     "@vite-pwa/astro": "^0.5.0",
