@@ -42,7 +42,7 @@
     "@storybook/test": "^8.5.2",
     "@storybook/web-components": "^8.5.2",
     "@tailwindcss/vite": "4.0.1",
-    "@types/node": "^22.10.1",
+    "@types/node": "^22.13.0",
     "eslint-plugin-lit": "^1.15.0",
     "glob": "^11.0.1",
     "vite-bundle-analyzer": "^0.16.1"
