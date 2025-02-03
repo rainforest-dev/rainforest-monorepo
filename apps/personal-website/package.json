@@ -35,7 +35,7 @@
     "i18next": "^24.2.2",
     "i18next-browser-languagedetector": "^8.0.0",
     "i18next-resources-to-backend": "^1.2.1",
-    "iconify-icon": "^2.2.0",
+    "iconify-icon": "^2.3.0",
     "js-cookie": "^3.0.5",
     "lit": "^3.2.1",
     "marked": "^15.0.6",
