@@ -3,18 +3,9 @@
 {
   "name": "Monorepo",
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
-  "features": {
-    "ghcr.io/devcontainers-contrib/features/nx-npm:1": {},
-    "ghcr.io/devcontainers/features/rust:1": {},
-    "ghcr.io/devcontainers-extra/features/mkcert:1": {}
-  },
+  "image": "ghcr.io/rainforest-dev/devcontainer:nx",
   "customizations": {
     "vscode": {
-      "settings": {
-        "editor.tabSize": 2,
-        "terminal.integrated.defaultProfile.linux": "zsh"
-      },
       "extensions": [
         "nrwl.angular-console",
         "astro-build.astro-vscode",
@@ -22,8 +13,6 @@
         "eamodio.gitlens",
         "bradlc.vscode-tailwindcss",
         "VisualStudioExptTeam.vscodeintellicode",
-        "Prisma.prisma",
-        "rust-lang.rust-analyzer",
         "ms-playwright.playwright",
         "Vue.volar",
         "unifiedjs.vscode-mdx",
