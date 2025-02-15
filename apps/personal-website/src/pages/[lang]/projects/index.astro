@@ -1,0 +1,18 @@
+---
+import BaseLayout from '@layouts/index.astro';
+const images = [
+  '/images/projects/hashgreen/swap/1.jpg',
+  '/images/projects/hashgreen/swap/2.jpg',
+  '/images/projects/hashgreen/swap/3.jpg',
+];
+---
+
+<script>
+  import '@rainforest-dev/rainforest-ui/lit/carousel/index';
+</script>
+
+<BaseLayout title="Project">
+  <div class="h-75 overflow-hidden">
+    <rf-carousel images={JSON.stringify(images)}></rf-carousel>
+  </div>
+</BaseLayout>
