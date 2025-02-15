@@ -3,7 +3,11 @@ import { customElement, property, state } from 'lit/decorators.js';
 
 import { RfMd3Lit } from '../md3-lit';
 
-declare global {}
+declare global {
+  interface HTMLElementTagNameMap {
+    'rf-carousel': RfCarousel;
+  }
+}
 
 const throttle = (callback: (...args: any[]) => void, limit: number) => {
   let inThrottle: boolean;
