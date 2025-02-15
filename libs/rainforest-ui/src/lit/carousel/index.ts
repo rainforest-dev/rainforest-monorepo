@@ -47,7 +47,7 @@ export class RfCarousel extends RfMd3Lit {
   private _handleWheel(event: WheelEvent) {
     event.preventDefault();
     if (event.deltaX > 0) {
-      this._updateActive(Math.min(this._active + 1, this.images.length - 3));
+      this._updateActive(Math.min(this._active + 1, this.images.length - 1));
     }
     if (event.deltaX < 0) {
       this._updateActive(Math.max(this._active - 1, 0));
@@ -63,12 +63,30 @@ export class RfCarousel extends RfMd3Lit {
         const classes = [
           'rounded-[28px] object-cover transition-all duration-500 ease-in',
         ];
-        if (this._active === index || this._active + 1 === index) {
-          classes.push('max-w-auto grow');
-        } else if (this._active + 2 === index) {
-          classes.push('min-w-10 max-w-14');
+        if (this._active === this.images.length - 1) {
+          if (index === this._active - 2) {
+            classes.push('min-w-10 max-w-14');
+          } else if (index === this._active - 1 || index === this._active) {
+            classes.push('max-w-auto grow');
+          } else {
+            classes.push('min-w-0 max-w-0 w-0');
+          }
+        } else if (this._active === this.images.length - 2) {
+          if (index === this._active + 1) {
+            classes.push('min-w-10 max-w-14');
+          } else if (index === this._active - 1 || index === this._active) {
+            classes.push('max-w-auto grow');
+          } else {
+            classes.push('min-w-0 max-w-0 w-0');
+          }
         } else {
-          classes.push('w-0');
+          if (this._active === index || this._active + 1 === index) {
+            classes.push('max-w-auto grow');
+          } else if (this._active + 2 === index) {
+            classes.push('min-w-10 max-w-14');
+          } else {
+            classes.push('min-w-0 max-w-0 w-0');
+          }
         }
         return html`<img src=${image} class=${classes.join(' ')} />`;
       })}
