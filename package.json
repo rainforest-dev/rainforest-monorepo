@@ -12,7 +12,7 @@
     "@nx/eslint-plugin": "20.3.0",
     "@nx/js": "20.3.0",
     "@nx/next": "20.3.0",
-    "@nx/playwright": "20.3.0",
+    "@nx/playwright": "20.4.4",
     "@nx/storybook": "20.3.0",
     "@nx/vite": "20.4.0",
     "@nx/web": "20.3.0",
@@ -44,7 +44,7 @@
     "verdaccio": "^5.0.4",
     "vite": "6.0.11",
     "vite-plugin-dts": "~3.8.1",
-    "vitest": "3.0.4"
+    "vitest": "3.0.5"
   },
   "nx": {
     "includedScripts": [],
