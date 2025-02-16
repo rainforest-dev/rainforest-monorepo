@@ -1,3 +1,4 @@
+import Carousel from './carousel.vue';
 import TwLit from './tw-lit.vue';
 
-export { TwLit };
+export { Carousel, TwLit };
