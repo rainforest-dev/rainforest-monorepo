@@ -39,7 +39,7 @@
     "name": "rainforest-ui"
   },
   "devDependencies": {
-    "@storybook/test": "^8.5.2",
+    "@storybook/test": "^8.5.6",
     "@storybook/web-components": "^8.5.2",
     "@tailwindcss/vite": "4.0.5",
     "@types/node": "^22.13.0",
