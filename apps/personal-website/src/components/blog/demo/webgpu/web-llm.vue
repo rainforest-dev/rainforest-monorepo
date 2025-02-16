@@ -25,7 +25,7 @@
   </div>
 </template>
 <script setup>
-import { ref, defineProps } from 'vue';
+import { ref } from 'vue';
 import { marked } from 'marked';
 import '@material/web/textfield/outlined-text-field.js';
 import '@material/web/button/filled-button.js';
