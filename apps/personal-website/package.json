@@ -71,7 +71,8 @@
       "build": {
         "dependsOn": [
           "^build"
-        ]
+        ],
+        "cache": true
       }
     }
   }
