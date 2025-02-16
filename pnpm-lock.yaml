@@ -143,10 +143,10 @@ importers:
         version: 2.25.1
       '@mantine/core':
         specifier: ^7.16.3
-        version: 7.16.3(@mantine/hooks@7.15.1(react@18.3.1))(@types/react@19.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 7.16.3(@mantine/hooks@7.16.3(react@18.3.1))(@types/react@19.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@mantine/hooks':
-        specifier: ^7.15.1
-        version: 7.15.1(react@18.3.1)
+        specifier: ^7.16.3
+        version: 7.16.3(react@18.3.1)
       next:
         specifier: 15.1.6
         version: 15.1.6(@babel/core@7.26.7)(@playwright/test@1.49.1)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.83.0)
@@ -1994,8 +1994,8 @@ packages:
       react: ^18.x || ^19.x
       react-dom: ^18.x || ^19.x
 
-  '@mantine/hooks@7.15.1':
-    resolution: {integrity: sha512-jrpjA5JhVSgUi0expfZpvNplMgvwdvrCIcKiDjQ16p/KiWngvTVfmJMtBOVxQ6hWrn500nLmZIDEcTmV9Dvb7g==}
+  '@mantine/hooks@7.16.3':
+    resolution: {integrity: sha512-B94FBWk5Sc81tAjV+B3dGh/gKzfqzpzVC/KHyBRWOOyJRqeeRbI/FAaJo4zwppyQo1POSl5ArdyjtDRrRIj2SQ==}
     peerDependencies:
       react: ^18.x || ^19.x
 
@@ -14277,10 +14277,10 @@ snapshots:
     dependencies:
       '@lit/reactive-element': 2.0.4
 
-  '@mantine/core@7.16.3(@mantine/hooks@7.15.1(react@18.3.1))(@types/react@19.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@mantine/core@7.16.3(@mantine/hooks@7.16.3(react@18.3.1))(@types/react@19.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@floating-ui/react': 0.26.28(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@mantine/hooks': 7.15.1(react@18.3.1)
+      '@mantine/hooks': 7.16.3(react@18.3.1)
       clsx: 2.1.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -14291,7 +14291,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@mantine/hooks@7.15.1(react@18.3.1)':
+  '@mantine/hooks@7.16.3(react@18.3.1)':
     dependencies:
       react: 18.3.1
 
