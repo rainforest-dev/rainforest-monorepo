@@ -18,8 +18,10 @@ export const getBrandIconName = (_name: string) => {
     case 'pytorch':
     case 'fastapi':
     case 'linkedin':
-    case 'github':
       name = `logos:${_name}-icon`;
+      break;
+    case 'github':
+      name = `mdi:${_name}`;
       break;
     case 'mui':
       name = 'logos:material-ui';

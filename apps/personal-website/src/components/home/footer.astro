@@ -3,6 +3,7 @@ import '@material/web/textfield/outlined-text-field';
 import '@material/web/button/filled-button';
 
 import {
+  getBrandIconName,
   getGitHubUrl,
   getLinkedInUrl,
   useTranslatedPath,
@@ -35,14 +36,24 @@ const translatePath = useTranslatedPath(lang);
     <h2 class="text-xl font-semibold">{t('social-media')}</h2>
     <ul class="space-y-1">
       <li>
-        <a href={getLinkedInUrl(info.links.linkedin)} target="_blank">
+        <a
+          href={getLinkedInUrl(info.links.linkedin)}
+          target="_blank"
+          class="flex-row-center gap-1"
+        >
+          <iconify-icon icon={getBrandIconName('linkedin')}></iconify-icon>
           LinkedIn
           <span class="material-symbols-outlined"> open_in_new </span>
         </a>
       </li>
       <li>
-        <a href={getGitHubUrl(info.links.github)} target="_blank"
-          >GitHub
+        <a
+          href={getGitHubUrl(info.links.github)}
+          target="_blank"
+          class="flex-row-center gap-1"
+        >
+          <iconify-icon icon={getBrandIconName('github')}></iconify-icon>
+          GitHub
           <span class="material-symbols-outlined"> open_in_new </span>
         </a>
       </li>
