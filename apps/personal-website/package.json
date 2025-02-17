@@ -19,7 +19,7 @@
     "@lit/react": "^1.0.6",
     "@material/material-color-utilities": "^0.3.0",
     "@material/web": "^2.2.0",
-    "@mlc-ai/web-llm": "^0.2.77",
+    "@mlc-ai/web-llm": "^0.2.78",
     "@nanostores/lit": "^0.2.2",
     "@nanostores/persistent": "^0.10.2",
     "@nanostores/react": "^0.8.2",
