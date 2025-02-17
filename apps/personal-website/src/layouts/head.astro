@@ -33,7 +33,8 @@ const googleFontsLink = `https://fonts.googleapis.com/css2?family=Material+Symbo
   <meta name="viewport" content="width=device-width" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="generator" content={Astro.generator} />
-  <meta name="theme-color" content="currentColor" />
+  <!-- set up in theme provider
+  <meta name="theme-color" content="currentColor" /> -->
   <link rel="sitemap" href="/sitemap-index.xml" />
 
   <!-- Open Graph and Twitter Card Metadata  -->
@@ -100,9 +101,10 @@ const googleFontsLink = `https://fonts.googleapis.com/css2?family=Material+Symbo
     href={new URL('rss.xml', Astro.site)}
   />
 
+  <slot />
+
   <!-- PWA Manifest -->
   {pwaInfo && <Fragment set:html={pwaInfo.webManifest.linkTag} />}
 
   <SpeedInsights />
-  <slot />
 </head>
