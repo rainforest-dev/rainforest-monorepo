@@ -15,11 +15,15 @@ const getSchemeStyles = (properties: { [key: string]: number }) => {
     .map(([k, v]) => `${k}: ${hexFromArgb(v)};`)
     .join('\n');
 };
-const lightSchemeStyles = getSchemeStyles(
-  getSchemeProperties(theme.schemes.light)
+const lightSchemeProperties = getSchemeProperties(theme.schemes.light);
+const darkSchemeProperties = getSchemeProperties(theme.schemes.dark);
+const lightSchemeStyles = getSchemeStyles(lightSchemeProperties);
+const darkSchemeStyles = getSchemeStyles(darkSchemeProperties);
+const themeColorLight = hexFromArgb(
+  lightSchemeProperties['--md-sys-color-surface']
 );
-const darkSchemeStyles = getSchemeStyles(
-  getSchemeProperties(theme.schemes.dark)
+const themeColorDark = hexFromArgb(
+  darkSchemeProperties['--md-sys-color-surface']
 );
 
 const styleRaw = `
@@ -45,6 +49,16 @@ const styleRaw = `
 `;
 ---
 
+<meta
+  name="theme-color"
+  media="(prefers-color-scheme: light)"
+  content={themeColorLight}
+/>
+<meta
+  name="theme-color"
+  media="(prefers-color-scheme: dark)"
+  content={themeColorDark}
+/>
 <style is:inline set:html={styleRaw}></style>
 <script>
   import { $sourceColor, persistentKey } from '@stores';
