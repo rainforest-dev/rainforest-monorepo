@@ -25,7 +25,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { Corner, MdMenu } from '@material/web/menu/menu';
+import { MdMenu } from '@material/web/menu/menu';
 import { computed, useTemplateRef } from 'vue';
 import Cookies from 'js-cookie';
 import { isServerSide, persistentLocaleKey } from '@utils';
