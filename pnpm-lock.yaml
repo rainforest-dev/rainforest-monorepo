@@ -195,8 +195,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.0
       '@mlc-ai/web-llm':
-        specifier: ^0.2.77
-        version: 0.2.77
+        specifier: ^0.2.78
+        version: 0.2.78
       '@nanostores/lit':
         specifier: ^0.2.2
         version: 0.2.2(lit@3.2.1)(nanostores@0.11.3)
@@ -2038,8 +2038,8 @@ packages:
   '@microsoft/tsdoc@0.14.2':
     resolution: {integrity: sha512-9b8mPpKrfeGRuhFH5iO1iwCLeIIsV6+H1sRfxbkoGXIyQE2BTsPd9zqSqQJ+pv5sJ/hT5M1zvOFL02MnEezFug==}
 
-  '@mlc-ai/web-llm@0.2.77':
-    resolution: {integrity: sha512-AD3uQNfB+Pjti2h+DAQ2IDOG3TDkfn8ily1kn1wKij7+Dtv1LBeq6XnT3nsHwrLci9opvxejVXWPzlyA7E6dEw==}
+  '@mlc-ai/web-llm@0.2.78':
+    resolution: {integrity: sha512-ptqDNzHnfDyNZj7vjp9IaY5U/QDweXMe5wNzErOmRT1gqj8AaMvcqbj7HroPDzhXJGM7BZpDjANV5MhXhKOosA==}
 
   '@module-federation/bridge-react-webpack-plugin@0.7.6':
     resolution: {integrity: sha512-eD1JZDQ+h5WLdA58MmAE1DzLwvFaGJeeam3Tswc/sEUb4QGT86X4Fme+dMTBRYRoAq/tRYql3DlVTFhdmrUVzg==}
@@ -14362,7 +14362,7 @@ snapshots:
 
   '@microsoft/tsdoc@0.14.2': {}
 
-  '@mlc-ai/web-llm@0.2.77':
+  '@mlc-ai/web-llm@0.2.78':
     dependencies:
       loglevel: 1.9.2
 
