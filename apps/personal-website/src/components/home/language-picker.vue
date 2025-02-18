@@ -1,15 +1,11 @@
 <template>
   <div class="relative">
-    <md-icon-button
-      ref="anchor"
-      aria-label="language-picker"
-      @click="menu.open = !menu?.open"
-    >
+    <md-icon-button ref="anchor" aria-label="language-picker" @click="toggle">
       <md-icon
         :class="
           clsx(
-            'text-on-surface-variant md:text-surface xl:text-on-surface',
-            page > 0 ? 'md:text-on-surface' : 'md:text-surface'
+            'text-on-surface-variant xl:text-on-surface',
+            !isAtTop ? 'md:text-on-surface' : 'md:text-surface'
           )
         "
         >language</md-icon
@@ -47,6 +43,12 @@ const { langs } = defineProps<IProps>();
 const anchor = useTemplateRef<MdIconButton>('anchor');
 const menu = useTemplateRef<MdMenu>('menu');
 
+const toggle = () => {
+  if (menu.value) {
+    menu.value.open = !menu.value.open;
+  }
+};
+
 const cacheLocale = (locale: string) => {
   Cookies.set(persistentLocaleKey, locale, {
     path: '/',
@@ -54,7 +56,7 @@ const cacheLocale = (locale: string) => {
 };
 
 const { y } = useWindowScroll();
-const page = computed(() => {
-  return isServerSide ? 0 : y.value / window.innerHeight;
+const isAtTop = computed(() => {
+  return isServerSide ? true : Math.round(y.value / window.innerHeight) === 0;
 });
 </script>
