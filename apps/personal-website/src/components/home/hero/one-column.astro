@@ -7,6 +7,8 @@ import type { IHeroProps as Props } from '@types';
 import { useTranslatedPath, useTranslation } from '@utils';
 import { Picture } from 'astro:assets';
 
+import ThemeColorModifier from './theme-color-modifier.vue';
+
 const props = Astro.props;
 const year = props.dateOfBirth.getFullYear();
 
@@ -67,6 +69,7 @@ const translatePath = useTranslatedPath(lang);
     </div>
   </div>
 </div>
+<ThemeColorModifier client:load />
 
 <script>
   import { MdFilledButton } from '@material/web/button/filled-button';

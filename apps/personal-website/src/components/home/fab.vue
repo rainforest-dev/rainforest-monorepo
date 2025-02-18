@@ -64,10 +64,10 @@ import { info } from '@utils/constants';
 const menu = useTemplateRef<MdMenu>('menu');
 
 const { y } = useWindowScroll();
-const page = computed(() => {
-  return isServerSide ? 0 : y.value / window.innerHeight;
+const isAtTop = computed(() => {
+  return isServerSide ? true : Math.round(y.value / window.innerHeight);
 });
-const isChatBubbleEnabled = computed(() => page.value <= 0);
+const isChatBubbleEnabled = computed(() => isAtTop.value);
 
 const handleClick = () => {
   if (isChatBubbleEnabled.value) {
