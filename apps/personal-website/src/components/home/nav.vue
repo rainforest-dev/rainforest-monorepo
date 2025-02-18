@@ -100,7 +100,7 @@ const { updateThemeColor, reset } = useThemeColorMeta();
 
 watchEffect(() => {
   if (isServerSide) return;
-  if (open.value || isAtTop.value) {
+  if (open.value) {
     const color = window
       .getComputedStyle(document.body)
       .getPropertyValue('--md-sys-color-surface');
