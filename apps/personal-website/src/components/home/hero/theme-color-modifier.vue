@@ -20,6 +20,8 @@ const mediaQueryList = computed(() => {
 });
 const { updateThemeColor, reset } = useThemeColorMeta();
 const handleThemeColor = () => {
+  if (isServerSide) return;
+  if (mediaQueryList.value.matches) return;
   if (isAtTop.value) {
     updateThemeColor(
       window
@@ -30,11 +32,7 @@ const handleThemeColor = () => {
     reset();
   }
 };
-watchEffect(() => {
-  if (isServerSide) return;
-  if (mediaQueryList.value.matches) return;
-  handleThemeColor();
-});
+watchEffect(handleThemeColor);
 
 const handleResize = (e: MediaQueryListEvent) => {
   if (e.matches) {
@@ -46,9 +44,15 @@ const handleResize = (e: MediaQueryListEvent) => {
 
 onMounted(() => {
   mediaQueryList.value.addEventListener('change', handleResize);
+  window
+    .matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', handleThemeColor);
 });
 onUnmounted(() => {
   mediaQueryList.value.removeEventListener('change', handleResize);
+  window
+    .matchMedia('(prefers-color-scheme: dark)')
+    .removeEventListener('change', handleThemeColor);
 });
 </script>
 <style>
