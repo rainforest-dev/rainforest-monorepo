@@ -3,7 +3,7 @@
     :class="
       clsx(
         'fixed top-0 inset-x-0 xl:text-on-surface h-16 px-10 flex-row-center justify-between z-20',
-        page > 0 ? 'text-on-surface' : 'text-surface'
+        !isAtTop ? 'text-on-surface' : 'text-surface'
       )
     "
   >
@@ -50,7 +50,7 @@
                 ? 'text-on-surface'
                 : clsx(
                     'xl:text-on-surface',
-                    page > 0 ? 'text-on-surface' : 'text-surface'
+                    !isAtTop ? 'text-on-surface' : 'text-surface'
                   )
             )
           "
@@ -65,13 +65,14 @@ import '@material/web/iconbutton/icon-button';
 import '@material/web/icon/icon';
 import '@material/web/menu/menu-item';
 
-import { computed, effect, ref } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
 import clsx from 'clsx';
 import { useWindowScroll } from '@vueuse/core';
 import { isServerSide, removeUrlHashAfterNavigation } from '@utils';
 import LanguagePicker, {
   IProps as ILanguagePickerProps,
 } from './language-picker.vue';
+import useThemeColorMeta from '@/hooks/use-theme-color-meta';
 
 interface ILink {
   label: string;
@@ -91,23 +92,21 @@ const { anchors, langs, sections } = defineProps<Props>();
 const open = ref(false);
 
 const { y } = useWindowScroll();
-const page = computed(() => {
-  return isServerSide ? 0 : y.value / window.innerHeight;
+const isAtTop = computed(() => {
+  return isServerSide ? true : Math.round(y.value / window.innerHeight) === 0;
 });
 
-effect(() => {
+const { updateThemeColor, reset } = useThemeColorMeta();
+
+watchEffect(() => {
   if (isServerSide) return;
-  if (open.value || page.value > 0) {
-    // change head meta theme-color to white
-    (
-      document.querySelector("meta[name='theme-color']") as HTMLMetaElement
-    ).content = window
+  if (open.value || isAtTop.value) {
+    const color = window
       .getComputedStyle(document.body)
       .getPropertyValue('--md-sys-color-surface');
+    updateThemeColor(color);
   } else {
-    (
-      document.querySelector("meta[name='theme-color']") as HTMLMetaElement
-    ).content = 'currentColor';
+    reset();
   }
 });
 </script>
