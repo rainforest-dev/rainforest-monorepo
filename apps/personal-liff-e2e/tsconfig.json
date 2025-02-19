@@ -3,7 +3,9 @@
   "compilerOptions": {
     "allowJs": true,
     "outDir": "out-tsc/playwright",
-    "sourceMap": false
+    "sourceMap": false,
+    "moduleResolution": "nodenext",
+    "module": "NodeNext"
   },
   "include": [
     "**/*.ts",
@@ -16,9 +18,5 @@
     "src/**/*.d.ts"
   ],
   "exclude": ["out-tsc", "test-output"],
-  "references": [
-    {
-      "path": "../personal-liff"
-    }
-  ]
+  "references": []
 }
