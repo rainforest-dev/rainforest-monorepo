@@ -17,6 +17,14 @@ export default defineConfig({
     defaultLocale: fallbackLng,
     locales: [...supportedLngs],
   },
+  markdown: {
+    shikiConfig: {
+      themes: {
+        light: 'material-theme-lighter',
+        dark: 'material-theme',
+      },
+    },
+  },
   vite: {
     plugins: [tailwindcss()],
   },
