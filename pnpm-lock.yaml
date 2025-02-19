@@ -160,7 +160,11 @@ importers:
         specifier: ^2.3.2
         version: 2.3.2(react@19.0.0)
 
-  apps/personal-liff-e2e: {}
+  apps/personal-liff-e2e:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.4
+        version: 22.13.4
 
   apps/personal-website:
     dependencies:
