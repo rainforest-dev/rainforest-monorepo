@@ -60,10 +60,13 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
       {
         posts.map(({ data: post, id }) => (
           <a
-            class="inline-flex flex-col gap-4 md:first:col-span-full md:first:flex-row-center @container prose-sm max-w-none bg-surface-container-high rounded-lg overflow-hidden hover:shadow"
             href={translatePath(`/blog/${id}`)}
+            class="
+              md:first:col-span-full lg:first:h-[30dvh] md:first:h-[20dvh] bg-surface-container-high rounded-lg overflow-hidden hover:shadow 
+              @container prose-sm max-w-none
+              flex gap-4 flex-col md:first:flex-row-center"
           >
-            <div class="@2xl:w-1/3 w-full @2xl:max-w-96 aspect-square flex-center grow-0">
+            <div class="md:@2xl:h-full @2xl:w-auto w-full aspect-square flex-center">
               {post.image?.src ? (
                 <Image
                   width={128}
