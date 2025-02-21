@@ -14,9 +14,12 @@ import { getCollection } from 'astro:content';
 
 import { Navigation } from '@/components/blog';
 
-const posts = (await getCollection('blog')).sort(
-  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
-);
+const posts = (
+  await getCollection(
+    'blog',
+    (entry) => !entry.data.tags.includes('type:quick-post')
+  )
+).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 const { t } = await useTranslation('en', 'blog');
 const translatePath = useTranslatedPath(Astro.currentLocale);
 ---
