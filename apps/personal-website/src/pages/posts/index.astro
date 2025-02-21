@@ -1,5 +1,5 @@
 ---
-import { Post } from '@components/blog';
+import { Navigation, Post } from '@components/blog';
 import Layout from '@layouts/index.astro';
 import { getCollection } from 'astro:content';
 
@@ -8,7 +8,7 @@ const posts = await getCollection('blog', ({ data }) =>
 );
 ---
 
-<Layout title="Quick Posts">
+<Layout title="Quick Posts" viewTransition={{ enabled: true }}>
   <main class="container py-10 space-y-8">
     {
       posts
@@ -20,5 +20,8 @@ const posts = await getCollection('blog', ({ data }) =>
         })
         .map((post) => <Post {...post} />)
     }
+    <div class="fixed bottom-10 left-1/2 -translate-x-1/2">
+      <Navigation />
+    </div>
   </main>
 </Layout>
