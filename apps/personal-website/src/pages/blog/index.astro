@@ -12,6 +12,8 @@ import { info } from '@utils/constants';
 import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 
+import { Navigation } from '@/components/blog';
+
 const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
@@ -79,6 +81,9 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
           </a>
         ))
       }
+    </div>
+    <div class="fixed bottom-10 left-1/2 -translate-x-1/2">
+      <Navigation />
     </div>
     <div class="fixed right-10 bottom-10 z-10">
       <SourceColor client:only="vue" />

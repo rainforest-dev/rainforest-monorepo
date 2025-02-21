@@ -1,0 +1,45 @@
+---
+import clsx from 'clsx';
+
+interface Props {
+  links?: {
+    label: string;
+    path: string;
+  }[];
+}
+const {
+  links = [
+    {
+      label: 'Blogs',
+      path: '/blog',
+    },
+    {
+      label: 'Posts',
+      path: '/posts',
+    },
+  ],
+} = Astro.props;
+const pathname = new URL(Astro.request.url).pathname;
+---
+
+<div class="h-10 bg-surface-container-high rounded-full shadow-lg">
+  {
+    links.map((link) => (
+      <a
+        href={link.path}
+        class={clsx(
+          'px-4 py-2 rounded-full flex-center inline-flex relative z-0',
+          pathname === link.path && 'text-on-primary'
+        )}
+      >
+        {pathname === link.path && (
+          <span
+            class="absolute inset-0 rounded-full bg-primary"
+            transition:name="active-link"
+          />
+        )}
+        <span class="z-10">{link.label}</span>
+      </a>
+    ))
+  }
+</div>
