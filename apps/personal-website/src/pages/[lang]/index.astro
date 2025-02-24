@@ -94,9 +94,9 @@ const heroProps: IHeroProps = {
   tags: hero.tags,
 };
 
-const skills = await getCollection('skills', (item) =>
-  item.id.startsWith(lang)
-);
+const skills = (
+  await getCollection('skills', (item) => item.id.startsWith(lang))
+).sort((a, b) => Number(b.data.prioritized) - Number(a.data.prioritized));
 ---
 
 <Layout title={t('metadata-title')} description={t('metadata-description')}>

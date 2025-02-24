@@ -1,6 +1,7 @@
 ---
 name: 'Next.js'
 icon: 'nextjs'
+prioritized: true
 ---
 
 - 熟悉 Next.js App Router，利用 React 的最新功能，如 Server Components 和 Suspense 中的 Streaming，實現最佳性能和可擴展性。
