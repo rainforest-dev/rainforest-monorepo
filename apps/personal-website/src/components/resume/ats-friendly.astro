@@ -23,9 +23,8 @@ const experiences = (
     const isJobMatch = item.data.type === 'job';
     return isLangMatch && isJobMatch;
   })
-)
-  .sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime())
-  .slice(0, 3);
+).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
+
 const education = (
   await getCollection('experiences', (item) => {
     const isLangMatch = item.id.startsWith(lang);
