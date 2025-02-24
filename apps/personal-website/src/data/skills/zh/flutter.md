@@ -1,6 +1,8 @@
 ---
 name: 'Flutter'
 icon: 'flutter'
+tags:
+  - frontend
 ---
 
 - 使用 Flutter 創建行動裝置和網頁端應用，覺得跨平台開發既有趣又富挑戰性。

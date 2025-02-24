@@ -1,6 +1,8 @@
 ---
 name: Python
 icon: python
+tags:
+  - languages
 ---
 
 - Proficient in using Python for backend development with hands-on experience in managing and creating small-scale projects.

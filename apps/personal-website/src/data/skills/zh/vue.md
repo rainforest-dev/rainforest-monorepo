@@ -1,6 +1,8 @@
 ---
 name: 'Vue.js'
 icon: 'vue'
+tags:
+  - frontend
 ---
 
 - 熟悉 Vue 2 Options API 和最新的 Composition API
