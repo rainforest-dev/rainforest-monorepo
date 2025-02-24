@@ -13,7 +13,7 @@ export async function getStaticPaths() {
   }));
 }
 
-const { t } = await useTranslation(Astro.currentLocale, 'home');
+const { t } = await useTranslation(Astro.currentLocale, ['home', 'resume']);
 
 const resumeProps: IResumeProps = {
   ...info,
@@ -38,7 +38,7 @@ const resumeProps: IResumeProps = {
 };
 ---
 
-<Layout title="Resume | Rainforest">
+<Layout title={t('resume:metadata-title')}>
   <main
     class="w-screen h-screen flex-col-center p-10 bg-inverse-surface overflow-scroll
             print:justify-start print:items-start print:p-0 print:overflow-visible"
