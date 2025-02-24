@@ -30,9 +30,9 @@ const education = (
     return isLangMatch && isEducationMatch;
   })
 ).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
-const skills = (
-  await getCollection('skills', (item) => item.id.startsWith(lang))
-).sort((a, b) => Number(b.data.prioritized) - Number(a.data.prioritized));
+const skills = await getCollection('skills', (item) =>
+  item.id.startsWith(lang)
+);
 ---
 
 <article
