@@ -96,7 +96,11 @@ const heroProps: IHeroProps = {
 
 const skills = (
   await getCollection('skills', (item) => item.id.startsWith(lang))
-).sort((a, b) => Number(b.data.prioritized) - Number(a.data.prioritized));
+).sort(
+  (a, b) =>
+    Number(b.data.tags.includes('prioritized')) -
+    Number(a.data.tags.includes('prioritized'))
+);
 ---
 
 <Layout title={t('metadata-title')} description={t('metadata-description')}>
@@ -128,6 +132,7 @@ const skills = (
           {
             skills.map(async (skill) => {
               const { Content } = await render(skill);
+              if (!skill.body) return <></>
               return (
                 <li class="min-w-80 bg-surface-container text-on-surface px-5 py-4 rounded min-h-80 shadow-lg flex flex-col gap-5 relative **:[li]:list-disc **:[li]:list-inside">
                   <h3 class="text-xl capitalize">{skill.data.name}</h3>
