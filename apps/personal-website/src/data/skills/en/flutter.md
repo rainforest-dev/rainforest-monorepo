@@ -1,6 +1,8 @@
 ---
 name: 'Flutter'
 icon: 'flutter'
+tags:
+  - frontend
 ---
 
 - Built mobile and web applications using Flutter, enjoying the process of creating seamless cross-platform solutions.
