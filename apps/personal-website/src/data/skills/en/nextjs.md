@@ -1,7 +1,9 @@
 ---
 name: 'Next.js'
 icon: 'nextjs'
-prioritized: true
+tags:
+  - prioritized
+  - frontend
 ---
 
 - Proficient in Next.js App Router, utilizing React's latest features such as Server Components and Streaming with Suspense for optimal performance and scalability.

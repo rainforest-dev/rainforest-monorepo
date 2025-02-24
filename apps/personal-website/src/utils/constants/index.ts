@@ -22,6 +22,13 @@ export const tags = {
     'pytorch',
     'fastapi',
     'swift',
+    'github-actions',
+    'nodejs',
+    'nx',
+    'vite',
+    'typescript',
+    'express',
+    'terraform',
   ],
   experience: ['job', 'education'],
 } as const;

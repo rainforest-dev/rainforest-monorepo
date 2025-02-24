@@ -1,6 +1,8 @@
 ---
 name: 'Docker'
 icon: 'docker'
+tags:
+  - devops
 ---
 
 - 為我的前端專案實現了基於 Docker 的持續整合和持續交付（CI/CD）流水線。該流水線簡化了構建、測試和部署流程，從而減少了手動錯誤。
