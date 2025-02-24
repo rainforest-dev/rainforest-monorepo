@@ -6,6 +6,7 @@ import { locales, useTranslation } from '@utils/i18n';
 import { render } from 'astro:content';
 import { getCollection, getEntries, getEntry } from 'astro:content';
 import { format } from 'date-fns';
+import { groupBy } from 'lodash-es';
 
 const info = Astro.props;
 
@@ -22,7 +23,9 @@ const experiences = (
     const isJobMatch = item.data.type === 'job';
     return isLangMatch && isJobMatch;
   })
-).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
+)
+  .sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime())
+  .slice(0, 3);
 const education = (
   await getCollection('experiences', (item) => {
     const isLangMatch = item.id.startsWith(lang);
@@ -30,8 +33,10 @@ const education = (
     return isLangMatch && isEducationMatch;
   })
 ).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
-const skills = await getCollection('skills', (item) =>
-  item.id.startsWith(lang)
+const skillSections = ['frontend', 'backend', 'devops', 'languages', 'tools'];
+const skills = groupBy(
+  await getCollection('skills', (item) => item.id.startsWith(lang)),
+  (item) => skillSections.find((section) => item.data.tags.includes(section))
 );
 ---
 
@@ -128,9 +133,20 @@ const skills = await getCollection('skills', (item) =>
     </section>
     <section>
       <h2>{t('skills')}</h2>
-      <ul>
-        {skills.map((skill) => <li class="capitalize">{skill.data.name}</li>)}
-      </ul>
+      <div class="grid grid-cols-3">
+        {
+          skillSections.map((section) => (
+            <div>
+              <h3>{t(`skills-${section}`)}</h3>
+              <ul>
+                {skills[section].map((skill) => (
+                  <li class="capitalize">{skill.data.name}</li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
     </section>
   </section>
 </article>
