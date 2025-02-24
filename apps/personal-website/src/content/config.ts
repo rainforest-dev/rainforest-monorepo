@@ -70,7 +70,7 @@ const skills = defineCollection({
   schema: z.object({
     name: z.string(),
     icon: z.enum(tags.skills),
-    prioritized: z.boolean().default(false),
+    tags: z.array(z.string()).default([]),
   }),
 });
 

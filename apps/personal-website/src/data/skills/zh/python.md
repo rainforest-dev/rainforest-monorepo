@@ -1,6 +1,8 @@
 ---
 name: Python
 icon: python
+tags:
+  - languages
 ---
 
 - 使用 Python 進行後端開發，擁有在創建和管理小型專案中的實踐經驗。

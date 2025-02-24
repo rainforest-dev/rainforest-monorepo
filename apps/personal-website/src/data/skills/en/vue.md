@@ -1,6 +1,8 @@
 ---
 name: 'Vue.js'
 icon: 'vue'
+tags:
+  - frontend
 ---
 
 - Familiar with both Vue 2 Options API and latest Composition API
