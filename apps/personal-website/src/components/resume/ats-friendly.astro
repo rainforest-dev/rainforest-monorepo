@@ -114,17 +114,19 @@ const skills = groupBy(
         {
           education.map(async (item) => {
             const organization = await getEntry(item.data.organization);
-            const { Content } = await render(item);
+            const period = `${format(item.data.startAt, resumeDateFormat)} - ${format(item.data.endAt!, resumeDateFormat)}`;
+            // const { Content } = await render(item);
             return (
               <li>
                 <h3>{organization.data.name}</h3>
+                <h4>{period}</h4>
                 <h5>
                   {t('education-description', {
                     degree: item.data.position,
                     major: organization.data.department,
                   })}
                 </h5>
-                <Content />
+                {/* <Content /> */}
               </li>
             );
           })
