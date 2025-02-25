@@ -18,6 +18,7 @@
   "fastapi": "FastAPI",
   "blog": "Blog",
   "resume": "Resume",
+  "portfolio": "Portfolio",
   "experience": "Experience",
   "skills": "Skills",
   "skills-frontend": "Frontend",

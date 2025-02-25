@@ -73,7 +73,7 @@ type Props = {
   anchors: ILink[];
 } & ILanguagePickerProps;
 
-const { anchors, langs, sections } = defineProps<Props>();
+const { anchors, langs } = defineProps<Props>();
 
 const open = ref(false);
 
