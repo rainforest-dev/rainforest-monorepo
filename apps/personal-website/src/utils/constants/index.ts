@@ -1,4 +1,4 @@
-import { SkillTag } from '@types';
+import type { ILink, SkillTag } from '@types';
 import { getGitHubUrl, getLinkedInUrl } from '@utils';
 
 export const defaultSourceColor = '#66b2b2' as const;
@@ -48,25 +48,33 @@ export const hero = {
   tags: ['nextjs', 'docker', 'vue', 'flutter'] as SkillTag[],
 };
 
-export const links = {
+export const links: {
+  internal: ILink[];
+  external: ILink[];
+} = {
   internal: [
     {
-      key: 'resume',
+      label: 'resume',
       href: '/resume',
+      i18n: true,
     },
     {
-      key: 'blog',
+      label: 'blog',
       href: '/blog',
     },
   ],
   external: [
     {
-      key: 'linkedin',
+      label: 'linkedin',
       href: getLinkedInUrl(info.links.linkedin),
+      icon: 'linkedin',
+      external: true,
     },
     {
-      key: 'github',
+      label: 'github',
       href: getGitHubUrl(info.links.github),
+      icon: 'github',
+      external: true,
     },
   ],
 };

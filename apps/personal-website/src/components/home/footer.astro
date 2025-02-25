@@ -2,63 +2,14 @@
 import '@material/web/textfield/outlined-text-field';
 import '@material/web/button/filled-button';
 
-import {
-  getBrandIconName,
-  getGitHubUrl,
-  getLinkedInUrl,
-  useTranslatedPath,
-  useTranslation,
-} from '@utils';
-import { info } from '@utils/constants';
-
 import ContactForm from './contact-form.astro';
-
-const { lang } = Astro.params;
-const { t } = await useTranslation(lang);
-const translatePath = useTranslatedPath(lang);
+import Links from './links.astro';
 ---
 
 <footer
   class="container md:flex flex-wrap gap-10 hidden justify-between pt-10 pb-20"
 >
-  <div class="flex flex-col gap-2">
-    <h2 class="text-xl font-semibold">{t('resources')}</h2>
-    <ul class="space-y-1">
-      <li>
-        <a href={translatePath('/resume')}>{t('resume')}</a>
-      </li>
-      <li>
-        <a href="/blog">{t('blog')}</a>
-      </li>
-    </ul>
-  </div>
-  <div class="flex flex-col gap-2">
-    <h2 class="text-xl font-semibold">{t('social-media')}</h2>
-    <ul class="space-y-1">
-      <li>
-        <a
-          href={getLinkedInUrl(info.links.linkedin)}
-          target="_blank"
-          class="flex-row-center gap-1"
-        >
-          <iconify-icon icon={getBrandIconName('linkedin')}></iconify-icon>
-          LinkedIn
-          <span class="material-symbols-outlined"> open_in_new </span>
-        </a>
-      </li>
-      <li>
-        <a
-          href={getGitHubUrl(info.links.github)}
-          target="_blank"
-          class="flex-row-center gap-1"
-        >
-          <iconify-icon icon={getBrandIconName('github')}></iconify-icon>
-          GitHub
-          <span class="material-symbols-outlined"> open_in_new </span>
-        </a>
-      </li>
-    </ul>
-  </div>
+  <Links />
   <ContactForm id="contact-form-footer" />
 </footer>
 
