@@ -3,7 +3,7 @@
     :class="
       clsx(
         'fixed top-0 inset-x-0 xl:text-on-surface h-16 px-10 flex-row-center justify-between z-20',
-        !isAtTop ? 'text-on-surface' : 'text-surface'
+        !isAtTop ? 'text-on-surface' : 'text-surface',
       )
     "
   >
@@ -20,22 +20,12 @@
       <aside
         :class="
           clsx(
-            'fixed inset-0 bg-surface text-on-surface px-4 py-6 overflow-auto',
-            open ? 'flex-center flex-col gap-10' : 'hidden'
+            'fixed inset-0 bg-surface text-on-surface px-4 py-6 overflow-auto text-center',
+            open ? 'flex-center flex-col gap-10' : 'hidden',
           )
         "
       >
         <LanguagePicker :langs="langs" />
-        <template v-for="section in sections">
-          <div class="flex-col-center gap-4 capitalize">
-            <h2 class="text-xl font-semibold">{{ section.title }}</h2>
-            <ul class="space-y-1">
-              <li v-for="link in section.links">
-                <a :href="link.href">{{ link.label }}</a>
-              </li>
-            </ul>
-          </div>
-        </template>
         <slot name="sider"></slot>
       </aside>
       <md-icon-button
@@ -50,8 +40,8 @@
                 ? 'text-on-surface'
                 : clsx(
                     'xl:text-on-surface',
-                    !isAtTop ? 'text-on-surface' : 'text-surface'
-                  )
+                    !isAtTop ? 'text-on-surface' : 'text-surface',
+                  ),
             )
           "
           >{{ open ? 'close' : 'menu' }}</md-icon
@@ -81,10 +71,6 @@ interface ILink {
 
 type Props = {
   anchors: ILink[];
-  sections: {
-    title: string;
-    links: ILink[];
-  }[];
 } & ILanguagePickerProps;
 
 const { anchors, langs, sections } = defineProps<Props>();

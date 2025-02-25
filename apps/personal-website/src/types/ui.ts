@@ -29,3 +29,11 @@ export type IResumeProps = IContactProps &
   Omit<IHeroProps, 'tags'> & {
     tags: string[];
   };
+
+export interface ILink {
+  label: string;
+  href: string;
+  icon?: string;
+  i18n?: boolean;
+  external?: boolean;
+}
