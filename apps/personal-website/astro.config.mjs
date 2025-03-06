@@ -7,6 +7,8 @@ import vue from '@astrojs/vue';
 import tailwindcss from '@tailwindcss/vite';
 import pwa from '@vite-pwa/astro';
 import { defineConfig } from 'astro/config';
+import rehypeKatex from 'rehype-katex';
+import remarkMath from 'remark-math';
 
 import { fallbackLng, supportedLngs } from './src/utils/i18n/settings';
 
@@ -24,6 +26,8 @@ export default defineConfig({
         dark: 'material-theme',
       },
     },
+    remarkPlugins: [remarkMath],
+    rehypePlugins: [rehypeKatex],
   },
   vite: {
     plugins: [tailwindcss()],
