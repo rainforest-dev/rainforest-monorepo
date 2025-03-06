@@ -1,0 +1,69 @@
+---
+title: Weather Forecast Component
+pubDate: 2025-03-06
+description: A Vue.js component for displaying weather forecast data.
+author: rainforest
+tags:
+  - type:quick-post
+  - tailwindcss
+  - vue
+---
+
+import { WeatherForecast } from '@components/blog/demo';
+
+<WeatherForecast client:load />
+
+## Positioning the Indicator
+
+To position the indicator correctly, we need to calculate its left and right positions relative to the container.
+This is done by calculating the percentage of the temperature values within the lower and upper bounds.
+
+$$
+left = \frac{tempMin - lowerBound}{upperBound - lowerBound}
+$$
+
+$$
+right = \frac{tempMax - lowerBound}{upperBound - lowerBound}
+$$
+
+and the indicator is positioned using CSS:
+
+```css
+.indicator {
+  position: absolute;
+  left: calc(v-bind(left) * 100%);
+  right: calc((1 - v-bind(right)) * 100%);
+}
+```
+
+## Visualizing Temperature Ranges
+
+The gradient background visualizes temperature ranges, transitioning from cool to warm colors.
+The "from" and "to" endpoints represent the positions correlating with the lower and upper bounds of
+these temperatures. As the temperature approaches the lower bound, it shifts towards cooler hues like teal,
+indicating a smaller proportion of warm color in the mix. Conversely, as the temperature nears the upper bound,
+it transitions to warmer tones such as amber, reflecting an increased presence of warm colors.
+This effect is implemented using the `color-mix` function in CSS, which allows for blending colors
+based on these position ratios relative to the bounds.
+
+$$
+warmness = \frac{temp - lowerBound}{upperBound - lowerBound}
+$$
+
+```css
+.indicator {
+  --color-source-from: var(--color-teal-500);
+  --color-source-to: var(--color-amber-300);
+  --color-from: color-mix(
+    in oklab,
+    var(--color-source-from),
+    var(--color-source-to) calc(v-bind(left) * 100%)
+  );
+  --color-to: color-mix(
+    in oklab,
+    var(--color-source-from),
+    var(--color-source-to) calc(v-bind(right) * 100%)
+  );
+  @apply bg-gradient-to-r from-(--color-from) to-(--color-to);
+}
+```
