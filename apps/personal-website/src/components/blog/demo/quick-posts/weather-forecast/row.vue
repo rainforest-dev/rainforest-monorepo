@@ -1,7 +1,7 @@
 <template>
   <tr>
     <td :title="format(date, 'yyyy-MM-dd')" class="px-4">
-      {{ format(date, 'eee') }}
+      {{ isToday(date) ? 'Today' : format(date, 'eee') }}
     </td>
     <td class="w-full flex-row-center gap-2 px-4 text-on-surface/60">
       <span>{{ tempMin }}°C</span>
@@ -18,7 +18,7 @@
 </template>
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { format } from 'date-fns';
+import { format, isToday } from 'date-fns';
 
 interface IProps {
   date: Date;

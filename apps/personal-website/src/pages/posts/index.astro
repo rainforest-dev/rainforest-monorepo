@@ -3,6 +3,8 @@ import { Navigation, Post } from '@components/blog';
 import Layout from '@layouts/index.astro';
 import { getCollection } from 'astro:content';
 
+import QuickPostLayout from '@/layouts/quick-post.astro';
+
 const posts = await getCollection('blog', ({ data }) =>
   data.tags.includes('type:quick-post')
 );
@@ -18,7 +20,11 @@ const posts = await getCollection('blog', ({ data }) =>
             new Date(a.data.pubDate).getTime()
           );
         })
-        .map((post) => <Post {...post} />)
+        .map((post) => (
+          <QuickPostLayout>
+            <Post {...post} />
+          </QuickPostLayout>
+        ))
     }
     <div class="fixed bottom-10 left-1/2 -translate-x-1/2">
       <Navigation />
