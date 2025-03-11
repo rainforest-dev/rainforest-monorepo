@@ -36,6 +36,7 @@
     "lit": "^3.2.1",
     "nx": "20.4.6",
     "prettier": "^3.5.2",
+    "prettier-plugin-tailwindcss": "0.6.11",
     "storybook": "^8.5.8",
     "ts-node": "10.9.2",
     "tslib": "^2.3.0",
