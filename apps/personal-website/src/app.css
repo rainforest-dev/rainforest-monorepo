@@ -9,6 +9,14 @@
   --font-family-resume-serif: Georgia, 'Material Symbols Outlined', serif;
 
   --breakpoint-3xl: 112rem;
+
+  --spacing-lh: 1lh;
+  --spacing-2lh: 2lh;
+  --spacing-3lh: 3lh;
+  --spacing-4lh: 4lh;
+  --spacing-5lh: 5lh;
+
+  --radius-lh: 1lh;
 }
 
 @layer base {
@@ -47,4 +55,11 @@
 
 @utility container {
   @apply mx-auto px-8 sm:px-0;
+}
+
+@utility skeleton-* {
+  background-color: --value(--color-*);
+  background-color: --value(color);
+  background-color: --value([color]);
+  @apply animate-pulse rounded-lh;
 }
