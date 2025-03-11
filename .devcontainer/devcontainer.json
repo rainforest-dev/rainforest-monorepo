@@ -16,7 +16,9 @@
         "ms-playwright.playwright",
         "Vue.volar",
         "unifiedjs.vscode-mdx",
-        "runem.lit-plugin"
+        "runem.lit-plugin",
+        "formulahendry.auto-close-tag",
+        "formulahendry.auto-rename-tag"
       ]
     }
   },
