@@ -1,0 +1,43 @@
+---
+title: 'Skeleton Loading: A Guide to Enhancing User Experience'
+pubDate: '2025-03-11'
+description: 'Learn how to implement skeleton loading to improve user experience and reduce bounce rates.'
+author: rainforest
+tags:
+  - type:quick-post
+  - tailwindcss
+---
+
+<article className="prose dark:prose-dark w-full border border-dashed rounded px-4 py-3">
+  <h1 className="h-lh w-1/2 skeleton-surface-container-highest"></h1>
+  <h2 className="h-lh w-1/3 skeleton-surface-container-high"></h2>
+  <h3 className="h-lh w-1/4 skeleton-surface-container"></h3>
+  <p className="h-5lh w-full skeleton-surface-container"></p>
+</article>
+
+```html
+<article className="prose dark:prose-dark w-full">
+  <h1 className="h-lh w-1/2 skeleton-surface-container-highest"></h1>
+  <h2 className="h-lh w-1/3 skeleton-surface-container-high"></h2>
+  <h3 className="h-lh w-1/4 skeleton-surface-container"></h3>
+  <p className="h-5lh w-full skeleton-surface-container"></p>
+</article>
+```
+```css
+@theme {
+  --spacing-lh: 1lh;
+  --spacing-2lh: 2lh;
+  --spacing-3lh: 3lh;
+  --spacing-4lh: 4lh;
+  --spacing-5lh: 5lh;
+
+  --radius-lh: 1lh;
+}
+
+@utility skeleton-* {
+  background-color: --value(--color-*);
+  background-color: --value(color);
+  background-color: --value([color]);
+  @apply animate-pulse rounded-lh;
+}
+```
