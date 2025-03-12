@@ -1,16 +1,6 @@
-# Astro Starter Kit: Basics
+# Rainforest's Personal Website
 
-```sh
-npm create astro@latest -- --template basics
-```
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
-
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
+![preview image](./public/images/thumbnail/1.jpg)
 
 ## 🚀 Project Structure
 
@@ -22,12 +12,17 @@ Inside of your Astro project, you'll see the following folders and files:
 │   └── favicon.svg
 ├── src/
 │   ├── components/
+│   │   ├── blog/demo/: components specific for blog posts
 │   │   └── Card.astro
 │   ├── layouts/
-│   │   └── Layout.astro
+│   │   ├── blog.astro
+│   │   └── index.astro: base layout component
 │   └── pages/
+│       ├── blog/
+│       ├── posts/
+│       ├── resume.astro
 │       └── index.astro
-└── package.json
+└── astro.config.mjs
 ```
 
 Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
@@ -35,6 +30,16 @@ Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page
 There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
 
 Any static assets, like images, can be placed in the `public/` directory.
+
+## Development
+
+You can manage the development of this project using [Nx vscode extension](https://marketplace.visualstudio.com/items?itemName=nrwl.angular-console).
+
+or using the following command:
+
+```sh
+nx run personal-website:dev
+```
 
 ## 🧞 Commands
 
@@ -48,7 +53,3 @@ All commands are run from the root of the project, from a terminal:
 | `npm run preview`         | Preview your build locally, before deploying     |
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
