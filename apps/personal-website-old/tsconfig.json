@@ -1,0 +1,33 @@
+{
+  "extends": ["astro/tsconfigs/strict", "../../tsconfig.base.json"],
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "experimentalDecorators": true,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    "useDefineForClassFields": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@assets/*": ["src/assets/*"],
+      "@components": ["src/components/index.ts"],
+      "@components/*": ["src/components/*"],
+      "@layouts/*": ["src/layouts/*"],
+      "@stores": ["src/stores/index.ts"],
+      "@stores/*": ["src/stores/*"],
+      "@utils": ["src/utils/index.ts"],
+      "@utils/*": ["src/utils/*"],
+      "@types": ["src/types/index.ts"],
+      "@types/*": ["src/types/*"]
+    },
+    "types": ["@webgpu/types", "@types/dom-chromium-ai"]
+  },
+  "references": [
+    {
+      "path": "../../libs/rainforest-ui"
+    }
+  ]
+}
