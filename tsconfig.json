@@ -4,9 +4,6 @@
   "files": [],
   "references": [
     {
-      "path": "./apps/personal-website"
-    },
-    {
       "path": "./libs/rainforest-ui"
     },
     {
@@ -14,6 +11,9 @@
     },
     {
       "path": "./apps/personal-liff"
+    },
+    {
+      "path": "./apps/personal-website-old"
     }
   ],
   "ts-node": {
