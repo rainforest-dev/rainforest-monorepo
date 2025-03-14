@@ -1,0 +1,7 @@
+{
+  "metadata-title": "$t(resume) | $t(info-fullname_formal)",
+  "key-skills": "Key Skills",
+  "education": "Education",
+  "website": "Website",
+  "education-description": "{{degree}} in {{major}}"
+}

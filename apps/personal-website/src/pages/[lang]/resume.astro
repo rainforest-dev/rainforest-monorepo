@@ -1,0 +1,62 @@
+---
+import profile from '@assets/images/profile/1.webp';
+import { ATSFriendly } from '@components/resume';
+import Layout from '@layouts/index.astro';
+import { info, supportedLocales } from '@rainforest-dev/personal-data';
+import type { IResumeProps } from '@types';
+import { hero } from '@utils';
+
+export const prerender = true;
+export async function getStaticPaths() {
+  return supportedLocales.map((lng) => ({
+    params: { lang: lng },
+  }));
+}
+
+const { t } = Astro.locals;
+
+const resumeProps: IResumeProps = {
+  ...info,
+  name: {
+    first: t('info-name-first', { context: 'formal' }),
+    last: t('info-name-last', { context: 'formal' }),
+    fullname: t('info-fullname', { context: 'formal' }),
+  },
+  profile,
+  dateOfBirth: new Date(info.dateOfBirth),
+  jobPosition: t('info-job-position'),
+  location: {
+    city: t('info-location', { context: 'city' }),
+    country: t('info-location', { context: 'country' }),
+  },
+  summaries: [
+    t('home.hero-summaries.0'),
+    t('home.hero-summaries.1'),
+    t('home.hero-summaries.2'),
+  ],
+  tags: hero.tags.map((tag) => t(tag as any)),
+};
+---
+
+<Layout
+  title={t('resume.metadata-title')}
+  description={t('metadata-description')}
+>
+  <main
+    class="w-screen h-screen flex-col-center p-10 bg-inverse-surface overflow-scroll
+            print:justify-start print:items-start print:p-0 print:overflow-visible"
+  >
+    <div
+      class="w-[75rem] h-[105rem] origin-top scale-30 sm:scale-50 md:scale-75 lg:scale-100
+              print:scale-100 print:origin-top-left"
+    >
+      <ATSFriendly {...resumeProps} />
+    </div>
+  </main>
+  <style media="print">
+    @page {
+      size: A4;
+      margin: 0;
+    }
+  </style>
+</Layout>

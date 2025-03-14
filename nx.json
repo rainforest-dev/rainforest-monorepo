@@ -69,6 +69,16 @@
         "testStorybookTargetName": "test-storybook",
         "staticStorybookTargetName": "static-storybook"
       }
+    },
+    {
+      "plugin": "@nx/js/typescript",
+      "include": ["libs/personal-data/*"],
+      "options": {
+        "typecheck": {
+          "targetName": "typecheck"
+        }
+      },
+      "exclude": ["libs/personal-data/*"]
     }
   ],
   "release": {
@@ -78,6 +88,9 @@
   },
   "targetDefaults": {
     "e2e-ci--**/*": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
       "dependsOn": ["^build"]
     }
   },

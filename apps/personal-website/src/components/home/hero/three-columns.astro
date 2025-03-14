@@ -1,0 +1,81 @@
+---
+import '@material/web/button/filled-button';
+import '@material/web/button/outlined-button';
+import '@material/web/icon/icon';
+
+import type { IHeroProps as Props } from '@types';
+import { Picture } from 'astro:assets';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+
+import Tag from '../../tag.astro';
+
+const props = Astro.props;
+const year = props.dateOfBirth.getFullYear();
+
+const { t } = Astro.locals;
+const locale = Astro.currentLocale ?? 'en';
+---
+
+<div
+  class="h-3/4 w-full flex-row-center justify-between py-10 px-20 relative z-0 rounded-xl shadow-lg"
+>
+  <div class="absolute -z-10 inset-0 rounded-[inherit] overflow-clip">
+    <div
+      class="size-full relative z-0 bg-surface-container-highest overflow-clip
+                  after:bg-inverse-surface after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
+    >
+    </div>
+  </div>
+  <div class="flex flex-col justify-center">
+    <p>{year}</p>
+    <h1 class="text-7xl mt-1 mb-16 text-secondary">
+      {props.name.fullname}
+    </h1>
+    <div class="flex-row-center gap-4">
+      <md-filled-button href="#contact-form-footer" class="px-6"
+        >{t('contact-me-title')}</md-filled-button
+      >
+      <md-outlined-button
+        href={getRelativeLocaleUrl(locale, '/resume')}
+        target="_blank"
+        has-icon
+        trailing-icon
+        class="px-6 gap-2"
+        >{t('resume')}
+        <md-icon slot="icon">open_in_new</md-icon>
+      </md-outlined-button>
+    </div>
+  </div>
+  <Picture
+    src={props.profile}
+    alt="profile"
+    loading="eager"
+    pictureAttributes={{
+      class: 'self-end -mb-10 h-[120%] w-full',
+    }}
+    class="object-cover object-center h-full w-max mx-auto"
+  />
+  <div class="flex flex-col justify-center text-surface gap-6">
+    <ul class="list-disc">
+      {props.summaries.map((summary) => <li>{summary}</li>)}
+    </ul>
+    <ul class="flex gap-2">
+      {
+        props.tags.map((tag) => (
+          <li>
+            <Tag name={tag} class="bg-surface/85 text-on-surface" />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</div>
+
+<script>
+  import { removeUrlHashAfterNavigation } from '@utils';
+
+  const contactMeButton = document.querySelector(
+    'md-filled-button[href="#contact-form-footer"]'
+  );
+  contactMeButton?.addEventListener('click', removeUrlHashAfterNavigation);
+</script>
