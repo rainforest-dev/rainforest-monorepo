@@ -1,0 +1,25 @@
+---
+import type { Tag as TagType } from '@types';
+import { getBrandIconName } from '@utils';
+import clsx from 'clsx';
+
+interface Props {
+  name: TagType;
+  class?: string;
+  iconClass?: string;
+}
+
+const { name, class: containerClass, iconClass } = Astro.props;
+const iconName = getBrandIconName(name);
+const { t } = Astro.locals;
+---
+
+<div
+  class={clsx('flex-row-center gap-2 py-1 px-2 rounded-full capitalize', containerClass)}
+>
+  {iconName ? <iconify-icon icon={iconName} height="none" class={clsx("size-4", iconClass)}></iconify-icon> : <></>}
+  {t(name as any)}
+</div>
+<script>
+import 'iconify-icon';
+</script>

@@ -38,7 +38,7 @@ export default defineConfig({
         ...Object.fromEntries(
           glob
             .sync('src/{lit,utils}/**/!(*.spec|*.test).ts')
-            .map((e) => [e.replace('src/', '').replace('.ts', ''), e])
+            .map((e) => [e.replace('src/', '').replace('.ts', ''), e]),
         ),
       },
       fileName: (format, entryName) => {

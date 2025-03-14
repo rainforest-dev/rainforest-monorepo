@@ -1,0 +1,160 @@
+---
+import { getGitHubUrl, getLinkedInUrl } from '@rainforest-dev/personal-data';
+import type { IResumeProps as Props } from '@types';
+import { resumeDateFormat } from '@utils/constants';
+import { render } from 'astro:content';
+import { getCollection, getEntries, getEntry } from 'astro:content';
+import { format } from 'date-fns';
+import { groupBy } from 'lodash-es';
+
+import { locales } from '@/utils';
+
+const info = Astro.props;
+
+const lang = Astro.currentLocale ?? 'en';
+const { t } = Astro.locals;
+const locale =
+  lang && lang in locales ? locales[lang as keyof typeof locales] : locales.en;
+
+const linkedInUrl = getLinkedInUrl(info.links.linkedin);
+const gitHubUrl = getGitHubUrl(info.links.github);
+const experiences = (
+  await getCollection('experiences', (item) => {
+    const isLangMatch = item.id.startsWith(lang);
+    const isJobMatch = item.data.type === 'job';
+    return isLangMatch && isJobMatch;
+  })
+).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
+
+const education = (
+  await getCollection('experiences', (item) => {
+    const isLangMatch = item.id.startsWith(lang);
+    const isEducationMatch = item.data.type === 'education';
+    return isLangMatch && isEducationMatch;
+  })
+).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
+const skillSections = [
+  'frontend',
+  'backend',
+  'devops',
+  'languages',
+  'tools',
+] as const;
+const skills = groupBy(
+  await getCollection('skills', (item) => item.id.startsWith(lang)),
+  (item) => skillSections.find((section) => item.data.tags.includes(section))
+);
+---
+
+<article
+  class="size-full bg-surface text-on-surface py-10 px-20 font-resume-serif
+                prose prose-sm max-w-none
+                prose-headings:text-on-surface prose-a:text-on-surface prose-li:text-on-surface prose-headings:m-0 prose-h2:mb-3 prose-li:m-0 prose-p:mt-0 prose-p:mb-2"
+>
+  <section>
+    <h1>{info.name.fullname}</h1>
+    <h2>{info.jobPosition}</h2>
+    <ul class="list-none pl-0 mt-4 mb-5">
+      <li><a href={`tel:${info.phone}`}>{info.phone}</a></li>
+      <li><a href={`mailto:${info.email}`}>{info.email}</a></li>
+      <li>{info.location.city}, {info.location.country}</li>
+      <li>
+        LinkedIn: {info.links.linkedin} (<a href={linkedInUrl} target="_blank"
+          >{linkedInUrl}</a
+        >)
+      </li>
+      <li>
+        GitHub: {info.links.github} (<a href={gitHubUrl} target="_blank"
+          >{gitHubUrl}</a
+        >)
+      </li>
+      <li>
+        {t('resume.website')}: <a href={info.links.website} target="_blank"
+          >{info.links.website}</a
+        >
+      </li>
+    </ul>
+  </section>
+  <section>
+    <h2>{t('experience')}</h2>
+    <ul>
+      {
+        experiences.map(async (item) => {
+          const { startAt, endAt, position } = item.data;
+          const organization = await getEntry(item.data.organization);
+          const projects = await getEntries(item.data.projects);
+          const { Content } = await render(item);
+          return (
+            <li>
+              <Fragment>
+                <time>{format(startAt, resumeDateFormat, { locale })}</time> -{' '}
+                {endAt && (
+                  <time>{format(endAt, resumeDateFormat, { locale })}</time>
+                )}
+              </Fragment>
+              <h3>{organization.data.name}</h3>
+              <h5>{position}</h5>
+              <Content />
+              <ul class="list-none pl-0">
+                {projects &&
+                  projects.map(async (project) => {
+                    const { Content } = await render(project);
+                    return (
+                      <li>
+                        <h4>{project.data.name}</h4>
+                        <Content />
+                      </li>
+                    );
+                  })}
+              </ul>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </section>
+  <section class="grid grid-cols-2 w-full break-after-auto">
+    <section>
+      <h2>{t('resume.education')}</h2>
+      <ul>
+        {
+          education.map(async (item) => {
+            const organization = await getEntry(item.data.organization);
+            const period = `${format(item.data.startAt, resumeDateFormat)} - ${format(item.data.endAt!, resumeDateFormat)}`;
+            // const { Content } = await render(item);
+            return (
+              <li>
+                <h3>{organization.data.name}</h3>
+                <h4>{period}</h4>
+                <h5>
+                  {t('resume.education-description', {
+                    degree: item.data.position,
+                    major: organization.data.department,
+                  })}
+                </h5>
+                {/* <Content /> */}
+              </li>
+            );
+          })
+        }
+      </ul>
+    </section>
+    <section>
+      <h2>{t('skills')}</h2>
+      <div class="grid grid-cols-3">
+        {
+          skillSections.map((section) => (
+            <div>
+              <h3>{t(`skills-${section}`)}</h3>
+              <ul>
+                {skills[section].map((skill) => (
+                  <li class="capitalize">{skill.data.name}</li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+  </section>
+</article>

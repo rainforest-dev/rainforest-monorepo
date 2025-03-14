@@ -1,0 +1,59 @@
+{
+  "hero-summaries": [
+    "6年使用Vue和React開發經驗。",
+    "擅長使用流程自動化工具及容器技術簡化前端任務",
+    "過去參與數位孿生、區塊鏈、長照、細胞基因治療等專案。"
+  ],
+  "hero-brief": "$t(common:info-job-position)來自$t(common:info-location_country)$t(common:info-location_city).",
+  "ntu": "國立臺灣大學",
+  "ce": "土木工程學系",
+  "caece": "土木工程學系電腦輔助工程組",
+  "webim": "衛武資訊",
+  "gss": "叡揚資訊",
+  "jubo": "智齡科技",
+  "codegreen": "美商科綠",
+  "degree-bachelor": "大學",
+  "degree-master": "碩士",
+  "position-rd-assistant": "研發助理",
+  "position-frontend-intern": "前端實習生",
+  "position-software-intern": "軟體實習生",
+  "position-senior-frontend-engineer": "資深前端工程師",
+  "project-dex-descriptions": [
+    "Chia區塊鏈上的第一個去中心化交易所（DEX）",
+    "前端使用Next.js和Styled Components與TailwindCSS結合進行樣式設計。",
+    "特別專注於SEO和性能優化，以顯示數百種CAT的長列表。"
+  ],
+  "project-hoogii-descriptions": [
+    "Google Chrome上的web3加密貨幣錢包",
+    "使用Vite和React開發Chrome擴充功能，並確保符合manifest v3規範。"
+  ],
+  "project-pyke-descriptions": [
+    "Chia區塊鏈上的第一個自動市場製造商（AMM）",
+    "引入monorepo工具Nx，以便分開維護產品和單元測試、端到端測試、加載測試和UI庫，同時確保更好的可維護性。"
+  ],
+  "project-opencgt-descriptions": [
+    "使用Next.js App Router開發B2B產品。",
+    "使用Auth.js和Auth0實現社交帳號登錄。",
+    "使用Casbin.js實現基於角色的授權。",
+    "使用NX構建自動化的持續整合/持續交付流水線，以簡化產品發布流程並減少手動工作。"
+  ],
+  "experience-type-job": "工作",
+  "experience-type-education": "學歷",
+  "job-webim-description": "使用Swift和Vue開發數位孿生產品。",
+  "job-gss-description": "維護軟體即服務（SaaS）產品。",
+  "job-jubo-description": "維護和開發用於長照機構場域的應用程式。",
+  "skill-nextjs-descriptions": [
+    "熟悉Next.js App Router，利用React的最新功能，如Server Components和Suspense中的Streaming，實現最佳性能和可擴展性。",
+    "深入了解使用Next.js App Router進行服務器端渲染和動態加載技術。",
+    "使用Auth.js的經驗使我能夠使用Next.js App Router創建安全且可擴展的身份驗證解決方案，確保用戶數據得到正確保護和授權。",
+    "我擁有設計Next.js項目的專業知識，並利用MUI和TailwindCSS設計出視覺上吸引人且用戶友好的界面。"
+  ],
+  "skill-vue-descriptions": [
+    "熟悉Vue 2 Options API和最新的Composition API",
+    "具有使用Vuex和Pinia等狀態管理套件的經驗。"
+  ],
+  "skill-docker-descriptions": [
+    "為我的前端專案實現了基於Docker的持續整合和持續交付（CI/CD）流水線。該流水線簡化了構建、測試和部署流程，從而減少了手動錯誤。",
+    "使用自定義基於Docker的腳本自動化常規任務，確保在多個環境中實現一致性和效率。"
+  ]
+}

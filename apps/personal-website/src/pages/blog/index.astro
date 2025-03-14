@@ -1,0 +1,97 @@
+---
+import { SourceColor } from '@components';
+import Layout from '@layouts/index.astro';
+import {
+  getGitHubUrl,
+  getLinkedInUrl,
+  info,
+} from '@rainforest-dev/personal-data';
+import { getBrandIconName } from '@utils';
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+
+import { Navigation } from '@/components/blog';
+
+const posts = (
+  await getCollection(
+    'blogs',
+    (entry) => !entry.data.tags.includes('type:quick-post')
+  )
+).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const { t } = Astro.locals;
+const locale = Astro.currentLocale ?? 'en';
+---
+
+<Layout
+  title={t('metadata-title')}
+  description={t('metadata-description')}
+  viewTransition={{ enabled: true }}
+>
+  <script>
+    import '@material/web/iconbutton/icon-button';
+  </script>
+  <nav class="flex-row-center justify-between container">
+    <div>
+      <md-icon-button href="/">
+        <span class="material-symbols-outlined"> home </span>
+      </md-icon-button>
+    </div>
+    <div>
+      <md-icon-button href={getGitHubUrl(info.links.github)} target="_blank">
+        <iconify-icon icon={getBrandIconName('github')} height="none"
+        ></iconify-icon>
+      </md-icon-button>
+      <md-icon-button
+        href={getLinkedInUrl(info.links.linkedin)}
+        target="_blank"
+      >
+        <iconify-icon icon={getBrandIconName('linkedin')} height="none"
+        ></iconify-icon>
+      </md-icon-button>
+    </div>
+  </nav>
+  <main class="container py-10">
+    <h1 class="text-5xl md:text-9xl text-center mb-10">Rainforest Cheng</h1>
+    <div
+      class="grid grid-flow-row grid-cols-1 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-5 auto-rows-max"
+    >
+      {
+        posts.map(({ data: post, id }) => (
+          <a
+            href={getRelativeLocaleUrl(locale, `/blog/${id}`)}
+            class="
+              md:first:col-span-full lg:first:h-[30dvh] md:first:h-[20dvh] bg-surface-container-high rounded-lg overflow-hidden hover:shadow 
+              @container prose-sm max-w-none
+              flex gap-4 flex-col md:first:flex-row-center"
+          >
+            <div class="md:@2xl:h-full @2xl:w-auto w-full aspect-square flex-center">
+              {post.image?.src ? (
+                <Image
+                  width={128}
+                  height={128}
+                  class="size-full object-cover m-0!"
+                  src={post.image.src}
+                  alt={post.image.alt}
+                  transition:name={`blog-${id}`}
+                />
+              ) : (
+                <span class="material-symbols-outlined">image</span>
+              )}
+            </div>
+            <div class="flex flex-col px-4 pb-3">
+              <h2 class="mt-0">{post.title}</h2>
+              <p>{post.description}</p>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+    <div class="fixed bottom-10 left-1/2 -translate-x-1/2">
+      <Navigation />
+    </div>
+    <div class="fixed right-10 bottom-10 z-10">
+      <SourceColor client:only="vue" />
+    </div>
+  </main>
+</Layout>

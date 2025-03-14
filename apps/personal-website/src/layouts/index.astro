@@ -1,0 +1,28 @@
+---
+import '../app.css';
+
+import { SourceColor, ThemeProvider } from '@components';
+import { ClientRouter } from 'astro:transitions';
+
+import Head from './head.astro';
+import type { Props } from './types';
+
+const { viewTransition = { enabled: false }, ...rest } = Astro.props;
+
+const lang = Astro.currentLocale;
+const dir = Astro.locals.t.dir();
+---
+
+<!doctype html>
+<html lang={lang} dir={dir}>
+  <Head {...rest}>
+    <ThemeProvider server:defer />
+    {viewTransition.enabled && <ClientRouter />}
+  </Head>
+  <body>
+    <slot />
+    <div class="fixed right-10 bottom-10 z-10 print:hidden">
+      <SourceColor client:only="vue" />
+    </div>
+  </body>
+</html>

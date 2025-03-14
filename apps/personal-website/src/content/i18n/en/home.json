@@ -1,0 +1,63 @@
+{
+  "hero-summaries": [
+    "6 years of experience developing with Vue and React.",
+    "Proficient in Continuous Integration/Continuous Deployment (CI/CD) and container technology for frontend development.",
+    "Past work in digital twins, blockchain, elderly care, and cell gene therapy."
+  ],
+  "hero-brief": "$t(info-job-position) from $t(info-location_city), $t(info-location_country).",
+  "ntu": "National Taiwan University",
+  "ce": "Civil Engineering",
+  "caece": "CAECE",
+  "webim": "WeBIM Service",
+  "gss": "Galaxy Software Services, GSS",
+  "jubo": "Jubo Health",
+  "codegreen": "CodeGreen",
+  "degree-bachelor": "Bachelor Degree",
+  "degree-master": "Master Degree",
+  "position-rd-assistant": "Research and Development Assistant",
+  "position-frontend-intern": "Frontend Intern",
+  "position-software-intern": "Software Intern",
+  "position-senior-frontend-engineer": "Senior Frontend Engineer",
+  "project-dex-name": "Hashgreen Dex",
+  "project-dex-descriptions": [
+    "The first decentralized exchange (DEX) on Chia blockchain",
+    "The frontend utilizes Next.js and Styled Components in conjunction with TailwindCSS for styling purposes.",
+    "Particularly focusing on SEO and performance optimization for a long list of hundreds of CATs to display."
+  ],
+  "project-hoogii-name": "Hoogii Wallet",
+  "project-hoogii-descriptions": [
+    "A web3 cryptocurrency extension wallet on Google Chrome",
+    "Develop the Chrome extension using Vite and React, and ensure that it adheres to the manifest v3 specification."
+  ],
+  "project-pyke-name": "HashgreenSwap",
+  "project-pyke-descriptions": [
+    "The first Automated Market Maker (AMM) on Chia blockchain",
+    "Introduced the monorepo tool, Nx, to maintain product and unit tests, end-to-end tests, loading tests, and UI libraries separately while ensuring greater maintainability."
+  ],
+  "project-opencgt-name": "OpenCGT",
+  "project-opencgt-descriptions": [
+    "Develop B2B products utilizing the Next.js app router.",
+    "Implemented social logins utilizing Auth.js and Auth0.",
+    "Implemented role-based authorizations using Casbin.js.",
+    "Construct an automated Continuous Integration/Continuous Deployment pipeline utilizing NX to streamline the product release process and minimize manual effort."
+  ],
+  "experience-type-job": "Job",
+  "experience-type-education": "Education",
+  "job-webim-description": "Utilize Swift and Vue for the development of a digital twin product.",
+  "job-gss-description": "Provide support for the maintenance and enhancement of Software as a Service (SaaS) products.",
+  "job-jubo-description": "Maintain and develop applications for long-term care facilities.",
+  "skill-nextjs-descriptions": [
+    "Proficient in Next.js App Router, utilizing React's latest features such as Server Components and Streaming with Suspense for optimal performance and scalability.",
+    "Strong understanding of server-side rendering and dynamic loading techniques using Next.js App Router.",
+    "Experience with Auth.js has enabled me to create secure and scalable authentication solutions using Next.js App Router, ensuring that user data is protected and authorized correctly.",
+    "I possess expertise in styling Next.js projects, having leveraged MUI and TailwindCSS to design visually appealing and user-friendly interfaces."
+  ],
+  "skill-vue-descriptions": [
+    "Familiar with both Vue 2 Options API and latest Composition API",
+    "Have experience with state management packages such as Vuex and Pinia."
+  ],
+  "skill-docker-descriptions": [
+    "Implemented a Docker-based Continuous Integration and Continuous Deployment (CI/CD) pipeline for my frontend project. This pipeline streamlines the build, testing, and deployment processes, thereby minimizing manual errors.",
+    "Automated routine tasks using a custom Docker-based script, ensuring consistency and efficiency across multiple environments."
+  ]
+}

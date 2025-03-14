@@ -1,0 +1,31 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getEntry } from 'astro:content';
+import { render } from 'astro:content';
+import { format } from 'date-fns';
+
+type Props = CollectionEntry<'blogs'>;
+
+const {
+  data: { title, pubDate, tags: _tags, author: _author },
+} = Astro.props;
+const author = (await getEntry(_author)).data;
+const { Content } = await render(Astro.props);
+const tags = _tags.filter((e) => !e.includes(':'));
+---
+
+<script>
+  import '@material/web/chips/chip-set';
+  import '@material/web/chips/filter-chip';
+</script>
+
+<div
+  class="w-full p-10 bg-surface-container-lowest rounded-lg prose dark:bg-surface-container-highest max-w-none"
+>
+  <h1>{title}</h1>
+  <p>{format(pubDate, 'd MMM, yyyy')}<br />By {author.name}</p>
+  <Content />
+  <md-chip-set class="mt-10">
+    {tags.map((tag) => <md-filter-chip label={tag} class="capitalize" />)}
+  </md-chip-set>
+</div>
