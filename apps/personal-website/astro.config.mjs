@@ -8,6 +8,7 @@ import tailwindcss from '@tailwindcss/vite';
 import pwa from '@vite-pwa/astro';
 import { defineConfig } from 'astro/config';
 import rehypeKatex from 'rehype-katex';
+import rehypeMermaid from 'rehype-mermaid';
 import remarkMath from 'remark-math';
 
 import { fallbackLng, supportedLngs } from './src/utils/i18n/settings';
@@ -20,6 +21,10 @@ export default defineConfig({
     locales: [...supportedLngs],
   },
   markdown: {
+    syntaxHighlight: {
+      type: 'shiki',
+      excludeLangs: ['mermaid', 'math']
+    },
     shikiConfig: {
       themes: {
         light: 'material-theme-lighter',
@@ -27,7 +32,7 @@ export default defineConfig({
       },
     },
     remarkPlugins: [remarkMath],
-    rehypePlugins: [rehypeKatex],
+    rehypePlugins: [rehypeKatex, rehypeMermaid],
   },
   vite: {
     plugins: [tailwindcss()],
