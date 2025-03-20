@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "postinstall": "pnpm exec playwright install --with-deps chromium",
     "astro": "astro",
     "build": "astro check && astro build",
     "dev": "astro dev --host=0.0.0.0",
