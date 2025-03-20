@@ -14,6 +14,24 @@ tags:
 
 # Project Init
 
+```mermaid
+block-beta
+    columns 1
+    block:entries
+      columns 4
+      home resume blogs posts
+    end
+    block:elements
+      columns 2
+      components layouts
+    end
+    theming
+    block:data
+      columns 3
+      configs markdowns locales
+    end
+```
+
 ## NX Workspace
 
 ```bash
