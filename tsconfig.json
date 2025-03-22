@@ -8,12 +8,6 @@
     },
     {
       "path": "./libs/rainforest-ui"
-    },
-    {
-      "path": "./apps/personal-liff-e2e"
-    },
-    {
-      "path": "./apps/personal-liff"
     }
   ],
   "ts-node": {
