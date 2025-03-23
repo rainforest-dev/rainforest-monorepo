@@ -9,6 +9,8 @@ import {
   useState,
 } from 'react';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const LiffContext = createContext<{
   liff: Liff | null;
   liffError: string | null;
@@ -31,8 +33,12 @@ export default function LiffProvider({
       const liffModule = await import('@line/liff');
       const liff = liffModule.default;
       console.log('LIFF init...');
+      if (isDev) {
+        const { LiffMockPlugin } = await import('@line/liff-mock');
+        liff.use(new LiffMockPlugin());
+      }
 
-      await liff.init({ liffId });
+      await liff.init({ liffId, mock: isDev });
 
       console.log('LIFF init succeeded.');
       setLiff(liff);
@@ -46,6 +52,13 @@ export default function LiffProvider({
     console.log('LIFF init start...');
     initLiff();
   }, [initLiff]);
+
+  useEffect(() => {
+    if (!liff) return;
+    if (!liff.isLoggedIn()) {
+      liff.login();
+    }
+  }, [liff]);
 
   return (
     <LiffContext.Provider value={{ liff, liffError }}>
