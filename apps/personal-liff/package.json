@@ -6,7 +6,7 @@
     "@line/liff": "^2.25.1",
     "@mantine/core": "^7.17.2",
     "@mantine/hooks": "^7.17.2",
-    "next": "15.2.2",
+    "next": "15.2.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "swr": "^2.3.3"
