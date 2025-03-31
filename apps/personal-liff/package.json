@@ -4,11 +4,11 @@
   "private": true,
   "dependencies": {
     "@line/liff": "^2.25.1",
-    "@mantine/core": "^7.17.2",
-    "@mantine/hooks": "^7.17.2",
-    "next": "15.2.2",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
+    "@mantine/core": "^7.17.3",
+    "@mantine/hooks": "^7.17.3",
+    "next": "15.2.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
     "swr": "^2.3.3"
   },
   "nx": {
