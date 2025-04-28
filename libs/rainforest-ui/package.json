@@ -31,20 +31,20 @@
   "dependencies": {
     "@material/material-color-utilities": "^0.3.0",
     "@tailwindcss/typography": "^0.5.16",
-    "lit": "3.2.1",
-    "tailwindcss": "4.0.14"
+    "lit": "3.3.0",
+    "tailwindcss": "4.1.4"
   },
   "nx": {
     "sourceRoot": "libs/rainforest-ui/src",
     "name": "rainforest-ui"
   },
   "devDependencies": {
-    "@storybook/test": "^8.6.6",
-    "@storybook/web-components": "^8.6.6",
-    "@tailwindcss/vite": "4.0.14",
-    "@types/node": "^22.13.10",
-    "eslint-plugin-lit": "^1.15.0",
-    "glob": "^11.0.1",
-    "vite-bundle-analyzer": "^0.18.0"
+    "@storybook/test": "^8.6.12",
+    "@storybook/web-components": "^8.6.12",
+    "@tailwindcss/vite": "4.1.4",
+    "@types/node": "^22.15.3",
+    "eslint-plugin-lit": "^2.1.1",
+    "glob": "^11.0.2",
+    "vite-bundle-analyzer": "^0.19.0"
   }
 }
