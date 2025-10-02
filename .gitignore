@@ -58,3 +58,5 @@ storybook-static
 
 **/nx-rules.mdc
 **/nx.instructions.md
+
+.pnpm-store
