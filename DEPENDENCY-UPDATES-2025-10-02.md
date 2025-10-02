@@ -8,53 +8,53 @@ Successfully updated all major dependencies to their latest stable versions and 
 
 ### Core Framework Updates
 
-| Package | Previous | Updated | Notes |
-|---------|----------|---------|-------|
-| **React** | 19.1.0 | 19.2.0 | Latest stable with performance improvements |
-| **React DOM** | 19.1.0 | 19.2.0 | Synced with React core |
-| **Next.js** | 15.3.2 | 15.5.4 | 2 minor versions with bug fixes |
-| **Storybook** | 9.0.9 | 9.1.10 | Major update with better Vite integration |
-| **@storybook/web-components-vite** | 9.0.9 | 9.1.10 | Synced with Storybook core |
-| **@storybook/web-components** | 8.6.14 | 9.1.10 | Migrated to v9 |
-| **@storybook/test-runner** | 0.22.0 | 0.23.0 | Latest test runner |
+| Package                            | Previous | Updated | Notes                                       |
+| ---------------------------------- | -------- | ------- | ------------------------------------------- |
+| **React**                          | 19.1.0   | 19.2.0  | Latest stable with performance improvements |
+| **React DOM**                      | 19.1.0   | 19.2.0  | Synced with React core                      |
+| **Next.js**                        | 15.3.2   | 15.5.4  | 2 minor versions with bug fixes             |
+| **Storybook**                      | 8.6.14   | 9.1.10  | Major update with better Vite integration   |
+| **@storybook/web-components-vite** | 9.0.9    | 9.1.10  | Synced with Storybook core                  |
+| **@storybook/web-components**      | 8.6.14   | 9.1.10  | Migrated to v9                              |
+| **@storybook/test-runner**         | 0.22.0   | 0.23.0  | Latest test runner                          |
 
 ### Build & Tooling Updates
 
-| Package | Previous | Updated | Notes |
-|---------|----------|---------|-------|
-| **Vite** | 7.1.8 | 7.1.8 | Already on latest |
-| **Vitest** | 3.1.3 | 3.2.4 | Performance improvements |
-| **@vitest/coverage-v8** | 3.1.3 | 3.2.4 | Synced with Vitest |
-| **@vitest/ui** | 3.1.3 | 3.2.4 | Synced with Vitest |
-| **ESLint** | 9.27.0 | 9.36.0 | 9 minor versions update |
-| **@eslint/js** | 9.27.0 | 9.36.0 | Synced with ESLint |
-| **Prettier** | 3.5.3 | 3.6.2 | Latest formatting improvements |
-| **prettier-plugin-tailwindcss** | 0.6.11 | 0.6.14 | Tailwind v4 compatibility |
-| **Playwright** | 1.52.0 | 1.55.1 | Important browser updates |
+| Package                         | Previous | Updated | Notes                                              |
+| ------------------------------- | -------- | ------- | -------------------------------------------------- |
+| **Vite**                        | 6.3.5    | 7.1.8   | ⚡ Major version upgrade - review breaking changes |
+| **Vitest**                      | 3.1.3    | 3.2.4   | Performance improvements                           |
+| **@vitest/coverage-v8**         | 3.1.3    | 3.2.4   | Synced with Vitest                                 |
+| **@vitest/ui**                  | 3.1.3    | 3.2.4   | Synced with Vitest                                 |
+| **ESLint**                      | 9.27.0   | 9.36.0  | 9 minor versions update                            |
+| **@eslint/js**                  | 9.27.0   | 9.36.0  | Synced with ESLint                                 |
+| **Prettier**                    | 3.5.3    | 3.6.2   | Latest formatting improvements                     |
+| **prettier-plugin-tailwindcss** | 0.6.11   | 0.6.11  | Tailwind v4 compatibility                          |
+| **Playwright**                  | 1.52.0   | 1.55.1  | Important browser updates                          |
 
 ### Compiler & Transpiler Updates
 
-| Package | Previous | Updated | Notes |
-|---------|----------|---------|-------|
-| **@swc/core** | 1.11.24 | 1.11.31 | Faster builds |
-| **@swc-node/register** | 1.10.10 | 1.11.1 | Synced with SWC |
-| **TypeScript** | 5.9.3 | 5.9.3 | Already on latest |
+| Package                | Previous | Updated | Notes                           |
+| ---------------------- | -------- | ------- | ------------------------------- |
+| **@swc/core**          | 1.11.24  | 1.11.31 | Faster builds                   |
+| **@swc-node/register** | 1.10.10  | 1.10.10 | No change (remains at ~1.10.10) |
+| **TypeScript**         | 5.9.3    | 5.9.3   | Already on latest               |
 
 ### Testing & Quality
 
-| Package | Previous | Updated | Notes |
-|---------|----------|---------|-------|
-| **jsdom** | 26.1.0 | 27.0.0 | ⚠️ Major version - test thoroughly |
-| **eslint-config-prettier** | 10.1.5 | 10.1.8 | Minor updates |
+| Package                    | Previous | Updated | Notes                              |
+| -------------------------- | -------- | ------- | ---------------------------------- |
+| **jsdom**                  | 26.1.0   | 27.0.0  | ⚠️ Major version - test thoroughly |
+| **eslint-config-prettier** | 10.1.5   | 10.1.8  | Minor updates                      |
 
 ### Other Updates
 
-| Package | Previous | Updated | Notes |
-|---------|----------|---------|-------|
-| **Lit** | 3.3.0 | 3.3.1 | Patch update |
-| **@types/react** | 19.1.4 | 19.2.0 | Type definitions for React 19.2 |
-| **@types/react-dom** | 19.1.5 | 19.2.0 | Type definitions for React DOM 19.2 |
-| **verdaccio** | 6.1.2 | 6.2.0 | Local registry updates |
+| Package              | Previous | Updated | Notes                               |
+| -------------------- | -------- | ------- | ----------------------------------- |
+| **Lit**              | 3.3.0    | 3.3.1   | Patch update                        |
+| **@types/react**     | 19.1.4   | 19.2.0  | Type definitions for React 19.2     |
+| **@types/react-dom** | 19.1.5   | 19.2.0  | Type definitions for React DOM 19.2 |
+| **verdaccio**        | 6.1.2    | 6.2.0   | Local registry updates              |
 
 ## ⚙️ Nx Configuration Enhancements
 
@@ -65,11 +65,20 @@ Added performance optimizations to `nx.json`:
   "parallel": 3,
   "cacheDirectory": ".nx/cache",
   "useDaemonProcess": true,
-  "cacheableOperations": ["build", "lint", "test", "typecheck", "e2e", "storybook", "build-storybook"]
+  "cacheableOperations": [
+    "build",
+    "lint",
+    "test",
+    "typecheck",
+    "e2e",
+    "storybook",
+    "build-storybook"
+  ]
 }
 ```
 
 ### Benefits:
+
 - **parallel: 3** - Run up to 3 tasks in parallel for faster builds
 - **cacheDirectory** - Explicit cache location for better control
 - **useDaemonProcess** - Keeps Nx daemon running for instant commands
@@ -78,6 +87,7 @@ Added performance optimizations to `nx.json`:
 ## 🤖 Automated Dependency Updates
 
 Created `.github/workflows/dependency-updates.yml`:
+
 - Runs every Monday at 9:00 AM UTC
 - Automatically updates all dependencies
 - Runs Nx migrations
@@ -88,6 +98,7 @@ Created `.github/workflows/dependency-updates.yml`:
 ## 🎯 GitHub Actions Updates
 
 Updated `.github/workflows/ci.yml`:
+
 - Upgraded `actions/checkout` from v4 to v5
 - Upgraded `actions/setup-node` from v4 to v5
 - Maintained Nx Cloud DTE with 3 agents
@@ -97,29 +108,37 @@ Updated `.github/workflows/ci.yml`:
 The following peer dependency warnings are **expected and safe to ignore**:
 
 ### 1. TypeScript Version (Nx ESLint Plugin)
+
 ```
 @typescript-eslint/type-utils expects typescript@">=4.8.4 <5.9.0": found 5.9.3
 ```
+
 **Status**: Safe - TypeScript 5.9.3 is compatible, the peer dependency range is overly restrictive
 
 ### 2. Storybook v8 packages with v9 core
+
 ```
 @storybook/test@8.6.14 expects storybook@^8.6.14: found 9.1.10
 @storybook/core-server@8.6.14 expects storybook@^8.2.0-^8.6.0: found 9.1.10
 ```
+
 **Status**: Acceptable - These are dev dependencies in transition phase. Will be resolved when Storybook fully migrates testing packages to v9.
 
 ### 3. Nanostores
+
 ```
 @nanostores/lit@0.2.2 expects nanostores@^0.7-^0.11: found 1.0.1
 ```
+
 **Status**: Safe - Nanostores 1.0 is backward compatible
 
 ### 4. Vite 7 with Tailwind/Storybook
+
 ```
 @tailwindcss/vite@4.1.7 expects vite@^5.2.0 || ^6: found 7.1.8
 @storybook/builder-vite expects vite@^5.0.0 || ^6.0.0: found 7.1.8
 ```
+
 **Status**: Expected - Vite 7 is very new (Oct 2025), peer dependencies will catch up in next releases. Currently working fine.
 
 ## 🧪 Testing Recommendations
@@ -127,23 +146,27 @@ The following peer dependency warnings are **expected and safe to ignore**:
 Before merging to main, verify:
 
 1. **jsdom 27.0.0** - Major version update
+
    ```bash
    nx test rainforest-ui
    ```
 
 2. **React 19.2 compatibility**
+
    ```bash
    nx build personal-website
    nx dev personal-liff
    ```
 
 3. **Storybook functionality**
+
    ```bash
    nx storybook rainforest-ui
    nx build-storybook rainforest-ui
    ```
 
 4. **E2E tests**
+
    ```bash
    nx e2e personal-liff-e2e
    ```
