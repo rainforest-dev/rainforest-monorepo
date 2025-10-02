@@ -15,7 +15,7 @@
     ],
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
-  "nxCloudId": "672343b2c27b012e2c0fdcc7",
+  "nxCloudId": "68de961719b7872ef9437876",
   "plugins": [
     {
       "plugin": "@nx/js/typescript",
@@ -79,6 +79,10 @@
   "targetDefaults": {
     "e2e-ci--**/*": {
       "dependsOn": ["^build"]
+    },
+    "build": {
+      "outputs": ["{projectRoot}/dist"],
+      "cache": true
     }
   },
   "generators": {
