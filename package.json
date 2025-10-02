@@ -17,7 +17,7 @@
     "@nx/vite": "21.6.3",
     "@nx/web": "21.6.3",
     "@playwright/test": "^1.55.1",
-    "@storybook/core-server": "9.1.10",
+    "@storybook/core-server": "^8.6.14",
     "@storybook/test-runner": "^0.23.0",
     "@storybook/web-components-vite": "9.1.10",
     "@swc-node/register": "~1.10.10",
