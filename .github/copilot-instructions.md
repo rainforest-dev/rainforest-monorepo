@@ -152,9 +152,11 @@ export const FilterChip = createComponent({
 ## Migration Notes
 
 - Currently on Nx 21.6.3 (migrate-nx-21 branch)
-- Storybook 9 migration partially complete (see `storybook-migration-summary.md`)
+- Storybook 9.1.10 migration complete (core packages on v9, some dev packages on v8)
 - Using Tailwind CSS v4.1 with new `@tailwindcss/vite` plugin
-- React 19 and Next.js 15 in use (latest stable versions)
+- React 19.2 and Next.js 15.5.4 (latest stable versions)
+- All dependencies updated as of October 2, 2025 (see `DEPENDENCY-UPDATES-2025-10-02.md`)
+- Automated dependency updates via GitHub Actions (weekly)
 
 ## Key Files Reference
 

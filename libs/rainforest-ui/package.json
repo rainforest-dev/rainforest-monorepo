@@ -40,11 +40,16 @@
   },
   "devDependencies": {
     "@storybook/test": "^8.6.14",
-    "@storybook/web-components": "^8.6.14",
+    "@storybook/web-components": "^9.1.10",
     "@tailwindcss/vite": "4.1.7",
     "@types/node": "^22.15.19",
     "eslint-plugin-lit": "^2.1.1",
     "glob": "^11.0.2",
     "vite-bundle-analyzer": "^0.18.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
   }
 }
