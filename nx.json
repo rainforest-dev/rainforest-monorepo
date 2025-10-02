@@ -19,7 +19,15 @@
   "parallel": 3,
   "cacheDirectory": ".nx/cache",
   "useDaemonProcess": true,
-  "cacheableOperations": ["build", "lint", "test", "typecheck", "e2e", "storybook", "build-storybook"],
+  "cacheableOperations": [
+    "build",
+    "lint",
+    "test",
+    "typecheck",
+    "e2e",
+    "storybook",
+    "build-storybook"
+  ],
   "plugins": [
     {
       "plugin": "@nx/js/typescript",
