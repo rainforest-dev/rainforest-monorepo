@@ -60,3 +60,7 @@ storybook-static
 **/nx.instructions.md
 
 .pnpm-store
+
+
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
