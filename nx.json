@@ -15,7 +15,7 @@
     ],
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
-  "nxCloudId": "68de961719b7872ef9437876",
+  "nxCloudId": "672343b2c27b012e2c0fdcc7",
   "parallel": 3,
   "cacheDirectory": ".nx/cache",
   "useDaemonProcess": true,
@@ -32,13 +32,8 @@
     {
       "plugin": "@nx/js/typescript",
       "options": {
-        "typecheck": {
-          "targetName": "typecheck"
-        },
-        "build": {
-          "targetName": "build",
-          "configName": "tsconfig.lib.json"
-        }
+        "typecheck": { "targetName": "typecheck" },
+        "build": { "targetName": "build", "configName": "tsconfig.lib.json" }
       }
     },
     {
@@ -52,12 +47,7 @@
         "typecheckTargetName": "typecheck"
       }
     },
-    {
-      "plugin": "@nx/eslint/plugin",
-      "options": {
-        "targetName": "lint"
-      }
-    },
+    { "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" } },
     {
       "plugin": "@nx/next/plugin",
       "options": {
@@ -67,12 +57,7 @@
         "serveStaticTargetName": "serve-static"
       }
     },
-    {
-      "plugin": "@nx/playwright/plugin",
-      "options": {
-        "targetName": "e2e"
-      }
-    },
+    { "plugin": "@nx/playwright/plugin", "options": { "targetName": "e2e" } },
     {
       "plugin": "@nx/storybook/plugin",
       "options": {
@@ -84,25 +69,13 @@
     }
   ],
   "release": {
-    "version": {
-      "preVersionCommand": "pnpx nx run-many -t build"
-    }
+    "version": { "preVersionCommand": "pnpx nx run-many -t build" }
   },
   "targetDefaults": {
-    "e2e-ci--**/*": {
-      "dependsOn": ["^build"]
-    },
-    "build": {
-      "outputs": ["{projectRoot}/dist"],
-      "cache": true
-    }
+    "e2e-ci--**/*": { "dependsOn": ["^build"] },
+    "build": { "outputs": ["{projectRoot}/dist"], "cache": true }
   },
   "generators": {
-    "@nx/next": {
-      "application": {
-        "style": "css",
-        "linter": "none"
-      }
-    }
+    "@nx/next": { "application": { "style": "css", "linter": "none" } }
   }
 }
