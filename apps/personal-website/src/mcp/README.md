@@ -1,29 +1,52 @@
-# Personal Website Blog MCP Server
+# Personal Website MCP Server
 
-This MCP (Model Context Protocol) server exposes your blog content to AI tools like Claude Desktop, enabling them to access and search through your published articles and knowledge base.
+This MCP (Model Context Protocol) server exposes your complete professional profile, including blog content, work experience, education, skills, and projects, to AI tools like Claude Desktop. This enables deeply personalized, context-aware AI assistance that understands your background and expertise.
 
 ## Overview
 
 The MCP server provides:
-- **Resources**: Direct access to individual blog posts via URIs like `blog://post/{id}`
-- **Tools**: Query and search capabilities for finding relevant content
+- **Resources**: Direct access to blog posts, experiences, projects, and skills via URIs
+- **Tools**: Comprehensive query and search capabilities across all personal data
 
 This allows AI assistants to:
-- Learn about your technical expertise from your blog posts
-- Reference specific articles when answering questions
-- Understand your knowledge domains through tags and topics
-- Provide context-aware assistance based on your published content
+- **Understand you completely**: Access your full professional background
+- **Know your expertise**: Learn your skills, technologies, and experience level
+- **Reference your work**: Cite your projects and blog posts
+- **Personalize responses**: Tailor advice to your actual knowledge and experience
+- **Save context**: No need to repeatedly explain your background
 
 ## Features
 
 ### Resources
-Each blog post is exposed as a resource with:
+
+**Blog Posts** (`blog://post/{id}`):
 - Full markdown/MDX content
 - Metadata (title, description, publication date, tags)
 - Author information
 - Images and related posts
 
+**Experiences** (`profile://experience/{id}`):
+- Work history and education
+- Job titles and positions
+- Organizations and duration
+- Technologies used
+- Related projects
+
+**Projects** (`profile://project/{id}`):
+- Project names and descriptions
+- Technologies and tools used
+- Associated organizations
+- Full markdown content
+
+**Skills** (`profile://skill/{id}`):
+- Skill names and categories
+- Detailed descriptions
+- Tags (prioritized, frontend, languages, etc.)
+- Experience level context
+
 ### Tools
+
+#### Blog Tools
 
 1. **`list_blog_posts`** - List all blog posts with metadata
    - Filter by type: all, regular, or quick posts
@@ -37,11 +60,54 @@ Each blog post is exposed as a resource with:
 3. **`get_blog_post`** - Get full content of a specific post
    - Returns complete markdown with metadata
 
-4. **`get_author_info`** - Get author information
-   - Name and portfolio URL
-
-5. **`get_all_tags`** - List all tags with usage counts
+4. **`get_all_tags`** - List all tags with usage counts
    - Helps discover topics you write about
+
+#### Personal Profile Tools
+
+5. **`get_profile_summary`** - Comprehensive professional overview
+   - Top work experiences
+   - Education background
+   - Key skills and technologies
+   - Recent projects
+   - Perfect for "tell me about yourself" queries
+
+6. **`get_work_experience`** - Detailed work history
+   - Chronological job history
+   - Positions and organizations
+   - Technologies used in each role
+   - Related projects
+   - Optional language and limit filters
+
+7. **`get_education`** - Academic background
+   - Degrees and institutions
+   - Departments and specializations
+   - Duration and dates
+
+8. **`get_projects`** - Portfolio projects
+   - All projects with descriptions
+   - Filter by technology
+   - Organization context
+   - Full markdown content
+
+9. **`get_skills`** - Technical skills
+   - All skills with descriptions
+   - Filter by tag (prioritized, frontend, languages)
+   - Detailed experience context
+
+10. **`search_by_technology`** - Find by technology
+    - Search experiences using a specific technology
+    - Search projects using a specific technology
+    - See your complete history with any tech stack
+
+11. **`get_all_technologies`** - List all technologies
+    - Complete list of technologies used
+    - Derived from experiences and projects
+
+#### Author Tools
+
+12. **`get_author_info`** - Get author information
+    - Name and portfolio URL
 
 ## Installation & Configuration
 
@@ -68,7 +134,7 @@ Add the following to your Claude Desktop configuration file:
 ```json
 {
   "mcpServers": {
-    "personal-website-blog": {
+    "personal-website": {
       "command": "node",
       "args": [
         "/path/to/rainforest-monorepo/apps/personal-website/node_modules/.bin/tsx",
@@ -85,7 +151,7 @@ Alternative using pnpm:
 ```json
 {
   "mcpServers": {
-    "personal-website-blog": {
+    "personal-website": {
       "command": "pnpm",
       "args": [
         "--dir",
@@ -105,45 +171,76 @@ The MCP server will automatically start when Claude Desktop launches.
 
 Once configured, you can ask Claude:
 
-### Discover Content
+### Get to Know You
+> "Get my profile summary"
+> "What's my work experience?"
+> "What's my education background?"
+> "What are my key skills?"
+> "What projects have I worked on?"
+
+### Search by Technology
+> "What technologies do I know?"
+> "Find all my experience with Next.js"
+> "Show me projects that used React"
+> "What have I built with Tailwind CSS?"
+
+### Discover Blog Content
 > "What blog posts do I have?"
 > "List all my quick posts"
 > "What tags do I write about most?"
-
-### Search
 > "Find posts about Astro"
 > "Show me articles in the deconstruct-personal-website series"
-> "Search for posts about accessibility"
 
-### Read Content
+### Read Specific Content
 > "Show me the full content of my Web AI blog post"
 > "What did I write about in my keyboard-enter quick post?"
+> "Tell me about my Hashgreen Dex project"
+> "What do I know about Python?"
 
-### Context-Aware Help
-> "Based on my blog posts, what technologies do I know?"
-> "Reference my blog when helping me with Astro development"
+### Highly Personalized Assistance
+> "Help me build a new app using technologies I already know"
+> "Based on my experience, suggest what I should learn next"
+> "Reference my blog posts when explaining this concept"
+> "You know my background - help me write about Nx"
+> "Speak to me like you understand my skill level"
+> "What would be a good next project for someone with my experience?"
 
 ## Architecture
 
 ```
 src/mcp/
-├── server.ts           # Main MCP server implementation
-├── blog-reader.ts      # Blog post parsing and querying utilities
-├── types.ts            # TypeScript type definitions
-└── README.md          # This file
+├── server.ts                # Main MCP server implementation
+├── blog-reader.ts          # Blog post parsing and querying utilities
+├── personal-data-reader.ts # Personal data (experiences, projects, skills) parsing
+├── types.ts                # TypeScript type definitions
+└── README.md              # This file
 ```
 
 ### How It Works
 
-1. **Data Loading**: On startup, the server reads all markdown files from `src/data/blog/`
-2. **Frontmatter Parsing**: Uses `gray-matter` to extract metadata (title, tags, dates, etc.)
-3. **Resource Exposure**: Each post becomes a resource accessible via `blog://post/{id}`
-4. **Tool Handlers**: Implements search and query tools using the MCP protocol
+1. **Data Loading**: On startup, the server reads all content from multiple sources:
+   - Blog posts from `src/data/blog/`
+   - Experiences from `src/data/experiences/`
+   - Organizations from `src/data/organizations/`
+   - Projects from `src/data/projects/`
+   - Skills from `src/data/skills/`
+   - Authors from `src/data/authors/`
+
+2. **Parsing**: Uses `gray-matter` to extract frontmatter from markdown files and parses JSON for structured data
+
+3. **Resource Exposure**: All content becomes accessible via URI schemes:
+   - `blog://post/{id}` - Blog posts
+   - `profile://experience/{id}` - Work/education experiences
+   - `profile://project/{id}` - Projects
+   - `profile://skill/{id}` - Skills
+
+4. **Tool Handlers**: Implements comprehensive search and query tools using the MCP protocol
+
 5. **Communication**: Uses stdio transport to communicate with MCP clients
 
-## Blog Post Structure
+## Data Structure
 
-The server reads blog posts from:
+The server reads from multiple data collections:
 ```
 src/data/blog/
 ├── en/                           # Language-specific posts
