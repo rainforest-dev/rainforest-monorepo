@@ -18,7 +18,6 @@ import {
   searchPosts,
   getQuickPosts,
   getRegularPosts,
-  readBlogPost,
 } from './blog-reader.js';
 import {
   readAllExperiences,
@@ -31,7 +30,6 @@ import {
   filterSkillsByTag,
   getAllTechnologies,
   resolveOrganization,
-  resolveProjects,
 } from './personal-data-reader.js';
 import type { BlogPost, Experience, Organization, Project, Skill } from './types.js';
 

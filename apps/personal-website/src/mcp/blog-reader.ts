@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import matter from 'gray-matter';
-import type { Author, BlogPost, BlogPostMetadata } from './types';
+import type { Author, BlogPost } from './types';
 
 /**
  * Recursively finds all markdown files in a directory
