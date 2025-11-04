@@ -1,14 +1,17 @@
 # MCP Server Setup - Quick Start
 
-This guide will help you quickly set up the MCP server to expose your blog content to AI tools like Claude Desktop.
+This guide will help you quickly set up the MCP server to expose your complete personal and professional context to AI tools like Claude Desktop.
 
 ## What is This?
 
 The MCP (Model Context Protocol) server allows AI assistants to:
 - ✅ Read your published blog posts
-- ✅ Search your content by tags, keywords, or series
-- ✅ Understand your expertise and knowledge domains
-- ✅ Provide context-aware assistance based on your writing
+- ✅ Access your work experience and education history
+- ✅ Understand your skills and technologies you know
+- ✅ Learn about your projects and portfolio
+- ✅ Search your content by tags, keywords, technologies, or series
+- ✅ Provide highly personalized, context-aware assistance
+- ✅ Respond as if they truly know you and your expertise
 
 ## Quick Setup (Claude Desktop)
 
@@ -30,7 +33,7 @@ pnpm install
 ```json
 {
   "mcpServers": {
-    "personal-website-blog": {
+    "personal-website": {
       "command": "pnpm",
       "args": [
         "--dir",
@@ -55,34 +58,35 @@ Completely quit and restart Claude Desktop for the changes to take effect.
 ### 4. Verify It's Working
 
 In Claude Desktop, try asking:
-> "What blog posts do I have available?"
+> "Get my profile summary"
 
-> "List all tags I write about"
+> "What's my work experience?"
 
-> "Show me posts about Astro"
+> "What technologies do I know?"
 
-If it works, Claude will be able to access and search through your blog content!
+If it works, Claude will have full access to your professional profile and can respond in a highly personalized way!
 
 ## What You Can Do Now
 
-### Discover Your Content
-- "What topics do I write about?"
-- "List my most recent blog posts"
-- "Show me all my quick posts"
+### Get to Know You
+- **"Get my profile summary"** - Comprehensive overview of your experience, skills, and projects
+- **"What's my work experience?"** - Detailed work history
+- **"What's my education background?"** - Academic credentials
+- **"What are my key skills?"** - Technical skills and expertise
+- **"What projects have I worked on?"** - Portfolio of projects
 
-### Search
-- "Find posts about accessibility"
-- "Show me articles in the deconstruct-personal-website series"
-- "Search for content about Tailwind CSS"
+### Search Your Knowledge
+- **"What technologies do I know?"** - List all technologies you've used
+- **"Find all my experience with Next.js"** - Search by specific technology
+- **"Show me posts about Astro"** - Search blog by keyword
+- **"What articles are in my deconstruct-personal-website series?"** - Filter by series
 
-### Get Full Content
-- "Read my Web AI blog post"
-- "Show me the content of project-init in my deconstruct series"
-
-### Context-Aware Help
-- "Based on my blog, help me write about Astro routing"
-- "Reference my existing posts when explaining Material Design 3"
-- "What do I already know about web components?"
+### Context-Aware Assistance
+- **"Help me build a new React app using technologies I already know"**
+- **"Based on my experience, suggest what I should learn next"**
+- **"Reference my blog posts when explaining web components to me"**
+- **"You know my background - help me write a technical article about Nx"**
+- **"Speak to me like you know my skill level"**
 
 ## Troubleshooting
 
@@ -108,7 +112,7 @@ If pnpm isn't in your PATH or you prefer using Node directly:
 ```json
 {
   "mcpServers": {
-    "personal-website-blog": {
+    "personal-website": {
       "command": "node",
       "args": [
         "/path/to/rainforest-monorepo/apps/personal-website/node_modules/.bin/tsx",
@@ -124,33 +128,51 @@ If pnpm isn't in your PATH or you prefer using Node directly:
 📖 For detailed documentation, see [src/mcp/README.md](src/mcp/README.md)
 
 This includes:
-- Complete API reference for all tools
+- Complete API reference for all tools and resources
 - Architecture details
 - Development guide
 - Advanced configuration options
 
 ## Available Resources & Tools
 
-### Resources
-- Each blog post as `blog://post/{id}`
-- Includes full content, metadata, and author info
+### Resources (Direct Access)
+- **Blog posts**: `blog://post/{id}` - Full blog content with metadata
+- **Experiences**: `profile://experience/{id}` - Work and education history
+- **Projects**: `profile://project/{id}` - Portfolio projects with descriptions
+- **Skills**: `profile://skill/{id}` - Technical skills with detailed info
 
-### Tools
+### Tools (Query & Search)
+
+**Blog Tools:**
 - `list_blog_posts` - List posts with filtering
 - `search_blog_posts` - Search by keyword, tag, or series
 - `get_blog_post` - Get full post content
-- `get_author_info` - Author details
 - `get_all_tags` - List all tags with counts
+
+**Personal Profile Tools:**
+- `get_profile_summary` - Comprehensive professional overview
+- `get_work_experience` - Detailed work history
+- `get_education` - Academic background
+- `get_projects` - Portfolio projects (with tech filtering)
+- `get_skills` - Technical skills (with tag filtering)
+- `search_by_technology` - Find experiences/projects by technology
+- `get_all_technologies` - List all technologies used
+
+**Author Tools:**
+- `get_author_info` - Author details and portfolio
 
 ## Next Steps
 
-Once working, your AI assistant will automatically have context about:
-- Your technical skills and expertise
-- Technologies you work with (Astro, Nx, Lit, Tailwind, etc.)
-- Your writing style and communication preferences
-- Specific projects and series you've documented
+Once working, your AI assistant will automatically have deep context about:
+- **Professional Background**: Your complete work history and roles
+- **Education**: Your academic credentials and degrees
+- **Technical Skills**: All technologies and tools you know
+- **Project Portfolio**: Everything you've built and shipped
+- **Blog Content**: Your technical writing and knowledge sharing
+- **Communication Style**: How you explain and teach concepts
+- **Expertise Level**: Your depth of knowledge in various domains
 
-This makes AI assistance much more personalized and relevant to your actual experience and knowledge!
+**The Result:** AI assistance that feels like it comes from someone who truly knows you, your experience, and your skill level. Every response will be personalized to your actual knowledge and background!
 
 ---
 
