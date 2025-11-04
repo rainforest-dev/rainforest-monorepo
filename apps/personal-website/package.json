@@ -6,7 +6,8 @@
     "astro": "astro",
     "build": "astro check && astro build",
     "dev": "astro dev --host=0.0.0.0",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "mcp": "tsx src/mcp/server.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.9",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.5",
+    "@modelcontextprotocol/sdk": "^1.21.0",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@types/dom-chromium-ai": "^0.0.6",
@@ -62,6 +64,9 @@
     "@webgpu/types": "^0.1.60",
     "astro-compress": "^2.3.8",
     "eslint-plugin-astro": "^1.4.0",
+    "glob": "^11.0.2",
+    "gray-matter": "^4.0.3",
+    "tsx": "^4.20.6",
     "typescript": "^5.8.3",
     "vite-plugin-pwa": "^1.0.0"
   },
