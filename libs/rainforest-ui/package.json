@@ -44,7 +44,7 @@
     "@tailwindcss/vite": "4.1.7",
     "@types/node": "^22.15.19",
     "eslint-plugin-lit": "^2.1.1",
-    "glob": "^11.0.2",
+    "glob": "^11.1.0",
     "vite-bundle-analyzer": "^0.18.0"
   },
   "peerDependenciesMeta": {
