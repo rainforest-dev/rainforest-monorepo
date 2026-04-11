@@ -1,8 +1,7 @@
-/// <reference types='vitest' />
 import tailwindcss from '@tailwindcss/vite';
 import { glob } from 'glob';
 import * as path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 // import { analyzer } from 'vite-bundle-analyzer';
 import dts from 'vite-plugin-dts';
 
