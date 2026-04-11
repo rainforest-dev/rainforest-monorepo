@@ -46,8 +46,7 @@
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0",
     "tailwindcss": "catalog:",
-    "vue": "^3.5.14",
-    "zod": "^4.3.6"
+    "vue": "^3.5.14"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
