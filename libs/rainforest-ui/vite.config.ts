@@ -1,9 +1,9 @@
 import tailwindcss from '@tailwindcss/vite';
 import { glob } from 'glob';
 import * as path from 'path';
-import { defineConfig } from 'vitest/config';
 // import { analyzer } from 'vite-bundle-analyzer';
 import dts from 'vite-plugin-dts';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   root: __dirname,
