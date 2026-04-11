@@ -27,7 +27,7 @@ const authors = defineCollection({
   loader: glob({ pattern: '**/*.json', base: './src/data/authors' }),
   schema: z.object({
     name: z.string(),
-    portfolio: z.string().url(),
+    portfolio: z.url(),
   }),
 });
 
@@ -37,7 +37,7 @@ const organizations = defineCollection({
     name: z.string(),
     language: z.enum(supportedLngs),
     department: z.string().optional(),
-    link: z.string().url().optional(),
+    link: z.url().optional(),
   }),
 });
 
