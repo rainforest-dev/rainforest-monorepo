@@ -4,6 +4,9 @@
   "private": true,
   "license": "MIT",
   "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {},
   "devDependencies": {
     "@eslint/js": "^9.36.0",
@@ -62,5 +65,14 @@
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@vite-pwa/astro>astro": "6",
+        "@nanostores/lit>nanostores": "1",
+        "@tailwindcss/vite>vite": "7"
+      }
+    }
   }
 }

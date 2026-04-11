@@ -46,7 +46,7 @@
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0",
     "tailwindcss": "catalog:",
-    "vue": "^3.5.14"
+    "vue": "^3.5.32"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
@@ -58,12 +58,14 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@vite-pwa/astro": "^1.1.1",
+    "@vite-pwa/astro": "^1.2.0",
     "@webgpu/types": "^0.1.60",
     "astro-compress": "^2.3.8",
     "eslint-plugin-astro": "^1.4.0",
     "typescript": "catalog:",
-    "vite-plugin-pwa": "^1.0.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "workbox-build": "^7.4.0",
+    "workbox-window": "^7.4.0"
   },
   "nx": {
     "targets": {
