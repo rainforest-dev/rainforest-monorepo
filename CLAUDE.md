@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Monorepo Structure
 
-Nx 22.5.1 monorepo using pnpm workspaces (pnpm@9.15.0):
+Nx 22.6.4 monorepo using pnpm workspaces (pnpm@9.15.0):
 
-- **apps/personal-website** - Astro 5 + SSR personal website (primary app)
-- **apps/personal-liff** - Next.js 16 LINE LIFF app
+- **apps/personal-website** - Astro 6 + SSR personal website (primary app), deployed on Vercel
+- **apps/personal-liff** - Next.js 16 LINE LIFF app (dev port 9000, self-signed HTTPS via `--experimental-https`)
 - **apps/personal-liff-e2e** - Playwright e2e tests
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
 
@@ -16,7 +16,7 @@ Nx 22.5.1 monorepo using pnpm workspaces (pnpm@9.15.0):
 ```bash
 # ALWAYS use nx commands, NEVER npm scripts directly
 pnpm nx dev personal-website          # Astro dev server
-pnpm nx dev personal-liff            # Next.js dev server
+pnpm nx dev personal-liff            # Next.js dev server (port 9000)
 pnpm nx build <project>              # Build project (auto-builds dependencies)
 pnpm nx test rainforest-ui           # Run Vitest unit tests
 pnpm nx e2e personal-liff-e2e        # Run Playwright e2e tests
@@ -37,7 +37,7 @@ pnpm exec nx release                  # Version and release libraries
 ### Dependency Chain
 personal-website → @rainforest-dev/rainforest-ui (via `workspace:*`)
 
-Build targets have `dependsOn: ["^build"]` in nx.json, so building personal-website automatically builds rainforest-ui first.
+The `dependsOn: ["^build"]` is configured in `apps/personal-website/package.json` under `nx.targets.build` and `nx.targets.dev`, so building personal-website automatically builds rainforest-ui first.
 
 ### rainforest-ui Multi-Entry Build
 The library uses glob-based entry points in [vite.config.ts](libs/rainforest-ui/vite.config.ts):
@@ -85,26 +85,43 @@ export const FilterChip = createComponent({
 });
 ```
 
+### Vercel SSR Adapter
+`astro.config.mjs` uses `@astrojs/vercel` with `output: 'server'`, Vercel Web Analytics, and Vercel image service enabled. The site deploys to `https://rainforest.tools`.
+
+### PWA
+`personal-website` uses `@vite-pwa/astro` (wraps `vite-plugin-pwa`). PWA config lives in `astro.config.mjs`. Service worker is registered via `virtual:pwa-register` in `src/pwa.ts`. `devOptions.enabled: true` means the service worker is active in dev mode too.
+
+> **Note**: `astro-compress` is loaded via dynamic import (`(await import('astro-compress')).default()`) due to ESM compatibility constraints.
+
 ## TypeScript Configuration
 
 - **Strict mode enabled** with aggressive flags (`noUnusedLocals`, `noImplicitReturns`)
-- **Composite project references** - run `nx sync` if references drift
+- **Composite project references** - run `pnpm nx sync` if references drift
 - **Target ES2022** defined in [tsconfig.base.json](tsconfig.base.json)
 
 ## Code Style
 
+### Prettier
+Configured with `singleQuote: true` and `prettier-plugin-tailwindcss` for Tailwind class sorting. Run with:
+```bash
+pnpm prettier --write <file>
+```
+
 ### Import Sorting (Enforced)
 ESLint uses `simple-import-sort` - imports must be alphabetically sorted:
 ```bash
-nx lint <project> --fix  # Auto-sort imports
+pnpm nx lint <project> --fix  # Auto-sort imports
 ```
 
 ### Module Boundaries
 ESLint enforces Nx module boundaries with `@nx/enforce-module-boundaries` rule. Projects can only import from declared dependencies in package.json.
 
+### rainforest-ui Lint Rules
+`libs/rainforest-ui` uses `eslint-plugin-lit` (`flat/recommended`) and `eslint-plugin-storybook` (`flat/recommended`). Story files must import types from `@storybook/web-components-vite` (the framework package), not `@storybook/web-components` (the renderer).
+
 ## Testing
 
-- **Vitest 4 workspace** discovers all `vite.config.ts` files via [vitest.workspace.ts](vitest.workspace.ts)
+- **Vitest 4 workspace** discovers all `vite.config.ts` and `vitest.config.ts` files via [vitest.workspace.ts](vitest.workspace.ts)
 - Tests use `.test.ts` or `.spec.ts` suffixes
 - Coverage outputs to `coverage/<project-name>/`
 - rainforest-ui uses jsdom environment
@@ -117,6 +134,37 @@ pnpm nx build-storybook rainforest-ui # Build static site
 ```
 
 Stories live in [libs/rainforest-ui/stories/](libs/rainforest-ui/stories/) using Storybook 10 + Web Components format.
+
+**Storybook 10 config pattern**: Addon and framework names in `.storybook/main.ts` must be wrapped with `getAbsolutePath()` (defined in the file using `import.meta.resolve`). Do not pass bare strings.
+
+## Astro 6 — Content Collections
+
+Content collection config lives at `apps/personal-website/src/content.config.ts` (not `src/content/config.ts` — that was the Astro 5 location).
+
+Always import `z` from `astro/zod`, not from `astro:content` (deprecated) or bare `zod`:
+```typescript
+import { defineCollection, reference } from 'astro:content';
+import { z } from 'astro/zod';
+```
+
+Zod v4 top-level validators replace deprecated string-chained ones:
+```typescript
+// ✅ Zod v4
+z.url()
+z.email()
+
+// ❌ deprecated
+z.string().url()
+z.string().email()
+```
+
+## pnpm Catalogs
+
+Shared dependency versions are defined in `pnpm-workspace.yaml` under the `catalog:` key. When adding a package that already has a catalog entry (`react`, `react-dom`, `next`, `lit`, `tailwindcss`, `@tailwindcss/vite`, `@tailwindcss/typography`, `@material/material-color-utilities`, `@types/node`, `@types/react`, `@types/react-dom`, `typescript`), use `"catalog:"` as the version string in `package.json`:
+```json
+"react": "catalog:"
+```
+Run `pnpm install` after editing versions in `pnpm-workspace.yaml`.
 
 ## i18n (personal-website)
 
@@ -133,12 +181,12 @@ Astro markdown configured with:
 
 ## CI/CD
 
-[.github/workflows/ci.yml](.github/workflows/ci.yml) runs:
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on Node 20:
 ```bash
 pnpm nx affected -t lint test typecheck
 ```
 
-Uses Nx Cloud with 3 distributed agents (`linux-medium-js`) and caches node_modules via pnpm.
+Uses Nx Cloud with 3 distributed agents (`linux-medium-js`) and caches the pnpm store via `actions/setup-node` with `cache: 'pnpm'`.
 
 ## Common Workflows
 
@@ -178,20 +226,21 @@ pnpm add <pkg>        # Add dependency (use -w for workspace root)
 
 # General Guidelines for working with Nx
 
+- For navigating/exploring the workspace, invoke the `nx-workspace` skill first - it has patterns for querying projects, targets, and dependencies
 - When running tasks (for example build, lint, test, e2e, etc.), always prefer running the task through `nx` (i.e. `nx run`, `nx run-many`, `nx affected`) instead of using the underlying tooling directly
+- Prefix nx commands with the workspace's package manager (e.g., `pnpm nx build`, `npm exec nx test`) - avoids using globally installed CLI
 - You have access to the Nx MCP server and its tools, use them to help the user
-- When answering questions about the repository, use the `nx_workspace` tool first to gain an understanding of the workspace architecture where applicable.
-- When working in individual projects, use the `nx_project_details` mcp tool to analyze and understand the specific project structure and dependencies
-- For questions around nx configuration, best practices or if you're unsure, use the `nx_docs` tool to get relevant, up-to-date docs. Always use this instead of assuming things about nx configuration
-- If the user needs help with an Nx configuration or project graph error, use the `nx_workspace` tool to get any errors
+- For Nx plugin best practices, check `node_modules/@nx/<plugin>/PLUGIN.md`. Not all plugins have this file - proceed without it if unavailable.
+- NEVER guess CLI flags - always check nx_docs or `--help` first when unsure
 
-# CI Error Guidelines
+## Scaffolding & Generators
 
-If the user wants help with fixing an error in their CI pipeline, use the following flow:
-- Retrieve the list of current CI Pipeline Executions (CIPEs) using the `nx_cloud_cipe_details` tool
-- If there are any errors, use the `nx_cloud_fix_cipe_failure` tool to retrieve the logs for a specific task
-- Use the task logs to see what's wrong and help the user fix their problem. Use the appropriate tools if necessary
-- Make sure that the problem is fixed by running the task that you passed into the `nx_cloud_fix_cipe_failure` tool
+- For scaffolding tasks (creating apps, libs, project structure, setup), ALWAYS invoke the `nx-generate` skill FIRST before exploring or calling MCP tools
 
+## When to use nx_docs
+
+- USE for: advanced config options, unfamiliar flags, migration guides, plugin configuration, edge cases
+- DON'T USE for: basic generator syntax (`nx g @nx/react:app`), standard commands, things you already know
+- The `nx-generate` skill handles generator discovery internally - don't call nx_docs just to look up generator syntax
 
 <!-- nx configuration end-->
