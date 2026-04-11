@@ -2,7 +2,7 @@ import { tags } from '@utils/constants';
 import { supportedLngs } from '@utils/i18n';
 import { glob } from 'astro/loaders';
 import { defineCollection, reference } from 'astro:content';
-import { z } from 'zod';
+import { z } from 'astro/zod';
 
 const blog = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/data/blog' }),
