@@ -29,10 +29,10 @@
     "!**/*.tsbuildinfo"
   ],
   "dependencies": {
-    "@material/material-color-utilities": "^0.3.0",
-    "@tailwindcss/typography": "^0.5.16",
-    "lit": "3.3.0",
-    "tailwindcss": "4.1.7"
+    "@material/material-color-utilities": "catalog:",
+    "@tailwindcss/typography": "catalog:",
+    "lit": "catalog:",
+    "tailwindcss": "catalog:"
   },
   "nx": {
     "sourceRoot": "libs/rainforest-ui/src",
@@ -40,8 +40,8 @@
   },
   "devDependencies": {
     "@storybook/web-components": "^10.2.8",
-    "@tailwindcss/vite": "4.1.7",
-    "@types/node": "^22.15.19",
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
     "eslint-plugin-lit": "^2.1.1",
     "glob": "^11.0.2",
     "vite-bundle-analyzer": "^0.18.0"

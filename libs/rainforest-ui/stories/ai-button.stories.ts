@@ -1,6 +1,6 @@
 import '../src/lit/ai-button/index';
 
-import type { Meta } from '@storybook/web-components';
+import type { Meta } from '@storybook/web-components-vite';
 
 import { RfAiButton } from '../src/lit/ai-button/index';
 
