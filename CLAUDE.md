@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Monorepo Structure
 
-Nx 21.6 monorepo using pnpm workspaces (pnpm@9.15.0):
+Nx 22.5.1 monorepo using pnpm workspaces (pnpm@9.15.0):
 
 - **apps/personal-website** - Astro 5 + SSR personal website (primary app)
-- **apps/personal-liff** - Next.js 15 LINE LIFF app
+- **apps/personal-liff** - Next.js 16 LINE LIFF app
 - **apps/personal-liff-e2e** - Playwright e2e tests
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
 
@@ -15,21 +15,21 @@ Nx 21.6 monorepo using pnpm workspaces (pnpm@9.15.0):
 
 ```bash
 # ALWAYS use nx commands, NEVER npm scripts directly
-nx dev personal-website          # Astro dev server
-nx dev personal-liff            # Next.js dev server
-nx build <project>              # Build project (auto-builds dependencies)
-nx test rainforest-ui           # Run Vitest unit tests
-nx e2e personal-liff-e2e        # Run Playwright e2e tests
-nx lint <project> --fix         # Lint with auto-fix
-nx affected -t lint test typecheck  # Run affected tasks (for CI)
+pnpm nx dev personal-website          # Astro dev server
+pnpm nx dev personal-liff            # Next.js dev server
+pnpm nx build <project>              # Build project (auto-builds dependencies)
+pnpm nx test rainforest-ui           # Run Vitest unit tests
+pnpm nx e2e personal-liff-e2e        # Run Playwright e2e tests
+pnpm nx lint <project> --fix         # Lint with auto-fix
+pnpm nx affected -t lint test typecheck  # Run affected tasks (for CI)
 
 # Single test file
-nx test rainforest-ui -- src/path/to/file.test.ts
+pnpm nx test rainforest-ui -- src/path/to/file.test.ts
 
 # Nx utilities
-nx graph                        # Visualize project dependencies
-nx sync                         # Sync TypeScript project references
-npx nx release                  # Version and release libraries
+pnpm nx graph                        # Visualize project dependencies
+pnpm nx sync                         # Sync TypeScript project references
+pnpm exec nx release                  # Version and release libraries
 ```
 
 ## Critical Architecture
@@ -104,7 +104,7 @@ ESLint enforces Nx module boundaries with `@nx/enforce-module-boundaries` rule. 
 
 ## Testing
 
-- **Vitest workspace** discovers all `vite.config.ts` files via [vitest.workspace.ts](vitest.workspace.ts)
+- **Vitest 4 workspace** discovers all `vite.config.ts` files via [vitest.workspace.ts](vitest.workspace.ts)
 - Tests use `.test.ts` or `.spec.ts` suffixes
 - Coverage outputs to `coverage/<project-name>/`
 - rainforest-ui uses jsdom environment
@@ -112,11 +112,11 @@ ESLint enforces Nx module boundaries with `@nx/enforce-module-boundaries` rule. 
 ## Storybook
 
 ```bash
-nx storybook rainforest-ui      # Dev server
-nx build-storybook rainforest-ui # Build static site
+pnpm nx storybook rainforest-ui      # Dev server
+pnpm nx build-storybook rainforest-ui # Build static site
 ```
 
-Stories live in [libs/rainforest-ui/stories/](libs/rainforest-ui/stories/) using Storybook 9 + Web Components format.
+Stories live in [libs/rainforest-ui/stories/](libs/rainforest-ui/stories/) using Storybook 10 + Web Components format.
 
 ## i18n (personal-website)
 
@@ -135,7 +135,7 @@ Astro markdown configured with:
 
 [.github/workflows/ci.yml](.github/workflows/ci.yml) runs:
 ```bash
-nx affected -t lint test typecheck
+pnpm nx affected -t lint test typecheck
 ```
 
 Uses Nx Cloud with 3 distributed agents (`linux-medium-js`) and caches node_modules via pnpm.
@@ -159,17 +159,10 @@ import { sourceColorFromImageBytes } from '@rainforest-dev/rainforest-ui';
 
 ### Debugging Build Issues
 ```bash
-nx graph              # Check dependency relationships
-nx sync               # Fix TypeScript project references
-nx reset              # Clear Nx cache
+pnpm nx graph              # Check dependency relationships
+pnpm nx sync               # Fix TypeScript project references
+pnpm nx reset              # Clear Nx cache
 ```
-
-## Migration Status
-
-- Recently migrated to Nx 21.6.3 (migrate-nx-21 branch)
-- Storybook 9 migration partially complete (see [storybook-migration-summary.md](storybook-migration-summary.md))
-- Using Tailwind CSS v4.1 with new `@tailwindcss/vite` plugin
-- React 19 and Next.js 15 (latest stable)
 
 ## Package Manager
 
