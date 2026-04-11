@@ -1,6 +1,6 @@
 import '../src/lit/tw-lit/index';
 
-import type { Meta } from '@storybook/web-components';
+import type { Meta } from '@storybook/web-components-vite';
 
 import type { RfTwLit } from '../src/lit/tw-lit/index';
 

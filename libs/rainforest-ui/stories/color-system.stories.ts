@@ -1,7 +1,7 @@
 import '../src/lit/design-system/colors';
 import '../src/lit/design-system/typography';
 
-import type { Meta } from '@storybook/web-components';
+import type { Meta } from '@storybook/web-components-vite';
 
 export default {
   title: 'Color System',
