@@ -9,12 +9,12 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "@astrojs/mdx": "^4.3.9",
-    "@astrojs/react": "4.4.1",
-    "@astrojs/rss": "^4.0.13",
-    "@astrojs/sitemap": "^3.6.0",
-    "@astrojs/vercel": "9.0.0",
-    "@astrojs/vue": "5.1.2",
+    "@astrojs/mdx": "^5.0.3",
+    "@astrojs/react": "5.0.3",
+    "@astrojs/rss": "^4.0.18",
+    "@astrojs/sitemap": "^3.7.2",
+    "@astrojs/vercel": "10.0.4",
+    "@astrojs/vue": "6.0.1",
     "@iconify-icon/react": "^3.0.0",
     "@lit/react": "^1.0.7",
     "@material/material-color-utilities": "^0.3.0",
@@ -28,7 +28,7 @@
     "@tailwindcss/vite": "4.1.7",
     "@vercel/speed-insights": "^1.2.0",
     "@vueuse/core": "^13.2.0",
-    "astro": "5.15.3",
+    "astro": "6.1.5",
     "baseline-status": "^1.0.11",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -49,7 +49,7 @@
     "vue": "^3.5.14"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.5",
+    "@astrojs/check": "^0.9.8",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@types/dom-chromium-ai": "^0.0.6",

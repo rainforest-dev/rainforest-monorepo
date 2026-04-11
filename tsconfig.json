@@ -16,9 +16,4 @@
       "path": "./apps/personal-liff"
     }
   ],
-  "ts-node": {
-    "compilerOptions": {
-      "module": "commonjs"
-    }
-  }
 }
