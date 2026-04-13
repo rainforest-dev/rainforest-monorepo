@@ -3,16 +3,16 @@ packages:
   - libs/*
 
 catalog:
-  '@material/material-color-utilities': ^0.3.0
-  '@tailwindcss/typography': ^0.5.16
+  '@material/material-color-utilities': ^0.4.0
+  '@tailwindcss/typography': ^0.5.19
   '@tailwindcss/vite': 4.2.2
   vite: 8.0.8
-  '@types/node': ^22.15.19
-  '@types/react': 19.2.0
-  '@types/react-dom': 19.2.0
+  '@types/node': ^25.0.10
+  '@types/react': 19.2.9
+  '@types/react-dom': 19.2.3
   lit: 3.3.2
   next: 16.2.3
-  react: 19.2.0
-  react-dom: 19.2.0
+  react: 19.2.3
+  react-dom: 19.2.3
   tailwindcss: 4.2.2
   typescript: 5.9.3
