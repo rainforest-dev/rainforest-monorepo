@@ -3,7 +3,7 @@ packages:
   - libs/*
 
 catalog:
-  '@material/material-color-utilities': ^0.4.0
+  '@material/material-color-utilities': ^0.3.0
   '@tailwindcss/typography': ^0.5.19
   '@tailwindcss/vite': 4.2.2
   vite: 8.0.8

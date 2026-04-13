@@ -7,8 +7,8 @@ settings:
 catalogs:
   default:
     '@material/material-color-utilities':
-      specifier: ^0.4.0
-      version: 0.4.0
+      specifier: ^0.3.0
+      version: 0.3.0
     '@tailwindcss/typography':
       specifier: ^0.5.19
       version: 0.5.19
@@ -233,7 +233,7 @@ importers:
         version: 1.0.8(@types/react@19.2.9)
       '@material/material-color-utilities':
         specifier: 'catalog:'
-        version: 0.4.0
+        version: 0.3.0
       '@material/web':
         specifier: ^2.4.1
         version: 2.4.1
@@ -378,7 +378,7 @@ importers:
     dependencies:
       '@material/material-color-utilities':
         specifier: 'catalog:'
-        version: 0.4.0
+        version: 0.3.0
       '@tailwindcss/typography':
         specifier: 'catalog:'
         version: 0.5.19(tailwindcss@4.2.2)
@@ -2279,8 +2279,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@material/material-color-utilities@0.4.0':
-    resolution: {integrity: sha512-dlq6VExJReb8dhjj3a/yTigr3ncNwoFmL5Iy2ENtbDX03EmNeOEdZ+vsaGrj7RTuO+mB7L58II4LCsl4NpM8uw==}
+  '@material/material-color-utilities@0.3.0':
+    resolution: {integrity: sha512-ztmtTd6xwnuh2/xu+Vb01btgV8SQWYCaK56CkRK8gEkWe5TuDyBcYJ0wgkMRn+2VcE9KUmhvkz+N9GHrqw/C0g==}
 
   '@material/web@2.4.1':
     resolution: {integrity: sha512-0sk9t25acJ72Qv3r0n9r0lgDbPaAKnpm0p+QmEAAwYyZomHxuVbgrrAdtNXaRm7jFyGh+WsTr8bhtvCnpPRFjw==}
@@ -14066,7 +14066,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@material/material-color-utilities@0.4.0': {}
+  '@material/material-color-utilities@0.3.0': {}
 
   '@material/web@2.4.1':
     dependencies:
@@ -16039,7 +16039,7 @@ snapshots:
   '@testing-library/dom@10.4.0':
     dependencies:
       '@babel/code-frame': 7.29.0
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.29.2
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       chalk: 4.1.2
