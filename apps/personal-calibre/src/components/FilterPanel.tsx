@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 
 import { Input } from '@/components/ui/input';
 import {
@@ -17,9 +17,20 @@ interface Props {
   filters: FilterOptions;
 }
 
-export function FilterPanel({ filters }: Props) {
+interface SearchResult {
+  id: number;
+  title: string;
+  author: string;
+  series: string | null;
+}
+
+function FilterPanelInner({ filters }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') ?? '');
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const updateParam = useCallback(
     (key: string, value: string | null) => {
@@ -35,24 +46,67 @@ export function FilterPanel({ filters }: Props) {
     [router, searchParams],
   );
 
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!searchQuery.trim()) {
+        setSuggestions([]);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `/api/books/search?q=${encodeURIComponent(searchQuery)}`,
+        );
+        const data = (await res.json()) as { results: SearchResult[] };
+        setSuggestions(data.results ?? []);
+      } catch {
+        setSuggestions([]);
+      }
+    };
+
+    const id = setTimeout(() => void fetchSuggestions(), 300);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
+
   return (
     <div className="flex flex-wrap gap-2">
-      <Input
-        placeholder="Search books..."
-        defaultValue={searchParams.get('q') ?? ''}
-        className="w-48"
-        onChange={(e) => {
-          const val = e.target.value;
-          const params = new URLSearchParams(searchParams.toString());
-          if (val) {
-            params.set('q', val);
-          } else {
-            params.delete('q');
-          }
-          params.delete('page');
-          router.replace(`/?${params.toString()}`);
-        }}
-      />
+      <div className="relative">
+        <Input
+          placeholder="Search books..."
+          value={searchQuery}
+          className="w-64"
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              updateParam('q', searchQuery);
+              setShowSuggestions(false);
+            }
+          }}
+        />
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="bg-background absolute top-full z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border shadow-lg">
+            {suggestions.map((s) => (
+              <div
+                key={s.id}
+                role="button"
+                tabIndex={0}
+                className="hover:bg-muted flex cursor-pointer flex-col px-3 py-2 text-sm"
+                onClick={() => router.push(`/books/${s.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') router.push(`/books/${s.id}`);
+                }}
+              >
+                <span className="truncate font-medium">{s.title}</span>
+                <span className="text-muted-foreground truncate text-xs">
+                  {s.author}
+                  {s.series ? ` • ${s.series}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <Select
         value={searchParams.get('author') ?? 'all'}
@@ -105,5 +159,17 @@ export function FilterPanel({ filters }: Props) {
         </SelectContent>
       </Select>
     </div>
+  );
+}
+
+export function FilterPanel(props: Props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-muted h-10 w-full animate-pulse rounded-md" />
+      }
+    >
+      <FilterPanelInner {...props} />
+    </Suspense>
   );
 }
