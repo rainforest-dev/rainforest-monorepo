@@ -8,6 +8,7 @@ const nextConfig: WithNxOptions = {
   cacheComponents: true,
   images: { unoptimized: true },
   logging: { browserToTerminal: 'error' },
+  output: 'standalone',
 };
 
 export default composePlugins(withNx)(nextConfig);
