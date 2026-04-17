@@ -1,0 +1,122 @@
+name: Release personal-calibre to GHCR
+
+# Automatic release on push to main when personal-calibre changes.
+# CI: nx release (semver + GitHub Release) → GHCR push via docker/build-push-action.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/personal-calibre/**'
+      - '.github/workflows/release-personal-calibre.yml'
+  workflow_dispatch:
+    inputs:
+      first-release:
+        description: 'First release (skips changelog diff check)'
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  contents: write
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: ghcr.io/rainforest-dev/personal-calibre
+  NX_NO_CLOUD: ${{ vars.NX_NO_CLOUD }}
+
+jobs:
+  release-and-push:
+    name: Release, Build, and Push to GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: nrwl/nx-set-shas@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: nx release — version and changelog
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIRST_RELEASE: ${{ inputs.first-release }}
+        run: |
+          FIRST_RELEASE_FLAG=""
+          if [ "$FIRST_RELEASE" = "true" ]; then
+            FIRST_RELEASE_FLAG="--first-release"
+          fi
+
+          # shellcheck disable=SC2086
+          pnpm exec nx release --yes -g docker-apps --skip-publish $FIRST_RELEASE_FLAG \
+            2>&1 | tee /tmp/nx-release.log
+
+          VERSION=$(git tag --sort=-creatordate | grep '^personal-calibre@' | head -1 | sed 's/personal-calibre@//')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Released: ${VERSION}"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/personal-calibre/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ steps.release.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push release tags
+        id: push-tags
+        continue-on-error: true
+        run: git push origin --tags --force
+
+      - name: Release summary
+        if: always()
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          TAG_PUSH: ${{ steps.push-tags.outcome }}
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          echo "### personal-calibre Release" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Version** | \`${VERSION}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image** | \`${IMAGE_NAME}:${VERSION}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Git SHA** | \`${GIT_SHA}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Tag Push** | ${TAG_PUSH} |" >> "$GITHUB_STEP_SUMMARY"
