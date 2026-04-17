@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import sanitizeHtml from 'sanitize-html';
 
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { getBook } from '@/lib/queries';
 import { cn } from '@/lib/utils';
 
