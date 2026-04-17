@@ -81,7 +81,23 @@
   ],
   "release": {
     "version": {
-      "preVersionCommand": "pnpx nx run-many -t build"
+      "preVersionCommand": "pnpm exec nx build rainforest-ui"
+    },
+    "groups": {
+      "docker-apps": {
+        "projects": ["personal-calibre"],
+        "releaseTagPattern": "{projectName}@{version}",
+        "version": {
+          "generatorOptions": {
+            "specifierSource": "conventional-commits",
+            "currentVersionResolver": "git-tag",
+            "fallbackCurrentVersionResolver": "disk"
+          }
+        },
+        "changelog": {
+          "createRelease": "github"
+        }
+      }
     }
   },
   "targetDefaults": {
