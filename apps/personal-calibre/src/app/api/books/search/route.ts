@@ -25,7 +25,10 @@ export async function GET(request: NextRequest) {
      LIMIT 20`,
   );
 
-  const results = stmt.all(`${q}*`) as FtsRow[];
-
-  return NextResponse.json({ results });
+  try {
+    const results = stmt.all(`${q}*`) as FtsRow[];
+    return NextResponse.json({ results });
+  } catch {
+    return NextResponse.json({ results: [] });
+  }
 }

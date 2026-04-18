@@ -86,7 +86,7 @@ export default async function BookDetailPage({ params }: Props) {
             {book.rating != null && (
               <>
                 <dt className="text-muted-foreground">Rating</dt>
-                <dd>{'★'.repeat(book.rating / 2)}</dd>
+                <dd>{'★'.repeat(Math.floor(book.rating / 2))}</dd>
               </>
             )}
           </dl>
