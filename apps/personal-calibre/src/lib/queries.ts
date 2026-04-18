@@ -217,7 +217,7 @@ export async function getBook(id: number): Promise<BookDetail | null> {
     db
       .select({ langCode: languages.langCode })
       .from(booksLanguagesLink)
-      .innerJoin(languages, eq(languages.id, booksLanguagesLink.book))
+      .innerJoin(languages, eq(languages.id, booksLanguagesLink.langCode))
       .where(eq(booksLanguagesLink.book, id))
       .get(),
   ]);

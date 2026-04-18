@@ -14,10 +14,10 @@ interface Props {
 
 export default async function LibraryPage({ searchParams }: Props) {
   const params = await searchParams;
-  const page = Number(params.page ?? 1);
-  const authorId = params.author ? Number(params.author) : undefined;
-  const tagId = params.tag ? Number(params.tag) : undefined;
-  const seriesId = params.series ? Number(params.series) : undefined;
+  const page = Math.max(1, parseInt(params.page ?? '1') || 1);
+  const authorId = params.author ? (parseInt(params.author) || undefined) : undefined;
+  const tagId = params.tag ? (parseInt(params.tag) || undefined) : undefined;
+  const seriesId = params.series ? (parseInt(params.series) || undefined) : undefined;
 
   const [{ books, total }, filters] = await Promise.all([
     getBookList({ page, q: params.q, authorId, tagId, seriesId }),
