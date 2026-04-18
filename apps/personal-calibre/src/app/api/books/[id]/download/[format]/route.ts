@@ -49,7 +49,7 @@ export async function GET(
   const filePath = path.join(
     process.env.CALIBRE_LIBRARY_PATH,
     book.path,
-    `${fileRow.name}.${fmt}`,
+    `${fileRow.name}.${fmt.toLowerCase()}`,
   );
 
   if (!existsSync(filePath)) {

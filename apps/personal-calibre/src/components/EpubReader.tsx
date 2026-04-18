@@ -19,41 +19,51 @@ export function EpubReader({ bookId, title }: Props) {
   useEffect(() => {
     if (!viewerRef.current) return;
 
-    const epubUrl = `/api/books/${bookId}/download/epub`;
-    const newBook = ePub(epubUrl);
-    setBook(newBook);
+    let book: ReturnType<typeof ePub> | null = null;
+    let cleanupKeydown: (() => void) | null = null;
+    let cancelled = false;
+    const container = viewerRef.current;
 
-    const newRendition = newBook.renderTo(viewerRef.current, {
-      width: '100%',
-      height: '100%',
-      spread: 'none',
-      manager: 'continuous',
-      flow: 'paginated',
-    });
+    fetch(`/api/books/${bookId}/download/epub`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`epub fetch failed: ${res.status}`);
+        return res.arrayBuffer();
+      })
+      .then((buffer) => {
+        if (cancelled) return;
 
-    setRendition(newRendition);
+        book = ePub(buffer);
+        setBook(book);
 
-    const savedLocation = localStorage.getItem(`epub-location-${bookId}`);
-    if (savedLocation) {
-      newRendition.display(savedLocation);
-    } else {
-      newRendition.display();
-    }
+        const rendition = book.renderTo(container, {
+          width: '100%',
+          height: '100%',
+          spread: 'none',
+          flow: 'paginated',
+        });
 
-    newRendition.on('relocated', (location: Location) => {
-      localStorage.setItem(`epub-location-${bookId}`, location.start.cfi);
-    });
+        setRendition(rendition);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') newRendition.prev();
-      else if (e.key === 'ArrowRight') newRendition.next();
-    };
+        const saved = localStorage.getItem(`epub-location-${bookId}`);
+        rendition.display(saved ?? undefined);
 
-    document.addEventListener('keydown', handleKeyDown);
+        rendition.on('relocated', (location: Location) => {
+          localStorage.setItem(`epub-location-${bookId}`, location.start.cfi);
+        });
+
+        const onKeyDown = (e: KeyboardEvent) => {
+          if (e.key === 'ArrowLeft') rendition.prev();
+          else if (e.key === 'ArrowRight') rendition.next();
+        };
+        document.addEventListener('keydown', onKeyDown);
+        cleanupKeydown = () => document.removeEventListener('keydown', onKeyDown);
+      })
+      .catch((err) => console.error(err));
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      newBook.destroy();
+      cancelled = true;
+      cleanupKeydown?.();
+      book?.destroy();
     };
   }, [bookId]);
 

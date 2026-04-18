@@ -11,11 +11,11 @@ COPY apps/personal-calibre/package.json apps/personal-calibre/
 
 # Install only personal-calibre's dependencies
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --filter personal-calibre... --frozen-lockfile
+    pnpm install --filter @rainforest-monorepo/personal-calibre... --frozen-lockfile
 
 # Copy source and build
 COPY apps/personal-calibre apps/personal-calibre
-RUN pnpm --filter personal-calibre exec next build
+RUN pnpm --filter @rainforest-monorepo/personal-calibre exec next build
 
 # Minimal runtime image
 FROM node:22-alpine AS runtime
