@@ -4,8 +4,8 @@
   "private": true,
   "dependencies": {
     "@line/liff": "^2.27.3",
-    "@mantine/core": "^8.3.13",
-    "@mantine/hooks": "^8.3.13",
+    "@mantine/core": "^9.0.2",
+    "@mantine/hooks": "^9.0.2",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
