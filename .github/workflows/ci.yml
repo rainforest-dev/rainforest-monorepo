@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       # This enables task distribution via Nx Cloud
       # Run this command as early as possible, before dependencies are installed
