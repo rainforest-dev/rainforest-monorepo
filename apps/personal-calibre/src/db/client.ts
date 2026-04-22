@@ -1,8 +1,8 @@
 import Database, { type Database as BetterSqlite3Database } from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 
-import * as appSchema from './schema-app';
 import * as schema from './schema';
+import * as appSchema from './schema-app';
 
 const sqlite: BetterSqlite3Database = new Database(
   `${process.env.CALIBRE_LIBRARY_PATH}/metadata.db`,
