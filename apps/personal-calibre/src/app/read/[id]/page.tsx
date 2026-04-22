@@ -1,13 +1,24 @@
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 
 import { EpubReader } from '@/components/EpubReader';
 import { getBook } from '@/lib/queries';
 
-export default async function ReadPage({
-  params,
-}: {
+interface Props {
   params: Promise<{ id: string }>;
-}) {
+}
+
+export default function ReadPage({
+  params,
+}: Props) {
+  return (
+    <Suspense fallback={<div className="bg-background h-screen w-screen" />}>
+      <ReadPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ReadPageContent({ params }: Props) {
   const { id } = await params;
   const bookId = Number(id);
 
