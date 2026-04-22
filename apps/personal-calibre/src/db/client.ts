@@ -4,15 +4,17 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema';
 import * as appSchema from './schema-app';
 
-const sqlite: BetterSqlite3Database = new Database(
-  `${process.env.CALIBRE_LIBRARY_PATH}/metadata.db`,
-  { readonly: true },
-);
+const libraryPath = process.env.CALIBRE_LIBRARY_PATH;
+if (!libraryPath) throw new Error('CALIBRE_LIBRARY_PATH is not set');
+
+const sqlite: BetterSqlite3Database = new Database(`${libraryPath}/metadata.db`, {
+  readonly: true,
+});
 
 export const db = drizzle(sqlite, { schema });
 
-const appDbPath = process.env.CALIBRE_APP_DB_PATH
-  ?? `${process.env.CALIBRE_LIBRARY_PATH}/personal-calibre-app.db`;
+const appDbPath =
+  process.env.CALIBRE_APP_DB_PATH ?? `${libraryPath}/personal-calibre-app.db`;
 
 const appSqlite: BetterSqlite3Database = new Database(appDbPath);
 

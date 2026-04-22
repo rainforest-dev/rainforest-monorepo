@@ -46,11 +46,12 @@ export async function GET(
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  const filePath = path.join(
-    process.env.CALIBRE_LIBRARY_PATH,
-    book.path,
-    `${fileRow.name}.${fmt.toLowerCase()}`,
-  );
+  const libraryPath = process.env.CALIBRE_LIBRARY_PATH;
+  if (!libraryPath) {
+    return new NextResponse('Server misconfiguration', { status: 500 });
+  }
+
+  const filePath = path.join(libraryPath, book.path, `${fileRow.name}.${fmt.toLowerCase()}`);
 
   if (!existsSync(filePath)) {
     return new NextResponse('Not Found', { status: 404 });
