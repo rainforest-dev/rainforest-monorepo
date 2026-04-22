@@ -1,7 +1,7 @@
-import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, like, notInArray, or, sql } from 'drizzle-orm';
 import { cacheLife, cacheTag } from 'next/cache';
 
-import { db } from '@/db/client';
+import { appDb, db } from '@/db/client';
 import {
   authors,
   books,
@@ -19,6 +19,7 @@ import {
   series,
   tags,
 } from '@/db/schema';
+import { bookDeliveries, deliveryPlatforms } from '@/db/schema-app';
 import type { BookDetail, BookSummary, FilterOptions } from '@/types/calibre';
 
 export interface BookListParams {
@@ -260,4 +261,110 @@ export async function getFilterOptions(): Promise<FilterOptions> {
   ]);
 
   return { authors: authorRows, tags: tagRows, series: seriesRows };
+}
+
+export interface UndeliveredBooksParams {
+  platformKey: string;
+  format?: string;
+  page?: number;
+  limit?: number;
+}
+
+export async function listUndeliveredBooks(
+  params: UndeliveredBooksParams,
+): Promise<{ books: BookSummary[]; total: number }> {
+  const { platformKey, format, page = 1, limit = 30 } = params;
+  const offset = (page - 1) * limit;
+
+  // Step 1: collect delivered book IDs for this platform from the app DB
+  const deliveredRows = await appDb
+    .select({ bookId: bookDeliveries.bookId })
+    .from(bookDeliveries)
+    .innerJoin(deliveryPlatforms, eq(deliveryPlatforms.id, bookDeliveries.platformId))
+    .where(eq(deliveryPlatforms.key, platformKey));
+  const deliveredIds = deliveredRows.map((r) => r.bookId);
+
+  // Step 2: query Calibre DB for books NOT in that set
+  const conditions = [];
+  if (deliveredIds.length > 0) conditions.push(notInArray(books.id, deliveredIds));
+  if (format) {
+    const withFormat = db
+      .select({ id: data.book })
+      .from(data)
+      .where(eq(data.format, format.toUpperCase()));
+    conditions.push(inArray(books.id, withFormat));
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [allBooks, countResult] = await Promise.all([
+    db
+      .select({
+        id: books.id,
+        title: books.title,
+        authorSort: books.authorSort,
+        hasCover: books.hasCover,
+        seriesIndex: books.seriesIndex,
+      })
+      .from(books)
+      .where(where)
+      .orderBy(books.sort)
+      .limit(limit)
+      .offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(books).where(where),
+  ]);
+
+  const bookIds = allBooks.map((b) => b.id);
+
+  if (bookIds.length === 0) {
+    return { books: [], total: countResult[0]?.count ?? 0 };
+  }
+
+  const [authorLinks, seriesLinks, formatRows] = await Promise.all([
+    db
+      .select({ book: booksAuthorsLink.book, name: authors.name })
+      .from(booksAuthorsLink)
+      .innerJoin(authors, eq(authors.id, booksAuthorsLink.author))
+      .where(inArray(booksAuthorsLink.book, bookIds)),
+    db
+      .select({ book: booksSeriesLink.book, name: series.name })
+      .from(booksSeriesLink)
+      .innerJoin(series, eq(series.id, booksSeriesLink.series))
+      .where(inArray(booksSeriesLink.book, bookIds)),
+    db
+      .select({ book: data.book, format: data.format })
+      .from(data)
+      .where(inArray(data.book, bookIds)),
+  ]);
+
+  const authorsByBook = new Map<number, string[]>();
+  for (const { book, name } of authorLinks) {
+    if (book === null) continue;
+    const list = authorsByBook.get(book) ?? [];
+    if (name) list.push(name);
+    authorsByBook.set(book, list);
+  }
+
+  const seriesByBook = new Map<number, string>();
+  for (const { book, name } of seriesLinks) {
+    if (book !== null && name) seriesByBook.set(book, name);
+  }
+
+  const formatsByBook = new Map<number, string[]>();
+  for (const { book, format: fmt } of formatRows) {
+    if (book === null) continue;
+    const list = formatsByBook.get(book) ?? [];
+    if (fmt) list.push(fmt);
+    formatsByBook.set(book, list);
+  }
+
+  return {
+    books: allBooks.map((b) => ({
+      ...b,
+      authors: authorsByBook.get(b.id) ?? [],
+      series: seriesByBook.get(b.id) ?? null,
+      formats: formatsByBook.get(b.id) ?? [],
+    })),
+    total: countResult[0]?.count ?? 0,
+  };
 }
