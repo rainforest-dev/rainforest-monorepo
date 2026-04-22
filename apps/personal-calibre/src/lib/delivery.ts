@@ -78,7 +78,7 @@ export async function createBookDeliveryEvent(
     externalRef: input.externalRef?.trim() || null,
   });
 
-  revalidateTag(`book-${bookId}`);
+  revalidateTag(`book-${bookId}`, 'max');
 }
 
 export async function deleteBookDeliveryEvent(
@@ -91,5 +91,5 @@ export async function deleteBookDeliveryEvent(
       and(eq(bookDeliveries.id, deliveryId), eq(bookDeliveries.bookId, bookId)),
     );
 
-  revalidateTag(`book-${bookId}`);
+  revalidateTag(`book-${bookId}`, 'max');
 }

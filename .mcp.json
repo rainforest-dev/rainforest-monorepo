@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "calibre-mcp": {
+      "type": "http",
+      "url": "http://localhost:8080/api/mcp"
+    },
     "nx-mcp": {
       "type": "stdio",
       "command": "npx",
