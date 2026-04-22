@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import sanitizeHtml from 'sanitize-html';
 
+import { DeliveryTracker } from '@/components/DeliveryTracker';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
+import { listBookDeliveryEvents, listDeliveryPlatforms } from '@/lib/delivery';
 import { getBook } from '@/lib/queries';
 import { cn } from '@/lib/utils';
 
@@ -12,9 +14,25 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default async function BookDetailPage({ params }: Props) {
+export default function BookDetailPage({ params }: Props) {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-3xl" />}>
+      <BookDetailContent params={params} />
+    </Suspense>
+  );
+}
+
+async function BookDetailContent({ params }: Props) {
   const { id } = await params;
-  const book = await getBook(Number(id));
+  const bookId = Number(id);
+
+  if (Number.isNaN(bookId)) notFound();
+
+  const [book, platforms, deliveryEvents] = await Promise.all([
+    getBook(bookId),
+    listDeliveryPlatforms(),
+    listBookDeliveryEvents(bookId),
+  ]);
 
   if (!book) notFound();
 
@@ -33,7 +51,7 @@ export default async function BookDetailPage({ params }: Props) {
 
       <div className="flex flex-col gap-8 sm:flex-row">
         {book.hasCover && (
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <img
               src={`/api/books/${book.id}/cover`}
               alt={`Cover of ${book.title}`}
@@ -102,12 +120,13 @@ export default async function BookDetailPage({ params }: Props) {
                 Download {format}
               </a>
             ))}
-            {book.files.some((f) => f.format === 'EPUB') && (
-              <Button size="sm" render={<Link href={`/read/${book.id}`} />}>
-                Read Online
-              </Button>
-            )}
           </div>
+
+          <DeliveryTracker
+            bookId={book.id}
+            platforms={platforms}
+            events={deliveryEvents}
+          />
         </div>
       </div>
 
