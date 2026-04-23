@@ -5,8 +5,8 @@ RUN corepack enable
 
 WORKDIR /app
 
-# Copy workspace manifests for dependency install
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+# Copy workspace manifests and root tsconfig for dependency install + build
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
 COPY apps/personal-calibre/package.json apps/personal-calibre/
 
 # Install only personal-calibre's dependencies
