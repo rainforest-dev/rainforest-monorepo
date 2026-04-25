@@ -64,7 +64,7 @@ async function BookDetailContent({ params, searchParams }: Props) {
 
       <div className="flex flex-col gap-8 sm:flex-row">
         {book.hasCover && (
-          <div className="shrink-0">
+          <div className="flex shrink-0 justify-center sm:block">
             <img
               src={`/api/books/${book.id}/cover`}
               alt={`Cover of ${book.title}`}
@@ -96,7 +96,7 @@ async function BookDetailContent({ params, searchParams }: Props) {
             ))}
           </div>
 
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-2 sm:gap-x-4">
             {book.publisher && (
               <>
                 <dt className="text-muted-foreground">Publisher</dt>
