@@ -46,8 +46,18 @@ export async function getBookList(params: BookListParams = {}): Promise<{
   const conditions = [];
 
   if (q) {
+    const authorBookIds = db
+      .select({ id: booksAuthorsLink.book })
+      .from(booksAuthorsLink)
+      .innerJoin(authors, eq(authors.id, booksAuthorsLink.author))
+      .where(like(authors.name, `%${q}%`));
+
     conditions.push(
-      or(like(books.title, `%${q}%`), like(books.authorSort, `%${q}%`)),
+      or(
+        like(books.title, `%${q}%`),
+        like(books.authorSort, `%${q}%`),
+        inArray(books.id, authorBookIds),
+      ),
     );
   }
 
