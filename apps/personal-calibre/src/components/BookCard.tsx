@@ -6,11 +6,16 @@ import type { BookSummary } from '@/types/calibre';
 
 interface Props {
   book: BookSummary;
+  from?: string;
 }
 
-export function BookCard({ book }: Props) {
+export function BookCard({ book, from }: Props) {
+  const href = from
+    ? `/books/${book.id}?from=${encodeURIComponent(from)}`
+    : `/books/${book.id}`;
+
   return (
-    <Link href={`/books/${book.id}`} className="group">
+    <Link href={href} className="group">
       <Card className="h-full overflow-hidden transition-shadow group-hover:shadow-md">
         <div className="bg-muted aspect-[2/3] w-full overflow-hidden">
           {book.hasCover ? (
