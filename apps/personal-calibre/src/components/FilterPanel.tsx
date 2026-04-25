@@ -91,13 +91,13 @@ function FilterPanelInner({ filters }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {/* Search input with × clear button */}
         <div className="relative">
           <Input
             placeholder="Search books..."
             value={searchQuery}
-            className="w-64 pr-8"
+            className="w-full pr-8 sm:w-64"
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
@@ -151,7 +151,7 @@ function FilterPanelInner({ filters }: Props) {
           value={searchParams.get('author') ?? 'all'}
           onValueChange={(v) => updateParam('author', v)}
         >
-          <SelectTrigger className="w-44" aria-label="Filter by author">
+          <SelectTrigger className="w-full sm:w-44" aria-label="Filter by author">
             <span className="text-muted-foreground mr-1 shrink-0 text-xs">Author</span>
             <SelectValue placeholder="All" />
           </SelectTrigger>
@@ -170,7 +170,7 @@ function FilterPanelInner({ filters }: Props) {
           value={searchParams.get('tag') ?? 'all'}
           onValueChange={(v) => updateParam('tag', v)}
         >
-          <SelectTrigger className="w-36" aria-label="Filter by tag">
+          <SelectTrigger className="w-full sm:w-36" aria-label="Filter by tag">
             <span className="text-muted-foreground mr-1 shrink-0 text-xs">Tag</span>
             <SelectValue placeholder="All" />
           </SelectTrigger>
@@ -189,7 +189,7 @@ function FilterPanelInner({ filters }: Props) {
           value={searchParams.get('series') ?? 'all'}
           onValueChange={(v) => updateParam('series', v)}
         >
-          <SelectTrigger className="w-44" aria-label="Filter by series">
+          <SelectTrigger className="w-full sm:w-44" aria-label="Filter by series">
             <span className="text-muted-foreground mr-1 shrink-0 text-xs">Series</span>
             <SelectValue placeholder="All" />
           </SelectTrigger>
