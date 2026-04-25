@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -12,18 +13,27 @@ import { cn } from '@/lib/utils';
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }
 
-export default function BookDetailPage({ params }: Props) {
+export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
+  const { id } = await params;
+  const book = await getBook(Number(id));
+  if (!book) return { title: 'Book Not Found — Personal Calibre Library' };
+  return { title: `${book.title} — Personal Calibre Library` };
+}
+
+export default function BookDetailPage({ params, searchParams }: Props) {
   return (
     <Suspense fallback={<div className="mx-auto max-w-3xl" />}>
-      <BookDetailContent params={params} />
+      <BookDetailContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function BookDetailContent({ params }: Props) {
+async function BookDetailContent({ params, searchParams }: Props) {
   const { id } = await params;
+  const { from } = await searchParams;
   const bookId = Number(id);
 
   if (Number.isNaN(bookId)) notFound();
@@ -43,9 +53,12 @@ async function BookDetailContent({ params }: Props) {
       })
     : null;
 
+  // Guard against open-redirect: only trust local paths.
+  const backHref = from && from.startsWith('/') ? from : '/';
+
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      <Link href="/" className="text-muted-foreground hover:text-foreground text-sm">
+      <Link href={backHref} className="text-muted-foreground hover:text-foreground text-sm">
         ← Back to library
       </Link>
 
@@ -55,6 +68,7 @@ async function BookDetailContent({ params }: Props) {
             <img
               src={`/api/books/${book.id}/cover`}
               alt={`Cover of ${book.title}`}
+              loading="eager"
               className="h-64 w-44 rounded-md object-cover shadow-md"
             />
           </div>
