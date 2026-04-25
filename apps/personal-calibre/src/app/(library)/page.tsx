@@ -1,7 +1,9 @@
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { BookGrid } from '@/components/BookGrid';
 import { FilterPanel } from '@/components/FilterPanel';
+import { Pagination, buildPageUrl } from '@/components/Pagination';
 import { getBookList, getFilterOptions } from '@/lib/queries';
 
 interface Props {
@@ -36,6 +38,18 @@ async function LibraryPageContent({ searchParams }: Props) {
 
   const totalPages = Math.ceil(total / 30);
 
+  // Redirect out-of-range pages to page 1, preserving other params.
+  if (page > totalPages && totalPages > 0) {
+    redirect(
+      buildPageUrl(1, {
+        q: params.q,
+        author: params.author,
+        tag: params.tag,
+        series: params.series,
+      }),
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -45,14 +59,8 @@ async function LibraryPageContent({ searchParams }: Props) {
         </div>
         <FilterPanel filters={filters} />
       </div>
-      <BookGrid books={books} />
-      {totalPages > 1 && (
-        <div className="text-muted-foreground flex items-center justify-center gap-2 text-sm">
-          <span>
-            Page {page} of {totalPages}
-          </span>
-        </div>
-      )}
+      <BookGrid books={books} from={params} />
+      <Pagination page={page} totalPages={totalPages} searchParams={params} />
     </div>
   );
 }
