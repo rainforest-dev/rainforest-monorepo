@@ -6,6 +6,14 @@ const nextConfig: WithNxOptions = {
   images: { unoptimized: true },
   logging: { browserToTerminal: 'error' },
   output: 'standalone',
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [{ key: 'Cache-Control', value: 'no-transform' }],
+      },
+    ];
+  },
 };
 
 export default composePlugins(withNx)(nextConfig);

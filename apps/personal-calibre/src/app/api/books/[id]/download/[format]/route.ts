@@ -1,12 +1,31 @@
-import { createReadStream, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { Readable } from 'node:stream';
 
 import { and, eq } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db/client';
 import { books, data } from '@/db/schema';
+
+async function readWithRetry(filePath: string, attempts = 5): Promise<Buffer> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await readFile(filePath);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      const errno = (err as NodeJS.ErrnoException).errno;
+      // errno -35 = EAGAIN: Synology Drive VirtioFS online-only file not yet cached locally.
+      // First failed read triggers FileProvider to download the file; retry after delay.
+      if ((code === 'EAGAIN' || errno === -35) && i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 200 * (i + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('unreachable');
+}
 
 const MIME_TYPES: Record<string, string> = {
   epub: 'application/epub+zip',
@@ -57,15 +76,17 @@ export async function GET(
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  const nodeStream = createReadStream(filePath);
-  // Cast through unknown to bridge the Node.js and DOM ReadableStream type gap
-  const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
   const filename = `${fileRow.name}.${format.toLowerCase()}`;
 
-  return new NextResponse(webStream, {
-    headers: {
-      'Content-Type': MIME_TYPES[format.toLowerCase()] ?? 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
-    },
-  });
+  try {
+    const buffer = await readWithRetry(filePath);
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        'Content-Type': MIME_TYPES[format.toLowerCase()] ?? 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+      },
+    });
+  } catch {
+    return new NextResponse('Not Found', { status: 404 });
+  }
 }
