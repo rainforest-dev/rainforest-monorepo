@@ -7,6 +7,14 @@ export interface BookSummary {
   authors: string[];
   series: string | null;
   formats: string[];
+  deliveredTo: string[];
+}
+
+export interface BookGroup {
+  key: string;
+  label: string;
+  total: number;
+  books: BookSummary[];
 }
 
 export interface BookDetail extends BookSummary {
@@ -15,6 +23,7 @@ export interface BookDetail extends BookSummary {
   description: string | null;
   rating: number | null;
   tags: string[];
+  tagIds: Array<{ id: number; name: string }>;
   publisher: string | null;
   language: string | null;
   files: Array<{ format: string; name: string; size: number }>;
