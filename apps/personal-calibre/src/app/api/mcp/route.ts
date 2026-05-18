@@ -3,6 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { z } from 'zod';
 
 import {
+  bulkCreateDeliveryEvents,
   createBookDeliveryEvent,
   deleteBookDeliveryEvent,
   listBookDeliveryEvents,
@@ -65,7 +66,6 @@ export async function POST(request: Request): Promise<Response> {
       description: 'List books that have not yet been delivered to a given platform',
       inputSchema: {
         platformKey: z.string().describe('Platform key, e.g. "readwise-reader" or "notebooklm"'),
-        format: z.string().optional().describe('Only include books with this format, e.g. "EPUB"'),
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(100).default(30),
       },
@@ -73,7 +73,6 @@ export async function POST(request: Request): Promise<Response> {
     async (input) => {
       const result = await listUndeliveredBooks({
         platformKey: input.platformKey,
-        format: input.format,
         page: input.page,
         limit: input.limit,
       });
@@ -116,6 +115,30 @@ export async function POST(request: Request): Promise<Response> {
         content: [{
           type: 'text',
           text: JSON.stringify({ ok: true, bookId: input.bookId, platformKey: input.platformKey }),
+        }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'bulk_add_delivery',
+    {
+      description: 'Record that multiple books were delivered to a platform in one operation',
+      inputSchema: {
+        bookIds: z.array(z.number().int()).describe('Array of Calibre book IDs'),
+        platformKey: z.string().describe('Platform key, e.g. "readwise-reader" or "notebooklm"'),
+        note: z.string().optional().describe('Optional note about this batch delivery'),
+      },
+    },
+    async (input) => {
+      const result = await bulkCreateDeliveryEvents(input.bookIds, {
+        platformKey: input.platformKey,
+        note: input.note,
+      });
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({ ok: true, count: result.count, platformKey: input.platformKey }),
         }],
       };
     },
