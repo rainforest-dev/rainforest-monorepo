@@ -1,5 +1,5 @@
-import Database from "better-sqlite3";
 import type { Database as BetterSqlite3Database } from "better-sqlite3";
+import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
 import * as schema from "./schema";
@@ -12,6 +12,7 @@ let _calibreDb: CalibreDb | null = null;
 let _appDb: AppDb | null = null;
 let _rawSqlite: BetterSqlite3Database | null = null;
 let _appSqlite: BetterSqlite3Database | null = null;
+let _writableSqlite: BetterSqlite3Database | null = null;
 
 function getCalibreDb(): CalibreDb {
   if (!_calibreDb) {
@@ -85,6 +86,15 @@ function syncBooksFts(): void {
       )
       .run(calibreStamp);
   })();
+}
+
+function getWritableSqlite(): BetterSqlite3Database {
+  if (!_writableSqlite) {
+    const libraryPath = process.env.CALIBRE_LIBRARY_PATH;
+    if (!libraryPath) throw new Error("CALIBRE_LIBRARY_PATH is not set");
+    _writableSqlite = new Database(`${libraryPath}/metadata.db`);
+  }
+  return _writableSqlite;
 }
 
 function getAppDb(): AppDb {
@@ -165,6 +175,17 @@ export const appSqlite: BetterSqlite3Database = new Proxy({} as BetterSqlite3Dat
     const val = _appSqlite![prop as keyof BetterSqlite3Database];
     return typeof val === "function"
       ? (val as (...args: unknown[]) => unknown).bind(_appSqlite)
+      : val;
+  },
+});
+
+// Writable Calibre sqlite — for tag mutations (INSERT/DELETE).
+export const writableSqlite: BetterSqlite3Database = new Proxy({} as BetterSqlite3Database, {
+  get(_, prop) {
+    const ws = getWritableSqlite();
+    const val = ws[prop as keyof BetterSqlite3Database];
+    return typeof val === "function"
+      ? (val as (...args: unknown[]) => unknown).bind(ws)
       : val;
   },
 });
