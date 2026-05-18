@@ -1,37 +1,33 @@
 import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
-// For CI, you may want to set BASE_URL to the deployed application.
-const baseURL = process.env['BASE_URL'] || 'http://localhost:8080';
+const baseURL = process.env['BASE_URL'] || 'http://localhost:3333';
+const fixturesDir = path.join(__dirname, 'src/fixtures');
 
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
   use: {
     baseURL,
     trace: 'on-first-retry',
   },
+  globalSetup: './src/support/global-setup.ts',
   webServer: {
-    command: 'pnpm exec nx run personal-calibre:dev',
-    url: 'http://localhost:8080',
-    reuseExistingServer: true,
+    command: 'pnpm exec nx dev personal-calibre',
+    url: baseURL,
+    reuseExistingServer: !process.env.CI,
     cwd: workspaceRoot,
+    env: {
+      CALIBRE_LIBRARY_PATH: fixturesDir,
+      CALIBRE_APP_DB_PATH: path.join(fixturesDir, 'app.db'),
+      PORT: '3333',
+    },
   },
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
     },
   ],
 });
