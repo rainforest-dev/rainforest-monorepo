@@ -251,7 +251,7 @@ export async function getGroupedBookList(
 
   const groups: BookGroup[] = [];
   for (const [groupKey, { label, total, bookIds }] of groupMap) {
-    groups.push({ key: String(groupKey), label, total, books: bookIds.map((id) => hydratedMap.get(id)!).filter(Boolean) });
+    groups.push({ key: String(groupKey), label, total, books: bookIds.map((id) => hydratedMap.get(id)).filter((b): b is BookSummary => b !== undefined) });
   }
 
   if (ungroupedIds.length > 0) {
@@ -259,7 +259,7 @@ export async function getGroupedBookList(
       key: 'ungrouped',
       label: 'Ungrouped',
       total: ungroupedIds.length,
-      books: ungroupedIds.slice(0, 6).map((id) => hydratedMap.get(id)!).filter(Boolean),
+      books: ungroupedIds.slice(0, 6).map((id) => hydratedMap.get(id)).filter((b): b is BookSummary => b !== undefined),
     });
   }
 
@@ -338,7 +338,6 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 
 export async function listUndeliveredBooks(params: {
   platformKey: string;
-  format?: string;
   page?: number;
   limit?: number;
 }): Promise<{ books: BookSummary[]; total: number }> {
