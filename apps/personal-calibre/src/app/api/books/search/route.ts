@@ -18,7 +18,7 @@ export interface SearchResult {
 
 // Strip characters that would break FTS5 MATCH syntax.
 function sanitizeToken(t: string): string {
-  return t.replace(/["'*()^:+\-]/g, '').trim();
+  return t.replace(/["'*()^:+-]/g, '').trim();
 }
 
 // N-gram similarity between query and target — recall-focused (query coverage).
