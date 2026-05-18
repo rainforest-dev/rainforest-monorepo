@@ -5,10 +5,11 @@ import { Suspense } from 'react';
 import sanitizeHtml from 'sanitize-html';
 
 import { DeliveryTracker } from '@/components/DeliveryTracker';
-import { Badge } from '@/components/ui/badge';
+import { TagEditor } from '@/components/TagEditor';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { listBookDeliveryEvents, listDeliveryPlatforms } from '@/lib/delivery';
-import { getBook } from '@/lib/queries';
+import { staticDownloadUrl } from '@/lib/files';
+import { getBook, getFilterOptions } from '@/lib/queries';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -38,10 +39,11 @@ async function BookDetailContent({ params, searchParams }: Props) {
 
   if (Number.isNaN(bookId)) notFound();
 
-  const [book, platforms, deliveryEvents] = await Promise.all([
+  const [book, platforms, deliveryEvents, filterOptions] = await Promise.all([
     getBook(bookId),
     listDeliveryPlatforms(),
     listBookDeliveryEvents(bookId),
+    getFilterOptions(),
   ]);
 
   if (!book) notFound();
@@ -88,12 +90,9 @@ async function BookDetailContent({ params, searchParams }: Props) {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {book.tags.map((tag) => (
-              <Badge key={tag} variant="secondary">
-                {tag}
-              </Badge>
-            ))}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Tags</p>
+            <TagEditor bookId={book.id} tagIds={book.tagIds} allTags={filterOptions.tags} />
           </div>
 
           <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-2 sm:gap-x-4">
@@ -127,7 +126,7 @@ async function BookDetailContent({ params, searchParams }: Props) {
             {book.files.map(({ format, name }) => (
               <a
                 key={format}
-                href={`/api/books/${book.id}/download/${format.toLowerCase()}`}
+                href={staticDownloadUrl(book.path, name, format)}
                 download={`${name}.${format.toLowerCase()}`}
                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
               >
