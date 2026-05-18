@@ -7,7 +7,7 @@ import { BulkSelectionWrapper } from '@/components/BulkSelectionWrapper';
 import { FilterBar } from '@/components/FilterBar';
 import { buildPageUrl, Pagination } from '@/components/Pagination';
 import { listDeliveryPlatforms } from '@/lib/delivery';
-import { type GroupBy, getBookList, getFilterOptions, getGroupedBookList } from '@/lib/queries';
+import { getBookList, getFilterOptions, getGroupedBookList,type GroupBy } from '@/lib/queries';
 import type { BookGroup } from '@/types/calibre';
 
 interface Props {
