@@ -78,6 +78,7 @@ export async function createBookDeliveryEvent(
     externalRef: input.externalRef?.trim() || null,
   });
 
+  revalidateTag('books', 'max');
   revalidateTag(`book-${bookId}`, 'max');
 }
 
@@ -92,4 +93,44 @@ export async function deleteBookDeliveryEvent(
     );
 
   revalidateTag(`book-${bookId}`, 'max');
+}
+
+export async function bulkCreateDeliveryEvents(
+  bookIds: number[],
+  input: CreateDeliveryEventInput,
+): Promise<{ count: number }> {
+  const platformKey = input.platformKey.trim();
+
+  if (!platformKey) {
+    throw new Error('platformKey is required');
+  }
+
+  const platform = await appDb
+    .select({ id: deliveryPlatforms.id })
+    .from(deliveryPlatforms)
+    .where(eq(deliveryPlatforms.key, platformKey))
+    .get();
+
+  if (!platform) {
+    throw new Error('Unknown delivery platform');
+  }
+
+  const now = new Date().toISOString();
+
+  await appDb.insert(bookDeliveries).values(
+    bookIds.map((bookId) => ({
+      bookId,
+      platformId: platform.id,
+      addedAt: now,
+      note: input.note?.trim() || null,
+      externalRef: input.externalRef?.trim() || null,
+    })),
+  );
+
+  revalidateTag('books', 'max');
+  for (const bookId of bookIds) {
+    revalidateTag(`book-${bookId}`, 'max');
+  }
+
+  return { count: bookIds.length };
 }
