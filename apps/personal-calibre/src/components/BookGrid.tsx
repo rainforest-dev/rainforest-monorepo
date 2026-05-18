@@ -5,9 +5,11 @@ import { BookCard } from './BookCard';
 interface Props {
   books: BookSummary[];
   from?: Record<string, string | undefined>;
+  selectedIds?: Set<number>;
+  onToggle?: (id: number) => void;
 }
 
-export function BookGrid({ books, from }: Props) {
+export function BookGrid({ books, from, selectedIds, onToggle }: Props) {
   if (books.length === 0) {
     return (
       <div className="text-muted-foreground py-16 text-center">
@@ -29,7 +31,13 @@ export function BookGrid({ books, from }: Props) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {books.map((book) => (
-        <BookCard key={book.id} book={book} from={fromParam} />
+        <BookCard
+          key={book.id}
+          book={book}
+          from={onToggle ? undefined : fromParam}
+          selected={selectedIds?.has(book.id)}
+          onToggle={onToggle ? () => onToggle(book.id) : undefined}
+        />
       ))}
     </div>
   );
