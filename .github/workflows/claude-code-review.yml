@@ -1,78 +1,139 @@
 name: Claude Code Review
 
 on:
-  pull_request:
-    types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+
+concurrency:
+  group: claude-review-${{ github.event.workflow_run.pull_requests[0].number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
+    name: Claude Code Review
+    # Only run if CI passed on a real PR that isn't AI-generated
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.pull_requests[0].number > 0 &&
+      !startsWith(github.event.workflow_run.head_branch, 'ai/')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
+      pull-requests: write
+      issues: write
       id-token: write
-    
+      actions: read
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 1
 
       - name: Run Claude Code Review
-        id: claude-review
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
+        env:
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          REPO: ${{ github.repository }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
-          # model: "claude-opus-4-20250514"
-          
-          # Direct prompt for automated review (no @claude mention needed)
+          use_sticky_comment: true
+          allowed_tools: 'Bash,Read,Glob,Grep'
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
-            
-            Be constructive and helpful in your feedback.
+            Review the Pull Request using PR_NUMBER and REPO from the environment.
 
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          # use_sticky_comment: true
-          
-          # Optional: Customize review based on file types
-          # direct_prompt: |
-          #   Review this PR focusing on:
-          #   - For TypeScript files: Type safety and proper interface usage
-          #   - For API endpoints: Security, input validation, and error handling
-          #   - For React components: Performance, accessibility, and best practices
-          #   - For tests: Coverage, edge cases, and test quality
-          
-          # Optional: Different prompts for different authors
-          # direct_prompt: |
-          #   ${{ github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' && 
-          #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
-          #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
-          
-          # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
-          
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+            ## Gather context
+            Run these commands first:
+            - gh pr view "$PR_NUMBER"
+            - gh pr diff "$PR_NUMBER"
+            - gh pr checks "$PR_NUMBER"
 
+            Use Read/Glob/Grep to understand changed files in context.
+            Only flag issues in **changed** code — never in unchanged files.
+
+            ## Review criteria (priority order)
+            1. **Correctness** — logic errors, unhandled edge cases, race conditions
+            2. **Security** — injection, secrets exposure, access control
+            3. **Performance** — N+1 queries, memory leaks, unnecessary work
+            4. **Maintainability** — readability, adherence to CLAUDE.md conventions
+            5. **Testing** — missing or inadequate coverage
+            6. **Type safety** — improper `any`, missing types
+
+            ## Post review in this format
+            (The action will update the existing review comment automatically.)
+
+            ## 📋 Review Summary
+            [2–3 sentence assessment]
+
+            ## 🔍 Findings
+
+            ### 🔴 Critical (must fix before merge)
+            [Issues, or "None"]
+
+            ### 🟠 High (should fix before merge)
+            [Issues, or "None"]
+
+            ### 🟡 Medium (tracked as issues below)
+            [Issues with links, or "None"]
+
+            ### 🟢 Low (minor suggestions)
+            [Items, or "None"]
+
+            ## ✅ What Looks Good
+            [Positive highlights]
+
+            ## 📝 Issues Created
+            [Links to any created issues]
+
+            ## Create issues for Medium/Low findings
+            Before creating, check for existing duplicates:
+            - gh issue list --label "claude-review,PR-$PR_NUMBER" --state all --json number,title,state
+
+            If an open issue covers the same problem in the same file, reference it instead.
+
+            For each new issue use gh issue create with:
+            - Title: [PR #N] description
+            - Labels: claude-review, PR-N, appropriate kind/ and area/ labels,
+              effort/ size (xs/s/m/l/xl), and ai/ready if effort is xs-m
+            - Body: PR reference, file location, description, suggested fix, effort estimate
+
+            Critical/High items go in the PR review only — do not create issues for blockers.
+
+            ## Write job summary
+            After posting the review, append to GITHUB_STEP_SUMMARY:
+
+            ## Code Review — PR #N
+            | Severity | Count |
+            |----------|-------|
+            | Critical | N |
+            | High     | N |
+            | Medium   | N |
+            | Low      | N |
+            Issues created: N
+            Verdict: clean / needs attention / has blocking issues
+
+      - name: Fallback summary
+        if: failure()
+        run: |
+          echo "## Code Review — Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Claude did not complete. Check logs for details." >> "$GITHUB_STEP_SUMMARY"
+
+  skip-review:
+    name: Skip Review
+    if: >
+      github.event.workflow_run.conclusion != 'success' ||
+      github.event.workflow_run.event != 'pull_request' ||
+      !(github.event.workflow_run.pull_requests[0].number > 0) ||
+      startsWith(github.event.workflow_run.head_branch, 'ai/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report skipped
+        run: |
+          echo "## Code Review — Skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "CI did not pass, no PR detected, or branch is AI-generated." >> "$GITHUB_STEP_SUMMARY"
