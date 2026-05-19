@@ -34,7 +34,12 @@ export async function readWithRetry(filePath: string, attempts = 5): Promise<Buf
 }
 
 export function resolveFilePath(libraryPath: string, bookPath: string, name: string, format: string): string {
-  return path.join(libraryPath, bookPath, `${name}.${format.toLowerCase()}`);
+  const root = path.resolve(libraryPath);
+  const resolved = path.resolve(root, bookPath, `${name}.${format.toLowerCase()}`);
+  if (!resolved.startsWith(root + path.sep)) {
+    throw new Error('Path traversal detected');
+  }
+  return resolved;
 }
 
 export function staticDownloadUrl(bookPath: string, fileName: string, format: string): string {

@@ -70,7 +70,11 @@ export async function GET(
     return new NextResponse('Server misconfiguration', { status: 500 });
   }
 
-  const filePath = path.join(libraryPath, book.path, `${fileRow.name}.${fmt.toLowerCase()}`);
+  const libraryRoot = path.resolve(libraryPath);
+  const filePath = path.resolve(libraryRoot, book.path, `${fileRow.name}.${fmt.toLowerCase()}`);
+  if (!filePath.startsWith(libraryRoot + path.sep)) {
+    return new NextResponse('Not Found', { status: 404 });
+  }
 
   if (!existsSync(filePath)) {
     return new NextResponse('Not Found', { status: 404 });
