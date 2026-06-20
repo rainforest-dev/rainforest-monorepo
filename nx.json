@@ -86,7 +86,6 @@
     "groups": {
       "docker-apps": {
         "projects": ["personal-calibre", "rss-manager"],
-        "releaseTagPattern": "{projectName}@{version}",
         "version": {
           "generatorOptions": {
             "specifierSource": "conventional-commits",
@@ -96,6 +95,9 @@
         },
         "changelog": {
           "createRelease": "github"
+        },
+        "releaseTag": {
+          "pattern": "{projectName}@{version}"
         }
       }
     }

@@ -37,7 +37,7 @@ export default defineConfig({
         ...Object.fromEntries(
           glob
             .sync('src/{lit,utils}/**/!(*.spec|*.test).ts')
-            .map((e) => [e.replace('src/', '').replace('.ts', ''), e])
+            .map((e) => [e.replace('src/', '').replace('.ts', ''), e]),
         ),
       },
       fileName: (format, entryName) => {
@@ -48,7 +48,7 @@ export default defineConfig({
       // Don't forget to update your package.json as well.
       formats: ['es', 'cjs'],
     },
-    rollupOptions: {
+    rolldownOptions: {
       // External packages that should not be bundled into your library.
     },
     ssr: true,

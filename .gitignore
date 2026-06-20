@@ -71,6 +71,7 @@ storybook-static
 .claude/settings.local.json
 .nx/polygraph
 .nx/self-healing
+.nx/migrate-runs
 
 # Astro generated types
 **/.astro/
