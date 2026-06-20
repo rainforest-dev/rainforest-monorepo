@@ -10,6 +10,7 @@
   "scripts": {},
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "jsonc-eslint-parser": "^2.4.0",
     "@nx/devkit": "23.0.0",
     "@nx/eslint": "23.0.0",
     "@nx/eslint-plugin": "23.0.0",
