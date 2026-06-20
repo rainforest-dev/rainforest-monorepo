@@ -23,8 +23,8 @@ peerDependencyRules:
     '@vite-pwa/astro>astro': '6'
     '@nanostores/lit>nanostores': '1'
 
-# Disable minimumReleaseAge during migration to avoid lockfile instability
-# (pnpm 11 default is 1440 — re-enable after lockfile stabilises)
+# TODO: remove this line once @rollup/rollup-* 4.62.2 and @clack/* 1.x age past 1440 min
+# (published 2026-06-19 ~15:00 UTC; safe to remove after 2026-06-20 15:00 UTC)
 minimumReleaseAge: 0
 
 allowBuilds:
