@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Monorepo Structure
 
-Nx 22.6.4 monorepo using pnpm workspaces (pnpm@9.15.0):
+Nx 22.6.4 monorepo using pnpm workspaces (pnpm@11.7.0):
 
 - **apps/personal-website** - Astro 6 + SSR personal website (primary app), deployed on Vercel
 - **apps/personal-liff** - Next.js 16 LINE LIFF app (dev port 9000, self-signed HTTPS via `--experimental-https`)
@@ -214,7 +214,7 @@ pnpm nx reset              # Clear Nx cache
 
 ## Package Manager
 
-**MUST use pnpm@9.15.0** - specified in package.json `packageManager` field. Commands:
+**MUST use pnpm@11.7.0** - specified in package.json `packageManager` field. Commands:
 ```bash
 pnpm install          # Install dependencies
 pnpm add <pkg>        # Add dependency (use -w for workspace root)
