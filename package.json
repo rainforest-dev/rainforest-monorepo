@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@11.7.0",
   "engines": {
     "node": "22.x"
   },
@@ -66,13 +66,5 @@
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
-  },
-  "pnpm": {
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "@vite-pwa/astro>astro": "6",
-        "@nanostores/lit>nanostores": "1"
-      }
-    }
   }
 }
