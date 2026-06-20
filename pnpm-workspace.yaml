@@ -23,8 +23,7 @@ peerDependencyRules:
     '@vite-pwa/astro>astro': '6'
     '@nanostores/lit>nanostores': '1'
 
-# TODO: remove this line once @rollup/rollup-* 4.62.2 and @clack/* 1.x age past 1440 min
-# (published 2026-06-19 ~15:00 UTC; safe to remove after 2026-06-20 15:00 UTC)
+# TODO: remove after 2026-06-20 15:00 UTC once @rollup/rollup-* 4.62.2 ages past the 1440-min cutoff
 minimumReleaseAge: 0
 
 allowBuilds:
