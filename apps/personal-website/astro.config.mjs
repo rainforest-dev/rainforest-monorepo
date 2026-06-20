@@ -6,6 +6,7 @@ import vercel from '@astrojs/vercel';
 import vue from '@astrojs/vue';
 import tailwindcss from '@tailwindcss/vite';
 import pwa from '@vite-pwa/astro';
+import { unified } from '@astrojs/markdown-remark';
 import { defineConfig } from 'astro/config';
 import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
@@ -26,8 +27,7 @@ export default defineConfig({
         dark: 'material-theme',
       },
     },
-    remarkPlugins: [remarkMath],
-    rehypePlugins: [rehypeKatex],
+    processor: unified({ remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] }),
   },
   vite: {
     plugins: [tailwindcss()],
