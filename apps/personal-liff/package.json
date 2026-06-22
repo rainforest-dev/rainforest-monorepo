@@ -3,13 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "@line/liff": "^2.27.3",
-    "@mantine/core": "^8.3.13",
-    "@mantine/hooks": "^8.3.13",
+    "@line/liff": "^2.29.0",
+    "@mantine/core": "^9.3.2",
+    "@mantine/hooks": "^9.3.2",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "swr": "^2.3.8"
+    "swr": "^2.4.1"
   },
   "nx": {
     "name": "personal-liff",
