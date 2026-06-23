@@ -21,11 +21,14 @@ export function detectFeedFormat(content: string): FeedFormat | null {
 }
 
 export function extractFeedMeta(content: string, format: FeedFormat): FeedMeta {
-  const titleMatch = content.match(/<title[^>]*>([^<]+)<\/title>/i);
+  // Strip CDATA wrappers before title matching (WordPress/Ghost feeds use <title><![CDATA[...]]></title>)
+  const stripped = content.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+  const titleMatch = stripped.match(/<title[^>]*>([^<]*)<\/title>/i);
   const title = titleMatch ? titleMatch[1].trim() : '';
 
+  // Use word boundary to avoid matching <items>, <itemset>, etc.
   const itemTag = format === 'rss' ? '<item' : '<entry';
-  const itemCount = (content.match(new RegExp(itemTag, 'gi')) ?? []).length;
+  const itemCount = (content.match(new RegExp(`${itemTag}[\\s>/]`, 'gi')) ?? []).length;
 
   return { title, itemCount };
 }

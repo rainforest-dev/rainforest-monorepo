@@ -38,4 +38,17 @@ describe('extractFeedMeta', () => {
     expect(meta.title).toBe('Web.dev');
     expect(meta.itemCount).toBe(2);
   });
+
+  it('extracts CDATA-wrapped titles', () => {
+    const cdataFeed = `<rss version="2.0"><channel><title><![CDATA[My WordPress Blog]]></title><item/></channel></rss>`;
+    const meta = extractFeedMeta(cdataFeed, 'rss');
+    expect(meta.title).toBe('My WordPress Blog');
+    expect(meta.itemCount).toBe(1);
+  });
+
+  it('does not count <items> wrapper as an item', () => {
+    const feed = `<rss version="2.0"><channel><title>Blog</title><items><item/><item/></items></channel></rss>`;
+    const meta = extractFeedMeta(feed, 'rss');
+    expect(meta.itemCount).toBe(2);
+  });
 });
