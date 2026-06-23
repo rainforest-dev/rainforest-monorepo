@@ -3,7 +3,10 @@ import SourceTable from '../components/SourceTable.tsx';
 import TopicList from '../components/TopicList.tsx';
 import FeedValidator from '../components/FeedValidator.tsx';
 
-const tab = (Astro.url.searchParams.get('tab') ?? 'sources') as 'sources' | 'topics' | 'validate';
+const VALID_TABS = ['sources', 'topics', 'validate'] as const;
+type Tab = typeof VALID_TABS[number];
+const rawTab = Astro.url.searchParams.get('tab') ?? 'sources';
+const tab: Tab = (VALID_TABS as readonly string[]).includes(rawTab) ? (rawTab as Tab) : 'sources';
 ---
 <!doctype html>
 <html lang="en">
