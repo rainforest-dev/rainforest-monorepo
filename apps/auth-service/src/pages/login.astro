@@ -1,0 +1,23 @@
+---
+import PasskeyLogin from '../components/PasskeyLogin.tsx';
+
+const redirect = Astro.url.searchParams.get('redirect') ?? '/';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In — Rainforest Tools</title>
+    <style>
+      body { background: #0f1117; color: #e2e4ed; font-family: system-ui, sans-serif; }
+    </style>
+  </head>
+  <body class="min-h-screen flex items-center justify-center">
+    <div class="text-center space-y-6">
+      <h1 class="text-2xl font-semibold">Rainforest Tools</h1>
+      <p class="text-gray-400 text-sm">Use your passkey to sign in.</p>
+      <PasskeyLogin redirect={redirect} client:load />
+    </div>
+  </body>
+</html>
