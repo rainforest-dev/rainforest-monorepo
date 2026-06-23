@@ -71,3 +71,15 @@ storybook-static
 .claude/settings.local.json
 .nx/polygraph
 .nx/self-healing
+
+# Astro generated types
+**/.astro/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Claude Code launch config
+.claude/launch.json
+
+# Dev secrets
+deploy/.env.dev

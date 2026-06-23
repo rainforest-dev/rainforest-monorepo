@@ -64,11 +64,21 @@ docker compose restart traefik
 
 ## Adding a New Service
 
-1. Add its Dockerfile to `apps/<name>/Dockerfile` (copy from auth-service pattern)
-2. Add a service block in `deploy/docker-compose.yml` with:
-   - `build.dockerfile: apps/<name>/Dockerfile`
-   - `traefik.http.routers.<name>.rule=Host('<name>.rainforest.tools')`
-   - `traefik.http.routers.<name>.tls.certresolver=letsencrypt`
-   - `traefik.http.routers.<name>.middlewares=homelab-auth`
+1. Create `apps/<name>/Dockerfile` — use the `pnpm deploy --prod` pattern from `apps/auth-service/Dockerfile` or `apps/rss-manager/Dockerfile` (pnpm workspaces use symlinks; `pnpm deploy --prod /deploy` creates a self-contained flat `node_modules` the runtime image can use)
+2. Add a service block in `deploy/docker-compose.yml`:
+   ```yaml
+   <name>:
+     build:
+       context: ..                              # monorepo root
+       dockerfile: apps/<name>/Dockerfile
+     restart: unless-stopped
+     networks:
+       - traefik
+     labels:
+       - "traefik.enable=true"
+       - "traefik.http.routers.<name>.rule=Host(`<name>.rainforest.tools`)"
+       - "traefik.http.routers.<name>.tls.certresolver=letsencrypt"
+       - "traefik.http.routers.<name>.middlewares=homelab-auth@file"  # @file required for cross-provider refs
+   ```
 3. Add a `<name>.rainforest.tools` DNS record in Cloudflare (CNAME → homelab IP)
 4. Run: `docker compose up -d <name>`
