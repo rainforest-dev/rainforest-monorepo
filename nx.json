@@ -85,7 +85,7 @@
     },
     "groups": {
       "docker-apps": {
-        "projects": ["personal-calibre"],
+        "projects": ["personal-calibre", "rss-manager", "auth-service"],
         "releaseTagPattern": "{projectName}@{version}",
         "version": {
           "generatorOptions": {
