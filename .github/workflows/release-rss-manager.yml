@@ -79,7 +79,7 @@ jobs:
             # First release: nx release conventional-commits needs commits in NX_BASE..HEAD
             # which may be empty on workflow_dispatch. Read from package.json and tag manually.
             VERSION=$(node -p "require('./apps/rss-manager/package.json').version")
-            git tag "rss-manager@${VERSION}"
+            git tag -f "rss-manager@${VERSION}"
             # Still run nx release to generate the GitHub Release and changelog
             pnpm exec nx release --yes --projects=rss-manager --skip-publish --first-release \
               2>&1 | tee /tmp/nx-release.log || true
