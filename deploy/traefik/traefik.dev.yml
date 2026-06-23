@@ -1,0 +1,23 @@
+# Dev-only Traefik static config — HTTP only, no TLS, no redirections
+# Mounted by docker-compose.dev.yml in place of traefik.yml
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+  # no websecure — dev traffic is HTTP only
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: traefik
+  file:
+    directory: /config/dynamic
+    watch: true
+
+log:
+  level: INFO
+
+accessLog: {}

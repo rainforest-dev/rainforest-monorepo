@@ -1,0 +1,40 @@
+# Local override: disable TLS cert resolver (HTTP only) for local smoke testing
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+services:
+  traefik:
+    ports: !override
+      - "80:80"         # keep HTTP entrypoint
+      - "8080:8080"     # expose dashboard on plain HTTP
+    volumes: !override
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.dev.yml:/traefik.yml:ro   # dev config: no TLS, no HTTP→HTTPS redirect
+      - ./traefik/dynamic:/config/dynamic:ro
+    command: []  # let traefik.yml drive config entirely in dev
+    labels:
+      - "traefik.enable=false"  # disable the routed dashboard in dev
+
+  auth-service:
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - REGISTRATION_TOKEN=${REGISTRATION_TOKEN}
+      - WEBAUTHN_RP_ID=auth.localhost
+      - WEBAUTHN_ORIGIN=http://auth.localhost
+      - COOKIE_DOMAIN=.localhost
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`auth.localhost`)"
+      # no TLS in dev — intentionally omit certresolver
+
+  personal-calibre:
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.calibre.rule=Host(`calibre.localhost`)"
+      - "traefik.http.routers.calibre.middlewares=homelab-auth@file"
+      # no TLS in dev — omit certresolver entirely
+
+  rss-manager:
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.rss.rule=Host(`rss.localhost`)"
+      - "traefik.http.routers.rss.middlewares=homelab-auth@file"
+      # no TLS in dev — omit certresolver entirely
