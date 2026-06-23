@@ -12,8 +12,8 @@ let _db: ReturnType<typeof Database> | null = null;
 function getDb(): ReturnType<typeof Database> {
   if (_db) return _db;
   const path = process.env.AUTH_DB_PATH ?? '/app/db/auth.db';
-  _db = new Database(path);
-  _db.prepare(`
+  const db = new Database(path);
+  db.prepare(`
     CREATE TABLE IF NOT EXISTS credentials (
       id          TEXT PRIMARY KEY,
       public_key  TEXT NOT NULL,
@@ -22,14 +22,19 @@ function getDb(): ReturnType<typeof Database> {
       created_at  INTEGER NOT NULL DEFAULT (unixepoch())
     )
   `).run();
+  _db = db;
   return _db;
 }
 
 export function saveCredential(cred: StoredCredential): void {
   getDb()
     .prepare(
-      `INSERT OR REPLACE INTO credentials (id, public_key, counter, transports)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO credentials (id, public_key, counter, transports)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         public_key = excluded.public_key,
+         counter    = excluded.counter,
+         transports = excluded.transports`,
     )
     .run(cred.id, cred.publicKey, cred.counter, JSON.stringify(cred.transports));
 }
@@ -62,5 +67,8 @@ export function listCredentials(): StoredCredential[] {
 }
 
 export function updateCounter(id: string, counter: number): void {
-  getDb().prepare('UPDATE credentials SET counter = ? WHERE id = ?').run(counter, id);
+  const result = getDb()
+    .prepare('UPDATE credentials SET counter = ? WHERE id = ? AND counter < ?')
+    .run(counter, id, counter);
+  if (result.changes === 0) throw new Error(`Credential not found or counter did not advance: ${id}`);
 }
