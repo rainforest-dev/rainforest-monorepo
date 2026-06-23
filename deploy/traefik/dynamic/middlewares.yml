@@ -1,9 +1,0 @@
-http:
-  middlewares:
-    homelab-auth:
-      forwardAuth:
-        address: "http://auth-service:3001/api/verify"
-        # Pass original host/uri headers so /api/verify can build the redirect URL
-        trustForwardHeader: true
-        authResponseHeaders:
-          - "X-Forwarded-User"
