@@ -21,11 +21,16 @@ export default function SourceTable() {
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/sources')
-      .then((r) => r.json())
-      .then((data) => { setSources(data); setLoading(false); });
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data: Source[]) => { setSources(data); setLoading(false); })
+      .catch(() => { setError('Failed to load sources.'); setLoading(false); });
   }, []);
 
   const filtered = sources.filter((s) => {
@@ -43,6 +48,7 @@ export default function SourceTable() {
     {} as Record<string, number>,
   );
 
+  if (error) return <p className="text-red-400 py-8 text-center">{error}</p>;
   if (loading) return <p className="text-gray-400 py-8 text-center">Loading sources…</p>;
 
   return (
@@ -86,7 +92,7 @@ export default function SourceTable() {
           </thead>
           <tbody>
             {filtered.map((s) => (
-              <tr key={s.name} className="border-b border-gray-800 hover:bg-gray-800/50">
+              <tr key={s.url || s.name} className="border-b border-gray-800 hover:bg-gray-800/50">
                 <td className="py-2 pr-4">
                   {s.url ? (
                     <a

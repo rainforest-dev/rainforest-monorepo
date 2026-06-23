@@ -23,6 +23,10 @@ export default function FeedValidator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       });
+      if (!res.ok) {
+        setResult({ valid: false, error: `Server error: ${res.status}` });
+        return;
+      }
       setResult(await res.json());
     } finally {
       setLoading(false);
@@ -34,6 +38,7 @@ export default function FeedValidator() {
       <div className="flex gap-2">
         <input
           type="url"
+          aria-label="Feed URL to validate"
           placeholder="https://example.com/rss.xml"
           value={url}
           onChange={(e) => setUrl(e.target.value)}

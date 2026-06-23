@@ -16,13 +16,19 @@ const STATUS_COLORS: Record<Topic['status'], string> = {
 export default function TopicList() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/topics')
-      .then((r) => r.json())
-      .then((data) => { setTopics(data); setLoading(false); });
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data: Topic[]) => { setTopics(data); setLoading(false); })
+      .catch(() => { setError('Failed to load topics.'); setLoading(false); });
   }, []);
 
+  if (error) return <p className="text-red-400 py-8 text-center">{error}</p>;
   if (loading) return <p className="text-gray-400 py-8 text-center">Loading topics…</p>;
 
   const byStatus = (status: Topic['status']) => topics.filter((t) => t.status === status);
