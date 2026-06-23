@@ -52,7 +52,9 @@ vitest.config.*.timestamp*
 out
 
 test-output
+.env
 .env*.local
+deploy/.env
 
 
 storybook-static
