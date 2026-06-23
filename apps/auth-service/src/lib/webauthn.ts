@@ -18,7 +18,12 @@ const challenges = new Map<string, { value: string; expiresAt: number }>();
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 export function storeChallenge(key: string, challenge: string): void {
-  challenges.set(key, { value: challenge, expiresAt: Date.now() + CHALLENGE_TTL_MS });
+  // Sweep expired entries before storing new ones
+  const now = Date.now();
+  for (const [k, entry] of challenges) {
+    if (now > entry.expiresAt) challenges.delete(k);
+  }
+  challenges.set(key, { value: challenge, expiresAt: now + CHALLENGE_TTL_MS });
 }
 
 export function consumeChallenge(key: string): string | null {
