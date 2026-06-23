@@ -20,14 +20,23 @@ export default function PasskeyRegister() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credential),
       });
+      if (!finishRes.ok) {
+        const err = await finishRes.json().catch(() => ({ error: 'Server error' }));
+        throw new Error(err.error || `Registration failed (${finishRes.status})`);
+      }
       const result = await finishRes.json();
       if (!result.verified) throw new Error('Registration not verified');
 
       setStatus('success');
       setMessage('Passkey registered. You can now log in.');
     } catch (err) {
-      setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Registration failed');
+      if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'AbortError')) {
+        setStatus('idle');
+        setMessage('');
+      } else {
+        setStatus('error');
+        setMessage(err instanceof Error ? err.message : 'Registration failed');
+      }
     }
   }
 
