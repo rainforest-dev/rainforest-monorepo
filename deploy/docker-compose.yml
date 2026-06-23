@@ -1,0 +1,87 @@
+networks:
+  traefik:
+    name: traefik
+
+volumes:
+  auth-data:
+  calibre-data:
+  letsencrypt:
+
+services:
+  traefik:
+    image: traefik:v3
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/traefik.yml:ro
+      - ./traefik/dynamic:/config/dynamic:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-api.rule=Host(`traefik.rainforest.tools`)"
+      - "traefik.http.routers.traefik-api.service=api@internal"
+      - "traefik.http.routers.traefik-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik-api.middlewares=homelab-auth"
+
+  auth-service:
+    build:
+      context: ..
+      dockerfile: apps/auth-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - REGISTRATION_TOKEN=${REGISTRATION_TOKEN}
+      - WEBAUTHN_RP_ID=rainforest.tools
+      - WEBAUTHN_ORIGIN=https://auth.rainforest.tools
+      - COOKIE_DOMAIN=.rainforest.tools
+    volumes:
+      - auth-data:/app/db
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`auth.rainforest.tools`)"
+      - "traefik.http.routers.auth.tls.certresolver=letsencrypt"
+      # intentionally NO homelab-auth middleware — auth-service is the auth gate itself
+
+  personal-calibre:
+    build:
+      context: ..
+      dockerfile: apps/personal-calibre/Dockerfile
+    restart: unless-stopped
+    environment:
+      - CALIBRE_LIBRARY_PATH=/calibre
+    volumes:
+      - calibre-data:/app/db
+      - ${CALIBRE_LIBRARY_PATH}:/calibre:ro
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.calibre.rule=Host(`calibre.rainforest.tools`)"
+      - "traefik.http.routers.calibre.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.calibre.middlewares=homelab-auth"
+
+  rss-manager:
+    build:
+      context: ..
+      dockerfile: apps/rss-manager/Dockerfile
+    restart: unless-stopped
+    environment:
+      - VAULT_PATH=/vault
+    volumes:
+      - ${VAULT_REGISTRY_PATH}:/vault:ro
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rss.rule=Host(`rss.rainforest.tools`)"
+      - "traefik.http.routers.rss.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.rss.middlewares=homelab-auth"
