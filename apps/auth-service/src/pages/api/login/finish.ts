@@ -4,6 +4,20 @@ import { verifyAuthentication } from '../../../lib/webauthn.js';
 import { updateCounter } from '../../../lib/db.js';
 import { signSession } from '../../../lib/session.js';
 
+function safeRedirect(url: string | undefined): string {
+  if (!url) return '/';
+  if (url.startsWith('/')) return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'rainforest.tools' || parsed.hostname.endsWith('.rainforest.tools')) {
+      return url;
+    }
+  } catch {
+    // invalid URL
+  }
+  return '/';
+}
+
 export const POST: APIRoute = async ({ request, cookies }) => {
   let body: AuthenticationResponseJSON & { redirect?: string };
   try {
@@ -41,12 +55,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const cookieDomain = process.env.COOKIE_DOMAIN ?? '.rainforest.tools';
   cookies.set('rf_session', token, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     domain: cookieDomain,
     maxAge: 60 * 60 * 24 * 7,
     path: '/',
   });
 
-  return Response.json({ verified: true, redirect: redirect ?? '/' });
+  return Response.json({ verified: true, redirect: safeRedirect(redirect) });
 };
