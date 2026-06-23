@@ -28,7 +28,7 @@ services:
       - "traefik.http.routers.traefik-api.rule=Host(`traefik.rainforest.tools`)"
       - "traefik.http.routers.traefik-api.service=api@internal"
       - "traefik.http.routers.traefik-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.traefik-api.middlewares=homelab-auth"
+      - "traefik.http.routers.traefik-api.middlewares=homelab-auth@file"
 
   auth-service:
     build:
@@ -67,7 +67,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.calibre.rule=Host(`calibre.rainforest.tools`)"
       - "traefik.http.routers.calibre.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.calibre.middlewares=homelab-auth"
+      - "traefik.http.routers.calibre.middlewares=homelab-auth@file"
 
   rss-manager:
     build:
@@ -84,4 +84,4 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.rss.rule=Host(`rss.rainforest.tools`)"
       - "traefik.http.routers.rss.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.rss.middlewares=homelab-auth"
+      - "traefik.http.routers.rss.middlewares=homelab-auth@file"
