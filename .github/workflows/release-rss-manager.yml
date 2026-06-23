@@ -75,16 +75,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FIRST_RELEASE: ${{ inputs.first-release }}
         run: |
-          FIRST_RELEASE_FLAG=""
           if [ "$FIRST_RELEASE" = "true" ]; then
-            FIRST_RELEASE_FLAG="--first-release"
+            # First release: nx release conventional-commits needs commits in NX_BASE..HEAD
+            # which may be empty on workflow_dispatch. Read from package.json and tag manually.
+            VERSION=$(node -p "require('./apps/rss-manager/package.json').version")
+            git tag "rss-manager@${VERSION}"
+            # Still run nx release to generate the GitHub Release and changelog
+            pnpm exec nx release --yes --projects=rss-manager --skip-publish --first-release \
+              2>&1 | tee /tmp/nx-release.log || true
+          else
+            pnpm exec nx release --yes --projects=rss-manager --skip-publish \
+              2>&1 | tee /tmp/nx-release.log
+            VERSION=$(git tag --sort=-creatordate | grep '^rss-manager@' | head -1 | sed 's/rss-manager@//')
           fi
-
-          # shellcheck disable=SC2086
-          pnpm exec nx release --yes --projects=rss-manager --skip-publish $FIRST_RELEASE_FLAG \
-            2>&1 | tee /tmp/nx-release.log
-
-          VERSION=$(git tag --sort=-creatordate | grep '^rss-manager@' | head -1 | sed 's/rss-manager@//')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "::notice::Released: ${VERSION}"
 
