@@ -15,7 +15,7 @@ COPY apps/rss-manager apps/rss-manager
 RUN pnpm --filter @rainforest-monorepo/rss-manager run build
 
 # Create self-contained deployment bundle (resolves pnpm symlinks for runtime)
-RUN pnpm --filter @rainforest-monorepo/rss-manager deploy --prod /deploy
+RUN pnpm --filter @rainforest-monorepo/rss-manager deploy --prod /deploy --legacy
 
 # Runtime image
 FROM node:22-alpine AS runtime
