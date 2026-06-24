@@ -6,12 +6,12 @@ catalog:
   '@material/material-color-utilities': ^0.3.0
   '@tailwindcss/typography': ^0.5.19
   '@tailwindcss/vite': 4.2.2
-  vite: 8.0.8
+  vite: 8.0.16
   '@types/node': ^25.0.10
   '@types/react': 19.2.9
   '@types/react-dom': 19.2.3
   lit: 3.3.2
-  next: 16.2.3
+  next: 16.2.6
   react: 19.2.3
   react-dom: 19.2.3
   tailwindcss: 4.2.2
@@ -23,8 +23,7 @@ peerDependencyRules:
     '@vite-pwa/astro>astro': '6'
     '@nanostores/lit>nanostores': '1'
 
-# TODO: remove after 2026-06-20 15:00 UTC once @rollup/rollup-* 4.62.2 ages past the 1440-min cutoff
-minimumReleaseAge: 0
+minimumReleaseAge: 1440
 
 allowBuilds:
   '@parcel/watcher': true
