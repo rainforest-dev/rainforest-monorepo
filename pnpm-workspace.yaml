@@ -16,3 +16,24 @@ catalog:
   react-dom: 19.2.3
   tailwindcss: 4.2.2
   typescript: 5.9.3
+
+# pnpm 11 settings (moved from package.json pnpm field)
+peerDependencyRules:
+  allowedVersions:
+    '@vite-pwa/astro>astro': '6'
+    '@nanostores/lit>nanostores': '1'
+
+# TODO: remove after 2026-06-20 15:00 UTC once @rollup/rollup-* 4.62.2 ages past the 1440-min cutoff
+minimumReleaseAge: 0
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  better-sqlite3: true
+  core-js: true
+  es5-ext: true
+  esbuild: true
+  msw: true
+  nx: true
+  sharp: true
+  unrs-resolver: true
