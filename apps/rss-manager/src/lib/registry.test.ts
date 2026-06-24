@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect,it } from 'vitest';
+
 import { parseSources, parseTopics } from './registry.js';
 
 const SOURCES_FIXTURE = `---
