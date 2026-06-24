@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+
 import { readSources } from '../../lib/registry.js';
 
 export const GET: APIRoute = () => {
