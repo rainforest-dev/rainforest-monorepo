@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
       # Nx Cloud distributed task execution — opt-in via repository variable.
       # Set NX_CLOUD_ENABLED=true in Settings → Variables → Actions to enable.
@@ -32,6 +32,6 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
-      - uses: nrwl/nx-set-shas@v4
+      - uses: nrwl/nx-set-shas@v5
 
       - run: pnpm exec nx affected -t lint test typecheck
