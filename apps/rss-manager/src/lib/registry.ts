@@ -5,7 +5,7 @@ export type Source = {
   name: string;
   url: string;
   tags: string[];
-  status: 'active' | 'pending' | 'proposed' | 'no-rss' | 'retired';
+  status: 'active' | 'proposed' | 'no-rss' | 'retired';
   category: string;
   proposedDate?: string;
 };
@@ -82,9 +82,9 @@ export function parseSources(content: string): Source[] {
       }
     }
 
-    let status: Source['status'] = 'pending';
-    if (section === 'Active Sources') status = checked ? 'active' : 'pending';
-    else if (section === 'Needs Verification') status = 'pending';
+    let status: Source['status'] = 'proposed';
+    if (section === 'Active Sources') status = checked ? 'active' : 'proposed';
+    else if (section === 'Needs Verification') status = 'proposed';
     else if (section === 'Proposed Sources') status = 'proposed';
     else if (section === 'No RSS Found') status = 'no-rss';
     else if (section === 'Retired') status = 'retired';
@@ -200,7 +200,7 @@ function insertAtSectionEnd(lines: string[], section: string, entry: string[]): 
   lines.splice(insertIdx, 0, '', ...entry);
 }
 
-/** Promote a proposed/pending source to active: checks [x] and moves to Active Sources. */
+/** Promote a proposed source to active: checks [x] and moves to Active Sources. */
 export function activateSource(name: string): void {
   const filePath = registryFilePath('RSS-Source-Registry.md');
   const lines = readFileSync(filePath, 'utf-8').split('\n');

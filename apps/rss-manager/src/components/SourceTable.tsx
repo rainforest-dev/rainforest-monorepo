@@ -4,7 +4,7 @@ type Source = {
   name: string;
   url: string;
   tags: string[];
-  status: 'active' | 'pending' | 'proposed' | 'no-rss' | 'retired';
+  status: 'active' | 'proposed' | 'no-rss' | 'retired';
   category: string;
   proposedDate?: string;
 };
@@ -18,7 +18,6 @@ function daysAgo(dateStr: string): string {
 
 const STATUS_COLORS: Record<Source['status'], string> = {
   active: 'bg-green-900 text-green-300',
-  pending: 'bg-yellow-900 text-yellow-300',
   proposed: 'bg-blue-900 text-blue-300',
   'no-rss': 'bg-gray-800 text-gray-400',
   retired: 'bg-red-900 text-red-400',
@@ -89,7 +88,7 @@ export default function SourceTable() {
     <div className="space-y-4">
       {/* Summary chips */}
       <div className="flex flex-wrap gap-2">
-        {(['all', 'active', 'pending', 'proposed', 'no-rss'] as const).map((s) => (
+        {(['all', 'active', 'proposed', 'no-rss'] as const).map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
@@ -159,10 +158,10 @@ export default function SourceTable() {
                 </td>
                 <td className="py-2 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    {s.proposedDate && (s.status === 'proposed' || s.status === 'pending') && (
+                    {s.proposedDate && s.status === 'proposed' && (
                       <span className="text-xs text-gray-500">{daysAgo(s.proposedDate)}</span>
                     )}
-                    {(s.status === 'proposed' || s.status === 'pending') && (
+                    {s.status === 'proposed' && (
                       <button
                         onClick={() => doAction(s.name, 'activate')}
                         disabled={pending.has(s.name)}
