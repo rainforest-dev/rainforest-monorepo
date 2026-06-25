@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export type Source = {
@@ -149,4 +149,88 @@ export function readSources(): Source[] {
 export function readTopics(): Topic[] {
   const path = registryFilePath('RSS-Topic-Registry.md');
   return parseTopics(readFileSync(path, 'utf-8'));
+}
+
+// ── Write helpers ──────────────────────────────────────────────────────────────
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Remove a source entry (checkbox line + optional URL line) from lines in-place. */
+function spliceEntry(lines: string[], name: string): string[] {
+  const re = new RegExp(`^- \\[[ x]\\] \\*\\*${escapeRegex(name)}\\*\\*`);
+  const idx = lines.findIndex((l) => re.test(l));
+  if (idx === -1) throw new Error(`Source not found: ${name}`);
+
+  const removed = [lines[idx]];
+  const next = lines[idx + 1]?.trim();
+  if (next?.startsWith('http') || next?.startsWith('website:')) {
+    removed.push(lines[idx + 1]);
+  }
+  lines.splice(idx, removed.length);
+  // Clean up blank line left behind
+  if (lines[idx]?.trim() === '') lines.splice(idx, 1);
+
+  return removed;
+}
+
+/** Insert entry lines before the next ## section (end of target section). */
+function insertAtSectionEnd(lines: string[], section: string, entry: string[]): void {
+  const sectionIdx = lines.findIndex((l) => l === `## ${section}`);
+  if (sectionIdx === -1) throw new Error(`Section not found: ## ${section}`);
+
+  let insertIdx = lines.length;
+  for (let i = sectionIdx + 1; i < lines.length; i++) {
+    if (lines[i].startsWith('## ')) { insertIdx = i; break; }
+  }
+  // Back over trailing blank lines so we don't double-space
+  while (insertIdx > sectionIdx + 1 && lines[insertIdx - 1].trim() === '') insertIdx--;
+
+  lines.splice(insertIdx, 0, '', ...entry);
+}
+
+/** Promote a proposed/pending source to active: checks [x] and moves to Active Sources. */
+export function activateSource(name: string): void {
+  const filePath = registryFilePath('RSS-Source-Registry.md');
+  const lines = readFileSync(filePath, 'utf-8').split('\n');
+
+  const re = new RegExp(`^- \\[[ x]\\] \\*\\*${escapeRegex(name)}\\*\\*`);
+  const idx = lines.findIndex((l) => re.test(l));
+  if (idx === -1) throw new Error(`Source not found: ${name}`);
+
+  // Determine current section
+  let currentSection = '';
+  for (let i = idx; i >= 0; i--) {
+    if (lines[i].startsWith('## ')) { currentSection = lines[i].slice(3).trim(); break; }
+  }
+
+  if (currentSection === 'Active Sources') {
+    // Already in right section — just check the box
+    lines[idx] = lines[idx].replace(/^- \[ \]/, '- [x]');
+  } else {
+    // Move to Active Sources with checked box
+    const entry = spliceEntry(lines, name);
+    entry[0] = entry[0].replace(/^- \[[ x]\]/, '- [x]');
+    insertAtSectionEnd(lines, 'Active Sources', entry);
+  }
+
+  writeFileSync(filePath, lines.join('\n'), 'utf-8');
+}
+
+/** Move an active source to Retired, unchecking its box. */
+export function retireSource(name: string): void {
+  const filePath = registryFilePath('RSS-Source-Registry.md');
+  const lines = readFileSync(filePath, 'utf-8').split('\n');
+
+  const entry = spliceEntry(lines, name);
+  entry[0] = entry[0].replace(/^- \[[ x]\]/, '- [ ]');
+
+  if (!lines.some((l) => l === '## Retired')) {
+    lines.push('', '## Retired', '', ...entry);
+  } else {
+    insertAtSectionEnd(lines, 'Retired', entry);
+  }
+
+  writeFileSync(filePath, lines.join('\n'), 'utf-8');
 }

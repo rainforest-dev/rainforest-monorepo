@@ -22,6 +22,7 @@ export default function SourceTable() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch('/api/sources')
@@ -32,6 +33,31 @@ export default function SourceTable() {
       .then((data: Source[]) => { setSources(data); setLoading(false); })
       .catch(() => { setError('Failed to load sources.'); setLoading(false); });
   }, []);
+
+  async function doAction(name: string, action: 'activate' | 'retire') {
+    setPending((p) => new Set(p).add(name));
+    try {
+      const res = await fetch('/api/sources', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, action }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      // Optimistic update
+      setSources((prev) =>
+        prev.map((s) => {
+          if (s.name !== name) return s;
+          if (action === 'activate') return { ...s, status: 'active' as const };
+          if (action === 'retire') return { ...s, status: 'retired' as const };
+          return s;
+        }),
+      );
+    } catch (e) {
+      alert(`Action failed: ${e}`);
+    } finally {
+      setPending((p) => { const n = new Set(p); n.delete(name); return n; });
+    }
+  }
 
   const filtered = sources.filter((s) => {
     const matchesText =
@@ -87,7 +113,8 @@ export default function SourceTable() {
               <th className="py-2 pr-4 font-medium">Source</th>
               <th className="py-2 pr-4 font-medium">Category</th>
               <th className="py-2 pr-4 font-medium">Tags</th>
-              <th className="py-2 font-medium">Status</th>
+              <th className="py-2 pr-4 font-medium">Status</th>
+              <th className="py-2 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -117,10 +144,30 @@ export default function SourceTable() {
                     ))}
                   </div>
                 </td>
-                <td className="py-2">
+                <td className="py-2 pr-4">
                   <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLORS[s.status]}`}>
                     {s.status}
                   </span>
+                </td>
+                <td className="py-2 text-right">
+                  {(s.status === 'proposed' || s.status === 'pending') && (
+                    <button
+                      onClick={() => doAction(s.name, 'activate')}
+                      disabled={pending.has(s.name)}
+                      className="px-3 py-1 text-xs rounded bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
+                    >
+                      {pending.has(s.name) ? '…' : 'Activate'}
+                    </button>
+                  )}
+                  {s.status === 'active' && (
+                    <button
+                      onClick={() => doAction(s.name, 'retire')}
+                      disabled={pending.has(s.name)}
+                      className="px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                    >
+                      {pending.has(s.name) ? '…' : 'Retire'}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
