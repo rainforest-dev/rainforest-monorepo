@@ -24,13 +24,11 @@ updated: 2026-06-17
 - [x] **The Verge** #domain/frontend #domain/ai
   https://www.theverge.com/rss/index.xml
 
-## Needs Verification
+## Proposed Sources
 
 - [ ] **TkDodo's Blog** #tech/tanstack #tech/react
-  https://tkdodo.eu/blog/rss.xml · for topic: TanStack ecosystem
+  https://tkdodo.eu/blog/rss.xml · for topic: TanStack ecosystem · _2026-06-17_ · proposed by rss-discover
   **What**: Deep dives into React patterns.
-
-## Proposed Sources
 
 - [ ] **The GitHub Blog** #devops #domain/frontend
   https://github.blog/feed/ · for topic: Build tooling · _2026-06-17_ · proposed by rss-discover
@@ -84,19 +82,13 @@ describe('parseSources', () => {
     expect(active[0].category).toBe('Frontend & Web');
   });
 
-  it('marks pending sources correctly', () => {
-    const sources = parseSources(SOURCES_FIXTURE);
-    const pending = sources.filter((s) => s.status === 'pending');
-    expect(pending).toHaveLength(1);
-    expect(pending[0].name).toBe("TkDodo's Blog");
-    expect(pending[0].url).toBe('https://tkdodo.eu/blog/rss.xml');
-  });
-
   it('marks proposed sources correctly', () => {
     const sources = parseSources(SOURCES_FIXTURE);
     const proposed = sources.filter((s) => s.status === 'proposed');
-    expect(proposed).toHaveLength(1);
-    expect(proposed[0].url).toBe('https://github.blog/feed/');
+    expect(proposed).toHaveLength(2);
+    expect(proposed[0].name).toBe("TkDodo's Blog");
+    expect(proposed[0].url).toBe('https://tkdodo.eu/blog/rss.xml');
+    expect(proposed[1].url).toBe('https://github.blog/feed/');
   });
 
   it('marks no-rss sources correctly', () => {
