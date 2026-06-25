@@ -6,7 +6,15 @@ type Source = {
   tags: string[];
   status: 'active' | 'pending' | 'proposed' | 'no-rss' | 'retired';
   category: string;
+  proposedDate?: string;
 };
+
+function daysAgo(dateStr: string): string {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+  if (diff === 0) return 'today';
+  if (diff === 1) return '1d ago';
+  return `${diff}d ago`;
+}
 
 const STATUS_COLORS: Record<Source['status'], string> = {
   active: 'bg-green-900 text-green-300',
@@ -150,24 +158,29 @@ export default function SourceTable() {
                   </span>
                 </td>
                 <td className="py-2 text-right">
-                  {(s.status === 'proposed' || s.status === 'pending') && (
-                    <button
-                      onClick={() => doAction(s.name, 'activate')}
-                      disabled={pending.has(s.name)}
-                      className="px-3 py-1 text-xs rounded bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
-                    >
-                      {pending.has(s.name) ? '…' : 'Activate'}
-                    </button>
-                  )}
-                  {s.status === 'active' && (
-                    <button
-                      onClick={() => doAction(s.name, 'retire')}
-                      disabled={pending.has(s.name)}
-                      className="px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-50 transition-colors"
-                    >
-                      {pending.has(s.name) ? '…' : 'Retire'}
-                    </button>
-                  )}
+                  <div className="flex items-center justify-end gap-2">
+                    {s.proposedDate && (s.status === 'proposed' || s.status === 'pending') && (
+                      <span className="text-xs text-gray-500">{daysAgo(s.proposedDate)}</span>
+                    )}
+                    {(s.status === 'proposed' || s.status === 'pending') && (
+                      <button
+                        onClick={() => doAction(s.name, 'activate')}
+                        disabled={pending.has(s.name)}
+                        className="px-3 py-1 text-xs rounded bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
+                      >
+                        {pending.has(s.name) ? '…' : 'Activate'}
+                      </button>
+                    )}
+                    {s.status === 'active' && (
+                      <button
+                        onClick={() => doAction(s.name, 'retire')}
+                        disabled={pending.has(s.name)}
+                        className="px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                      >
+                        {pending.has(s.name) ? '…' : 'Retire'}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
