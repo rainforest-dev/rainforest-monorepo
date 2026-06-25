@@ -7,6 +7,7 @@ export type Source = {
   tags: string[];
   status: 'active' | 'pending' | 'proposed' | 'no-rss' | 'retired';
   category: string;
+  proposedDate?: string;
 };
 
 export type Topic = {
@@ -14,6 +15,7 @@ export type Topic = {
   tags: string[];
   description: string;
   status: 'active' | 'proposed' | 'declined';
+  proposedDate?: string;
 };
 
 function stripFrontmatter(content: string): string {
@@ -63,16 +65,19 @@ export function parseSources(content: string): Source[] {
     const tags = extractTags(tagsText);
 
     let url = '';
+    let proposedDate: string | undefined;
     let j = i + 1;
     while (j < lines.length && lines[j].trim() === '') j++;
     if (j < lines.length) {
       const nextLine = lines[j].trim();
-      if (nextLine.startsWith('http')) {
-        url = extractUrl(nextLine);
-        i = j;
-      } else if (nextLine.startsWith('website:')) {
-        const urlMatch = nextLine.match(/https?:\/\/[^\s·]+/);
-        url = urlMatch ? urlMatch[0] : '';
+      if (nextLine.startsWith('http') || nextLine.startsWith('website:')) {
+        if (nextLine.startsWith('http')) url = extractUrl(nextLine);
+        else {
+          const urlMatch = nextLine.match(/https?:\/\/[^\s·]+/);
+          url = urlMatch ? urlMatch[0] : '';
+        }
+        const dateMatch = nextLine.match(/_(\d{4}-\d{2}-\d{2})_/);
+        if (dateMatch) proposedDate = dateMatch[1];
         i = j;
       }
     }
@@ -84,7 +89,7 @@ export function parseSources(content: string): Source[] {
     else if (section === 'No RSS Found') status = 'no-rss';
     else if (section === 'Retired') status = 'retired';
 
-    sources.push({ name, url, tags, status, category });
+    sources.push({ name, url, tags, status, category, proposedDate });
   }
 
   return sources;
@@ -115,12 +120,15 @@ export function parseTopics(content: string): Topic[] {
     const tags = extractTags(tagsText);
 
     let description = '';
+    let proposedDate: string | undefined;
     let j = i + 1;
     while (j < lines.length && lines[j].trim() === '') j++;
     if (j < lines.length) {
       const nextLine = lines[j].trim();
       if (nextLine && !nextLine.startsWith('-') && !nextLine.startsWith('#')) {
         description = nextLine;
+        const dateMatch = nextLine.match(/_(\d{4}-\d{2}-\d{2})_/);
+        if (dateMatch) proposedDate = dateMatch[1];
         i = j;
       }
     }
@@ -130,7 +138,7 @@ export function parseTopics(content: string): Topic[] {
     else if (section === 'Proposed') status = 'proposed';
     else if (section === 'Declined') status = 'declined';
 
-    topics.push({ name, tags, description, status });
+    topics.push({ name, tags, description, status, proposedDate });
   }
 
   return topics;
@@ -157,16 +165,18 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Remove a source entry (checkbox line + optional URL line) from lines in-place. */
+/** Remove an entry (checkbox line + all indented continuation lines) from lines in-place. */
 function spliceEntry(lines: string[], name: string): string[] {
   const re = new RegExp(`^- \\[[ x]\\] \\*\\*${escapeRegex(name)}\\*\\*`);
   const idx = lines.findIndex((l) => re.test(l));
-  if (idx === -1) throw new Error(`Source not found: ${name}`);
+  if (idx === -1) throw new Error(`Entry not found: ${name}`);
 
   const removed = [lines[idx]];
-  const next = lines[idx + 1]?.trim();
-  if (next?.startsWith('http') || next?.startsWith('website:')) {
-    removed.push(lines[idx + 1]);
+  let j = idx + 1;
+  // Grab all indented continuation lines (URL, description, What/Why/Recent…)
+  while (j < lines.length && lines[j] !== '' && /^\s/.test(lines[j])) {
+    removed.push(lines[j]);
+    j++;
   }
   lines.splice(idx, removed.length);
   // Clean up blank line left behind
@@ -213,6 +223,35 @@ export function activateSource(name: string): void {
     const entry = spliceEntry(lines, name);
     entry[0] = entry[0].replace(/^- \[[ x]\]/, '- [x]');
     insertAtSectionEnd(lines, 'Active Sources', entry);
+  }
+
+  writeFileSync(filePath, lines.join('\n'), 'utf-8');
+}
+
+/** Move a proposed topic to Active, checking its box. */
+export function activateTopic(name: string): void {
+  const filePath = registryFilePath('RSS-Topic-Registry.md');
+  const lines = readFileSync(filePath, 'utf-8').split('\n');
+
+  const entry = spliceEntry(lines, name);
+  entry[0] = entry[0].replace(/^- \[[ x]\]/, '- [x]');
+  insertAtSectionEnd(lines, 'Active', entry);
+
+  writeFileSync(filePath, lines.join('\n'), 'utf-8');
+}
+
+/** Move a proposed topic to Declined, unchecking its box. */
+export function declineTopic(name: string): void {
+  const filePath = registryFilePath('RSS-Topic-Registry.md');
+  const lines = readFileSync(filePath, 'utf-8').split('\n');
+
+  const entry = spliceEntry(lines, name);
+  entry[0] = entry[0].replace(/^- \[[ x]\]/, '- [ ]');
+
+  if (!lines.some((l) => l === '## Declined')) {
+    lines.push('', '## Declined', '', ...entry);
+  } else {
+    insertAtSectionEnd(lines, 'Declined', entry);
   }
 
   writeFileSync(filePath, lines.join('\n'), 'utf-8');
