@@ -59,14 +59,16 @@ async function experienceTechnologies(entry: CollectionEntry<'experiences'>): Pr
   return Array.from(new Set([...direct, ...fromProjects]));
 }
 
+/** Experience entries of a given type (`job` or `education`) in a given language. */
+function getExperiencesByType(type: ExperienceTag, lang: string) {
+  return getCollection('experiences', (entry) => entry.data.type === type && entry.data.language === lang);
+}
+
 export async function getWorkExperience(
   options: { technology?: SkillTag; lang?: string } = {},
 ): Promise<ResolvedExperience[]> {
   const { technology, lang = 'en' } = options;
-  const entries = await getCollection(
-    'experiences',
-    (entry) => entry.data.type === 'job' && entry.data.language === lang,
-  );
+  const entries = await getExperiencesByType('job', lang);
   const withTech = await Promise.all(
     entries.map(async (entry) => ({
       entry,
@@ -83,10 +85,7 @@ export async function getEducation(
   options: { lang?: string } = {},
 ): Promise<ResolvedExperience[]> {
   const { lang = 'en' } = options;
-  const entries = await getCollection(
-    'experiences',
-    (entry) => entry.data.type === 'education' && entry.data.language === lang,
-  );
+  const entries = await getExperiencesByType('education', lang);
   return Promise.all(
     entries.map(async (entry) => resolveExperience(entry, await experienceTechnologies(entry))),
   );
