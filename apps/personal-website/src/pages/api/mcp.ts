@@ -4,9 +4,13 @@ import { z } from 'zod';
 
 const handler = createMcpHandler(
   (server) => {
-    server.tool('ping', 'Health check tool', { echo: z.string().optional() }, async ({ echo }) => ({
-      content: [{ type: 'text', text: `pong${echo ? `: ${echo}` : ''}` }],
-    }));
+    server.registerTool(
+      'ping',
+      { description: 'Health check tool', inputSchema: { echo: z.string().optional() } },
+      async ({ echo }) => ({
+        content: [{ type: 'text', text: `pong${echo ? `: ${echo}` : ''}` }],
+      }),
+    );
   },
   {},
   { basePath: '/api' },
