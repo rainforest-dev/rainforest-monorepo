@@ -52,9 +52,9 @@ Stateless, **POST-only** Streamable HTTP — no SSE/GET stream. This server has 
 
 ## 5. Data Model
 
-Revive the old branch's schema, but store it as an **Astro Content Collection** (`src/content/profile/{experiences,organizations,projects,skills}`, Zod-validated via `src/content.config.ts`) instead of the old branch's hand-rolled directory scanner (`personal-data-reader.ts`). Rationale: the site's blog already uses content collections, giving schema validation, type safety, and a data source that a future resume-page rework could also consume — one source of truth instead of two mechanisms.
+**Correction found during planning:** this already exists. `organizations` / `experiences` / `projects` / `skills` are already defined as Astro Content Collections in `src/content.config.ts` (Zod-validated, `glob()`-loaded from `src/data/{organizations,experiences,projects,skills}/{en,zh}/`), with real populated content (6 organizations, 6 experiences, 4 projects, 12 skills). Nothing currently queries these collections — no page uses them yet. So there is no data model to build; the MCP server is simply the first consumer of an existing, already-correct schema.
 
-Fields (unchanged from the old branch's `types.ts`):
+Fields (matches `src/content.config.ts`, and matches what the old branch's `types.ts` independently proposed):
 
 ```ts
 interface Organization {
@@ -72,18 +72,19 @@ interface Experience {
 
 interface Project {
   id: string; name: string; language: string;
-  technologies: string[];
-  organization: string; experience: string; // refs
+  technologies: SkillTag[]; // z.enum(tags.skills) — fixed vocabulary, not free strings
+  organization: string; experience: string; // reference() to organizations/experiences
   content: string;
 }
 
 interface Skill {
-  id: string; name: string; icon: string;
+  id: string; name: string;
+  icon: SkillTag; // z.enum(tags.skills)
   tags?: string[]; content: string;
 }
 ```
 
-Each entry carries its own `language`; bilingual content is two entries (one per locale) sharing the same logical `id` prefix, matching the site's existing i18n convention (not a single entry with nested translations).
+`technologies`/`icon` are constrained to the existing `tags.skills` enum in `src/utils/constants/index.ts` (not free-form strings) — `search_by_technology` and the `technology?` filters operate over this fixed vocabulary. `organization`/`projects`/`experience` are Astro `reference()` fields, not plain strings; tools resolve these via `getEntry()` before returning data. Each entry carries its own `language`; bilingual content is two entries (one per locale) sharing the same logical `id`, matching the site's existing i18n convention (not a single entry with nested translations).
 
 ---
 
