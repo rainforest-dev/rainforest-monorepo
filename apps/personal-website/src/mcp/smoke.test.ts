@@ -1,6 +1,10 @@
+import type { Mock } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { fixturesByCollection } from './profile-data.fixtures';
 
+// Vitest hoists vi.mock above all imports regardless of source position, so this runs
+// before the `astro:content` import below takes effect.
 vi.mock('astro:content', () => ({
   getCollection: vi.fn(),
   getEntry: vi.fn(),
@@ -8,13 +12,23 @@ vi.mock('astro:content', () => ({
 
 import { getCollection, getEntry } from 'astro:content';
 
+/**
+ * Resolves the (collection, id) pair from either of Astro's two `getEntry` call shapes:
+ * a single `{ collection, id }` reference object, or two separate string arguments.
+ */
+function toCollectionAndId(a: unknown, b: unknown): [string, string] {
+  if (typeof a === 'string') return [a, b as string];
+  const ref = a as { collection: string; id: string };
+  return [ref.collection, ref.id];
+}
+
 beforeEach(() => {
-  vi.mocked(getCollection).mockImplementation(async (name: string, filter?: (e: unknown) => boolean) => {
+  (getCollection as Mock).mockImplementation(async (name: string, filter?: (e: unknown) => boolean) => {
     const entries = fixturesByCollection[name as keyof typeof fixturesByCollection] ?? [];
     return filter ? entries.filter(filter) : entries;
   });
-  vi.mocked(getEntry).mockImplementation(async (a: unknown, b?: unknown) => {
-    const [collection, id] = typeof a === 'string' ? [a, b as string] : [(a as { collection: string }).collection, (a as { id: string }).id];
+  (getEntry as Mock).mockImplementation(async (a: unknown, b?: unknown) => {
+    const [collection, id] = toCollectionAndId(a, b);
     const entries = fixturesByCollection[collection as keyof typeof fixturesByCollection] ?? [];
     return entries.find((e) => e.id === id);
   });
