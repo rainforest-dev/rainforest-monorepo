@@ -91,6 +91,18 @@ export async function getEducation(
   );
 }
 
+/**
+ * A single experience (job or education) by id, fully resolved — same shape as
+ * `getWorkExperience`/`getEducation`'s entries. Used by the MCP resource reader so a
+ * `profile://experience/{id}` read returns the same resolved organization/technologies
+ * as the tool surface, not a raw entry with unresolved reference pointers.
+ */
+export async function getExperienceById(id: string): Promise<ResolvedExperience | undefined> {
+  const entry = await getEntry('experiences', id);
+  if (!entry) return undefined;
+  return resolveExperience(entry, await experienceTechnologies(entry));
+}
+
 export interface ResolvedProject {
   id: string;
   name: string;
@@ -124,6 +136,13 @@ export async function getProjects(
       (!technology || entry.data.technologies.includes(technology)),
   );
   return Promise.all(entries.map(resolveProject));
+}
+
+/** A single project by id, fully resolved — same rationale as `getExperienceById`. */
+export async function getProjectById(id: string): Promise<ResolvedProject | undefined> {
+  const entry = await getEntry('projects', id);
+  if (!entry) return undefined;
+  return resolveProject(entry);
 }
 
 export interface ResolvedSkill {

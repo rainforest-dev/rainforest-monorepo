@@ -1,4 +1,6 @@
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { SkillTag } from '@types';
+import { tags } from '@utils/constants';
 import type { APIRoute } from 'astro';
 import { getEntry } from 'astro:content';
 import { createMcpHandler } from 'mcp-handler';
@@ -6,7 +8,9 @@ import { z } from 'zod';
 
 import {
   getEducation,
+  getExperienceById,
   getProfileSummary,
+  getProjectById,
   getProjects,
   getSkills,
   getWorkExperience,
@@ -14,7 +18,11 @@ import {
 } from '../../mcp/profile-data';
 
 const langSchema = z.enum(['en', 'zh']).optional();
-const technologySchema = z.string().optional();
+// Derived from the same tags.skills vocabulary the content schemas use (content.config.ts),
+// rather than a plain z.string() — this makes the parsed value a real SkillTag, not just a
+// string, so the tool handlers below no longer need an `as any` cast to call getWorkExperience/
+// getProjects (which require SkillTag, not string).
+const technologySchema = z.enum(tags.skills as unknown as [SkillTag, ...SkillTag[]]).optional();
 
 const handler = createMcpHandler(
   (server) => {
@@ -37,7 +45,7 @@ const handler = createMcpHandler(
       },
       async ({ technology, lang }) => ({
         content: [
-          { type: 'text', text: JSON.stringify(await getWorkExperience({ technology: technology as any, lang })) },
+          { type: 'text', text: JSON.stringify(await getWorkExperience({ technology, lang })) },
         ],
       }),
     );
@@ -58,7 +66,7 @@ const handler = createMcpHandler(
       },
       async ({ technology, lang }) => ({
         content: [
-          { type: 'text', text: JSON.stringify(await getProjects({ technology: technology as any, lang })) },
+          { type: 'text', text: JSON.stringify(await getProjects({ technology, lang })) },
         ],
       }),
     );
@@ -84,14 +92,20 @@ const handler = createMcpHandler(
 
     // `{+id}` (RFC 6570 reserved expansion) is required, not `{id}` — our ids contain
     // slashes (e.g. `en/6`), and plain `{id}` expansion only matches a single path segment.
+    //
+    // experience/project resources return the same *resolved* shape as the tools above
+    // (resolved organization, merged technologies) — not a raw content-collection entry.
+    // A raw entry's `organization` field is an unresolved `{id, collection}` pointer the
+    // client has no way to dereference itself (there's no `profile://organization/{id}`
+    // resource), so returning it as-is would be a dead end, not just "a different view".
     server.registerResource(
       'experience',
       new ResourceTemplate('profile://experience/{+id}', { list: undefined }),
       { title: 'Work/Education Experience', mimeType: 'application/json' },
       async (uri, { id }) => {
-        const entry = await getEntry('experiences', id as string);
-        if (!entry) throw new Error(`Experience not found: ${id}`);
-        return { contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }] };
+        const experience = await getExperienceById(id as string);
+        if (!experience) throw new Error(`Experience not found: ${id}`);
+        return { contents: [{ uri: uri.href, text: JSON.stringify(experience) }] };
       },
     );
 
@@ -100,9 +114,9 @@ const handler = createMcpHandler(
       new ResourceTemplate('profile://project/{+id}', { list: undefined }),
       { title: 'Project', mimeType: 'application/json' },
       async (uri, { id }) => {
-        const entry = await getEntry('projects', id as string);
-        if (!entry) throw new Error(`Project not found: ${id}`);
-        return { contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }] };
+        const project = await getProjectById(id as string);
+        if (!project) throw new Error(`Project not found: ${id}`);
+        return { contents: [{ uri: uri.href, text: JSON.stringify(project) }] };
       },
     );
 
