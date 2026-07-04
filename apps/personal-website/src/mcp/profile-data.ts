@@ -78,3 +78,119 @@ export async function getWorkExperience(
     : withTech;
   return Promise.all(filtered.map(({ entry, technologies }) => resolveExperience(entry, technologies)));
 }
+
+export async function getEducation(
+  options: { lang?: string } = {},
+): Promise<ResolvedExperience[]> {
+  const { lang = 'en' } = options;
+  const entries = await getCollection(
+    'experiences',
+    (entry) => entry.data.type === 'education' && entry.data.language === lang,
+  );
+  return Promise.all(
+    entries.map(async (entry) => resolveExperience(entry, await experienceTechnologies(entry))),
+  );
+}
+
+export interface ResolvedProject {
+  id: string;
+  name: string;
+  language: string;
+  technologies: SkillTag[];
+  organization: ResolvedOrganization;
+  experience: string;
+  content: string;
+}
+
+async function resolveProject(entry: CollectionEntry<'projects'>): Promise<ResolvedProject> {
+  return {
+    id: entry.id,
+    name: entry.data.name,
+    language: entry.data.language,
+    technologies: entry.data.technologies,
+    organization: await resolveOrganization(entry.data.organization),
+    experience: entry.data.experience.id,
+    content: entry.body ?? '',
+  };
+}
+
+export async function getProjects(
+  options: { technology?: SkillTag; lang?: string } = {},
+): Promise<ResolvedProject[]> {
+  const { technology, lang = 'en' } = options;
+  const entries = await getCollection(
+    'projects',
+    (entry) =>
+      entry.data.language === lang &&
+      (!technology || entry.data.technologies.includes(technology)),
+  );
+  return Promise.all(entries.map(resolveProject));
+}
+
+export interface ResolvedSkill {
+  id: string;
+  name: string;
+  icon: SkillTag;
+  tags: string[];
+  content: string;
+}
+
+export async function getSkills(options: { lang?: string } = {}): Promise<ResolvedSkill[]> {
+  const { lang = 'en' } = options;
+  const entries = await getCollection('skills', (entry) => entry.id.startsWith(`${lang}/`));
+  return entries.map((entry) => ({
+    id: entry.id,
+    name: entry.data.name,
+    icon: entry.data.icon,
+    tags: entry.data.tags ?? [],
+    content: entry.body ?? '',
+  }));
+}
+
+export interface ProfileSummary {
+  experienceCount: number;
+  projectCount: number;
+  skillCount: number;
+  topTechnologies: SkillTag[];
+}
+
+export async function getProfileSummary(options: { lang?: string } = {}): Promise<ProfileSummary> {
+  const { lang = 'en' } = options;
+  const [experiences, projects, skills] = await Promise.all([
+    getWorkExperience({ lang }),
+    getProjects({ lang }),
+    getSkills({ lang }),
+  ]);
+  const techCounts = new Map<SkillTag, number>();
+  for (const exp of experiences) {
+    for (const tech of exp.technologies) techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
+  }
+  for (const project of projects) {
+    for (const tech of project.technologies) techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
+  }
+  const topTechnologies = [...techCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([tech]) => tech);
+  return {
+    experienceCount: experiences.length,
+    projectCount: projects.length,
+    skillCount: skills.length,
+    topTechnologies,
+  };
+}
+
+export async function searchByTechnology(
+  query: string,
+  options: { lang?: string } = {},
+): Promise<{ experiences: ResolvedExperience[]; projects: ResolvedProject[] }> {
+  const { lang = 'en' } = options;
+  const q = query.toLowerCase();
+  const [experiences, projects] = await Promise.all([
+    getWorkExperience({ lang }),
+    getProjects({ lang }),
+  ]);
+  return {
+    experiences: experiences.filter((e) => e.technologies.some((t) => t.toLowerCase().includes(q))),
+    projects: projects.filter((p) => p.technologies.some((t) => t.toLowerCase().includes(q))),
+  };
+}
