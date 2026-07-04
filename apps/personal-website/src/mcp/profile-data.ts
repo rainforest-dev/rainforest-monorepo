@@ -1,5 +1,5 @@
-import type { SkillTag } from '@types';
-import { type CollectionEntry,getCollection, getEntry } from 'astro:content';
+import type { ExperienceTag, SkillTag } from '@types';
+import { type CollectionEntry, getCollection, getEntry } from 'astro:content';
 
 export interface ResolvedOrganization {
   id: string;
@@ -9,7 +9,7 @@ export interface ResolvedOrganization {
 
 export interface ResolvedExperience {
   id: string;
-  type: 'job' | 'education';
+  type: ExperienceTag;
   language: string;
   position: string;
   startAt: Date;
