@@ -121,5 +121,6 @@ Future private/authenticated tools (noted as out of scope, §2) would use `mcp-h
 
 ## 9. Testing
 
-- Local: `pnpm dev` + `curl` against the endpoint with raw JSON-RPC payloads (list tools, call each tool, read each resource type) to verify handler wiring before involving a real client.
+- Unit: the data-access layer (`profile-data.ts`) is unit-tested with `astro:content`'s `getCollection`/`getEntry` **mocked against fixture data**, not resolved live. **Found during implementation:** live `astro:content` resolution inside Vitest is a real, unresolved gap in the Astro/Vitest ecosystem — confirmed independently (a successful `astro build` populates `node_modules/.astro/data-store.json` with real data, but a Vitest process still sees every collection as empty). See [withastro/astro#12836](https://github.com/withastro/astro/issues/12836). The mocking approach is the documented ecosystem-standard fix, not a workaround avoiding the problem — `profile-data.ts`'s implementation is unaffected, only its tests changed.
+- Local integration: `pnpm dev` + `curl` against the endpoint with raw JSON-RPC payloads (list tools, call each tool, read each resource type) — this exercises real, live `astro:content` resolution (which works fine inside Astro's own dev server, just not inside Vitest) before involving a real client.
 - Post-deploy: connect a real MCP client (Claude.ai or Claude Code remote MCP connection) to the deployed `mcp.rainforest.tools` — verifies actual client interop, not just hand-written request scripts.
