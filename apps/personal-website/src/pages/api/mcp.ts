@@ -15,7 +15,7 @@ import {
   getSkills,
   getWorkExperience,
   searchByTechnology,
-} from '../../mcp/profile-data';
+} from '@rainforest-dev/personal-data';
 
 const langSchema = z.enum(['en', 'zh']).optional();
 // Derived from the same tags.skills vocabulary the content schemas use (content.config.ts),

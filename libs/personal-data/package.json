@@ -8,6 +8,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.cjs"
+    },
+    "./vocab": {
+      "types": "./dist/vocab.d.ts",
+      "import": "./dist/vocab.js",
+      "default": "./dist/vocab.cjs"
     }
   },
   "main": "./dist/index.js",

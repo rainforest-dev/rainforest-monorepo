@@ -4,6 +4,7 @@
 // See docs/superpowers/specs/2026-07-07-personal-mcp-split-design.md.
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import fg from 'fast-glob';
 import matter from 'gray-matter';
@@ -16,7 +17,14 @@ import {
   skillSchema,
 } from './schemas';
 
-const DATA_ROOT = path.join(__dirname, 'data');
+// `__dirname` isn't available in the ESM build this bundles into (Vite's `es` output has
+// no CJS globals), so this derives the equivalent from `import.meta.url` instead. Rollup
+// rewrites `import.meta.url` per output format (it stays a `file://` URL in the `es`
+// build, and becomes a CJS-safe equivalent in the `cjs` build), so `fileURLToPath` works
+// for both. The build copies `src/data` next to the bundled `index.{js,cjs}` (see
+// vite.config.ts), so `data` alongside this module resolves correctly whether running
+// against the built package or directly against source (as the test suite does).
+const DATA_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'data');
 
 const schemas = {
   organizations: organizationSchema,

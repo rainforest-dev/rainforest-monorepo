@@ -28,6 +28,9 @@
   "references": [
     {
       "path": "../../libs/rainforest-ui"
+    },
+    {
+      "path": "../../libs/personal-data"
     }
   ]
 }

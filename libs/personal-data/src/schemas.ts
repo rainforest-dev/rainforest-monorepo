@@ -1,3 +1,11 @@
+// These schemas are mirrored in apps/personal-website/src/content.config.ts (same shape,
+// but using Astro's `reference()` helper for the organization/project/experience fields
+// instead of the plain strings used here — Astro's content-collection references can't be
+// shared with this framework-agnostic library, so the two definitions can't be unified).
+// apps/personal-website's collections read the same underlying files as this library (see
+// content.config.ts's own comment for why they weren't consolidated into one reader), so
+// if the content shape changes here, update content.config.ts's schemas to match, and
+// vice versa.
 import { z } from 'zod';
 
 import { experienceTypes, locales, skillTags } from './vocab';
