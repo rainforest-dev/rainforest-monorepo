@@ -23,6 +23,9 @@
     },
     {
       "path": "./libs/personal-data"
+    },
+    {
+      "path": "./apps/rss-manager"
     }
   ]
 }
