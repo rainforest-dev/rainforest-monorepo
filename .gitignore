@@ -84,3 +84,6 @@ storybook-static
 
 # Dev secrets
 deploy/.env.dev
+
+# superpowers git worktrees
+.worktrees/
