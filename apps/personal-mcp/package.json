@@ -14,7 +14,7 @@
           "cwd": "apps/personal-mcp",
           "command": "vite build && node scripts/copy-outputs.mjs"
         },
-        "outputs": ["{projectRoot}/api/index.js", "{projectRoot}/api/data", "{projectRoot}/dist"],
+        "outputs": ["{projectRoot}/api/index.js", "{projectRoot}/api/data"],
         "dependsOn": ["^build"],
         "cache": true
       },
