@@ -24,6 +24,12 @@
             "--experimental-https"
           ]
         }
+      },
+      "build": {
+        "outputs": [
+          "{projectRoot}/.next/!(cache)/**/*",
+          "{projectRoot}/.next/!(cache)"
+        ]
       }
     }
   }
