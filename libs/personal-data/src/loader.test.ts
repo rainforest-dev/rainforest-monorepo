@@ -1,9 +1,6 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import { describe, expect, it } from 'vitest';
 
-import { afterEach, describe, expect, it } from 'vitest';
-
-import { getCollection, getEntry } from './loader';
+import { getCollection, getEntry, parseEntry } from './loader';
 
 describe('loader', () => {
   it('loads all organization entries from real JSON files', async () => {
@@ -32,16 +29,15 @@ describe('loader', () => {
   });
 
   describe('validation errors', () => {
-    const badFile = path.join(__dirname, 'data', 'organizations', 'en', '__invalid-test-fixture__.json');
-
-    afterEach(() => {
-      fs.rmSync(badFile, { force: true });
-    });
-
-    it('identifies the offending file when content fails schema validation', async () => {
-      fs.writeFileSync(badFile, JSON.stringify({ name: 'Bad Org', language: 'not-a-real-locale' }));
-
-      await expect(getCollection('organizations')).rejects.toThrow(/__invalid-test-fixture__\.json/);
+    // parseEntry is tested directly against fabricated content rather than by writing
+    // a real file to disk: the collections' file lists are now resolved once, at
+    // import time, by Vite's eager `import.meta.glob` (see loader.ts) — a file written
+    // at test-run time would never be picked up by that already-resolved map.
+    it('identifies the offending file when content fails schema validation', () => {
+      const badFile = './data/organizations/en/__invalid-test-fixture__.json';
+      expect(() =>
+        parseEntry('organizations', badFile, JSON.stringify({ name: 'Bad Org', language: 'not-a-real-locale' })),
+      ).toThrow(/__invalid-test-fixture__\.json/);
     });
   });
 });

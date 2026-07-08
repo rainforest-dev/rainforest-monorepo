@@ -26,9 +26,6 @@
     },
     {
       "path": "./apps/rss-manager"
-    },
-    {
-      "path": "./apps/personal-mcp"
     }
   ]
 }
