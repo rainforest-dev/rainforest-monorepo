@@ -11,7 +11,7 @@
       "build": {
         "executor": "nx:run-commands",
         "options": { "cwd": "apps/personal-mcp", "command": "vite build" },
-        "outputs": ["{projectRoot}/dist", "{projectRoot}/api/index.js", "{projectRoot}/api/data"],
+        "outputs": ["{projectRoot}/api/index.js", "{projectRoot}/api/data"],
         "dependsOn": ["^build"],
         "cache": true
       },
