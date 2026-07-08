@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import fg from 'fast-glob';
 import matter from 'gray-matter';
-import { ZodError, type z } from 'zod';
+import { type z,ZodError } from 'zod';
 
 import {
   experienceSchema,

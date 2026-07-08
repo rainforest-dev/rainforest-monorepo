@@ -1,15 +1,4 @@
-export type { ExperienceType, Locale, SkillTag } from './vocab';
-export { experienceTypes, locales, skillTags } from './vocab';
-
-export type {
-  ExperienceData,
-  OrganizationData,
-  ProjectData,
-  SkillData,
-} from './schemas';
-
 export type { Entry } from './loader';
-
 export type {
   ProfileSummary,
   ResolvedExperience,
@@ -28,3 +17,11 @@ export {
   getWorkExperience,
   searchByTechnology,
 } from './profile-data';
+export type {
+  ExperienceData,
+  OrganizationData,
+  ProjectData,
+  SkillData,
+} from './schemas';
+export type { ExperienceType, Locale, SkillTag } from './vocab';
+export { experienceTypes, locales, skillTags } from './vocab';

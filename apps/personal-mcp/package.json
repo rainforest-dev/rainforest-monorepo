@@ -8,7 +8,8 @@
   },
   "nx": {
     "targets": {
-      "dev": { "dependsOn": ["^build"] }
+      "dev": { "dependsOn": ["^build"] },
+      "test": { "dependsOn": ["^build"] }
     }
   },
   "dependencies": {
