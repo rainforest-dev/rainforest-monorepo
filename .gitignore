@@ -4,6 +4,8 @@
 dist
 tmp
 out-tsc
+apps/personal-mcp/api/index.js
+apps/personal-mcp/api/data
 
 # dependencies
 node_modules
