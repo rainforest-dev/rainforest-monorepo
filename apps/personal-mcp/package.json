@@ -10,7 +10,10 @@
     "targets": {
       "build": {
         "executor": "nx:run-commands",
-        "options": { "cwd": "apps/personal-mcp", "command": "vite build" },
+        "options": {
+          "cwd": "apps/personal-mcp",
+          "command": "vite build && node scripts/copy-outputs.mjs"
+        },
         "outputs": ["{projectRoot}/api/index.js", "{projectRoot}/api/data", "{projectRoot}/dist"],
         "dependsOn": ["^build"],
         "cache": true
