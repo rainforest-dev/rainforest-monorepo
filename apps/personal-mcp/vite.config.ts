@@ -17,15 +17,25 @@ import { defineConfig, type Plugin } from 'vite';
 // library's own dist output. writeBundle (not closeBundle) is used here since
 // it's the hook Rollup/Rolldown documents as running after bundle files are
 // actually written to disk.
-function copyDataDir(): Plugin {
+//
+// Vercel's own `vercel build` CLI has a separate, simplistic Nx-detection layer
+// that expects an output directory named `dist` for this project (it reads
+// nx.json's global targetDefaults.build.outputs literally, ignoring this
+// project's own build target override) — an empty dist/ here just satisfies
+// that check. Explicitly overriding "Output Directory" in the Vercel dashboard
+// instead was tried and rejected: it silently disables api/ Functions
+// auto-detection entirely, which is the opposite of what this project needs.
+function writeOutputs(): Plugin {
   return {
-    name: 'copy-data-dir',
+    name: 'write-outputs',
     writeBundle() {
       fs.cpSync(
         path.join(__dirname, '../../libs/personal-data/src/data'),
         path.join(__dirname, 'api/data'),
         { recursive: true },
       );
+      fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
+      fs.writeFileSync(path.join(__dirname, 'dist/.gitkeep'), '');
     },
   };
 }
@@ -33,7 +43,7 @@ function copyDataDir(): Plugin {
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/apps/personal-mcp',
-  plugins: [copyDataDir()],
+  plugins: [writeOutputs()],
   build: {
     outDir: './api',
     emptyOutDir: true,
