@@ -1,10 +1,20 @@
 {
   "extends": "../../tsconfig.base.json",
-  "files": [],
-  "include": [],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "dist",
+    "emitDeclarationOnly": false,
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"],
   "references": [
     {
-      "path": "./tsconfig.lib.json"
+      "path": "../../libs/personal-data"
     }
   ]
 }
