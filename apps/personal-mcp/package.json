@@ -8,6 +8,13 @@
   },
   "nx": {
     "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "options": { "cwd": "apps/personal-mcp", "command": "vite build" },
+        "outputs": ["{projectRoot}/dist", "{projectRoot}/api/index.js", "{projectRoot}/api/data"],
+        "dependsOn": ["^build"],
+        "cache": true
+      },
       "dev": { "dependsOn": ["^build"] },
       "test": { "dependsOn": ["^build"] }
     }
@@ -24,6 +31,7 @@
     "@types/node": "catalog:",
     "tsx": "^4.19.0",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "^3.2.4"
   }
 }
