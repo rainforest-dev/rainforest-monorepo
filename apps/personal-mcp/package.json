@@ -1,0 +1,29 @@
+{
+  "name": "@rainforest-dev/personal-mcp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/serve.ts"
+  },
+  "nx": {
+    "targets": {
+      "dev": { "dependsOn": ["^build"] },
+      "test": { "dependsOn": ["^build"] }
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@rainforest-dev/personal-data": "workspace:*",
+    "hono": "^4.6.0",
+    "mcp-handler": "^1.1.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@hono/node-server": "^1.13.0",
+    "@types/node": "catalog:",
+    "tsx": "^4.19.0",
+    "typescript": "catalog:",
+    "vitest": "^3.2.4"
+  }
+}
