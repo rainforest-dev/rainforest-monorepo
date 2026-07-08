@@ -314,40 +314,6 @@ importers:
         specifier: ^22.15.19
         version: 22.15.19
 
-  apps/personal-mcp:
-    dependencies:
-      '@modelcontextprotocol/sdk':
-        specifier: ^1.29.0
-        version: 1.29.0(zod@3.25.76)
-      '@rainforest-dev/personal-data':
-        specifier: workspace:*
-        version: link:../../libs/personal-data
-      hono:
-        specifier: ^4.6.0
-        version: 4.12.12
-      mcp-handler:
-        specifier: ^1.1.0
-        version: 1.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(next@16.2.6(@babel/core@7.29.7)(@playwright/test@1.55.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.101.0))
-      zod:
-        specifier: ^3.25.76
-        version: 3.25.76
-    devDependencies:
-      '@hono/node-server':
-        specifier: ^1.13.0
-        version: 1.19.14(hono@4.12.12)
-      '@types/node':
-        specifier: 'catalog:'
-        version: 25.6.0
-      tsx:
-        specifier: ^4.19.0
-        version: 4.23.0
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.6.0)(@vitest/ui@4.1.4(vitest@4.1.4))(jiti@2.6.1)(jsdom@27.0.0(postcss@8.5.15))(less@4.1.3)(lightningcss@1.32.0)(msw@2.13.3(@types/node@25.6.0)(typescript@5.9.3))(sass-embedded@1.100.0)(sass@1.101.0)(stylus@0.64.0)(terser@5.48.0)(tsx@4.23.0)(yaml@2.9.0)
-
   apps/personal-website:
     dependencies:
       '@astrojs/markdown-remark':
@@ -23857,6 +23823,7 @@ snapshots:
       '@esbuild/win32-arm64': 0.28.1
       '@esbuild/win32-ia32': 0.28.1
       '@esbuild/win32-x64': 0.28.1
+    optional: true
 
   escalade@3.2.0: {}
 
@@ -30391,6 +30358,7 @@ snapshots:
       esbuild: 0.28.1
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   tunnel-agent@0.6.0:
     dependencies:
