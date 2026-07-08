@@ -1,3 +1,4 @@
+import { experienceTypes, skillTags } from '@rainforest-dev/personal-data/vocab';
 import type { ILink, SkillTag } from '@types';
 import { getGitHubUrl, getLinkedInUrl } from '@utils';
 
@@ -6,31 +7,8 @@ export const defaultSourceColor = '#66b2b2' as const;
 export const resumeDateFormat = 'MMM yyyy' as const;
 
 export const tags = {
-  skills: [
-    'nextjs',
-    'vue',
-    'docker',
-    'flutter',
-    'react',
-    'tailwindcss',
-    'mui',
-    'auth0',
-    'qwik',
-    'playwright',
-    'vitest',
-    'python',
-    'pytorch',
-    'fastapi',
-    'swift',
-    'github-actions',
-    'nodejs',
-    'nx',
-    'vite',
-    'typescript',
-    'express',
-    'terraform',
-  ],
-  experience: ['job', 'education'],
+  skills: skillTags,
+  experience: experienceTypes,
 } as const;
 
 export const info = {

@@ -1,5 +1,5 @@
-import type { ExperienceTag, SkillTag } from '@types';
-import { type CollectionEntry, getCollection, getEntry } from 'astro:content';
+import { getCollection, getEntry } from './loader';
+import type { ExperienceType, Locale, SkillTag } from './vocab';
 
 export interface ResolvedOrganization {
   id: string;
@@ -9,7 +9,7 @@ export interface ResolvedOrganization {
 
 export interface ResolvedExperience {
   id: string;
-  type: ExperienceTag;
+  type: ExperienceType;
   language: string;
   position: string;
   startAt: Date;
@@ -19,11 +19,9 @@ export interface ResolvedExperience {
   content: string;
 }
 
-async function resolveOrganization(
-  ref: CollectionEntry<'experiences'>['data']['organization'],
-): Promise<ResolvedOrganization> {
-  const org = await getEntry(ref);
-  if (!org) throw new Error(`Organization not found: ${ref.id}`);
+async function resolveOrganization(id: string): Promise<ResolvedOrganization> {
+  const org = await getEntry('organizations', id);
+  if (!org) throw new Error(`Organization not found: ${id}`);
   return { id: org.id, name: org.data.name, link: org.data.link };
 }
 
@@ -34,7 +32,7 @@ async function resolveOrganization(
  * see `experienceTechnologies` below.
  */
 async function resolveExperience(
-  entry: CollectionEntry<'experiences'>,
+  entry: Awaited<ReturnType<typeof getCollection<'experiences'>>>[number],
   technologies: SkillTag[],
 ): Promise<ResolvedExperience> {
   return {
@@ -46,26 +44,28 @@ async function resolveExperience(
     endAt: entry.data.endAt,
     technologies,
     organization: await resolveOrganization(entry.data.organization),
-    content: entry.body ?? '',
+    content: entry.body,
   };
 }
 
 /** Technologies declared directly on the experience, plus technologies of any linked projects. */
-async function experienceTechnologies(entry: CollectionEntry<'experiences'>): Promise<SkillTag[]> {
+async function experienceTechnologies(
+  entry: Awaited<ReturnType<typeof getCollection<'experiences'>>>[number],
+): Promise<SkillTag[]> {
   const direct = entry.data.technologies ?? [];
-  const projectRefs = entry.data.projects ?? [];
-  const projects = await Promise.all(projectRefs.map((ref) => getEntry(ref)));
+  const projectIds = entry.data.projects ?? [];
+  const projects = await Promise.all(projectIds.map((id) => getEntry('projects', id)));
   const fromProjects = projects.flatMap((p) => p?.data.technologies ?? []);
   return Array.from(new Set([...direct, ...fromProjects]));
 }
 
 /** Experience entries of a given type (`job` or `education`) in a given language. */
-function getExperiencesByType(type: ExperienceTag, lang: string) {
+function getExperiencesByType(type: ExperienceType, lang: string) {
   return getCollection('experiences', (entry) => entry.data.type === type && entry.data.language === lang);
 }
 
 export async function getWorkExperience(
-  options: { technology?: SkillTag; lang?: string } = {},
+  options: { technology?: SkillTag; lang?: Locale } = {},
 ): Promise<ResolvedExperience[]> {
   const { technology, lang = 'en' } = options;
   const entries = await getExperiencesByType('job', lang);
@@ -82,7 +82,7 @@ export async function getWorkExperience(
 }
 
 export async function getEducation(
-  options: { lang?: string } = {},
+  options: { lang?: Locale } = {},
 ): Promise<ResolvedExperience[]> {
   const { lang = 'en' } = options;
   const entries = await getExperiencesByType('education', lang);
@@ -113,20 +113,22 @@ export interface ResolvedProject {
   content: string;
 }
 
-async function resolveProject(entry: CollectionEntry<'projects'>): Promise<ResolvedProject> {
+async function resolveProject(
+  entry: Awaited<ReturnType<typeof getCollection<'projects'>>>[number],
+): Promise<ResolvedProject> {
   return {
     id: entry.id,
     name: entry.data.name,
     language: entry.data.language,
     technologies: entry.data.technologies,
     organization: await resolveOrganization(entry.data.organization),
-    experience: entry.data.experience.id,
-    content: entry.body ?? '',
+    experience: entry.data.experience,
+    content: entry.body,
   };
 }
 
 export async function getProjects(
-  options: { technology?: SkillTag; lang?: string } = {},
+  options: { technology?: SkillTag; lang?: Locale } = {},
 ): Promise<ResolvedProject[]> {
   const { technology, lang = 'en' } = options;
   const entries = await getCollection(
@@ -153,7 +155,7 @@ export interface ResolvedSkill {
   content: string;
 }
 
-export async function getSkills(options: { lang?: string } = {}): Promise<ResolvedSkill[]> {
+export async function getSkills(options: { lang?: Locale } = {}): Promise<ResolvedSkill[]> {
   const { lang = 'en' } = options;
   const entries = await getCollection('skills', (entry) => entry.id.startsWith(`${lang}/`));
   return entries.map((entry) => ({
@@ -161,8 +163,27 @@ export async function getSkills(options: { lang?: string } = {}): Promise<Resolv
     name: entry.data.name,
     icon: entry.data.icon,
     tags: entry.data.tags ?? [],
-    content: entry.body ?? '',
+    content: entry.body,
   }));
+}
+
+/**
+ * A single skill by id. Skills have no reference fields to resolve (unlike
+ * experience/project), so this is a thin wrapper — but it's still exported
+ * (rather than having consumers reach into loader.ts directly) so the
+ * library's public surface is entirely profile-data.ts, keeping loader.ts
+ * a private implementation detail.
+ */
+export async function getSkillById(id: string): Promise<ResolvedSkill | undefined> {
+  const entry = await getEntry('skills', id);
+  if (!entry) return undefined;
+  return {
+    id: entry.id,
+    name: entry.data.name,
+    icon: entry.data.icon,
+    tags: entry.data.tags ?? [],
+    content: entry.body,
+  };
 }
 
 export interface ProfileSummary {
@@ -172,7 +193,7 @@ export interface ProfileSummary {
   topTechnologies: SkillTag[];
 }
 
-export async function getProfileSummary(options: { lang?: string } = {}): Promise<ProfileSummary> {
+export async function getProfileSummary(options: { lang?: Locale } = {}): Promise<ProfileSummary> {
   const { lang = 'en' } = options;
   const [experiences, projects, skills] = await Promise.all([
     getWorkExperience({ lang }),
@@ -199,7 +220,7 @@ export async function getProfileSummary(options: { lang?: string } = {}): Promis
 
 export async function searchByTechnology(
   query: string,
-  options: { lang?: string } = {},
+  options: { lang?: Locale } = {},
 ): Promise<{ experiences: ResolvedExperience[]; projects: ResolvedProject[] }> {
   const { lang = 'en' } = options;
   const q = query.toLowerCase();

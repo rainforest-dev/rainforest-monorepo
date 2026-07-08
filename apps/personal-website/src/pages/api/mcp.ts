@@ -1,11 +1,4 @@
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { SkillTag } from '@types';
-import { tags } from '@utils/constants';
-import type { APIRoute } from 'astro';
-import { getEntry } from 'astro:content';
-import { createMcpHandler } from 'mcp-handler';
-import { z } from 'zod';
-
 import {
   getEducation,
   getExperienceById,
@@ -15,7 +8,13 @@ import {
   getSkills,
   getWorkExperience,
   searchByTechnology,
-} from '../../mcp/profile-data';
+} from '@rainforest-dev/personal-data';
+import type { SkillTag } from '@types';
+import { tags } from '@utils/constants';
+import type { APIRoute } from 'astro';
+import { getEntry } from 'astro:content';
+import { createMcpHandler } from 'mcp-handler';
+import { z } from 'zod';
 
 const langSchema = z.enum(['en', 'zh']).optional();
 // Derived from the same tags.skills vocabulary the content schemas use (content.config.ts),
