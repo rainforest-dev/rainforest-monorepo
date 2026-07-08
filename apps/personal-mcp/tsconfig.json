@@ -5,6 +5,17 @@
     "rootDir": "src",
     "outDir": "dist",
     "emitDeclarationOnly": false,
+    // Vercel's Hono framework build runs a separate, isolated TypeScript pass
+    // over src/index.ts that doesn't see libs/personal-data/dist (even though
+    // our own `nx build` step, which correctly sequences personal-data's build
+    // first, runs successfully just before it). That leaves this isolated pass
+    // unable to resolve @rainforest-dev/personal-data's types, and with
+    // noEmitOnError inherited as true from tsconfig.base.json, that one
+    // unresolved import was blocking ALL emit ("Emit skipped"). This override
+    // ensures emit always happens regardless — the real bundling Vercel
+    // actually deploys goes through esbuild against real node_modules
+    // resolution, not this diagnostic pass.
+    "noEmitOnError": false,
     "target": "ESNext",
     "moduleResolution": "bundler",
     "module": "ESNext",
