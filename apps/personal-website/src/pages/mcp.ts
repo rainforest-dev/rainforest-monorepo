@@ -1,3 +1,4 @@
+import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 
 import { createProfileMcpHandler } from '../mcp/handler';
@@ -8,4 +9,7 @@ import { createProfileMcpHandler } from '../mcp/handler';
 // ahead of Astro's own generated routing; see the routing-fix PR for the investigation).
 const handler = createProfileMcpHandler();
 
-export const POST: APIRoute = ({ request }) => handler(request);
+export const POST: APIRoute = async ({ request }) => {
+  await trackAiResourceFetch('mcp', request);
+  return handler(request);
+};

@@ -1,16 +1,22 @@
 import { getProfileSummary, getSkills } from '@rainforest-dev/personal-data';
+import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 
 import { MCP_RESOURCES, MCP_TOOLS } from '../mcp/handler';
 
-export const prerender = true;
+// Not prerendered, deliberately: a prerendered route's handler only ever runs once, at
+// build time, to produce a static file — Vercel then serves that file directly and never
+// invokes this code again per visitor. Since trackAiResourceFetch below needs to fire on
+// every real request, this has to run on-demand (the same mechanism /mcp already uses),
+// even though the content itself is static enough that prerendering would otherwise fit.
 
 // llms.txt (https://llmstxt.org) — a machine-readable index for LLM agents/crawlers,
 // analogous to robots.txt/sitemap.xml but describing *what's here* rather than what's
 // crawlable. Generated from the same content sources as the resume/blog pages (astro:content,
 // @rainforest-dev/personal-data) so it can't drift out of sync with them.
-export const GET: APIRoute = async ({ site }) => {
+export const GET: APIRoute = async ({ site, request }) => {
+  await trackAiResourceFetch('llms.txt', request);
   const base = site!.origin;
   const [summary, skills, blog] = await Promise.all([
     getProfileSummary({ lang: 'en' }),

@@ -6,10 +6,12 @@ import {
   getWorkExperience,
   type ResolvedExperience,
 } from '@rainforest-dev/personal-data';
+import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 
-export const prerender = true;
+// Not prerendered — see llms.txt.ts's comment for why: a prerendered handler only runs
+// once, at build time, so it can't fire trackAiResourceFetch per real visitor.
 
 const formatMonth = (d: Date) => d.toISOString().slice(0, 7);
 
@@ -26,7 +28,8 @@ function formatExperience(e: ResolvedExperience): string {
 // sync with them. Blog posts stay a link list here (not inlined) — they're independently
 // crawlable full HTML pages already, and inlining varied-length MDX bodies would bloat
 // this file without adding anything the profile-focused sections above don't already cover.
-export const GET: APIRoute = async ({ site }) => {
+export const GET: APIRoute = async ({ site, request }) => {
+  await trackAiResourceFetch('llms-full.txt', request);
   const base = site!.origin;
   const [summary, experiences, education, projects, skills, blog] = await Promise.all([
     getProfileSummary({ lang: 'en' }),
