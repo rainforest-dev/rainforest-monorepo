@@ -2,11 +2,11 @@
 import profile from '@assets/images/profile/1.webp';
 import { ATSFriendly } from '@components/resume';
 import Layout from '@layouts/index.astro';
+import { getEducation, getSkills, getWorkExperience } from '@rainforest-dev/personal-data';
 import type { IResumeProps } from '@types';
+import { getGitHubUrl, getLinkedInUrl } from '@utils';
 import { hero, info } from '@utils/constants';
 import { supportedLngs, useTranslation } from '@utils/i18n';
-import { getEducation, getSkills, getWorkExperience } from '@rainforest-dev/personal-data';
-import { getGitHubUrl, getLinkedInUrl } from '@utils';
 
 export const prerender = true;
 export async function getStaticPaths() {
