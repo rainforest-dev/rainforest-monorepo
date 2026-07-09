@@ -22,6 +22,42 @@ const langSchema = z.enum(['en', 'zh']).optional();
 // getProjects (which require SkillTag, not string).
 const technologySchema = z.enum(tags.skills as unknown as [SkillTag, ...SkillTag[]]).optional();
 
+// Single source of truth for each tool's name/description — server.registerTool below reads
+// from these instead of repeating the strings, and llms.txt.ts imports MCP_TOOLS to describe
+// this server's capabilities without maintaining a second, hand-written copy of the same list
+// that could silently drift out of sync if a tool were renamed/added/removed here.
+export const MCP_TOOLS = [
+  {
+    name: 'get_profile_summary',
+    description: 'Professional profile overview: counts and top technologies',
+  },
+  { name: 'get_work_experience', description: 'Work history, optionally filtered by technology' },
+  { name: 'get_education', description: 'Academic background' },
+  {
+    name: 'get_projects',
+    description: 'Portfolio projects, optionally filtered by technology',
+  },
+  { name: 'get_skills', description: 'Technical skills inventory' },
+  {
+    name: 'search_by_technology',
+    description: 'Substring-match a technology name across all experiences and projects',
+  },
+] as const;
+
+// Same rationale as MCP_TOOLS, for the resource URI templates registered below. `{+id}`
+// (RFC 6570 reserved expansion), not `{id}` — our ids contain slashes (e.g. `en/6`), and
+// plain `{id}` expansion only matches a single path segment, so this is the real template
+// clients need, not a simplified display form.
+export const MCP_RESOURCES = [
+  { uriTemplate: 'profile://experience/{+id}', title: 'Work/Education Experience' },
+  { uriTemplate: 'profile://project/{+id}', title: 'Project' },
+  { uriTemplate: 'profile://skill/{+id}', title: 'Skill' },
+] as const;
+
+const [profileSummaryTool, workExperienceTool, educationTool, projectsTool, skillsTool, searchTool] =
+  MCP_TOOLS;
+const [experienceResource, projectResource, skillResource] = MCP_RESOURCES;
+
 /**
  * Builds an MCP request handler mounted at `${basePath}/mcp` — mcp-handler validates the
  * incoming request's pathname against exactly that computed endpoint (see its
@@ -36,20 +72,17 @@ export function createProfileMcpHandler(basePath?: string) {
   return createMcpHandler(
     (server) => {
       server.registerTool(
-        'get_profile_summary',
-        {
-          description: 'Professional profile overview: counts and top technologies',
-          inputSchema: { lang: langSchema },
-        },
+        profileSummaryTool.name,
+        { description: profileSummaryTool.description, inputSchema: { lang: langSchema } },
         async ({ lang }) => ({
           content: [{ type: 'text', text: JSON.stringify(await getProfileSummary({ lang })) }],
         }),
       );
 
       server.registerTool(
-        'get_work_experience',
+        workExperienceTool.name,
         {
-          description: 'Work history, optionally filtered by technology',
+          description: workExperienceTool.description,
           inputSchema: { technology: technologySchema, lang: langSchema },
         },
         async ({ technology, lang }) => ({
@@ -60,17 +93,17 @@ export function createProfileMcpHandler(basePath?: string) {
       );
 
       server.registerTool(
-        'get_education',
-        { description: 'Academic background', inputSchema: { lang: langSchema } },
+        educationTool.name,
+        { description: educationTool.description, inputSchema: { lang: langSchema } },
         async ({ lang }) => ({
           content: [{ type: 'text', text: JSON.stringify(await getEducation({ lang })) }],
         }),
       );
 
       server.registerTool(
-        'get_projects',
+        projectsTool.name,
         {
-          description: 'Portfolio projects, optionally filtered by technology',
+          description: projectsTool.description,
           inputSchema: { technology: technologySchema, lang: langSchema },
         },
         async ({ technology, lang }) => ({
@@ -81,27 +114,21 @@ export function createProfileMcpHandler(basePath?: string) {
       );
 
       server.registerTool(
-        'get_skills',
-        { description: 'Technical skills inventory', inputSchema: { lang: langSchema } },
+        skillsTool.name,
+        { description: skillsTool.description, inputSchema: { lang: langSchema } },
         async ({ lang }) => ({
           content: [{ type: 'text', text: JSON.stringify(await getSkills({ lang })) }],
         }),
       );
 
       server.registerTool(
-        'search_by_technology',
-        {
-          description: 'Substring-match a technology name across all experiences and projects',
-          inputSchema: { query: z.string(), lang: langSchema },
-        },
+        searchTool.name,
+        { description: searchTool.description, inputSchema: { query: z.string(), lang: langSchema } },
         async ({ query, lang }) => ({
           content: [{ type: 'text', text: JSON.stringify(await searchByTechnology(query, { lang })) }],
         }),
       );
 
-      // `{+id}` (RFC 6570 reserved expansion) is required, not `{id}` — our ids contain
-      // slashes (e.g. `en/6`), and plain `{id}` expansion only matches a single path segment.
-      //
       // experience/project resources return the same *resolved* shape as the tools above
       // (resolved organization, merged technologies) — not a raw content-collection entry.
       // A raw entry's `organization` field is an unresolved `{id, collection}` pointer the
@@ -109,8 +136,8 @@ export function createProfileMcpHandler(basePath?: string) {
       // resource), so returning it as-is would be a dead end, not just "a different view".
       server.registerResource(
         'experience',
-        new ResourceTemplate('profile://experience/{+id}', { list: undefined }),
-        { title: 'Work/Education Experience', mimeType: 'application/json' },
+        new ResourceTemplate(experienceResource.uriTemplate, { list: undefined }),
+        { title: experienceResource.title, mimeType: 'application/json' },
         async (uri, { id }) => {
           const experience = await getExperienceById(id as string);
           if (!experience) throw new Error(`Experience not found: ${id}`);
@@ -120,8 +147,8 @@ export function createProfileMcpHandler(basePath?: string) {
 
       server.registerResource(
         'project',
-        new ResourceTemplate('profile://project/{+id}', { list: undefined }),
-        { title: 'Project', mimeType: 'application/json' },
+        new ResourceTemplate(projectResource.uriTemplate, { list: undefined }),
+        { title: projectResource.title, mimeType: 'application/json' },
         async (uri, { id }) => {
           const project = await getProjectById(id as string);
           if (!project) throw new Error(`Project not found: ${id}`);
@@ -131,8 +158,8 @@ export function createProfileMcpHandler(basePath?: string) {
 
       server.registerResource(
         'skill',
-        new ResourceTemplate('profile://skill/{+id}', { list: undefined }),
-        { title: 'Skill', mimeType: 'application/json' },
+        new ResourceTemplate(skillResource.uriTemplate, { list: undefined }),
+        { title: skillResource.title, mimeType: 'application/json' },
         async (uri, { id }) => {
           const entry = await getEntry('skills', id as string);
           if (!entry) throw new Error(`Skill not found: ${id}`);
