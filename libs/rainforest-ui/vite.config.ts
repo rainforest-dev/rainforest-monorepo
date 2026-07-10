@@ -34,6 +34,7 @@ export default defineConfig({
       entry: {
         index: 'src/index.ts',
         'tailwindcss/md3': 'src/tailwindcss/md3.ts',
+        'tailwindcss/shadcn': 'src/tailwindcss/shadcn.ts',
         ...Object.fromEntries(
           glob
             .sync('src/{lit,utils}/**/!(*.spec|*.test).ts')
