@@ -135,6 +135,8 @@ git commit -m "chore(personal-website): add shadcn-vue dependencies (reka-ui, cv
 
 Create `libs/rainforest-ui/src/tailwindcss/shadcn.ts`:
 
+**Important:** Tailwind's `addBase` expects each selector's value to be a nested `Record<string, string>` of declarations — NOT a raw CSS-text string. Passing a raw string (e.g. `':root': someMultilineCssString`) type-checks (because the `CssInJs` type also accepts a plain string as a *declaration value*) but compiles to garbage like `:root: --seed: ...;` instead of a real `:root { }` block. This was caught by code review after an earlier draft of this plan got it wrong — verify by actually compiling the plugin through Tailwind and inspecting generated CSS (Step 2.3 below), not just by running the build.
+
 ```typescript
 import plugin from 'tailwindcss/plugin';
 
@@ -142,106 +144,116 @@ interface IOptions {
   sourceColor?: string;
 }
 
-const LIGHT_VARS = `
-  --seed: var(--shadcn-seed-override, SOURCE_COLOR);
-  --background: oklch(from var(--seed) 0.98 0.012 h);
-  --foreground: oklch(from var(--seed) 0.19 0.02 h);
-  --card: oklch(from var(--seed) 0.995 0.008 h);
-  --card-foreground: oklch(from var(--seed) 0.19 0.02 h);
-  --popover: oklch(from var(--seed) 0.995 0.008 h);
-  --popover-foreground: oklch(from var(--seed) 0.19 0.02 h);
-  --primary: oklch(from var(--seed) 0.55 0.12 h);
-  --primary-foreground: oklch(from var(--seed) 0.98 0.012 h);
-  --secondary: oklch(from var(--seed) 0.94 0.02 h);
-  --secondary-foreground: oklch(from var(--seed) 0.25 0.03 h);
-  --muted: oklch(from var(--seed) 0.94 0.015 h);
-  --muted-foreground: oklch(from var(--seed) 0.48 0.02 h);
-  --accent: oklch(from var(--seed) 0.9 0.035 h);
-  --accent-foreground: oklch(from var(--seed) 0.25 0.03 h);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.98 0.01 27.325);
-  --border: oklch(from var(--seed) 0.88 0.015 h);
-  --input: oklch(from var(--seed) 0.88 0.015 h);
-  --ring: oklch(from var(--seed) 0.55 0.12 h);
-`;
+const lightVars = (seed: string): Record<string, string> => ({
+  '--seed': `var(--shadcn-seed-override, ${seed})`,
+  '--background': 'oklch(from var(--seed) 0.98 0.012 h)',
+  '--foreground': 'oklch(from var(--seed) 0.19 0.02 h)',
+  '--card': 'oklch(from var(--seed) 0.995 0.008 h)',
+  '--card-foreground': 'oklch(from var(--seed) 0.19 0.02 h)',
+  '--popover': 'oklch(from var(--seed) 0.995 0.008 h)',
+  '--popover-foreground': 'oklch(from var(--seed) 0.19 0.02 h)',
+  '--primary': 'oklch(from var(--seed) 0.55 0.12 h)',
+  '--primary-foreground': 'oklch(from var(--seed) 0.98 0.012 h)',
+  '--secondary': 'oklch(from var(--seed) 0.94 0.02 h)',
+  '--secondary-foreground': 'oklch(from var(--seed) 0.25 0.03 h)',
+  '--muted': 'oklch(from var(--seed) 0.94 0.015 h)',
+  '--muted-foreground': 'oklch(from var(--seed) 0.48 0.02 h)',
+  '--accent': 'oklch(from var(--seed) 0.9 0.035 h)',
+  '--accent-foreground': 'oklch(from var(--seed) 0.25 0.03 h)',
+  '--destructive': 'oklch(0.577 0.245 27.325)',
+  '--destructive-foreground': 'oklch(0.98 0.01 27.325)',
+  '--border': 'oklch(from var(--seed) 0.88 0.015 h)',
+  '--input': 'oklch(from var(--seed) 0.88 0.015 h)',
+  '--ring': 'oklch(from var(--seed) 0.55 0.12 h)',
+});
 
-const DARK_VARS = `
-  --background: oklch(from var(--seed) 0.17 0.02 h);
-  --foreground: oklch(from var(--seed) 0.93 0.015 h);
-  --card: oklch(from var(--seed) 0.21 0.02 h);
-  --card-foreground: oklch(from var(--seed) 0.93 0.015 h);
-  --popover: oklch(from var(--seed) 0.21 0.02 h);
-  --popover-foreground: oklch(from var(--seed) 0.93 0.015 h);
-  --primary: oklch(from var(--seed) 0.75 0.11 h);
-  --primary-foreground: oklch(from var(--seed) 0.17 0.02 h);
-  --secondary: oklch(from var(--seed) 0.27 0.02 h);
-  --secondary-foreground: oklch(from var(--seed) 0.93 0.015 h);
-  --muted: oklch(from var(--seed) 0.27 0.02 h);
-  --muted-foreground: oklch(from var(--seed) 0.65 0.02 h);
-  --accent: oklch(from var(--seed) 0.32 0.035 h);
-  --accent-foreground: oklch(from var(--seed) 0.93 0.015 h);
-  --destructive: oklch(0.55 0.2 27.325);
-  --destructive-foreground: oklch(0.98 0.01 27.325);
-  --border: oklch(from var(--seed) 0.32 0.02 h);
-  --input: oklch(from var(--seed) 0.32 0.02 h);
-  --ring: oklch(from var(--seed) 0.75 0.11 h);
-`;
+const darkVars: Record<string, string> = {
+  '--background': 'oklch(from var(--seed) 0.17 0.02 h)',
+  '--foreground': 'oklch(from var(--seed) 0.93 0.015 h)',
+  '--card': 'oklch(from var(--seed) 0.21 0.02 h)',
+  '--card-foreground': 'oklch(from var(--seed) 0.93 0.015 h)',
+  '--popover': 'oklch(from var(--seed) 0.21 0.02 h)',
+  '--popover-foreground': 'oklch(from var(--seed) 0.93 0.015 h)',
+  '--primary': 'oklch(from var(--seed) 0.75 0.11 h)',
+  '--primary-foreground': 'oklch(from var(--seed) 0.17 0.02 h)',
+  '--secondary': 'oklch(from var(--seed) 0.27 0.02 h)',
+  '--secondary-foreground': 'oklch(from var(--seed) 0.93 0.015 h)',
+  '--muted': 'oklch(from var(--seed) 0.27 0.02 h)',
+  '--muted-foreground': 'oklch(from var(--seed) 0.65 0.02 h)',
+  '--accent': 'oklch(from var(--seed) 0.32 0.035 h)',
+  '--accent-foreground': 'oklch(from var(--seed) 0.93 0.015 h)',
+  '--destructive': 'oklch(0.55 0.2 27.325)',
+  '--destructive-foreground': 'oklch(0.98 0.01 27.325)',
+  '--border': 'oklch(from var(--seed) 0.32 0.02 h)',
+  '--input': 'oklch(from var(--seed) 0.32 0.02 h)',
+  '--ring': 'oklch(from var(--seed) 0.75 0.11 h)',
+};
 
 // Static fallback for engines without relative-color-syntax support (pre-Safari 26),
 // pre-resolved from the default teal seed (#66b2b2).
-const FALLBACK_LIGHT = `
-  --seed: #66b2b2;
-  --background: #f7fafa; --foreground: #1c2b2b; --card: #fdffff; --card-foreground: #1c2b2b;
-  --popover: #fdffff; --popover-foreground: #1c2b2b; --primary: #3e7d7d; --primary-foreground: #f7fafa;
-  --secondary: #e2f0ef; --secondary-foreground: #23403f; --muted: #e4f1f0; --muted-foreground: #5c7877;
-  --accent: #cfe8e6; --accent-foreground: #23403f; --destructive: #c0362d; --destructive-foreground: #fdf2f1;
-  --border: #d2e3e2; --input: #d2e3e2; --ring: #3e7d7d;
-`;
-const FALLBACK_DARK = `
-  --background: #182626; --foreground: #e8f2f1; --card: #1e3030; --card-foreground: #e8f2f1;
-  --popover: #1e3030; --popover-foreground: #e8f2f1; --primary: #8fc9c8; --primary-foreground: #182626;
-  --secondary: #2c4443; --secondary-foreground: #e8f2f1; --muted: #2c4443; --muted-foreground: #a7bdbc;
-  --accent: #35504f; --accent-foreground: #e8f2f1; --destructive: #c4544a; --destructive-foreground: #fdf2f1;
-  --border: #35504f; --input: #35504f; --ring: #8fc9c8;
-`;
+const fallbackLight: Record<string, string> = {
+  '--seed': '#66b2b2',
+  '--background': '#f7fafa',
+  '--foreground': '#1c2b2b',
+  '--card': '#fdffff',
+  '--card-foreground': '#1c2b2b',
+  '--popover': '#fdffff',
+  '--popover-foreground': '#1c2b2b',
+  '--primary': '#3e7d7d',
+  '--primary-foreground': '#f7fafa',
+  '--secondary': '#e2f0ef',
+  '--secondary-foreground': '#23403f',
+  '--muted': '#e4f1f0',
+  '--muted-foreground': '#5c7877',
+  '--accent': '#cfe8e6',
+  '--accent-foreground': '#23403f',
+  '--destructive': '#c0362d',
+  '--destructive-foreground': '#fdf2f1',
+  '--border': '#d2e3e2',
+  '--input': '#d2e3e2',
+  '--ring': '#3e7d7d',
+};
+
+const fallbackDark: Record<string, string> = {
+  '--background': '#182626',
+  '--foreground': '#e8f2f1',
+  '--card': '#1e3030',
+  '--card-foreground': '#e8f2f1',
+  '--popover': '#1e3030',
+  '--popover-foreground': '#e8f2f1',
+  '--primary': '#8fc9c8',
+  '--primary-foreground': '#182626',
+  '--secondary': '#2c4443',
+  '--secondary-foreground': '#e8f2f1',
+  '--muted': '#2c4443',
+  '--muted-foreground': '#a7bdbc',
+  '--accent': '#35504f',
+  '--accent-foreground': '#e8f2f1',
+  '--destructive': '#c4544a',
+  '--destructive-foreground': '#fdf2f1',
+  '--border': '#35504f',
+  '--input': '#35504f',
+  '--ring': '#8fc9c8',
+};
 
 export default plugin.withOptions(
   ({ sourceColor = '#66b2b2' }: IOptions = {}) => {
+    const light = lightVars(sourceColor);
     return ({ addBase }) => {
       addBase({
-        ':root': LIGHT_VARS.replace('SOURCE_COLOR', sourceColor) as unknown as Record<
-          string,
-          string
-        >,
-      });
-      addBase({
+        ':root': light,
+        "[data-scheme='light']": light,
         '@media (prefers-color-scheme: dark)': {
-          ':root': DARK_VARS as unknown as Record<string, string>,
+          ':root': darkVars,
         },
-      });
-      addBase({
-        "[data-scheme='light']": LIGHT_VARS.replace(
-          'SOURCE_COLOR',
-          sourceColor
-        ) as unknown as Record<string, string>,
-      });
-      addBase({
-        "[data-scheme='dark']": DARK_VARS as unknown as Record<string, string>,
-      });
-      addBase({
+        "[data-scheme='dark']": darkVars,
         '@supports not (color: oklch(from red l c h))': {
-          ':root': FALLBACK_LIGHT as unknown as Record<string, string>,
+          ':root': fallbackLight,
+          "[data-scheme='light']": fallbackLight,
           '@media (prefers-color-scheme: dark)': {
-            ':root': FALLBACK_DARK as unknown as Record<string, string>,
+            ':root': fallbackDark,
           },
-          "[data-scheme='light']": FALLBACK_LIGHT as unknown as Record<
-            string,
-            string
-          >,
-          "[data-scheme='dark']": FALLBACK_DARK as unknown as Record<
-            string,
-            string
-          >,
+          "[data-scheme='dark']": fallbackDark,
         },
       });
     };
@@ -278,7 +290,7 @@ export default plugin.withOptions(
         },
       },
     },
-  })
+  }),
 );
 ```
 
@@ -323,6 +335,25 @@ ls libs/rainforest-ui/dist/tailwindcss/
 ```
 
 Expected: `shadcn.js`, `shadcn.cjs`, `shadcn.d.ts` alongside the existing `md3.*` files.
+
+- [ ] **Step 2.3b: Compile the plugin through real Tailwind and inspect the generated CSS**
+
+A passing build only proves the TypeScript compiles — it does NOT prove the plugin emits valid CSS (see the `addBase` string-vs-object pitfall noted above). Verify the actual output:
+
+```bash
+cd apps/personal-website
+cat > src/__shadcn_verify_test.css <<'EOF'
+@import "tailwindcss";
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+EOF
+echo '<div class="bg-primary text-foreground rounded-md"></div>' > /tmp/shadcn-verify-input.html
+npx @tailwindcss/cli -i src/__shadcn_verify_test.css -o /tmp/shadcn-verify-out.css --content /tmp/shadcn-verify-input.html
+grep -A20 "^  :root {" /tmp/shadcn-verify-out.css | head -25
+rm src/__shadcn_verify_test.css /tmp/shadcn-verify-input.html /tmp/shadcn-verify-out.css
+cd ../..
+```
+
+Expected: a real `:root { --seed: var(--shadcn-seed-override, #66b2b2); --background: oklch(from var(--seed) 0.98 0.012 h); ... }` block — not `:root: --seed: ...;` or any other malformed output. Also grep the full output file for `[data-scheme='dark']` and `@supports not (color: oklch(from red l c h))` to confirm those blocks exist too before deleting the temp files.
 
 - [ ] **Step 2.4: Commit**
 
