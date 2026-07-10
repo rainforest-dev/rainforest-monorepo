@@ -31,6 +31,7 @@
       <Button
         variant="ghost"
         size="icon"
+        class="relative z-30"
         @click="open = !open"
         id="menu-trigger"
         aria-label="menu-and-close"
