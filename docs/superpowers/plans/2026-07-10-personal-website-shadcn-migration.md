@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace every Material Web (`md-*`) component, the Material HCT theming engine, and the Material Symbols icon font in `apps/personal-website` with shadcn-vue (reka-ui primitives), a native-CSS OKLCH `--seed` token engine, and `lucide-vue-next` icons — while keeping the site's fonts, i18n, content, and the "one seed color re-tints everything" feature unchanged.
+**Goal:** Replace every Material Web (`md-*`) component, the Material HCT theming engine, and the Material Symbols icon font in `apps/personal-website` with shadcn-vue (reka-ui primitives), a native-CSS OKLCH `--seed` token engine, and `@lucide/vue` icons — while keeping the site's fonts, i18n, content, and the "one seed color re-tints everything" feature unchanged.
 
-**Architecture:** A new plain-CSS Tailwind plugin in `rainforest-ui` (`tailwindcss/shadcn.ts`) replaces `tailwindcss/md3.ts`, deriving every shadcn-convention CSS variable from one `--seed` custom property via native CSS relative-color syntax. `apps/personal-website` gets a `components.json` + `src/components/ui/*` shadcn-vue primitives (Button, DropdownMenu, Input, Textarea, Badge, Tabs), which every existing Vue/Astro component is migrated to one file at a time. Icons move from Google's Material Symbols ligature font to `lucide-vue-next` (UI glyphs) with `iconify-icon` narrowed to brand/tech logos only.
+**Architecture:** A new plain-CSS Tailwind plugin in `rainforest-ui` (`tailwindcss/shadcn.ts`) replaces `tailwindcss/md3.ts`, deriving every shadcn-convention CSS variable from one `--seed` custom property via native CSS relative-color syntax. `apps/personal-website` gets a `components.json` + `src/components/ui/*` shadcn-vue primitives (Button, DropdownMenu, Input, Textarea, Badge, Tabs), which every existing Vue/Astro component is migrated to one file at a time. Icons move from Google's Material Symbols ligature font to `@lucide/vue` (UI glyphs) with `iconify-icon` narrowed to brand/tech logos only.
 
-**Tech Stack:** Astro 6, Vue 3, Tailwind CSS v4, reka-ui, class-variance-authority, tailwind-merge, lucide-vue-next, iconify-icon (retained, narrowed scope)
+**Tech Stack:** Astro 6, Vue 3, Tailwind CSS v4, reka-ui, class-variance-authority, tailwind-merge, @lucide/vue, iconify-icon (retained, narrowed scope)
 
 ---
 
@@ -87,10 +87,12 @@ In the `dependencies` block, add (alphabetically, matching the file's existing s
 right after `"clsx": "^2.1.1",` add nothing (clsx already present, keep as-is), and insert these new lines in alphabetical position among the existing dependency list:
 
 ```json
-"lucide-vue-next": "^1.8.0",
+"@lucide/vue": "^1.0.0",
 "reka-ui": "^2.6.1",
 "tailwind-merge": "catalog:",
 ```
+
+(`@lucide/vue` is placed alphabetically right after `@lit/react`, not next to `reka-ui`/`tailwind-merge` — see the actual package.json diff. `lucide-vue-next` was the original name for this package; it's deprecated as of this writing in favor of `@lucide/vue`, which is API-identical — this plan uses the current name throughout.)
 
 - [ ] **Step 1.3: Remove `@material/web` from `apps/personal-website/package.json`**
 
@@ -106,13 +108,13 @@ Leave it in place for now — it gets removed in Task 18 once every `md-*` usage
 pnpm install
 ```
 
-Expected: `class-variance-authority`, `tailwind-merge`, `lucide-vue-next`, `reka-ui` appear in `apps/personal-website/node_modules` (or the workspace root `node_modules` via hoisting). No peer dependency errors.
+Expected: `class-variance-authority`, `tailwind-merge`, `@lucide/vue`, `reka-ui` appear in `apps/personal-website/node_modules` (or the workspace root `node_modules` via hoisting). No peer dependency errors.
 
 - [ ] **Step 1.5: Commit**
 
 ```bash
 git add pnpm-workspace.yaml apps/personal-website/package.json pnpm-lock.yaml
-git commit -m "chore(personal-website): add shadcn-vue dependencies (reka-ui, cva, tailwind-merge, lucide-vue-next)"
+git commit -m "chore(personal-website): add shadcn-vue dependencies (reka-ui, cva, tailwind-merge, @lucide/vue)"
 ```
 
 ---
@@ -1109,7 +1111,7 @@ import { isServerSide, persistentLocaleKey } from '@utils';
 import { useWindowScroll } from '@vueuse/core';
 import clsx from 'clsx';
 import Cookies from 'js-cookie';
-import { Globe } from 'lucide-vue-next';
+import { Globe } from '@lucide/vue';
 import { computed } from 'vue';
 
 import { Button } from '@/components/ui/button';
@@ -1203,7 +1205,7 @@ Replace the full contents of `apps/personal-website/src/components/home/nav.vue`
 <script lang="ts" setup>
 import { computed, ref, watchEffect } from 'vue';
 import clsx from 'clsx';
-import { Menu, X } from 'lucide-vue-next';
+import { Menu, X } from '@lucide/vue';
 import { useWindowScroll } from '@vueuse/core';
 import { isServerSide, removeUrlHashAfterNavigation } from '@utils';
 import { Button } from '@/components/ui/button';
@@ -1347,7 +1349,7 @@ import {
   isServerSide,
 } from '@utils';
 import { useWindowScroll } from '@vueuse/core';
-import { ArrowUp, Mail, MessageCircle } from 'lucide-vue-next';
+import { ArrowUp, Mail, MessageCircle } from '@lucide/vue';
 import { computed } from 'vue';
 import { info } from '@utils/constants';
 
@@ -1407,7 +1409,7 @@ Replace the full contents of `apps/personal-website/src/components/home/hero/thr
 import type { IHeroProps as Props } from '@types';
 import { useTranslatedPath, useTranslation } from '@utils/i18n';
 import { Picture } from 'astro:assets';
-import { ExternalLink } from 'lucide-vue-next';
+import { ExternalLink } from '@lucide/vue';
 
 import { Button } from '@/components/ui/button';
 
@@ -1499,7 +1501,7 @@ Replace the full contents of `apps/personal-website/src/components/home/hero/one
 import type { IHeroProps as Props } from '@types';
 import { useTranslatedPath, useTranslation } from '@utils';
 import { Picture } from 'astro:assets';
-import { ExternalLink } from 'lucide-vue-next';
+import { ExternalLink } from '@lucide/vue';
 
 import { Button } from '@/components/ui/button';
 
@@ -1831,7 +1833,7 @@ Replace the full contents of `apps/personal-website/src/components/home/links.as
 import type { ILink } from '@/types';
 import { getBrandIconName, useTranslatedPath, useTranslation } from '@/utils';
 import { links } from '@/utils/constants';
-import { ExternalLink } from 'lucide-vue-next';
+import { ExternalLink } from '@lucide/vue';
 
 const { lang } = Astro.params;
 const { t } = await useTranslation(lang);
@@ -1891,7 +1893,7 @@ Scroll to the footer; confirm "Resources" and "Social Media" columns render with
 
 ```bash
 git add apps/personal-website/src/components/home/links.astro
-git commit -m "feat(personal-website): swap open_in_new glyph to lucide-vue-next in footer links"
+git commit -m "feat(personal-website): swap open_in_new glyph to @lucide/vue in footer links"
 ```
 
 ---
@@ -1956,7 +1958,7 @@ import {
 import { info } from '@utils/constants';
 import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
-import { Home, ImageIcon } from 'lucide-vue-next';
+import { Home, ImageIcon } from '@lucide/vue';
 
 import { Button } from '@/components/ui/button';
 import { Navigation } from '@/components/blog';
@@ -2049,7 +2051,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
 </Layout>
 ```
 
-Note: `lucide-vue-next`'s icon is imported as `ImageIcon` (not `Image`) to avoid colliding with Astro's own `Image` import from `astro:assets`.
+Note: `@lucide/vue`'s icon is imported as `ImageIcon` (not `Image`) to avoid colliding with Astro's own `Image` import from `astro:assets`.
 
 - [ ] **Step 14.3: Rewrite `layouts/blog.astro`**
 
@@ -2062,7 +2064,7 @@ import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import clsx from 'clsx';
 import { format } from 'date-fns';
-import { ArrowLeft } from 'lucide-vue-next';
+import { ArrowLeft } from '@lucide/vue';
 
 import { Button } from '@/components/ui/button';
 
@@ -2254,7 +2256,7 @@ import { useVModel } from '@nanostores/vue';
 import { sourceColorFromImageBytes } from '@rainforest-dev/rainforest-ui';
 import { $sourceColor } from '@stores';
 import { useLocalStorage } from '@vueuse/core';
-import { ImageIcon } from 'lucide-vue-next';
+import { ImageIcon } from '@lucide/vue';
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
