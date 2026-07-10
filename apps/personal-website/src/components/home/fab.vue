@@ -1,56 +1,60 @@
 <template>
-  <md-fab
+  <Button
     v-if="!isChatBubbleEnabled"
-    class="fixed right-10 bottom-10 z-10"
-    variant="tertiary"
+    variant="default"
+    size="icon"
+    class="fixed bottom-10 right-10 z-10 size-14 rounded-full shadow-lg"
     aria-label="back to top"
     @click="handleClick"
   >
-    <span class="material-symbols-outlined" slot="icon"> arrow_upward </span>
-  </md-fab>
-  <div v-else class="fixed right-10 bottom-10 z-10">
-    <md-icon-button
-      id="social-media-anchor"
-      variant="tertiary"
-      aria-label="contact me"
-      @click="handleClick"
-      class="size-14"
-    >
-      <md-icon> chat_bubble </md-icon>
-    </md-icon-button>
-    <md-menu
-      ref="menu"
-      id="menu"
-      anchor="social-media-anchor"
-      :menuCorner="Corner.END_END"
-      :anchorCorner="Corner.START_END"
-      class="bg-surface-variant!"
-    >
-      <md-menu-item
-        :href="getLinkedInUrl(info.links.linkedin)"
-        target="_blank"
-        class="text-surface"
-      >
-        <iconify-icon :icon="getBrandIconName('linkedin')" slot="start" />
-        LinkedIn
-      </md-menu-item>
-      <md-menu-item :href="getGitHubUrl(info.links.github)" target="_blank">
-        <iconify-icon :icon="getBrandIconName('github')" slot="start" />
-        GitHub
-      </md-menu-item>
-      <md-menu-item :href="`mailto:${info.email}`" target="_blank">
-        <md-icon slot="start" class="size-4 text-base">email</md-icon>
-        Email
-      </md-menu-item>
-    </md-menu>
+    <ArrowUp />
+  </Button>
+  <div v-else class="fixed bottom-10 right-10 z-10">
+    <DropdownMenu>
+      <DropdownMenuTrigger as-child>
+        <Button
+          id="social-media-anchor"
+          variant="default"
+          size="icon"
+          aria-label="contact me"
+          class="size-14 rounded-full shadow-lg"
+        >
+          <MessageCircle />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="end">
+        <DropdownMenuItem as-child>
+          <a
+            :href="getLinkedInUrl(info.links.linkedin)"
+            target="_blank"
+            class="flex items-center gap-2"
+          >
+            <iconify-icon :icon="getBrandIconName('linkedin')" class="size-4" />
+            LinkedIn
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem as-child>
+          <a
+            :href="getGitHubUrl(info.links.github)"
+            target="_blank"
+            class="flex items-center gap-2"
+          >
+            <iconify-icon :icon="getBrandIconName('github')" class="size-4" />
+            GitHub
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem as-child>
+          <a :href="`mailto:${info.email}`" class="flex items-center gap-2">
+            <Mail class="size-4" />
+            Email
+          </a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   </div>
 </template>
 <script lang="ts" setup>
 import 'iconify-icon';
-import '@material/web/fab/fab.js';
-import '@material/web/iconbutton/icon-button';
-import { Corner, MdMenu } from '@material/web/menu/menu.js';
-import '@material/web/menu/menu-item.js';
 import {
   getBrandIconName,
   getGitHubUrl,
@@ -58,10 +62,17 @@ import {
   isServerSide,
 } from '@utils';
 import { useWindowScroll } from '@vueuse/core';
-import { computed, useTemplateRef } from 'vue';
+import { ArrowUp, Mail, MessageCircle } from '@lucide/vue';
+import { computed } from 'vue';
 import { info } from '@utils/constants';
 
-const menu = useTemplateRef<MdMenu>('menu');
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const { y } = useWindowScroll();
 const isAtTop = computed(() => {
@@ -70,10 +81,7 @@ const isAtTop = computed(() => {
 const isChatBubbleEnabled = computed(() => isAtTop.value);
 
 const handleClick = () => {
-  if (isChatBubbleEnabled.value) {
-    if (menu.value) menu.value.open = !menu.value.open;
-    return;
-  }
+  if (isChatBubbleEnabled.value) return; // DropdownMenuTrigger already handles opening
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 </script>
