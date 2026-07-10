@@ -14,7 +14,7 @@ const isAtTop = computed(() => {
 
 const mediaQueryList = computed(() => {
   const breakpointXl = getComputedStyle(
-    document.documentElement
+    document.documentElement,
   ).getPropertyValue('--breakpoint-xl');
   return window.matchMedia(`(min-width: ${breakpointXl})`);
 });
@@ -23,11 +23,10 @@ const handleThemeColor = () => {
   if (isServerSide) return;
   if (mediaQueryList.value.matches) return;
   if (isAtTop.value) {
-    updateThemeColor(
-      window
-        .getComputedStyle(document.body)
-        .getPropertyValue('--md-sys-color-inverse-surface')
-    );
+    const panel = document.getElementById('hero-dark-panel');
+    if (panel) {
+      updateThemeColor(window.getComputedStyle(panel).backgroundColor);
+    }
   } else {
     reset();
   }
