@@ -589,7 +589,7 @@ Create `apps/personal-website/src/components/ui/button/Button.vue`:
 import { cva, type VariantProps } from 'class-variance-authority';
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
@@ -607,7 +607,7 @@ export const buttonVariants = cva(
       variant: 'default',
       size: 'default',
     },
-  }
+  },
 );
 
 export type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
@@ -635,7 +635,7 @@ const props = withDefaults(defineProps<Props>(), {
 <template>
   <component
     :is="href ? 'a' : as"
-    :href="href"
+    :href="href || undefined"
     :class="cn(buttonVariants({ variant, size }), props.class)"
   >
     <slot />
@@ -643,13 +643,17 @@ const props = withDefaults(defineProps<Props>(), {
 </template>
 ```
 
+Note the `href || undefined` (not just `href`): if a caller passes `href=""` (e.g. a computed URL that resolved empty), binding the raw prop directly would still set a literal empty `href` attribute on whatever `as` renders — Vue only strips the attribute on `null`/`undefined`, not `''`. Verified via a direct Vue SSR render test during code review.
+
 Create `apps/personal-website/src/components/ui/button/index.ts`:
 
 ```typescript
+export type { ButtonSize, ButtonVariant } from './Button.vue';
 export { buttonVariants } from './Button.vue';
 export { default as Button } from './Button.vue';
-export type { ButtonSize, ButtonVariant } from './Button.vue';
 ```
+
+Note the export order: this repo's `simple-import-sort/exports` ESLint rule requires type-only exports before value exports — verified via `pnpm nx lint personal-website`.
 
 - [ ] **Step 4.4: Verify it compiles**
 
@@ -974,8 +978,8 @@ withDefaults(defineProps<Props>(), { variant: 'default' });
 Create `apps/personal-website/src/components/ui/badge/index.ts`:
 
 ```typescript
-export { default as Badge, badgeVariants } from './Badge.vue';
 export type { BadgeVariant } from './Badge.vue';
+export { default as Badge, badgeVariants } from './Badge.vue';
 ```
 
 - [ ] **Step 7.2: Build and commit**
