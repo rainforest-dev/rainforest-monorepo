@@ -35,6 +35,7 @@ interface Props {
   size?: ButtonSize;
   as?: string;
   href?: string;
+  target?: string;
   class?: string;
 }
 
@@ -49,6 +50,7 @@ const props = withDefaults(defineProps<Props>(), {
   <component
     :is="href ? 'a' : as"
     :href="href || undefined"
+    :target="target || undefined"
     :class="cn(buttonVariants({ variant, size }), props.class)"
   >
     <slot />
