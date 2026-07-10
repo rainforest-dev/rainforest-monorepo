@@ -1230,6 +1230,7 @@ Replace the full contents of `apps/personal-website/src/components/home/nav.vue`
       <Button
         variant="ghost"
         size="icon"
+        class="relative z-30"
         @click="open = !open"
         id="menu-trigger"
         aria-label="menu-and-close"
@@ -1299,6 +1300,8 @@ html {
 ```
 
 Key change beyond the component swap: `getComputedStyle(document.body).getPropertyValue('--md-sys-color-surface')` → `getComputedStyle(document.body).backgroundColor`. Reading a plain resolved CSS property (not a custom property string) is what makes this work correctly now that `--background` is derived via relative-color syntax rather than being a literal hex value — `getPropertyValue('--custom-prop')` returns the unresolved specified value, while `.backgroundColor` always returns the browser's fully computed color regardless of how it was derived.
+
+Also note the `class="relative z-30"` on the `Button`: the `aside` overlay is `fixed inset-0` with no explicit `z-index`, and per CSS stacking rules a positioned element (even with `z-index: auto`) always paints above a non-positioned sibling regardless of DOM order — so without this, the hamburger button sits *underneath* the open drawer and can't be clicked to close it (verified via `document.elementFromPoint()` returning the `aside`, not the button, at the button's screen position while open). This is a real, pre-existing bug (present before this migration too, in the original `md-icon-button` version) that this task fixes in passing since it's the same file.
 
 - [ ] **Step 9.3: Build and manually verify**
 
