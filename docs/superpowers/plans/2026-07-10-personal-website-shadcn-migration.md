@@ -1347,7 +1347,6 @@ Replace the full contents of `apps/personal-website/src/components/home/fab.vue`
     <DropdownMenu>
       <DropdownMenuTrigger as-child>
         <Button
-          id="social-media-anchor"
           variant="default"
           size="icon"
           aria-label="contact me"
@@ -1358,27 +1357,19 @@ Replace the full contents of `apps/personal-website/src/components/home/fab.vue`
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="end">
         <DropdownMenuItem as-child>
-          <a
-            :href="getLinkedInUrl(info.links.linkedin)"
-            target="_blank"
-            class="flex items-center gap-2"
-          >
+          <a :href="getLinkedInUrl(info.links.linkedin)" target="_blank">
             <iconify-icon :icon="getBrandIconName('linkedin')" class="size-4" />
             LinkedIn
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem as-child>
-          <a
-            :href="getGitHubUrl(info.links.github)"
-            target="_blank"
-            class="flex items-center gap-2"
-          >
+          <a :href="getGitHubUrl(info.links.github)" target="_blank">
             <iconify-icon :icon="getBrandIconName('github')" class="size-4" />
             GitHub
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem as-child>
-          <a :href="`mailto:${info.email}`" class="flex items-center gap-2">
+          <a :href="`mailto:${info.email}`">
             <Mail class="size-4" />
             Email
           </a>
