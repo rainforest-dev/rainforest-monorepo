@@ -710,17 +710,24 @@ Create `apps/personal-website/src/components/ui/dropdown-menu/DropdownMenuTrigge
 ```vue
 <script setup lang="ts">
 import type { DropdownMenuTriggerProps } from 'reka-ui';
-import { DropdownMenuTrigger } from 'reka-ui';
+import { DropdownMenuTrigger, useForwardProps } from 'reka-ui';
 
-defineProps<DropdownMenuTriggerProps & { class?: string }>();
+const props = defineProps<DropdownMenuTriggerProps & { class?: string }>();
+const forwarded = useForwardProps(props);
 </script>
 
 <template>
-  <DropdownMenuTrigger :class="$props.class" as-child>
+  <!-- as-child always renders this component's slot's single child element
+       (e.g. a Button) as the actual trigger — do not pass text or multiple
+       children, since there's nothing else for reka-ui to attach the
+       open/close handlers and ARIA attributes to. -->
+  <DropdownMenuTrigger v-bind="forwarded" :class="$props.class" as-child>
     <slot />
   </DropdownMenuTrigger>
 </template>
 ```
+
+Note: earlier drafts of this file only forwarded `class` (not the rest of `props`, e.g. `disabled`), meaning `<DropdownMenuTrigger disabled>` would type-check and compile but have zero runtime effect. `useForwardProps` fixes this — verified against reka-ui's actual source during code review.
 
 - [ ] **Step 5.2: Content, Item, Separator**
 
@@ -773,7 +780,7 @@ const forwarded = useForwardPropsEmits(props, emits);
     v-bind="forwarded"
     :class="
       cn(
-        'relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         props.class
       )
     "
@@ -782,6 +789,8 @@ const forwarded = useForwardPropsEmits(props, emits);
   </DropdownMenuItem>
 </template>
 ```
+
+Note: use `data-[highlighted]:` (not `hover:`) for the selected-item highlight. reka-ui moves real keyboard focus onto items during arrow-key navigation rather than firing synthetic `:hover` — it sets a `data-highlighted` attribute for exactly this reason, covering both pointer-hover and keyboard-focus. Using `hover:` alone leaves keyboard users with no visible indicator of the highlighted item — verified against reka-ui's `MenuItemImpl` source during code review.
 
 Create `apps/personal-website/src/components/ui/dropdown-menu/DropdownMenuSeparator.vue`:
 
