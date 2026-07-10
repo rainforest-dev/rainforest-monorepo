@@ -20,6 +20,9 @@
     },
     {
       "path": "./apps/personal-calibre"
+    },
+    {
+      "path": "./apps/rss-manager"
     }
   ]
 }
