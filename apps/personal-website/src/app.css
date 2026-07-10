@@ -23,7 +23,7 @@
 @layer base {
   html,
   body {
-    @apply p-0 m-0 size-full font-serif bg-background text-foreground;
+    @apply bg-background text-foreground m-0 size-full p-0 font-serif;
   }
 
   .astro-code,
@@ -61,5 +61,5 @@
   background-color: --value(--color-*);
   background-color: --value(color);
   background-color: --value([color]);
-  @apply animate-pulse rounded-lh;
+  @apply rounded-lh animate-pulse;
 }
