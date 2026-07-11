@@ -1,23 +1,24 @@
 <template>
-  <div class="relative">
-    <button
-      id="source-color"
-      class="size-10 block rounded-full ring-4 ring-tertiary/80 ring-offset-3 duration-300 cursor-pointer"
-      @click="toggleMenu"
-      :style="{
-        backgroundColor: $sourceColor.value,
-      }"
-      title="Source Color Picker"
-    >
-      <img
-        :src="sourceImage"
-        alt="source image"
-        class="size-full rounded-full"
-        v-if="sourceImage"
-      />
-    </button>
-    <md-menu ref="menu" id="source-color-menu" anchor="source-color">
-      <div class="px-4 py-2 space-y-2">
+  <DropdownMenu>
+    <DropdownMenuTrigger as-child>
+      <button
+        id="source-color"
+        class="ring-accent/80 ring-offset-3 block size-10 cursor-pointer rounded-full ring-4 duration-300"
+        :style="{
+          backgroundColor: $sourceColor.value,
+        }"
+        title="Source Color Picker"
+      >
+        <img
+          :src="sourceImage"
+          alt="source image"
+          class="size-full rounded-full"
+          v-if="sourceImage"
+        />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent>
+      <div class="space-y-2 px-4 py-2">
         <div class="relative">
           <label
             for="source-color-image"
@@ -25,18 +26,16 @@
               borderColor: $sourceColor.value,
               color: $sourceColor.value,
             }"
-            class="w-full aspect-square cursor-pointer border rounded flex-center"
+            class="flex-center aspect-square w-full cursor-pointer rounded border"
             title="Source Image"
           >
             <img
               :src="sourceImage"
               alt="source image"
-              class="object-cover size-full peer"
+              class="peer size-full object-cover"
               v-if="sourceImage"
             />
-            <span class="material-symbols-outlined text-5xl!" v-else>
-              image
-            </span>
+            <ImageIcon v-else class="size-12" />
           </label>
           <input
             type="file"
@@ -44,13 +43,13 @@
             id="source-color-image"
             accept="image/*"
             @change="handleImageChange"
-            class="sr-only size-auto inset-4"
+            class="sr-only inset-4 size-auto"
           />
         </div>
         <div class="relative">
           <label
             for="source-color-picker"
-            class="w-full h-6 block cursor-pointer rounded"
+            class="block h-6 w-full cursor-pointer rounded"
             :style="{ backgroundColor: $sourceColor.value }"
             title="Source Color"
           ></label>
@@ -60,28 +59,27 @@
             id="source-color-picker"
             v-model="sourceColor"
             @change="handleColorChange"
-            class="sr-only size-auto inset-0"
+            class="sr-only inset-0 size-auto"
           />
         </div>
       </div>
-    </md-menu>
-  </div>
+    </DropdownMenuContent>
+  </DropdownMenu>
 </template>
 <script lang="ts" setup>
 import { hexFromArgb } from '@material/material-color-utilities';
-import '@material/web/menu/menu';
-import { MdMenu } from '@material/web/menu/menu';
-import '@material/web/menu/menu-item';
 import { useVModel } from '@nanostores/vue';
 import { sourceColorFromImageBytes } from '@rainforest-dev/rainforest-ui';
 import { $sourceColor } from '@stores';
 import { useLocalStorage } from '@vueuse/core';
-import { useTemplateRef } from 'vue';
+import { ImageIcon } from '@lucide/vue';
 
-const menu = useTemplateRef<MdMenu>('menu');
-const toggleMenu = () => {
-  if (menu.value) menu.value.open = !menu.value.open;
-};
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 const sourceColor = useVModel($sourceColor);
 const sourceImage = useLocalStorage('source-image', '');
 
