@@ -643,6 +643,11 @@ const rel = computed(() =>
 </script>
 
 <template>
+  <!-- Single root, default inheritAttrs: non-declared attributes (e.g. a
+       caller's data-* hooks) fall through onto this element automatically.
+       If this component ever grows a second root node or sets
+       inheritAttrs: false, that fallthrough breaks silently — forward
+       $attrs explicitly to this element if either of those ever changes. -->
   <component
     :is="href ? 'a' : as"
     :href="href || undefined"
@@ -654,6 +659,8 @@ const rel = computed(() =>
   </component>
 </template>
 ```
+
+Task 12's `contact-form.astro` relies on this fallthrough behavior for its `data-contact-submit` query hook (a non-declared attribute) — the comment above exists specifically so that dependency doesn't silently break if `Button.vue` is ever restructured (flagged during Task 12's code review).
 
 Note the `href || undefined` (not just `href`): if a caller passes `href=""` (e.g. a computed URL that resolved empty), binding the raw prop directly would still set a literal empty `href` attribute on whatever `as` renders — Vue only strips the attribute on `null`/`undefined`, not `''`. Verified via a direct Vue SSR render test during code review.
 

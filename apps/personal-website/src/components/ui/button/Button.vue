@@ -56,6 +56,11 @@ const rel = computed(() =>
 </script>
 
 <template>
+  <!-- Single root, default inheritAttrs: non-declared attributes (e.g. a
+       caller's data-* hooks) fall through onto this element automatically.
+       If this component ever grows a second root node or sets
+       inheritAttrs: false, that fallthrough breaks silently — forward
+       $attrs explicitly to this element if either of those ever changes. -->
   <component
     :is="href ? 'a' : as"
     :href="href || undefined"
