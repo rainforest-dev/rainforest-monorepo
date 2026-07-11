@@ -117,7 +117,7 @@ const skills = (
               const { Content } = await render(skill);
               if (!skill.body) return <></>
               return (
-                <li class="min-w-80 bg-surface-container text-on-surface px-5 py-4 rounded min-h-80 shadow-lg flex flex-col gap-5 relative **:[li]:list-disc **:[li]:list-inside">
+                <li class="min-w-80 bg-card text-foreground px-5 py-4 rounded min-h-80 shadow-lg flex flex-col gap-5 relative **:[li]:list-disc **:[li]:list-inside">
                   <h3 class="text-xl capitalize">{skill.data.name}</h3>
                   <Content />
                   <iconify-icon
