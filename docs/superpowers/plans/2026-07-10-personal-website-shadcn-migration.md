@@ -615,6 +615,8 @@ export type ButtonSize = VariantProps<typeof buttonVariants>['size'];
 </script>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 import { cn } from '@/utils/cn';
 
 interface Props {
@@ -622,6 +624,7 @@ interface Props {
   size?: ButtonSize;
   as?: string;
   href?: string;
+  target?: string;
   class?: string;
 }
 
@@ -630,12 +633,21 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'default',
   as: 'button',
 });
+
+// A target="_blank" link without rel="noopener noreferrer" lets the opened
+// page access window.opener (a security/perf footgun) — apply it automatically
+// so callers don't have to remember it every time.
+const rel = computed(() =>
+  props.target === '_blank' ? 'noopener noreferrer' : undefined,
+);
 </script>
 
 <template>
   <component
     :is="href ? 'a' : as"
     :href="href || undefined"
+    :target="target || undefined"
+    :rel="rel"
     :class="cn(buttonVariants({ variant, size }), props.class)"
   >
     <slot />
@@ -644,6 +656,8 @@ const props = withDefaults(defineProps<Props>(), {
 ```
 
 Note the `href || undefined` (not just `href`): if a caller passes `href=""` (e.g. a computed URL that resolved empty), binding the raw prop directly would still set a literal empty `href` attribute on whatever `as` renders — Vue only strips the attribute on `null`/`undefined`, not `''`. Verified via a direct Vue SSR render test during code review.
+
+The `target`/`rel` handling was added during Task 11 (not originally in this step) once `target="_blank"` usage on the hero's Resume button failed `astro check` for an undeclared prop — included here now since Button.vue is a shared component and this is its actual, current shape.
 
 Create `apps/personal-website/src/components/ui/button/index.ts`:
 
@@ -1438,6 +1452,8 @@ git commit -m "feat(personal-website): migrate fab to a custom shadcn-styled com
 - Modify: `apps/personal-website/src/components/home/hero/one-column.astro`
 - Modify: `apps/personal-website/src/components/home/hero/theme-color-modifier.vue`
 
+**Before you start:** every lucide icon used directly as a top-level tag inside an `.astro` template needs to go through a small wrapper, `@/components/icon.vue` (`<script setup lang="ts">const props = defineProps<{ icon: object }>();</script><template><component :is="props.icon" /></template>`) — create this file first if it doesn't exist yet. `@astrojs/vue`'s SSR renderer only recognizes compiled Vue SFCs (things with `ssrRender`), and `@lucide/vue` icons are bare functional components, so `<ExternalLink />` directly inside an `.astro` file crashes with "Unable to render ExternalLink!" at build time. Icons used *inside* an actual `.vue` SFC (not directly inside `.astro`) don't need this — Vue's own runtime renders bare functional child components fine there. This was discovered while implementing this task; both `.astro` files below already use the `Icon` wrapper.
+
 - [ ] **Step 11.1: Rewrite `three-columns.astro`**
 
 Replace the full contents of `apps/personal-website/src/components/home/hero/three-columns.astro`:
@@ -1449,6 +1465,7 @@ import { useTranslatedPath, useTranslation } from '@utils/i18n';
 import { Picture } from 'astro:assets';
 import { ExternalLink } from '@lucide/vue';
 
+import Icon from '@/components/icon.vue';
 import { Button } from '@/components/ui/button';
 
 import Tag from '../../tag.astro';
@@ -1486,7 +1503,7 @@ const translatePath = useTranslatedPath(lang);
         target="_blank"
         class="px-6 gap-2"
         >{t('resume')}
-        <ExternalLink />
+        <Icon icon={ExternalLink} />
       </Button>
     </div>
   </div>
@@ -1541,6 +1558,7 @@ import { useTranslatedPath, useTranslation } from '@utils';
 import { Picture } from 'astro:assets';
 import { ExternalLink } from '@lucide/vue';
 
+import Icon from '@/components/icon.vue';
 import { Button } from '@/components/ui/button';
 
 import ThemeColorModifier from './theme-color-modifier.vue';
@@ -1586,7 +1604,10 @@ const translatePath = useTranslatedPath(lang);
           <p>{props.jobPosition}</p>
         </div>
         <div class="flex-row-center gap-4">
-          <Button id="contact-me-button" class="px-6"
+          <Button
+            id="contact-me-button"
+            href="#contact-form-footer"
+            class="px-6"
             >{t('contact-me-title')}</Button
           >
           <Button
@@ -1595,7 +1616,7 @@ const translatePath = useTranslatedPath(lang);
             target="_blank"
             class="px-6 gap-2"
             >{t('resume')}
-            <ExternalLink />
+            <Icon icon={ExternalLink} />
           </Button>
         </div>
       </div>
@@ -1618,11 +1639,27 @@ const translatePath = useTranslatedPath(lang);
     menuButton?.click();
   };
 
+  const handleContactMeKeydown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      contactMeButton.click();
+    }
+  };
+
   const handleMatches = (matches: boolean) => {
     if (matches) {
+      // An <a> without an href isn't part of the tab order and isn't exposed
+      // as a link to assistive tech — restore both manually so keyboard/
+      // screen-reader users can still activate it, not just mouse/touch.
       contactMeButton.removeAttribute('href');
+      contactMeButton.setAttribute('role', 'button');
+      contactMeButton.setAttribute('tabindex', '0');
       contactMeButton.onclick = handleOpenContactForm;
+      contactMeButton.addEventListener('keydown', handleContactMeKeydown);
     } else {
+      contactMeButton.removeAttribute('role');
+      contactMeButton.removeAttribute('tabindex');
+      contactMeButton.removeEventListener('keydown', handleContactMeKeydown);
       contactMeButton.onclick = removeUrlHashAfterNavigation;
       contactMeButton.setAttribute('href', '#contact-form-footer');
     }
@@ -1640,7 +1677,7 @@ const translatePath = useTranslatedPath(lang);
 </script>
 ```
 
-Note: `Button` without an `href` renders as `<button>`, and the mobile-breakpoint logic here needs to *dynamically* add/remove the href to switch it between "scroll link" and "open mobile menu" behavior — since `Button`'s `:is="href ? 'a' : as"` binding is evaluated once at render (Vue won't swap the rendered tag reactively from a plain DOM script mutating attributes after the fact), this script now works directly against the initially-rendered `<a>` element's `href` attribute (toggling `href` on/off) rather than relying on the component re-rendering as a different tag — which matches what the original `md-filled-button` version did too (it mutated `.href` on the same custom element instance, never re-rendering as a different tag).
+Note: the `Button` above is given an initial `href="#contact-form-footer"` so it renders as a real `<a>` from the start. This matters because `Button`'s `:is="href ? 'a' : as"` is resolved once at SSR time — unlike the old Material Web `md-filled-button` (a Lit custom element that reactively re-renders its internal shadow DOM whenever its `.href` property is set, even client-side), a plain `<button>` can't be turned into a link later by a vanilla script calling `setAttribute('href', ...)` on it. The mobile-breakpoint logic still needs to *dynamically* add/remove the href to switch between "scroll link" and "open mobile menu" behavior, so it now works directly against this initially-rendered `<a>` element's `href` attribute (toggling on/off) — and, since removing `href` from an `<a>` also removes it from the tab order and the accessibility tree, the same toggle also adds/removes `role="button"` + `tabindex="0"` + a keydown handler so keyboard and screen-reader users retain equivalent access to mouse/touch users (an a11y regression found and fixed during code review, verified via a direct DOM/keyboard test in a real browser).
 
 - [ ] **Step 11.3: Rewrite `theme-color-modifier.vue`**
 
@@ -1873,6 +1910,8 @@ import { getBrandIconName, useTranslatedPath, useTranslation } from '@/utils';
 import { links } from '@/utils/constants';
 import { ExternalLink } from '@lucide/vue';
 
+import Icon from '@/components/icon.vue';
+
 const { lang } = Astro.params;
 const { t } = await useTranslation(lang);
 const translatePath = useTranslatedPath(lang);
@@ -1907,7 +1946,7 @@ const sections = [
             <a {...rest} class="flex-row-center gap-1">
               <iconify-icon icon={icon} />
               {label}
-              {external && <ExternalLink class="size-4" />}
+              {external && <Icon icon={ExternalLink} class="size-4" />}
             </a>
           </li>
         ))}
@@ -1917,7 +1956,7 @@ const sections = [
 }
 ```
 
-This matches the real site's "Resources" (Resume/Blog/Portfolio) / "Social Media" (LinkedIn/GitHub) footer structure exactly — `iconify-icon` stays here since these are brand/tech logos, only the `open_in_new` UI glyph moves to lucide's `ExternalLink`.
+This matches the real site's "Resources" (Resume/Blog/Portfolio) / "Social Media" (LinkedIn/GitHub) footer structure exactly — `iconify-icon` stays here since these are brand/tech logos, only the `open_in_new` UI glyph moves to lucide's `ExternalLink`. Note `ExternalLink` is wrapped in `Icon` (from `@/components/icon.vue`, created in Task 11) rather than used bare — `@astrojs/vue`'s SSR renderer can't render a bare `@lucide/vue` component directly inside an `.astro` template (only compiled Vue SFCs), so an unwrapped `<ExternalLink />` here would crash the build the same way it did in Task 11 before that fix.
 
 - [ ] **Step 13.2: Build and verify**
 
@@ -1998,6 +2037,7 @@ import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import { Home, ImageIcon } from '@lucide/vue';
 
+import Icon from '@/components/icon.vue';
 import { Button } from '@/components/ui/button';
 import { Navigation } from '@/components/blog';
 
@@ -2019,7 +2059,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
   <nav class="flex-row-center justify-between container">
     <div>
       <Button variant="ghost" size="icon" href="/">
-        <Home />
+        <Icon icon={Home} />
       </Button>
     </div>
     <div>
@@ -2068,7 +2108,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
                   transition:name={`blog-${id}`}
                 />
               ) : (
-                <ImageIcon />
+                <Icon icon={ImageIcon} />
               )}
             </div>
             <div class="flex flex-col px-4 pb-3">
@@ -2089,7 +2129,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
 </Layout>
 ```
 
-Note: `@lucide/vue`'s icon is imported as `ImageIcon` (not `Image`) to avoid colliding with Astro's own `Image` import from `astro:assets`.
+Note: `@lucide/vue`'s icon is imported as `ImageIcon` (not `Image`) to avoid colliding with Astro's own `Image` import from `astro:assets`. Also note both `Home` and `ImageIcon` are wrapped in `Icon` (from `@/components/icon.vue`, created in Task 11) — a bare lucide icon used directly inside an `.astro` template crashes `@astrojs/vue`'s SSR renderer ("Unable to render X!"), since it only recognizes compiled Vue SFCs and lucide icons are bare functional components. This applies even though these icons sit inside a `Button` slot — Astro resolves each templated child through its own renderer before slotting it in, so nesting inside another Vue component doesn't avoid the issue.
 
 - [ ] **Step 14.3: Rewrite `layouts/blog.astro`**
 
@@ -2104,6 +2144,7 @@ import clsx from 'clsx';
 import { format } from 'date-fns';
 import { ArrowLeft } from '@lucide/vue';
 
+import Icon from '@/components/icon.vue';
 import { Button } from '@/components/ui/button';
 
 import BaseLayout from './index.astro';
@@ -2143,7 +2184,7 @@ const {
     onclick="history.back()"
     class="fixed top-10 left-10 rounded-full text-primary"
   >
-    <ArrowLeft />
+    <Icon icon={ArrowLeft} />
   </Button>
   <article
     class={clsx(

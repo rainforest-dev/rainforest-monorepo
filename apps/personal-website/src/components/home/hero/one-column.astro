@@ -85,11 +85,27 @@ const translatePath = useTranslatedPath(lang);
     menuButton?.click();
   };
 
+  const handleContactMeKeydown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      contactMeButton.click();
+    }
+  };
+
   const handleMatches = (matches: boolean) => {
     if (matches) {
+      // An <a> without an href isn't part of the tab order and isn't exposed
+      // as a link to assistive tech — restore both manually so keyboard/
+      // screen-reader users can still activate it, not just mouse/touch.
       contactMeButton.removeAttribute('href');
+      contactMeButton.setAttribute('role', 'button');
+      contactMeButton.setAttribute('tabindex', '0');
       contactMeButton.onclick = handleOpenContactForm;
+      contactMeButton.addEventListener('keydown', handleContactMeKeydown);
     } else {
+      contactMeButton.removeAttribute('role');
+      contactMeButton.removeAttribute('tabindex');
+      contactMeButton.removeEventListener('keydown', handleContactMeKeydown);
       contactMeButton.onclick = removeUrlHashAfterNavigation;
       contactMeButton.setAttribute('href', '#contact-form-footer');
     }
