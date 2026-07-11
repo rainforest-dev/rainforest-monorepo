@@ -10,25 +10,23 @@
       />
     </article>
     <div class="flex gap-4">
-      <md-outlined-text-field
+      <Input
+        v-model="message"
         type="text"
-        :value="message"
-        @input="message = $event.target.value"
         placeholder="Enter your message here"
         class="flex-grow"
         @keydown.enter="sendMessage"
       />
-      <md-filled-button @click="sendMessage" class="min-w-40"
-        >Send</md-filled-button
-      >
+      <Button @click="sendMessage" class="min-w-40">Send</Button>
     </div>
   </div>
 </template>
 <script setup>
 import { ref } from 'vue';
 import { marked } from 'marked';
-import '@material/web/textfield/outlined-text-field.js';
-import '@material/web/button/filled-button.js';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const { api = 'web-llm' } = defineProps({
   api: 'web-llm' | 'prompt-api',

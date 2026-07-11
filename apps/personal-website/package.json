@@ -20,7 +20,6 @@
     "@lit/react": "^1.0.8",
     "@lucide/vue": "^1.0.0",
     "@material/material-color-utilities": "catalog:",
-    "@material/web": "^2.4.1",
     "@mlc-ai/web-llm": "^0.2.80",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@nanostores/lit": "^0.2.3",

@@ -9,12 +9,14 @@
       />
     </tbody>
   </table>
-  <md-outlined-button class="px-6" @click="random"> Random </md-outlined-button>
+  <Button variant="outline" class="px-6" @click="random">Random</Button>
 </template>
 <script lang="ts" setup>
-import '@material/web/button/outlined-button';
 import { computed, onMounted, ref } from 'vue';
 import { addDays } from 'date-fns';
+
+import { Button } from '@/components/ui/button';
+
 import Row from './row.vue';
 
 const createRandomData = (lower = 10, upper = 30) => {
