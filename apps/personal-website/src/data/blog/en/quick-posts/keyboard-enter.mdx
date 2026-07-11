@@ -8,75 +8,75 @@ tags:
   - accessibility
 ---
 
-import { OutlinedTextField, SelectOption, OutlinedSelect } from '@components';
+import { CountrySelect } from '@components/blog/demo';
+
+import { Input } from '@/components/ui/input';
 
 ## Address Input
 
 When aiming to deliver an exceptional user experience, consider utilizing the enterKeyHint attribute. This feature provides guidance on what action should be taken when the Enter key is pressed, thereby enhancing accessibility for users who rely on screen readers and other assistive technologies.
 On iOS devices, the 'Done' button on keyboards often leads users to close the keyboard inadvertently, which can result in missed form submissions due to a lack of understanding about the grey-colored return key's purpose. By incorporating enterKeyHint, you can mitigate this issue and create a more intuitive experience for your users.
 
-<OutlinedTextField
+<Input
   client:load
   type="text"
   name="Address"
   label="Address"
-  autoComplete="shipping street-address"
+  autocomplete="shipping street-address"
   placeholder="Address"
-  enterKeyHint="go"
+  enterkeyhint="go"
 />
 
 ### Multi-line Address Input
 
 <form className="flex flex-col gap-1">
-  <OutlinedTextField
+  <Input
     client:load
     type="text"
     name="name"
-    autoComplete="shipping name"
+    autocomplete="shipping name"
     placeholder="Name"
     required
   />
-  <OutlinedSelect name="country" autoComplete="shipping country" required>
-    <SelectOption value="TW">Taiwan</SelectOption>
-  </OutlinedSelect>
-  <OutlinedTextField
+  <CountrySelect client:load />
+  <Input
     client:load
     type="text"
     name="postal code"
     OutlinedTextFieldMode="numeric"
-    autoComplete="shipping postal-code"
+    autocomplete="shipping postal-code"
     placeholder="Postal Code"
     required
   />
-  <OutlinedTextField
+  <Input
     client:load
     type="text"
     name="city"
-    autoComplete="shipping address-level1"
+    autocomplete="shipping address-level1"
     placeholder="City"
     required
   />
-  <OutlinedTextField
+  <Input
     client:load
     type="text"
     name="township"
-    autoComplete="shipping address-level2"
+    autocomplete="shipping address-level2"
     placeholder="Distinct"
     required
   />
-  <OutlinedTextField
+  <Input
     client:load
     type="text"
     name="address line 1"
-    autoComplete="shipping address-line1"
+    autocomplete="shipping address-line1"
     placeholder="Address Line 1 (e.g. No. 1, Section 1)"
     required
   />
-  <OutlinedTextField
+  <Input
     client:load
     type="text"
     name="address line 2"
-    autoComplete="shipping address-line2"
+    autocomplete="shipping address-line2"
     placeholder="Address Line 2 (optional)"
   />
 </form>

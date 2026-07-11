@@ -33,7 +33,6 @@ export default defineConfig({
       // Could also be a dictionary or array of multiple entry points.
       entry: {
         index: 'src/index.ts',
-        'tailwindcss/md3': 'src/tailwindcss/md3.ts',
         'tailwindcss/shadcn': 'src/tailwindcss/shadcn.ts',
         ...Object.fromEntries(
           glob
