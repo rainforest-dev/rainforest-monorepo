@@ -28,6 +28,8 @@ export type ButtonSize = VariantProps<typeof buttonVariants>['size'];
 </script>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 import { cn } from '@/utils/cn';
 
 interface Props {
@@ -44,6 +46,13 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'default',
   as: 'button',
 });
+
+// A target="_blank" link without rel="noopener noreferrer" lets the opened
+// page access window.opener (a security/perf footgun) — apply it automatically
+// so callers don't have to remember it every time.
+const rel = computed(() =>
+  props.target === '_blank' ? 'noopener noreferrer' : undefined,
+);
 </script>
 
 <template>
@@ -51,6 +60,7 @@ const props = withDefaults(defineProps<Props>(), {
     :is="href ? 'a' : as"
     :href="href || undefined"
     :target="target || undefined"
+    :rel="rel"
     :class="cn(buttonVariants({ variant, size }), props.class)"
   >
     <slot />
