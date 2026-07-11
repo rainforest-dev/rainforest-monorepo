@@ -1,6 +1,6 @@
 <template>
-  <DropdownMenu>
-    <DropdownMenuTrigger as-child>
+  <Popover>
+    <PopoverTrigger as-child>
       <button
         id="source-color"
         class="ring-accent/80 ring-offset-3 block size-10 cursor-pointer rounded-full ring-4 duration-300"
@@ -16,18 +16,8 @@
           v-if="sourceImage"
         />
       </button>
-    </DropdownMenuTrigger>
-    <!-- DropdownMenuContent is being used here as a generic popover container
-         for form fields (file input, color input), not a list of menu items —
-         a real semantic mismatch (role="menu" implies menuitem children
-         selected via arrows/Enter, which these aren't; reka-ui's roving-focus
-         lands on the wrapper div instead of the first field on open, since no
-         collection items are registered). Carried over from the old md-menu
-         usage without re-examining it against DropdownMenu's item-based
-         model — a proper fix would swap this to a Popover primitive, which
-         doesn't exist yet in this component set. Flagged as a follow-up
-         rather than building a new component during this migration. -->
-    <DropdownMenuContent>
+    </PopoverTrigger>
+    <PopoverContent>
       <div class="space-y-2 px-4 py-2">
         <div class="relative">
           <label
@@ -73,8 +63,8 @@
           />
         </div>
       </div>
-    </DropdownMenuContent>
-  </DropdownMenu>
+    </PopoverContent>
+  </Popover>
 </template>
 <script lang="ts" setup>
 import { hexFromArgb } from '@material/material-color-utilities';
@@ -85,10 +75,10 @@ import { useLocalStorage } from '@vueuse/core';
 import { ImageIcon } from '@lucide/vue';
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 const sourceColor = useVModel($sourceColor);
 const sourceImage = useLocalStorage('source-image', '');
