@@ -594,6 +594,8 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        secondary:
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         outline:
           'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
@@ -661,6 +663,8 @@ const rel = computed(() =>
 ```
 
 Task 12's `contact-form.astro` relies on this fallthrough behavior for its `data-contact-submit` query hook (a non-declared attribute) — the comment above exists specifically so that dependency doesn't silently break if `Button.vue` is ever restructured (flagged during Task 12's code review).
+
+The `secondary` variant was added after Task 14's `blog.astro` back button (`variant="secondary"`) was found rendering with no background at all — `cva`'s `variants.variant` map only had `default`/`outline`/`ghost` at that point, so an unrecognized variant key silently resolved to no extra classes instead of erroring. Included here now since Button.vue is a shared component and this is its actual, current shape.
 
 Note the `href || undefined` (not just `href`): if a caller passes `href=""` (e.g. a computed URL that resolved empty), binding the raw prop directly would still set a literal empty `href` attribute on whatever `as` renders — Vue only strips the attribute on `null`/`undefined`, not `''`. Verified via a direct Vue SSR render test during code review.
 
