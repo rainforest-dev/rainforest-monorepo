@@ -38,7 +38,11 @@ const resumeProps: IResumeProps = {
 };
 ---
 
-<Layout title={t('resume:metadata-title')} description={t('metadata-description')}>
+<Layout
+  title={t('resume:metadata-title')}
+  description={t('metadata-description')}
+  hideSourceColorPicker
+>
   <main
     class="w-screen h-screen flex-col-center p-10 bg-foreground overflow-scroll
             print:justify-start print:items-start print:p-0 print:overflow-visible"

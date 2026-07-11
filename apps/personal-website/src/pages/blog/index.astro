@@ -1,5 +1,4 @@
 ---
-import { SourceColor } from '@components';
 import Layout from '@layouts/index.astro';
 import { Home, ImageIcon } from '@lucide/vue';
 import {
@@ -89,7 +88,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
             </div>
             <div class="flex flex-col px-4 pb-3">
               <h2 class="mt-0">{post.title}</h2>
-              <p>{post.description}</p>
+              <p class="line-clamp-4 md:line-clamp-3">{post.description}</p>
             </div>
           </a>
         ))
@@ -97,9 +96,6 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
     </div>
     <div class="fixed bottom-10 left-1/2 -translate-x-1/2">
       <Navigation />
-    </div>
-    <div class="fixed right-10 bottom-10 z-10">
-      <SourceColor client:only="vue" />
     </div>
   </main>
 </Layout>

@@ -8,7 +8,11 @@ import { dir as _dir } from 'i18next';
 import Head from './head.astro';
 import type { Props } from './types';
 
-const { viewTransition = { enabled: false }, ...rest } = Astro.props;
+const {
+  viewTransition = { enabled: false },
+  hideSourceColorPicker = false,
+  ...rest
+} = Astro.props;
 
 const lang = Astro.currentLocale;
 const dir = _dir(lang);
@@ -22,8 +26,12 @@ const dir = _dir(lang);
   </Head>
   <body>
     <slot />
-    <div class="fixed right-10 bottom-10 z-10 print:hidden">
-      <SourceColor client:only="vue" />
-    </div>
+    {
+      !hideSourceColorPicker && (
+        <div class="fixed right-10 bottom-10 z-10 print:hidden">
+          <SourceColor client:only="vue" />
+        </div>
+      )
+    }
   </body>
 </html>
