@@ -1,7 +1,8 @@
+import { locales as supportedLocales } from '@rainforest-dev/personal-data/vocab';
 import { enUS, type Locale, zhTW } from 'date-fns/locale';
 
 export const fallbackLng = 'en' as const;
-export const supportedLngs = [fallbackLng, 'zh'] as const;
+export const supportedLngs = supportedLocales;
 export const cookieName = 'i18next' as const;
 export const defaultNS = 'common' as const;
 export const showDefaultLanguage = false as const;
