@@ -31,8 +31,20 @@ const authors = defineCollection({
   }),
 });
 
+// These four collections' data files live in libs/personal-data/src/data/* now (moved
+// there, not duplicated, by the companion personal-data-library plan) — only the loader's
+// `base` changed to point at the new location. Everything else (schema, reference() calls,
+// Astro's own render() pipeline for the markdown body) is unchanged from before that move:
+// the homepage (pages/[lang]/index.astro), the home experiences components, and the
+// resume's ats-friendly.astro all still render this content exactly as they did, through
+// Astro's own content-collection system. libs/personal-data (via its plain fs-based
+// loader.ts) and this file are independent readers of the same underlying files — not a
+// duplicated copy of the data, just two access paths to one source of truth.
 const organizations = defineCollection({
-  loader: glob({ pattern: '**/*.json', base: './src/data/organizations' }),
+  loader: glob({
+    pattern: '**/*.json',
+    base: '../../libs/personal-data/src/data/organizations',
+  }),
   schema: z.object({
     name: z.string(),
     language: z.enum(supportedLngs),
@@ -42,7 +54,10 @@ const organizations = defineCollection({
 });
 
 const experiences = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/data/experiences' }),
+  loader: glob({
+    pattern: '**/*.md',
+    base: '../../libs/personal-data/src/data/experiences',
+  }),
   schema: z.object({
     type: z.enum(tags.experience),
     language: z.enum(supportedLngs),
@@ -56,7 +71,10 @@ const experiences = defineCollection({
 });
 
 const projects = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/data/projects' }),
+  loader: glob({
+    pattern: '**/*.md',
+    base: '../../libs/personal-data/src/data/projects',
+  }),
   schema: z.object({
     name: z.string(),
     language: z.enum(supportedLngs),
@@ -67,7 +85,10 @@ const projects = defineCollection({
 });
 
 const skills = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/data/skills' }),
+  loader: glob({
+    pattern: '**/*.md',
+    base: '../../libs/personal-data/src/data/skills',
+  }),
   schema: z.object({
     name: z.string(),
     icon: z.enum(tags.skills),
