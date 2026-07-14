@@ -16,7 +16,8 @@ export type TaskScope = 'work' | 'personal';
 
 /** One sprint work item as it appears in `tasks.json`'s `tasks` array. */
 export interface SprintTask {
-  id: number | null;
+  /** Numeric for Notion work tasks; a slug string for personal (Obsidian) ones. */
+  id: number | string | null;
   /** Board sort order; drives card/node ordering. */
   order: number;
   name: string;
@@ -64,6 +65,13 @@ function num(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
+/** Task id: numeric (Notion) or a non-empty slug string (personal). */
+function numOrStr(v: unknown): number | string | null {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string' && v.length > 0) return v;
+  return null;
+}
+
 function str(v: unknown): string {
   return typeof v === 'string' ? v : '';
 }
@@ -98,7 +106,7 @@ function parseTask(v: unknown): SprintTask | null {
   const name = strOrNull(o.name);
   if (!name) return null;
   return {
-    id: num(o.id),
+    id: numOrStr(o.id),
     order: num(o.order) ?? 0,
     name,
     task_ref: strOrNull(o.task_ref),

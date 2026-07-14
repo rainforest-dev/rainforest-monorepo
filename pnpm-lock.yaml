@@ -326,7 +326,7 @@ importers:
         specifier: ^22.15.19
         version: 22.15.19
 
-  apps/personal-usage:
+  apps/loop-observatory:
     dependencies:
       '@astrojs/node':
         specifier: ^10.0.6
