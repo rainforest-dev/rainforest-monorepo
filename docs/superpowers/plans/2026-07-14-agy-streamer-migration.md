@@ -4,9 +4,9 @@
 
 **Goal:** Migrate `agy-streamer` from an untracked folder in `rainforest-homelab` into `apps/agy-streamer` in the Nx workspace, re-skin it onto the shared dynamic-theme branding, and make its already-built (but currently non-functional) tool-approval UI actually pause execution for real decisions.
 
-**Architecture:** Copy the existing TanStack Start app + `agent_worker.py` into `apps/agy-streamer` (code lives in `rainforest-monorepo` for Nx tooling and shared theming; the Python worker is a versioned runtime dependency, not Nx-orchestrated). Fix `agent_worker.py`'s `conversation_id` bug and add model/agent args. Rewire `agent-manager.ts`'s `agy` branch to spawn the fixed worker (JSON-stdout parsing, like the existing `claude` branch already does) instead of the raw `agy` CLI, and wire `permission_request` events to genuinely populate `pendingResolve` and write the decision back to the worker's stdin. Add a `codex` branch alongside the existing `claude`/`agy` ones (blocked pending `codex` actually being installed). Re-theme onto `libs/rainforest-ui/src/tailwindcss/shadcn.ts`. The running service is deployed and managed from `rainforest-homelab` via launchd, since it needs local subprocess-spawn access to `agy`/`claude`/`codex`/`uv` that can't exist on a cloud platform.
+**Architecture:** Copy the existing TanStack Start app into `apps/agy-streamer` (no Python at all — `agent_worker.py`/the SDK path is a confirmed dead end, requires a separate paid API key). Rewire `agent-manager.ts`'s `agy` branch from plain non-interactive `child_process.spawn` to `node-pty`-driven genuine interactive mode (`agy -i`), which is the only path confirmed to support real approval-gating, authenticated via the existing Google AI Pro OAuth session at no extra cost. A new parser (`agy-pty-parser.ts`) turns the raw ANSI-laden PTY output into structured menu-prompt events; `pendingResolve`/`handleToolApproval` widen from boolean to option-index to support the real 2-4-option prompts. Add a `codex` branch alongside the existing `claude`/`agy` ones (blocked pending `codex` actually being installed). Re-theme onto `libs/rainforest-ui/src/tailwindcss/shadcn.ts`. The running service is deployed and managed from `rainforest-homelab` via launchd, since it needs local PTY-spawn access to `agy`/`claude`/`codex` that can't exist on a cloud platform.
 
-**Tech Stack:** TanStack Start (React 19.2, Vite 8), shadcn/ui + Radix, Tailwind v4, Python (`uv`, `google-antigravity` SDK, no Nx integration), Nx, pnpm workspace, launchd (deployment, in `rainforest-homelab`).
+**Tech Stack:** TanStack Start (React 19.2, Vite 8), shadcn/ui + Radix, Tailwind v4, `node-pty` + `strip-ansi` (interactive CLI automation), Nx, pnpm workspace, launchd (deployment, in `rainforest-homelab`). No Python.
 
 ---
 
@@ -14,9 +14,8 @@
 
 **Files:**
 - Create: `apps/agy-streamer/` (copied from `/Users/rainforest/Repositories/rainforest-homelab/agy-streamer/frontend/`)
-- Create: `apps/agy-streamer/worker/agent_worker.py`, `apps/agy-streamer/worker/pyproject.toml`, `apps/agy-streamer/worker/uv.lock` (copied from `/Users/rainforest/Repositories/rainforest-homelab/agy-streamer/`)
 
-Before any code changes, get the app running unmodified inside the monorepo, so every later task has a known-good baseline to diff against.
+Before any code changes, get the app running unmodified inside the monorepo, so every later task has a known-good baseline to diff against. **No Python this time** — `agent_worker.py` is a confirmed dead end (requires a separate paid API key) and is not part of the migration at all; see the design spec's revision 2 note.
 
 - [ ] **Step 1: Copy the frontend, excluding build artifacts and its orphaned nested git repo**
 
@@ -28,24 +27,15 @@ rsync -a --exclude='node_modules' --exclude='.output' --exclude='.tanstack' \
   apps/agy-streamer/
 ```
 
-- [ ] **Step 2: Copy the Python worker into a `worker/` subfolder**
+- [ ] **Step 2: Confirm nothing from the excluded legacy set got copied**
 
 ```bash
-mkdir -p apps/agy-streamer/worker
-cp /Users/rainforest/Repositories/rainforest-homelab/agy-streamer/agent_worker.py apps/agy-streamer/worker/
-cp /Users/rainforest/Repositories/rainforest-homelab/agy-streamer/pyproject.toml apps/agy-streamer/worker/
-cp /Users/rainforest/Repositories/rainforest-homelab/agy-streamer/uv.lock apps/agy-streamer/worker/
+ls apps/agy-streamer/ | grep -E "^(server.py|static|scratch|test_worker.py|redesigned_stitch_ui.html|agent_worker.py|pyproject.toml|uv.lock)$"
 ```
 
-- [ ] **Step 3: Confirm nothing from the excluded legacy set got copied**
+Expected: no output (grep finds nothing — confirms `server.py`, `static/`, `scratch/`, `test_worker.py`, `redesigned_stitch_ui.html`, and the Python worker files were correctly left behind).
 
-```bash
-ls apps/agy-streamer/ | grep -E "^(server.py|static|scratch|test_worker.py|redesigned_stitch_ui.html)$"
-```
-
-Expected: no output (grep finds nothing — confirms `server.py`, `static/`, `scratch/`, `test_worker.py`, and `redesigned_stitch_ui.html` were correctly left behind, per the design spec's "confirmed dead code" finding).
-
-- [ ] **Step 4: Add `nx` block to `apps/agy-streamer/package.json` for build dependency ordering**
+- [ ] **Step 3: Add `nx` block to `apps/agy-streamer/package.json` for build dependency ordering**
 
 Read the copied `apps/agy-streamer/package.json` first (`cat apps/agy-streamer/package.json`) to see its current `name` field, then add this block matching the pattern used by `apps/rss-manager/package.json`:
 
@@ -58,13 +48,9 @@ Read the copied `apps/agy-streamer/package.json` first (`cat apps/agy-streamer/p
   }
 ```
 
-Insert it as a top-level key in the JSON, after `"pnpm"` if present, otherwise after `"devDependencies"`.
+Insert it as a top-level key in the JSON, after `"pnpm"` if present, otherwise after `"devDependencies"`. No `project.json` needed for this app — `@nx/vite/plugin`'s inference from `vite.config.ts` (already registered in `nx.json`) is sufficient.
 
-- [ ] **Step 5: Do NOT wrap the Python worker in Nx targets**
-
-Nx has no real Python-project support, and `agent_worker.py` doesn't benefit from being "Nx-managed" — it's a runtime dependency the Node server shells out to via `uv`, not a build artifact. Treat `apps/agy-streamer/worker/` as a plain versioned directory: `uv sync`/`uv run pytest` are run directly (see Task 5's manual verification steps), not through `nx:run-commands`. No `project.json` needed for this app at all — `@nx/vite/plugin`'s inference from `vite.config.ts` (already registered in `nx.json`) is sufficient for the TS/React side.
-
-- [ ] **Step 6: Install dependencies and verify the dev server starts**
+- [ ] **Step 4: Install dependencies and verify the dev server starts**
 
 ```bash
 pnpm install
@@ -73,7 +59,7 @@ pnpm nx dev agy-streamer
 
 Expected: Vite dev server starts on port 3000 (or logs an error to fix before continuing — do not proceed to Task 2 until this works cleanly). Stop the server (Ctrl-C) once confirmed.
 
-- [ ] **Step 7: Verify the existing test suite still passes as-is**
+- [ ] **Step 5: Verify the existing test suite still passes as-is**
 
 ```bash
 pnpm nx test agy-streamer
@@ -81,16 +67,18 @@ pnpm nx test agy-streamer
 
 Expected: `agent-manager.test.ts` and `api-integration.test.ts` pass unchanged (these were already passing in the source app — this step just confirms the copy didn't break anything, e.g. import path issues).
 
-- [ ] **Step 8: Commit the untouched baseline**
+- [ ] **Step 6: Commit the untouched baseline**
 
 ```bash
 git add apps/agy-streamer/
 git commit -m "feat(agy-streamer): scaffold Nx app from rainforest-homelab source, unmodified
 
-Plain copy of the working TanStack Start app + Python worker into
-apps/agy-streamer, verified building and testing cleanly before any
-refactoring. Legacy dead code (server.py, static/, scratch/,
-test_worker.py, redesigned_stitch_ui.html) intentionally left behind."
+Plain copy of the working TanStack Start app into apps/agy-streamer,
+verified building and testing cleanly before any refactoring. Legacy
+dead code (server.py, static/, scratch/, test_worker.py,
+redesigned_stitch_ui.html, agent_worker.py and its Python env)
+intentionally left behind - the Python SDK path is a confirmed dead
+end (requires a separate paid API key)."
 ```
 
 ---
@@ -269,236 +257,375 @@ unchanged - this is a re-skin, not a rebuild."
 
 ---
 
-## Task 5: Fix `agent_worker.py` — conversation_id, model, and agent args
+## Task 5: Build the PTY prompt parser (`agy-pty-parser.ts`)
 
 **Files:**
-- Modify: `apps/agy-streamer/worker/agent_worker.py`
+- Modify: `apps/agy-streamer/package.json` (add `node-pty`, `strip-ansi` dependencies)
+- Create: `apps/agy-streamer/src/lib/agy-pty-parser.ts`
+- Create: `apps/agy-streamer/src/lib/agy-pty-parser.test.ts`
 
-- [ ] **Step 1: Add `conversation_id` and optional `model`/`agent` params to `WebAgentRunner`**
+This is the genuinely new, fuzzy logic this migration depends on — turning raw interactive-TUI output into structured prompt events. Built and tested against real captured output from live testing (see the design spec's "Current State" section), not invented.
 
-Current constructor (in the copied file):
-```python
-class WebAgentRunner:
-    def __init__(self, session_id, directory, prompt):
-        self.session_id = session_id
-        self.directory = directory
-        self.prompt = prompt
+- [ ] **Step 1: Add dependencies**
+
+In `apps/agy-streamer/package.json`, add under `dependencies`:
+```json
+    "node-pty": "^1.0.0",
+    "strip-ansi": "^7.1.0",
 ```
-
-Change to:
-```python
-class WebAgentRunner:
-    def __init__(self, session_id, directory, prompt, model=None, agent=None):
-        self.session_id = session_id
-        self.directory = directory
-        self.prompt = prompt
-        self.model = model
-        self.agent = agent
-```
-
-- [ ] **Step 2: Wire `conversation_id` into `LocalAgentConfig`, and `model` if present**
-
-Current config construction:
-```python
-        config = LocalAgentConfig(
-            system_instructions=(
-                "You are an AI coding assistant helping a user inside a web dashboard. "
-                "You have access to write tools. Confirm actions before running write tools."
-            ),
-            capabilities=CapabilitiesConfig(),
-            workspaces=[self.directory],
-            app_data_dir=app_data_dir,
-            hooks=[permission_decider]
-        )
-```
-
-Change to:
-```python
-        config_kwargs = dict(
-            system_instructions=(
-                "You are an AI coding assistant helping a user inside a web dashboard. "
-                "You have access to write tools. Confirm actions before running write tools."
-            ),
-            capabilities=CapabilitiesConfig(),
-            workspaces=[self.directory],
-            app_data_dir=app_data_dir,
-            hooks=[permission_decider],
-            conversation_id=self.session_id,
-        )
-        if self.model:
-            config_kwargs["model"] = self.model
-        config = LocalAgentConfig(**config_kwargs)
-```
-
-Do NOT add an `agent=self.agent` kwarg here yet — per the design spec's flagged open risk, `LocalAgentConfig`'s introspected field list (`system_instructions`, `capabilities`, `tools`, `policies`, `hooks`, `triggers`, `mcp_servers`, `workspaces`, `conversation_id`, `save_dir`, `app_data_dir`, `response_schema`, `skills_paths`, `model`, `models`, `api_key`, `vertex`, `project`, `location`) has no `agent` field. Passing an unsupported kwarg would either be silently swallowed by `**kwargs` or raise — verify which by running Step 4 below with `--agent` set before deciding whether persona selection is even possible on this path.
-
-- [ ] **Step 3: Parse `--model` and `--agent` as optional CLI args**
-
-Current `__main__` block:
-```python
-if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        sys.exit(1)
-        
-    sid = sys.argv[1]
-    dir_path = sys.argv[2]
-    user_prompt = sys.argv[3]
-    
-    # Run the async runner
-    asyncio.run(WebAgentRunner(sid, dir_path, user_prompt).run())
-```
-
-Change to:
-```python
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("session_id")
-    parser.add_argument("directory")
-    parser.add_argument("prompt")
-    parser.add_argument("--model", default=None)
-    parser.add_argument("--agent", default=None)
-    args = parser.parse_args()
-
-    asyncio.run(WebAgentRunner(
-        args.session_id, args.directory, args.prompt,
-        model=args.model, agent=args.agent,
-    ).run())
-```
-
-- [ ] **Step 4: Manually verify the conversation_id wiring actually produces a resumable session**
 
 ```bash
-cd apps/agy-streamer/worker
-uv sync
-uv run python agent_worker.py test-conv-fix-001 /tmp "say hello and nothing else"
+pnpm install
 ```
 
-Expected: newline-JSON events print to stdout ending in `{"type": "turn_complete"}`. Then check whether the conversation is now visible to the native CLI:
+- [ ] **Step 2: Write the failing tests first, using real captured fixture output**
+
+Create `apps/agy-streamer/src/lib/agy-pty-parser.test.ts`:
+```typescript
+import { describe, expect, it } from 'vitest';
+import { parseMenuPrompt, selectionKeystrokes, isIdlePrompt } from './agy-pty-parser';
+
+// Captured verbatim (already ANSI-stripped by tmux capture-pane -p) from live
+// testing against real agy -i sessions - see docs/superpowers/specs/
+// 2026-07-13-agy-streamer-migration-design.md for context.
+
+const WORKSPACE_TRUST_FIXTURE = `Accessing workspace:
+
+/tmp/agy-interactive-test
+
+Do you trust the contents of this project?
+
+Antigravity CLI requires permission to read, edit, and execute files here.
+
+> Yes, I trust this folder
+  No, exit
+
+  ↑/↓ Navigate · enter Confirm`;
+
+const COMMAND_APPROVAL_FIXTURE = `Command
+────────────────────────────────────────────────────────────────────────────
+
+Requesting permission for:
+   pwd
+
+Do you want to proceed?
+> 1. Yes
+  2. Yes, and always allow in this conversation for commands that start with 'pwd'
+  3. Yes, and always allow for commands that start with 'pwd' (Persist to settings.json)
+  4. No
+
+  ↑/↓ Navigate · tab Amend · ctrl+g edit/expand command
+esc to cancel`;
+
+const FILE_ACCESS_FIXTURE = `Create file
+────────────────────────────────────────────────────────────────────────────
+
+/private/tmp/agy-interactive-test/test.txt  +1
+   1 +  hello
+Reason: outside workspace
+
+Allow creation of this file?
+> 1. Yes, allow creation
+  2. Yes, and always allow non-workspace access
+  3. No, deny creation
+
+  ↑/↓ Navigate · tab Amend · f full diff
+esc to cancel`;
+
+const IDLE_FIXTURE = `  I have created the file test.txt in the workspace with the content  hello .
+
+────────────────────────────────────────────────────────────────────────────
+>
+────────────────────────────────────────────────────────────────────────────
+? for shortcuts                                                     Gemini 3.5 Flash (Medium)`;
+
+const NON_PROMPT_FIXTURE = `▸ Thought for 1s, 736 tokens
+  Initiating File Creation
+  I will read the schema for the obsidian_append_content tool.
+
+● Read(/Users/rainforest/.gemini/antigravity-cli/mcp/docker-mcp/obsidian_append_content.json)`;
+
+describe('parseMenuPrompt', () => {
+  it('parses the unnumbered workspace-trust prompt', () => {
+    const result = parseMenuPrompt(WORKSPACE_TRUST_FIXTURE);
+    expect(result).not.toBeNull();
+    expect(result!.message).toBe('Antigravity CLI requires permission to read, edit, and execute files here.');
+    expect(result!.options).toHaveLength(2);
+    expect(result!.options[0].label).toBe('Yes, I trust this folder');
+    expect(result!.options[0].numberedChoice).toBeNull();
+    expect(result!.options[1].label).toBe('No, exit');
+  });
+
+  it('parses the numbered command-approval prompt', () => {
+    const result = parseMenuPrompt(COMMAND_APPROVAL_FIXTURE);
+    expect(result).not.toBeNull();
+    expect(result!.message).toBe('Do you want to proceed?');
+    expect(result!.options).toHaveLength(4);
+    expect(result!.options[0]).toMatchObject({ label: 'Yes', numberedChoice: 1 });
+    expect(result!.options[3]).toMatchObject({ label: 'No', numberedChoice: 4 });
+  });
+
+  it('parses the numbered file-access prompt', () => {
+    const result = parseMenuPrompt(FILE_ACCESS_FIXTURE);
+    expect(result).not.toBeNull();
+    expect(result!.message).toBe('Allow creation of this file?');
+    expect(result!.options).toHaveLength(3);
+    expect(result!.options[2]).toMatchObject({ label: 'No, deny creation', numberedChoice: 3 });
+  });
+
+  it('returns null for non-prompt activity output', () => {
+    expect(parseMenuPrompt(NON_PROMPT_FIXTURE)).toBeNull();
+  });
+
+  it('returns null for the idle prompt (no menu present)', () => {
+    expect(parseMenuPrompt(IDLE_FIXTURE)).toBeNull();
+  });
+});
+
+describe('selectionKeystrokes', () => {
+  it('sends the number for a numbered option', () => {
+    const prompt = parseMenuPrompt(FILE_ACCESS_FIXTURE)!;
+    expect(selectionKeystrokes(prompt, 0)).toBe('1\r');
+    expect(selectionKeystrokes(prompt, 2)).toBe('3\r');
+  });
+
+  it('sends arrow-down presses + enter for unnumbered options', () => {
+    const prompt = parseMenuPrompt(WORKSPACE_TRUST_FIXTURE)!;
+    expect(selectionKeystrokes(prompt, 0)).toBe('\r');
+    expect(selectionKeystrokes(prompt, 1)).toBe('\x1b[B\r');
+  });
+});
+
+describe('isIdlePrompt', () => {
+  it('detects the idle state', () => {
+    expect(isIdlePrompt(IDLE_FIXTURE)).toBe(true);
+  });
+
+  it('does not mistake a menu prompt for idle', () => {
+    expect(isIdlePrompt(FILE_ACCESS_FIXTURE)).toBe(false);
+  });
+
+  it('does not mistake mid-activity output for idle', () => {
+    expect(isIdlePrompt(NON_PROMPT_FIXTURE)).toBe(false);
+  });
+});
+```
+
+- [ ] **Step 3: Run the tests, confirm they fail**
 
 ```bash
-agy --conversation test-conv-fix-001 -p "what did I just ask you to say?" --print-timeout 15s < /dev/null
+pnpm nx test agy-streamer -- agy-pty-parser.test.ts
 ```
 
-Expected: the response references "hello" (proving the SDK-created conversation and the CLI's `--conversation` resume are reading the same underlying store). **If this does not work** (the CLI treats it as a brand-new conversation instead), the `conversation_id` wiring alone isn't sufficient for native resume — report this finding before proceeding, since it affects how much value Task 6 delivers versus what the spec assumed.
+Expected: FAIL — `./agy-pty-parser` doesn't exist yet.
 
-- [ ] **Step 5: Write a pytest for the argument parsing (the part that doesn't require a live SDK call)**
+- [ ] **Step 4: Implement the parser**
 
-Create `apps/agy-streamer/worker/test_agent_worker.py`:
-```python
-import subprocess
-import sys
-import os
+Create `apps/agy-streamer/src/lib/agy-pty-parser.ts`:
+```typescript
+export interface MenuOption {
+  label: string;
+  raw: string;
+  numberedChoice: number | null;
+}
 
-def test_missing_required_args_exits_nonzero():
-    result = subprocess.run(
-        [sys.executable, os.path.join(os.path.dirname(__file__), "agent_worker.py")],
-        capture_output=True,
-    )
-    assert result.returncode != 0
+export interface MenuPrompt {
+  message: string;
+  options: MenuOption[];
+}
 
+const NAV_HINT_RE = /Navigate|Confirm|esc to cancel/;
+const OPTION_LINE_RE = /^[>\s]\s*(?:(\d+)\.\s*)?(.+)$/;
+const CURSOR_LINE_RE = /^>\s+\S/;
 
-def test_argparse_accepts_model_and_agent_flags():
-    # argparse itself is well-tested; this just confirms our parser wiring
-    # doesn't reject the new flags before reaching the async runner.
-    import argparse
+/**
+ * Parses a chunk of ANSI-stripped agy -i terminal output for a menu-style
+ * approval prompt (workspace trust / command approval / file access, and
+ * potentially unfamiliar shapes like a subagent prompt - see design spec).
+ * Returns null if no prompt is present in this chunk.
+ */
+export function parseMenuPrompt(strippedText: string): MenuPrompt | null {
+  const lines = strippedText.split('\n');
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("session_id")
-    parser.add_argument("directory")
-    parser.add_argument("prompt")
-    parser.add_argument("--model", default=None)
-    parser.add_argument("--agent", default=None)
+  const cursorIdx = lines.findIndex((l) => CURSOR_LINE_RE.test(l));
+  if (cursorIdx === -1) return null;
 
-    args = parser.parse_args(["sid", "/tmp", "hello", "--model", "gemini-3-pro", "--agent", "coder"])
-    assert args.session_id == "sid"
-    assert args.model == "gemini-3-pro"
-    assert args.agent == "coder"
+  const optionLines: string[] = [lines[cursorIdx]];
+  let i = cursorIdx + 1;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === '') break;
+    if (NAV_HINT_RE.test(line)) break;
+    if (!/^\s{2,}\S/.test(line)) break;
+    optionLines.push(line);
+    i++;
+  }
+
+  const lookahead = lines.slice(i, i + 4).join('\n');
+  if (!NAV_HINT_RE.test(lookahead)) return null;
+
+  const options: MenuOption[] = optionLines.map((line) => {
+    const match = line.match(OPTION_LINE_RE);
+    const numberedChoice = match && match[1] ? parseInt(match[1], 10) : null;
+    const label = match ? match[2].trim() : line.trim();
+    return { label, raw: line, numberedChoice };
+  });
+
+  let messageIdx = cursorIdx - 1;
+  while (messageIdx >= 0 && lines[messageIdx].trim() === '') messageIdx--;
+  const message = messageIdx >= 0 ? lines[messageIdx].trim() : '';
+
+  return { message, options };
+}
+
+/**
+ * Returns the raw bytes to write to the PTY to select the given option index.
+ * Numbered options are chosen by typing their number; unnumbered options
+ * (e.g. workspace trust) are chosen positionally via arrow-down presses,
+ * since the cursor always starts on the first option when a fresh prompt
+ * is parsed.
+ */
+export function selectionKeystrokes(prompt: MenuPrompt, chosenIndex: number): string {
+  const chosen = prompt.options[chosenIndex];
+  if (chosen.numberedChoice !== null) {
+    return `${chosen.numberedChoice}\r`;
+  }
+  const downPresses = '\x1b[B'.repeat(chosenIndex);
+  return `${downPresses}\r`;
+}
+
+/**
+ * Detects the idle state: the input prompt with no pending menu and the
+ * "? for shortcuts" footer, meaning the agent has finished its turn and is
+ * waiting for new input.
+ */
+export function isIdlePrompt(strippedText: string): boolean {
+  const lines = strippedText.trim().split('\n');
+  const lastLines = lines.slice(-3).join('\n');
+  return /\?\s*for shortcuts/.test(lastLines) && !CURSOR_LINE_RE.test(lastLines);
+}
 ```
 
-- [ ] **Step 6: Run it**
+- [ ] **Step 5: Run the tests again, confirm they pass**
 
 ```bash
-cd apps/agy-streamer/worker
-uv run pytest test_agent_worker.py -v
+pnpm nx test agy-streamer -- agy-pty-parser.test.ts
 ```
 
-Expected: 2 passed.
+Expected: all pass.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/rainforest/Repositories/rainforest-monorepo/.claude/worktrees/rss-manager-column-link-74627a
-git add apps/agy-streamer/worker/
-git commit -m "fix(agy-streamer): wire conversation_id into agent_worker.py
+git add apps/agy-streamer/package.json apps/agy-streamer/src/lib/agy-pty-parser.ts apps/agy-streamer/src/lib/agy-pty-parser.test.ts
+git commit -m "feat(agy-streamer): add PTY prompt parser for agy -i interactive mode
 
-Was accepted as a CLI arg but never passed into LocalAgentConfig,
-so sessions started via the worker weren't resumable via the native
-agy CLI's --conversation flag. Also adds optional --model passthrough
-and argparse-based CLI parsing. --agent intentionally not wired into
-LocalAgentConfig yet - SDK introspection shows no matching field;
-verify before using it for persona selection."
+Parses ANSI-stripped terminal output from a real pseudo-terminal into
+structured menu-prompt events (message + options), tested against
+fixture text captured verbatim from live agy -i sessions. Handles
+both numbered (command/file prompts) and unnumbered (workspace-trust
+prompt) option formats - they are not consistent, confirmed by
+testing all three known shapes."
 ```
 
 ---
 
-## Task 6: Rewire `agent-manager.ts`'s `agy` branch to use the fixed worker, with real approval
+## Task 6: Rewire `agent-manager.ts`'s `agy` branch onto `node-pty`, with real approval
 
 **Files:**
 - Modify: `apps/agy-streamer/src/lib/agent-manager.ts`
 - Modify: `apps/agy-streamer/src/lib/agent-manager.test.ts`
+- Modify: `apps/agy-streamer/src/routes/api/sessions/$sessionId/approve.ts`
+- Modify: `apps/agy-streamer/src/routes/sessions.$sessionId.tsx`
 
-This is the core fix: replace the `agy` branch's CLI-shell-out-plus-log-tail approach with direct subprocess stdout parsing (matching the existing `claude` branch's pattern), and make `permission_request` events actually block on a real approval.
+This replaces the `agy` branch's CLI-shell-out-plus-log-tail approach with `node-pty`-driven interactive mode, using Task 5's parser. `handleToolApproval`'s signature widens from `boolean` to `number` (option index), since prompts can have 2-4 options, not just approve/deny.
 
-- [ ] **Step 1: Write the failing test first — permission request populates `pendingResolve` and blocks until resolved**
+- [ ] **Step 1: Write the failing test — `pendingResolve` now resolves with an option index, not a boolean**
 
-Add to `apps/agy-streamer/src/lib/agent-manager.test.ts`:
+Modify the existing approval test in `apps/agy-streamer/src/lib/agent-manager.test.ts` (replace the prior `'should handle tool approvals by resolving pending promises'` test):
 ```typescript
-  it('should populate pendingResolve when a permission_request event arrives from the agy worker', async () => {
-    const session = getOrCreateSession('test-approval-flow');
-    let capturedResolve: ((approved: boolean) => void) | null = null;
+  it('should handle tool approvals by resolving pending promises with an option index', async () => {
+    const session = getOrCreateSession('test-session-789');
 
-    // Simulate what handlePermissionRequestEvent (to be added) does:
-    // it wraps a Promise, stores the resolver on the session, and
-    // returns the promise so the caller can await the decision.
-    const decisionPromise = new Promise<boolean>((resolve) => {
+    let resolvedValue: number | null = null;
+    const promise = new Promise<number>((resolve) => {
       session.pendingResolve = resolve;
-      capturedResolve = resolve;
     });
 
-    expect(session.pendingResolve).not.toBeNull();
-    expect(session.pendingResolve).toBe(capturedResolve);
+    promise.then((val) => {
+      resolvedValue = val;
+    });
 
-    const approved = handleToolApproval('test-approval-flow', true);
+    const approved = handleToolApproval('test-session-789', 2);
     expect(approved).toBe(true);
-    await expect(decisionPromise).resolves.toBe(true);
+
+    const result = await promise;
+    expect(result).toBe(2);
+    expect(resolvedValue).toBe(2);
   });
 ```
 
-- [ ] **Step 2: Run it to confirm it passes against current code (it should, since this only exercises existing `pendingResolve`/`handleToolApproval` primitives, not new logic yet)**
+- [ ] **Step 2: Widen `AgentSession.pendingResolve` and `handleToolApproval`'s type**
 
-```bash
-pnpm nx test agy-streamer -- agent-manager.test.ts
-```
-
-Expected: PASS (this step confirms the existing primitives work correctly before you build the new code path that will actually use them in production).
-
-- [ ] **Step 3: Add a `waitForApproval` helper to `agent-manager.ts`**
-
-Add this function near `handleToolApproval` in `apps/agy-streamer/src/lib/agent-manager.ts`:
+Current interface and function (in `agent-manager.ts`):
 ```typescript
-export function waitForApproval(sessionId: string): Promise<boolean> {
-  const session = getOrCreateSession(sessionId);
-  return new Promise((resolve) => {
-    session.pendingResolve = resolve;
-  });
+interface AgentSession {
+  process: any;
+  controllers: Set<ReadableStreamDefaultController>;
+  pendingResolve: ((approved: boolean) => void) | null;
+}
+```
+```typescript
+export function handleToolApproval(sessionId: string, approved: boolean): boolean {
+  const session = activeSessions.get(sessionId);
+  if (session && session.pendingResolve) {
+    session.pendingResolve(approved);
+    return true;
+  }
+  return false;
 }
 ```
 
-- [ ] **Step 4: Replace the `agy` branch's spawn + log-tail logic with worker-spawn + stdout parsing**
+Change to:
+```typescript
+interface AgentSession {
+  process: any;
+  controllers: Set<ReadableStreamDefaultController>;
+  pendingResolve: ((optionIndex: number) => void) | null;
+}
+```
+```typescript
+export function handleToolApproval(sessionId: string, optionIndex: number): boolean {
+  const session = activeSessions.get(sessionId);
+  if (session && session.pendingResolve) {
+    session.pendingResolve(optionIndex);
+    return true;
+  }
+  return false;
+}
+```
 
-Current `agy` branch (the `else` block after the `agentType === 'claude'` check):
+- [ ] **Step 3: Run the test suite, confirm the Step 1 test passes and nothing else broke from the type change**
+
+```bash
+pnpm nx test agy-streamer
+```
+
+- [ ] **Step 4: Widen `startAgentSession`'s signature to accept an options object (needed for `--model` in this step, wired to the UI in Task 8)**
+
+Current signature:
+```typescript
+export async function startAgentSession(sessionId: string, directory: string, prompt: string, agentType = 'agy') {
+```
+
+Change to:
+```typescript
+export async function startAgentSession(sessionId: string, directory: string, prompt: string, agentType = 'agy', options: { model?: string } = {}) {
+```
+
+- [ ] **Step 5: Replace the `agy` branch's spawn + log-tail logic with `node-pty` + the parser**
+
+Current `agy` branch (the `else` block):
 ```typescript
   } else {
     const agyBinary = path.join(os.homedir(), '.local/bin/agy');
@@ -514,116 +641,263 @@ Current `agy` branch (the `else` block after the `agentType === 'claude'` check)
   }
 ```
 
-Change to:
+Add the import at the top of the file:
+```typescript
+import * as pty from 'node-pty';
+import stripAnsi from 'strip-ansi';
+import { parseMenuPrompt, selectionKeystrokes, isIdlePrompt } from './agy-pty-parser';
+```
+
+Change the branch to:
 ```typescript
   } else {
-    const workerPath = path.join(__dirname, '..', '..', 'worker', 'agent_worker.py');
-    const uvBinary = path.join(os.homedir(), '.local/bin/uv');
-    const workerArgs = [
-      'run', '--project', path.join(__dirname, '..', '..', 'worker'),
-      'python', workerPath,
-      sessionId, directory, prompt,
-    ];
-    child = spawn(uvBinary, workerArgs, {
+    const agyBinary = path.join(os.homedir(), '.local/bin/agy');
+    const ptyProcess = pty.spawn(agyBinary, [
+      '-i', prompt,
+      '--add-dir', directory,
+      '--conversation', sessionId,
+      ...(options.model ? ['--model', options.model] : []),
+    ], {
+      name: 'xterm-256color',
+      cols: 200,
+      rows: 50,
       cwd: directory,
-      env: { ...process.env },
+      env: { ...process.env } as { [key: string]: string },
+    });
+    child = ptyProcess as any;
+
+    let outputBuffer = '';
+    let debounceTimer: NodeJS.Timeout | null = null;
+    let lastKnownPrompt: ReturnType<typeof parseMenuPrompt> = null;
+    let lastOptionWasDenial = false;
+
+    const isLikelyDenial = (label: string) => /^No\b|deny|Deny/.test(label);
+
+    ptyProcess.onData(async (chunk: string) => {
+      outputBuffer += chunk;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        const stripped = stripAnsi(outputBuffer);
+        await appendLogEntry(sessionId, { type: 'RAW_PTY_OUTPUT', content: stripped, ts: new Date().toISOString() });
+
+        const prompt = parseMenuPrompt(stripped);
+        if (prompt) {
+          lastKnownPrompt = prompt;
+          broadcast(sessionId, {
+            type: 'permission_request',
+            message: prompt.message,
+            options: prompt.options.map((o) => o.label),
+          });
+          const chosenIndex = await waitForApproval(sessionId);
+          lastOptionWasDenial = isLikelyDenial(prompt.options[chosenIndex]?.label ?? '');
+          ptyProcess.write(selectionKeystrokes(prompt, chosenIndex));
+          outputBuffer = '';
+          return;
+        }
+
+        if (isIdlePrompt(stripped)) {
+          if (lastOptionWasDenial) {
+            broadcast(sessionId, { type: 'turn_stopped_after_denial' });
+          } else {
+            broadcast(sessionId, { type: 'turn_complete', code: 0 });
+          }
+          lastOptionWasDenial = false;
+          outputBuffer = '';
+        }
+      }, 400);
     });
 
-    let stdoutBuffer = '';
-    child.stdout.on('data', async (chunk) => {
-      stdoutBuffer += chunk.toString('utf8');
-      const lines = stdoutBuffer.split('\n');
-      stdoutBuffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const event = JSON.parse(line);
-          if (event.type === 'permission_request') {
-            broadcast(sessionId, { type: 'permission_request', tool: event.tool, args: event.args });
-            const approved = await waitForApproval(sessionId);
-            child.stdin.write((approved ? 'approve' : 'deny') + '\n');
-          } else if (event.type === 'thought') {
-            await appendLogEntry(sessionId, { type: 'thinking', content: event.text, ts: new Date().toISOString() });
-            broadcast(sessionId, { type: 'thought', data: { thinking: event.text } });
-          } else if (event.type === 'token') {
-            await appendLogEntry(sessionId, { type: 'PLANNER_RESPONSE', content: event.text, ts: new Date().toISOString() });
-          } else if (event.type === 'tool_call_start') {
-            await appendLogEntry(sessionId, {
-              type: 'TOOL_CALL',
-              content: `Calling tool: ${event.name}\nInput: ${JSON.stringify(event.args, null, 2)}`,
-              ts: new Date().toISOString(),
-            });
-          } else if (event.type === 'tool_call_end') {
-            await appendLogEntry(sessionId, {
-              type: 'TOOL_RESULT',
-              content: `Tool result for: ${event.name}\nSuccess: ${!event.error}\nOutput: ${event.result || ''}`,
-              ts: new Date().toISOString(),
-            });
-          }
-          // turn_complete is handled by the existing child.on('close') handler below - no action here.
-        } catch (e) {
-          // Non-JSON stdout line - ignore, matching the claude branch's tolerance for stray output.
-        }
+    ptyProcess.onExit(({ exitCode }) => {
+      session.pendingResolve = null;
+      broadcast(sessionId, { type: 'turn_complete', code: exitCode });
+      session.process = null;
+      if (session.controllers.size === 0) {
+        activeSessions.delete(sessionId);
       }
     });
   }
 ```
 
-Note this mirrors the `claude` branch's existing stdout-parsing pattern (buffer, split on newlines, `JSON.parse` per line, tolerate parse failures) rather than inventing a new pattern — consistency with the code already in this file.
+Note the 400ms debounce: PTY output for a single rendered screen arrives across multiple `data` events (terminal redraws are chunked), so parsing needs to wait for output to settle rather than parsing every individual chunk. This value may need tuning once tested against real usage - it's a starting point, not a proven-optimal number.
 
-- [ ] **Step 5: Confirm the existing `tailInterval`/log-tailing code below this branch is now dead for the `agy` path and remove it, since events now arrive via stdout directly, not via tailing agy's own transcript file**
+- [ ] **Step 6: Remove the now-fully-dead `claude`-branch-adjacent log-tailing code that the old `agy` branch used**
 
-Read the existing code right after the `if/else` block (the `const logDir = ...`, `const tailInterval = setInterval(...)` section) — this was written for the log-tailing approach and is no longer needed for either the `agy` branch (now stdout-driven, same as `claude`) or the `claude` branch (already stdout-driven, never used tailing). Remove the entire `tailInterval` block and the `byteOffset`/`fs.stat(logPath)` setup above it. Verify nothing else in the file references `tailInterval` before removing it (`grep -n tailInterval apps/agy-streamer/src/lib/agent-manager.ts`).
+The code block right after the `if/else` (the `logDir`/`tailInterval`/`byteOffset` section, originally written to tail `agy`'s own transcript file) is no longer used by either branch (the `agy` branch is now PTY-driven above, and `claude` was already stdout-driven). Remove it entirely. Verify first: `grep -n "tailInterval\|byteOffset" apps/agy-streamer/src/lib/agent-manager.ts` — confirm no other references before deleting.
 
-- [ ] **Step 6: Ensure `child.on('close')` still clears any dangling `pendingResolve` if the process exits while an approval is still pending (crash mid-approval)**
+- [ ] **Step 7: Update the `/approve` route to pass through a number instead of a boolean**
 
-Current close handler ends with:
+Current `apps/agy-streamer/src/routes/api/sessions/$sessionId/approve.ts`:
 ```typescript
-    broadcast(sessionId, { type: 'turn_complete', code });
-    session.process = null;
-    if (session.controllers.size === 0) {
-      activeSessions.delete(sessionId);
+          const { decision } = await request.json();
+          const success = handleToolApproval(sessionId, decision);
+```
+
+Change to:
+```typescript
+          const { optionIndex } = await request.json();
+          const success = handleToolApproval(sessionId, optionIndex);
+```
+
+- [ ] **Step 8: Update the frontend's approval card to render a dynamic option list and the "stopped after denial" state**
+
+Current state and SSE handling in `apps/agy-streamer/src/routes/sessions.$sessionId.tsx`:
+```tsx
+  const [pendingPermission, setPendingPermission] = useState<{
+    tool: string;
+    args: any;
+  } | null>(null);
+```
+```tsx
+        if (payload.type === 'permission_request') {
+          setPendingPermission({
+            tool: payload.tool,
+            args: payload.args
+          });
+          setIsRunning(false);
+        } else if (payload.type === 'turn_complete') {
+```
+
+Change the state shape and SSE handler:
+```tsx
+  const [pendingPermission, setPendingPermission] = useState<{
+    message: string;
+    options: string[];
+  } | null>(null);
+  const [turnStopped, setTurnStopped] = useState(false);
+```
+```tsx
+        if (payload.type === 'permission_request') {
+          setPendingPermission({
+            message: payload.message,
+            options: payload.options,
+          });
+          setTurnStopped(false);
+          setIsRunning(false);
+        } else if (payload.type === 'turn_stopped_after_denial') {
+          setIsRunning(false);
+          setPendingPermission(null);
+          setTurnStopped(true);
+        } else if (payload.type === 'turn_complete') {
+```
+
+Add `setTurnStopped(false);` alongside the existing `setPendingPermission(null); setIsRunning(false);` reset at the top of the SSE-connect `useEffect` (where `initialHistory`/`pendingPermission` are reset on session change).
+
+Current approval card JSX:
+```tsx
+          {pendingPermission && (
+            <div className="max-w-4xl mx-auto glass-panel p-5 rounded-2xl border-2 border-indigo-500/50 shadow-[0_0_30px_rgba(99,102,241,0.15)] animate-pulse space-y-4">
+              <h3 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-400 font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+                Action Required: Tool Execution Intercepted
+              </h3>
+              <div className="text-xs text-slate-300 space-y-2">
+                <span>The agent is requesting permission to execute:</span>
+                <div className="font-mono bg-slate-950 p-4 rounded-xl border border-slate-900 text-slate-100 whitespace-pre-wrap text-[11px] leading-relaxed">
+                  <span className="text-slate-500 font-bold uppercase block mb-1">
+                    {pendingPermission.tool} — execution args
+                  </span>
+                  {JSON.stringify(pendingPermission.args, null, 2)}
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button 
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-5 cursor-pointer shadow-lg shadow-indigo-600/10"
+                  onClick={() => approveMutation.mutate(true)}
+                >
+                  Approve & Execute
+                </Button>
+                <Button 
+                  variant="destructive"
+                  className="font-bold text-xs h-10 px-5 cursor-pointer"
+                  onClick={() => approveMutation.mutate(false)}
+                >
+                  Deny & Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+```
+
+Change to (token classes per Task 4's retrofit — using `bg-card`/`border-primary`/`text-primary` etc. instead of the literal indigo classes shown here, matching whatever this file's Task 4 pass already settled on):
+```tsx
+          {pendingPermission && (
+            <div className="max-w-4xl mx-auto bg-card p-5 rounded-2xl border-2 border-primary/50 space-y-4">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5" />
+                {pendingPermission.message}
+              </h3>
+              <div className="flex flex-col gap-2 pt-2">
+                {pendingPermission.options.map((label, idx) => (
+                  <Button
+                    key={idx}
+                    variant={/^No\b|deny|Deny/.test(label) ? 'destructive' : 'default'}
+                    className="text-xs h-10 px-5 cursor-pointer justify-start"
+                    onClick={() => approveMutation.mutate(idx)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {turnStopped && (
+            <div className="max-w-4xl mx-auto text-xs text-muted-foreground italic px-2">
+              Agent stopped — an action was declined.
+            </div>
+          )}
+```
+
+Update `approveMutation`'s body to send `optionIndex` matching Step 6's route change:
+```tsx
+  const approveMutation = useMutation({
+    mutationFn: async (optionIndex: number) => {
+      const res = await fetch(`/api/sessions/${sessionId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ optionIndex })
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      setPendingPermission(null);
+      setIsRunning(true);
     }
+  });
 ```
 
-Add a line before `session.process = null;`:
-```typescript
-    session.pendingResolve = null;
-```
+(`ShieldCheck` import from `lucide-react` — this is the same icon swap already covered by Task 4, Step 5; just confirm it's imported at the top of this file if Task 4 already touched it, or add `import { ShieldCheck } from 'lucide-react';` here if not.)
 
-This prevents a stale resolver from a crashed process being accidentally invoked by a late `/approve` POST for a session that no longer has a live worker to write the decision to.
-
-- [ ] **Step 7: Run the full test suite**
+- [ ] **Step 9: Run the full test suite**
 
 ```bash
 pnpm nx test agy-streamer
 ```
 
-Expected: all tests pass, including the Step 1 test (now exercising real production logic, not just the primitives).
-
-- [ ] **Step 8: Manual end-to-end verification**
+- [ ] **Step 10: Manual end-to-end verification — the real proof**
 
 ```bash
 pnpm nx dev agy-streamer
 ```
 
-Start a real agy session through the UI with a prompt that requires a write tool (e.g. "create a test file in this directory"). Confirm the approval card actually appears and blocks — this is the functional proof that the fix works, since automated tests mock the subprocess boundary and can't prove the real SDK hook fires correctly end-to-end.
+Start a real agy session through the UI with a prompt that requires a write tool in a fresh directory (to also exercise the workspace-trust prompt). Confirm: the workspace-trust prompt renders with its 2 unnumbered options, approving it lets the session continue, a subsequent file-write prompt renders with its 3 numbered options, and denying a later prompt shows the "Agent stopped" message instead of a normal completion state.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 11: Commit**
 
 ```bash
-git add apps/agy-streamer/src/lib/agent-manager.ts apps/agy-streamer/src/lib/agent-manager.test.ts
+git add apps/agy-streamer/src/lib/agent-manager.ts apps/agy-streamer/src/lib/agent-manager.test.ts apps/agy-streamer/src/routes/api/sessions/\$sessionId/approve.ts apps/agy-streamer/src/routes/sessions.\$sessionId.tsx
 git commit -m "fix(agy-streamer): make tool-call approval actually block execution
 
 The agy branch previously shelled out to the real agy CLI in
 non-interactive mode with --dangerously-skip-permissions, which
 (confirmed by direct testing) never pauses for approval under any
-flag combination. Now spawns the fixed agent_worker.py instead,
-parsing its stdout JSON stream the same way the claude branch already
-does, and wires permission_request events through waitForApproval so
-the existing (previously non-functional) approval card in the UI now
-genuinely blocks the agent until a decision is made."
+flag combination. Now spawns agy -i through a real pseudo-terminal
+(node-pty) and parses its rendered output with the Task 5 parser,
+authenticating via the existing Google AI Pro OAuth session (no
+separate API key, confirmed by testing). The approval card now
+renders the real 2-4 option menus instead of a hardcoded binary
+approve/deny, and a denial correctly shows 'Agent stopped' instead of
+implying the agent kept working, matching observed real behavior."
 ```
 
 ---
@@ -739,7 +1013,9 @@ claude, not the primary controlled experience agy is."
 
 ---
 
-## Task 8: Add `codex` to the UI selector, plus model/agent selection
+## Task 8: Add `codex` to the UI selector, plus model selection for agy
+
+No persona/`--agent` selector — `agy agents` returned an empty list in testing, nothing to select. Model selection only, and only for the `agy` agent type (the one path that actually reads a `--model` flag in this design).
 
 **Files:**
 - Modify: `apps/agy-streamer/src/routes/sessions.$sessionId.tsx`
@@ -772,7 +1048,7 @@ Add a third option (and apply the Task 4 token-class retrofit to this element wh
             </select>
 ```
 
-- [ ] **Step 2: Add a model input, gated to only show for the `agy` agent type (per the design spec's flag that `agent` persona-selection may not be wired-through on the SDK path)**
+- [ ] **Step 2: Add a model input, gated to only show for the `agy` agent type**
 
 Add state near the existing `agentType` state declaration:
 ```tsx
@@ -832,20 +1108,7 @@ to:
           startAgentSession(sessionId, directory, prompt, agent || 'agy', { model });
 ```
 
-In `agent-manager.ts`, update `startAgentSession`'s signature to accept the options object and forward `model` into the worker spawn args from Task 6:
-```typescript
-export async function startAgentSession(sessionId: string, directory: string, prompt: string, agentType = 'agy', options: { model?: string } = {}) {
-```
-
-And in the `agy` branch's `workerArgs` array (from Task 6, Step 4), append the model flag conditionally:
-```typescript
-    const workerArgs = [
-      'run', '--project', path.join(__dirname, '..', '..', 'worker'),
-      'python', workerPath,
-      sessionId, directory, prompt,
-      ...(options.model ? ['--model', options.model] : []),
-    ];
-```
+`startAgentSession`'s `options: { model?: string }` parameter and the `agy` branch's `pty.spawn` args that consume `options.model` were already added in Task 6 (Steps 4 and 5) — this step only wires the route's request body through to the call, no further signature changes needed.
 
 - [ ] **Step 5: Run tests**
 
@@ -861,7 +1124,7 @@ Fix any test that constructs a `startAgentSession` call using the old 4-argument
 pnpm nx dev agy-streamer
 ```
 
-Confirm the model input appears only for the `agy` agent type, and a session started with a model value set actually gets the `--model` flag passed through (check the worker's stdout/logs for confirmation, or add a temporary `console.log` of `workerArgs` and remove it after confirming).
+Confirm the model input appears only for the `agy` agent type, and a session started with a model value set actually gets the `--model` flag passed through to the PTY spawn (check the TUI banner, which displays the active model — e.g. change it from the default and confirm the banner reflects the override — or add a temporary `console.log` of the `pty.spawn` args in `agent-manager.ts` and remove it after confirming).
 
 - [ ] **Step 7: Commit**
 
@@ -869,9 +1132,10 @@ Confirm the model input appears only for the `agy` agent type, and a session sta
 git add apps/agy-streamer/src/routes/sessions.\$sessionId.tsx apps/agy-streamer/src/routes/api/sessions/\$sessionId/chat.ts apps/agy-streamer/src/lib/agent-manager.ts
 git commit -m "feat(agy-streamer): add codex to agent selector, add model selection for agy
 
-Model input only shows for the agy agent type, since agent_worker.py
-only wires model into LocalAgentConfig - Task 5 explicitly deferred
-persona (--agent) selection pending SDK support confirmation."
+Model input only shows for the agy agent type, passed through as
+--model to the PTY-spawned agy -i process. No persona/--agent
+selector - agy agents returned an empty list in testing, nothing
+configured to select."
 ```
 
 ---
@@ -917,18 +1181,21 @@ Review the commit sequence for this migration reads cleanly as a coherent story 
 
 ## Task 10: Persistent local deployment, managed from `rainforest-homelab`
 
-**Why this is a separate repo from the code**: the app's entire purpose depends on spawning `agy`/`claude`/`codex`/`uv` as local subprocesses on this specific Mac. It cannot run on a cloud platform (unlike `personal-website`'s Vercel deploy) — it has to run *here*, persistently, bound to the Tailscale IP. `rainforest-homelab` is the infra-as-code repo for exactly this kind of thing (it already manages other local/homelab services via Terraform and `configs/`), so the *deployment* artifact lives there even though the *code* lives in `rainforest-monorepo`.
+**Why this is a separate repo from the code**: the app's entire purpose depends on spawning `agy`/`claude`/`codex` as local PTY subprocesses on this specific Mac (the `node-pty` native module also needs to be built for this machine — see Step 1). It cannot run on a cloud platform (unlike `personal-website`'s Vercel deploy) — it has to run *here*, persistently, bound to the Tailscale IP. `rainforest-homelab` is the infra-as-code repo for exactly this kind of thing (it already manages other local/homelab services via Terraform and `configs/`), so the *deployment* artifact lives there even though the *code* lives in `rainforest-monorepo`.
 
 **Files:**
 - Create: `rainforest-homelab/configs/agy-streamer/tools.rainforest.agy-streamer.plist`
 - Create: `rainforest-homelab/configs/agy-streamer/README.md`
 
-- [ ] **Step 1: One-time worker dependency setup (not part of the persistent service — run once manually)**
+- [ ] **Step 1: Confirm dependencies are installed (should already be done from Task 1, this just verifies before deploying)**
 
 ```bash
-cd apps/agy-streamer/worker
-uv sync
+cd /Users/rainforest/Repositories/rainforest-monorepo
+pnpm install
+pnpm nx build agy-streamer
 ```
+
+Expected: builds clean, confirming `node-pty`'s native module compiled successfully for this machine.
 
 - [ ] **Step 2: Get the Tailscale IPv4 to bind to**
 
@@ -980,13 +1247,12 @@ Create `rainforest-homelab/configs/agy-streamer/README.md`:
 
 Code lives in `rainforest-monorepo` at `apps/agy-streamer` — this directory only
 holds the launchd config that runs it persistently on this Mac, bound to the
-Tailscale IP, since the app needs local subprocess-spawn access to `agy`,
-`claude`, `codex`, and `uv` that only exists here (it cannot run on a cloud
-platform).
+Tailscale IP, since the app needs local PTY-spawn access to `agy`, `claude`,
+and `codex` that only exists here (it cannot run on a cloud platform).
 
 ## Install
 
-1. One-time: `cd ~/Repositories/rainforest-monorepo/apps/agy-streamer/worker && uv sync`
+1. One-time: `cd ~/Repositories/rainforest-monorepo && pnpm install` (builds `node-pty`'s native module for this machine)
 2. Copy `tools.rainforest.agy-streamer.plist` to `~/Library/LaunchAgents/`
 3. `launchctl load -w ~/Library/LaunchAgents/tools.rainforest.agy-streamer.plist`
 4. Confirm: `launchctl list | grep agy-streamer`, then open `http://<tailscale-ip>:3000` from another Tailnet device.
