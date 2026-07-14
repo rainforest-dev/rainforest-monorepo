@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ExternalLink } from '@lucide/vue';
 import { computed } from 'vue';
 
 // Type-only: keep the client bundle free of tasks.ts's node:fs/node:path deps
@@ -14,6 +13,8 @@ import {
 } from '@/lib/taskStatus';
 
 const props = defineProps<{ tasks: SprintTask[]; statuses: string[] }>();
+// Clicking a card opens the in-app note drawer (not the external Notion link).
+const emit = defineEmits<{ select: [task: SprintTask] }>();
 
 interface Column {
   status: string;
@@ -69,14 +70,13 @@ const columns = computed<Column[]>(() => {
       </div>
 
       <div class="flex flex-col gap-2">
-        <a
+        <button
           v-for="card in col.cards"
           :key="card.id ?? card.name"
-          :href="card.task_ref ?? undefined"
-          :target="card.task_ref ? '_blank' : undefined"
-          rel="noopener noreferrer"
-          class="bg-card border-border hover:border-foreground/30 group block rounded-lg border border-l-4 p-3 shadow-sm transition-colors"
+          type="button"
+          class="bg-card border-border hover:border-foreground/30 focus-visible:ring-ring group block w-full rounded-lg border border-l-4 p-3 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
           :style="{ borderLeftColor: col.color }"
+          @click="emit('select', card)"
         >
           <div class="mb-1.5 flex items-center gap-2">
             <span class="text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums">
@@ -101,10 +101,6 @@ const columns = computed<Column[]>(() => {
             >
               {{ scopeBadge(card.scope).label }}
             </span>
-            <ExternalLink
-              v-if="card.task_ref"
-              class="text-muted-foreground/0 group-hover:text-muted-foreground ml-auto size-3 shrink-0 transition-colors"
-            />
           </div>
 
           <p class="text-foreground line-clamp-2 text-sm font-medium leading-snug">
@@ -132,7 +128,7 @@ const columns = computed<Column[]>(() => {
               {{ card.epic.name }}
             </span>
           </div>
-        </a>
+        </button>
 
         <p
           v-if="col.cards.length === 0"

@@ -1,32 +1,24 @@
 <script setup lang="ts">
 import { RefreshCw } from '@lucide/vue';
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 import BreakdownBars from '@/components/BreakdownBars.vue';
+import CollapsibleSection from '@/components/CollapsibleSection.vue';
 import LoopPanel from '@/components/LoopPanel.vue';
 import MachinesPanel from '@/components/MachinesPanel.vue';
 import StatTiles from '@/components/StatTiles.vue';
 import TaskTable from '@/components/TaskTable.vue';
-import TasksPanel from '@/components/TasksPanel.vue';
 import UsageTimeChart from '@/components/UsageTimeChart.vue';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MachineBudgetMap } from '@/lib/budget';
 import type { UsageAggregates } from '@/lib/ledger';
 import type { LoopState } from '@/lib/loop';
-import type { TasksData } from '@/lib/tasks';
 
 const usage = ref<UsageAggregates | null>(null);
 const budgets = ref<MachineBudgetMap>({});
 const loop = ref<LoopState | null>(null);
-const tasks = ref<TasksData | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -34,11 +26,10 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    const [uRes, bRes, lRes, tRes] = await Promise.all([
+    const [uRes, bRes, lRes] = await Promise.all([
       fetch('/api/usage'),
       fetch('/api/budget'),
       fetch('/api/loop'),
-      fetch('/api/tasks'),
     ]);
     if (!uRes.ok) throw new Error(`/api/usage HTTP ${uRes.status}`);
     const uData = (await uRes.json()) as UsageAggregates | { error: string };
@@ -58,13 +49,6 @@ async function load() {
     } else {
       loop.value = null;
     }
-
-    if (tRes.ok) {
-      const tData = (await tRes.json()) as TasksData | { error: string } | null;
-      tasks.value = tData && 'error' in tData ? null : tData;
-    } else {
-      tasks.value = null;
-    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -72,7 +56,13 @@ async function load() {
   }
 }
 
-onMounted(load);
+// The header Refresh button re-runs the vault scripts, then broadcasts this
+// event so the dashboard re-fetches the freshly written data.
+onMounted(() => {
+  load();
+  window.addEventListener('lo:refresh', load);
+});
+onBeforeUnmount(() => window.removeEventListener('lo:refresh', load));
 </script>
 
 <template>
@@ -111,46 +101,38 @@ onMounted(load);
       </CardContent>
     </Card>
 
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-      <Card class="xl:col-span-1">
-        <CardHeader>
-          <CardTitle>Breakdown</CardTitle>
-          <CardDescription>Cost by dimension.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs default-value="tool">
-            <TabsList class="w-full">
-              <TabsTrigger value="tool" class="flex-1">Tool</TabsTrigger>
-              <TabsTrigger value="model" class="flex-1">Model</TabsTrigger>
-              <TabsTrigger value="machine" class="flex-1">Machine</TabsTrigger>
-            </TabsList>
-            <TabsContent value="tool">
-              <BreakdownBars :items="usage.byTool" />
-            </TabsContent>
-            <TabsContent value="model">
-              <BreakdownBars :items="usage.byModel" />
-            </TabsContent>
-            <TabsContent value="machine">
-              <BreakdownBars :items="usage.byMachine" />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+    <!-- Heavy sections: collapsible with an internal scroll so they don't
+         dominate the page. Top tasks starts collapsed. -->
+    <CollapsibleSection
+      title="Breakdown"
+      description="Cost by dimension."
+      :count="`${usage.byTool.length + usage.byModel.length + usage.byMachine.length} rows`"
+    >
+      <Tabs default-value="tool">
+        <TabsList class="w-full">
+          <TabsTrigger value="tool" class="flex-1">Tool</TabsTrigger>
+          <TabsTrigger value="model" class="flex-1">Model</TabsTrigger>
+          <TabsTrigger value="machine" class="flex-1">Machine</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tool">
+          <BreakdownBars :items="usage.byTool" />
+        </TabsContent>
+        <TabsContent value="model">
+          <BreakdownBars :items="usage.byModel" />
+        </TabsContent>
+        <TabsContent value="machine">
+          <BreakdownBars :items="usage.byMachine" />
+        </TabsContent>
+      </Tabs>
+    </CollapsibleSection>
 
-      <Card class="xl:col-span-2">
-        <CardHeader>
-          <CardTitle>Top tasks by cost</CardTitle>
-          <CardDescription>
-            Grouped by Notion task or provisional key — top
-            {{ usage.byTask.length }}.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TaskTable :rows="usage.byTask" />
-        </CardContent>
-      </Card>
-    </div>
-
-    <TasksPanel :tasks="tasks" />
+    <CollapsibleSection
+      title="Top tasks by cost"
+      description="Grouped by Notion task or provisional key."
+      :count="`${usage.byTask.length} tasks`"
+      :default-open="false"
+    >
+      <TaskTable :rows="usage.byTask" />
+    </CollapsibleSection>
   </div>
 </template>

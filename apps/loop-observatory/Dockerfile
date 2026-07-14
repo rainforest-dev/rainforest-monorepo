@@ -6,28 +6,28 @@ RUN corepack enable
 WORKDIR /app
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
-COPY apps/personal-usage/package.json apps/personal-usage/
+COPY apps/loop-observatory/package.json apps/loop-observatory/
 COPY libs/rainforest-ui/package.json libs/rainforest-ui/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --filter @rainforest-monorepo/personal-usage... --frozen-lockfile
+    pnpm install --filter @rainforest-monorepo/loop-observatory... --frozen-lockfile
 
 COPY libs/rainforest-ui libs/rainforest-ui
-COPY apps/personal-usage apps/personal-usage
+COPY apps/loop-observatory apps/loop-observatory
 
 # Build the shadcn tailwind plugin the app's app.css imports, then the app.
 RUN pnpm exec nx build rainforest-ui
-RUN pnpm --filter @rainforest-monorepo/personal-usage run build
+RUN pnpm --filter @rainforest-monorepo/loop-observatory run build
 
 # Create self-contained deployment bundle (resolves pnpm symlinks for runtime)
-RUN pnpm --filter @rainforest-monorepo/personal-usage deploy --prod /deploy --legacy
+RUN pnpm --filter @rainforest-monorepo/loop-observatory deploy --prod /deploy --legacy
 
 # Runtime image
 FROM node:22-alpine AS runtime
 WORKDIR /app
 
 COPY --from=base /deploy/node_modules ./node_modules
-COPY --from=base /app/apps/personal-usage/dist ./dist
+COPY --from=base /app/apps/loop-observatory/dist ./dist
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
