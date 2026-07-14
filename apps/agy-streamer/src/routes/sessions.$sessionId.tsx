@@ -2,6 +2,18 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import fs from 'fs/promises';
+import {
+  Bot,
+  Brain,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  FolderOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ShieldCheck,
+  User,
+} from 'lucide-react';
 import os from 'os';
 import path from 'path';
 import { useEffect, useRef,useState } from 'react';
@@ -72,29 +84,31 @@ function LogMessage({ log }: { log: any }) {
     <div className={`max-w-4xl mx-auto flex gap-4 ${isUser ? 'justify-end' : ''}`}>
       {/* Agent Avatar */}
       {!isUser && (
-        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
-          <span className="material-symbols-outlined text-slate-100 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+          <Bot className="size-4 text-primary-foreground" />
         </div>
       )}
 
       <div className={`flex-1 space-y-4 ${isUser ? 'max-w-lg' : ''}`}>
         {/* Thinking Block */}
         {log.thinking && (
-          <div className="glass-panel rounded-xl overflow-hidden border border-slate-900">
+          <div className="glass-panel rounded-xl overflow-hidden border border-border">
             <button
               onClick={() => setIsThinkingExpanded(!isThinkingExpanded)}
-              className="w-full flex items-center justify-between p-3.5 bg-slate-900/10 hover:bg-slate-900/35 text-xs text-slate-400 font-mono text-left cursor-pointer transition-colors"
+              className="w-full flex items-center justify-between p-3.5 bg-muted/10 hover:bg-muted/35 text-xs text-muted-foreground font-mono text-left cursor-pointer transition-colors"
             >
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-indigo-400 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>psychology</span>
+                <Brain className="size-4 text-primary" />
                 <span className="font-sans font-bold">Thought Process: {log.thinking.split('\n')[0].slice(0, 50)}...</span>
               </div>
-              <span className="material-symbols-outlined text-slate-500">
-                {isThinkingExpanded ? 'expand_less' : 'expand_more'}
-              </span>
+              {isThinkingExpanded ? (
+                <ChevronUp className="size-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="size-4 text-muted-foreground" />
+              )}
             </button>
             {isThinkingExpanded && (
-              <div className="p-4 text-xs text-slate-400 border-t border-slate-900 bg-slate-950/40 font-mono italic whitespace-pre-wrap max-h-80 overflow-y-auto leading-relaxed">
+              <div className="p-4 text-xs text-muted-foreground border-t border-border bg-background/40 font-mono italic whitespace-pre-wrap max-h-80 overflow-y-auto leading-relaxed">
                 {log.thinking}
               </div>
             )}
@@ -105,42 +119,42 @@ function LogMessage({ log }: { log: any }) {
         {hasContent && (
           <div className={`rounded-xl border ${
             isUser 
-              ? 'bg-indigo-600/10 border-indigo-500/25 p-4 text-slate-200' 
+              ? 'bg-primary/10 border-primary/25 p-4 text-foreground' 
               : isAgent 
-                ? 'glass-panel p-5 rounded-tl-none border-l-2 border-l-indigo-500 text-slate-200'
-                : 'bg-[#0c0e13] border-slate-900 font-mono text-sm relative group overflow-hidden'
+                ? 'glass-panel p-5 rounded-tl-none border-l-2 border-l-primary text-foreground'
+                : 'bg-muted border-border font-mono text-sm relative group overflow-hidden'
           }`}>
             {!isUser && !isAgent ? (
               // Code or Tool Execution output template
               <div className="flex flex-col">
-                <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-900">
-                  <span className="text-[10px] text-slate-500 tracking-wider uppercase font-mono">
+                <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
+                  <span className="text-[10px] text-muted-foreground tracking-wider uppercase font-mono">
                     {isError ? '❌ Error Log' : `⚙️ Tool Output // ${log.type}`}
                   </span>
                   <button 
                     onClick={() => navigator.clipboard.writeText(contentText)}
-                    className="hover:text-indigo-400 transition-colors text-slate-500 cursor-pointer"
+                    className="hover:text-primary transition-colors text-muted-foreground cursor-pointer"
                     title="Copy Output"
                   >
-                    <span className="material-symbols-outlined text-sm">content_copy</span>
+                    <Copy className="size-3.5" />
                   </button>
                 </div>
                 <div className="relative">
                   <div 
                     className={`p-4 text-xs font-mono whitespace-pre-wrap overflow-hidden leading-relaxed ${
-                      isError ? 'text-rose-400' : 'text-emerald-400'
+                      isError ? 'text-destructive' : 'text-emerald-400'
                     } ${!isContentExpanded ? 'max-h-[180px]' : ''}`}
                   >
                     {contentText}
                   </div>
                   {!isContentExpanded && (
-                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#0c0e13] to-transparent pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-muted to-transparent pointer-events-none" />
                   )}
                 </div>
                 {isLongContent && (
                   <button
                     onClick={() => setIsContentExpanded(!isContentExpanded)}
-                    className="py-2 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 hover:underline border-t border-slate-900 bg-slate-950/20 text-center w-full transition-all"
+                    className="py-2 text-[10px] font-bold text-primary hover:text-primary/80 hover:underline border-t border-border bg-background/20 text-center w-full transition-all"
                   >
                     {isContentExpanded ? 'Collapse Log' : `Reveal Full Log (${lineCount} lines)`}
                   </button>
@@ -153,14 +167,14 @@ function LogMessage({ log }: { log: any }) {
                   {contentText}
                 </div>
                 {!isContentExpanded && (
-                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#07090e]/40 to-transparent pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background/40 to-transparent pointer-events-none" />
                 )}
                 {isLongContent && (
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => setIsContentExpanded(!isContentExpanded)}
-                    className="h-7 px-3 mt-2 text-xs text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer"
+                    className="h-7 px-3 mt-2 text-xs text-primary hover:text-primary/80 font-semibold cursor-pointer"
                   >
                     {isContentExpanded ? '▲ Collapse Text' : `▼ Expand Text (${lineCount} lines)`}
                   </Button>
@@ -173,8 +187,8 @@ function LogMessage({ log }: { log: any }) {
 
       {/* User Avatar */}
       {isUser && (
-        <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 border border-slate-700">
-          <span className="material-symbols-outlined text-slate-300 text-lg">person</span>
+        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 border border-border">
+          <User className="size-4 text-foreground" />
         </div>
       )}
     </div>
@@ -398,15 +412,15 @@ function SessionComponent() {
   };
 
   return (
-    <div className="flex flex-1 overflow-hidden bg-[#07090e]">
+    <div className="flex flex-1 overflow-hidden bg-background">
       {/* Sessions Sidebar - Desktop Only */}
       <aside 
-        className={`hidden md:flex border-r border-slate-900 bg-slate-950/40 flex-col gap-4 transition-all duration-300 ${
+        className={`hidden md:flex border-r border-border bg-background/40 flex-col gap-4 transition-all duration-300 ${
           isSidebarCollapsed ? 'w-0 p-0 border-r-0 overflow-hidden' : 'w-80 p-4'
         }`}
       >
-        <div className="flex justify-between items-center pb-2 border-b border-slate-900/60">
-          <span className="text-xs font-bold text-slate-400 tracking-widest uppercase font-sans">Sessions</span>
+        <div className="flex justify-between items-center pb-2 border-b border-border/60">
+          <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase font-sans">Sessions</span>
           <Button 
             size="sm" 
             variant="outline" 
@@ -431,8 +445,8 @@ function SessionComponent() {
                   params={{ sessionId: s.sessionId }}
                   className={`block p-3.5 rounded-xl border text-left text-xs transition-all ${
                     s.sessionId === sessionId 
-                      ? 'bg-indigo-600/10 border-indigo-500/35 text-indigo-300 font-semibold' 
-                      : 'bg-slate-950/40 border-slate-900 hover:border-slate-800 text-slate-400'
+                      ? 'bg-primary/10 border-primary/35 text-primary font-semibold' 
+                      : 'bg-background/40 border-border hover:border-border text-muted-foreground'
                   }`}
                 >
                   <div className="flex justify-between items-center mb-1.5">
@@ -444,14 +458,14 @@ function SessionComponent() {
                       {isClaude ? 'Claude' : 'Antigravity'}
                     </span>
                     {s.directory && (
-                      <span className="font-mono text-[9px] text-slate-500 truncate max-w-[100px]">
+                      <span className="font-mono text-[9px] text-muted-foreground truncate max-w-[100px]">
                         📁 {s.directory.split('/').pop()}
                       </span>
                     )}
                   </div>
-                  <div className="font-semibold text-xs text-slate-200 truncate">{s.title || 'Untitled Session'}</div>
-                  <div className="font-mono text-[9px] text-slate-600 truncate mt-0.5">{s.sessionId}</div>
-                  <div className="text-[9px] text-slate-500 mt-1.5 flex items-center justify-between">
+                  <div className="font-semibold text-xs text-foreground truncate">{s.title || 'Untitled Session'}</div>
+                  <div className="font-mono text-[9px] text-muted-foreground truncate mt-0.5">{s.sessionId}</div>
+                  <div className="text-[9px] text-muted-foreground mt-1.5 flex items-center justify-between">
                     <span>📅 {new Date(s.lastModified).toLocaleDateString()}</span>
                     <span>{new Date(s.lastModified).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
@@ -463,18 +477,18 @@ function SessionComponent() {
       </aside>
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-slate-950/10">
+      <main className="flex-1 flex flex-col overflow-hidden bg-background/10">
         {/* Mobile Navigation Header */}
-        <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-slate-900 bg-slate-950/60">
+        <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-border bg-background/60">
           <Dialog>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="text-xs cursor-pointer">
                 📁 Sessions
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-950 border-slate-800 text-slate-100 max-w-xs">
+            <DialogContent className="bg-popover border-border text-popover-foreground max-w-xs">
               <DialogHeader>
-                <DialogTitle className="text-sm font-bold text-slate-200">Active Sessions</DialogTitle>
+                <DialogTitle className="text-sm font-bold text-foreground">Active Sessions</DialogTitle>
               </DialogHeader>
               <div className="space-y-2 mt-4 max-h-[60vh] overflow-y-auto">
                 {sessionList?.sessions?.map((s: any) => {
@@ -486,8 +500,8 @@ function SessionComponent() {
                       params={{ sessionId: s.sessionId }}
                       className={`block p-3 rounded-lg border text-left text-sm transition-all ${
                         s.sessionId === sessionId 
-                          ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-400 font-semibold' 
-                          : 'bg-slate-900/30 border-slate-800 hover:border-slate-700 text-slate-300'
+                          ? 'bg-primary/10 border-primary/50 text-primary font-semibold' 
+                          : 'bg-muted/30 border-border hover:border-border text-foreground'
                       }`}
                     >
                       <div className="flex justify-between items-center mb-1">
@@ -499,8 +513,8 @@ function SessionComponent() {
                           {isClaude ? 'Claude Code' : 'Antigravity'}
                         </span>
                       </div>
-                      <div className="font-semibold text-xs text-slate-200 truncate">{s.title || 'Untitled Session'}</div>
-                      <div className="font-mono text-[9px] text-slate-500 truncate mt-0.5">{s.sessionId}</div>
+                      <div className="font-semibold text-xs text-foreground truncate">{s.title || 'Untitled Session'}</div>
+                      <div className="font-mono text-[9px] text-muted-foreground truncate mt-0.5">{s.sessionId}</div>
                     </Link>
                   );
                 })}
@@ -521,24 +535,24 @@ function SessionComponent() {
           </Button>
         </div>
         {/* Workspace directory Configuration */}
-        <div className="p-3.5 border-b border-slate-900 bg-slate-950/20 flex flex-col md:flex-row gap-3 md:items-center justify-between">
+        <div className="p-3.5 border-b border-border bg-background/20 flex flex-col md:flex-row gap-3 md:items-center justify-between">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Button
               size="icon"
               variant="ghost"
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="h-8 w-8 text-slate-400 hover:text-slate-200 hidden md:inline-flex cursor-pointer shrink-0"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hidden md:inline-flex cursor-pointer shrink-0"
               title={isSidebarCollapsed ? "Show Sessions" : "Hide Sessions"}
             >
               {isSidebarCollapsed ? (
-                <span className="material-symbols-outlined text-sm">right_panel_open</span>
+                <PanelLeftOpen className="size-4" />
               ) : (
-                <span className="material-symbols-outlined text-sm">left_panel_close</span>
+                <PanelLeftClose className="size-4" />
               )}
             </Button>
-            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Workspace Path:</span>
+            <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">Workspace Path:</span>
             <div className="flex-1 relative">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-500 text-xs">folder_open</span>
+              <FolderOpen className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={projectDir}
                 onChange={(e) => {
@@ -546,7 +560,7 @@ function SessionComponent() {
                   window.localStorage.setItem('last_project_dir', e.target.value);
                 }}
                 placeholder="/Users/rainforest/Repositories/rainforest-homelab"
-                className="font-mono text-xs h-8 bg-slate-900/60 border-slate-800 text-slate-200 pl-8"
+                className="font-mono text-xs h-8 bg-muted/60 border-border text-foreground pl-8"
               />
             </div>
             <Button
@@ -563,11 +577,11 @@ function SessionComponent() {
           </div>
           
           <div className="flex items-center gap-2 self-end md:self-auto">
-            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Agent:</span>
+            <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">Agent:</span>
             <select
               value={agentType}
               onChange={(e) => setAgentType(e.target.value)}
-              className="bg-slate-900 border border-slate-800 text-slate-200 rounded px-2.5 py-1 text-xs h-8 outline-none font-sans cursor-pointer focus:border-indigo-500 shrink-0"
+              className="bg-muted border border-border text-foreground rounded px-2.5 py-1 text-xs h-8 outline-none font-sans cursor-pointer focus:border-primary shrink-0"
             >
               <option value="agy">🪐 Antigravity CLI</option>
               <option value="claude">🤖 Claude Code</option>
@@ -583,15 +597,15 @@ function SessionComponent() {
 
           {/* Pending Permission Interceptor Overlay/Box */}
           {pendingPermission && (
-            <div className="max-w-4xl mx-auto glass-panel p-5 rounded-2xl border-2 border-indigo-500/50 shadow-[0_0_30px_rgba(99,102,241,0.15)] animate-pulse space-y-4">
-              <h3 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
-                <span className="material-symbols-outlined text-indigo-400 font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+            <div className="max-w-4xl mx-auto glass-panel p-5 rounded-2xl border-2 border-primary/50 shadow-[0_0_30px_color-mix(in_oklab,var(--primary)_15%,transparent)] animate-pulse space-y-4">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                <ShieldCheck className="size-4 text-primary" strokeWidth={2.5} />
                 Action Required: Tool Execution Intercepted
               </h3>
-              <div className="text-xs text-slate-300 space-y-2">
+              <div className="text-xs text-foreground space-y-2">
                 <span>The agent is requesting permission to execute:</span>
-                <div className="font-mono bg-slate-950 p-4 rounded-xl border border-slate-900 text-slate-100 whitespace-pre-wrap text-[11px] leading-relaxed">
-                  <span className="text-slate-500 font-bold uppercase block mb-1">
+                <div className="font-mono bg-background p-4 rounded-xl border border-border text-foreground whitespace-pre-wrap text-[11px] leading-relaxed">
+                  <span className="text-muted-foreground font-bold uppercase block mb-1">
                     {pendingPermission.tool} — execution args
                   </span>
                   {JSON.stringify(pendingPermission.args, null, 2)}
@@ -599,7 +613,7 @@ function SessionComponent() {
               </div>
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <Button 
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-5 cursor-pointer shadow-lg shadow-indigo-600/10"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-10 px-5 cursor-pointer shadow-lg shadow-primary/10"
                   onClick={() => approveMutation.mutate(true)}
                 >
                   Approve & Execute
@@ -617,7 +631,7 @@ function SessionComponent() {
 
           {/* Running progress indicator */}
           {isRunning && (
-            <div className="flex items-center gap-3 text-xs text-slate-500 font-mono p-2">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono p-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
               Agent is active and processing workspace commands...
             </div>
@@ -627,14 +641,14 @@ function SessionComponent() {
         </div>
 
         {/* Input Bar */}
-        <div className="p-4 border-t border-slate-900 bg-slate-950/30 flex gap-4">
+        <div className="p-4 border-t border-border bg-background/30 flex gap-4">
           <Input
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder={isRunning ? "Agent is working..." : "Type instructions (Enter browser path if empty)..."}
             disabled={isRunning}
-            className="flex-1 bg-slate-900/60 border-slate-800 text-slate-100"
+            className="flex-1 bg-muted/60 border-border text-foreground"
           />
           <Button 
             onClick={handleSend} 
@@ -648,28 +662,28 @@ function SessionComponent() {
 
       {/* Directory Browser Modal */}
       <Dialog open={isBrowseOpen} onOpenChange={setIsBrowseOpen}>
-        <DialogContent className="bg-slate-950 border-slate-850 text-slate-100 max-w-lg">
+        <DialogContent className="bg-popover border-border text-popover-foreground max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-slate-200">
+            <DialogTitle className="text-sm font-bold text-foreground">
               Select Workspace / Connect Agent
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             {/* Detected Agent Logs Paths */}
             <div className="space-y-2">
-              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">
                 Detected Agent Log Paths
               </span>
               <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between items-center p-2 rounded-lg bg-slate-900/30 border border-slate-900 border-dashed text-xs">
+                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/30 border border-border border-dashed text-xs">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-amber-500 text-[10px] font-bold">🤖 CLAUDE</span>
-                    <span className="font-mono text-[10px] text-slate-400">~/.claude/sessions</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">~/.claude/sessions</span>
                   </div>
                   <Button
                     size="sm"
                     variant="link"
-                    className="h-auto p-0 text-xs text-indigo-400 hover:text-indigo-300"
+                    className="h-auto p-0 text-xs text-primary hover:text-primary/80"
                     onClick={() => {
                       setProjectDir('/Users/rainforest/.claude/sessions');
                       setIsBrowseOpen(false);
@@ -678,15 +692,15 @@ function SessionComponent() {
                     Connect
                   </Button>
                 </div>
-                <div className="flex justify-between items-center p-2 rounded-lg bg-slate-900/30 border border-slate-900 border-dashed text-xs">
+                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/30 border border-border border-dashed text-xs">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-indigo-500 text-[10px] font-bold">🪐 ANTIGRAVITY</span>
-                    <span className="font-mono text-[10px] text-slate-400">~/.gemini/antigravity-cli/conversations</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">~/.gemini/antigravity-cli/conversations</span>
                   </div>
                   <Button
                     size="sm"
                     variant="link"
-                    className="h-auto p-0 text-xs text-indigo-400 hover:text-indigo-300"
+                    className="h-auto p-0 text-xs text-primary hover:text-primary/80"
                     onClick={() => {
                       setProjectDir('/Users/rainforest/.gemini/antigravity-cli/conversations');
                       setIsBrowseOpen(false);
@@ -701,7 +715,7 @@ function SessionComponent() {
             {/* Recent projects shortcuts */}
             {projects && projects.length > 0 && (
               <div className="space-y-2">
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">
                   Recent Workspaces
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto pr-1">
@@ -712,10 +726,10 @@ function SessionComponent() {
                         setProjectDir(p.path);
                         setIsBrowseOpen(false);
                       }}
-                      className="p-2 text-left text-xs bg-slate-900/40 border border-slate-900 hover:border-slate-800 rounded transition-all truncate cursor-pointer text-slate-300"
+                      className="p-2 text-left text-xs bg-muted/40 border border-border hover:border-border rounded transition-all truncate cursor-pointer text-foreground"
                     >
-                      <div className="font-semibold text-slate-200">{p.name}</div>
-                      <div className="text-[10px] text-slate-500 font-mono truncate mt-0.5">{p.path}</div>
+                      <div className="font-semibold text-foreground">{p.name}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono truncate mt-0.5">{p.path}</div>
                     </button>
                   ))}
                 </div>
@@ -724,14 +738,14 @@ function SessionComponent() {
 
             {/* Folder Browser tree */}
             <div className="space-y-2">
-              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">
                 Browse Filesystem
               </span>
               <div className="flex gap-2">
                 <Input
                   value={browsePath}
                   onChange={(e) => setBrowsePath(e.target.value)}
-                  className="h-8 text-xs bg-slate-900/40 border-slate-900 text-slate-200"
+                  className="h-8 text-xs bg-muted/40 border-border text-foreground"
                 />
                 <Button
                   size="sm"
@@ -743,10 +757,10 @@ function SessionComponent() {
               </div>
 
               {browseData && (
-                <div className="border border-slate-900 rounded bg-slate-900/10 overflow-hidden">
+                <div className="border border-border rounded bg-muted/10 overflow-hidden">
                   {/* Parent path navigation */}
-                  <div className="p-2 border-b border-slate-900 bg-slate-950/40 flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-slate-400 truncate max-w-[70%]">
+                  <div className="p-2 border-b border-border bg-background/40 flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[70%]">
                       📁 {browseData.currentPath}
                     </span>
                     <Button
@@ -760,15 +774,15 @@ function SessionComponent() {
                     </Button>
                   </div>
                   {/* Subdirectories */}
-                  <div className="max-h-48 overflow-y-auto p-2 grid grid-cols-1 sm:grid-cols-2 gap-1 bg-slate-950/20">
+                  <div className="max-h-48 overflow-y-auto p-2 grid grid-cols-1 sm:grid-cols-2 gap-1 bg-background/20">
                     {browseData.directories.length === 0 ? (
-                      <div className="text-xs text-slate-600 p-2 col-span-2 text-center">No subdirectories found</div>
+                      <div className="text-xs text-muted-foreground p-2 col-span-2 text-center">No subdirectories found</div>
                     ) : (
                       browseData.directories.map((dir: string) => (
                         <button
                           key={dir}
                           onClick={() => handleBrowse(joinPath(browseData.currentPath, dir))}
-                          className="p-1.5 text-left text-xs text-slate-300 hover:bg-slate-900/60 rounded transition-colors truncate cursor-pointer flex items-center gap-1.5"
+                          className="p-1.5 text-left text-xs text-foreground hover:bg-muted/60 rounded transition-colors truncate cursor-pointer flex items-center gap-1.5"
                         >
                           <span>📁</span>
                           <span className="truncate">{dir}</span>
@@ -782,8 +796,8 @@ function SessionComponent() {
 
             {/* Create new folder inside browser */}
             {browseData && (
-              <div className="space-y-2 border-t border-slate-900 pt-3">
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+              <div className="space-y-2 border-t border-border pt-3">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">
                   Create New Folder in Current Path
                 </span>
                 <div className="flex gap-2">
@@ -791,7 +805,7 @@ function SessionComponent() {
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                     placeholder="New folder name..."
-                    className="h-8 text-xs bg-slate-900/40 border-slate-900 text-slate-200"
+                    className="h-8 text-xs bg-muted/40 border-border text-foreground"
                   />
                   <Button
                     size="sm"
@@ -807,7 +821,7 @@ function SessionComponent() {
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-900">
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <Button
                 variant="outline"
                 size="sm"
@@ -825,7 +839,7 @@ function SessionComponent() {
                   }
                   setIsBrowseOpen(false);
                 }}
-                className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold cursor-pointer"
+                className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer"
               >
                 Select Folder
               </Button>

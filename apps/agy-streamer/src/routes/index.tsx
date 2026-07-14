@@ -1,5 +1,6 @@
 import { useMutation,useQuery } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Cable, CheckCircle2, FolderOpen, Play, PlusSquare, Radio, ShieldCheck, TerminalSquare } from 'lucide-react';
 import { useState } from 'react';
 
 // UI components from shadcn/ui
@@ -104,11 +105,11 @@ function DashboardComponent() {
         {/* Card 1: Daemon Connection */}
         <div className="glass-card p-5 rounded-xl transition-all hover:-translate-y-0.5">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Daemon Connection</span>
-            <span className="material-symbols-outlined text-emerald-400 font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>sensors</span>
+            <span className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Daemon Connection</span>
+            <Radio className="size-4 text-emerald-400" strokeWidth={2.5} />
           </div>
           <div className="flex items-end gap-3 mb-4">
-            <span className="text-3xl font-bold text-slate-100 font-sans tracking-tight">12ms</span>
+            <span className="text-3xl font-bold text-foreground font-sans tracking-tight">12ms</span>
             <span className="text-emerald-400 text-xs font-semibold mb-1">99.8% Uptime</span>
           </div>
           <div className="h-10 flex items-end gap-1 px-1">
@@ -124,33 +125,33 @@ function DashboardComponent() {
         {/* Card 2: Docker Proxy */}
         <div className="glass-card p-5 rounded-xl transition-all hover:-translate-y-0.5">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Docker Proxy</span>
-            <span className="material-symbols-outlined text-indigo-400 font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>settings_input_component</span>
+            <span className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Docker Proxy</span>
+            <Cable className="size-4 text-primary" strokeWidth={2.5} />
           </div>
           <div className="space-y-1">
-            <div className="text-slate-200 text-sm font-semibold">Tunnel Established</div>
+            <div className="text-foreground text-sm font-semibold">Tunnel Established</div>
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-mono font-bold text-slate-100">4.2</span>
-              <span className="text-slate-400 text-xs font-semibold">MB/s Sync Rate</span>
+              <span className="text-2xl font-mono font-bold text-foreground">4.2</span>
+              <span className="text-muted-foreground text-xs font-semibold">MB/s Sync Rate</span>
             </div>
           </div>
-          <div className="mt-4 w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-indigo-500 h-full w-[64%]"></div>
+          <div className="mt-4 w-full bg-muted h-1.5 rounded-full overflow-hidden">
+            <div className="bg-primary h-full w-[64%]"></div>
           </div>
         </div>
 
         {/* Card 3: Zero-Trust Auth */}
         <div className="glass-card p-5 rounded-xl transition-all hover:-translate-y-0.5 sm:col-span-2 lg:col-span-1">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Session Watcher</span>
-            <span className="material-symbols-outlined text-amber-400 font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+            <span className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Session Watcher</span>
+            <ShieldCheck className="size-4 text-amber-400" strokeWidth={2.5} />
           </div>
           <div className="space-y-1">
             <div className="text-emerald-400 text-sm font-semibold flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-sm">check_circle</span> Node Authorized
+              <CheckCircle2 className="size-3.5" /> Node Authorized
             </div>
-            <div className="text-2xl font-mono font-bold text-slate-100">Automatic Sync</div>
-            <div className="text-slate-400 text-xs">monitoring local workspace actions</div>
+            <div className="text-2xl font-mono font-bold text-foreground">Automatic Sync</div>
+            <div className="text-muted-foreground text-xs">monitoring local workspace actions</div>
           </div>
         </div>
       </section>
@@ -160,16 +161,16 @@ function DashboardComponent() {
         {/* Left Side: Create / Connect Panel */}
         <div className="lg:col-span-5 space-y-6">
           <div className="glass-card p-6 rounded-2xl relative overflow-hidden">
-            <div className="absolute -right-20 -top-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-            <h2 className="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-indigo-400">add_box</span>
+            <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+            <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+              <PlusSquare className="size-4 text-primary" />
               New Stream Session
             </h2>
 
             <div className="space-y-5">
               {/* Agent Selector */}
               <div className="flex flex-col gap-2">
-                <label className="text-xs text-slate-400 font-medium">Target Agent Engine</label>
+                <label className="text-xs text-muted-foreground font-medium">Target Agent Engine</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -177,7 +178,7 @@ function DashboardComponent() {
                     className={`flex-1 text-xs py-2.5 rounded-lg border font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       agentType === 'agy'
                         ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-200'
-                        : 'bg-slate-950 border-slate-900 text-slate-500 hover:border-slate-800'
+                        : 'bg-background border-border text-muted-foreground hover:border-border'
                     }`}
                   >
                     🪐 Antigravity CLI
@@ -188,7 +189,7 @@ function DashboardComponent() {
                     className={`flex-1 text-xs py-2.5 rounded-lg border font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       agentType === 'claude'
                         ? 'bg-amber-600/20 border-amber-500/60 text-amber-200'
-                        : 'bg-slate-950 border-slate-900 text-slate-500 hover:border-slate-800'
+                        : 'bg-background border-border text-muted-foreground hover:border-border'
                     }`}
                   >
                     🤖 Claude Code
@@ -198,15 +199,15 @@ function DashboardComponent() {
 
               {/* Path Selector */}
               <div className="flex flex-col gap-2">
-                <label className="text-xs text-slate-400 font-medium">Workspace Path Directory</label>
+                <label className="text-xs text-muted-foreground font-medium">Workspace Path Directory</label>
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-500 text-sm">folder_open</span>
+                    <FolderOpen className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={newProjectDir}
                       onChange={(e) => setNewProjectDir(e.target.value)}
                       placeholder="e.g. /Users/rainforest/Repositories/rainforest-homelab"
-                      className="w-full bg-slate-950/80 border-slate-900 pl-9 text-slate-200 text-xs font-mono h-10"
+                      className="w-full bg-background/80 border-border pl-9 text-foreground text-xs font-mono h-10"
                     />
                   </div>
                   <Button
@@ -227,7 +228,7 @@ function DashboardComponent() {
               <Button
                 onClick={handleStartSession}
                 disabled={!newProjectDir.trim()}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-10 cursor-pointer shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-10 cursor-pointer shadow-lg shadow-primary/20 active:scale-95 transition-all"
               >
                 Provision Stream Node
               </Button>
@@ -237,7 +238,7 @@ function DashboardComponent() {
           {/* Quick Connect Shortcuts */}
           {projectList && projectList.length > 0 && (
             <div className="glass-card p-6 rounded-2xl">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Quick Connect Workspaces</h3>
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Quick Connect Workspaces</h3>
               <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
                 {projectList.map((p) => (
                   <button
@@ -245,12 +246,12 @@ function DashboardComponent() {
                     onClick={() => setNewProjectDir(p.path)}
                     className={`p-3 text-left border rounded-xl transition-all cursor-pointer truncate ${
                       newProjectDir === p.path
-                        ? 'bg-indigo-600/10 border-indigo-500 text-indigo-300'
-                        : 'bg-slate-950/40 border-slate-900 hover:border-slate-800 text-slate-400'
+                        ? 'bg-primary/10 border-primary text-primary'
+                        : 'bg-background/40 border-border hover:border-border text-muted-foreground'
                     }`}
                   >
-                    <div className="font-semibold text-xs text-slate-200">{p.name}</div>
-                    <div className="text-[10px] text-slate-500 font-mono truncate mt-0.5">{p.path}</div>
+                    <div className="font-semibold text-xs text-foreground">{p.name}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono truncate mt-0.5">{p.path}</div>
                   </button>
                 ))}
               </div>
@@ -260,15 +261,15 @@ function DashboardComponent() {
 
         {/* Right Side: Active / Historical Sessions */}
         <div className="lg:col-span-7 space-y-4">
-          <h2 className="text-md font-bold text-slate-300 flex items-center gap-2">
-            <span className="material-symbols-outlined text-indigo-400">terminal</span>
+          <h2 className="text-md font-bold text-foreground flex items-center gap-2">
+            <TerminalSquare className="size-4 text-primary" />
             Active Coding Sessions
           </h2>
 
           {isLoading ? (
-            <div className="text-xs text-slate-500 font-mono py-6 text-center">Loading sessions list...</div>
+            <div className="text-xs text-muted-foreground font-mono py-6 text-center">Loading sessions list...</div>
           ) : !sessionList?.sessions || sessionList.sessions.length === 0 ? (
-            <div className="text-xs text-slate-500 font-mono py-8 border border-dashed border-slate-900 rounded-xl text-center">
+            <div className="text-xs text-muted-foreground font-mono py-8 border border-dashed border-border rounded-xl text-center">
               No active session nodes found. Initialize a new stream above!
             </div>
           ) : (
@@ -293,21 +294,21 @@ function DashboardComponent() {
                           {isClaude ? 'Claude Code' : 'Antigravity'}
                         </span>
                         {s.directory && (
-                          <span className="font-mono text-[10px] text-slate-500 truncate max-w-[120px]">
+                          <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[120px]">
                             📁 {s.directory.split('/').pop()}
                           </span>
                         )}
                       </div>
-                      <h4 className="text-sm font-semibold text-slate-200 line-clamp-2 leading-snug">{s.title || 'Untitled Session'}</h4>
-                      <p className="font-mono text-[9px] text-slate-500 truncate opacity-70">{s.sessionId}</p>
+                      <h4 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">{s.title || 'Untitled Session'}</h4>
+                      <p className="font-mono text-[9px] text-muted-foreground truncate opacity-70">{s.sessionId}</p>
                     </div>
 
-                    <div className="flex justify-between items-center border-t border-slate-900/60 pt-3 mt-3">
-                      <span className="text-[10px] text-slate-500 font-mono">
+                    <div className="flex justify-between items-center border-t border-border/60 pt-3 mt-3">
+                      <span className="text-[10px] text-muted-foreground font-mono">
                         {new Date(s.lastModified).toLocaleDateString()} {new Date(s.lastModified).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      <button className="text-xs bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-300 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 active:scale-95 transition-all">
-                        <span className="material-symbols-outlined text-[14px]">play_arrow</span> Resume
+                      <button className="text-xs bg-primary/25 hover:bg-primary/40 text-primary px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 active:scale-95 transition-all">
+                        <Play className="size-3.5" /> Resume
                       </button>
                     </div>
                   </div>
@@ -320,28 +321,28 @@ function DashboardComponent() {
 
       {/* Directory Browser Modal */}
       <Dialog open={isBrowseOpen} onOpenChange={setIsBrowseOpen}>
-        <DialogContent className="bg-slate-950 border-slate-900 text-slate-100 max-w-lg">
+        <DialogContent className="bg-popover border-border text-popover-foreground max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-slate-200">
+            <DialogTitle className="text-sm font-bold text-foreground">
               Select Workspace Folder
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             {/* Detected Agent Logs Paths */}
             <div className="space-y-2">
-              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">
                 Detected Agent Log Paths
               </span>
               <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between items-center p-2 rounded-lg bg-slate-900/30 border border-slate-900 border-dashed text-xs">
+                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/30 border border-border border-dashed text-xs">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-amber-500 text-[10px] font-bold">🤖 CLAUDE</span>
-                    <span className="font-mono text-[10px] text-slate-400">~/.claude/sessions</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">~/.claude/sessions</span>
                   </div>
                   <Button
                     size="sm"
                     variant="link"
-                    className="h-auto p-0 text-xs text-indigo-400 hover:text-indigo-300"
+                    className="h-auto p-0 text-xs text-primary hover:text-primary/80"
                     onClick={() => {
                       setNewProjectDir('/Users/rainforest/.claude/sessions');
                       setIsBrowseOpen(false);
@@ -350,15 +351,15 @@ function DashboardComponent() {
                     Connect
                   </Button>
                 </div>
-                <div className="flex justify-between items-center p-2 rounded-lg bg-slate-900/30 border border-slate-900 border-dashed text-xs">
+                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/30 border border-border border-dashed text-xs">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-indigo-500 text-[10px] font-bold">🪐 ANTIGRAVITY</span>
-                    <span className="font-mono text-[10px] text-slate-400">~/.gemini/antigravity-cli/conversations</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">~/.gemini/antigravity-cli/conversations</span>
                   </div>
                   <Button
                     size="sm"
                     variant="link"
-                    className="h-auto p-0 text-xs text-indigo-400 hover:text-indigo-300"
+                    className="h-auto p-0 text-xs text-primary hover:text-primary/80"
                     onClick={() => {
                       setNewProjectDir('/Users/rainforest/.gemini/antigravity-cli/conversations');
                       setIsBrowseOpen(false);
@@ -373,7 +374,7 @@ function DashboardComponent() {
             {/* Recent projects shortcuts */}
             {projectList && projectList.length > 0 && (
               <div className="space-y-2">
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">
                   Recent Workspaces
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto pr-1">
@@ -384,10 +385,10 @@ function DashboardComponent() {
                         setNewProjectDir(p.path);
                         setIsBrowseOpen(false);
                       }}
-                      className="p-2 text-left text-xs bg-slate-900/40 border border-slate-900 hover:border-slate-800 rounded transition-all truncate cursor-pointer text-slate-300"
+                      className="p-2 text-left text-xs bg-muted/40 border border-border hover:border-border rounded transition-all truncate cursor-pointer text-foreground"
                     >
-                      <div className="font-semibold text-slate-200">{p.name}</div>
-                      <div className="text-[10px] text-slate-500 font-mono truncate mt-0.5">{p.path}</div>
+                      <div className="font-semibold text-foreground">{p.name}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono truncate mt-0.5">{p.path}</div>
                     </button>
                   ))}
                 </div>
@@ -396,14 +397,14 @@ function DashboardComponent() {
 
             {/* Folder Browser tree */}
             <div className="space-y-2">
-              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">
                 Browse Filesystem
               </span>
               <div className="flex gap-2">
                 <Input
                   value={browsePath}
                   onChange={(e) => setBrowsePath(e.target.value)}
-                  className="h-8 text-xs bg-slate-900/40 border-slate-900 text-slate-200"
+                  className="h-8 text-xs bg-muted/40 border-border text-foreground"
                 />
                 <Button
                   size="sm"
@@ -415,10 +416,10 @@ function DashboardComponent() {
               </div>
 
               {browseData && (
-                <div className="border border-slate-900 rounded-lg bg-slate-900/10 overflow-hidden">
+                <div className="border border-border rounded-lg bg-muted/10 overflow-hidden">
                   {/* Parent path navigation */}
-                  <div className="p-2 border-b border-slate-900 bg-slate-950/40 flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-slate-400 truncate max-w-[70%]">
+                  <div className="p-2 border-b border-border bg-background/40 flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[70%]">
                       📁 {browseData.currentPath}
                     </span>
                     <Button
@@ -432,15 +433,15 @@ function DashboardComponent() {
                     </Button>
                   </div>
                   {/* Subdirectories */}
-                  <div className="max-h-48 overflow-y-auto p-2 grid grid-cols-1 sm:grid-cols-2 gap-1 bg-slate-950/20">
+                  <div className="max-h-48 overflow-y-auto p-2 grid grid-cols-1 sm:grid-cols-2 gap-1 bg-background/20">
                     {browseData.directories.length === 0 ? (
-                      <div className="text-xs text-slate-600 p-2 col-span-2 text-center">No subdirectories found</div>
+                      <div className="text-xs text-muted-foreground p-2 col-span-2 text-center">No subdirectories found</div>
                     ) : (
                       browseData.directories.map((dir: string) => (
                         <button
                           key={dir}
                           onClick={() => handleBrowse(joinPath(browseData.currentPath, dir))}
-                          className="p-1.5 text-left text-xs text-slate-300 hover:bg-slate-900/60 rounded transition-colors truncate cursor-pointer flex items-center gap-1.5"
+                          className="p-1.5 text-left text-xs text-foreground hover:bg-muted/60 rounded transition-colors truncate cursor-pointer flex items-center gap-1.5"
                         >
                           <span>📁</span>
                           <span className="truncate">{dir}</span>
@@ -454,8 +455,8 @@ function DashboardComponent() {
 
             {/* Create new folder inside browser */}
             {browseData && (
-              <div className="space-y-2 border-t border-slate-900 pt-3">
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+              <div className="space-y-2 border-t border-border pt-3">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">
                   Create New Folder in Current Path
                 </span>
                 <div className="flex gap-2">
@@ -463,7 +464,7 @@ function DashboardComponent() {
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                     placeholder="New folder name..."
-                    className="h-8 text-xs bg-slate-900/40 border-slate-900 text-slate-200"
+                    className="h-8 text-xs bg-muted/40 border-border text-foreground"
                   />
                   <Button
                     size="sm"
@@ -479,7 +480,7 @@ function DashboardComponent() {
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-900">
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <Button
                 variant="outline"
                 size="sm"
@@ -497,7 +498,7 @@ function DashboardComponent() {
                   }
                   setIsBrowseOpen(false);
                 }}
-                className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold cursor-pointer"
+                className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer"
               >
                 Select Folder
               </Button>

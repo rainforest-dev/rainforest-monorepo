@@ -52,15 +52,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="font-sans antialiased bg-[#07090e] text-slate-100 h-screen flex flex-col overflow-hidden">
-        <header className="h-16 border-b border-slate-900 bg-slate-950/40 px-6 flex-none flex items-center justify-between">
+      <body className="font-sans antialiased bg-background text-foreground h-screen flex flex-col overflow-hidden">
+        <header className="h-16 border-b border-border bg-card/40 px-6 flex-none flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">🪐</span>
-            <div className="font-bold font-sans text-sm tracking-tight text-slate-100">Antigravity Streamer</div>
+            <div className="font-bold font-sans text-sm tracking-tight text-foreground">Antigravity Streamer</div>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-            <span className="text-xs text-slate-400 font-mono">Zero Trust Node</span>
+            <span className="text-xs text-muted-foreground font-mono">Zero Trust Node</span>
           </div>
         </header>
         <QueryClientProvider client={queryClient}>
