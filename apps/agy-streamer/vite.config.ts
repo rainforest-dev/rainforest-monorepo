@@ -1,0 +1,27 @@
+import { defineConfig } from 'vite'
+import { devtools } from '@tanstack/devtools-vite'
+
+import { tanstackStart } from '@tanstack/react-start/plugin/vite'
+
+import viteReact from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import { nitro } from 'nitro/vite'
+
+const config = defineConfig({
+  root: __dirname,
+  resolve: { tsconfigPaths: true },
+  server: {
+    allowedHosts: process.env.ALLOWED_HOSTS
+      ? process.env.ALLOWED_HOSTS.split(',')
+      : ['localhost', '127.0.0.1', 'host.docker.internal'],
+  },
+  plugins: [
+    devtools(),
+    nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+  ],
+})
+
+export default config
