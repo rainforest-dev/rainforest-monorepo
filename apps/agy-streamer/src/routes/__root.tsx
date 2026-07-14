@@ -58,10 +58,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <span className="text-xl">🪐</span>
             <div className="font-bold font-sans text-sm tracking-tight text-foreground">Antigravity Streamer</div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-            <span className="text-xs text-muted-foreground font-mono">Zero Trust Node</span>
-          </div>
         </header>
         <QueryClientProvider client={queryClient}>
           <div className="flex-1 flex flex-col overflow-hidden">
