@@ -15,7 +15,7 @@ catalog:
   react: 19.2.3
   react-dom: 19.2.3
   tailwindcss: 4.2.2
-  typescript: 5.9.3
+  typescript: 6.0.3
 
 # pnpm 11 settings (moved from package.json pnpm field)
 peerDependencyRules:

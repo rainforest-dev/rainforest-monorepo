@@ -5,7 +5,8 @@
     "outDir": "out-tsc/playwright",
     "sourceMap": false,
     "moduleResolution": "nodenext",
-    "module": "NodeNext"
+    "module": "NodeNext",
+    "types": ["node"]
   },
   "include": [
     "**/*.ts",
