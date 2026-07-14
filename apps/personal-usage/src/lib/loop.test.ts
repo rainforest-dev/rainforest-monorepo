@@ -120,43 +120,51 @@ describe('parseHandoffIndex', () => {
   });
 });
 
+/** Build a nested Claude quota (only the 5-hour + weekly-all buckets matter here). */
+function claude(h5: number, weekly: number): MachineBudget['claude'] {
+  return {
+    plan: 'pro',
+    source_ts: null,
+    five_hour: { used_pct: h5, resets_at: null },
+    weekly_all: { used_pct: weekly, resets_at: null },
+    weekly_by_model: null,
+    bars: [],
+  };
+}
+
 function mb(
-  claude: MachineBudget['claude'],
+  c: MachineBudget['claude'],
   stale_minutes: number | null,
 ): MachineBudget {
-  return { machine: 'm', claude, codex: null, written_at: 0, stale_minutes };
+  return { machine: 'm', claude: c, codex: null, agy: null, written_at: 0, stale_minutes };
 }
 
 describe('budgetMode', () => {
   it('dark when quota missing, claude absent, or stale > 10min', () => {
     expect(budgetMode(null)).toBe('dark');
     expect(budgetMode(mb(null, 1))).toBe('dark');
-    expect(
-      budgetMode(mb({ five_hour_pct: 1, seven_day_pct: 1, ts: 0 }, 11)),
-    ).toBe('dark');
-    expect(
-      budgetMode(mb({ five_hour_pct: 1, seven_day_pct: 1, ts: 0 }, null)),
-    ).toBe('dark');
+    expect(budgetMode(mb(claude(1, 1), 11))).toBe('dark');
+    expect(budgetMode(mb(claude(1, 1), null))).toBe('dark');
   });
 
-  it('red when 5h > 80 or 7d > 90', () => {
-    expect(budgetMode(mb({ five_hour_pct: 81, seven_day_pct: 10, ts: 0 }, 1))).toBe('red');
-    expect(budgetMode(mb({ five_hour_pct: 10, seven_day_pct: 91, ts: 0 }, 1))).toBe('red');
+  it('red when 5h > 80 or weekly > 90', () => {
+    expect(budgetMode(mb(claude(81, 10), 1))).toBe('red');
+    expect(budgetMode(mb(claude(10, 91), 1))).toBe('red');
   });
 
-  it('yellow when 5h >= 60 or 7d >= 85 (and not red)', () => {
-    expect(budgetMode(mb({ five_hour_pct: 60, seven_day_pct: 10, ts: 0 }, 1))).toBe('yellow');
-    expect(budgetMode(mb({ five_hour_pct: 10, seven_day_pct: 85, ts: 0 }, 1))).toBe('yellow');
+  it('yellow when 5h >= 60 or weekly >= 85 (and not red)', () => {
+    expect(budgetMode(mb(claude(60, 10), 1))).toBe('yellow');
+    expect(budgetMode(mb(claude(10, 85), 1))).toBe('yellow');
   });
 
   it('green otherwise', () => {
-    expect(budgetMode(mb({ five_hour_pct: 35.4, seven_day_pct: 61.2, ts: 0 }, 2))).toBe('green');
+    expect(budgetMode(mb(claude(35.4, 61.2), 2))).toBe('green');
   });
 
   it('maps a full machine map', () => {
     const modes = budgetModesByMachine({
-      a: mb({ five_hour_pct: 35.4, seven_day_pct: 61.2, ts: 0 }, 2),
-      b: mb({ five_hour_pct: 8, seven_day_pct: 22.5, ts: 0 }, 52),
+      a: mb(claude(35.4, 61.2), 2),
+      b: mb(claude(8, 22.5), 52),
     });
     expect(modes).toEqual({ a: 'green', b: 'dark' });
   });
