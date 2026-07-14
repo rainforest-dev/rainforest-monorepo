@@ -1,0 +1,56 @@
+/* tailwindcss */
+@import 'tailwindcss';
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+
+@theme {
+  --radius: 0.625rem;
+}
+
+@layer base {
+  html,
+  body {
+    @apply bg-background text-foreground m-0 size-full p-0;
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+/*
+ * Chart series + status colors for the hand-rolled SVG charts.
+ * Categorical hues come from the validated data-viz reference palette
+ * (blue / aqua), stepped separately for the light and dark chart surface.
+ * Status colors are fixed (not themed) — they clear contrast on both
+ * surfaces — and pair with a label so meaning is never color-alone.
+ */
+@layer base {
+  :root {
+    --chart-1: #2a78d6;
+    --chart-2: #1baf7a;
+    --status-good: #0ca30c;
+    --status-warning: #d98a00;
+    --status-critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --chart-1: #3987e5;
+      --chart-2: #199e70;
+      --status-good: #16b516;
+      --status-warning: #fab219;
+      --status-critical: #e05a5a;
+    }
+  }
+  :root[data-scheme='dark'] {
+    --chart-1: #3987e5;
+    --chart-2: #199e70;
+    --status-good: #16b516;
+    --status-warning: #fab219;
+    --status-critical: #e05a5a;
+  }
+  :root[data-scheme='light'] {
+    --chart-1: #2a78d6;
+    --chart-2: #1baf7a;
+    --status-good: #0ca30c;
+    --status-warning: #d98a00;
+    --status-critical: #d03b3b;
+  }
+}

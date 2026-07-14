@@ -1,0 +1,39 @@
+{
+  "name": "@rainforest-monorepo/personal-usage",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 3003 --host 0.0.0.0",
+    "build": "astro check && astro build",
+    "preview": "astro preview --port 3003"
+  },
+  "nx": {
+    "targets": {
+      "dev": { "dependsOn": ["^build"] },
+      "build": { "dependsOn": ["^build"], "cache": true }
+    }
+  },
+  "dependencies": {
+    "@astrojs/node": "^10.0.6",
+    "@astrojs/vue": "6.0.1",
+    "@lucide/vue": "^1.0.0",
+    "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "@vueuse/core": "^14.1.0",
+    "astro": "6.4.8",
+    "class-variance-authority": "catalog:",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "reka-ui": "^2.10.1",
+    "tailwind-merge": "catalog:",
+    "tailwindcss": "catalog:",
+    "vue": "^3.5.32"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "^3.2.4"
+  }
+}
