@@ -84,7 +84,7 @@ function DashboardComponent() {
 
   const handleStartSession = () => {
     if (!newProjectDir.trim()) return;
-    const newSessionId = Math.random().toString(36).substring(2, 15);
+    const newSessionId = crypto.randomUUID();
     
     // Save last used dir
     if (typeof window !== 'undefined') {
