@@ -116,7 +116,11 @@ function relative(sec: number): string {
 }
 
 function resetLabel(resets_at: number | null): string | null {
-  return resets_at ? `resets ${relative(resets_at)}` : null;
+  if (!resets_at) return null;
+  // A reset timestamp in the past is an error state: the window already rolled
+  // over, so this reading is stale/invalid — never render it as "N ago".
+  if (resets_at * 1000 <= Date.now()) return '⚠ reset overdue';
+  return `resets ${relative(resets_at)}`;
 }
 
 function humanizeLag(min: number): string {
