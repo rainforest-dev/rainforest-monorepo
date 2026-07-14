@@ -33,6 +33,7 @@ allowBuilds:
   es5-ext: true
   esbuild: true
   msw: true
+  node-pty: true
   nx: true
   sharp: true
   unrs-resolver: true
