@@ -157,19 +157,21 @@ export function parseHandoffIndex(content: string): string | null {
 }
 
 /**
- * Budget mode for one machine per the loop's §0 thresholds:
+ * Budget mode for one machine per the loop's §0 thresholds, from the Claude
+ * quota (`five_hour` + `weekly_all` used-percentages):
  *   dark   — no/blank claude quota, or snapshot stale (> 10 min)
- *   red    — 5h > 80 or 7d > 90
- *   yellow — 5h >= 60 or 7d >= 85
+ *   red    — 5h > 80 or weekly > 90
+ *   yellow — 5h >= 60 or weekly >= 85
  *   green  — otherwise
  */
 export function budgetMode(mb: MachineBudget | null | undefined): BudgetMode {
   if (!mb || !mb.claude || mb.stale_minutes === null || mb.stale_minutes > 10) {
     return 'dark';
   }
-  const { five_hour_pct: h5, seven_day_pct: d7 } = mb.claude;
-  if (h5 > 80 || d7 > 90) return 'red';
-  if (h5 >= 60 || d7 >= 85) return 'yellow';
+  const h5 = mb.claude.five_hour?.used_pct ?? 0;
+  const weekly = mb.claude.weekly_all?.used_pct ?? 0;
+  if (h5 > 80 || weekly > 90) return 'red';
+  if (h5 >= 60 || weekly >= 85) return 'yellow';
   return 'green';
 }
 

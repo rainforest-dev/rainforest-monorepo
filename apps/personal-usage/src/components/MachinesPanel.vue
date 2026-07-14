@@ -4,17 +4,25 @@ import { useNow } from '@vueuse/core';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { computed } from 'vue';
 
-import Gauge from '@/components/Gauge.vue';
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import type { MachineBudget, MachineBudgetMap } from '@/lib/budget';
+// Type-only imports: this is a client-hydrated island, so importing runtime
+// values from budget.ts would drag its node:fs/node:path deps into the browser
+// bundle. The staleness threshold + lag math are inlined below (mirroring the
+// server-tested `providerStale` / `sourceLagMinutes` in budget.ts).
+import type {
+  MachineBudget,
+  MachineBudgetMap,
+  QuotaBar,
+} from '@/lib/budget';
 import type { MachineBreakdown } from '@/lib/ledger';
 import type { BudgetMode } from '@/lib/loop';
-import { formatUsd } from '@/utils/format';
+import { formatInt, formatPct, formatUsd } from '@/utils/format';
 
 const props = defineProps<{
   budgets: MachineBudgetMap;
@@ -22,9 +30,10 @@ const props = defineProps<{
   modes: Record<string, BudgetMode>;
 }>();
 
+// Relative labels ("2 min ago", "resets in 3h") re-render on this tick.
 const now = useNow({ interval: 30_000 });
 
-// Reserved status colors paired with a text label — never color alone.
+// Reserved status colors, always paired with a text label — never color alone.
 const MODE_META: Record<BudgetMode, { color: string; label: string }> = {
   green: { color: 'var(--status-good)', label: 'ok' },
   yellow: { color: 'var(--status-warning)', label: 'watch' },
@@ -32,62 +41,202 @@ const MODE_META: Record<BudgetMode, { color: string; label: string }> = {
   dark: { color: 'var(--muted-foreground)', label: 'stale' },
 };
 
-interface MachineView {
-  name: string;
-  budget: MachineBudget | null;
-  ledger: MachineBreakdown | null;
-  mode: BudgetMode;
+const STALE_TAG_STYLE = {
+  color: 'var(--status-warning)',
+  backgroundColor: 'color-mix(in oklab, var(--status-warning) 16%, transparent)',
+};
+
+// A provider window is stale when its captured source lags the machine's
+// `written_at` by more than this many minutes.
+const PROVIDER_STALE_MIN = 10;
+
+/** Minutes the provider source lags `written_at`; `null` when unknowable. */
+function sourceLag(
+  writtenAt: number | null,
+  sourceTs: number | null | undefined,
+): number | null {
+  if (writtenAt === null || sourceTs === null || sourceTs === undefined) return null;
+  return (writtenAt - sourceTs) / 60;
 }
 
-const machines = computed<MachineView[]>(() => {
+// ── View-model shapes ──────────────────────────────────────────────────────
+interface BarView {
+  label: string;
+  pct: number;
+  color: string;
+  status: 'ok' | 'watch' | 'critical';
+  reset: string | null;
+}
+interface QuotaSection {
+  kind: 'quota';
+  name: string;
+  stale: boolean;
+  staleTitle?: string;
+  bars: BarView[];
+}
+interface AgySection {
+  kind: 'agy';
+  stale: boolean;
+  staleTitle?: string;
+  cost: string | null;
+  activity: string | null;
+}
+type Section = QuotaSection | AgySection;
+
+interface Card {
+  name: string;
+  mode: BudgetMode;
+  modeLabel: string;
+  planBadges: string[];
+  lastSeen: string | null;
+  ledgerCost: string | null;
+  sections: Section[];
+}
+
+// ── Pure helpers ─────────────────────────────────────────────────────────────
+function titleCase(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function statusOf(pct: number): 'ok' | 'watch' | 'critical' {
+  // Bar fill: green < 60, amber 60–85, red > 85.
+  if (pct > 85) return 'critical';
+  if (pct >= 60) return 'watch';
+  return 'ok';
+}
+
+function barColor(status: 'ok' | 'watch' | 'critical'): string {
+  if (status === 'critical') return 'var(--status-critical)';
+  if (status === 'watch') return 'var(--status-warning)';
+  return 'var(--status-good)';
+}
+
+function relative(sec: number): string {
+  return formatDistanceToNowStrict(new Date(sec * 1000), { addSuffix: true });
+}
+
+function resetLabel(resets_at: number | null): string | null {
+  return resets_at ? `resets ${relative(resets_at)}` : null;
+}
+
+function humanizeLag(min: number): string {
+  if (min >= 1440) return `${Math.round(min / 1440)}d`;
+  if (min >= 60) return `${Math.round(min / 60)}h`;
+  return `${Math.round(min)}m`;
+}
+
+function toBar(b: QuotaBar): BarView {
+  const status = statusOf(b.used_pct);
+  return {
+    label: b.label,
+    pct: b.used_pct,
+    color: barColor(status),
+    status,
+    reset: resetLabel(b.resets_at),
+  };
+}
+
+/** Stale when a provider's captured source lags the snapshot's `written_at` > 10 min. */
+function staleInfo(
+  writtenAt: number | null,
+  sourceTs: number | null | undefined,
+): { stale: boolean; staleTitle?: string } {
+  const lag = sourceLag(writtenAt, sourceTs);
+  if (lag === null || lag <= PROVIDER_STALE_MIN) return { stale: false };
+  return {
+    stale: true,
+    staleTitle: `Reading is ${humanizeLag(lag)} older than this machine's last report`,
+  };
+}
+
+function planBadges(b: MachineBudget | null): string[] {
+  const plans = new Set<string>();
+  if (b?.claude?.plan) plans.add(b.claude.plan);
+  if (b?.codex?.plan) plans.add(b.codex.plan);
+  return [...plans].map(titleCase);
+}
+
+function lastSeenMs(
+  b: MachineBudget | null,
+  ledger: MachineBreakdown | null,
+): number | null {
+  const secs: number[] = [];
+  if (b?.written_at) secs.push(b.written_at);
+  if (b?.claude?.source_ts) secs.push(b.claude.source_ts);
+  if (b?.codex?.source_ts) secs.push(b.codex.source_ts);
+  if (b?.agy?.source_ts) secs.push(b.agy.source_ts);
+  if (secs.length) return Math.max(...secs) * 1000;
+  if (ledger?.last_ts) {
+    const t = Date.parse(ledger.last_ts);
+    if (!Number.isNaN(t)) return t;
+  }
+  return null;
+}
+
+function buildSections(b: MachineBudget | null): Section[] {
+  if (!b) return [];
+  const w = b.written_at;
+  const sections: Section[] = [];
+
+  if (b.claude) {
+    sections.push({
+      kind: 'quota',
+      name: 'Claude',
+      ...staleInfo(w, b.claude.source_ts),
+      bars: b.claude.bars.map(toBar),
+    });
+  }
+  if (b.codex) {
+    sections.push({
+      kind: 'quota',
+      name: 'Codex',
+      ...staleInfo(w, b.codex.source_ts),
+      bars: b.codex.bars.map(toBar),
+    });
+  }
+  if (b.agy) {
+    const a = b.agy;
+    sections.push({
+      kind: 'agy',
+      ...staleInfo(w, a.source_ts),
+      cost: a.cost_est_usd != null ? formatUsd(a.cost_est_usd) : null,
+      activity: a.activity
+        ? `${formatInt(a.activity.prompts_7d)} prompts · ${formatInt(a.activity.sessions_7d)} sessions (7d)`
+        : null,
+    });
+  }
+  return sections;
+}
+
+// ── Cards ─────────────────────────────────────────────────────────────────────
+const cards = computed<Card[]>(() => {
+  // Reference `now` so relative labels (last seen / resets) recompute on tick.
+  void now.value;
+
   const names = new Set<string>([
     ...Object.keys(props.budgets),
     ...props.byMachine.map((m) => m.key),
   ]);
-  return [...names].sort().map((name) => ({
-    name,
-    budget: props.budgets[name] ?? null,
-    ledger: props.byMachine.find((m) => m.key === name) ?? null,
-    mode: props.modes[name] ?? 'dark',
-  }));
+
+  return [...names].sort().map((name) => {
+    const budget = props.budgets[name] ?? null;
+    const ledger = props.byMachine.find((m) => m.key === name) ?? null;
+    const mode = props.modes[name] ?? 'dark';
+    const ms = lastSeenMs(budget, ledger);
+    const modeLabel =
+      mode !== 'dark' ? MODE_META[mode].label : budget?.claude ? 'stale' : 'no quota';
+
+    return {
+      name,
+      mode,
+      modeLabel,
+      planBadges: planBadges(budget),
+      lastSeen: ms === null ? null : relative(ms / 1000),
+      ledgerCost: ledger ? formatUsd(ledger.cost) : null,
+      sections: buildSections(budget),
+    };
+  });
 });
-
-function modeLabel(m: MachineView): string {
-  if (m.mode !== 'dark') return MODE_META[m.mode].label;
-  return m.budget?.claude ? 'stale' : 'no quota';
-}
-
-function lastSeenMs(m: MachineView): number | null {
-  const candidates: number[] = [];
-  if (m.budget?.written_at) candidates.push(m.budget.written_at * 1000);
-  if (m.ledger?.last_ts) {
-    const t = Date.parse(m.ledger.last_ts);
-    if (!Number.isNaN(t)) candidates.push(t);
-  }
-  return candidates.length ? Math.max(...candidates) : null;
-}
-
-function lastSeen(m: MachineView): string | null {
-  // `now` referenced so the relative label re-renders on the interval tick.
-  void now.value;
-  const ms = lastSeenMs(m);
-  if (ms === null) return null;
-  return formatDistanceToNowStrict(new Date(ms), { addSuffix: true });
-}
-
-function snapshotAge(m: MachineView): string | null {
-  const w = m.budget?.written_at;
-  if (!w) return null;
-  void now.value;
-  return `snapshot ${formatDistanceToNowStrict(new Date(w * 1000), { addSuffix: true })}`;
-}
-
-function codexReset(m: MachineView): string | undefined {
-  const r = m.budget?.codex?.resets_at;
-  if (!r) return undefined;
-  void now.value;
-  return `resets ${formatDistanceToNowStrict(new Date(r * 1000), { addSuffix: true })}`;
-}
 </script>
 
 <template>
@@ -95,13 +244,11 @@ function codexReset(m: MachineView): string | undefined {
     <div class="mb-3 flex items-center gap-2">
       <MonitorSmartphone class="text-muted-foreground size-4" />
       <h2 class="text-foreground text-lg font-semibold tracking-tight">Machines</h2>
-      <span class="text-muted-foreground text-sm">
-        {{ machines.length }} reporting
-      </span>
+      <span class="text-muted-foreground text-sm">{{ cards.length }} reporting</span>
     </div>
 
     <div
-      v-if="machines.length === 0"
+      v-if="cards.length === 0"
       class="text-muted-foreground border-border flex items-center gap-2 rounded-md border border-dashed px-4 py-8 text-sm"
     >
       <CalendarClock class="size-4" />
@@ -110,78 +257,122 @@ function codexReset(m: MachineView): string | undefined {
     </div>
 
     <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <Card v-for="m in machines" :key="m.name">
+      <Card v-for="card in cards" :key="card.name">
         <CardHeader>
-          <div class="flex items-center justify-between gap-3">
-            <CardTitle class="flex items-center gap-2 font-mono text-base">
-              <span
-                class="inline-block size-2.5 shrink-0 rounded-full"
-                :style="{ backgroundColor: MODE_META[m.mode].color }"
-                aria-hidden="true"
-              />
-              {{ m.name }}
-            </CardTitle>
-            <span
-              class="rounded-full px-2 py-0.5 text-xs font-medium"
-              :style="{
-                color: MODE_META[m.mode].color,
-                backgroundColor: 'color-mix(in oklab, ' + MODE_META[m.mode].color + ' 14%, transparent)',
-              }"
-            >
-              {{ modeLabel(m) }}
-            </span>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <CardTitle class="flex items-center gap-2 font-mono text-base">
+                <span
+                  class="inline-block size-2.5 shrink-0 rounded-full"
+                  :style="{ backgroundColor: MODE_META[card.mode].color }"
+                  role="img"
+                  :aria-label="`status: ${card.modeLabel}`"
+                />
+                <span class="truncate">{{ card.name }}</span>
+              </CardTitle>
+              <p class="text-muted-foreground mt-1 text-xs">
+                Last seen {{ card.lastSeen ?? '—' }}
+              </p>
+            </div>
+            <div class="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+              <Badge
+                v-for="p in card.planBadges"
+                :key="p"
+                variant="secondary"
+                class="tracking-wide"
+              >
+                {{ p }}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid grid-cols-3 gap-3">
-            <template v-if="m.budget?.claude">
-              <Gauge
-                label="Claude · 5h"
-                :pct="m.budget.claude.five_hour_pct"
-                :caption="snapshotAge(m) ?? undefined"
-              />
-              <Gauge
-                label="Claude · 7d"
-                :pct="m.budget.claude.seven_day_pct"
-                :caption="snapshotAge(m) ?? undefined"
-              />
-            </template>
-            <div
-              v-else
-              class="text-muted-foreground col-span-2 flex items-center justify-center py-6 text-xs"
-            >
-              No Claude quota
-            </div>
 
-            <Gauge
-              v-if="m.budget?.codex"
-              label="Codex · used"
-              :pct="m.budget.codex.used_pct"
-              :caption="codexReset(m)"
-            />
+        <CardContent>
+          <template v-if="card.sections.length">
             <div
-              v-else
-              class="text-muted-foreground flex items-center justify-center py-6 text-xs"
+              v-for="(section, i) in card.sections"
+              :key="section.kind + i"
+              :class="i > 0 ? 'border-border mt-4 border-t pt-4' : ''"
             >
-              No Codex quota
+              <!-- Provider group header (name + optional stale tag) -->
+              <div class="mb-2 flex items-center gap-2">
+                <span class="text-foreground text-sm font-medium">
+                  {{ section.kind === 'agy' ? 'agy' : section.name }}
+                </span>
+                <Badge
+                  v-if="section.kind === 'agy'"
+                  variant="outline"
+                  class="text-[10px] uppercase"
+                >
+                  est.
+                </Badge>
+                <span
+                  v-if="section.stale"
+                  class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                  :style="STALE_TAG_STYLE"
+                  :title="section.staleTitle"
+                >
+                  stale
+                </span>
+              </div>
+
+              <!-- Quota bars -->
+              <div v-if="section.kind === 'quota'" class="space-y-2.5">
+                <div v-for="bar in section.bars" :key="bar.label" class="space-y-1">
+                  <div class="flex items-baseline justify-between gap-2 text-xs">
+                    <span class="text-foreground truncate">{{ bar.label }}</span>
+                    <span class="text-muted-foreground shrink-0 tabular-nums">
+                      {{ formatPct(bar.pct) }}<template v-if="bar.reset">
+                        · {{ bar.reset }}</template>
+                    </span>
+                  </div>
+                  <div
+                    class="bg-muted h-2 w-full overflow-hidden rounded-full"
+                    role="img"
+                    :aria-label="`${bar.label}: ${formatPct(bar.pct)} used, ${bar.status}`"
+                  >
+                    <div
+                      class="h-full rounded-full"
+                      :style="{
+                        width: Math.min(100, Math.max(0, bar.pct)) + '%',
+                        backgroundColor: bar.color,
+                      }"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- agy estimated block (no quota bar) -->
+              <div v-else>
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="text-foreground text-lg font-semibold tabular-nums">
+                    {{ section.cost ?? '—' }}
+                  </span>
+                  <span class="text-muted-foreground text-xs">
+                    {{ section.activity ?? 'no recent activity' }}
+                  </span>
+                </div>
+                <p class="text-muted-foreground mt-0.5 text-[11px]">
+                  estimated · agy reports no quota
+                </p>
+              </div>
             </div>
-          </div>
+          </template>
 
           <div
-            class="border-border flex items-center justify-between border-t pt-3 text-sm"
+            v-else
+            class="text-muted-foreground flex items-center justify-center rounded-md border border-dashed py-6 text-xs"
           >
-            <div>
-              <p class="text-muted-foreground text-xs">Est. cost</p>
-              <p class="text-foreground font-semibold tabular-nums">
-                {{ m.ledger ? formatUsd(m.ledger.cost) : '—' }}
-              </p>
-            </div>
-            <div class="text-right">
-              <p class="text-muted-foreground text-xs">Last seen</p>
-              <p class="text-foreground tabular-nums">
-                {{ lastSeen(m) ?? '—' }}
-              </p>
-            </div>
+            No quota reported for this machine.
+          </div>
+
+          <!-- Per-machine ledger cost -->
+          <div
+            v-if="card.ledgerCost"
+            class="border-border mt-4 flex items-center justify-between border-t pt-3 text-sm"
+          >
+            <p class="text-muted-foreground text-xs">Est. cost (this machine)</p>
+            <p class="text-foreground font-semibold tabular-nums">{{ card.ledgerCost }}</p>
           </div>
         </CardContent>
       </Card>
