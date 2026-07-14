@@ -7,6 +7,7 @@ import LoopPanel from '@/components/LoopPanel.vue';
 import MachinesPanel from '@/components/MachinesPanel.vue';
 import StatTiles from '@/components/StatTiles.vue';
 import TaskTable from '@/components/TaskTable.vue';
+import TasksPanel from '@/components/TasksPanel.vue';
 import UsageTimeChart from '@/components/UsageTimeChart.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,10 +21,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MachineBudgetMap } from '@/lib/budget';
 import type { UsageAggregates } from '@/lib/ledger';
 import type { LoopState } from '@/lib/loop';
+import type { TasksData } from '@/lib/tasks';
 
 const usage = ref<UsageAggregates | null>(null);
 const budgets = ref<MachineBudgetMap>({});
 const loop = ref<LoopState | null>(null);
+const tasks = ref<TasksData | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -31,10 +34,11 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    const [uRes, bRes, lRes] = await Promise.all([
+    const [uRes, bRes, lRes, tRes] = await Promise.all([
       fetch('/api/usage'),
       fetch('/api/budget'),
       fetch('/api/loop'),
+      fetch('/api/tasks'),
     ]);
     if (!uRes.ok) throw new Error(`/api/usage HTTP ${uRes.status}`);
     const uData = (await uRes.json()) as UsageAggregates | { error: string };
@@ -53,6 +57,13 @@ async function load() {
       loop.value = 'error' in lData ? null : lData;
     } else {
       loop.value = null;
+    }
+
+    if (tRes.ok) {
+      const tData = (await tRes.json()) as TasksData | { error: string } | null;
+      tasks.value = tData && 'error' in tData ? null : tData;
+    } else {
+      tasks.value = null;
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
@@ -139,5 +150,7 @@ onMounted(load);
         </CardContent>
       </Card>
     </div>
+
+    <TasksPanel :tasks="tasks" />
   </div>
 </template>
