@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ExternalLink, FileText, X } from '@lucide/vue';
+import { Check, ExternalLink, FileText, Loader2, Save, X } from '@lucide/vue';
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import type { SprintTask } from '@/lib/tasks';
 import { priorityColor, scopeBadge, statusColor } from '@/lib/taskStatus';
 
@@ -16,6 +17,8 @@ interface NoteResponse {
   path?: string;
   name?: string;
   html?: string;
+  feedback?: string;
+  hasFeedback?: boolean;
   notionUrl?: string | null;
   error?: string;
 }
@@ -24,14 +27,25 @@ const note = ref<NoteResponse | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
+// Editable feedback (the note's `## Notes` section).
+const feedbackDraft = ref('');
+const saving = ref(false);
+const saved = ref(false);
+const saveError = ref<string | null>(null);
+const dirty = ref(false);
+
 async function fetchNote(id: string) {
   loading.value = true;
   error.value = null;
+  saveError.value = null;
+  saved.value = false;
+  dirty.value = false;
   note.value = null;
   try {
     const res = await fetch(`/api/task-note?id=${encodeURIComponent(id)}`);
     const data = (await res.json()) as NoteResponse;
     note.value = data;
+    feedbackDraft.value = data.feedback ?? '';
     if (!res.ok && res.status !== 404) {
       error.value = data.error ?? `HTTP ${res.status}`;
     }
@@ -40,6 +54,37 @@ async function fetchNote(id: string) {
   } finally {
     loading.value = false;
   }
+}
+
+async function saveFeedback() {
+  const id = props.task?.id;
+  if (id == null || saving.value) return;
+  saving.value = true;
+  saveError.value = null;
+  saved.value = false;
+  try {
+    const res = await fetch(`/api/task-feedback?id=${encodeURIComponent(String(id))}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ feedback: feedbackDraft.value }),
+    });
+    const data = (await res.json()) as NoteResponse;
+    if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+    // Re-render the note view from the freshly written file.
+    note.value = data;
+    feedbackDraft.value = data.feedback ?? '';
+    saved.value = true;
+    dirty.value = false;
+  } catch (e) {
+    saveError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    saving.value = false;
+  }
+}
+
+function onFeedbackInput() {
+  dirty.value = true;
+  saved.value = false;
 }
 
 watch(
@@ -160,7 +205,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
             </div>
           </dl>
 
-          <!-- Note body -->
+          <!-- Note body + feedback editor -->
           <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <p v-if="loading" class="text-muted-foreground py-8 text-center text-sm">
               Loading note…
@@ -175,11 +220,51 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
               <FileText class="size-5" />
               <p>No local note found for this task.</p>
             </div>
-            <div
-              v-else-if="note && note.html"
-              class="note-body text-sm"
-              v-html="note.html"
-            />
+
+            <template v-else-if="note && note.found">
+              <!-- Rendered note (read-only context) -->
+              <div v-if="note.html" class="note-body text-sm" v-html="note.html" />
+
+              <!-- Editable feedback → written back into the note's ## Notes -->
+              <section class="border-border mt-5 border-t pt-4">
+                <div class="mb-1.5 flex items-center justify-between gap-2">
+                  <h3 class="text-foreground text-sm font-semibold">Feedback</h3>
+                  <span
+                    v-if="saved"
+                    class="inline-flex items-center gap-1 text-[11px]"
+                    :style="{ color: 'var(--status-good)' }"
+                  >
+                    <Check class="size-3" /> Saved
+                  </span>
+                </div>
+                <p class="text-muted-foreground mb-2 text-xs">
+                  Captured into this note's
+                  <code class="text-foreground">## Notes</code> section — parity with
+                  editing it in Obsidian.
+                </p>
+                <textarea
+                  v-model="feedbackDraft"
+                  rows="6"
+                  placeholder="Leave tuning directives — e.g. re-estimate points, split this task, wrong component…"
+                  class="border-border bg-background text-foreground focus-visible:ring-ring w-full resize-y rounded-md border p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2"
+                  @input="onFeedbackInput"
+                />
+                <p v-if="saveError" class="text-destructive mt-1.5 text-xs">
+                  {{ saveError }}
+                </p>
+                <div class="mt-2 flex items-center justify-between gap-3">
+                  <p class="text-muted-foreground text-[11px]">
+                    Run the <code class="text-foreground">tune</code> skill to apply this
+                    feedback to Notion.
+                  </p>
+                  <Button size="sm" :disabled="saving || !dirty" @click="saveFeedback">
+                    <Loader2 v-if="saving" class="size-3.5 animate-spin" />
+                    <Save v-else class="size-3.5" />
+                    {{ saving ? 'Saving…' : 'Save' }}
+                  </Button>
+                </div>
+              </section>
+            </template>
           </div>
 
           <!-- Secondary link: work tasks only -->
