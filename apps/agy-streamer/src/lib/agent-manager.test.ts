@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getOrCreateSession, addSSEClient, handleToolApproval } from './agent-manager';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { addSSEClient, getOrCreateSession, handleToolApproval } from './agent-manager';
 
 describe('Agent Manager', () => {
   beforeEach(() => {

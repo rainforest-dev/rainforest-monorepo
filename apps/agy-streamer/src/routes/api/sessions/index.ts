@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import fs from 'fs/promises';
-import path from 'path';
 import os from 'os';
+import path from 'path';
 
 const BRAIN_DIR = path.join(os.homedir(), '.gemini/antigravity-cli/brain');
 
@@ -23,7 +23,9 @@ export const Route = createFileRoute('/api/sessions/')({
               try {
                 const logStats = await fs.stat(logPath);
                 mtime = logStats.mtime;
-              } catch (e) {}
+              } catch (e) {
+                // No log file yet, fall back to directory mtime
+              }
 
               let title = 'New Session';
               try {
@@ -45,9 +47,13 @@ export const Route = createFileRoute('/api/sessions/')({
                       title = text || title;
                       break;
                     }
-                  } catch (err) {}
+                  } catch (err) {
+                    // Skip malformed log line
+                  }
                 }
-              } catch (e) {}
+              } catch (e) {
+                // No log file yet, keep default title
+              }
 
               let agentType = 'agy';
               let directory = '';
@@ -56,7 +62,9 @@ export const Route = createFileRoute('/api/sessions/')({
                 const meta = JSON.parse(metaContent);
                 agentType = meta.agentType || 'agy';
                 directory = meta.directory || '';
-              } catch (e) {}
+              } catch (e) {
+                // No metadata file yet, use defaults
+              }
 
               sessions.push({
                 sessionId: item,

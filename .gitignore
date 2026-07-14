@@ -8,6 +8,11 @@ out-tsc
 # dependencies
 node_modules
 
+# this is a pnpm-only monorepo (see packageManager in package.json) - never
+# commit a stray npm/yarn lockfile from a vendored or copied-in app
+package-lock.json
+yarn.lock
+
 # IDEs and editors
 /.idea
 .project
