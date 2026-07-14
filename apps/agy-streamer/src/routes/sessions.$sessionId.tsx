@@ -375,7 +375,7 @@ function SessionComponent() {
       const res = await fetch(`/api/sessions/${sessionId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: dir, prompt })
+        body: JSON.stringify({ directory: dir, prompt, agent: agentType })
       });
       return res.json();
     },
