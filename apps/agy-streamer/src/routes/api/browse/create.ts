@@ -5,9 +5,9 @@ import path from 'path';
 export const Route = createFileRoute('/api/browse/create')({
   server: {
     handlers: {
-      POST: async (req) => {
+      POST: async ({ request }) => {
         try {
-          const body = await req.json();
+          const body = await request.json();
           if (!body.path) {
             throw new Error('Path is required');
           }

@@ -6,7 +6,15 @@ module.exports = [
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
   {
-    ignores: ['**/dist', '**/out-tsc/**'],
+    ignores: [
+      '**/dist',
+      '**/out-tsc/**',
+      // TanStack Start / Nitro build output (apps/agy-streamer)
+      '**/.output/**',
+      '**/.tanstack/**',
+      '**/.nitro/**',
+      '**/.vinxi/**',
+    ],
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],

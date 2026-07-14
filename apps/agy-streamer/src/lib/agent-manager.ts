@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
-import path from 'path';
-import os from 'os';
 import fs from 'fs/promises';
+import os from 'os';
+import path from 'path';
 
 interface AgentSession {
   process: any;
@@ -199,7 +199,9 @@ export async function startAgentSession(sessionId: string, directory: string, pr
           try {
             const event = JSON.parse(line);
             broadcast(sessionId, { type: event.type, data: event });
-          } catch (e) {}
+          } catch (e) {
+            // Skip malformed log line
+          }
         }
       }
     } catch (e) {
@@ -233,10 +235,14 @@ export async function startAgentSession(sessionId: string, directory: string, pr
           try {
             const event = JSON.parse(line);
             broadcast(sessionId, { type: event.type, data: event });
-          } catch (e) {}
+          } catch (e) {
+            // Skip malformed log line
+          }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // File not created yet
+    }
 
     broadcast(sessionId, { type: 'turn_complete', code });
     session.process = null;

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import fs from 'fs/promises';
-import path from 'path';
 import os from 'os';
+import path from 'path';
 
 const PROJECTS_DIR = path.join(os.homedir(), '.gemini/config/projects');
 
@@ -36,7 +36,9 @@ export const Route = createFileRoute('/api/projects')({
                   path: folderPath
                 });
               }
-            } catch (e) {}
+            } catch (e) {
+              // Skip malformed project config file
+            }
           }
           return new Response(JSON.stringify(projects), {
             headers: { 'Content-Type': 'application/json' }

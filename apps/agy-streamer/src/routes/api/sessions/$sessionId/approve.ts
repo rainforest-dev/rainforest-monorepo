@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+
 import { handleToolApproval } from '@/lib/agent-manager';
 
 export const Route = createFileRoute('/api/sessions/$sessionId/approve')({

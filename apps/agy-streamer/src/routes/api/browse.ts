@@ -1,14 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
 import fs from 'fs/promises';
-import path from 'path';
 import os from 'os';
+import path from 'path';
 
 export const Route = createFileRoute('/api/browse')({
   server: {
     handlers: {
-      GET: async (req) => {
+      GET: async ({ request }) => {
         try {
-          const url = new URL(req.url);
+          const url = new URL(request.url);
           const target = url.searchParams.get('path') || os.homedir();
           const targetPath = path.resolve(target);
           

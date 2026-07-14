@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+
 import { addSSEClient } from '@/lib/agent-manager';
 
 export const Route = createFileRoute('/api/sessions/$sessionId/stream')({

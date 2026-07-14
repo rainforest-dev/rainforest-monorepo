@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Route as ProjectsRoute } from '../routes/api/projects';
-import { Route as SessionsRoute } from '../routes/api/sessions/index';
-import { Route as ChatRoute } from '../routes/api/sessions/$sessionId/chat';
-import { Route as ApproveRoute } from '../routes/api/sessions/$sessionId/approve';
-import { getOrCreateSession } from './agent-manager';
 import fs from 'fs/promises';
+import { beforeEach,describe, expect, it, vi } from 'vitest';
+
+import { Route as ProjectsRoute } from '../routes/api/projects';
+import { Route as ApproveRoute } from '../routes/api/sessions/$sessionId/approve';
+import { Route as ChatRoute } from '../routes/api/sessions/$sessionId/chat';
+import { Route as SessionsRoute } from '../routes/api/sessions/index';
+import { getOrCreateSession } from './agent-manager';
 
 describe('API Route Handlers Integration', () => {
   beforeEach(() => {
@@ -27,7 +28,9 @@ describe('API Route Handlers Integration', () => {
       }
     }));
 
-    const handler = ProjectsRoute.options.server?.handlers?.GET;
+    // `handlers` is typed as a union that TS can't statically narrow from
+    // outside the route module; these are plain object handlers at runtime.
+    const handler = (ProjectsRoute.options.server?.handlers as any)?.GET;
     expect(handler).toBeDefined();
 
     const response = await handler!({ request: new Request('http://localhost/api/projects') });
@@ -49,7 +52,7 @@ describe('API Route Handlers Integration', () => {
       mtime: new Date('2026-07-11T12:00:00.000Z')
     } as any);
 
-    const handler = SessionsRoute.options.server?.handlers?.GET;
+    const handler = (SessionsRoute.options.server?.handlers as any)?.GET;
     expect(handler).toBeDefined();
 
     const response = await handler!({ request: new Request('http://localhost/api/sessions') });
@@ -62,12 +65,14 @@ describe('API Route Handlers Integration', () => {
   });
 
   it('should handle remote turn spawn and execution', async () => {
-    const handler = ChatRoute.options.server?.handlers?.POST;
+    const handler = (ChatRoute.options.server?.handlers as any)?.POST;
     expect(handler).toBeDefined();
 
     // Mock spawn in agent-manager to avoid launching a subprocess
     const spyStart = vi.spyOn(await import('./agent-manager'), 'startAgentSession')
-      .mockImplementation(() => {});
+      .mockImplementation(async () => {
+        // no-op: avoid launching a real subprocess in this test
+      });
 
     const mockRequest = new Request('http://localhost/api/sessions/session-abc/chat', {
       method: 'POST',
@@ -93,7 +98,7 @@ describe('API Route Handlers Integration', () => {
   });
 
   it('should process user tool approval decisions', async () => {
-    const handler = ApproveRoute.options.server?.handlers?.POST;
+    const handler = (ApproveRoute.options.server?.handlers as any)?.POST;
     expect(handler).toBeDefined();
 
     const session = getOrCreateSession('session-xyz');
