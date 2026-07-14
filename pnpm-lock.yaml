@@ -186,6 +186,9 @@ importers:
       '@fontsource-variable/geist':
         specifier: ^5.2.9
         version: 5.2.9
+      '@rainforest-dev/rainforest-ui':
+        specifier: workspace:*
+        version: link:../../libs/rainforest-ui
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.2.2(vite@8.0.16(@types/node@22.15.19)(esbuild@0.27.7)(jiti@2.7.0)(less@4.1.3)(sass-embedded@1.100.0)(sass@1.101.0)(stylus@0.64.0)(terser@5.48.0)(yaml@2.9.0))

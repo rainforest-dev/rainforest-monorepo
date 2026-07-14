@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.9",
+    "@rainforest-dev/rainforest-ui": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/ai": "^0.40.0",
     "@tanstack/ai-react": "^0.16.4",
