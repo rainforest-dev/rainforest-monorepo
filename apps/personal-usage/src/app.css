@@ -29,6 +29,7 @@
     --status-good: #0ca30c;
     --status-warning: #d98a00;
     --status-critical: #d03b3b;
+    --scope-personal: #7c3aed;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -37,6 +38,7 @@
       --status-good: #16b516;
       --status-warning: #fab219;
       --status-critical: #e05a5a;
+      --scope-personal: #a78bfa;
     }
   }
   :root[data-scheme='dark'] {
@@ -45,6 +47,7 @@
     --status-good: #16b516;
     --status-warning: #fab219;
     --status-critical: #e05a5a;
+    --scope-personal: #a78bfa;
   }
   :root[data-scheme='light'] {
     --chart-1: #2a78d6;
@@ -52,5 +55,6 @@
     --status-good: #0ca30c;
     --status-warning: #d98a00;
     --status-critical: #d03b3b;
+    --scope-personal: #7c3aed;
   }
 }
