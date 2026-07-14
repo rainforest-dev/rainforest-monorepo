@@ -273,7 +273,7 @@ function DashboardComponent() {
               No active session nodes found. Initialize a new stream above!
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 max-h-[40rem] overflow-y-auto pr-1">
               {sessionList.sessions.map((s: any) => {
                 const isClaude = s.agentType === 'claude';
                 return (
