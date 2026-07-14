@@ -902,6 +902,50 @@ implying the agent kept working, matching observed real behavior."
 
 ---
 
+## Task 6b: Rewire `agent-manager.ts`'s `claude` branch onto Remote Control
+
+**Added mid-execution, after live functional testing surfaced two real bugs in the existing `claude` branch and a deeper architectural gap.** During functional verification of both agent types with real sessions, two bugs were found and fixed directly (not part of this task, already committed): the frontend never sent the selected `agentType` to the backend (defaulted every session to `agy` regardless of UI selection), and new session IDs were generated as short non-UUID strings that `claude --session-id` rejects outright. Fixing those surfaced a third, deeper issue that IS this task's subject: even with a valid session, real `claude` subprocess invocations from this app's spawn context failed with `401 authentication_failed` (`apiKeySource: none` in the CLI's own init event) — and separately, per Anthropic's own docs (`https://code.claude.com/docs/en/remote-control`, fetched and read in full during this investigation), Remote Control — the feature that makes a session pick-up-able from the Claude mobile app — is not a background property of any session. It only activates via `claude remote-control` (persistent server mode), `claude --remote-control`/`--rc` (long-running interactive), or `/remote-control` typed inside a session. The current `claude` branch spawns `claude -p <prompt> --output-format stream-json --verbose --dangerously-skip-permissions` — a one-shot, non-interactive invocation that exits after responding. None of the three Remote Control triggers are present, and one-shot `-p` mode is fundamentally incompatible with them (Remote Control requires the local process to *keep running* — closing it ends the session). This is the same category of problem Task 6 fixes for `agy`: a throwaway one-shot spawn can't do what wiring the app to Google AI Pro's live agent required, which was a live, persistent process.
+
+**Do not guess at the integration shape.** This needs the same investigate-first discipline Task 5 used for the PTY parser (built and tested against real captured output, not invented) — this task starts with a spike, not an implementation.
+
+**Files (expected, confirm during the spike):**
+- Modify: `apps/agy-streamer/src/lib/agent-manager.ts`
+- Possibly modify: `apps/agy-streamer/src/routes/api/sessions/$sessionId/chat.ts`, `apps/agy-streamer/src/routes/sessions.$sessionId.tsx`
+
+- [ ] **Step 1: Confirm authentication actually works outside this session's sandboxed test environment**
+
+The `401 authentication_failed` / `apiKeySource: none` failure observed during testing happened when `claude` was spawned from a dev server itself launched inside a nested, sandboxed Claude Code Bash-tool session — that environment may not carry the same credential access (keychain-backed OAuth, `~/.claude/.credentials.json`, or equivalent) as a normal terminal. Before writing any integration code, verify from a normal terminal (outside any Claude Code sandbox) that:
+  1. `claude` is logged in via `/login` (claude.ai OAuth, not an API key — confirmed required by the docs; unset `ANTHROPIC_API_KEY` if present).
+  2. `claude remote-control` run manually in a scratch directory successfully registers a session and shows up at `claude.ai/code` and in the Claude mobile app's session list.
+  3. This same authenticated state will actually be available in whatever environment Task 10 ends up deploying the persistent `agy-streamer` service into (a `launchd` job's environment is not automatically identical to an interactive login shell's — this is a real risk worth checking early, not after the whole integration is built).
+
+If step 1.2 doesn't work from a plain terminal, this is a genuine blocker upstream of this app entirely — stop and report back rather than guessing at a code-level fix for what may be an account/auth-setup problem.
+
+- [ ] **Step 2: Decide the process-lifecycle model**
+
+`agent-manager.ts` currently spawns one `claude` child process per chat message (transactional, dies after responding). Remote Control needs a persistent process. The docs describe **server mode** (`claude remote-control --spawn worktree --capacity N`) as built for exactly this: one long-running process serving multiple concurrent sessions, each getting its own git worktree on demand. Investigate whether `agy-streamer` should:
+  - (a) run one persistent `claude remote-control --spawn worktree` process per `agy-streamer` server instance, mapping agy-streamer session IDs to remote-control session IDs, or
+  - (b) spawn one persistent `claude --remote-control --name <sessionTitle>` process per agy-streamer session (simpler mapping, but doesn't share the `--capacity`/worktree-pooling machinery).
+  Write up the tradeoff briefly before picking one — this is a real architectural decision, not a detail to bury in a commit message.
+
+- [ ] **Step 3: Prototype the stdout/event bridge**
+
+Whichever mode is chosen, `agent-manager.ts` needs to parse that process's output and re-broadcast it over agy-streamer's existing SSE mechanism (`broadcast(sessionId, data)`), the same pattern the current `-p --output-format stream-json` code already uses — confirm empirically (same technique as Task 5: capture real output, don't assume the schema) that server-mode / `--remote-control` output is still `stream-json`-shaped and compatible with the existing per-line JSON parsing loop, or if it differs, parse the real captured shape.
+
+- [ ] **Step 4: Implement, following whichever design Steps 2-3 converged on, with tests**
+
+Once the shape is confirmed for real, implement following this repo's normal TDD conventions (see Task 6 for the sibling `agy` rewiring as a structural reference — test-first, verify against real captured behavior, not invented mocks of Claude Code's CLI output).
+
+- [ ] **Step 5: Verify end-to-end with a real session, from a real device**
+
+Start a session through `agy-streamer`'s UI, confirm it appears in the Claude mobile app's session list with a green "online" status dot, and confirm a message sent from the phone actually reaches the session and its response streams back into `agy-streamer`'s own UI too (Remote Control is meant to be bidirectional — both surfaces should show the same live conversation).
+
+- [ ] **Step 6: Commit**
+
+Use a real commit message summarizing what was actually built, once Steps 1-5 are done — do not write this in advance, since the exact design isn't known yet.
+
+---
+
 ## Task 7: Add a `codex` branch to `agent-manager.ts`
 
 **Blocked on a prerequisite — check before starting:** `codex` is not installed on this machine (verified: `which codex` → not found; only an unopened `Codex.dmg` sits in `~/Downloads`). This task cannot be written or verified against real CLI behavior until it's installed. **Do not guess at codex's flags or output format** — if it's still not installed when you reach this task, skip it and move to Task 8/9 with the agent-type selector's `codex` option and its selector code left out (ship agy's real-approval fix and the theming migration without codex support, and revisit this task later once codex is actually available to test against).
