@@ -326,7 +326,6 @@ importers:
         specifier: ^22.15.19
         version: 22.15.19
 
-  apps/personal-usage:
     dependencies:
       '@astrojs/node':
         specifier: ^10.0.6
