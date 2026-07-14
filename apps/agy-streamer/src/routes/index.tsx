@@ -110,7 +110,7 @@ function DashboardComponent() {
           </div>
           <div className="flex items-end gap-3 mb-4">
             <span className="text-3xl font-bold text-foreground font-sans tracking-tight">12ms</span>
-            <span className="text-emerald-400 text-xs font-semibold mb-1">99.8% Uptime</span>
+            <span className="text-emerald-800 dark:text-emerald-400 text-xs font-semibold mb-1">99.8% Uptime</span>
           </div>
           <div className="h-10 flex items-end gap-1 px-1">
             <div className="w-full bg-emerald-500/10 h-6 rounded-t-sm"></div>
@@ -147,7 +147,7 @@ function DashboardComponent() {
             <ShieldCheck className="size-4 text-amber-400" strokeWidth={2.5} />
           </div>
           <div className="space-y-1">
-            <div className="text-emerald-400 text-sm font-semibold flex items-center gap-1.5">
+            <div className="text-emerald-800 dark:text-emerald-400 text-sm font-semibold flex items-center gap-1.5">
               <CheckCircle2 className="size-3.5" /> Node Authorized
             </div>
             <div className="text-2xl font-mono font-bold text-foreground">Automatic Sync</div>
@@ -177,7 +177,7 @@ function DashboardComponent() {
                     onClick={() => setAgentType('agy')}
                     className={`flex-1 text-xs py-2.5 rounded-lg border font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       agentType === 'agy'
-                        ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-200'
+                        ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-700 dark:text-indigo-200'
                         : 'bg-background border-border text-muted-foreground hover:border-border'
                     }`}
                   >
@@ -188,7 +188,7 @@ function DashboardComponent() {
                     onClick={() => setAgentType('claude')}
                     className={`flex-1 text-xs py-2.5 rounded-lg border font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       agentType === 'claude'
-                        ? 'bg-amber-600/20 border-amber-500/60 text-amber-200'
+                        ? 'bg-amber-600/20 border-amber-500/60 text-amber-700 dark:text-amber-200'
                         : 'bg-background border-border text-muted-foreground hover:border-border'
                     }`}
                   >
@@ -288,8 +288,8 @@ function DashboardComponent() {
                       <div className="flex justify-between items-center">
                         <span className={`font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
                           isClaude
-                            ? 'bg-amber-950/40 border border-amber-800/40 text-amber-400'
-                            : 'bg-indigo-950/40 border border-indigo-800/40 text-indigo-400'
+                            ? 'bg-amber-950/40 border border-amber-800/40 text-amber-700 dark:text-amber-400'
+                            : 'bg-indigo-950/40 border border-indigo-800/40 text-indigo-900 dark:text-indigo-400'
                         }`}>
                           {isClaude ? 'Claude Code' : 'Antigravity'}
                         </span>
@@ -307,7 +307,7 @@ function DashboardComponent() {
                       <span className="text-[10px] text-muted-foreground font-mono">
                         {new Date(s.lastModified).toLocaleDateString()} {new Date(s.lastModified).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      <button className="text-xs bg-primary/25 hover:bg-primary/40 text-primary px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 active:scale-95 transition-all">
+                      <button className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 active:scale-95 transition-all">
                         <Play className="size-3.5" /> Resume
                       </button>
                     </div>

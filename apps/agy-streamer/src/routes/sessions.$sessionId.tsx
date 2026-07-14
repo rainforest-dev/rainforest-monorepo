@@ -142,7 +142,7 @@ function LogMessage({ log }: { log: any }) {
                 <div className="relative">
                   <div 
                     className={`p-4 text-xs font-mono whitespace-pre-wrap overflow-hidden leading-relaxed ${
-                      isError ? 'text-destructive' : 'text-emerald-400'
+                      isError ? 'text-destructive' : 'text-emerald-800 dark:text-emerald-400'
                     } ${!isContentExpanded ? 'max-h-[180px]' : ''}`}
                   >
                     {contentText}
@@ -452,8 +452,8 @@ function SessionComponent() {
                   <div className="flex justify-between items-center mb-1.5">
                     <span className={`font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
                       isClaude 
-                        ? 'bg-amber-950/40 border border-amber-800/40 text-amber-400' 
-                        : 'bg-indigo-950/40 border border-indigo-800/40 text-indigo-400'
+                        ? 'bg-amber-950/40 border border-amber-800/40 text-amber-700 dark:text-amber-400'
+                        : 'bg-indigo-950/40 border border-indigo-800/40 text-indigo-900 dark:text-indigo-400'
                     }`}>
                       {isClaude ? 'Claude' : 'Antigravity'}
                     </span>
@@ -507,8 +507,8 @@ function SessionComponent() {
                       <div className="flex justify-between items-center mb-1">
                         <span className={`font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${
                           isClaude 
-                            ? 'bg-amber-950/40 border-amber-800/40 text-amber-400' 
-                            : 'bg-indigo-950/40 border-indigo-800/40 text-indigo-400'
+                            ? 'bg-amber-950/40 border-amber-800/40 text-amber-700 dark:text-amber-400'
+                            : 'bg-indigo-950/40 border-indigo-800/40 text-indigo-900 dark:text-indigo-400'
                         }`}>
                           {isClaude ? 'Claude Code' : 'Antigravity'}
                         </span>
