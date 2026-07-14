@@ -355,6 +355,13 @@ const typeBadge = (t: GNode['type']) => (t === 'epic' ? 'E' : t === 'story' ? 'S
                 {{ n.idLabel }}
               </span>
               <span
+                v-if="n.type === 'task' && n.task?.hasFeedback"
+                class="inline-block size-1.5 shrink-0 rounded-full"
+                :style="{ backgroundColor: 'var(--status-warning)' }"
+                title="Feedback awaiting tuning"
+                aria-label="Feedback awaiting tuning"
+              />
+              <span
                 v-if="n.type === 'task' && n.task?.points != null"
                 class="text-foreground bg-background/70 ml-auto shrink-0 rounded px-1 text-[10px] font-semibold tabular-nums"
               >

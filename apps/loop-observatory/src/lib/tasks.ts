@@ -37,6 +37,12 @@ export interface SprintTask {
   platform: string[];
   epic: TaskLink | null;
   parent: TaskLink | null;
+  /**
+   * Whether the task's local note has real user feedback under `## Notes`.
+   * Not read from `tasks.json` — the tasks API augments each task with this so
+   * the board/graph can flag notes awaiting tuning.
+   */
+  hasFeedback?: boolean;
 }
 
 /** The active sprint the board is scoped to. */

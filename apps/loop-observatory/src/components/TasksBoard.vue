@@ -101,6 +101,13 @@ const columns = computed<Column[]>(() => {
             >
               {{ scopeBadge(card.scope).label }}
             </span>
+            <span
+              v-if="card.hasFeedback"
+              class="ml-auto inline-block size-2 shrink-0 rounded-full"
+              :style="{ backgroundColor: 'var(--status-warning)' }"
+              title="Feedback awaiting tuning"
+              aria-label="Feedback awaiting tuning"
+            />
           </div>
 
           <p class="text-foreground line-clamp-2 text-sm font-medium leading-snug">
