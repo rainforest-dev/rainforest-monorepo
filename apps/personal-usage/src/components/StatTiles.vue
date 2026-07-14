@@ -13,24 +13,30 @@ const tiles = computed(() => [
     label: 'Total est. cost',
     value: formatUsd(props.totals.cost_est_usd),
     sub: `${formatInt(props.totals.record_count)} records`,
+    // The number is what these tokens *would* cost at API list prices — it is
+    // not the amount billed under a flat-rate subscription.
+    note: '≈ API-equivalent · not your bill (subscription)',
     icon: CircleDollarSign,
   },
   {
     label: 'Tokens in / out',
     value: `${formatTokens(props.totals.tokens_in)} / ${formatTokens(props.totals.tokens_out)}`,
     sub: `${formatTokens(props.totals.cache)} cached`,
+    note: null,
     icon: Database,
   },
   {
     label: 'Sessions',
     value: formatInt(props.totals.session_count),
     sub: 'distinct session ids',
+    note: null,
     icon: Radio,
   },
   {
     label: 'Records',
     value: formatInt(props.totals.record_count),
     sub: 'ledger entries',
+    note: null,
     icon: Layers,
   },
 ]);
@@ -50,6 +56,9 @@ const tiles = computed(() => [
           {{ tile.value }}
         </p>
         <p class="text-muted-foreground mt-1 text-xs">{{ tile.sub }}</p>
+        <p v-if="tile.note" class="text-muted-foreground/80 mt-1 text-[11px] italic">
+          {{ tile.note }}
+        </p>
       </CardContent>
     </Card>
   </div>
