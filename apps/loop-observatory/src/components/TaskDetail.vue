@@ -191,6 +191,35 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
               <dt class="text-muted-foreground text-xs">Component</dt>
               <dd class="text-foreground truncate">{{ task.component }}</dd>
             </div>
+            <!-- Loop-progress overlay: what the loop actually did -->
+            <div
+              v-if="task.loopStatus || task.pr || task.loopNote"
+              class="col-span-2 flex flex-col gap-1"
+            >
+              <div class="flex items-center gap-2">
+                <dt
+                  class="text-muted-foreground shrink-0 text-xs"
+                  title="Tracked by the loop, not Notion"
+                >
+                  ◆ Loop
+                </dt>
+                <dd v-if="task.loopStatus" class="text-foreground">
+                  {{ task.loopStatus }}
+                </dd>
+                <a
+                  v-if="task.pr"
+                  :href="task.pr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary ml-auto inline-flex items-center gap-1 text-xs hover:underline"
+                >
+                  PR <ExternalLink class="size-3" />
+                </a>
+              </div>
+              <p v-if="task.loopNote" class="text-muted-foreground text-xs">
+                {{ task.loopNote }}
+              </p>
+            </div>
             <div v-if="task.epic" class="col-span-2 flex items-center gap-2">
               <dt class="text-muted-foreground shrink-0 text-xs">Epic</dt>
               <dd class="text-foreground truncate" :title="task.epic.name">

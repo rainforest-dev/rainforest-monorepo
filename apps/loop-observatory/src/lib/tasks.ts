@@ -43,6 +43,14 @@ export interface SprintTask {
    * the board/graph can flag notes awaiting tuning.
    */
   hasFeedback?: boolean;
+  /**
+   * Loop-progress overlay (from `tasks-progress.json`, merged in by the tasks
+   * API). `loopStatus` may be a real board status (overrides placement) or a
+   * loop-only label; `pr` is a PR URL; `loopNote` is a short loop note.
+   */
+  loopStatus?: string | null;
+  pr?: string | null;
+  loopNote?: string | null;
 }
 
 /** The active sprint the board is scoped to. */
@@ -195,4 +203,67 @@ export function readTasks(): TasksData | null {
     return null; // no snapshot yet → empty state
   }
   return parseTasks(content);
+}
+
+/**
+ * One task's loop-progress entry from `tasks-progress.json`: what the autonomous
+ * loop actually did, overlaid on top of the Notion status.
+ */
+export interface TaskProgress {
+  /** Loop-reported status (may be a real board status or a loop-only label). */
+  loop_status: string | null;
+  /** Pull-request URL opened for the task, when any. */
+  pr: string | null;
+  /** Short free-text note from the loop. */
+  note: string | null;
+}
+
+/** Absolute path of the loop-progress overlay. */
+export function tasksProgressPath(): string {
+  return join(usageDir(), 'tasks-progress.json');
+}
+
+/**
+ * Parse `tasks-progress.json` into an id → progress map. Returns `null` when the
+ * content is not a usable object (so a missing/garbled overlay is simply absent);
+ * individual malformed entries are skipped.
+ */
+export function parseTasksProgress(content: string): Record<string, TaskProgress> | null {
+  let obj: unknown;
+  try {
+    obj = JSON.parse(content);
+  } catch {
+    return null;
+  }
+  if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return null;
+  const tasksObj = (obj as Record<string, unknown>).tasks;
+  if (typeof tasksObj !== 'object' || tasksObj === null || Array.isArray(tasksObj)) {
+    return null;
+  }
+
+  const out: Record<string, TaskProgress> = {};
+  for (const [id, v] of Object.entries(tasksObj as Record<string, unknown>)) {
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) continue;
+    const o = v as Record<string, unknown>;
+    out[id] = {
+      loop_status: strOrNull(o.loop_status),
+      pr: strOrNull(o.pr),
+      note: strOrNull(o.note),
+    };
+  }
+  return out;
+}
+
+/**
+ * Read the loop-progress overlay. Returns `null` when the file is absent or
+ * unusable — callers then render no overlay (current Notion-only behavior).
+ */
+export function readTasksProgress(): Record<string, TaskProgress> | null {
+  let content: string;
+  try {
+    content = readFileSync(tasksProgressPath(), 'utf-8');
+  } catch {
+    return null; // no overlay yet
+  }
+  return parseTasksProgress(content);
 }

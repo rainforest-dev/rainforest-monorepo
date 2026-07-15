@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { Minus, Plus, RotateCcw } from '@lucide/vue';
+import { ExternalLink, Minus, Plus, RotateCcw } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 import type { SprintTask } from '@/lib/tasks';
-import { statusColor, statusSoftBg } from '@/lib/taskStatus';
+import {
+  effectiveStatus,
+  isLoopOnlyStatus,
+  statusColor,
+  statusSoftBg,
+} from '@/lib/taskStatus';
 
-const props = defineProps<{ tasks: SprintTask[] }>();
+const props = defineProps<{ tasks: SprintTask[]; statuses: string[] }>();
 // A task node opens the in-app detail drawer (epics/stories are structural).
 const emit = defineEmits<{ select: [task: SprintTask] }>();
 
@@ -118,7 +123,8 @@ const graph = computed<{ nodes: GNode[]; edges: GEdge[]; w: number; h: number }>
       cy: y + TASK_H / 2,
       idLabel: `#${t.id ?? '—'}`,
       label: shortName(t.name),
-      status: t.status,
+      // Loop overlay can override the Notion status for coloring.
+      status: effectiveStatus(t.status, t.loopStatus, props.statuses),
       task: t,
     };
     nodes.push(n);
@@ -329,20 +335,22 @@ const typeBadge = (t: GNode['type']) => (t === 'epic' ? 'E' : t === 'story' ? 'S
           :width="n.w"
           :height="n.h"
         >
-          <component
-            :is="n.type === 'task' ? 'button' : 'div'"
+          <div
             :data-node="n.type"
-            :type="n.type === 'task' ? 'button' : undefined"
+            :role="n.type === 'task' ? 'button' : undefined"
+            :tabindex="n.type === 'task' ? 0 : undefined"
             class="flex h-full w-full flex-col justify-center gap-0.5 overflow-hidden rounded-md px-2 py-1 text-left"
             :class="
               n.type === 'task'
-                ? 'hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                ? 'cursor-pointer hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
                 : ''
             "
             :style="nodeStyle(n)"
             @click="n.task && emit('select', n.task)"
+            @keydown.enter="n.task && emit('select', n.task)"
+            @keydown.space.prevent="n.task && emit('select', n.task)"
           >
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1">
               <span
                 class="text-muted-foreground bg-background/70 inline-flex size-4 shrink-0 items-center justify-center rounded text-[9px] font-bold"
               >
@@ -355,27 +363,57 @@ const typeBadge = (t: GNode['type']) => (t === 'epic' ? 'E' : t === 'story' ? 'S
                 {{ n.idLabel }}
               </span>
               <span
+                v-if="n.type === 'task' && n.task?.loopStatus"
+                class="text-muted-foreground/80 shrink-0 text-[9px] font-medium"
+                title="Status tracked by the loop"
+              >
+                ◆
+              </span>
+              <span
                 v-if="n.type === 'task' && n.task?.hasFeedback"
                 class="inline-block size-1.5 shrink-0 rounded-full"
                 :style="{ backgroundColor: 'var(--status-warning)' }"
                 title="Feedback awaiting tuning"
                 aria-label="Feedback awaiting tuning"
               />
-              <span
-                v-if="n.type === 'task' && n.task?.points != null"
-                class="text-foreground bg-background/70 ml-auto shrink-0 rounded px-1 text-[10px] font-semibold tabular-nums"
-              >
-                {{ n.task.points }}p
-              </span>
+              <div class="ml-auto flex shrink-0 items-center gap-1">
+                <a
+                  v-if="n.type === 'task' && n.task?.pr"
+                  :href="n.task.pr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary inline-flex items-center gap-0.5 text-[9px] font-medium hover:underline"
+                  title="Open pull request"
+                  @click.stop
+                >
+                  PR<ExternalLink class="size-2.5" />
+                </a>
+                <span
+                  v-if="n.type === 'task' && n.task?.points != null"
+                  class="text-foreground bg-background/70 rounded px-1 text-[10px] font-semibold tabular-nums"
+                >
+                  {{ n.task.points }}p
+                </span>
+              </div>
             </div>
             <span
-              class="text-foreground truncate text-[11px] font-medium leading-tight"
+              class="text-foreground text-[11px] font-medium leading-tight"
               :class="n.type === 'task' ? 'line-clamp-2 whitespace-normal' : 'truncate'"
               :title="n.label"
             >
               {{ n.label }}
             </span>
-          </component>
+            <span
+              v-if="n.type === 'task' && isLoopOnlyStatus(n.task?.loopStatus, statuses)"
+              class="w-fit shrink-0 truncate rounded px-1 text-[9px] font-medium"
+              :style="{
+                color: 'var(--status-warning)',
+                backgroundColor: 'color-mix(in oklab, var(--status-warning) 14%, transparent)',
+              }"
+            >
+              {{ n.task?.loopStatus }}
+            </span>
+          </div>
         </foreignObject>
       </svg>
     </div>

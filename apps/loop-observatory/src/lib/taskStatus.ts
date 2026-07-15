@@ -55,6 +55,28 @@ export function statusSoftBg(status: string): string {
   return `color-mix(in oklab, ${statusColor(status)} 12%, transparent)`;
 }
 
+/**
+ * The status a card/node should render as. When the loop reports a `loopStatus`
+ * that is one of the board's real statuses, it overrides the Notion status
+ * (the loop moved the task); a loop-only label (e.g. "Needs tuning") does not
+ * move the card — the Notion status wins for placement.
+ */
+export function effectiveStatus(
+  notionStatus: string,
+  loopStatus: string | null | undefined,
+  statuses: readonly string[],
+): string {
+  return loopStatus && statuses.includes(loopStatus) ? loopStatus : notionStatus;
+}
+
+/** Whether `loopStatus` is a loop-only label (set, but not a real board column). */
+export function isLoopOnlyStatus(
+  loopStatus: string | null | undefined,
+  statuses: readonly string[],
+): boolean {
+  return Boolean(loopStatus) && !statuses.includes(loopStatus as string);
+}
+
 // Priority palette per the board legend: P0 red, P1 orange, P2 green, P3 blue.
 const PRIORITY_COLOR: Record<string, string> = {
   P0: 'var(--status-critical)',
