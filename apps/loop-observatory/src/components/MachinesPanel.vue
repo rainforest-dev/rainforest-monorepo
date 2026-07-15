@@ -66,6 +66,10 @@ interface BarView {
   color: string;
   status: 'ok' | 'watch' | 'critical';
   reset: string | null;
+  /** The window's reset has passed (or it has none): the captured % belongs to a
+   *  window that already rolled over, so it is not current usage — render as
+   *  "stale · unknown" rather than a confident bar. */
+  unknown: boolean;
 }
 interface QuotaSection {
   kind: 'quota';
@@ -129,14 +133,22 @@ function humanizeLag(min: number): string {
   return `${Math.round(min)}m`;
 }
 
+/** A window is "unknown" once its reset has passed (or it has none): the reading
+ *  is from a window that already rolled over, so the % is not current usage. */
+function isWindowUnknown(resets_at: number | null): boolean {
+  return !resets_at || resets_at * 1000 <= Date.now();
+}
+
 function toBar(b: QuotaBar): BarView {
+  const unknown = isWindowUnknown(b.resets_at);
   const status = statusOf(b.used_pct);
   return {
     label: b.label,
     pct: b.used_pct,
     color: barColor(status),
     status,
-    reset: resetLabel(b.resets_at),
+    reset: unknown ? null : resetLabel(b.resets_at),
+    unknown,
   };
 }
 
@@ -325,7 +337,14 @@ const cards = computed<Card[]>(() => {
                 <div v-for="bar in section.bars" :key="bar.label" class="space-y-1">
                   <div class="flex items-baseline justify-between gap-2 text-xs">
                     <span class="text-foreground truncate">{{ bar.label }}</span>
-                    <span class="text-muted-foreground shrink-0 tabular-nums">
+                    <span
+                      v-if="bar.unknown"
+                      class="text-muted-foreground/70 shrink-0 italic"
+                      title="The window reset since this reading was captured — current usage is unknown until the next refresh"
+                    >
+                      stale · unknown
+                    </span>
+                    <span v-else class="text-muted-foreground shrink-0 tabular-nums">
                       {{ formatPct(bar.pct) }}<template v-if="bar.reset">
                         · {{ bar.reset }}</template>
                     </span>
@@ -333,9 +352,14 @@ const cards = computed<Card[]>(() => {
                   <div
                     class="bg-muted h-2 w-full overflow-hidden rounded-full"
                     role="img"
-                    :aria-label="`${bar.label}: ${formatPct(bar.pct)} used, ${bar.status}`"
+                    :aria-label="
+                      bar.unknown
+                        ? `${bar.label}: usage unknown — window reset since last reading`
+                        : `${bar.label}: ${formatPct(bar.pct)} used, ${bar.status}`
+                    "
                   >
                     <div
+                      v-if="!bar.unknown"
                       class="h-full rounded-full"
                       :style="{
                         width: Math.min(100, Math.max(0, bar.pct)) + '%',
