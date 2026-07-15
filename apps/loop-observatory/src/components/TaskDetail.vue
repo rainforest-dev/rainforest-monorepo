@@ -323,7 +323,7 @@ onMounted(() => {
                     Run the <code class="text-foreground">tune</code> skill to apply this
                     feedback to Notion.
                   </p>
-                  <Button size="sm" :disabled="saving || !dirty" @click="saveFeedback">
+                  <Button size="sm" class="shrink-0" :disabled="saving || !dirty" @click="saveFeedback">
                     <Loader2 v-if="saving" class="size-3.5 animate-spin" />
                     <Save v-else class="size-3.5" />
                     {{ saving ? 'Saving…' : 'Save' }}
@@ -381,6 +381,13 @@ onMounted(() => {
 }
 
 /* Rendered-markdown styling (no typography plugin in this app). */
+.note-body {
+  /* Long inline code / URLs / unbreakable tokens wrap instead of forcing a
+     horizontal scrollbar on the whole drawer (which scrolled the px-5 padding
+     out from under the footer). Code blocks still scroll via `pre`'s own
+     overflow-x below. */
+  overflow-wrap: anywhere;
+}
 .note-body :deep(h1),
 .note-body :deep(h2),
 .note-body :deep(h3) {
