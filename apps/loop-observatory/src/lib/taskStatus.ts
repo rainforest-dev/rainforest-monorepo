@@ -48,8 +48,6 @@ const STATUS_COLOR: Record<string, string> = {
   // Loop sub-states (finer than the Notion columns above).
   Queued: 'var(--chart-1)',
   'Needs tuning': 'var(--status-warning)',
-  'Spec drafted': 'var(--chart-1)',
-  'Split drafted': 'var(--chart-1)',
   'In progress': 'var(--status-warning)',
   'PR ready': 'var(--chart-2)',
   Merged: 'var(--status-good)',
@@ -67,16 +65,15 @@ export function statusSoftBg(status: string): string {
 
 /**
  * Loop sub-states finer than Notion's columns → the board column they place in.
- * The loop tracks a richer lifecycle (readiness → tune → execute → verify) than
- * Notion's collapsed columns, so e.g. "PR ready" and "In progress" both live in
- * the one "In progress / PR" lane, while "Spec drafted" is still pre-execution
- * ("Not started"). The card/detail then surface the precise sub-state on top.
+ * The loop tracks a richer lifecycle than Notion's collapsed columns, so e.g.
+ * "PR ready" and "In progress" both live in the one "In progress / PR" lane,
+ * while "Queued" is still pre-execution ("Not started"). The card/detail then
+ * surface the precise sub-state on top. (Spec/split work is `tune`'s job, not a
+ * loop state — see loop.md §6.)
  */
 const LOOP_STAGE_COLUMN: Record<string, string> = {
   Queued: 'Not started',
   'Needs tuning': 'Not started',
-  'Spec drafted': 'Not started',
-  'Split drafted': 'Not started',
   'In progress': 'In progress / PR',
   'PR ready': 'In progress / PR',
   Merged: 'Done',
