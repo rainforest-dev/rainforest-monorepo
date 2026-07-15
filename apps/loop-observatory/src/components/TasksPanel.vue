@@ -174,6 +174,11 @@ function openTask(task: SprintTask) {
       </CardContent>
     </Card>
 
-    <TaskDetail :task="selected" :open="drawerOpen" @close="drawerOpen = false" />
+    <TaskDetail
+      :task="selected"
+      :open="drawerOpen"
+      :statuses="data?.statuses ?? []"
+      @close="drawerOpen = false"
+    />
   </section>
 </template>

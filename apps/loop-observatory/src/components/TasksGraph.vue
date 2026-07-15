@@ -5,7 +5,7 @@ import { computed, ref } from 'vue';
 import type { SprintTask } from '@/lib/tasks';
 import {
   effectiveStatus,
-  isLoopOnlyStatus,
+  loopStageLabel,
   statusColor,
   statusSoftBg,
 } from '@/lib/taskStatus';
@@ -404,14 +404,14 @@ const typeBadge = (t: GNode['type']) => (t === 'epic' ? 'E' : t === 'story' ? 'S
               {{ n.label }}
             </span>
             <span
-              v-if="n.type === 'task' && isLoopOnlyStatus(n.task?.loopStatus, statuses)"
+              v-if="n.type === 'task' && loopStageLabel(n.task?.loopStatus, statuses)"
               class="w-fit shrink-0 truncate rounded px-1 text-[9px] font-medium"
               :style="{
-                color: 'var(--status-warning)',
-                backgroundColor: 'color-mix(in oklab, var(--status-warning) 14%, transparent)',
+                color: statusColor(n.task!.loopStatus!),
+                backgroundColor: statusSoftBg(n.task!.loopStatus!),
               }"
             >
-              {{ n.task?.loopStatus }}
+              {{ loopStageLabel(n.task?.loopStatus, statuses) }}
             </span>
           </div>
         </foreignObject>
