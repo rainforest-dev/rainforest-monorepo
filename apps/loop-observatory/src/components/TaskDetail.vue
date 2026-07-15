@@ -1,14 +1,21 @@
 <script setup lang="ts">
 import { Check, ExternalLink, FileText, Loader2, Save, X } from '@lucide/vue';
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { SprintTask } from '@/lib/tasks';
-import { priorityColor, scopeBadge, statusColor } from '@/lib/taskStatus';
+import { effectiveStatus, priorityColor, scopeBadge, statusColor } from '@/lib/taskStatus';
 
-const props = defineProps<{ task: SprintTask | null; open: boolean }>();
+const props = defineProps<{ task: SprintTask | null; open: boolean; statuses: string[] }>();
 const emit = defineEmits<{ close: [] }>();
+
+// The column the loop moved the task to (or the Notion status when untouched).
+// The Status row leads with this so it never contradicts the ◆ Loop row below;
+// the raw Notion status is shown as a muted secondary when the loop is ahead.
+const effStatus = computed(() =>
+  props.task ? effectiveStatus(props.task.status, props.task.loopStatus, props.statuses) : '',
+);
 
 interface NoteResponse {
   found: boolean;
@@ -166,10 +173,19 @@ onMounted(() => {
               <dd class="flex items-center gap-1.5">
                 <span
                   class="inline-block size-2 rounded-full"
-                  :style="{ backgroundColor: statusColor(task.status) }"
+                  :style="{ backgroundColor: statusColor(effStatus) }"
                   aria-hidden="true"
                 />
-                <span class="text-foreground">{{ task.status }}</span>
+                <span class="text-foreground">{{ effStatus }}</span>
+                <!-- Notion is deliberately behind (loop stays vault-local until
+                     `tune`); show it muted so the two never read as a conflict. -->
+                <span
+                  v-if="effStatus !== task.status"
+                  class="text-muted-foreground/70 text-xs"
+                  title="Notion board status — the loop is ahead until you tune"
+                >
+                  · Notion: {{ task.status }}
+                </span>
               </dd>
             </div>
             <div class="flex items-center gap-2">
@@ -215,7 +231,16 @@ onMounted(() => {
                 >
                   ◆ Loop
                 </dt>
-                <dd v-if="task.loopStatus" class="text-foreground">
+                <dd
+                  v-if="task.loopStatus"
+                  class="flex items-center gap-1.5 font-medium"
+                  :style="{ color: statusColor(task.loopStatus) }"
+                >
+                  <span
+                    class="inline-block size-2 rounded-full"
+                    :style="{ backgroundColor: statusColor(task.loopStatus) }"
+                    aria-hidden="true"
+                  />
                   {{ task.loopStatus }}
                 </dd>
                 <a

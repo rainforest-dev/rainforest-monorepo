@@ -33,7 +33,9 @@ export const ALWAYS_SHOWN_STATUSES: readonly string[] = [
 ];
 
 // Flow-stage colors drawn from the themed tokens: grey (parked) → blue (queued)
-// → amber (in flight) → aqua (in review) → green (done) → red (blocked).
+// → amber (in flight) → aqua (in review) → green (done) → red (blocked). The loop
+// sub-states (below the divider) reuse the same palette so a "PR ready" pill reads
+// as the same aqua "in review" family as the column it lives in.
 const STATUS_COLOR: Record<string, string> = {
   Backlog: 'var(--muted-foreground)',
   'Not started': 'var(--chart-1)',
@@ -43,6 +45,14 @@ const STATUS_COLOR: Record<string, string> = {
   Released: 'var(--status-good)',
   Closed: 'var(--muted-foreground)',
   Blocked: 'var(--status-critical)',
+  // Loop sub-states (finer than the Notion columns above).
+  Queued: 'var(--chart-1)',
+  'Needs tuning': 'var(--status-warning)',
+  'Spec drafted': 'var(--chart-1)',
+  'Split drafted': 'var(--chart-1)',
+  'In progress': 'var(--status-warning)',
+  'PR ready': 'var(--chart-2)',
+  Merged: 'var(--status-good)',
 };
 
 /** Themed color for a status; unknown statuses fall back to the muted token. */
@@ -56,25 +66,66 @@ export function statusSoftBg(status: string): string {
 }
 
 /**
- * The status a card/node should render as. When the loop reports a `loopStatus`
- * that is one of the board's real statuses, it overrides the Notion status
- * (the loop moved the task); a loop-only label (e.g. "Needs tuning") does not
- * move the card — the Notion status wins for placement.
+ * Loop sub-states finer than Notion's columns → the board column they place in.
+ * The loop tracks a richer lifecycle (readiness → tune → execute → verify) than
+ * Notion's collapsed columns, so e.g. "PR ready" and "In progress" both live in
+ * the one "In progress / PR" lane, while "Spec drafted" is still pre-execution
+ * ("Not started"). The card/detail then surface the precise sub-state on top.
+ */
+const LOOP_STAGE_COLUMN: Record<string, string> = {
+  Queued: 'Not started',
+  'Needs tuning': 'Not started',
+  'Spec drafted': 'Not started',
+  'Split drafted': 'Not started',
+  'In progress': 'In progress / PR',
+  'PR ready': 'In progress / PR',
+  Merged: 'Done',
+};
+
+/**
+ * The board column a loop status places its card in, or `null` when the loop
+ * label shouldn't move the card at all (an unknown loop-only label). A loop
+ * status that is itself a real board column maps to that column; a finer
+ * sub-state maps via `LOOP_STAGE_COLUMN`.
+ */
+function loopColumn(
+  loopStatus: string | null | undefined,
+  statuses: readonly string[],
+): string | null {
+  if (!loopStatus) return null;
+  if (statuses.includes(loopStatus)) return loopStatus;
+  const col = LOOP_STAGE_COLUMN[loopStatus];
+  return col && statuses.includes(col) ? col : null;
+}
+
+/**
+ * The column a card/node should render in. The loop overlay wins when it has one
+ * (the loop moved the task) — either a real column directly, or a finer sub-state
+ * mapped onto its column; otherwise the Notion status wins for placement.
  */
 export function effectiveStatus(
   notionStatus: string,
   loopStatus: string | null | undefined,
   statuses: readonly string[],
 ): string {
-  return loopStatus && statuses.includes(loopStatus) ? loopStatus : notionStatus;
+  return loopColumn(loopStatus, statuses) ?? notionStatus;
 }
 
-/** Whether `loopStatus` is a loop-only label (set, but not a real board column). */
-export function isLoopOnlyStatus(
+/**
+ * The loop label to surface as a pill next to a card — shown whenever the loop
+ * tracks a state more specific than the column it sits in: a finer sub-state
+ * ("PR ready" inside the "In progress / PR" lane) or a label that doesn't move
+ * the card at all ("Needs tuning"). Returns `null` when the loop status *is* the
+ * column (the ◆ marker already conveys "loop-tracked") or is unset.
+ */
+export function loopStageLabel(
   loopStatus: string | null | undefined,
   statuses: readonly string[],
-): boolean {
-  return Boolean(loopStatus) && !statuses.includes(loopStatus as string);
+): string | null {
+  if (!loopStatus) return null;
+  const col = loopColumn(loopStatus, statuses);
+  if (col === null) return loopStatus; // label that doesn't move the card
+  return loopStatus === col ? null : loopStatus; // finer than its column
 }
 
 // Priority palette per the board legend: P0 red, P1 orange, P2 green, P3 blue.

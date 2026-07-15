@@ -1,20 +1,30 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_STATUSES, effectiveStatus, isLoopOnlyStatus } from './taskStatus.js';
+import { DEFAULT_STATUSES, effectiveStatus, loopStageLabel } from './taskStatus.js';
 
 const STATUSES = [...DEFAULT_STATUSES];
 
 describe('effectiveStatus', () => {
-  it('overrides Notion status when the loop reports a real board status', () => {
-    // #22: Notion "Not started", loop "In progress / PR" → moves column.
+  it('overrides Notion status when the loop reports a real board column', () => {
+    // Loop set a canonical column directly → moves the card there.
     expect(effectiveStatus('Not started', 'In progress / PR', STATUSES)).toBe(
       'In progress / PR',
     );
+    expect(effectiveStatus('Not started', 'Blocked', STATUSES)).toBe('Blocked');
   });
 
-  it('keeps the Notion status for a loop-only label', () => {
-    // #68: Notion "Not started", loop "Needs tuning" (not a column) → stays put.
-    expect(effectiveStatus('Not started', 'Needs tuning', STATUSES)).toBe('Not started');
+  it('maps a finer loop sub-state onto its board column', () => {
+    // #22: Notion "Not started", loop "PR ready" → lives in the "In progress / PR" lane.
+    expect(effectiveStatus('Not started', 'PR ready', STATUSES)).toBe('In progress / PR');
+    expect(effectiveStatus('Not started', 'In progress', STATUSES)).toBe('In progress / PR');
+    // Pre-execution drafts stay in the "Not started" lane.
+    expect(effectiveStatus('Not started', 'Spec drafted', STATUSES)).toBe('Not started');
+    expect(effectiveStatus('Not started', 'Split drafted', STATUSES)).toBe('Not started');
+    expect(effectiveStatus('Not started', 'Merged', STATUSES)).toBe('Done');
+  });
+
+  it('keeps the Notion status for an unknown loop-only label', () => {
+    expect(effectiveStatus('Not started', 'Something odd', STATUSES)).toBe('Not started');
   });
 
   it('falls back to Notion status when there is no loop status', () => {
@@ -23,11 +33,21 @@ describe('effectiveStatus', () => {
   });
 });
 
-describe('isLoopOnlyStatus', () => {
-  it('is true only for a set label that is not a real board status', () => {
-    expect(isLoopOnlyStatus('Needs tuning', STATUSES)).toBe(true);
-    expect(isLoopOnlyStatus('In progress / PR', STATUSES)).toBe(false);
-    expect(isLoopOnlyStatus(null, STATUSES)).toBe(false);
-    expect(isLoopOnlyStatus(undefined, STATUSES)).toBe(false);
+describe('loopStageLabel', () => {
+  it('surfaces a finer sub-state as a pill (it differs from its column)', () => {
+    expect(loopStageLabel('PR ready', STATUSES)).toBe('PR ready');
+    expect(loopStageLabel('Spec drafted', STATUSES)).toBe('Spec drafted');
+    expect(loopStageLabel('In progress', STATUSES)).toBe('In progress');
+  });
+
+  it('surfaces a label that does not move the card', () => {
+    expect(loopStageLabel('Needs tuning', STATUSES)).toBe('Needs tuning');
+  });
+
+  it('hides the pill when the loop label IS its column (the ◆ marker suffices)', () => {
+    expect(loopStageLabel('In progress / PR', STATUSES)).toBeNull();
+    expect(loopStageLabel('Blocked', STATUSES)).toBeNull();
+    expect(loopStageLabel(null, STATUSES)).toBeNull();
+    expect(loopStageLabel(undefined, STATUSES)).toBeNull();
   });
 });
