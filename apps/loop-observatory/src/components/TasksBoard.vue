@@ -138,8 +138,8 @@ const columns = computed<Column[]>(() => {
             >
               {{ card.points }} pts
             </span>
-            <!-- Loop sub-state pill (e.g. "PR ready", "Spec drafted", "Needs
-                 tuning"): the precise loop state, finer than the card's column. -->
+            <!-- Loop sub-state pill (e.g. "PR ready", "Queued", "Needs tuning"):
+                 the precise loop state, finer than the card's column. -->
             <span
               v-if="loopStageLabel(card.loopStatus, statuses)"
               class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
