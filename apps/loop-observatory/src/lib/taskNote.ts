@@ -16,8 +16,9 @@ export interface TaskNote {
   /** Rendered HTML of the note body (frontmatter stripped). */
   html: string;
   /**
-   * Editable feedback: the note's `## Notes` section text, scaffold comments
-   * stripped. Pre-fills the drawer's Feedback textarea; empty when untouched.
+   * Editable tuning feedback: the note's `## Feedback` section text, scaffold
+   * comments stripped. Binds the drawer's Feedback textarea; empty by default
+   * (distinct from the loop's `## Notes` outcome, which renders in `html`).
    */
   feedback: string;
   /** Whether `feedback` holds real user content (drives the pending indicator). */
@@ -101,15 +102,19 @@ function findTask(id: string): SprintTask | null {
   return data.tasks.find((t) => String(t.id) === id) ?? null;
 }
 
-const NOTES_HEADING = /^##\s+Notes\s*$/;
+// Two distinct sections: `## Notes` is the loop/general note (rendered read-only
+// in the drawer), `## Feedback` is the editable tuning channel the drawer's
+// textarea binds to and the `tune` skill reads. Keeping them separate stops the
+// loop's outcome from pre-filling the Feedback box.
+const FEEDBACK_HEADING = /^##\s+Feedback\s*$/;
 
 /**
- * The raw text under the `## Notes` heading (heading excluded), up to the next
- * `## ` heading or end of file. `null` when the note has no `## Notes` section.
+ * The raw text under a `## <heading>` section (heading excluded), up to the next
+ * `## ` heading or end of file. `null` when the section is absent.
  */
-export function extractNotesSection(body: string): string | null {
+export function extractSection(body: string, heading: RegExp): string | null {
   const lines = body.split('\n');
-  const start = lines.findIndex((l) => NOTES_HEADING.test(l.trim()));
+  const start = lines.findIndex((l) => heading.test(l.trim()));
   if (start === -1) return null;
   const out: string[] = [];
   for (let i = start + 1; i < lines.length; i += 1) {
@@ -119,6 +124,28 @@ export function extractNotesSection(body: string): string | null {
   return out.join('\n');
 }
 
+/**
+ * The body with a `## <heading>` section removed (heading through the line
+ * before the next `## ` / EOF). Used to keep the editable `## Feedback` out of
+ * the rendered display so the same text isn't shown twice.
+ */
+export function stripSection(body: string, heading: RegExp): string {
+  const lines = body.split('\n');
+  const start = lines.findIndex((l) => heading.test(l.trim()));
+  if (start === -1) return body;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (/^##\s+/.test(lines[i])) {
+      end = i;
+      break;
+    }
+  }
+  return [...lines.slice(0, start), ...lines.slice(end)]
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\s+$/, '');
+}
+
 /** The user-facing feedback text: Notes body with scaffold comments stripped. */
 function feedbackText(notesRaw: string | null): string {
   if (notesRaw === null) return '';
@@ -126,20 +153,25 @@ function feedbackText(notesRaw: string | null): string {
 }
 
 /**
- * Replace the body under a note's `## Notes` heading with `feedback`, preserving
+ * Replace the body under a note's `## <heading>` section with `value`, preserving
  * everything else verbatim — frontmatter, the `# title`, the
- * `<!-- sync:managed -->` line, and any section after Notes. When the note has
- * no `## Notes` heading, one is appended.
+ * `<!-- sync:managed -->` line, and any sibling section. When the section is
+ * absent it is appended (with `headingLine`, e.g. `## Feedback`).
  */
-export function replaceNotesSection(content: string, feedback: string): string {
-  const clean = feedback.replace(/\r\n/g, '\n').replace(/\s+$/, '');
+export function replaceSection(
+  content: string,
+  heading: RegExp,
+  headingLine: string,
+  value: string,
+): string {
+  const clean = value.replace(/\r\n/g, '\n').replace(/\s+$/, '');
   const lines = content.split('\n');
-  const start = lines.findIndex((l) => NOTES_HEADING.test(l.trim()));
+  const start = lines.findIndex((l) => heading.test(l.trim()));
 
   if (start === -1) {
     const base = content.replace(/\s+$/, '');
     const bodyPart = clean ? `${clean}\n` : '';
-    return `${base}\n\n## Notes\n\n${bodyPart}`;
+    return `${base}\n\n${headingLine}\n\n${bodyPart}`;
   }
 
   // End of the Notes section = next `## ` heading (kept), else end of file.
@@ -151,7 +183,7 @@ export function replaceNotesSection(content: string, feedback: string): string {
     }
   }
 
-  const head = lines.slice(0, start + 1).join('\n'); // …up to and incl. "## Notes"
+  const head = lines.slice(0, start + 1).join('\n'); // …up to and incl. the heading
   const tail = lines.slice(end).join('\n'); // next section onward (may be empty)
   const bodyPart = clean ? `${clean}\n` : '';
   let out = `${head}\n\n${bodyPart}`;
@@ -166,7 +198,10 @@ function buildNote(
   content: string,
 ): TaskNote {
   const { frontmatter, body } = parseFrontmatter(content);
-  const feedback = feedbackText(extractNotesSection(body));
+  // Feedback = the `## Feedback` section only (the editable tuning channel).
+  // The rendered display is everything else — including the loop's `## Notes`
+  // outcome — with `## Feedback` stripped so it isn't shown twice.
+  const feedback = feedbackText(extractSection(body, FEEDBACK_HEADING));
   const notionUrl =
     task.scope === 'work' && task.task_ref && /^https?:/.test(task.task_ref)
       ? task.task_ref
@@ -177,7 +212,7 @@ function buildNote(
     path: rel,
     name: task.name,
     frontmatter,
-    html: renderMarkdown(body),
+    html: renderMarkdown(stripSection(body, FEEDBACK_HEADING)),
     feedback,
     hasFeedback: feedback.length > 0,
     notionUrl,
@@ -215,12 +250,13 @@ export function noteHasFeedback(task: SprintTask): boolean {
     return false;
   }
   const { body } = parseFrontmatter(content);
-  return feedbackText(extractNotesSection(body)).length > 0;
+  return feedbackText(extractSection(body, FEEDBACK_HEADING)).length > 0;
 }
 
 /**
- * Write `feedback` into the task's note under `## Notes`, preserving the rest of
- * the file. Returns the freshly re-read note, or `null` when unresolvable/absent.
+ * Write `feedback` into the task's note under `## Feedback` (appended if absent),
+ * preserving the rest of the file — including the loop's `## Notes` outcome.
+ * Returns the freshly re-read note, or `null` when unresolvable/absent.
  */
 export function writeTaskFeedback(id: string, feedback: string): TaskNote | null {
   const task = findTask(id);
@@ -235,7 +271,7 @@ export function writeTaskFeedback(id: string, feedback: string): TaskNote | null
     return null;
   }
 
-  const next = replaceNotesSection(content, feedback);
+  const next = replaceSection(content, FEEDBACK_HEADING, '## Feedback', feedback);
   writeFileSync(resolved.abs, next, 'utf-8');
   return buildNote(id, task, resolved.rel, next);
 }

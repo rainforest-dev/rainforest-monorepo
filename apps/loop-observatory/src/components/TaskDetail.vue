@@ -34,7 +34,7 @@ const note = ref<NoteResponse | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
-// Editable feedback (the note's `## Notes` section).
+// Editable tuning feedback (the note's `## Feedback` section).
 const feedbackDraft = ref('');
 const saving = ref(false);
 const saved = ref(false);
@@ -291,7 +291,7 @@ onMounted(() => {
               <!-- Rendered note (read-only context) -->
               <div v-if="note.html" class="note-body text-sm" v-html="note.html" />
 
-              <!-- Editable feedback → written back into the note's ## Notes -->
+              <!-- Editable feedback → written back into the note's ## Feedback -->
               <section class="border-border mt-5 border-t pt-4">
                 <div class="mb-1.5 flex items-center justify-between gap-2">
                   <h3 class="text-foreground text-sm font-semibold">Feedback</h3>
@@ -304,9 +304,9 @@ onMounted(() => {
                   </span>
                 </div>
                 <p class="text-muted-foreground mb-2 text-xs">
-                  Captured into this note's
-                  <code class="text-foreground">## Notes</code> section — parity with
-                  editing it in Obsidian.
+                  Your tuning directives — saved to this note's
+                  <code class="text-foreground">## Feedback</code> section (the loop's
+                  outcome above stays untouched).
                 </p>
                 <textarea
                   v-model="feedbackDraft"

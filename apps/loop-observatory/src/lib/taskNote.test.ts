@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { extractNotesSection, parseFrontmatter, replaceNotesSection } from './taskNote.js';
+import { extractSection, parseFrontmatter, replaceSection, stripSection } from './taskNote.js';
+
+const NOTES = /^##\s+Notes\s*$/;
+const FEEDBACK = /^##\s+Feedback\s*$/;
 
 const WORK_NOTE = `---
 task_id: 105
@@ -34,8 +37,8 @@ describe('parseFrontmatter', () => {
   });
 });
 
-// A managed work note: frontmatter + title + sync-managed blockquote + a
-// scaffold-only Notes section.
+// A managed work note with the two-section split: `## Notes` (loop outcome,
+// rendered read-only) and `## Feedback` (editable tuning, what `tune` reads).
 const MANAGED_NOTE = `---
 task_id: 105
 scope: "work"
@@ -47,48 +50,72 @@ scope: "work"
 
 ## Notes
 
-<!-- your own notes here; preserved across syncs -->
+- loop outcome: shipped PR #123
+
+## Feedback
+
+<!-- tuning scaffold -->
 `;
 
-describe('extractNotesSection', () => {
-  it('returns the text under ## Notes', () => {
+describe('extractSection', () => {
+  it('returns the text under the requested heading', () => {
     const { body } = parseFrontmatter(MANAGED_NOTE);
-    expect(extractNotesSection(body)).toContain('your own notes here');
+    expect(extractSection(body, NOTES)).toContain('loop outcome: shipped PR #123');
+    expect(extractSection(body, FEEDBACK)).toContain('tuning scaffold');
   });
 
-  it('returns null when there is no ## Notes section', () => {
-    expect(extractNotesSection('# T\n\nbody')).toBeNull();
+  it('returns null when the section is absent', () => {
+    expect(extractSection('# T\n\nbody', FEEDBACK)).toBeNull();
   });
 });
 
-describe('replaceNotesSection', () => {
-  it('replaces only the Notes body, preserving frontmatter, title, and the managed line', () => {
-    const out = replaceNotesSection(MANAGED_NOTE, 'Re-estimate to 3 points; wrong component.');
+describe('stripSection', () => {
+  it('drops the Feedback section but keeps the Notes outcome (drives the read-only display)', () => {
+    const { body } = parseFrontmatter(MANAGED_NOTE);
+    const shown = stripSection(body, FEEDBACK);
+    expect(shown).toContain('loop outcome: shipped PR #123');
+    expect(shown).toContain('## Notes');
+    expect(shown).not.toContain('## Feedback');
+    expect(shown).not.toContain('tuning scaffold');
+  });
 
-    // Preserved verbatim:
+  it('returns the body unchanged when the section is absent', () => {
+    const body = '# T\n\n## Notes\n\nx';
+    expect(stripSection(body, FEEDBACK)).toBe(body);
+  });
+});
+
+describe('replaceSection (Feedback channel)', () => {
+  it('replaces only the Feedback body, preserving frontmatter, title, managed line, and the Notes outcome', () => {
+    const out = replaceSection(MANAGED_NOTE, FEEDBACK, '## Feedback', 'split: A / B; points: 2');
+
     expect(out).toContain('task_id: 105');
     expect(out).toContain('# [SLA Dashboard] Cloud BE task');
     expect(out).toContain('<!-- sync:managed -->');
-    // New feedback written under Notes; scaffold replaced:
-    expect(out).toContain('## Notes');
-    expect(out).toContain('Re-estimate to 3 points; wrong component.');
-    expect(out).not.toContain('your own notes here');
-    // Ordering: managed line stays above the Notes body.
-    expect(out.indexOf('sync:managed')).toBeLessThan(out.indexOf('Re-estimate'));
+    expect(out).toContain('- loop outcome: shipped PR #123'); // Notes untouched
+    expect(out).toContain('## Feedback');
+    expect(out).toContain('split: A / B; points: 2');
+    expect(out).not.toContain('tuning scaffold'); // old feedback replaced
   });
 
-  it('appends a Notes section when the note has none', () => {
-    const out = replaceNotesSection('---\nx: 1\n---\n\n# Title\n\nbody\n', 'hello');
-    expect(out).toContain('# Title');
+  it('appends a Feedback section when the note has none, keeping Notes', () => {
+    const out = replaceSection(
+      '---\nx: 1\n---\n\n# Title\n\n## Notes\n\nkeep\n',
+      FEEDBACK,
+      '## Feedback',
+      'hello',
+    );
     expect(out).toContain('## Notes');
+    expect(out).toContain('keep');
+    expect(out).toContain('## Feedback');
     expect(out).toContain('hello');
   });
 
-  it('preserves a section that follows ## Notes', () => {
-    const withTail = '# T\n\n## Notes\n\nold text\n\n## Other\n\nkeep me\n';
-    const out = replaceNotesSection(withTail, 'new text');
-    expect(out).toContain('new text');
-    expect(out).not.toContain('old text');
+  it('preserves a sibling section that follows Feedback', () => {
+    const withTail = '# T\n\n## Feedback\n\nold\n\n## Other\n\nkeep me\n';
+    const out = replaceSection(withTail, FEEDBACK, '## Feedback', 'new');
+    expect(out).toContain('new');
+    expect(out).not.toContain('old');
     expect(out).toContain('## Other');
     expect(out).toContain('keep me');
   });
