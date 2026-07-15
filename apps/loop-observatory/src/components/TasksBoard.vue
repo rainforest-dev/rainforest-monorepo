@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ExternalLink } from '@lucide/vue';
 import { computed } from 'vue';
 
 // Type-only: keep the client bundle free of tasks.ts's node:fs/node:path deps
@@ -6,6 +7,8 @@ import { computed } from 'vue';
 import type { SprintTask } from '@/lib/tasks';
 import {
   ALWAYS_SHOWN_STATUSES,
+  effectiveStatus,
+  isLoopOnlyStatus,
   priorityColor,
   scopeBadge,
   statusColor,
@@ -23,14 +26,17 @@ interface Column {
   points: number;
 }
 
-// One column per status in board order. Empty columns are dropped unless they
-// are part of the always-shown active middle (Not started → Done).
+// One column per status in board order, grouped by EFFECTIVE status (loop
+// overlay overrides Notion when it reports a real board status). Counts/points
+// therefore reflect where the loop actually moved each task. Empty columns are
+// dropped unless part of the always-shown active middle (Not started → Done).
 const columns = computed<Column[]>(() => {
   const byStatus = new Map<string, SprintTask[]>();
   for (const t of props.tasks) {
-    const list = byStatus.get(t.status) ?? [];
+    const eff = effectiveStatus(t.status, t.loopStatus, props.statuses);
+    const list = byStatus.get(eff) ?? [];
     list.push(t);
-    byStatus.set(t.status, list);
+    byStatus.set(eff, list);
   }
 
   const out: Column[] = [];
@@ -70,13 +76,16 @@ const columns = computed<Column[]>(() => {
       </div>
 
       <div class="flex flex-col gap-2">
-        <button
+        <div
           v-for="card in col.cards"
           :key="card.id ?? card.name"
-          type="button"
-          class="bg-card border-border hover:border-foreground/30 focus-visible:ring-ring group block w-full rounded-lg border border-l-4 p-3 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
+          role="button"
+          tabindex="0"
+          class="bg-card border-border hover:border-foreground/30 focus-visible:ring-ring block w-full cursor-pointer rounded-lg border border-l-4 p-3 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
           :style="{ borderLeftColor: col.color }"
           @click="emit('select', card)"
+          @keydown.enter="emit('select', card)"
+          @keydown.space.prevent="emit('select', card)"
         >
           <div class="mb-1.5 flex items-center gap-2">
             <span class="text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums">
@@ -87,7 +96,7 @@ const columns = computed<Column[]>(() => {
               class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
               :style="{
                 color: priorityColor(card.priority) ?? undefined,
-                backgroundColor: statusSoftBg(card.status),
+                backgroundColor: statusSoftBg(col.status),
               }"
             >
               {{ card.priority }}
@@ -100,6 +109,14 @@ const columns = computed<Column[]>(() => {
               }"
             >
               {{ scopeBadge(card.scope).label }}
+            </span>
+            <!-- Loop-tracked marker: this status came from the loop, not Notion -->
+            <span
+              v-if="card.loopStatus"
+              class="text-muted-foreground/80 shrink-0 text-[9px] font-medium"
+              title="Status tracked by the loop"
+            >
+              ◆ loop
             </span>
             <span
               v-if="card.hasFeedback"
@@ -121,6 +138,28 @@ const columns = computed<Column[]>(() => {
             >
               {{ card.points }} pts
             </span>
+            <!-- Loop-only label (e.g. "Needs tuning"): doesn't move the card -->
+            <span
+              v-if="isLoopOnlyStatus(card.loopStatus, statuses)"
+              class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
+              :style="{
+                color: 'var(--status-warning)',
+                backgroundColor: 'color-mix(in oklab, var(--status-warning) 14%, transparent)',
+              }"
+            >
+              {{ card.loopStatus }}
+            </span>
+            <a
+              v-if="card.pr"
+              :href="card.pr"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary inline-flex shrink-0 items-center gap-0.5 rounded text-[10px] font-medium hover:underline"
+              title="Open pull request"
+              @click.stop
+            >
+              PR <ExternalLink class="size-2.5" />
+            </a>
             <span
               v-if="card.component"
               class="text-muted-foreground border-border truncate rounded border px-1.5 py-0.5 text-[10px]"
@@ -135,7 +174,7 @@ const columns = computed<Column[]>(() => {
               {{ card.epic.name }}
             </span>
           </div>
-        </button>
+        </div>
 
         <p
           v-if="col.cards.length === 0"

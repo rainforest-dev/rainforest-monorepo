@@ -168,7 +168,7 @@ function openTask(task: SprintTask) {
             />
           </TabsContent>
           <TabsContent value="graph">
-            <TasksGraph :tasks="filteredTasks" @select="openTask" />
+            <TasksGraph :tasks="filteredTasks" :statuses="data!.statuses" @select="openTask" />
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseTasks } from './tasks.js';
+import { parseTasks, parseTasksProgress } from './tasks.js';
 
 // A trimmed snapshot mirroring the real tasks.json: one fully-populated task
 // (epic + parent + points + component), one epic-only task (no parent, null
@@ -92,5 +92,41 @@ describe('parseTasks', () => {
     expect(parseTasks('not json')).toBeNull();
     expect(parseTasks('[]')).toBeNull();
     expect(parseTasks('42')).toBeNull();
+  });
+});
+
+describe('parseTasksProgress', () => {
+  const OVERLAY = JSON.stringify({
+    updated_at: '2026-07-14T05:00:00Z',
+    source: 'loop',
+    tasks: {
+      '22': { loop_status: 'In progress / PR', pr: 'https://gh/pull/2404', note: 'opened PR' },
+      '31': { loop_status: 'In progress / PR', pr: null, note: null },
+      '68': { loop_status: 'Needs tuning', pr: null, note: 'flaky' },
+    },
+  });
+
+  it('parses the id → progress map with pr/note nullable', () => {
+    const map = parseTasksProgress(OVERLAY)!;
+    expect(Object.keys(map)).toEqual(['22', '31', '68']);
+    expect(map['22']).toEqual({
+      loop_status: 'In progress / PR',
+      pr: 'https://gh/pull/2404',
+      note: 'opened PR',
+    });
+    expect(map['31'].pr).toBeNull();
+    expect(map['68'].loop_status).toBe('Needs tuning');
+  });
+
+  it('skips malformed entries and returns null for a bad shape', () => {
+    const map = parseTasksProgress(
+      JSON.stringify({ tasks: { '1': { loop_status: 'Done' }, '2': 'nope', '3': null } }),
+    )!;
+    expect(Object.keys(map)).toEqual(['1']);
+    expect(map['1']).toEqual({ loop_status: 'Done', pr: null, note: null });
+
+    expect(parseTasksProgress('not json')).toBeNull();
+    expect(parseTasksProgress(JSON.stringify({ no_tasks: true }))).toBeNull();
+    expect(parseTasksProgress('[]')).toBeNull();
   });
 });
