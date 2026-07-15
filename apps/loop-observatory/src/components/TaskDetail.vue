@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check, ExternalLink, FileText, Loader2, Save, X } from '@lucide/vue';
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -106,10 +106,22 @@ watch(
   },
 );
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
+
+// Teleport-to-body is a client-only concern (the drawer only ever opens from a
+// user click, never on first paint). Rendering the <Teleport> during SSR emits
+// teleport anchors that Vue then tries to hydrate against <body>'s real
+// children — misaligning and clobbering the Layout's <header>. Gating the
+// Teleport behind a mounted flag keeps SSR + initial client render identical (a
+// bare comment placeholder), so hydration matches; the teleport then mounts
+// purely client-side after mount.
+const mounted = ref(false);
+onMounted(() => {
+  mounted.value = true;
+});
 </script>
 
 <template>
-  <Teleport to="body">
+  <Teleport v-if="mounted" to="body">
     <Transition name="drawer">
       <div v-if="open && task" class="fixed inset-0 z-50 flex justify-end">
         <!-- Overlay -->
