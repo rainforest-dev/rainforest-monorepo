@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_STATUSES, effectiveStatus, loopStageLabel } from './taskStatus.js';
+import {
+  boardColumn,
+  boardColumnColor,
+  columnOwner,
+  ownerMeta,
+  taskOwner,
+} from './taskStatus.js';
 
 const STATUSES = [...DEFAULT_STATUSES];
 
@@ -52,5 +59,66 @@ describe('loopStageLabel', () => {
     expect(loopStageLabel('Blocked', STATUSES)).toBeNull();
     expect(loopStageLabel(null, STATUSES)).toBeNull();
     expect(loopStageLabel(undefined, STATUSES)).toBeNull();
+  });
+});
+
+describe('taskOwner', () => {
+  it('loop sub-state decides the owner, over the Notion status', () => {
+    expect(taskOwner('Not started', 'In progress')).toBe('ai');
+    expect(taskOwner('Not started', 'PR ready')).toBe('you');
+    expect(taskOwner('Not started', 'Spec drafted')).toBe('you');
+    expect(taskOwner('Not started', 'Queued')).toBe('ai');
+  });
+
+  it('falls back to the Notion status with no loop overlay', () => {
+    expect(taskOwner('Blocked', null)).toBe('you');
+    expect(taskOwner('Done', undefined)).toBe('done');
+    expect(taskOwner('Not started', null)).toBe('parked');
+    expect(taskOwner('In progress / PR', null)).toBe('ai');
+  });
+
+  it('treats unknown states as parked', () => {
+    expect(taskOwner('Something odd', null)).toBe('parked');
+  });
+});
+
+describe('boardColumn', () => {
+  it('splits In progress / PR into two owner-distinct columns', () => {
+    expect(boardColumn('Not started', 'In progress')).toBe('In progress');
+    expect(boardColumn('Not started', 'PR ready')).toBe('In review');
+  });
+
+  it('maps the rest of the loop tail and holds drafts in Not started', () => {
+    expect(boardColumn('Not started', 'Merged')).toBe('In QA');
+    expect(boardColumn('In QA', 'Released')).toBe('Released');
+    expect(boardColumn('Not started', 'Spec drafted')).toBe('Not started');
+    expect(boardColumn('Not started', 'Queued')).toBe('Not started');
+  });
+
+  it('defaults a no-overlay In progress / PR to the In progress column', () => {
+    expect(boardColumn('In progress / PR', null)).toBe('In progress');
+    expect(boardColumn('Done', null)).toBe('Done');
+  });
+});
+
+describe('columnOwner + boardColumnColor', () => {
+  it('assigns each board column an owner', () => {
+    expect(columnOwner('In progress')).toBe('ai');
+    expect(columnOwner('In review')).toBe('you');
+    expect(columnOwner('Not started')).toBe('parked');
+    expect(columnOwner('Done')).toBe('done');
+  });
+
+  it('tints by owner but keeps Blocked critical-red', () => {
+    expect(boardColumnColor('In progress')).toBe('var(--chart-1)');
+    expect(boardColumnColor('In review')).toBe('var(--status-warning)');
+    expect(boardColumnColor('Blocked')).toBe('var(--status-critical)');
+  });
+});
+
+describe('ownerMeta', () => {
+  it('gives each owner a label + themed color', () => {
+    expect(ownerMeta('you').label).toBe('You');
+    expect(ownerMeta('ai').color).toBe('var(--chart-1)');
   });
 });

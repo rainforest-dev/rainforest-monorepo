@@ -137,6 +137,138 @@ export function loopStageLabel(
   return loopStatus === col ? null : loopStatus; // finer than its column
 }
 
+// ── Ownership: whose turn is it — AI working vs a human action item. ──────────
+// The board's second dimension: a task is owned by the loop (AI still
+// progressing) or by the human (a PR to review, a draft to decide, a blocker to
+// clear). Derived from the loop sub-state, falling back to the Notion status.
+export type Owner = 'ai' | 'you' | 'done' | 'parked';
+
+const OWNER_OF: Record<string, Owner> = {
+  Backlog: 'parked',
+  'Not started': 'parked',
+  Queued: 'ai',
+  'Needs tuning': 'you',
+  'Spec drafted': 'you',
+  'Split drafted': 'you',
+  'In progress': 'ai',
+  'In progress / PR': 'ai', // no loop overlay → assume active, not awaiting you
+  'PR ready': 'you',
+  'In review': 'you',
+  Merged: 'you',
+  'In QA': 'you',
+  Done: 'done',
+  Released: 'done',
+  Closed: 'done',
+  Blocked: 'you',
+};
+
+/** Whose turn a task is on: the loop sub-state wins, else the Notion status. */
+export function taskOwner(
+  notionStatus: string,
+  loopStatus: string | null | undefined,
+): Owner {
+  if (loopStatus && loopStatus in OWNER_OF) return OWNER_OF[loopStatus];
+  return OWNER_OF[notionStatus] ?? 'parked';
+}
+
+export interface OwnerMeta {
+  key: Owner;
+  label: string;
+  color: string;
+}
+
+const OWNER_META: Record<Owner, OwnerMeta> = {
+  ai: { key: 'ai', label: 'AI', color: 'var(--chart-1)' },
+  you: { key: 'you', label: 'You', color: 'var(--status-warning)' },
+  done: { key: 'done', label: 'Done', color: 'var(--status-good)' },
+  parked: { key: 'parked', label: 'Parked', color: 'var(--muted-foreground)' },
+};
+
+/** Display metadata (label + themed color) for an owner. */
+export function ownerMeta(owner: Owner): OwnerMeta {
+  return OWNER_META[owner];
+}
+
+// ── Board columns: the dashboard's own column list, finer than Notion's. ──────
+// Notion collapses active work into one "In progress / PR" column; the board
+// splits it into "In progress" (AI) + "In review" (you) so ownership reads at a
+// glance. Notion's schema is untouched — the loop overlay already tracks the two.
+export const BOARD_COLUMNS: readonly string[] = [
+  'Backlog',
+  'Not started',
+  'In progress',
+  'In review',
+  'In QA',
+  'Done',
+  'Released',
+  'Closed',
+  'Blocked',
+];
+
+/** Columns the board always renders even when empty (the active middle). */
+export const ALWAYS_SHOWN_COLUMNS: readonly string[] = [
+  'Not started',
+  'In progress',
+  'In review',
+  'In QA',
+  'Done',
+];
+
+// Loop sub-state → board column (finer than LOOP_STAGE_COLUMN's Notion columns).
+const BOARD_STAGE_COLUMN: Record<string, string> = {
+  Queued: 'Not started',
+  'Needs tuning': 'Not started',
+  'Spec drafted': 'Not started',
+  'Split drafted': 'Not started',
+  'In progress': 'In progress',
+  'PR ready': 'In review',
+  Merged: 'In QA',
+  Released: 'Released',
+};
+
+// Notion status → board column. Only the split status diverges; the rest are
+// identity (they share names with BOARD_COLUMNS).
+const NOTION_BOARD_COLUMN: Record<string, string> = {
+  'In progress / PR': 'In progress',
+};
+
+/** The board column a task renders in: loop sub-state wins, else Notion status. */
+export function boardColumn(
+  notionStatus: string,
+  loopStatus: string | null | undefined,
+): string {
+  if (loopStatus) {
+    const mapped = BOARD_STAGE_COLUMN[loopStatus];
+    if (mapped) return mapped;
+    if (BOARD_COLUMNS.includes(loopStatus)) return loopStatus;
+  }
+  return NOTION_BOARD_COLUMN[notionStatus] ?? notionStatus;
+}
+
+// Each board column's single owner (drives the header icon + tint).
+const COLUMN_OWNER: Record<string, Owner> = {
+  Backlog: 'parked',
+  'Not started': 'parked',
+  'In progress': 'ai',
+  'In review': 'you',
+  'In QA': 'you',
+  Done: 'done',
+  Released: 'done',
+  Closed: 'done',
+  Blocked: 'you',
+};
+
+/** The owner a board column belongs to. */
+export function columnOwner(column: string): Owner {
+  return COLUMN_OWNER[column] ?? 'parked';
+}
+
+/** A board column's accent color: its owner's color, except Blocked stays red. */
+export function boardColumnColor(column: string): string {
+  if (column === 'Blocked') return 'var(--status-critical)';
+  return ownerMeta(columnOwner(column)).color;
+}
+
 // Priority palette per the board legend: P0 red, P1 orange, P2 green, P3 blue.
 const PRIORITY_COLOR: Record<string, string> = {
   P0: 'var(--status-critical)',
