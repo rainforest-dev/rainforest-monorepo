@@ -8,8 +8,8 @@ export const Route = createFileRoute('/api/sessions/$sessionId/chat')({
       POST: async ({ params, request }) => {
         const { sessionId } = params;
         try {
-          const { directory, prompt, agent } = await request.json();
-          startAgentSession(sessionId, directory, prompt, agent || 'agy');
+          const { directory, prompt, agent, model } = await request.json();
+          startAgentSession(sessionId, directory, prompt, agent || 'agy', { model });
           return new Response(JSON.stringify({ success: true }), {
             headers: { 'Content-Type': 'application/json' }
           });
