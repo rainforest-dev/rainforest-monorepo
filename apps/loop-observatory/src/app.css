@@ -26,6 +26,9 @@
   :root {
     --chart-1: #2a78d6;
     --chart-2: #1baf7a;
+    --chart-3: #6455d0;
+    --chart-4: #c14b8f;
+    --chart-5: #0e8f9e;
     --status-good: #0ca30c;
     --status-warning: #d98a00;
     --status-critical: #d03b3b;
@@ -35,6 +38,9 @@
     :root {
       --chart-1: #3987e5;
       --chart-2: #199e70;
+      --chart-3: #7d6ee8;
+      --chart-4: #d466a4;
+      --chart-5: #1aa6b5;
       --status-good: #16b516;
       --status-warning: #fab219;
       --status-critical: #e05a5a;
@@ -44,6 +50,9 @@
   :root[data-scheme='dark'] {
     --chart-1: #3987e5;
     --chart-2: #199e70;
+    --chart-3: #7d6ee8;
+    --chart-4: #d466a4;
+    --chart-5: #1aa6b5;
     --status-good: #16b516;
     --status-warning: #fab219;
     --status-critical: #e05a5a;
@@ -52,6 +61,9 @@
   :root[data-scheme='light'] {
     --chart-1: #2a78d6;
     --chart-2: #1baf7a;
+    --chart-3: #6455d0;
+    --chart-4: #c14b8f;
+    --chart-5: #0e8f9e;
     --status-good: #0ca30c;
     --status-warning: #d98a00;
     --status-critical: #d03b3b;
