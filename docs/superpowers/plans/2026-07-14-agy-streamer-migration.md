@@ -4,7 +4,7 @@
 
 **Goal:** Migrate `agy-streamer` from an untracked folder in `rainforest-homelab` into `apps/agy-streamer` in the Nx workspace, re-skin it onto the shared dynamic-theme branding, and make its already-built (but currently non-functional) tool-approval UI actually pause execution for real decisions.
 
-**Architecture:** Copy the existing TanStack Start app into `apps/agy-streamer` (no Python at all — `agent_worker.py`/the SDK path is a confirmed dead end, requires a separate paid API key). Rewire `agent-manager.ts`'s `agy` branch from plain non-interactive `child_process.spawn` to `node-pty`-driven genuine interactive mode (`agy -i`), which is the only path confirmed to support real approval-gating, authenticated via the existing Google AI Pro OAuth session at no extra cost. A new parser (`agy-pty-parser.ts`) turns the raw ANSI-laden PTY output into structured menu-prompt events; `pendingResolve`/`handleToolApproval` widen from boolean to option-index to support the real 2-4-option prompts. Add a `codex` branch alongside the existing `claude`/`agy` ones (blocked pending `codex` actually being installed). Re-theme onto `libs/rainforest-ui/src/tailwindcss/shadcn.ts`. The running service is deployed and managed from `rainforest-homelab` via launchd, since it needs local PTY-spawn access to `agy`/`claude`/`codex` that can't exist on a cloud platform.
+**Architecture:** Copy the existing TanStack Start app into `apps/agy-streamer` (no Python at all — `agent_worker.py`/the SDK path is a confirmed dead end, requires a separate paid API key). Rewire `agent-manager.ts`'s `agy` branch from plain non-interactive `child_process.spawn` to `node-pty`-driven genuine interactive mode (`agy -i`), which is the only path confirmed to support real approval-gating, authenticated via the existing Google AI Pro OAuth session at no extra cost. A new parser (`agy-pty-parser.ts`) turns the raw ANSI-laden PTY output into structured menu-prompt events; `pendingResolve`/`handleToolApproval` widen from boolean to option-index to support the real 2-4-option prompts. (A `codex` third backend was considered but dropped — user does not use codex.) Re-theme onto `libs/rainforest-ui/src/tailwindcss/shadcn.ts`. The running service is deployed and managed from `rainforest-homelab` via launchd, since it needs local PTY-spawn access to `agy`/`claude` that can't exist on a cloud platform.
 
 **Tech Stack:** TanStack Start (React 19.2, Vite 8), shadcn/ui + Radix, Tailwind v4, `node-pty` + `strip-ansi` (interactive CLI automation), Nx, pnpm workspace, launchd (deployment, in `rainforest-homelab`). No Python.
 
@@ -948,116 +948,13 @@ Use a real commit message summarizing what was actually built, once Steps 1-5 ar
 
 ## Task 7: Add a `codex` branch to `agent-manager.ts`
 
-**Blocked on a prerequisite — check before starting:** `codex` is not installed on this machine (verified: `which codex` → not found; only an unopened `Codex.dmg` sits in `~/Downloads`). This task cannot be written or verified against real CLI behavior until it's installed. **Do not guess at codex's flags or output format** — if it's still not installed when you reach this task, skip it and move to Task 8/9 with the agent-type selector's `codex` option and its selector code left out (ship agy's real-approval fix and the theming migration without codex support, and revisit this task later once codex is actually available to test against).
-
-**Files:**
-- Modify: `apps/agy-streamer/src/lib/agent-manager.ts`
-- Modify: `apps/agy-streamer/src/lib/agent-manager.test.ts`
-
-- [ ] **Step 1: Confirm codex is installed, then check its actual non-interactive output format**
-
-```bash
-which codex || echo "NOT INSTALLED - stop here, see task header"
-codex exec --help 2>&1 | grep -i "json\|output\|format"
-```
-
-Read the actual flag name for structured/JSON output (this plan cannot assume it matches `claude`'s `--output-format stream-json` naming without checking — codex may use a different flag or format entirely). Adjust Step 2 below to match whatever this command reveals.
-
-- [ ] **Step 2: Write a failing test asserting `startAgentSession` spawns the codex binary with the right args for `agentType === 'codex'`**
-
-Add to `apps/agy-streamer/src/lib/agent-manager.test.ts` (adapt the exact flags based on Step 1's findings):
-```typescript
-  it('should spawn the codex binary when agentType is codex', async () => {
-    const { spawn } = await import('child_process');
-    const spawnSpy = vi.spyOn(await import('child_process'), 'spawn');
-
-    const { startAgentSession } = await import('./agent-manager');
-    try {
-      await startAgentSession('test-codex-session', '/tmp', 'test prompt', 'codex');
-    } catch (e) {
-      // Spawn will fail in test env without the real binary present - that's fine,
-      // this test only asserts the spawn call shape, not successful execution.
-    }
-
-    expect(spawnSpy).toHaveBeenCalled();
-    const [binary, args] = spawnSpy.mock.calls[spawnSpy.mock.calls.length - 1];
-    expect(String(binary)).toContain('codex');
-    expect(args).toContain('test prompt');
-  });
-```
-
-- [ ] **Step 3: Run it, confirm it fails**
-
-```bash
-pnpm nx test agy-streamer -- agent-manager.test.ts
-```
-
-Expected: FAIL — `agentType === 'codex'` currently falls through to the `agy` branch (the `else`), so it'll try to spawn `agy`/`uv`, not `codex`.
-
-- [ ] **Step 4: Add the codex branch**
-
-Change the `if (agentType === 'claude') { ... } else { ... }` structure to a three-way branch. Add before the final `else`:
-```typescript
-  } else if (agentType === 'codex') {
-    const codexBinary = path.join(os.homedir(), '.local/bin/codex');
-    child = spawn(codexBinary, [
-      'exec', prompt,
-      // TODO-VERIFIED-AT-STEP-1: replace with the actual flag(s) Step 1 found
-    ], {
-      cwd: directory,
-      env: { ...process.env },
-    });
-
-    let stdoutBuffer = '';
-    child.stdout.on('data', async (chunk) => {
-      stdoutBuffer += chunk.toString('utf8');
-      const lines = stdoutBuffer.split('\n');
-      stdoutBuffer = lines.pop() || '';
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        // Parsing logic depends entirely on Step 1's findings - if codex exec
-        // supports a JSON stream format, mirror the claude branch's parser
-        // (assistant/tool_use/tool_result event types). If it only supports
-        // plain text output, append each line directly as a PLANNER_RESPONSE
-        // entry instead of attempting JSON.parse.
-        await appendLogEntry(sessionId, { type: 'PLANNER_RESPONSE', content: line, ts: new Date().toISOString() });
-      }
-    });
-  } else {
-```
-
-This step intentionally cannot give exact final parsing code sight-unseen — Step 1's output determines whether codex has a structured stream format (mirror the `claude` branch) or only plain text (append lines directly, as sketched above). Resolve the `TODO-VERIFIED-AT-STEP-1` marker and the parsing logic using Step 1's actual findings before moving on — do not leave the TODO in the committed code.
-
-- [ ] **Step 5: Run the test again, confirm it passes**
-
-```bash
-pnpm nx test agy-streamer -- agent-manager.test.ts
-```
-
-- [ ] **Step 6: Manual verification — launch a real codex session through the UI (requires adding `codex` as a third `<option>` in the agent-type selector — see Task 8, Step 1, which must land before this can be tested end-to-end via the UI; alternatively POST directly to the chat route to test the backend in isolation)**
-
-```bash
-curl -X POST http://localhost:3000/api/sessions/test-codex-manual/chat \
-  -H 'Content-Type: application/json' \
-  -d '{"directory": "/tmp", "prompt": "say hello", "agent": "codex"}'
-```
-
-Confirm via the session's SSE stream or the transcript log that codex actually ran and produced output.
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add apps/agy-streamer/src/lib/agent-manager.ts apps/agy-streamer/src/lib/agent-manager.test.ts
-git commit -m "feat(agy-streamer): add codex as a third agent backend
-
-Mirrors the claude branch's spawn-and-parse pattern. Codex does not
-get the real approval-gating fix from Task 6 - it's a launcher like
-claude, not the primary controlled experience agy is."
-```
+**DROPPED — user decision, not just still-blocked.** Originally blocked on `codex` not being installed (only an unopened `Codex.dmg` sat in `~/Downloads`). When asked whether to install it and unblock this task, the user said "I don't use codex here" — a scope decision, not a scheduling one. This task and its UI-selector counterpart in the original Task 8 are cancelled, not deferred. `agy-streamer` supports exactly two agent backends: `agy` (real approval-gating via Task 6) and `claude`. Do not resurrect this without the user explicitly asking for codex support again.
 
 ---
 
-## Task 8: Add `codex` to the UI selector, plus model selection for agy
+## Task 8: Add model selection for agy
+
+Originally titled "Add `codex` to the UI selector, plus model selection for agy" — the codex-selector half is dropped along with Task 7 above (user: "I don't use codex here"). Only the model-selection work remains, which was never codex-specific.
 
 No persona/`--agent` selector — `agy agents` returned an empty list in testing, nothing to select. Model selection only, and only for the `agy` agent type (the one path that actually reads a `--model` flag in this design).
 
@@ -1065,9 +962,9 @@ No persona/`--agent` selector — `agy agents` returned an empty list in testing
 - Modify: `apps/agy-streamer/src/routes/sessions.$sessionId.tsx`
 - Modify: `apps/agy-streamer/src/routes/api/sessions/$sessionId/chat.ts`
 
-- [ ] **Step 1: Add the third option to the existing agent-type `<select>`**
+- [ ] **Step 1: Apply the Task 4 token-class retrofit to the existing agent-type `<select>` (still just `agy`/`claude` — no codex option)**
 
-Current select (in `sessions.$sessionId.tsx`):
+Current select (in `sessions.$sessionId.tsx`) may still have pre-Task-4 literal colors if this specific element was missed in that pass — check first, since Task 4 already retrofitted most of this file:
 ```tsx
             <select
               value={agentType}
@@ -1079,7 +976,7 @@ Current select (in `sessions.$sessionId.tsx`):
             </select>
 ```
 
-Add a third option (and apply the Task 4 token-class retrofit to this element while touching it):
+If still on literal colors, update to token classes (still exactly two options — do not add a third):
 ```tsx
             <select
               value={agentType}
@@ -1088,7 +985,6 @@ Add a third option (and apply the Task 4 token-class retrofit to this element wh
             >
               <option value="agy">🪐 Antigravity CLI</option>
               <option value="claude">🤖 Claude Code</option>
-              <option value="codex">🧭 Codex</option>
             </select>
 ```
 
@@ -1174,7 +1070,7 @@ Confirm the model input appears only for the `agy` agent type, and a session sta
 
 ```bash
 git add apps/agy-streamer/src/routes/sessions.\$sessionId.tsx apps/agy-streamer/src/routes/api/sessions/\$sessionId/chat.ts apps/agy-streamer/src/lib/agent-manager.ts
-git commit -m "feat(agy-streamer): add codex to agent selector, add model selection for agy
+git commit -m "feat(agy-streamer): add model selection for agy
 
 Model input only shows for the agy agent type, passed through as
 --model to the PTY-spawned agy -i process. No persona/--agent
@@ -1225,7 +1121,7 @@ Review the commit sequence for this migration reads cleanly as a coherent story 
 
 ## Task 10: Persistent local deployment, managed from `rainforest-homelab`
 
-**Why this is a separate repo from the code**: the app's entire purpose depends on spawning `agy`/`claude`/`codex` as local PTY subprocesses on this specific Mac (the `node-pty` native module also needs to be built for this machine — see Step 1). It cannot run on a cloud platform (unlike `personal-website`'s Vercel deploy) — it has to run *here*, persistently, bound to the Tailscale IP. `rainforest-homelab` is the infra-as-code repo for exactly this kind of thing (it already manages other local/homelab services via Terraform and `configs/`), so the *deployment* artifact lives there even though the *code* lives in `rainforest-monorepo`.
+**Why this is a separate repo from the code**: the app's entire purpose depends on spawning `agy`/`claude` as local PTY subprocesses on this specific Mac (the `node-pty` native module also needs to be built for this machine — see Step 1). It cannot run on a cloud platform (unlike `personal-website`'s Vercel deploy) — it has to run *here*, persistently, bound to the Tailscale IP. `rainforest-homelab` is the infra-as-code repo for exactly this kind of thing (it already manages other local/homelab services via Terraform and `configs/`), so the *deployment* artifact lives there even though the *code* lives in `rainforest-monorepo`.
 
 **Files:**
 - Create: `rainforest-homelab/configs/agy-streamer/tools.rainforest.agy-streamer.plist`
@@ -1291,8 +1187,8 @@ Create `rainforest-homelab/configs/agy-streamer/README.md`:
 
 Code lives in `rainforest-monorepo` at `apps/agy-streamer` — this directory only
 holds the launchd config that runs it persistently on this Mac, bound to the
-Tailscale IP, since the app needs local PTY-spawn access to `agy`, `claude`,
-and `codex` that only exists here (it cannot run on a cloud platform).
+Tailscale IP, since the app needs local PTY-spawn access to `agy` and `claude`
+that only exists here (it cannot run on a cloud platform).
 
 ## Install
 
