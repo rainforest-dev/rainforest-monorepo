@@ -7,10 +7,24 @@ import stripAnsi from 'strip-ansi';
 
 import { isIdlePrompt, type MenuPrompt,parseMenuPrompt, selectionKeystrokes } from './agy-pty-parser';
 
+interface PendingPermissionRequest {
+  message: string;
+  options: string[];
+}
+
 interface AgentSession {
   process: any;
   controllers: Set<ReadableStreamDefaultController>;
   pendingResolve: ((optionIndex: number) => void) | null;
+  // Mirrors the last `permission_request` broadcast while it's still
+  // unresolved. `broadcast()` only reaches controllers connected at the
+  // moment it fires - a client that connects (or reconnects) after a
+  // prompt has already been shown would otherwise see the raw PTY output
+  // log, but never get the interactive approval card, since that state
+  // is normally only ever pushed once, live. Replayed to newly-connecting
+  // clients in `addSSEClient` so reconnecting mid-approval re-syncs the
+  // actual current state instead of only waiting on future events.
+  pendingPermissionRequest: PendingPermissionRequest | null;
 }
 
 const activeSessions = new Map<string, AgentSession>();
@@ -21,7 +35,8 @@ export function getOrCreateSession(sessionId: string): AgentSession {
     activeSessions.set(sessionId, {
       process: null,
       controllers: new Set(),
-      pendingResolve: null
+      pendingResolve: null,
+      pendingPermissionRequest: null
     });
   }
   return activeSessions.get(sessionId)!;
@@ -30,7 +45,24 @@ export function getOrCreateSession(sessionId: string): AgentSession {
 export function addSSEClient(sessionId: string, controller: ReadableStreamDefaultController) {
   const session = getOrCreateSession(sessionId);
   session.controllers.add(controller);
-  
+
+  // Re-sync a newly-connecting client to a currently-pending approval
+  // request it would otherwise never see, since the original broadcast
+  // already fired before this connection existed.
+  if (session.pendingPermissionRequest) {
+    try {
+      const payload = `data: ${JSON.stringify({
+        type: 'permission_request',
+        message: session.pendingPermissionRequest.message,
+        options: session.pendingPermissionRequest.options,
+      })}\n\n`;
+      controller.enqueue(new TextEncoder().encode(payload));
+    } catch (e) {
+      // Controller not ready to receive yet - the client will still get
+      // the live broadcast if the prompt is still pending when it fires.
+    }
+  }
+
   // Clean up on disconnect
   return () => {
     session.controllers.delete(controller);
@@ -245,12 +277,14 @@ export async function startAgentSession(sessionId: string, directory: string, pr
         const menuPrompt: MenuPrompt | null = parseMenuPrompt(stripped);
         if (menuPrompt) {
           turnStarted = true;
-          broadcast(sessionId, {
-            type: 'permission_request',
+          const permissionRequest: PendingPermissionRequest = {
             message: menuPrompt.message,
             options: menuPrompt.options.map((o) => o.label),
-          });
+          };
+          session.pendingPermissionRequest = permissionRequest;
+          broadcast(sessionId, { type: 'permission_request', ...permissionRequest });
           const chosenIndex = await waitForApproval(sessionId);
+          session.pendingPermissionRequest = null;
           lastOptionWasDenial = isLikelyDenial(menuPrompt.options[chosenIndex]?.label ?? '');
           ptyProcess.write(selectionKeystrokes(menuPrompt, chosenIndex));
           return;
@@ -263,6 +297,7 @@ export async function startAgentSession(sessionId: string, directory: string, pr
 
     ptyProcess.onExit(({ exitCode }) => {
       session.pendingResolve = null;
+      session.pendingPermissionRequest = null;
       broadcast(sessionId, { type: 'turn_complete', code: exitCode });
       session.process = null;
       if (session.controllers.size === 0) {
