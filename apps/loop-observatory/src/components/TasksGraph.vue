@@ -57,7 +57,7 @@ interface Station {
 const STATIONS: Station[] = [
   { key: 'notstarted', label: 'Not started', cx: 200, cy: 165, labelX: 200, labelY: 132, rail: { x: 200, y: 272, dx: 0, dy: 60 } },
   { key: 'inprogress', label: 'In progress', cx: 690, cy: 165, labelX: 690, labelY: 132, rail: { x: 560, y: 165, dx: -150, dy: 0 } },
-  { key: 'inreview', label: 'In review', cx: 800, cy: 365, labelX: 800, labelY: 398, rail: { x: 826, y: 210, dx: 0, dy: 48 } },
+  { key: 'inreview', label: 'In review', cx: 800, cy: 365, labelX: 800, labelY: 398, rail: { x: 850, y: 276, dx: 0, dy: 44 } },
   { key: 'inqa', label: 'In QA', cx: 600, cy: 545, labelX: 600, labelY: 578, rail: { x: 600, y: 588, dx: 0, dy: 54 } },
   { key: 'done', label: 'Done', cx: 200, cy: 545, labelX: 200, labelY: 578, rail: { x: 300, y: 545, dx: 120, dy: 0 } },
 ];
@@ -69,7 +69,7 @@ const BLOCKED: Station = {
   cy: 430,
   labelX: 690,
   labelY: 452,
-  rail: { x: 690, y: 243, dx: 0, dy: 46 },
+  rail: { x: 678, y: 246, dx: 0, dy: 44 },
 };
 const ALL_STATIONS = [...STATIONS, BLOCKED];
 const RAIL_OF: Record<string, Rail> = Object.fromEntries(ALL_STATIONS.map((s) => [s.key, s.rail]));
@@ -254,15 +254,21 @@ function measure() {
   }
 }
 const boardStyle = computed(() => {
-  const bx = stageSize.w / 2 - BOARD_W / 2 + view.x;
-  const by = stageSize.h / 2 - BOARD_H / 2 + view.y;
+  // Centre the *scaled* board (transform-origin is 0 0, so account for scale).
+  const bx = (stageSize.w - BOARD_W * view.scale) / 2 + view.x;
+  const by = (stageSize.h - BOARD_H * view.scale) / 2 + view.y;
   return { transform: `translate(${bx}px, ${by}px) scale(${view.scale})` };
 });
 const clampK = (v: number) => Math.min(2.2, Math.max(0.5, +v.toFixed(2)));
+// Scale that fits the whole 920×640 board inside the stage (small margin).
+function fitScale(): number {
+  if (!stageSize.w || !stageSize.h) return 1;
+  return clampK(Math.min(stageSize.w / BOARD_W, stageSize.h / BOARD_H) * 0.94);
+}
 const zoomIn = () => (view.scale = clampK(view.scale + 0.15));
 const zoomOut = () => (view.scale = clampK(view.scale - 0.15));
 const reset = () => {
-  view.scale = 1;
+  view.scale = fitScale();
   view.x = 0;
   view.y = 0;
 };
@@ -375,6 +381,7 @@ watch(packetsOn, syncPackets);
 onMounted(() => {
   mounted.value = true;
   measure();
+  view.scale = fitScale();
   window.addEventListener('resize', measure);
   syncPackets();
 });
@@ -387,7 +394,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="border-border relative overflow-hidden rounded-lg border">
     <!-- Legend (color is never the sole signal — icons + textures back it) -->
-    <div class="legend" aria-label="Graph legend">
+    <div class="legend" role="group" aria-label="Graph legend">
       <span class="item"><Bot class="ico" :style="{ color: ownerMeta('ai').color }" />AI</span>
       <span class="item"><Hand class="ico" :style="{ color: ownerMeta('you').color }" />You</span>
       <span class="item"><Check class="ico" :style="{ color: ownerMeta('done').color }" />Done</span>
@@ -487,6 +494,7 @@ onBeforeUnmount(() => {
           <div
             class="core"
             :class="{ idle: aiActiveCount === 0 }"
+            :title="aiActiveCount > 0 ? coreStageLabel : 'Loop at rest'"
             :style="beatStyle"
             role="button"
             :tabindex="aiActiveCount > 0 ? 0 : -1"
@@ -1218,7 +1226,7 @@ onBeforeUnmount(() => {
     }
   }
   /* Off-screen / hidden tab → freeze every running animation. */
-  .stage.paused :is(.trace-overlay, .trace-return-pulse, .legend .flowkey::after),
+  .stage.paused :is(.trace-overlay, .trace-return-pulse),
   .stage.paused .core::before,
   .stage.paused .core .beatdot {
     animation-play-state: paused !important;
