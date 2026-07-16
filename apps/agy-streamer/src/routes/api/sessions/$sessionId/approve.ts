@@ -8,8 +8,8 @@ export const Route = createFileRoute('/api/sessions/$sessionId/approve')({
       POST: async ({ params, request }) => {
         const { sessionId } = params;
         try {
-          const { decision } = await request.json();
-          const success = handleToolApproval(sessionId, decision);
+          const { optionIndex } = await request.json();
+          const success = handleToolApproval(sessionId, optionIndex);
           return new Response(JSON.stringify({ success }), {
             headers: { 'Content-Type': 'application/json' }
           });

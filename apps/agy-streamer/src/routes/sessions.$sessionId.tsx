@@ -295,9 +295,10 @@ function SessionComponent() {
   
   // Zero-trust permission request state
   const [pendingPermission, setPendingPermission] = useState<{
-    tool: string;
-    args: any;
+    message: string;
+    options: string[];
   } | null>(null);
+  const [turnStopped, setTurnStopped] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -314,6 +315,7 @@ function SessionComponent() {
   useEffect(() => {
     setLogs(initialHistory);
     setPendingPermission(null);
+    setTurnStopped(false);
     setIsRunning(false);
 
     const eventSource = new EventSource(`/api/sessions/${sessionId}/stream`);
@@ -324,10 +326,15 @@ function SessionComponent() {
 
         if (payload.type === 'permission_request') {
           setPendingPermission({
-            tool: payload.tool,
-            args: payload.args
+            message: payload.message,
+            options: payload.options,
           });
+          setTurnStopped(false);
           setIsRunning(false);
+        } else if (payload.type === 'turn_stopped_after_denial') {
+          setIsRunning(false);
+          setPendingPermission(null);
+          setTurnStopped(true);
         } else if (payload.type === 'turn_complete') {
           setIsRunning(false);
           setPendingPermission(null);
@@ -386,11 +393,11 @@ function SessionComponent() {
 
   // Submit Tool Permission Approval Mutation
   const approveMutation = useMutation({
-    mutationFn: async (approved: boolean) => {
+    mutationFn: async (optionIndex: number) => {
       const res = await fetch(`/api/sessions/${sessionId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision: approved })
+        body: JSON.stringify({ optionIndex })
       });
       return res.json();
     },
@@ -600,32 +607,27 @@ function SessionComponent() {
             <div className="max-w-4xl mx-auto glass-panel p-5 rounded-2xl border-2 border-primary/50 shadow-[0_0_30px_color-mix(in_oklab,var(--primary)_15%,transparent)] animate-pulse space-y-4">
               <h3 className="text-sm font-bold text-primary flex items-center gap-2">
                 <ShieldCheck className="size-4 text-primary" strokeWidth={2.5} />
-                Action Required: Tool Execution Intercepted
+                {pendingPermission.message}
               </h3>
-              <div className="text-xs text-foreground space-y-2">
-                <span>The agent is requesting permission to execute:</span>
-                <div className="font-mono bg-background p-4 rounded-xl border border-border text-foreground whitespace-pre-wrap text-[11px] leading-relaxed">
-                  <span className="text-muted-foreground font-bold uppercase block mb-1">
-                    {pendingPermission.tool} — execution args
-                  </span>
-                  {JSON.stringify(pendingPermission.args, null, 2)}
-                </div>
+              <div className="flex flex-col gap-2 pt-2">
+                {pendingPermission.options.map((label, idx) => (
+                  <Button
+                    key={idx}
+                    variant={/^No\b|deny|Deny/.test(label) ? 'destructive' : 'default'}
+                    className="text-xs h-10 px-5 cursor-pointer justify-start"
+                    onClick={() => approveMutation.mutate(idx)}
+                  >
+                    {label}
+                  </Button>
+                ))}
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <Button 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-10 px-5 cursor-pointer shadow-lg shadow-primary/10"
-                  onClick={() => approveMutation.mutate(true)}
-                >
-                  Approve & Execute
-                </Button>
-                <Button 
-                  variant="destructive"
-                  className="font-bold text-xs h-10 px-5 cursor-pointer"
-                  onClick={() => approveMutation.mutate(false)}
-                >
-                  Deny & Cancel
-                </Button>
-              </div>
+            </div>
+          )}
+
+          {/* Turn stopped after a denied action */}
+          {turnStopped && (
+            <div className="max-w-4xl mx-auto text-xs text-muted-foreground italic px-2">
+              Agent stopped — an action was declined.
             </div>
           )}
 

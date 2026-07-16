@@ -33,7 +33,20 @@ const CURSOR_LINE_RE = /^>\s+\S/;
 export function parseMenuPrompt(strippedText: string): MenuPrompt | null {
   const lines = strippedText.split('\n');
 
-  const cursorIdx = lines.findIndex((l) => CURSOR_LINE_RE.test(l));
+  // Search from the end: callers may pass a buffer spanning several
+  // terminal redraws (e.g. `agy -i` repaints its whole screen on every
+  // spinner tick while "Generating...", so a caller debouncing on output
+  // settling can still capture more than one screen back to back). The
+  // most recent, currently-displayed cursor line is always the last match,
+  // not the first — an earlier match could be a stale echoed prompt line
+  // (e.g. "> <the user's original prompt text>") from a prior screen.
+  let cursorIdx = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (CURSOR_LINE_RE.test(lines[i])) {
+      cursorIdx = i;
+      break;
+    }
+  }
   if (cursorIdx === -1) return null;
 
   const optionLines: string[] = [lines[cursorIdx]];
