@@ -18,6 +18,9 @@ describe('effectiveStatus', () => {
     expect(effectiveStatus('Not started', 'PR ready', STATUSES)).toBe('In progress / PR');
     expect(effectiveStatus('Not started', 'In progress', STATUSES)).toBe('In progress / PR');
     expect(effectiveStatus('Not started', 'Queued', STATUSES)).toBe('Not started');
+    // Draft states hold in the "Not started" lane.
+    expect(effectiveStatus('Not started', 'Spec drafted', STATUSES)).toBe('Not started');
+    expect(effectiveStatus('Not started', 'Split drafted', STATUSES)).toBe('Not started');
     expect(effectiveStatus('Not started', 'Merged', STATUSES)).toBe('Done');
   });
 
