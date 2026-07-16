@@ -43,8 +43,11 @@ const columns = computed<Column[]>(() => {
     byColumn.set(col, list);
   }
 
+  // Render BOARD_COLUMNS in order, then any unmapped column actually present in
+  // the data (a renamed/new Notion status) appended, so no task silently vanishes.
+  const extra = [...byColumn.keys()].filter((c) => !BOARD_COLUMNS.includes(c));
   const out: Column[] = [];
-  for (const status of BOARD_COLUMNS) {
+  for (const status of [...BOARD_COLUMNS, ...extra]) {
     const cards = (byColumn.get(status) ?? []).slice().sort((a, b) => a.order - b.order);
     if (cards.length === 0 && !ALWAYS_SHOWN_COLUMNS.includes(status)) continue;
     out.push({

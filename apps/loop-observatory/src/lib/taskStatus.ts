@@ -20,18 +20,6 @@ export const DEFAULT_STATUSES = [
   'Blocked',
 ] as const;
 
-/**
- * Columns the board always renders even when empty — the active middle of the
- * flow, so a sprint never looks "missing" a stage just because no card sits in
- * it yet.
- */
-export const ALWAYS_SHOWN_STATUSES: readonly string[] = [
-  'Not started',
-  'In progress / PR',
-  'In QA',
-  'Done',
-];
-
 // Flow-stage colors drawn from the themed tokens: grey (parked) → blue (queued)
 // → amber (in flight) → aqua (in review) → green (done) → red (blocked). The loop
 // sub-states (below the divider) reuse the same palette so a "PR ready" pill reads

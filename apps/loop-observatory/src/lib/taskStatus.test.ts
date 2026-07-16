@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_STATUSES, effectiveStatus, loopStageLabel } from './taskStatus.js';
 import {
+  BOARD_COLUMNS,
   boardColumn,
   boardColumnColor,
   columnOwner,
@@ -120,5 +121,24 @@ describe('ownerMeta', () => {
   it('gives each owner a label + themed color', () => {
     expect(ownerMeta('you').label).toBe('You');
     expect(ownerMeta('ai').color).toBe('var(--chart-1)');
+  });
+});
+
+describe('boardColumn invariant', () => {
+  const LOOP_VOCAB = [
+    'Queued', 'Needs tuning', 'Spec drafted', 'Split drafted',
+    'In progress', 'PR ready', 'Merged', 'Released', 'Blocked',
+  ];
+
+  it('every Notion status resolves into a real board column', () => {
+    for (const s of DEFAULT_STATUSES) {
+      expect(BOARD_COLUMNS).toContain(boardColumn(s, null));
+    }
+  });
+
+  it('every loop vocab value resolves into a real board column', () => {
+    for (const v of LOOP_VOCAB) {
+      expect(BOARD_COLUMNS).toContain(boardColumn('Not started', v));
+    }
   });
 });
