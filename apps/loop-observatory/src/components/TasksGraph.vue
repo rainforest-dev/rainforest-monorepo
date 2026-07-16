@@ -759,7 +759,9 @@ onBeforeUnmount(() => {
   transform-origin: 0 0;
   will-change: transform;
 }
-.board svg {
+/* Direct-child only: must NOT match the nested lucide icon <svg>s in chips /
+   core / legend / toolbar (that made them fill the whole board). */
+.board > svg {
   position: absolute;
   inset: 0;
   width: 920px;
