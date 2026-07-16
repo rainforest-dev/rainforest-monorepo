@@ -102,14 +102,14 @@ describe('API Route Handlers Integration', () => {
     expect(handler).toBeDefined();
 
     const session = getOrCreateSession('session-xyz');
-    let approvedVal = false;
+    let selectedOptionIndex = -1;
     session.pendingResolve = (val) => {
-      approvedVal = val;
+      selectedOptionIndex = val;
     };
 
     const mockRequest = new Request('http://localhost/api/sessions/session-xyz/approve', {
       method: 'POST',
-      body: JSON.stringify({ decision: true })
+      body: JSON.stringify({ optionIndex: 1 })
     });
 
     const response = await handler!({
@@ -120,6 +120,6 @@ describe('API Route Handlers Integration', () => {
 
     const data = await response.json();
     expect(data.success).toBe(true);
-    expect(approvedVal).toBe(true);
+    expect(selectedOptionIndex).toBe(1);
   });
 });

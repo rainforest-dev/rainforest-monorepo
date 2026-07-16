@@ -1,12 +1,16 @@
 import { spawn } from 'child_process';
 import fs from 'fs/promises';
+import * as pty from 'node-pty';
 import os from 'os';
 import path from 'path';
+import stripAnsi from 'strip-ansi';
+
+import { isIdlePrompt, type MenuPrompt,parseMenuPrompt, selectionKeystrokes } from './agy-pty-parser';
 
 interface AgentSession {
   process: any;
   controllers: Set<ReadableStreamDefaultController>;
-  pendingResolve: ((approved: boolean) => void) | null;
+  pendingResolve: ((optionIndex: number) => void) | null;
 }
 
 const activeSessions = new Map<string, AgentSession>();
@@ -64,7 +68,7 @@ export async function appendLogEntry(sessionId: string, entry: any) {
   await fs.appendFile(logPath, JSON.stringify(logWithTime) + '\n', 'utf8');
 }
 
-export async function startAgentSession(sessionId: string, directory: string, prompt: string, agentType = 'agy') {
+export async function startAgentSession(sessionId: string, directory: string, prompt: string, agentType = 'agy', options: { model?: string } = {}) {
   const session = getOrCreateSession(sessionId);
   if (session.process) {
     throw new Error('An agent session is already running for this ID');
@@ -158,56 +162,118 @@ export async function startAgentSession(sessionId: string, directory: string, pr
     });
   } else {
     const agyBinary = path.join(os.homedir(), '.local/bin/agy');
-    child = spawn(agyBinary, [
-      '--conversation', sessionId,
+    const ptyProcess = pty.spawn(agyBinary, [
+      '-i', prompt,
       '--add-dir', directory,
-      '-p', prompt,
-      '--dangerously-skip-permissions'
+      '--conversation', sessionId,
+      ...(options.model ? ['--model', options.model] : []),
     ], {
+      name: 'xterm-256color',
+      cols: 200,
+      rows: 50,
       cwd: directory,
-      env: { ...process.env }
+      env: { ...process.env } as { [key: string]: string },
     });
+    child = ptyProcess as any;
+    session.process = child;
+
+    let outputBuffer = '';
+    let debounceTimer: NodeJS.Timeout | null = null;
+    let lastOptionWasDenial = false;
+    // `agy -i` briefly renders its normal "ready for input" chrome as part
+    // of its own startup, before it has actually begun working on the
+    // prompt passed via `-i`. That screen is indistinguishable from a real
+    // idle/turn-complete screen by `isIdlePrompt` alone, so we don't trust
+    // an idle reading until we've observed at least one settled screen that
+    // shows the agent actively doing something (generating, running a
+    // tool, or showing a menu prompt).
+    let turnStarted = false;
+
+    const isLikelyDenial = (label: string) => /^No\b|deny|Deny/.test(label);
+
+    ptyProcess.onData((chunk: string) => {
+      outputBuffer += chunk;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        // Each settle point (400ms of no new PTY output) represents one
+        // fully-rendered terminal screen. The buffer must be cleared here
+        // unconditionally rather than only on a successful match: `agy -i`
+        // redraws its whole screen repeatedly while "Generating...", so an
+        // unresolved buffer keeps accumulating multiple stale screens back
+        // to back, each with their own leftover ">"-prefixed lines (e.g.
+        // the echoed prompt). Left unbounded, `parseMenuPrompt` would latch
+        // onto the first (stale) cursor-like line instead of the real,
+        // current one — confirmed via live testing against `agy -i`.
+        const settledBuffer = outputBuffer;
+        outputBuffer = '';
+        // `agy -i` writes CRLF line endings; strip-ansi only removes ANSI
+        // escape codes, not the trailing "\r" on every line. Left in place,
+        // that trailing "\r" makes `agy-pty-parser`'s `(.+)$` line-content
+        // regexes fail to match at all (JS treats \r as a line terminator,
+        // so `.` never consumes it), silently breaking option-label
+        // stripping and numbered-choice detection — confirmed via live
+        // testing against `agy -i`. Normalizing "\r\n" -> "\n" here (not
+        // touching bare mid-line "\r", which agy also uses for in-place
+        // spinner redraws) keeps the parser's plain-text contract intact.
+        const stripped = stripAnsi(settledBuffer).replace(/\r\n/g, '\n');
+        await appendLogEntry(sessionId, { type: 'RAW_PTY_OUTPUT', content: stripped });
+
+        // Check idle *before* menu: after a decision is made, `agy`
+        // sometimes emits one last redraw of the now-closed menu (cursor
+        // still parked on whatever was last selected) immediately before
+        // settling on the idle ready-screen, both within the same settled
+        // buffer. A truly pending menu never coexists with the idle screen
+        // in the same buffer, so idle wins when both appear to match —
+        // otherwise that stale closed-menu redraw gets mistaken for a
+        // brand-new prompt and the turn hangs forever waiting on an
+        // approval nothing will ever answer — confirmed via live testing.
+        if (isIdlePrompt(stripped)) {
+          if (!turnStarted) {
+            // Startup ready-screen, not a real turn completion. Ignore.
+            return;
+          }
+          if (lastOptionWasDenial) {
+            broadcast(sessionId, { type: 'turn_stopped_after_denial' });
+          } else {
+            broadcast(sessionId, { type: 'turn_complete', code: 0 });
+          }
+          lastOptionWasDenial = false;
+          turnStarted = false;
+          return;
+        }
+
+        const menuPrompt: MenuPrompt | null = parseMenuPrompt(stripped);
+        if (menuPrompt) {
+          turnStarted = true;
+          broadcast(sessionId, {
+            type: 'permission_request',
+            message: menuPrompt.message,
+            options: menuPrompt.options.map((o) => o.label),
+          });
+          const chosenIndex = await waitForApproval(sessionId);
+          lastOptionWasDenial = isLikelyDenial(menuPrompt.options[chosenIndex]?.label ?? '');
+          ptyProcess.write(selectionKeystrokes(menuPrompt, chosenIndex));
+          return;
+        }
+
+        // Neither idle nor a menu prompt: the agent is actively working.
+        turnStarted = true;
+      }, 400);
+    });
+
+    ptyProcess.onExit(({ exitCode }) => {
+      session.pendingResolve = null;
+      broadcast(sessionId, { type: 'turn_complete', code: exitCode });
+      session.process = null;
+      if (session.controllers.size === 0) {
+        activeSessions.delete(sessionId);
+      }
+    });
+
+    return;
   }
 
   session.process = child;
-
-  const logDir = path.join(BRAIN_DIR, sessionId, '.system_generated/logs');
-  const logPath = path.join(logDir, 'transcript.jsonl');
-
-  // Start watching from the current file end or 0
-  let byteOffset = 0;
-  fs.stat(logPath).then((stats) => {
-    byteOffset = stats.size;
-  }).catch(() => {
-    byteOffset = 0;
-  });
-
-  const tailInterval = setInterval(async () => {
-    try {
-      const stats = await fs.stat(logPath);
-      if (stats.size > byteOffset) {
-        const fileHandle = await fs.open(logPath, 'r');
-        const buffer = Buffer.alloc(stats.size - byteOffset);
-        await fileHandle.read(buffer, 0, stats.size - byteOffset, byteOffset);
-        await fileHandle.close();
-        byteOffset = stats.size;
-
-        const text = buffer.toString('utf8');
-        const lines = text.split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const event = JSON.parse(line);
-            broadcast(sessionId, { type: event.type, data: event });
-          } catch (e) {
-            // Skip malformed log line
-          }
-        }
-      }
-    } catch (e) {
-      // File not created yet
-    }
-  }, 250);
 
   child.stderr.on('data', (data) => {
     const errorStr = data.toString();
@@ -216,34 +282,6 @@ export async function startAgentSession(sessionId: string, directory: string, pr
   });
 
   child.on('close', async (code) => {
-    clearInterval(tailInterval);
-
-    // Final drain of log file contents
-    try {
-      const stats = await fs.stat(logPath);
-      if (stats.size > byteOffset) {
-        const fileHandle = await fs.open(logPath, 'r');
-        const buffer = Buffer.alloc(stats.size - byteOffset);
-        await fileHandle.read(buffer, 0, stats.size - byteOffset, byteOffset);
-        await fileHandle.close();
-        byteOffset = stats.size;
-
-        const text = buffer.toString('utf8');
-        const lines = text.split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const event = JSON.parse(line);
-            broadcast(sessionId, { type: event.type, data: event });
-          } catch (e) {
-            // Skip malformed log line
-          }
-        }
-      }
-    } catch (e) {
-      // File not created yet
-    }
-
     broadcast(sessionId, { type: 'turn_complete', code });
     session.process = null;
     if (session.controllers.size === 0) {
@@ -253,17 +291,29 @@ export async function startAgentSession(sessionId: string, directory: string, pr
 
   child.on('error', (err) => {
     console.error(`Subprocess Spawn Error [${sessionId}]:`, err);
-    clearInterval(tailInterval);
     broadcast(sessionId, { type: 'error', error: err.message });
     session.process = null;
     activeSessions.delete(sessionId);
   });
 }
 
-export function handleToolApproval(sessionId: string, approved: boolean): boolean {
+/**
+ * Resolves once the user picks an option for the currently pending menu
+ * prompt (set by `handleToolApproval`). Used by the `agy` PTY branch to
+ * block writing the next line of output until a decision comes in over
+ * the /approve route.
+ */
+function waitForApproval(sessionId: string): Promise<number> {
+  const session = getOrCreateSession(sessionId);
+  return new Promise<number>((resolve) => {
+    session.pendingResolve = resolve;
+  });
+}
+
+export function handleToolApproval(sessionId: string, optionIndex: number): boolean {
   const session = activeSessions.get(sessionId);
   if (session && session.pendingResolve) {
-    session.pendingResolve(approved);
+    session.pendingResolve(optionIndex);
     return true;
   }
   return false;

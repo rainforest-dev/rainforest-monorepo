@@ -35,11 +35,11 @@ describe('Agent Manager', () => {
     expect(session.controllers.has(mockController)).toBe(false);
   });
 
-  it('should handle tool approvals by resolving pending promises', async () => {
+  it('should handle tool approvals by resolving pending promises with an option index', async () => {
     const session = getOrCreateSession('test-session-789');
-    
-    let resolvedValue: boolean | null = null;
-    const promise = new Promise<boolean>((resolve) => {
+
+    let resolvedValue: number | null = null;
+    const promise = new Promise<number>((resolve) => {
       session.pendingResolve = resolve;
     });
 
@@ -47,11 +47,11 @@ describe('Agent Manager', () => {
       resolvedValue = val;
     });
 
-    const approved = handleToolApproval('test-session-789', true);
+    const approved = handleToolApproval('test-session-789', 2);
     expect(approved).toBe(true);
 
     const result = await promise;
-    expect(result).toBe(true);
-    expect(resolvedValue).toBe(true);
+    expect(result).toBe(2);
+    expect(resolvedValue).toBe(2);
   });
 });

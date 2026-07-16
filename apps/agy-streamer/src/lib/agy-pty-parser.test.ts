@@ -62,6 +62,19 @@ const NON_PROMPT_FIXTURE = `▸ Thought for 1s, 736 tokens
 
 ● Read(/Users/rainforest/.gemini/antigravity-cli/mcp/docker-mcp/obsidian_append_content.json)`;
 
+// A caller that debounces on PTY output settling can still capture more
+// than one full-screen redraw in a single buffer (agy repaints its whole
+// screen on every spinner tick while "Generating..."). This fixture
+// concatenates a stale echoed-prompt screen (which also has a
+// ">"-prefixed line, but no menu below it) followed by the real file-access
+// menu, to make sure the parser keys off the latest screen, not the first
+// ">" line it finds.
+const MULTI_REDRAW_BUFFER_FIXTURE = `> Create a file called test.txt with the exact content: hello
+⣽  Generating...
+└ Tip: When rejecting an edit, press tab to amend with feedback explaining why.
+
+${FILE_ACCESS_FIXTURE}`;
+
 describe('parseMenuPrompt', () => {
   it('parses the unnumbered workspace-trust prompt', () => {
     const result = parseMenuPrompt(WORKSPACE_TRUST_FIXTURE);
@@ -96,6 +109,14 @@ describe('parseMenuPrompt', () => {
 
   it('returns null for the idle prompt (no menu present)', () => {
     expect(parseMenuPrompt(IDLE_FIXTURE)).toBeNull();
+  });
+
+  it('finds the current menu even when the buffer also contains an earlier, stale ">" line from a prior redraw', () => {
+    const result = parseMenuPrompt(MULTI_REDRAW_BUFFER_FIXTURE);
+    expect(result).not.toBeNull();
+    expect(result!.message).toBe('Allow creation of this file?');
+    expect(result!.options).toHaveLength(3);
+    expect(result!.options[0]).toMatchObject({ label: 'Yes, allow creation', numberedChoice: 1 });
   });
 });
 
