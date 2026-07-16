@@ -1,18 +1,23 @@
 <script setup lang="ts">
-import { ExternalLink } from '@lucide/vue';
+import { Bot, Check, Circle, ExternalLink, Hand } from '@lucide/vue';
 import { computed } from 'vue';
 
 // Type-only: keep the client bundle free of tasks.ts's node:fs/node:path deps
 // (mirrors MachinesPanel's type-only import of budget.ts).
 import type { SprintTask } from '@/lib/tasks';
 import {
-  ALWAYS_SHOWN_STATUSES,
-  effectiveStatus,
+  ALWAYS_SHOWN_COLUMNS,
+  BOARD_COLUMNS,
+  boardColumn,
+  boardColumnColor,
+  columnOwner,
   loopStageLabel,
+  ownerMeta,
   priorityColor,
   scopeBadge,
   statusColor,
   statusSoftBg,
+  taskOwner,
 } from '@/lib/taskStatus';
 
 const props = defineProps<{ tasks: SprintTask[]; statuses: string[] }>();
@@ -26,32 +31,34 @@ interface Column {
   points: number;
 }
 
-// One column per status in board order, grouped by EFFECTIVE status (loop
-// overlay overrides Notion when it reports a real board status). Counts/points
-// therefore reflect where the loop actually moved each task. Empty columns are
-// dropped unless part of the always-shown active middle (Not started → Done).
+// One column per BOARD_COLUMNS (the dashboard's own owner-split list), grouped
+// by the task's board column. Empty columns drop unless part of the always-shown
+// active middle. `props.statuses` still arrives for the loop-pill logic.
 const columns = computed<Column[]>(() => {
-  const byStatus = new Map<string, SprintTask[]>();
+  const byColumn = new Map<string, SprintTask[]>();
   for (const t of props.tasks) {
-    const eff = effectiveStatus(t.status, t.loopStatus, props.statuses);
-    const list = byStatus.get(eff) ?? [];
+    const col = boardColumn(t.status, t.loopStatus);
+    const list = byColumn.get(col) ?? [];
     list.push(t);
-    byStatus.set(eff, list);
+    byColumn.set(col, list);
   }
 
   const out: Column[] = [];
-  for (const status of props.statuses) {
-    const cards = (byStatus.get(status) ?? []).slice().sort((a, b) => a.order - b.order);
-    if (cards.length === 0 && !ALWAYS_SHOWN_STATUSES.includes(status)) continue;
+  for (const status of BOARD_COLUMNS) {
+    const cards = (byColumn.get(status) ?? []).slice().sort((a, b) => a.order - b.order);
+    if (cards.length === 0 && !ALWAYS_SHOWN_COLUMNS.includes(status)) continue;
     out.push({
       status,
-      color: statusColor(status),
+      color: boardColumnColor(status),
       cards,
       points: cards.reduce((sum, c) => sum + (c.points ?? 0), 0),
     });
   }
   return out;
 });
+
+// Lucide icon per owner for the column header + card chip.
+const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
 </script>
 
 <template>
@@ -64,6 +71,12 @@ const columns = computed<Column[]>(() => {
     >
       <!-- Column header: status • count • summed points -->
       <div class="mb-2 flex items-center gap-2 px-1">
+        <component
+          :is="OWNER_ICON[columnOwner(col.status)]"
+          class="size-3.5 shrink-0"
+          :style="{ color: col.color }"
+          aria-hidden="true"
+        />
         <span
           class="inline-block size-2.5 shrink-0 rounded-full"
           :style="{ backgroundColor: col.color }"
@@ -82,7 +95,7 @@ const columns = computed<Column[]>(() => {
           role="button"
           tabindex="0"
           class="bg-card border-border hover:border-foreground/30 focus-visible:ring-ring block w-full cursor-pointer rounded-lg border border-l-4 p-3 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
-          :style="{ borderLeftColor: col.color }"
+          :style="{ borderLeftColor: ownerMeta(taskOwner(card.status, card.loopStatus)).color }"
           @click="emit('select', card)"
           @keydown.enter="emit('select', card)"
           @keydown.space.prevent="emit('select', card)"
@@ -90,6 +103,17 @@ const columns = computed<Column[]>(() => {
           <div class="mb-1.5 flex items-center gap-2">
             <span class="text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums">
               #{{ card.id ?? '—' }}
+            </span>
+            <span
+              class="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-medium"
+              :style="{
+                color: ownerMeta(taskOwner(card.status, card.loopStatus)).color,
+                backgroundColor: statusSoftBg(col.status),
+              }"
+              :title="`Owner: ${ownerMeta(taskOwner(card.status, card.loopStatus)).label}`"
+            >
+              <component :is="OWNER_ICON[taskOwner(card.status, card.loopStatus)]" class="size-2.5" aria-hidden="true" />
+              {{ ownerMeta(taskOwner(card.status, card.loopStatus)).label }}
             </span>
             <span
               v-if="card.priority"
