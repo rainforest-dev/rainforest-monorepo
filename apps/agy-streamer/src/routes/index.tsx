@@ -206,7 +206,7 @@ function DashboardComponent() {
                     <Input
                       value={newProjectDir}
                       onChange={(e) => setNewProjectDir(e.target.value)}
-                      placeholder="e.g. /Users/rainforest/Repositories/rainforest-homelab"
+                      placeholder="e.g. /Users/rainforest/Repositories/rainforest-monorepo"
                       className="w-full bg-background/80 border-border pl-9 text-foreground text-xs font-mono h-10"
                     />
                   </div>
