@@ -275,6 +275,7 @@ function SessionComponent() {
     }
     return 'agy';
   });
+  const [model, setModel] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -382,7 +383,7 @@ function SessionComponent() {
       const res = await fetch(`/api/sessions/${sessionId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directory: dir, prompt, agent: agentType })
+        body: JSON.stringify({ directory: dir, prompt, agent: agentType, model: model || undefined })
       });
       return res.json();
     },
@@ -593,6 +594,14 @@ function SessionComponent() {
               <option value="agy">🪐 Antigravity CLI</option>
               <option value="claude">🤖 Claude Code</option>
             </select>
+            {agentType === 'agy' && (
+              <Input
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder="model (optional)"
+                className="h-8 text-xs w-32 bg-card border-border text-foreground"
+              />
+            )}
           </div>
         </div>
 
