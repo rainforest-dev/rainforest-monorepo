@@ -567,7 +567,7 @@ function SessionComponent() {
                   setProjectDir(e.target.value);
                   window.localStorage.setItem('last_project_dir', e.target.value);
                 }}
-                placeholder="/Users/rainforest/Repositories/rainforest-homelab"
+                placeholder="/Users/rainforest/Repositories/rainforest-monorepo"
                 className="font-mono text-xs h-8 bg-muted/60 border-border text-foreground pl-8"
               />
             </div>
