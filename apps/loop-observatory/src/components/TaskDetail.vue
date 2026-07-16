@@ -41,6 +41,20 @@ const saved = ref(false);
 const saveError = ref<string | null>(null);
 const dirty = ref(false);
 
+// Parse a JSON response defensively: an error status can come back with an
+// empty body (e.g. a 500 from the node adapter), and `res.json()` on empty text
+// throws a cryptic "Unexpected end of JSON input". Return null instead so
+// callers can surface the real HTTP status.
+async function readJson<T>(res: Response): Promise<T | null> {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchNote(id: string) {
   loading.value = true;
   error.value = null;
@@ -50,11 +64,15 @@ async function fetchNote(id: string) {
   note.value = null;
   try {
     const res = await fetch(`/api/task-note?id=${encodeURIComponent(id)}`);
-    const data = (await res.json()) as NoteResponse;
-    note.value = data;
-    feedbackDraft.value = data.feedback ?? '';
+    const data = await readJson<NoteResponse>(res);
     if (!res.ok && res.status !== 404) {
-      error.value = data.error ?? `HTTP ${res.status}`;
+      error.value = data?.error ?? `HTTP ${res.status}`;
+    }
+    if (data) {
+      note.value = data;
+      feedbackDraft.value = data.feedback ?? '';
+    } else if (res.ok) {
+      error.value = `HTTP ${res.status}: empty response`;
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
@@ -75,8 +93,9 @@ async function saveFeedback() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ feedback: feedbackDraft.value }),
     });
-    const data = (await res.json()) as NoteResponse;
-    if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+    const data = await readJson<NoteResponse>(res);
+    if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    if (!data) throw new Error(`HTTP ${res.status}: empty response`);
     // Re-render the note view from the freshly written file.
     note.value = data;
     feedbackDraft.value = data.feedback ?? '';
