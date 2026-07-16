@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { Check, ExternalLink, FileText, Loader2, Save, X } from '@lucide/vue';
+import { Bot, Check, Circle, ExternalLink, FileText, Hand, Loader2, Save, X } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { SprintTask } from '@/lib/tasks';
-import { effectiveStatus, priorityColor, scopeBadge, statusColor } from '@/lib/taskStatus';
+import {
+  effectiveStatus,
+  ownerMeta,
+  priorityColor,
+  scopeBadge,
+  statusColor,
+  taskOwner,
+} from '@/lib/taskStatus';
 
 const props = defineProps<{ task: SprintTask | null; open: boolean; statuses: string[] }>();
 const emit = defineEmits<{ close: [] }>();
@@ -16,6 +23,12 @@ const emit = defineEmits<{ close: [] }>();
 const effStatus = computed(() =>
   props.task ? effectiveStatus(props.task.status, props.task.loopStatus, props.statuses) : '',
 );
+
+// Whose turn this task is on — the small owner marker in the Status row.
+const owner = computed(() =>
+  props.task ? ownerMeta(taskOwner(props.task.status, props.task.loopStatus)) : null,
+);
+const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
 
 interface NoteResponse {
   found: boolean;
@@ -204,6 +217,15 @@ onMounted(() => {
                   title="Notion board status — the loop is ahead until you tune"
                 >
                   · Notion: {{ task.status }}
+                </span>
+                <span
+                  v-if="owner"
+                  class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium"
+                  :style="{ color: owner.color }"
+                  :title="`Owner: ${owner.label}`"
+                >
+                  <component :is="OWNER_ICON[owner.key]" class="size-3" aria-hidden="true" />
+                  {{ owner.key === 'you' ? 'Your action' : owner.label }}
                 </span>
               </dd>
             </div>
