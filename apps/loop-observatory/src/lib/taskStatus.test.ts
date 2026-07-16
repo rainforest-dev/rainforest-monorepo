@@ -21,7 +21,9 @@ describe('effectiveStatus', () => {
     // Draft states hold in the "Not started" lane.
     expect(effectiveStatus('Not started', 'Spec drafted', STATUSES)).toBe('Not started');
     expect(effectiveStatus('Not started', 'Split drafted', STATUSES)).toBe('Not started');
-    expect(effectiveStatus('Not started', 'Merged', STATUSES)).toBe('Done');
+    // Pipeline tail: a merged PR sits in QA (not Done); prod deploy = Released.
+    expect(effectiveStatus('Not started', 'Merged', STATUSES)).toBe('In QA');
+    expect(effectiveStatus('In QA', 'Released', STATUSES)).toBe('Released');
   });
 
   it('keeps the Notion status for an unknown loop-only label', () => {
