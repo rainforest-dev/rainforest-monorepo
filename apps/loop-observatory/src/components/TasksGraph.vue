@@ -13,6 +13,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import type { SprintTask } from '@/lib/tasks';
 import {
   boardColumn,
+  boardColumnColor,
   loopStageLabel,
   ownerMeta,
   scopeBadge,
@@ -72,6 +73,14 @@ const BLOCKED: Station = {
 };
 const ALL_STATIONS = [...STATIONS, BLOCKED];
 const RAIL_OF: Record<string, Rail> = Object.fromEntries(ALL_STATIONS.map((s) => [s.key, s.rail]));
+const STATION_LABEL: Record<string, string> = Object.fromEntries(
+  ALL_STATIONS.map((s) => [s.key, s.label]),
+);
+// Station accent color: reuses the board's per-column color (Blocked stays red,
+// every other station takes its owner's hue) so a +N token never mis-signals red.
+function stationColor(key: string): string {
+  return boardColumnColor(STATION_LABEL[key] ?? '');
+}
 
 // Board column → station. Backlog folds into Not started; Released/Closed into Done.
 const COLUMN_STATION: Record<string, string> = {
@@ -87,6 +96,18 @@ const COLUMN_STATION: Record<string, string> = {
 };
 function stationOf(t: SprintTask): string {
   return COLUMN_STATION[boardColumn(t.status, t.loopStatus)] ?? 'notstarted';
+}
+function stationLabelOf(t: SprintTask): string {
+  return STATION_LABEL[stationOf(t)] ?? '';
+}
+// Chip footprint scales with points (spec: default when null/fractional).
+// null / non-integer → base; 1–2 small, 3–5 medium, 8+ large. Feeds `--pts-w`.
+function chipWidth(t: SprintTask): string {
+  const p = t.points;
+  if (p == null || !Number.isInteger(p)) return '104px';
+  if (p <= 2) return '104px';
+  if (p <= 5) return '128px';
+  return '156px';
 }
 
 // ── Per-task derivations ─────────────────────────────────────────────────────
@@ -282,6 +303,10 @@ function onUp(e: PointerEvent) {
   } catch {
     /* capture may already be released */
   }
+  // Reset here so the guard never outlives the single gesture that set it —
+  // otherwise a real pan leaves `moved` true and silently swallows every
+  // subsequent chip/core click + keyboard activation.
+  moved.value = false;
 }
 
 function selectTask(t: SprintTask | null) {
@@ -314,9 +339,17 @@ const packetAiEl = ref<SVGCircleElement | null>(null);
 const packetYouEl = ref<SVGCircleElement | null>(null);
 const PACKET_MS = 3200;
 let elapsed = 0;
+// The trace `d` attributes are static, so total length never changes — cache it
+// once per path instead of recomputing (a layout-forcing call) every rAF tick.
+const pathLenCache = new WeakMap<SVGPathElement, number>();
 function movePacket(path: SVGPathElement | null, packet: SVGCircleElement | null, f: number) {
   if (!path || !packet) return;
-  const p = path.getPointAtLength(f * path.getTotalLength());
+  let len = pathLenCache.get(path);
+  if (len === undefined) {
+    len = path.getTotalLength();
+    pathLenCache.set(path, len);
+  }
+  const p = path.getPointAtLength(f * len);
   packet.setAttribute('cx', String(p.x));
   packet.setAttribute('cy', String(p.y));
 }
@@ -361,9 +394,17 @@ onBeforeUnmount(() => {
       <span class="item"><Circle class="ico" :style="{ color: ownerMeta('parked').color }" />Parked</span>
       <span class="sep" />
       <span class="item"><span class="flowkey" />AI current (live)</span>
+      <span class="item"><span class="flowkey you" />Your turn (PR ready)</span>
       <span class="item"><span class="dashkey" />Draft · your call</span>
       <span class="item"><span class="blockkey" />Blocked</span>
     </div>
+
+    <!-- Screen-reader pipeline summary (the SVG board is aria-hidden). -->
+    <ul class="sr-only" aria-label="Pipeline station counts">
+      <li v-for="s in ALL_STATIONS" :key="`sr-${s.key}`">
+        {{ s.label }}: {{ stationCount(s.key) }} {{ stationCount(s.key) === 1 ? 'task' : 'tasks' }}
+      </li>
+    </ul>
 
     <!-- Pan / zoom shell -->
     <div
@@ -497,6 +538,7 @@ onBeforeUnmount(() => {
           :style="{
             ...c.style,
             '--epic': epicColor(c.task),
+            '--pts-w': chipWidth(c.task),
             'border-color':
               stationOf(c.task) === 'blocked'
                 ? 'var(--status-critical)'
@@ -504,7 +546,7 @@ onBeforeUnmount(() => {
           }"
           role="button"
           tabindex="0"
-          :aria-label="`${shortName(c.task.name)} — ${ownerMeta(ownerOf(c.task)).label}`"
+          :aria-label="`${shortName(c.task.name)} — ${stationLabelOf(c.task)} · ${ownerMeta(ownerOf(c.task)).label}`"
           @click="selectTask(c.task)"
           @keydown.enter.prevent="selectTask(c.task)"
           @keydown.space.prevent="selectTask(c.task)"
@@ -560,7 +602,7 @@ onBeforeUnmount(() => {
           v-for="o in placed.overflow"
           :key="`ov-${o.key}`"
           class="chip overflow"
-          :style="o.style"
+          :style="{ ...o.style, '--ov-color': stationColor(o.key) }"
           role="button"
           tabindex="0"
           :aria-label="`${o.label} at ${o.key}`"
@@ -590,6 +632,19 @@ onBeforeUnmount(() => {
 <style scoped>
 /* Every stroke/fill references an app token so light/dark + data-scheme track
    automatically. --beat-duration is the only bespoke prop (carries no color). */
+
+/* Visually hidden but exposed to assistive tech (the SVG board is aria-hidden). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .ico,
 .oico {
@@ -645,6 +700,13 @@ onBeforeUnmount(() => {
   background: repeating-linear-gradient(
     90deg,
     var(--status-good) 0 6px,
+    transparent 6px 12px
+  );
+}
+.legend .flowkey.you::after {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--status-warning) 0 6px,
     transparent 6px 12px
   );
 }
@@ -824,6 +886,13 @@ onBeforeUnmount(() => {
   transform: scale(1.02);
   border-color: var(--chart-2);
 }
+.core:focus-visible {
+  outline: none;
+  border-color: var(--chart-2);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--chart-2) 35%, transparent),
+    var(--shadow, 0 6px 20px rgb(0 0 0 / 0.08));
+}
 .core::before {
   content: '';
   position: absolute;
@@ -919,7 +988,7 @@ onBeforeUnmount(() => {
 .chip {
   position: absolute;
   transform: translate(-50%, -50%);
-  min-width: 104px;
+  min-width: var(--pts-w, 104px);
   max-width: 156px;
   background: var(--card);
   border: 2px solid var(--muted-foreground);
@@ -1032,10 +1101,10 @@ onBeforeUnmount(() => {
   min-width: 0;
   text-align: center;
   border-style: dashed !important;
-  border-color: var(--status-critical) !important;
+  border-color: var(--ov-color, var(--status-critical)) !important;
   font-size: 12px;
   font-weight: 700;
-  color: var(--status-critical);
+  color: var(--ov-color, var(--status-critical));
   padding: 8px 12px;
 }
 
