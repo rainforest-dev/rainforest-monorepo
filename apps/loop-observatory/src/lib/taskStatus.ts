@@ -52,7 +52,7 @@ const STATUS_COLOR: Record<string, string> = {
   'Split drafted': 'var(--chart-1)',
   'In progress': 'var(--status-warning)',
   'PR ready': 'var(--chart-2)',
-  Merged: 'var(--status-good)',
+  Merged: 'var(--chart-2)',
 };
 
 /** Themed color for a status; unknown statuses fall back to the muted token. */
@@ -71,6 +71,9 @@ export function statusSoftBg(status: string): string {
  * "PR ready" and "In progress" both live in the one "In progress / PR" lane,
  * while "Spec drafted" / "Split drafted" hold in the "Not started" lane (see
  * loop.md §6). The card/detail then surface the precise sub-state on top.
+ *
+ * The tail mirrors the CI/CD pipeline: branch→PR = "In progress / PR", a PR
+ * MERGED to `dev` = "In QA" (not Done), and only a prod deploy = "Released".
  */
 const LOOP_STAGE_COLUMN: Record<string, string> = {
   Queued: 'Not started',
@@ -83,7 +86,9 @@ const LOOP_STAGE_COLUMN: Record<string, string> = {
   'Split drafted': 'Not started',
   'In progress': 'In progress / PR',
   'PR ready': 'In progress / PR',
-  Merged: 'Done',
+  // Pipeline tail: merge lands the work in QA, prod deploy releases it.
+  Merged: 'In QA',
+  Released: 'Released',
 };
 
 /**
