@@ -1,33 +1,43 @@
 <template>
-  <div class="relative">
-    <md-icon-button ref="anchor" aria-label="language-picker" @click="toggle">
-      <md-icon
-        :class="
-          clsx(
-            'text-on-surface-variant xl:text-on-surface',
-            !isAtTop ? 'md:text-on-surface' : 'md:text-surface'
-          )
-        "
-        >language</md-icon
+  <DropdownMenu>
+    <DropdownMenuTrigger as-child>
+      <Button variant="ghost" size="icon" aria-label="language-picker">
+        <Globe
+          :class="
+            clsx(
+              'text-muted-foreground xl:text-foreground',
+              !isAtTop ? 'md:text-foreground' : 'md:text-background',
+            )
+          "
+        />
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent>
+      <DropdownMenuItem
+        v-for="{ label, href, key } in langs"
+        :key="key"
+        as-child
       >
-    </md-icon-button>
-    <md-menu ref="menu" :anchorElement="anchor">
-      <md-menu-item v-for="{ label, href, key } in langs">
-        <a slot="headline" :href="href" @click="cacheLocale(key)">{{
-          label
-        }}</a>
-      </md-menu-item>
-    </md-menu>
-  </div>
+        <a :href="href" @click="cacheLocale(key)">{{ label }}</a>
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
 </template>
 <script lang="ts" setup>
-import { MdMenu } from '@material/web/menu/menu';
-import { computed, useTemplateRef } from 'vue';
-import Cookies from 'js-cookie';
 import { isServerSide, persistentLocaleKey } from '@utils';
 import { useWindowScroll } from '@vueuse/core';
 import clsx from 'clsx';
-import { MdIconButton } from '@material/web/iconbutton/icon-button';
+import Cookies from 'js-cookie';
+import { Globe } from '@lucide/vue';
+import { computed } from 'vue';
+
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface ILink {
   key: string;
@@ -39,15 +49,6 @@ export interface IProps {
 }
 
 const { langs } = defineProps<IProps>();
-
-const anchor = useTemplateRef<MdIconButton>('anchor');
-const menu = useTemplateRef<MdMenu>('menu');
-
-const toggle = () => {
-  if (menu.value) {
-    menu.value.open = !menu.value.open;
-  }
-};
 
 const cacheLocale = (locale: string) => {
   Cookies.set(persistentLocaleKey, locale, {

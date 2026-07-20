@@ -75,10 +75,14 @@ const personSchema = {
 };
 ---
 
-<Layout title={t('resume:metadata-title')} description={t('metadata-description')}>
+<Layout
+  title={t('resume:metadata-title')}
+  description={t('metadata-description')}
+  hideSourceColorPicker
+>
   <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
   <main
-    class="w-screen h-screen flex-col-center p-10 bg-inverse-surface overflow-scroll
+    class="w-screen h-screen flex-col-center p-10 bg-foreground overflow-scroll
             print:justify-start print:items-start print:p-0 print:overflow-visible"
   >
     <div

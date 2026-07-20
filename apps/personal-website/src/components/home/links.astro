@@ -1,4 +1,7 @@
 ---
+import { ExternalLink } from '@lucide/vue';
+
+import Icon from '@/components/icon.vue';
 import type { ILink } from '@/types';
 import { getBrandIconName, useTranslatedPath, useTranslation } from '@/utils';
 import { links } from '@/utils/constants';
@@ -27,10 +30,6 @@ const sections = [
 ];
 ---
 
-<script>
-  import '@material/web/icon/icon.js';
-</script>
-
 {
   sections.map((section) => (
     <div class="flex flex-col gap-2">
@@ -41,7 +40,7 @@ const sections = [
             <a {...rest} class="flex-row-center gap-1">
               <iconify-icon icon={icon} />
               {label}
-              {external && <md-icon class="text-base">open_in_new</md-icon>}
+              {external && <Icon icon={ExternalLink} class="size-4" />}
             </a>
           </li>
         ))}

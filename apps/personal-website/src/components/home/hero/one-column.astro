@@ -1,11 +1,11 @@
 ---
-import '@material/web/button/filled-button';
-import '@material/web/button/outlined-button';
-import '@material/web/icon/icon';
-
+import { ExternalLink } from '@lucide/vue';
 import type { IHeroProps as Props } from '@types';
 import { useTranslatedPath, useTranslation } from '@utils';
 import { Picture } from 'astro:assets';
+
+import Icon from '@/components/icon.vue';
+import { Button } from '@/components/ui/button';
 
 import ThemeColorModifier from './theme-color-modifier.vue';
 
@@ -18,9 +18,10 @@ const translatePath = useTranslatedPath(lang);
 ---
 
 <div class="flex flex-col size-full">
-  <div class="relative aspect-square">
+  <div class="relative aspect-square max-h-[600px]">
     <div
-      class="size-full bg-inverse-surface rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0 z-0"
+      id="hero-dark-panel"
+      class="size-full bg-foreground rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0 z-0"
     >
       <Picture
         src={props.profile}
@@ -34,7 +35,7 @@ const translatePath = useTranslatedPath(lang);
       />
     </div>
     <div
-      class="text-9xl text-inverse-on-surface/50 rotate-270 origin-bottom inline-block m-4"
+      class="text-9xl text-background/50 rotate-270 origin-bottom inline-block m-4"
     >
       {year}
     </div>
@@ -43,24 +44,26 @@ const translatePath = useTranslatedPath(lang);
     <div class="flex flex-col w-full">
       <div class="flex-row-center justify-between flex-wrap gap-2">
         <div>
-          <h1 class="text-4xl text-secondary">
+          <h1 class="text-4xl text-secondary-foreground">
             {props.name.first}
           </h1>
           <p>{props.jobPosition}</p>
         </div>
         <div class="flex-row-center gap-4">
-          <md-filled-button id="contact-me-button" class="px-6"
-            >{t('contact-me-title')}</md-filled-button
+          <Button
+            id="contact-me-button"
+            href="#contact-form-footer"
+            class="px-6"
+            >{t('contact-me-title')}</Button
           >
-          <md-outlined-button
+          <Button
+            variant="outline"
             href={translatePath('/resume')}
             target="_blank"
-            has-icon
-            trailing-icon
             class="px-6 gap-2"
             >{t('resume')}
-            <md-icon slot="icon">open_in_new</md-icon>
-          </md-outlined-button>
+            <Icon icon={ExternalLink} />
+          </Button>
         </div>
       </div>
       <ul class="list-disc list-inside mt-4">
@@ -72,25 +75,39 @@ const translatePath = useTranslatedPath(lang);
 <ThemeColorModifier client:load />
 
 <script>
-  import { MdFilledButton } from '@material/web/button/filled-button';
-  import { MdIconButton } from '@material/web/iconbutton/icon-button';
   import { removeUrlHashAfterNavigation } from '@utils';
 
   const contactMeButton = document.getElementById(
     'contact-me-button'
-  ) as MdFilledButton;
-  const menuButton = document.getElementById('menu-trigger') as MdIconButton;
+  ) as HTMLAnchorElement;
+  const menuButton = document.getElementById('menu-trigger') as HTMLButtonElement;
   const handleOpenContactForm = () => {
     menuButton?.click();
   };
 
+  const handleContactMeKeydown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      contactMeButton.click();
+    }
+  };
+
   const handleMatches = (matches: boolean) => {
     if (matches) {
-      contactMeButton.href = '';
+      // An <a> without an href isn't part of the tab order and isn't exposed
+      // as a link to assistive tech — restore both manually so keyboard/
+      // screen-reader users can still activate it, not just mouse/touch.
+      contactMeButton.removeAttribute('href');
+      contactMeButton.setAttribute('role', 'button');
+      contactMeButton.setAttribute('tabindex', '0');
       contactMeButton.onclick = handleOpenContactForm;
+      contactMeButton.addEventListener('keydown', handleContactMeKeydown);
     } else {
+      contactMeButton.removeAttribute('role');
+      contactMeButton.removeAttribute('tabindex');
+      contactMeButton.removeEventListener('keydown', handleContactMeKeydown);
       contactMeButton.onclick = removeUrlHashAfterNavigation;
-      contactMeButton.href = '#contact-form-footer';
+      contactMeButton.setAttribute('href', '#contact-form-footer');
     }
   };
 

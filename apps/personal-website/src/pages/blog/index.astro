@@ -1,6 +1,6 @@
 ---
-import { SourceColor } from '@components';
 import Layout from '@layouts/index.astro';
+import { Home, ImageIcon } from '@lucide/vue';
 import {
   getBrandIconName,
   getGitHubUrl,
@@ -13,6 +13,8 @@ import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 
 import { Navigation } from '@/components/blog';
+import Icon from '@/components/icon.vue';
+import { Button } from '@/components/ui/button';
 
 const posts = (
   await getCollection(
@@ -29,27 +31,31 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
   description={t('metadata-description')}
   viewTransition={{ enabled: true }}
 >
-  <script>
-    import '@material/web/iconbutton/icon-button';
-  </script>
   <nav class="flex-row-center justify-between container">
     <div>
-      <md-icon-button href="/">
-        <span class="material-symbols-outlined"> home </span>
-      </md-icon-button>
+      <Button variant="ghost" size="icon" href="/">
+        <Icon icon={Home} />
+      </Button>
     </div>
     <div>
-      <md-icon-button href={getGitHubUrl(info.links.github)} target="_blank">
+      <Button
+        variant="ghost"
+        size="icon"
+        href={getGitHubUrl(info.links.github)}
+        target="_blank"
+      >
         <iconify-icon icon={getBrandIconName('github')} height="none"
         ></iconify-icon>
-      </md-icon-button>
-      <md-icon-button
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
         href={getLinkedInUrl(info.links.linkedin)}
         target="_blank"
       >
         <iconify-icon icon={getBrandIconName('linkedin')} height="none"
         ></iconify-icon>
-      </md-icon-button>
+      </Button>
     </div>
   </nav>
   <main class="container py-10">
@@ -62,7 +68,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
           <a
             href={translatePath(`/blog/${id}`)}
             class="
-              md:first:col-span-full lg:first:h-[30dvh] md:first:h-[20dvh] bg-surface-container-high rounded-lg overflow-hidden hover:shadow 
+              md:first:col-span-full lg:first:h-[30dvh] md:first:h-[20dvh] bg-card rounded-lg overflow-hidden hover:shadow
               @container prose-sm max-w-none
               flex gap-4 flex-col md:first:flex-row-center"
           >
@@ -77,12 +83,12 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
                   transition:name={`blog-${id}`}
                 />
               ) : (
-                <span class="material-symbols-outlined">image</span>
+                <Icon icon={ImageIcon} />
               )}
             </div>
             <div class="flex flex-col px-4 pb-3">
               <h2 class="mt-0">{post.title}</h2>
-              <p>{post.description}</p>
+              <p class="line-clamp-4 md:line-clamp-3">{post.description}</p>
             </div>
           </a>
         ))
@@ -90,9 +96,6 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
     </div>
     <div class="fixed bottom-10 left-1/2 -translate-x-1/2">
       <Navigation />
-    </div>
-    <div class="fixed right-10 bottom-10 z-10">
-      <SourceColor client:only="vue" />
     </div>
   </main>
 </Layout>

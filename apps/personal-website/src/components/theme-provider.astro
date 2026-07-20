@@ -9,41 +9,29 @@ import { defaultSourceColor } from '@utils/constants';
 
 const sourceColor =
   Astro.cookies.get(persistentKey)?.value ?? defaultSourceColor;
+
+// Only used to compute the two <meta name="theme-color"> hex values below —
+// the page's actual visual theming now comes entirely from the shadcn.ts
+// Tailwind plugin's CSS relative-color-syntax derivation of `--seed`.
 const theme = themeFromSourceColor(argbFromHex(sourceColor));
-const getSchemeStyles = (properties: { [key: string]: number }) => {
-  return Object.entries(properties)
-    .map(([k, v]) => `${k}: ${hexFromArgb(v)};`)
-    .join('\n');
-};
-const lightSchemeProperties = getSchemeProperties(theme.schemes.light);
-const darkSchemeProperties = getSchemeProperties(theme.schemes.dark);
-const lightSchemeStyles = getSchemeStyles(lightSchemeProperties);
-const darkSchemeStyles = getSchemeStyles(darkSchemeProperties);
 const themeColorLight = hexFromArgb(
-  lightSchemeProperties['--md-sys-color-surface']
+  getSchemeProperties(theme.schemes.light)['--md-sys-color-surface']
 );
 const themeColorDark = hexFromArgb(
-  darkSchemeProperties['--md-sys-color-surface']
+  getSchemeProperties(theme.schemes.dark)['--md-sys-color-surface']
 );
 
 const styleRaw = `
   @layer theme, base, components, utilities, app;
   @layer app {
-    @media (prefers-color-scheme: light) {
-      :root {
-        ${lightSchemeStyles}
-      }
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        ${darkSchemeStyles}
-      }
+    :root {
+      --seed: ${sourceColor};
     }
     [data-scheme='light'] {
-      ${lightSchemeStyles}
+      --seed: ${sourceColor};
     }
     [data-scheme='dark'] {
-      ${darkSchemeStyles}
+      --seed: ${sourceColor};
     }
   }
 `;
@@ -68,15 +56,3 @@ const styleRaw = `
     Cookies.set(persistentKey, sourceColor);
   }
 </script>
-<!-- <script>
-  import { sourceColor, updateColorScheme } from '@stores';
-  import { applyTheme } from '@utils/md3-utilities';
-
-  window
-    .matchMedia('(prefers-color-scheme: dark)')
-    .addEventListener('change', (e) => {
-      const dark = e.matches;
-      updateColorScheme(dark);
-      if (sourceColor.value) applyTheme(sourceColor.value, dark);
-    });
-</script> -->

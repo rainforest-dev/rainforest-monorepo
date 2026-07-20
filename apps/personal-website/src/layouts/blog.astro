@@ -1,10 +1,13 @@
 ---
 import { Comments } from '@components/blog';
+import { ArrowLeft } from '@lucide/vue';
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import clsx from 'clsx';
-// import { getEntry } from 'astro:content';
 import { format } from 'date-fns';
+
+import Icon from '@/components/icon.vue';
+import { Button } from '@/components/ui/button';
 
 import BaseLayout from './index.astro';
 
@@ -17,13 +20,7 @@ const {
   author: _author,
   image,
 } = Astro.props.data;
-// const author = (await getEntry(_author.collection, _author.id))?.data;
 ---
-
-<script>
-  import '@material/web/iconbutton/filled-tonal-icon-button';
-  import '@material/web/icon/icon';
-</script>
 
 <BaseLayout
   title={title}
@@ -43,12 +40,14 @@ const {
       />
     )
   }
-  <md-filled-tonal-icon-button
+  <Button
+    variant="secondary"
+    size="icon"
     onclick="history.back()"
-    class="fixed top-10 left-10 text-primary"
+    class="fixed top-10 left-10 rounded-full text-primary"
   >
-    <md-icon>arrow_back</md-icon>
-  </md-filled-tonal-icon-button>
+    <Icon icon={ArrowLeft} />
+  </Button>
   <article
     class={clsx(
       'container prose md:prose-xl lg:prose-2xl py-4',
@@ -56,7 +55,7 @@ const {
     )}
   >
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>
-    <div class={clsx(image?.src && 'bg-surface/25 px-4 backdrop-blur-sm')}>
+    <div class={clsx(image?.src && 'bg-background/25 px-4 backdrop-blur-sm')}>
       <slot />
     </div>
   </article>
