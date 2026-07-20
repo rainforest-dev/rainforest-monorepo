@@ -62,7 +62,9 @@ const primaryFixed = [
 export class RfDesignSystemColors extends RfMd3Lit {
   override render() {
     return html`
-      <div class="grid grid-cols-4 gap-8 capitalize text-xs">
+      <div
+        class="grid grid-cols-1 gap-8 capitalize text-xs sm:grid-cols-2 lg:grid-cols-4"
+      >
         ${primary.map(
           ([name, ...items]) => html`
             <div class="flex flex-col gap-4">
@@ -104,7 +106,7 @@ export class RfDesignSystemColors extends RfMd3Lit {
             </div>
           `
         )}
-        <div class="flex flex-col col-span-3">
+        <div class="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
           ${[
             [
               ['surface dim', 'bg-surface-dim text-on-surface'],

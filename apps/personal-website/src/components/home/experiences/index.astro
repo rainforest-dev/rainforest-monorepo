@@ -13,16 +13,12 @@ const experiences = (
 ).sort((a, b) => b.data.startAt.getTime() - a.data.startAt.getTime());
 ---
 
-<script>
-  import '@material/web/chips/chip-set';
-  import '@material/web/chips/filter-chip';
-</script>
 <Fragment>
   <div class="size-full">
     <ul
       id="experiences"
       class="flex flex-col gap-4 sm:gap-5 relative
-              after:content-[''] after:absolute after:w-0.5 after:h-full after:bg-on-surface after:left-0 after:-translate-x-1/2 after:sm:left-1/2"
+              after:content-[''] after:absolute after:w-0.5 after:h-full after:bg-foreground after:left-0 after:-translate-x-1/2 after:sm:left-1/2"
     >
       {
         experiences.map((experience) => {

@@ -2,25 +2,25 @@
   <nav
     :class="
       clsx(
-        'fixed top-0 inset-x-0 xl:text-on-surface h-16 px-10 flex-row-center justify-between z-20',
-        !isAtTop ? 'text-on-surface' : 'text-surface',
+        'xl:text-foreground flex-row-center fixed inset-x-0 top-0 z-20 h-16 justify-between px-10',
+        !isAtTop ? 'text-foreground' : 'text-background',
       )
     "
   >
     <div></div>
-    <div class="hidden md:flex-row-center gap-10">
+    <div class="md:flex-row-center hidden gap-10">
       <ul class="flex-row-center gap-10">
-        <li v-for="{ label, href } in anchors">
+        <li v-for="{ label, href } in anchors" :key="href">
           <a :href="href" @click="removeUrlHashAfterNavigation">{{ label }}</a>
         </li>
       </ul>
       <LanguagePicker :langs="langs" />
     </div>
-    <div class="md:hidden block">
+    <div class="block md:hidden">
       <aside
         :class="
           clsx(
-            'fixed inset-0 bg-surface text-on-surface px-4 py-6 overflow-auto text-center',
+            'bg-background text-foreground fixed inset-0 overflow-auto px-4 py-6 text-center',
             open ? 'flex-center flex-col gap-10' : 'hidden',
           )
         "
@@ -28,37 +28,35 @@
         <LanguagePicker :langs="langs" />
         <slot name="sider"></slot>
       </aside>
-      <md-icon-button
+      <Button
+        variant="ghost"
+        size="icon"
+        class="relative z-30"
         @click="open = !open"
         id="menu-trigger"
         aria-label="menu-and-close"
       >
-        <md-icon
+        <X v-if="open" class="text-foreground" />
+        <Menu
+          v-else
           :class="
             clsx(
-              open
-                ? 'text-on-surface'
-                : clsx(
-                    'xl:text-on-surface',
-                    !isAtTop ? 'text-on-surface' : 'text-surface',
-                  ),
+              'xl:text-foreground',
+              !isAtTop ? 'text-foreground' : 'text-background',
             )
           "
-          >{{ open ? 'close' : 'menu' }}</md-icon
-        >
-      </md-icon-button>
+        />
+      </Button>
     </div>
   </nav>
 </template>
 <script lang="ts" setup>
-import '@material/web/iconbutton/icon-button';
-import '@material/web/icon/icon';
-import '@material/web/menu/menu-item';
-
 import { computed, ref, watchEffect } from 'vue';
 import clsx from 'clsx';
+import { Menu, X } from '@lucide/vue';
 import { useWindowScroll } from '@vueuse/core';
 import { isServerSide, removeUrlHashAfterNavigation } from '@utils';
+import { Button } from '@/components/ui/button';
 import LanguagePicker, {
   IProps as ILanguagePickerProps,
 } from './language-picker.vue';
@@ -87,9 +85,7 @@ const { updateThemeColor, reset } = useThemeColorMeta();
 watchEffect(() => {
   if (isServerSide) return;
   if (open.value) {
-    const color = window
-      .getComputedStyle(document.body)
-      .getPropertyValue('--md-sys-color-surface');
+    const color = window.getComputedStyle(document.body).backgroundColor;
     updateThemeColor(color);
   } else {
     reset();

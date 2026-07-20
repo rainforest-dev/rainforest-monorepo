@@ -1,9 +1,10 @@
 ---
-import '@material/web/textfield/outlined-text-field';
-import '@material/web/button/filled-button';
-
 import { useTranslation } from '@utils';
 import { info } from '@utils/constants';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Props {
   id: string;
@@ -18,45 +19,39 @@ const { t } = await useTranslation(lang);
   <h2 class="text-xl font-semibold">{t('contact-me-title')}</h2>
   <p class="mb-2">{t('contact-me-description')}</p>
   <div class="flex gap-2">
-    <md-outlined-text-field label={t('contact-me-from-person')} name="name"
-    ></md-outlined-text-field>
-    <md-outlined-text-field label={t('contact-me-from-company')} name="company"
-    ></md-outlined-text-field>
+    <Input label={t('contact-me-from-person')} name="name" />
+    <Input label={t('contact-me-from-company')} name="company" />
   </div>
-  <md-outlined-text-field label={t('contact-me-subject')} name="subject"
-  ></md-outlined-text-field>
-  <md-outlined-text-field
-    label={t('contact-me-message')}
-    type="textarea"
-    name="message"></md-outlined-text-field>
-  <md-filled-button
+  <Input label={t('contact-me-subject')} name="subject" />
+  <Textarea label={t('contact-me-message')} name="message" />
+  <Button
+    as="a"
+    data-contact-submit
     class="mt-4 px-6 w-1/2 self-end"
-    href={`mailto:${info.email}`}>{t('contact-me-submit')}</md-filled-button
+    href={`mailto:${info.email}`}>{t('contact-me-submit')}</Button
   >
 </contact-form>
 
 <script>
-  import { MdFilledButton } from '@material/web/button/filled-button';
-  import { MdOutlinedTextField } from '@material/web/textfield/outlined-text-field';
   import { info } from '@utils/constants';
 
   class ContactForm extends HTMLElement {
     connectedCallback() {
       const nameField = this.querySelector(
-        'md-outlined-text-field[name="name"]'
-      ) as MdOutlinedTextField;
+        'input[name="name"]'
+      ) as HTMLInputElement;
       const companyField = this.querySelector(
-        'md-outlined-text-field[name="company"]'
-      ) as MdOutlinedTextField;
+        'input[name="company"]'
+      ) as HTMLInputElement;
       const subjectField = this.querySelector(
-        'md-outlined-text-field[name="subject"]'
-      ) as MdOutlinedTextField;
+        'input[name="subject"]'
+      ) as HTMLInputElement;
       const messageField = this.querySelector(
-        'md-outlined-text-field[name="message"]'
-      ) as MdOutlinedTextField;
+        'textarea[name="message"]'
+      ) as HTMLTextAreaElement;
       const submitButton = this.querySelector(
-        'md-filled-button'
-      ) as MdFilledButton;
+        '[data-contact-submit]'
+      ) as HTMLAnchorElement;
 
       const handleFormChange = () => {
         const name = nameField.value;
