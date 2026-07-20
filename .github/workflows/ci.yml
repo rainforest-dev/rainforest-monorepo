@@ -34,4 +34,18 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v5
 
-      - run: pnpm exec nx affected -t lint test typecheck
+      # Run affected tasks. Nx Cloud is opt-in via the NX_CLOUD_ENABLED repo
+      # variable (same flag that gates the agents above). When it's off —
+      # including if the Nx Cloud plan lapses — set NX_NO_CLOUD so `nx affected`
+      # runs locally instead of hard-failing on "Workspace unable to be
+      # authorized". Full Cloud execution returns by flipping the variable back
+      # on (nxCloudId stays configured in nx.json).
+      - name: Run affected tasks (Nx Cloud)
+        if: vars.NX_CLOUD_ENABLED == 'true'
+        run: pnpm exec nx affected -t lint test typecheck
+
+      - name: Run affected tasks (local)
+        if: vars.NX_CLOUD_ENABLED != 'true'
+        run: pnpm exec nx affected -t lint test typecheck
+        env:
+          NX_NO_CLOUD: 'true'
