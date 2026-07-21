@@ -81,6 +81,8 @@ const projects = defineCollection({
     technologies: z.array(z.enum(tags.skills)),
     organization: reference('organizations'),
     experience: reference('experiences'),
+    featured: z.boolean().default(false),
+    order: z.number().optional(),
   }),
 });
 
