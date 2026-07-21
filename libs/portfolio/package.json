@@ -7,7 +7,8 @@
     "./package.json": "./package.json",
     ".": "./src/index.ts",
     "./content": "./src/content/index.ts",
-    "./sections/CaseStudySection.astro": "./src/sections/CaseStudySection.astro"
+    "./sections/CaseStudySection.astro": "./src/sections/CaseStudySection.astro",
+    "./theme.css": "./src/theme.css"
   },
   "nx": {
     "sourceRoot": "libs/portfolio/src",
