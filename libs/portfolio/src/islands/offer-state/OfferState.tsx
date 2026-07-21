@@ -44,6 +44,8 @@ function statusRank(status: OfferStateValue['status']): number {
   ];
 }
 
+const IN_MEMPOOL_RANK = statusRank('in_mempool');
+
 export function OfferState(): JSX.Element {
   const reducedMotion = useReducedMotion();
   const [state, setState] = useState<OfferStateValue>(INITIAL_OFFER_STATE);
@@ -179,7 +181,7 @@ export function OfferState(): JSX.Element {
           <div className="border-border bg-muted/30 mb-3 flex flex-col gap-1.5 rounded-lg border p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Offered</span>
-              <span className="font-semibold text-orange-500">
+              <span className="text-destructive font-semibold">
                 − 1,000.00 XCH
               </span>
             </div>
@@ -242,29 +244,37 @@ export function OfferState(): JSX.Element {
             {STATUS_STEPS.map((step) => {
               const rank = statusRank(status);
               const stepRank = statusRank(step.status);
-              const failed = status === 'invalid' && stepRank === 2;
-              const done = status !== 'invalid' && rank >= stepRank;
+              // `conflict` only ever fires from `in_mempool` (see
+              // nextOfferState in logic.ts), so an invalidated offer always
+              // failed exactly at IN_MEMPOOL — VALID was genuinely reached
+              // before that and stays checked, instead of every step
+              // un-checking once the offer goes invalid.
+              const failed =
+                status === 'invalid' && stepRank === IN_MEMPOOL_RANK;
+              const done =
+                status === 'invalid'
+                  ? stepRank < IN_MEMPOOL_RANK
+                  : rank >= stepRank;
               const current =
                 status !== 'invalid' && rank === stepRank - 1 && rank > 0;
+              const active = done || current;
               return (
                 <div
                   key={step.status}
                   className={`flex-1 rounded-md border px-2 py-2 text-center ${
-                    done
-                      ? 'border-primary/40 bg-primary/10'
-                      : failed
-                        ? 'border-destructive/40 bg-destructive/10'
-                        : current
-                          ? 'border-amber-400/40 bg-amber-400/10'
-                          : 'border-border'
+                    failed
+                      ? 'border-destructive/40 bg-destructive/10'
+                      : active
+                        ? 'border-primary/40 bg-primary/10'
+                        : 'border-border'
                   }`}
                 >
                   <div
                     className={`text-base ${
-                      done
-                        ? 'text-primary'
-                        : failed
-                          ? 'text-destructive'
+                      failed
+                        ? 'text-destructive'
+                        : active
+                          ? 'text-primary'
                           : 'text-muted-foreground'
                     }`}
                   >
@@ -281,7 +291,7 @@ export function OfferState(): JSX.Element {
           {status === 'on_chain' ? (
             <p
               role="status"
-              className="mb-3 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-500"
+              className="border-primary/40 bg-primary/10 text-primary mb-3 rounded-lg border px-3 py-2 text-sm"
             >
               Settled on-chain · swap complete.
             </p>
