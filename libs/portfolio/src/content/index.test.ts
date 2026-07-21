@@ -19,4 +19,9 @@ describe('case study registry', () => {
     expect(hasCaseStudy('does-not-exist')).toBe(false);
     expect(getCaseStudy('does-not-exist')).toBeUndefined();
   });
+
+  it('has no duplicate slugs in the registry', () => {
+    const slugs = listCaseStudies().map((s) => s.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
 });
