@@ -26,9 +26,9 @@ describe('per-project theme tokens', () => {
     'opencgt',
   ]) {
     it(`defines a scoped --primary for ${slug}`, () => {
-      expect(css).toContain(`[data-project="${slug}"]`);
+      expect(css).toMatch(new RegExp(`\\[data-project=["']${slug}["']\\]`));
       expect(css).toMatch(
-        new RegExp(`\\[data-project="${slug}"\\][^}]*--primary:`),
+        new RegExp(`\\[data-project=["']${slug}["']\\][^}]*--primary:`),
       );
     });
   }

@@ -6,71 +6,39 @@
  * global across the whole site. This file only overrides the `primary`
  * cluster (`--primary`, `--primary-foreground`, `--ring`) for individual
  * case-study routes, scoped to a `[data-project="<slug>"]` attribute the
- * detail route sets on its wrapper element. Nothing here touches `:root`,
- * so pages without a `data-project` attribute are completely unaffected —
- * zero leakage.
+ * detail route sets on its wrapper element (the case-study `<article>`).
  *
- * Dark-mode counterparts are scoped the same way, matching both the
- * `[data-scheme="dark"]` attribute this app actually toggles (see
- * `theme-provider.astro`) and the conventional shadcn `.dark` class, so the
- * tokens work regardless of which dark-mode mechanism a consumer wires up.
+ * No scheme-specific (light/dark) variants are needed here: each accent is
+ * scheme-invariant by design, and the override is set directly on the
+ * `[data-project]` element itself. CSS custom properties resolve from the
+ * nearest ancestor that sets them, so this declaration always wins for that
+ * subtree over whatever `--primary` the app's light/dark mechanism set
+ * further up at `:root` — in both light and dark — with no duplicate,
+ * scheme-specific rule required.
  *
- * NOTE: double-quoted attribute selectors here are intentional and must NOT
- * be reformatted to single quotes — `theme.test.ts` asserts on the literal
- * `[data-project="<slug>"]` (double-quoted) substring.
+ * Nothing here touches `:root`, so pages without a `data-project` attribute
+ * are completely unaffected — zero leakage.
  */
 
-[data-project="hoogii-wallet"] {
-  --primary: #7c5cff;
-  --primary-foreground: #ffffff;
-  --ring: #7c5cff;
-}
-[data-project="hoogii-wallet"][data-scheme="dark"],
-[data-scheme="dark"] [data-project="hoogii-wallet"],
-[data-project="hoogii-wallet"].dark,
-.dark [data-project="hoogii-wallet"] {
+[data-project='hoogii-wallet'] {
   --primary: #7c5cff;
   --primary-foreground: #ffffff;
   --ring: #7c5cff;
 }
 
-[data-project="hashgreen-dex"] {
-  --primary: #008c15;
-  --primary-foreground: #ffffff;
-  --ring: #008c15;
-}
-[data-project="hashgreen-dex"][data-scheme="dark"],
-[data-scheme="dark"] [data-project="hashgreen-dex"],
-[data-project="hashgreen-dex"].dark,
-.dark [data-project="hashgreen-dex"] {
+[data-project='hashgreen-dex'] {
   --primary: #008c15;
   --primary-foreground: #ffffff;
   --ring: #008c15;
 }
 
-[data-project="hashgreen-swap"] {
-  --primary: #00f8cb;
-  --primary-foreground: #04302a;
-  --ring: #00f8cb;
-}
-[data-project="hashgreen-swap"][data-scheme="dark"],
-[data-scheme="dark"] [data-project="hashgreen-swap"],
-[data-project="hashgreen-swap"].dark,
-.dark [data-project="hashgreen-swap"] {
+[data-project='hashgreen-swap'] {
   --primary: #00f8cb;
   --primary-foreground: #04302a;
   --ring: #00f8cb;
 }
 
-[data-project="opencgt"] {
-  --primary: #1976d2;
-  --primary-foreground: #ffffff;
-  --ring: #1976d2;
-}
-[data-project="opencgt"][data-scheme="dark"],
-[data-scheme="dark"] [data-project="opencgt"],
-[data-project="opencgt"].dark,
-.dark [data-project="opencgt"] {
+[data-project='opencgt'] {
   --primary: #1976d2;
   --primary-foreground: #ffffff;
   --ring: #1976d2;
