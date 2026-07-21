@@ -1,17 +1,22 @@
 ---
 import type { InteractionKind, Section } from '../content/types';
+import { AffectedPipeline } from '../islands/affected-pipeline';
 import { AmmQuote } from '../islands/amm-quote';
+import { CasbinPlayground } from '../islands/casbin-playground';
 import { EnvDeploy } from '../islands/env-deploy';
 import { FetchThenStream } from '../islands/fetch-then-stream';
 import { FuzzySearch } from '../islands/fuzzy-search';
 import { I18nCard } from '../islands/i18n-card';
 import { IdleLock } from '../islands/idle-lock';
+import { JwtDecode } from '../islands/jwt-decode';
 import { LiveLedger } from '../islands/live-ledger';
 import { OfferState } from '../islands/offer-state';
 import { OrderBook } from '../islands/order-book';
 import { PatchVsRefetch } from '../islands/patch-vs-refetch';
+import { PhiEncrypt } from '../islands/phi-encrypt';
 import { PhraseGrid } from '../islands/phrase-grid';
 import { RelayGate } from '../islands/relay-gate';
+import { RoleShell } from '../islands/role-shell';
 import { VirtualizedSearch } from '../islands/virtualized-search';
 import { WalletStateMachine } from '../islands/wallet-state-machine';
 import { ZapLiquidity } from '../islands/zap-liquidity';
@@ -28,9 +33,9 @@ const techSegments = parseTech(section.tech);
 // literally imported in this file (see the `NoMatchingImport` compiler error) — a
 // runtime lookup (e.g. `islandFor(section.interaction)` returning a variable) isn't
 // statically analyzable, so each known interaction kind gets its own branch here
-// instead of a single dynamic `<Island />` tag. Unmapped kinds (the opencgt
-// placeholders — see content/types.ts) render no island, same as before — tracked here
-// so the wrapper `<div>` below is skipped entirely rather than left rendering empty.
+// instead of a single dynamic `<Island />` tag. Unmapped kinds render no island —
+// tracked here so the wrapper `<div>` below is skipped entirely rather than left
+// rendering empty.
 const HYDRATED_KINDS: InteractionKind[] = [
   'phrase-grid',
   'fuzzy-search',
@@ -47,6 +52,11 @@ const HYDRATED_KINDS: InteractionKind[] = [
   'zap-liquidity',
   'env-deploy',
   'i18n-card',
+  'jwt-decode',
+  'role-shell',
+  'casbin-playground',
+  'phi-encrypt',
+  'affected-pipeline',
 ];
 const hasIsland = HYDRATED_KINDS.includes(section.interaction);
 ---
@@ -84,6 +94,11 @@ const hasIsland = HYDRATED_KINDS.includes(section.interaction);
         {section.interaction === 'zap-liquidity' && <ZapLiquidity client:visible />}
         {section.interaction === 'env-deploy' && <EnvDeploy client:visible />}
         {section.interaction === 'i18n-card' && <I18nCard client:visible />}
+        {section.interaction === 'jwt-decode' && <JwtDecode client:visible />}
+        {section.interaction === 'role-shell' && <RoleShell client:visible />}
+        {section.interaction === 'casbin-playground' && <CasbinPlayground client:visible />}
+        {section.interaction === 'phi-encrypt' && <PhiEncrypt client:visible />}
+        {section.interaction === 'affected-pipeline' && <AffectedPipeline client:visible />}
       </div>
     )
   }

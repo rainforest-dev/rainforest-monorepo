@@ -36,6 +36,17 @@ describe('island registry', () => {
       expect(islandFor(kind)).toBeTypeOf('function');
     }
   });
+  it('returns a component for each OpenCGT interaction kind', () => {
+    for (const kind of [
+      'jwt-decode',
+      'role-shell',
+      'casbin-playground',
+      'phi-encrypt',
+      'affected-pipeline',
+    ] as const) {
+      expect(islandFor(kind)).toBeTypeOf('function');
+    }
+  });
   it('returns undefined for an unmapped kind', () => {
     // @ts-expect-error deliberately unknown
     expect(islandFor('nope')).toBeUndefined();

@@ -53,13 +53,22 @@ export type SwapInteractionKind =
   | 'env-deploy'
   | 'i18n-card';
 
-/** OpenCGT — placeholder kinds; refined in later tasks. */
+/**
+ * OpenCGT — five real interactive sections transcribed from the portfolio
+ * case-study reference (cell & gene therapy supply-chain / treatment
+ * orchestration admin platform — NOT a carbon-credit platform):
+ * 1. jwt-decode         — persona pick + `getRolesFromJwt()` decode-and-reveal
+ * 2. role-shell          — hospital/manufacturer/root shell re-skin + 404 gate
+ * 3. casbin-playground   — compose-and-enforce policy playground
+ * 4. phi-encrypt         — cosmetic hybrid AES/RSA-OAEP encrypt + phi/non-phi reveal
+ * 5. affected-pipeline   — nx-affected project-graph pipeline + Playwright/k6
+ */
 export type OpencgtInteractionKind =
-  | 'role-aware-token'
-  | 'multi-tenant-deploy'
+  | 'jwt-decode'
+  | 'role-shell'
   | 'casbin-playground'
-  | 'client-side-encryption'
-  | 'incremental-build';
+  | 'phi-encrypt'
+  | 'affected-pipeline';
 
 export type InteractionKind =
   | HoogiiInteractionKind

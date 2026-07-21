@@ -1,12 +1,14 @@
 import { hashgreenDex } from './hashgreen-dex';
 import { hashgreenSwap } from './hashgreen-swap';
 import { hoogiiWallet } from './hoogii-wallet';
+import { opencgt } from './opencgt';
 import type { CaseStudy } from './types';
 
 const REGISTRY: Record<string, CaseStudy> = {
   [hoogiiWallet.slug]: hoogiiWallet,
   [hashgreenDex.slug]: hashgreenDex,
   [hashgreenSwap.slug]: hashgreenSwap,
+  [opencgt.slug]: opencgt,
 };
 
 export function listCaseStudies(): CaseStudy[] {
