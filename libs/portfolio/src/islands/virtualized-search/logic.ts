@@ -90,3 +90,72 @@ export function computeWindow(
     bottomPad: Math.max(0, (total - end) * rowHeight),
   };
 }
+
+export type Tab = 'all' | 'favorites';
+
+/**
+ * Toggle a market's favorite membership. Pure — returns a new `Set` and
+ * never mutates the one passed in, so it's safe to hand straight to a
+ * `setState` updater.
+ */
+export function toggleFavorite(
+  favorites: ReadonlySet<string>,
+  code: string,
+): Set<string> {
+  const next = new Set(favorites);
+  if (next.has(code)) next.delete(code);
+  else next.add(code);
+  return next;
+}
+
+/** Filters the "All" vs "Favorites" tab. */
+export function filterByTab<T extends { code: string }>(
+  markets: T[],
+  tab: Tab,
+  favorites: ReadonlySet<string>,
+): T[] {
+  if (tab === 'favorites') return markets.filter((m) => favorites.has(m.code));
+  return markets;
+}
+
+export const FAVORITES_STORAGE_KEY = 'rf-portfolio-dex-favorites';
+
+type ReadableStorage = Pick<Storage, 'getItem'>;
+type WritableStorage = Pick<Storage, 'setItem'>;
+
+/**
+ * SSR/no-window-safe read of persisted favorites. `storage` is injected
+ * (rather than reaching for `window.localStorage` directly) so this stays
+ * pure and testable, and so a component can pass `undefined` during a
+ * server-rendered pass instead of touching `window`. Recovers to an empty
+ * set on missing, corrupt, or unexpectedly-shaped persisted data.
+ */
+export function readFavorites(storage: ReadableStorage | undefined): Set<string> {
+  if (!storage) return new Set();
+  try {
+    const raw = storage.getItem(FAVORITES_STORAGE_KEY);
+    if (!raw) return new Set();
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((item): item is string => typeof item === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * SSR/no-window-safe write of favorites. No-ops if storage is unavailable
+ * or throws (quota exceeded, privacy mode) — losing persistence is fine,
+ * losing the UI isn't.
+ */
+export function writeFavorites(
+  storage: WritableStorage | undefined,
+  favorites: ReadonlySet<string>,
+): void {
+  if (!storage) return;
+  try {
+    storage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify([...favorites]));
+  } catch {
+    // Ignore — see comment above.
+  }
+}

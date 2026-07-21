@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeWindow, rankMarkets } from './logic';
+import {
+  computeWindow,
+  FAVORITES_STORAGE_KEY,
+  filterByTab,
+  rankMarkets,
+  readFavorites,
+  toggleFavorite,
+  writeFavorites,
+} from './logic';
 
 const MARKETS = [
   { code: 'HGN', name: 'Hashgreen' },
@@ -8,6 +16,22 @@ const MARKETS = [
   { code: 'SBX', name: 'Spacebucks' },
   { code: 'CGT', name: 'CoolGreenToken' },
 ];
+
+/** Minimal in-memory stand-in for `Storage`, for tests that don't have jsdom's real localStorage semantics in play. */
+function createFakeStorage(): {
+  store: Record<string, string>;
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+} {
+  const store: Record<string, string> = {};
+  return {
+    store,
+    getItem: (key) => (key in store ? store[key] : null),
+    setItem: (key, value) => {
+      store[key] = value;
+    },
+  };
+}
 
 describe('virtualized-search logic — rankMarkets', () => {
   it('scores an exact "code name" match at 0', () => {
@@ -67,5 +91,74 @@ describe('virtualized-search logic — computeWindow', () => {
     expect(win.start).toBe(0);
     expect(win.end).toBe(5);
     expect(win.bottomPad).toBe(0);
+  });
+});
+
+describe('virtualized-search logic — toggleFavorite', () => {
+  it('adds a code that is not yet favorited', () => {
+    const result = toggleFavorite(new Set(), 'HGN');
+    expect(result.has('HGN')).toBe(true);
+  });
+
+  it('removes a code that is already favorited', () => {
+    const result = toggleFavorite(new Set(['HGN']), 'HGN');
+    expect(result.has('HGN')).toBe(false);
+  });
+
+  it('does not mutate the input set', () => {
+    const input = new Set(['HGN']);
+    const result = toggleFavorite(input, 'XCH');
+    expect(input.has('XCH')).toBe(false);
+    expect(input.size).toBe(1);
+    expect(result.has('XCH')).toBe(true);
+  });
+});
+
+describe('virtualized-search logic — favorites persistence', () => {
+  it('reads an empty set when storage is unavailable (SSR)', () => {
+    expect(readFavorites(undefined)).toEqual(new Set());
+  });
+
+  it('reads an empty set when nothing has been persisted yet', () => {
+    const storage = createFakeStorage();
+    expect(readFavorites(storage)).toEqual(new Set());
+  });
+
+  it('round-trips a favorites set through write then read', () => {
+    const storage = createFakeStorage();
+    writeFavorites(storage, new Set(['HGN', 'XCH']));
+    expect(readFavorites(storage)).toEqual(new Set(['HGN', 'XCH']));
+    expect(storage.store[FAVORITES_STORAGE_KEY]).toBeDefined();
+  });
+
+  it('is a no-op write when storage is unavailable (SSR)', () => {
+    expect(() => writeFavorites(undefined, new Set(['HGN']))).not.toThrow();
+  });
+
+  it('recovers to an empty set from corrupt persisted JSON', () => {
+    const storage = createFakeStorage();
+    storage.store[FAVORITES_STORAGE_KEY] = 'not json';
+    expect(readFavorites(storage)).toEqual(new Set());
+  });
+
+  it('ignores a persisted value that is not an array of strings', () => {
+    const storage = createFakeStorage();
+    storage.store[FAVORITES_STORAGE_KEY] = JSON.stringify({ not: 'an array' });
+    expect(readFavorites(storage)).toEqual(new Set());
+  });
+});
+
+describe('virtualized-search logic — filterByTab', () => {
+  it('returns every market on the "all" tab', () => {
+    expect(filterByTab(MARKETS, 'all', new Set())).toEqual(MARKETS);
+  });
+
+  it('returns only starred markets on the "favorites" tab', () => {
+    const result = filterByTab(MARKETS, 'favorites', new Set(['XCH', 'CGT']));
+    expect(result.map((m) => m.code)).toEqual(['XCH', 'CGT']);
+  });
+
+  it('returns an empty list on the "favorites" tab when nothing is starred', () => {
+    expect(filterByTab(MARKETS, 'favorites', new Set())).toEqual([]);
   });
 });
