@@ -96,10 +96,7 @@ describe('portfolio lib', () => {
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
-    "./content": "./src/content/index.ts",
-    "./mcp": "./src/mcp.ts",
-    "./theme.css": "./src/theme.css",
-    "./sections/CaseStudySection.astro": "./src/sections/CaseStudySection.astro"
+    "./content": "./src/content/index.ts"
   },
   "nx": {
     "sourceRoot": "libs/portfolio/src",
@@ -113,11 +110,12 @@ describe('portfolio lib', () => {
     "@testing-library/react": "^16.1.0",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",
-    "jsdom": "^26.0.0"
+    "@types/react-dom": "catalog:"
   }
 }
 ```
+> **Exports grow incrementally** — declare a subpath only once its file exists, so an early import can't hard-fail: `./sections/CaseStudySection.astro` is added in Task 6, `./theme.css` in Task 7, `./mcp` in Task 13.
+> **No explicit `jsdom` dep** — mirror `libs/rainforest-ui`, which uses `environment: 'jsdom'` with no `jsdom` in its manifest and resolves the root-hoisted `jsdom` (`~27`). Pinning `^26` here would fork the workspace onto two jsdom majors.
 
 - [ ] **Step 3: Create tsconfig files (typecheck tsx as source, no dist build)**
 
