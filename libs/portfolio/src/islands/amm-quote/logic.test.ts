@@ -75,6 +75,17 @@ describe('amm-quote logic — calcUserSwap (log-space invariant)', () => {
     const quote = calcUserSwap(POOL, 1000, true);
     expect(quote.spot).toBeCloseTo(POOL.reserveB / POOL.reserveA, 12);
   });
+
+  it('matches the golden reference case: 1000 XCH exact-in against the default pool', () => {
+    // Hardcoded, independently-derived expected values (not recomputed from
+    // the formula under test) — catches a formula that's internally
+    // consistent but subtly wrong, which the other assertions above
+    // (round-trips, relative comparisons) can't.
+    const quote = calcUserSwap(POOL, 1000, true);
+    expect(quote.receive).toBeCloseTo(364.29, 1);
+    expect(quote.priceImpact * 100).toBeCloseTo(4.13, 1);
+    expect(quote.fee).toBe(30);
+  });
 });
 
 describe('amm-quote logic — applySlippage', () => {
