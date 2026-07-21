@@ -1,0 +1,36 @@
+---
+import '@rainforest-dev/portfolio/theme.css';
+
+import Layout from '@layouts/index.astro';
+import { getCaseStudy, listCaseStudies } from '@rainforest-dev/portfolio/content';
+import CaseStudySection from '@rainforest-dev/portfolio/sections/CaseStudySection.astro';
+import { supportedLngs } from '@utils/i18n';
+
+export const prerender = true;
+export function getStaticPaths() {
+  return supportedLngs.flatMap((lang) =>
+    listCaseStudies().map((cs) => ({ params: { lang, slug: cs.slug } })),
+  );
+}
+
+const { slug } = Astro.params;
+const study = getCaseStudy(slug!);
+if (!study) return Astro.redirect('/404');
+---
+
+<Layout title={`${study.title} — Case study`} description={study.tagline}>
+  <article data-project={study.slug} class="container py-20">
+    <p class="text-xs uppercase tracking-widest text-primary/70">Case study</p>
+    <h1 class="mt-2 text-5xl">{study.title}</h1>
+    <p class="mt-2 text-foreground/70">{study.role} · {study.period}</p>
+    <p class="mt-6 max-w-2xl">{study.tagline}</p>
+    <ul class="mt-6 flex flex-wrap gap-2">
+      {
+        study.stack.map((t) => (
+          <li class="rounded bg-primary/10 px-3 py-1 text-sm text-primary">{t}</li>
+        ))
+      }
+    </ul>
+    {study.sections.map((section) => <CaseStudySection section={section} />)}
+  </article>
+</Layout>

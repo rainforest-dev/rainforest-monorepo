@@ -376,6 +376,9 @@ importers:
       '@rainforest-dev/personal-data':
         specifier: workspace:*
         version: link:../../libs/personal-data
+      '@rainforest-dev/portfolio':
+        specifier: workspace:*
+        version: link:../../libs/portfolio
       '@rainforest-dev/rainforest-ui':
         specifier: workspace:*
         version: link:../../libs/rainforest-ui
