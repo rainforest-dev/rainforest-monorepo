@@ -31,11 +31,10 @@ const techSegments = parseTech(section.tech);
 
 // Astro's `client:*` hydration directives require the tag to resolve to a component
 // literally imported in this file (see the `NoMatchingImport` compiler error) — a
-// runtime lookup (e.g. `islandFor(section.interaction)` returning a variable) isn't
-// statically analyzable, so each known interaction kind gets its own branch here
-// instead of a single dynamic `<Island />` tag. Unmapped kinds render no island —
-// tracked here so the wrapper `<div>` below is skipped entirely rather than left
-// rendering empty.
+// runtime lookup returning a component variable isn't statically analyzable, so each
+// known interaction kind gets its own branch here instead of a single dynamic
+// `<Island />` tag. Unmapped kinds render no island — tracked here so the wrapper
+// `<div>` below is skipped entirely rather than left rendering empty.
 const HYDRATED_KINDS: InteractionKind[] = [
   'phrase-grid',
   'fuzzy-search',

@@ -5,7 +5,7 @@ import { getCaseStudy, hasCaseStudy, listCaseStudies } from './index';
 describe('case study registry', () => {
   it('lists case studies with 5 sections each and unique interaction kinds', () => {
     const studies = listCaseStudies();
-    expect(studies.length).toBeGreaterThan(0);
+    expect(studies).toHaveLength(4);
     for (const study of studies) {
       expect(study.sections).toHaveLength(5);
       const kinds = study.sections.map((s) => s.interaction);

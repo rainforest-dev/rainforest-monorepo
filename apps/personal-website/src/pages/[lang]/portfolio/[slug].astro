@@ -15,7 +15,10 @@ export function getStaticPaths() {
 
 const { slug } = Astro.params;
 const study = getCaseStudy(slug!);
-if (!study) return Astro.redirect('/404');
+// Unreachable by construction: getStaticPaths only emits slugs from listCaseStudies(),
+// so `study` is always defined. Kept as a correct 404 rather than a redirect to a
+// non-existent /404 page, in case the generation strategy ever changes.
+if (!study) return new Response(null, { status: 404 });
 ---
 
 <Layout title={`${study.title} — Case study`} description={study.tagline}>
