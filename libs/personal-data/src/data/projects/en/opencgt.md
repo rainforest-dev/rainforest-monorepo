@@ -4,6 +4,7 @@ language: 'en'
 technologies: ['nextjs', 'auth0', 'mui', 'playwright', 'vitest']
 organization: 'en/codegreen'
 experience: 'en/6'
+featured: true
 ---
 
 - Led the frontend development for a B2B product built with Next.js, collaborating closely with designers and backend engineers to deliver a seamless user experience.

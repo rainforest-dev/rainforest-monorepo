@@ -85,3 +85,19 @@ describe('schemas', () => {
     ).toThrow();
   });
 });
+
+describe('projectSchema curation', () => {
+  it('defaults featured to false and accepts an order', () => {
+    const base = {
+      name: 'X',
+      language: 'en',
+      technologies: [],
+      organization: 'en/o',
+      experience: 'en/1',
+    };
+    expect(projectSchema.parse(base).featured).toBe(false);
+    expect(
+      projectSchema.parse({ ...base, featured: true, order: 1 }).order,
+    ).toBe(1);
+  });
+});

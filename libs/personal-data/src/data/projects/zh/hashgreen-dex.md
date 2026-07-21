@@ -4,6 +4,7 @@ language: 'zh'
 technologies: ['nextjs', 'tailwindcss']
 organization: 'zh/codegreen'
 experience: 'zh/6'
+featured: true
 ---
 
 - 領導前端開發團隊，在 Chia 區塊鏈上構建了行業首個去中心化交易所（DEX）。
