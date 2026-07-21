@@ -41,12 +41,10 @@ export function AmmQuote(): JSX.Element {
   };
 
   const impactPct = quote.priceImpact * 100;
-  const impactClass =
-    impactPct >= 5
-      ? 'text-destructive'
-      : impactPct >= 1
-        ? 'text-amber-500'
-        : 'text-primary';
+  // Only primary/destructive exist as semantic tokens here, so price impact
+  // is two-tone: destructive past 5%, primary otherwise (matches the
+  // ask/bid two-tone `order-book` already uses for directional color).
+  const impactClass = impactPct >= 5 ? 'text-destructive' : 'text-primary';
 
   const invariant = exactIn
     ? 'out = rB·x(1−φ) / (rA + x(1−φ)) · (1−ε)'
@@ -123,7 +121,7 @@ export function AmmQuote(): JSX.Element {
             className="text-foreground w-full bg-transparent text-2xl font-semibold outline-none"
           />
         </span>
-        <span className="flex shrink-0 items-center gap-2 rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1.5 text-sm font-semibold">
+        <span className="border-border bg-muted/50 flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold">
           {ASSET_B}
         </span>
       </label>

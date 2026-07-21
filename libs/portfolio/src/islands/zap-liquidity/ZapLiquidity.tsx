@@ -83,8 +83,8 @@ export function ZapLiquidity(): JSX.Element {
               {ASSET_A}
             </span>
           </label>
-          <div className="mt-3 rounded-xl border border-orange-400/30 bg-orange-400/5 p-3">
-            <p className="mb-2 text-xs text-orange-500">
+          <div className="border-primary/20 bg-primary/5 mt-3 rounded-xl border p-3">
+            <p className="text-primary mb-2 text-xs">
               single asset in · split before mint
             </p>
             <div
@@ -97,7 +97,7 @@ export function ZapLiquidity(): JSX.Element {
                 style={{ width: '50%' }}
               />
               <div
-                className="h-full bg-orange-400 transition-[width] duration-300 ease-out"
+                className="bg-muted-foreground/40 h-full transition-[width] duration-300 ease-out"
                 style={{ width: '50%' }}
               />
             </div>
@@ -143,7 +143,7 @@ export function ZapLiquidity(): JSX.Element {
                 className="text-foreground w-full bg-transparent text-lg font-semibold outline-none"
               />
             </span>
-            <span className="flex shrink-0 items-center rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1.5 text-sm font-semibold">
+            <span className="border-border bg-muted/50 flex shrink-0 items-center rounded-full border px-3 py-1.5 text-sm font-semibold">
               {ASSET_B}
             </span>
           </label>
