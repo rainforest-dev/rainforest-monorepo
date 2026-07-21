@@ -1,6 +1,10 @@
 ---
-import type { Section } from '../content/types';
-import { islandFor } from './island-registry';
+import type { InteractionKind, Section } from '../content/types';
+import { FuzzySearch } from '../islands/fuzzy-search';
+import { IdleLock } from '../islands/idle-lock';
+import { LiveLedger } from '../islands/live-ledger';
+import { PhraseGrid } from '../islands/phrase-grid';
+import { RelayGate } from '../islands/relay-gate';
 import { parseTech } from './parse-tech';
 
 interface Props {
@@ -8,8 +12,23 @@ interface Props {
 }
 
 const { section } = Astro.props;
-const Island = islandFor(section.interaction);
 const techSegments = parseTech(section.tech);
+
+// Astro's `client:*` hydration directives require the tag to resolve to a component
+// literally imported in this file (see the `NoMatchingImport` compiler error) — a
+// runtime lookup (e.g. `islandFor(section.interaction)` returning a variable) isn't
+// statically analyzable, so each known interaction kind gets its own branch here
+// instead of a single dynamic `<Island />` tag. Unmapped kinds (the dex/swap/opencgt
+// placeholders — see content/types.ts) render no island, same as before — tracked here
+// so the wrapper `<div>` below is skipped entirely rather than left rendering empty.
+const HYDRATED_KINDS: InteractionKind[] = [
+  'phrase-grid',
+  'fuzzy-search',
+  'live-ledger',
+  'idle-lock',
+  'relay-gate',
+];
+const hasIsland = HYDRATED_KINDS.includes(section.interaction);
 ---
 
 <section class="py-16" aria-labelledby={`sec-${section.id}`}>
@@ -28,9 +47,13 @@ const techSegments = parseTech(section.tech);
     }
   </p>
   {
-    Island && (
+    hasIsland && (
       <div class="mt-8">
-        <Island client:visible />
+        {section.interaction === 'phrase-grid' && <PhraseGrid client:visible />}
+        {section.interaction === 'fuzzy-search' && <FuzzySearch client:visible />}
+        {section.interaction === 'live-ledger' && <LiveLedger client:visible />}
+        {section.interaction === 'idle-lock' && <IdleLock client:visible />}
+        {section.interaction === 'relay-gate' && <RelayGate client:visible />}
       </div>
     )
   }
