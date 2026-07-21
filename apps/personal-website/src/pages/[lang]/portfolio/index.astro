@@ -1,7 +1,9 @@
 ---
+import '@rainforest-dev/portfolio/theme.css';
+
 import Layout from '@layouts/index.astro';
 import { getProjects, type ResolvedProject } from '@rainforest-dev/personal-data';
-import { hasCaseStudy } from '@rainforest-dev/portfolio/content';
+import { getCaseStudy, hasCaseStudy } from '@rainforest-dev/portfolio/content';
 import { supportedLngs } from '@utils/i18n';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 
@@ -11,32 +13,54 @@ export function getStaticPaths() {
 }
 
 const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
+const description = 'Selected work — interactive case studies.';
+// Featured-first, then `order` — already sorts featured work to the top. If a
+// non-featured tail is ever added, it lands after the featured group for free;
+// no extra "view all" affordance needed until that tail actually exists.
 const projects = (await getProjects({ lang })).sort(
   (a, b) => Number(b.featured) - Number(a.featured) || (a.order ?? 99) - (b.order ?? 99),
 );
 const slugOf = (p: ResolvedProject) => p.id.split('/').pop()!;
 ---
 
-<Layout title="Portfolio" description="Selected work — interactive case studies.">
+<Layout title="Portfolio" description={description}>
   <main class="container py-20">
-    <h1 class="mb-10 text-4xl">Portfolio</h1>
-    <ul class="grid gap-8 md:grid-cols-2">
+    <h1 class="mb-2 text-4xl">Portfolio</h1>
+    <p class="mb-10 max-w-2xl text-foreground/70">{description}</p>
+    <ul class="grid gap-6 md:grid-cols-2">
       {
         projects.map((p) => {
           const slug = slugOf(p);
-          const href = hasCaseStudy(slug)
-            ? getRelativeLocaleUrl(lang, `/portfolio/${slug}`)
-            : undefined;
+          const study = hasCaseStudy(slug) ? getCaseStudy(slug) : undefined;
+          const href = study ? getRelativeLocaleUrl(lang, `/portfolio/${slug}`) : undefined;
+          const title = study?.title ?? p.name;
+          const tagline = study?.tagline ?? p.organization.name;
+          const stack = study?.stack ?? p.technologies;
           return (
-            <li class="rounded-lg border p-6" data-project={hasCaseStudy(slug) ? slug : undefined}>
-              <h2 class="text-2xl">{p.name}</h2>
-              {href ? (
-                <a class="mt-4 inline-block text-primary underline" href={href}>
-                  View case study →
-                </a>
-              ) : (
-                <p class="mt-4 text-sm text-foreground/60">Summary</p>
-              )}
+            <li
+              class="flex flex-col gap-4 rounded-lg border bg-card p-6 transition-shadow hover:shadow-md"
+              data-project={study ? slug : undefined}
+            >
+              <h2 class="text-2xl">{title}</h2>
+              <p class="text-foreground/70">{tagline}</p>
+              <ul class="flex flex-wrap gap-2">
+                {stack.map((t) => (
+                  <li class="rounded bg-primary/10 px-2.5 py-1 text-xs text-primary">{t}</li>
+                ))}
+              </ul>
+              <div class="mt-auto pt-2">
+                {href ? (
+                  <a
+                    class="inline-flex w-fit items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+                    href={href}
+                    aria-label={`View case study: ${title}`}
+                  >
+                    View case study <span aria-hidden="true">→</span>
+                  </a>
+                ) : (
+                  <p class="text-sm text-foreground/60">Summary</p>
+                )}
+              </div>
             </li>
           );
         })
