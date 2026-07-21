@@ -60,21 +60,23 @@ const HYDRATED_KINDS: InteractionKind[] = [
 const hasIsland = HYDRATED_KINDS.includes(section.interaction);
 ---
 
-<section class="py-16" aria-labelledby={`sec-${section.id}`}>
-  <p class="text-xs tracking-widest uppercase text-primary/70">{section.title}</p>
-  <h3 id={`sec-${section.id}`} class="mt-2 text-2xl">{section.feature}</h3>
-  <p class="mt-4 border-l-2 border-primary/50 pl-4 italic">{section.contribution}</p>
-  <p class="mt-4 text-foreground/80">
-    {
-      techSegments.map((seg) =>
-        seg.code ? (
-          <code class="rounded bg-muted px-1 py-0.5 text-sm">{seg.text}</code>
-        ) : (
-          <span>{seg.text}</span>
+<section class="py-14" aria-labelledby={`sec-${section.id}`}>
+  <div class="max-w-prose">
+    <p class="text-xs tracking-widest uppercase text-primary/70">{section.title}</p>
+    <h3 id={`sec-${section.id}`} class="mt-2 text-2xl leading-snug">{section.feature}</h3>
+    <p class="mt-4 border-l-2 border-primary/50 pl-4 italic">{section.contribution}</p>
+    <p class="mt-4 leading-relaxed text-foreground/80">
+      {
+        techSegments.map((seg) =>
+          seg.code ? (
+            <code class="rounded bg-muted px-1 py-0.5 text-sm">{seg.text}</code>
+          ) : (
+            <span>{seg.text}</span>
+          )
         )
-      )
-    }
-  </p>
+      }
+    </p>
+  </div>
   {
     hasIsland && (
       <div class="mt-8">

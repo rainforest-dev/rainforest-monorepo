@@ -22,7 +22,7 @@ if (!study) return new Response(null, { status: 404 });
 ---
 
 <Layout title={`${study.title} — Case study`} description={study.tagline}>
-  <article data-project={study.slug} class="container py-20">
+  <article data-project={study.slug} class="mx-auto max-w-4xl px-6 py-20">
     <p class="text-xs uppercase tracking-widest text-primary/70">Case study</p>
     <h1 class="mt-2 text-5xl">{study.title}</h1>
     <p class="mt-2 text-foreground/70">{study.role} · {study.period}</p>
