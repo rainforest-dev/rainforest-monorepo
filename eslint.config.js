@@ -16,15 +16,12 @@ module.exports = [
       '@nx/enforce-module-boundaries': [
         'error',
         {
-          // libs/portfolio is deliberately non-buildable: its package.json `exports` point
-          // straight at .ts/.astro source (no dist/build step) so it's consumed the same way
-          // by any bundler (Astro's Vite pipeline today), not pre-packaged like personal-data/
-          // rainforest-ui. `enforceBuildableLibDependency: true` would otherwise flag
-          // buildable projects (e.g. apps/personal-website) importing from it as an
-          // incremental-build hazard, which doesn't apply here — there's no build artifact to
-          // go stale.
-          enforceBuildableLibDependency: false,
-          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?js$'],
+          enforceBuildableLibDependency: true,
+          // @rainforest-dev/portfolio is deliberately non-buildable — its exports point at
+          // .ts/.astro source, not a dist — so importing it carries no stale-artifact hazard.
+          // This allow entry unblocks just that edge; enforceBuildableLibDependency still
+          // protects every other buildable-lib pair.
+          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?js$', '@rainforest-dev/portfolio/**'],
           depConstraints: [
             {
               sourceTag: '*',
