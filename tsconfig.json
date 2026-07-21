@@ -26,6 +26,9 @@
     },
     {
       "path": "./apps/rss-manager"
+    },
+    {
+      "path": "./libs/portfolio"
     }
   ]
 }
