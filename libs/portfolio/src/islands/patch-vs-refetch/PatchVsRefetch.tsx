@@ -1,23 +1,42 @@
 import { type JSX, useState } from 'react';
 
-import { needsRefetch, type Order, type OrderFilters, patchOrder } from './logic';
+import {
+  matchesDateRange,
+  matchesFilters,
+  matchesMarket,
+  matchesStatus,
+  needsRefetch,
+  type Order,
+  type OrderFilters,
+  patchOrder,
+} from './logic';
 
 const MARKET_OPTS = ['all', 'HGN-USDC', 'XCH-USDC', 'SBX-USDC'];
 const STATUS_OPTS = ['all', 'Active', 'Filled', 'Cancelled'];
+const RANGE_OPTS: { value: string; label: string }[] = [
+  { value: 'all', label: 'Any time' },
+  { value: 'today', label: 'Today' },
+  { value: 'week', label: 'This week' },
+];
 const PAGE_SIZE = 5;
 
-/** Fabricated order history — cosmetic only, never a real position. */
+/**
+ * Fabricated order history — cosmetic only, never a real position.
+ * `ageMinutes` is spread across today / this-week / older-than-a-week so
+ * the date-range filter (and the "simulate a fill" branch readout) has
+ * something real to demonstrate, not just market/status.
+ */
 const INITIAL_ORDERS: Order[] = [
-  { id: 'ORD-101', market: 'HGN-USDC', status: 'Active', side: 'buy', price: 1.2401, amount: 120, age: '2m' },
-  { id: 'ORD-102', market: 'HGN-USDC', status: 'Active', side: 'sell', price: 1.2489, amount: 60, age: '4m' },
-  { id: 'ORD-103', market: 'XCH-USDC', status: 'Filled', side: 'buy', price: 18.2, amount: 5, age: '9m' },
-  { id: 'ORD-104', market: 'SBX-USDC', status: 'Active', side: 'buy', price: 0.041, amount: 4000, age: '11m' },
-  { id: 'ORD-105', market: 'HGN-USDC', status: 'Cancelled', side: 'sell', price: 1.26, amount: 30, age: '14m' },
-  { id: 'ORD-106', market: 'XCH-USDC', status: 'Active', side: 'sell', price: 18.55, amount: 8, age: '16m' },
-  { id: 'ORD-107', market: 'SBX-USDC', status: 'Filled', side: 'sell', price: 0.039, amount: 2200, age: '19m' },
-  { id: 'ORD-108', market: 'HGN-USDC', status: 'Active', side: 'buy', price: 1.235, amount: 200, age: '22m' },
-  { id: 'ORD-109', market: 'XCH-USDC', status: 'Cancelled', side: 'buy', price: 17.9, amount: 3, age: '27m' },
-  { id: 'ORD-110', market: 'SBX-USDC', status: 'Active', side: 'sell', price: 0.043, amount: 1500, age: '31m' },
+  { id: 'ORD-101', market: 'HGN-USDC', status: 'Active', side: 'buy', price: 1.2401, amount: 120, age: '2m', ageMinutes: 2 },
+  { id: 'ORD-102', market: 'HGN-USDC', status: 'Active', side: 'sell', price: 1.2489, amount: 60, age: '4h', ageMinutes: 240 },
+  { id: 'ORD-103', market: 'XCH-USDC', status: 'Filled', side: 'buy', price: 18.2, amount: 5, age: '9m', ageMinutes: 9 },
+  { id: 'ORD-104', market: 'SBX-USDC', status: 'Active', side: 'buy', price: 0.041, amount: 4000, age: '5d', ageMinutes: 8000 },
+  { id: 'ORD-105', market: 'HGN-USDC', status: 'Cancelled', side: 'sell', price: 1.26, amount: 30, age: '14m', ageMinutes: 14 },
+  { id: 'ORD-106', market: 'XCH-USDC', status: 'Active', side: 'sell', price: 18.55, amount: 8, age: '16m', ageMinutes: 16 },
+  { id: 'ORD-107', market: 'SBX-USDC', status: 'Filled', side: 'sell', price: 0.039, amount: 2200, age: '19m', ageMinutes: 19 },
+  { id: 'ORD-108', market: 'HGN-USDC', status: 'Active', side: 'buy', price: 1.235, amount: 200, age: '22m', ageMinutes: 22 },
+  { id: 'ORD-109', market: 'XCH-USDC', status: 'Cancelled', side: 'buy', price: 17.9, amount: 3, age: '27m', ageMinutes: 27 },
+  { id: 'ORD-110', market: 'SBX-USDC', status: 'Active', side: 'sell', price: 0.043, amount: 1500, age: '14d', ageMinutes: 20000 },
 ];
 
 interface Readout {
@@ -25,19 +44,18 @@ interface Readout {
   market: string;
   matchMarket: boolean;
   matchStatus: boolean;
+  matchDateRange: boolean;
   branch: 'PATCH-IN-PLACE' | 'PAGE-REFETCH';
   note: string;
 }
 
-function matchesFilters(order: Order, filters: OrderFilters): boolean {
-  const matchMarket = filters.market === 'all' || order.market === filters.market;
-  const matchStatus = filters.status === 'all' || order.status === filters.status;
-  return matchMarket && matchStatus;
-}
-
 export function PatchVsRefetch(): JSX.Element {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const [filters, setFilters] = useState<OrderFilters>({ market: 'all', status: 'all' });
+  const [filters, setFilters] = useState<OrderFilters>({
+    market: 'all',
+    status: 'all',
+    range: 'all',
+  });
   const [page, setPage] = useState(0);
   const [readout, setReadout] = useState<Readout | null>(null);
 
@@ -58,15 +76,20 @@ export function PatchVsRefetch(): JSX.Element {
     const activeOrders = orders.filter((order) => order.status === 'Active');
     if (activeOrders.length === 0) return;
     const target = activeOrders[Math.floor(Math.random() * activeOrders.length)];
-    const updated: Order = { ...target, status: 'Filled', age: '0s' };
+    // Only status flips on a fill — ageMinutes is the order's placement
+    // time, which a fill doesn't change, so the date-range check stays
+    // meaningful (an old order can still fill; it just won't show up under
+    // a narrow "today" filter).
+    const updated: Order = { ...target, status: 'Filled' };
 
     const refetch = needsRefetch(updated, filters);
     setOrders((prev) => patchOrder(prev, updated));
     setReadout({
       orderId: updated.id,
       market: updated.market,
-      matchMarket: filters.market === 'all' || updated.market === filters.market,
-      matchStatus: filters.status === 'all' || updated.status === filters.status,
+      matchMarket: matchesMarket(updated, filters),
+      matchStatus: matchesStatus(updated, filters),
+      matchDateRange: matchesDateRange(updated, filters),
       branch: refetch ? 'PAGE-REFETCH' : 'PATCH-IN-PLACE',
       note: refetch
         ? 'This event no longer matches the active filters, so the page refetches instead of trusting a stale row.'
@@ -106,14 +129,29 @@ export function PatchVsRefetch(): JSX.Element {
             ))}
           </select>
         </label>
+        <label className="text-muted-foreground flex items-center gap-2 text-xs">
+          placed
+          <select
+            value={filters.range}
+            onChange={(event) => handleFilterChange({ range: event.target.value })}
+            className="border-border bg-muted/40 text-foreground h-8 rounded-md border px-2 text-sm"
+          >
+            {RANGE_OPTS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
-      <div className="text-muted-foreground mb-1 grid grid-cols-5 gap-2 px-2 font-mono text-[11px] uppercase">
+      <div className="text-muted-foreground mb-1 grid grid-cols-6 gap-2 px-2 font-mono text-[11px] uppercase">
         <span>order</span>
         <span>market</span>
         <span className="text-right">price</span>
         <span className="text-right">amount</span>
         <span>status</span>
+        <span className="text-right">age</span>
       </div>
 
       <div role="table" aria-label="Order history" className="flex min-h-[10rem] flex-col gap-1">
@@ -121,7 +159,7 @@ export function PatchVsRefetch(): JSX.Element {
           <div
             key={order.id}
             role="row"
-            className="border-border/60 grid grid-cols-5 items-center gap-2 rounded-md border-b px-2 py-1.5 font-mono text-xs"
+            className="border-border/60 grid grid-cols-6 items-center gap-2 rounded-md border-b px-2 py-1.5 font-mono text-xs"
           >
             <span className="text-muted-foreground">{order.id}</span>
             <span className="text-foreground">{order.market}</span>
@@ -132,6 +170,7 @@ export function PatchVsRefetch(): JSX.Element {
             </span>
             <span className="text-foreground text-right">{order.amount}</span>
             <span className="text-muted-foreground">{order.status}</span>
+            <span className="text-muted-foreground text-right">{order.age}</span>
           </div>
         ))}
         {rows.length === 0 ? (
@@ -207,6 +246,15 @@ export function PatchVsRefetch(): JSX.Element {
               }`}
             >
               checkStatus: {readout.matchStatus ? '✓' : '✗'}
+            </span>
+            <span
+              className={`rounded-md border px-2 py-1 font-mono text-xs ${
+                readout.matchDateRange
+                  ? 'border-primary/40 text-primary'
+                  : 'border-destructive/40 text-destructive'
+              }`}
+            >
+              checkDateRange: {readout.matchDateRange ? '✓' : '✗'}
             </span>
           </div>
           <p className="text-foreground font-mono text-lg font-bold">
