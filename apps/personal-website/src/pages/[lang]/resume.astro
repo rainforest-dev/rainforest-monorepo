@@ -3,6 +3,7 @@ import profile from '@assets/images/profile/1.webp';
 import { ATSFriendly } from '@components/resume';
 import Layout from '@layouts/index.astro';
 import { getEducation, getSkills, getWorkExperience } from '@rainforest-dev/personal-data';
+import { listCaseStudies } from '@rainforest-dev/portfolio/content';
 import type { IResumeProps } from '@types';
 import { getGitHubUrl, getLinkedInUrl } from '@utils';
 import { hero, info } from '@utils/constants';
@@ -56,6 +57,7 @@ const [skills, workExperience, education] = await Promise.all([
   getEducation({ lang }),
 ]);
 const mostRecentJob = workExperience.toSorted((a, b) => b.startAt.valueOf() - a.startAt.valueOf())[0];
+const caseStudies = listCaseStudies();
 const personSchema = {
   '@context': 'https://schema.org',
   '@type': 'Person',
@@ -72,6 +74,13 @@ const personSchema = {
     worksFor: { '@type': 'Organization', name: mostRecentJob.organization.name },
   }),
   alumniOf: education.map((e) => ({ '@type': 'EducationalOrganization', name: e.organization.name })),
+  // Interactive case studies for shipped work — the same registry backing /[lang]/portfolio,
+  // so this list can't list a project without a live page to back it.
+  subjectOf: caseStudies.map((cs) => ({
+    '@type': 'CreativeWork',
+    name: cs.title,
+    url: `${info.links.website}/en/portfolio/${cs.slug}`,
+  })),
 };
 ---
 
