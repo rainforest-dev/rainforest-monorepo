@@ -94,10 +94,22 @@ project (already enforced by the content spec).
 - Canonical slugs = the `personal-data` filenames (`hoogii-wallet`, `hashgreen-dex`,
   `hashgreen-swap`, `opencgt`); mapped to Claude Design variants (`hoogii`, `dex`, `swap`,
   `opencgt`) only during porting.
+- **A case study is optional per project.** The index lists every `personal-data` project; a
+  project links to `/portfolio/[slug]` only when a matching `libs/portfolio` slug exists,
+  otherwise it renders as a summary card. This lets the project list grow freely while only the
+  worthiest get a deep-built case study.
+- **Curation field (schema addition):** add optional **`featured?: boolean`** (and optional
+  `order?: number`) to `projectSchema` in `libs/personal-data/src/schemas.ts` **and** the mirrored
+  `content.config.ts` (they must stay in sync — see their comments). This is an identity-level
+  signal consumed uniformly by the resume, home, and portfolio index (§16). Mirrors the existing
+  `prioritized`-tag convention already used for skills.
 
 ## 6. Routing & IA
 
-- `apps/personal-website/src/pages/[lang]/portfolio/index.astro` — grid of the four project cards.
+- `apps/personal-website/src/pages/[lang]/portfolio/index.astro` — **featured-first**: `featured`
+  projects get prominent hero/large cards up top; the rest fall into a compact grid or behind a
+  "view all" (progressive disclosure), so the first screen stays the 1–3 worthiest as the set
+  grows. Optional by-tech/by-role filtering reuses the existing `$filter` nanostore.
 - `apps/personal-website/src/pages/[lang]/portfolio/[slug].astro` — detail page: 5 sections,
   islands hydrated `client:visible` (mount only when scrolled into view).
 - Swap the nav's `portfolio` link (currently the external cake.me URL in
@@ -196,8 +208,43 @@ sections; analytics on the demos; a global self-registering MCP registry; Server
 ## 15. Implementation phases (high-level; detailed plan follows via writing-plans)
 
 1. Scaffold `libs/portfolio` (Nx source lib, boundaries, tsconfig refs).
-2. Content model + typed data for the four case studies (port from content spec via DesignSync).
-3. React islands (one per interaction kind) + section wrapper + shadcn theme tokens.
-4. Astro routes (`/[lang]/portfolio` index + `[slug]`) + nav link swap.
-5. MCP composition-root refactor + `registerPortfolioMcp` + resource/tool.
-6. Tests (island logic + render smoke) + leanness/perf check.
+2. Add `featured?`/`order?` to the project schema (lib + `content.config.ts`) — the curation signal.
+3. Content model + typed data for the four case studies (port from content spec via DesignSync).
+4. React islands (one per interaction kind) + section wrapper + shadcn theme tokens.
+5. Astro routes (`/[lang]/portfolio` featured-first index + `[slug]`) + nav link swap.
+6. Cross-linking pass (§17): home experience bullets, resume + full-URL/JSON-LD, MCP `caseStudyUrl`, llms.txt.
+7. MCP composition-root refactor + `registerPortfolioMcp` + resource/tool.
+8. Tests (island logic + render smoke) + leanness/perf check.
+
+## 16. Scalability & curation
+
+The design is **additive** — a new project is data, not code:
+
+| To add a project | Touch | Untouched |
+|---|---|---|
+| Identity (always) | `personal-data/projects/{en,zh}/<slug>.md` | — |
+| Full case study (optional) | `libs/portfolio/content/<slug>.ts` + one `[data-project="<slug>"]` theme row | index/detail routes, MCP, section components |
+
+Routes and the MCP resource **iterate the collection**, so they pick up new projects with no edit.
+**First-glance focus** is preserved by the `featured`/`order` curation signal (§5) driving the
+featured-first index (§6): as the list grows, the top of the page stays the 1–3 worthiest, the
+long tail is progressively disclosed, and projects without a case study degrade gracefully to
+summary cards. The same `featured` signal curates the resume (§17), so the one-pager shows only
+headline work and links out for depth rather than trying to contain everything.
+
+## 17. Cross-linking map
+
+Every surface that mentions a project links to its case study **only when a matching
+`libs/portfolio` slug exists** (summary-only projects never dead-link):
+
+| Mention site | File | Link |
+|---|---|---|
+| Nav "portfolio" | `utils/constants/index.ts` | → `/[lang]/portfolio` (replaces cake.me) |
+| Home experience bullets | `components/home/experiences/project.astro` | name → `/[lang]/portfolio/[slug]` |
+| Resume | `components/resume/ats-friendly.astro` | featured projects → case study (render full URL for print/ATS) |
+| MCP project resource | `mcp/handler.ts` | add `caseStudyUrl` to the resolved project shape |
+| llms.txt / llms-full.txt | `pages/llms*.ts` | list case-study URLs for agent crawling |
+| schema.org JSON-LD | `[lang]/resume.astro` | `hasPart`/`subjectOf` → case-study URLs |
+
+Principle: **resume = curated teaser → portfolio = depth.** The resume carries `featured` highlights
++ links; the portfolio holds the full set and the rich detail.
