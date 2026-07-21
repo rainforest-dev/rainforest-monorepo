@@ -26,10 +26,10 @@ export const hashgreenDex: CaseStudy = {
       id: 'reading-the-book-without-acting-on-a-ghost',
       title: 'Reading the book without acting on a ghost',
       feature:
-        'A live bid/ask book where clicking a level opens an offer, and a level that moves closes it instantly.',
+        'A live bid/ask book where clicking a level opens a summary panel, and a level that moves off the book closes it instantly.',
       contribution:
         'I owned an invariant: a trader must never act on a price level that has already moved. A tooltip anchored to a row that gets replaced is a first-class event that closes the popover — not a rendering afterthought.',
-      tech: 'A side-aware `react-popper` tooltip anchors to the clicked level. A reconciliation `useEffect` keys every level by `key(market, price, amount, total)` and deselects the moment that key stops matching anything in the current book.',
+      tech: "A reconciliation `useEffect` keys every level by `key(market, price, amount, total)` and clears the selection the moment that key stops matching anything in the current book — the same invariant the production UI's side-aware `react-popper` tooltip relies on to avoid anchoring to a row that no longer exists.",
       interaction: 'order-book',
       sourceRef:
         'src/components/Trade/OrderBook.tsx · src/components/Trade/OfferTooltip.tsx',
@@ -43,7 +43,8 @@ export const hashgreenDex: CaseStudy = {
         'I built streaming as one reusable contract. Every live surface hydrates the same way — one REST fetch, then one hook — and every subscription tears down on unmount and re-subscribes cleanly when the channel changes.',
       tech: "A `useAbly({ channelName, events, callback })` hook owns the whole subscription lifecycle; `ablyIndicator` reads Ably's connection state to drive the dot.",
       interaction: 'fetch-then-stream',
-      sourceRef: 'src/hooks/useAbly.ts · src/components/Navbar/ablyIndicator.tsx',
+      sourceRef:
+        'src/hooks/useAbly.ts · src/components/Navbar/ablyIndicator.tsx',
     },
     {
       id: 'one-state-machine-three-wallets',
