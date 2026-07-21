@@ -51,6 +51,11 @@ export interface Section {
   title: string;
   feature: string;
   contribution: string; // first-person
+  /**
+   * Prose that may contain markdown-style `code` spans naming real symbols.
+   * Render via an inline-markdown step (backtick spans -> <code>), NOT set:html
+   * on the raw string (that would print the literal backtick characters).
+   */
   tech: string;
   interaction: InteractionKind;
   sourceRef?: string;
