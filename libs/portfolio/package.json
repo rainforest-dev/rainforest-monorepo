@@ -7,6 +7,7 @@
     "./package.json": "./package.json",
     ".": "./src/index.ts",
     "./content": "./src/content/index.ts",
+    "./mcp": "./src/mcp.ts",
     "./sections/CaseStudySection.astro": "./src/sections/CaseStudySection.astro",
     "./theme.css": "./src/theme.css"
   },
@@ -17,6 +18,10 @@
   "peerDependencies": {
     "react": "catalog:",
     "react-dom": "catalog:"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@testing-library/react": "^16.1.0",
