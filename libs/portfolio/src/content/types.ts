@@ -32,13 +32,26 @@ export type DexInteractionKind =
   | 'wallet-state-machine'
   | 'patch-vs-refetch';
 
-/** HashgreenSwap — placeholder kinds; refined in later tasks. */
+/**
+ * HashgreenSwap (Pyke) — five real interactive sections transcribed from the
+ * portfolio case-study reference:
+ * 1. amm-quote      — live exact-in/exact-out quote over the log-space
+ *                     `calcUserSwap` AMM invariant, with slippage + math
+ * 2. offer-state     — a Chia offer walking VALID → IN_MEMPOOL → ON_CHAIN
+ *                     (or INVALID), signed via `IWallet.createOffer`
+ * 3. zap-liquidity   — one-sided Zap deposit vs. balanced `useAssetInputPair`,
+ *                     with live pool-share/LP math
+ * 4. env-deploy      — one image promoted through sandbox/UAT/staging/prod,
+ *                     with the real TVL/volume/txn metrics
+ * 5. i18n-card       — a swap-summary card re-rendering in EN/简/繁 through
+ *                     `i18next-chained-backend`
+ */
 export type SwapInteractionKind =
-  | 'curve-swap'
-  | 'sign-and-settle'
-  | 'pool-share-math'
-  | 'multi-env-deploy'
-  | 'shared-lib-i18n';
+  | 'amm-quote'
+  | 'offer-state'
+  | 'zap-liquidity'
+  | 'env-deploy'
+  | 'i18n-card';
 
 /** OpenCGT — placeholder kinds; refined in later tasks. */
 export type OpencgtInteractionKind =

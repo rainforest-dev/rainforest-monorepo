@@ -25,6 +25,17 @@ describe('island registry', () => {
       expect(islandFor(kind)).toBeTypeOf('function');
     }
   });
+  it('returns a component for each HashgreenSwap interaction kind', () => {
+    for (const kind of [
+      'amm-quote',
+      'offer-state',
+      'zap-liquidity',
+      'env-deploy',
+      'i18n-card',
+    ] as const) {
+      expect(islandFor(kind)).toBeTypeOf('function');
+    }
+  });
   it('returns undefined for an unmapped kind', () => {
     // @ts-expect-error deliberately unknown
     expect(islandFor('nope')).toBeUndefined();
