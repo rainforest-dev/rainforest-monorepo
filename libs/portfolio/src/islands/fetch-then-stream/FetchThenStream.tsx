@@ -18,6 +18,19 @@ const CONNECT_DELAY_MS = 700;
 const LOG_CAP = 6;
 const BASE_PRICE = 1.2431;
 
+/**
+ * Fabricated "REST hydrate" trades — cosmetic only, but present on mount
+ * regardless of motion preference. The real feature is fetch-once-then-
+ * stream: the one-time fetch always populates the tape; only the ongoing
+ * live stream (the interval below) is continuous motion, and that's the
+ * part reduced-motion turns off — the content itself must stay present.
+ */
+const INITIAL_TRADES: Trade[] = [
+  { id: -1, time: '14:02:11', side: 'buy', price: 1.2431, amount: 42.5 },
+  { id: -2, time: '14:02:13', side: 'sell', price: 1.2428, amount: 18.2 },
+  { id: -3, time: '14:02:16', side: 'buy', price: 1.2433, amount: 65.7 },
+];
+
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-US', {
     hour12: false,
@@ -33,7 +46,7 @@ export function FetchThenStream(): JSX.Element {
   const [connState, setConnState] = useState<'idle' | 'connecting' | 'live'>(
     'idle',
   );
-  const [trades, setTrades] = useState<Trade[]>([]);
+  const [trades, setTrades] = useState<Trade[]>(INITIAL_TRADES);
   const [log, setLog] = useState<string[]>([]);
   const [lastPrice, setLastPrice] = useState(BASE_PRICE);
   const prevChannelRef = useRef<string | null>(null);
@@ -67,7 +80,10 @@ export function FetchThenStream(): JSX.Element {
     return () => clearTimeout(timeout);
   }, [live, market, reducedMotion]);
 
-  // Trade tape: only pushes while genuinely live and motion isn't reduced.
+  // Continuous trade stream: the seeded tape above is always present, but
+  // new trades only keep arriving while genuinely live AND motion isn't
+  // reduced — this is the one piece of *ongoing* motion, so it's the only
+  // thing reduced-motion actually turns off.
   useEffect(() => {
     if (connState !== 'live' || reducedMotion) return;
     const interval = setInterval(() => {
@@ -171,11 +187,6 @@ export function FetchThenStream(): JSX.Element {
             <span className="text-right">{trade.amount.toFixed(2)}</span>
           </li>
         ))}
-        {trades.length === 0 ? (
-          <li className="text-muted-foreground text-sm">
-            No trades yet — flip Live to subscribe.
-          </li>
-        ) : null}
       </ul>
 
       <div className="border-border bg-muted/30 rounded-lg border p-3">
