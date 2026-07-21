@@ -1,8 +1,10 @@
+import { hashgreenDex } from './hashgreen-dex';
 import { hoogiiWallet } from './hoogii-wallet';
 import type { CaseStudy } from './types';
 
 const REGISTRY: Record<string, CaseStudy> = {
   [hoogiiWallet.slug]: hoogiiWallet,
+  [hashgreenDex.slug]: hashgreenDex,
 };
 
 export function listCaseStudies(): CaseStudy[] {
