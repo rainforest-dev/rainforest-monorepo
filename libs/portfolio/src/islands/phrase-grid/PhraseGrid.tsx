@@ -1,4 +1,4 @@
-import { type JSX, useEffect, useState } from 'react';
+import { type JSX, useState } from 'react';
 
 import { distributePaste, isValidWord } from './logic';
 
@@ -37,37 +37,17 @@ const MOCK_WORDLIST = new Set([
   'actual',
 ]);
 
-/** Demo phrase used by the "paste a phrase" button — first 12 mock words. */
-const DEMO_PHRASE = Array.from(MOCK_WORDLIST).slice(0, CELL_COUNT).join(' ');
-
 /**
- * Reads `prefers-reduced-motion` once on mount and on change. Guarded for
- * SSR/test environments where `window.matchMedia` may be unavailable.
+ * Demo phrase used by the "paste a phrase" button — an explicit literal so
+ * it stays stable regardless of edits to MOCK_WORDLIST.
  */
-function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReduced(query.matches);
-    const onChange = (event: MediaQueryListEvent) => setReduced(event.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
-
-  return reduced;
-}
+const DEMO_PHRASE =
+  'abandon ability able about above absent absorb abstract absurd abuse access accident';
 
 export function PhraseGrid(): JSX.Element {
   const [cells, setCells] = useState<string[]>(() =>
     Array(CELL_COUNT).fill(''),
   );
-  // No transition/animation is used in this component, so reduced-motion
-  // has nothing to gate today — this hook is called (and exercised in
-  // tests) so the pattern is in place for the moment an island in this
-  // family does add motion.
-  useReducedMotion();
 
   const handleChange = (index: number, value: string) => {
     setCells((prev) => {
@@ -136,7 +116,13 @@ export function PhraseGrid(): JSX.Element {
       </div>
 
       <div className="mt-5 flex items-center gap-3">
-        <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
+        <div
+          role="progressbar"
+          aria-valuenow={validCount}
+          aria-valuemin={0}
+          aria-valuemax={CELL_COUNT}
+          className="bg-muted h-2 flex-1 overflow-hidden rounded-full"
+        >
           <div
             className="bg-primary h-full"
             style={{ width: `${(validCount / CELL_COUNT) * 100}%` }}
