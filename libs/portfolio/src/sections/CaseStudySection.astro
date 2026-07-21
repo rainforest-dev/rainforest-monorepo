@@ -1,10 +1,15 @@
 ---
 import type { InteractionKind, Section } from '../content/types';
+import { FetchThenStream } from '../islands/fetch-then-stream';
 import { FuzzySearch } from '../islands/fuzzy-search';
 import { IdleLock } from '../islands/idle-lock';
 import { LiveLedger } from '../islands/live-ledger';
+import { OrderBook } from '../islands/order-book';
+import { PatchVsRefetch } from '../islands/patch-vs-refetch';
 import { PhraseGrid } from '../islands/phrase-grid';
 import { RelayGate } from '../islands/relay-gate';
+import { VirtualizedSearch } from '../islands/virtualized-search';
+import { WalletStateMachine } from '../islands/wallet-state-machine';
 import { parseTech } from './parse-tech';
 
 interface Props {
@@ -18,7 +23,7 @@ const techSegments = parseTech(section.tech);
 // literally imported in this file (see the `NoMatchingImport` compiler error) — a
 // runtime lookup (e.g. `islandFor(section.interaction)` returning a variable) isn't
 // statically analyzable, so each known interaction kind gets its own branch here
-// instead of a single dynamic `<Island />` tag. Unmapped kinds (the dex/swap/opencgt
+// instead of a single dynamic `<Island />` tag. Unmapped kinds (the swap/opencgt
 // placeholders — see content/types.ts) render no island, same as before — tracked here
 // so the wrapper `<div>` below is skipped entirely rather than left rendering empty.
 const HYDRATED_KINDS: InteractionKind[] = [
@@ -27,6 +32,11 @@ const HYDRATED_KINDS: InteractionKind[] = [
   'live-ledger',
   'idle-lock',
   'relay-gate',
+  'virtualized-search',
+  'order-book',
+  'fetch-then-stream',
+  'wallet-state-machine',
+  'patch-vs-refetch',
 ];
 const hasIsland = HYDRATED_KINDS.includes(section.interaction);
 ---
@@ -54,6 +64,11 @@ const hasIsland = HYDRATED_KINDS.includes(section.interaction);
         {section.interaction === 'live-ledger' && <LiveLedger client:visible />}
         {section.interaction === 'idle-lock' && <IdleLock client:visible />}
         {section.interaction === 'relay-gate' && <RelayGate client:visible />}
+        {section.interaction === 'virtualized-search' && <VirtualizedSearch client:visible />}
+        {section.interaction === 'order-book' && <OrderBook client:visible />}
+        {section.interaction === 'fetch-then-stream' && <FetchThenStream client:visible />}
+        {section.interaction === 'wallet-state-machine' && <WalletStateMachine client:visible />}
+        {section.interaction === 'patch-vs-refetch' && <PatchVsRefetch client:visible />}
       </div>
     )
   }

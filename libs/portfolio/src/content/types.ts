@@ -16,9 +16,17 @@ export type HoogiiInteractionKind =
   | 'idle-lock'
   | 'relay-gate';
 
-/** Hashgreen DEX — placeholder kinds; refined in later tasks. */
+/**
+ * Hashgreen DEX — five real interactive sections transcribed from the
+ * portfolio case-study reference:
+ * 1. virtualized-search  — windowed, fuzzy-searchable 500+ market list
+ * 2. order-book          — bid/ask book with a reconciling offer tooltip
+ * 3. fetch-then-stream   — REST hydrate, then a live Ably subscription
+ * 4. wallet-state-machine — Goby/Hoogii/Chia connect via WalletStageEnum
+ * 5. patch-vs-refetch    — order history: patch a row or refetch the page
+ */
 export type DexInteractionKind =
-  | 'virtualized-list'
+  | 'virtualized-search'
   | 'order-book'
   | 'fetch-then-stream'
   | 'wallet-state-machine'
