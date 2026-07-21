@@ -35,6 +35,11 @@ const techSegments = parseTech(section.tech);
 // known interaction kind gets its own branch here instead of a single dynamic
 // `<Island />` tag. Unmapped kinds render no island — tracked here so the wrapper
 // `<div>` below is skipped entirely rather than left rendering empty.
+//
+// Islands hydrate `client:load` (not `client:visible`): the interactive demo IS the
+// content of a case study, so eager hydration gives immediate interactivity with no
+// "static until scrolled into view" flash. The per-page cost is small (5 compact
+// islands) and scoped to these demo pages.
 const HYDRATED_KINDS: InteractionKind[] = [
   'phrase-grid',
   'fuzzy-search',
@@ -80,26 +85,26 @@ const hasIsland = HYDRATED_KINDS.includes(section.interaction);
   {
     hasIsland && (
       <div class="mt-8">
-        {section.interaction === 'phrase-grid' && <PhraseGrid client:visible />}
-        {section.interaction === 'fuzzy-search' && <FuzzySearch client:visible />}
-        {section.interaction === 'live-ledger' && <LiveLedger client:visible />}
-        {section.interaction === 'idle-lock' && <IdleLock client:visible />}
-        {section.interaction === 'relay-gate' && <RelayGate client:visible />}
-        {section.interaction === 'virtualized-search' && <VirtualizedSearch client:visible />}
-        {section.interaction === 'order-book' && <OrderBook client:visible />}
-        {section.interaction === 'fetch-then-stream' && <FetchThenStream client:visible />}
-        {section.interaction === 'wallet-state-machine' && <WalletStateMachine client:visible />}
-        {section.interaction === 'patch-vs-refetch' && <PatchVsRefetch client:visible />}
-        {section.interaction === 'amm-quote' && <AmmQuote client:visible />}
-        {section.interaction === 'offer-state' && <OfferState client:visible />}
-        {section.interaction === 'zap-liquidity' && <ZapLiquidity client:visible />}
-        {section.interaction === 'env-deploy' && <EnvDeploy client:visible />}
-        {section.interaction === 'i18n-card' && <I18nCard client:visible />}
-        {section.interaction === 'jwt-decode' && <JwtDecode client:visible />}
-        {section.interaction === 'role-shell' && <RoleShell client:visible />}
-        {section.interaction === 'casbin-playground' && <CasbinPlayground client:visible />}
-        {section.interaction === 'phi-encrypt' && <PhiEncrypt client:visible />}
-        {section.interaction === 'affected-pipeline' && <AffectedPipeline client:visible />}
+        {section.interaction === 'phrase-grid' && <PhraseGrid client:load />}
+        {section.interaction === 'fuzzy-search' && <FuzzySearch client:load />}
+        {section.interaction === 'live-ledger' && <LiveLedger client:load />}
+        {section.interaction === 'idle-lock' && <IdleLock client:load />}
+        {section.interaction === 'relay-gate' && <RelayGate client:load />}
+        {section.interaction === 'virtualized-search' && <VirtualizedSearch client:load />}
+        {section.interaction === 'order-book' && <OrderBook client:load />}
+        {section.interaction === 'fetch-then-stream' && <FetchThenStream client:load />}
+        {section.interaction === 'wallet-state-machine' && <WalletStateMachine client:load />}
+        {section.interaction === 'patch-vs-refetch' && <PatchVsRefetch client:load />}
+        {section.interaction === 'amm-quote' && <AmmQuote client:load />}
+        {section.interaction === 'offer-state' && <OfferState client:load />}
+        {section.interaction === 'zap-liquidity' && <ZapLiquidity client:load />}
+        {section.interaction === 'env-deploy' && <EnvDeploy client:load />}
+        {section.interaction === 'i18n-card' && <I18nCard client:load />}
+        {section.interaction === 'jwt-decode' && <JwtDecode client:load />}
+        {section.interaction === 'role-shell' && <RoleShell client:load />}
+        {section.interaction === 'casbin-playground' && <CasbinPlayground client:load />}
+        {section.interaction === 'phi-encrypt' && <PhiEncrypt client:load />}
+        {section.interaction === 'affected-pipeline' && <AffectedPipeline client:load />}
       </div>
     )
   }
