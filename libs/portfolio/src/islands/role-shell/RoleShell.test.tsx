@@ -1,9 +1,28 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { RoleShell } from './RoleShell';
 
+const originalMatchMedia = window.matchMedia;
+
+function mockReducedMotion(matches: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as typeof window.matchMedia;
+}
+
 describe('<RoleShell>', () => {
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
   it('mounts on the Hospital role showing only its allowed nav items', () => {
     render(<RoleShell />);
     expect(screen.getByRole('button', { name: 'Patients' })).toBeDefined();
@@ -24,5 +43,16 @@ describe('<RoleShell>', () => {
     fireEvent.click(screen.getByRole('button', { name: /manufacturer/i }));
     fireEvent.click(screen.getByRole('button', { name: '/patients ✕' }));
     expect(screen.getByText('GET /patients')).toBeDefined();
+  });
+
+  it('reveals the full 404 body immediately under reduced motion, skipping the two-beat rewrite', () => {
+    mockReducedMotion(true);
+    render(<RoleShell />);
+    fireEvent.click(screen.getByRole('button', { name: /manufacturer/i }));
+    fireEvent.click(screen.getByRole('button', { name: '/patients ✕' }));
+    expect(screen.getByText('GET /patients')).toBeDefined();
+    expect(screen.getByText(/rewrite\('\/not-found'\)/i)).toBeDefined();
+    expect(screen.getByRole('alert')).toBeDefined();
+    expect(screen.getByText('This page could not be found.')).toBeDefined();
   });
 });
