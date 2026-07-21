@@ -1,4 +1,5 @@
 import { getProfileSummary, getSkills } from '@rainforest-dev/personal-data';
+import { listCaseStudies } from '@rainforest-dev/portfolio/content';
 import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
@@ -29,6 +30,10 @@ export const GET: APIRoute = async ({ site, request }) => {
     .map((post) => `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`)
     .join('\n');
 
+  const caseStudyLinks = listCaseStudies()
+    .map((cs) => `- [${cs.title}](${base}/en/portfolio/${cs.slug})`)
+    .join('\n');
+
   const skillNames = skills.map((s) => s.name).join(', ');
   const toolNames = MCP_TOOLS.map((t) => t.name).join(', ');
   const resourceTemplates = MCP_RESOURCES.map((r) => r.uriTemplate).join(', ');
@@ -46,6 +51,10 @@ export const GET: APIRoute = async ({ site, request }) => {
 ## Blog
 
 ${blogLinks}
+
+## Case studies
+
+${caseStudyLinks}
 
 ## Skills
 
