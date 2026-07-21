@@ -1,0 +1,327 @@
+import { type JSX, useEffect, useState } from 'react';
+
+import { useReducedMotion } from '../_shared/useReducedMotion';
+import {
+  INITIAL_OFFER_STATE,
+  nextOfferState,
+  type OfferEvent,
+  type OfferState as OfferStateValue,
+  type WalletBackend,
+} from './logic';
+
+interface WalletOption {
+  id: WalletBackend;
+  label: string;
+  mono: string;
+}
+
+const WALLETS: WalletOption[] = [
+  { id: 'goby', label: 'Goby', mono: 'G' },
+  { id: 'hoogii', label: 'Hoogii', mono: 'H' },
+  { id: 'chia', label: 'Chia · WalletConnect', mono: 'C' },
+];
+
+const STATUS_STEPS: {
+  status: 'valid' | 'in_mempool' | 'on_chain';
+  label: string;
+}[] = [
+  { status: 'valid', label: 'VALID' },
+  { status: 'in_mempool', label: 'IN_MEMPOOL' },
+  { status: 'on_chain', label: 'ON_CHAIN' },
+];
+
+const SIGN_DELAY_MS = 900;
+const MEMPOOL_DELAY_MS = 1200;
+const CONFIRM_DELAY_MS = 1400;
+
+/** Fabricated Chia offer string — cosmetic only, never a real bundle. */
+const MOCK_OFFER = 'offer1qqz03wxg8n7k…mock…d4e8f9c7a2b1';
+const MOCK_FINGERPRINT = '3862·1174';
+
+function statusRank(status: OfferStateValue['status']): number {
+  return { pending: 0, valid: 1, in_mempool: 2, on_chain: 3, invalid: -1 }[
+    status
+  ];
+}
+
+export function OfferState(): JSX.Element {
+  const reducedMotion = useReducedMotion();
+  const [state, setState] = useState<OfferStateValue>(INITIAL_OFFER_STATE);
+  const { stage, status } = state;
+  const [wallet, setWallet] = useState<WalletOption | null>(null);
+  const [simulateConflict, setSimulateConflict] = useState(false);
+  const [showOffer, setShowOffer] = useState(false);
+
+  const dispatch = (event: OfferEvent) =>
+    setState((prev) => nextOfferState(prev, event));
+
+  // Signing and confirmation both run on a short scripted delay, standing in
+  // for BLS signing and full-node polling. Under reduced motion the state
+  // still advances — just without the visible wait.
+  useEffect(() => {
+    const delay = (ms: number) => (reducedMotion ? 0 : ms);
+    if (stage === 'signing') {
+      const t = setTimeout(
+        () => setState((prev) => nextOfferState(prev, { type: 'validated' })),
+        delay(SIGN_DELAY_MS),
+      );
+      return () => clearTimeout(t);
+    }
+    if (stage === 'tracking' && status === 'valid') {
+      const t = setTimeout(
+        () => setState((prev) => nextOfferState(prev, { type: 'submitted' })),
+        delay(MEMPOOL_DELAY_MS),
+      );
+      return () => clearTimeout(t);
+    }
+    if (stage === 'tracking' && status === 'in_mempool') {
+      const t = setTimeout(
+        () =>
+          setState((prev) =>
+            nextOfferState(prev, {
+              type: simulateConflict ? 'conflict' : 'confirmed',
+            }),
+          ),
+        delay(CONFIRM_DELAY_MS),
+      );
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [stage, status, reducedMotion, simulateConflict]);
+
+  const handleConnect = (option: WalletOption) => {
+    setWallet(option);
+    dispatch({ type: 'connect' });
+  };
+
+  const handleReset = () => {
+    setWallet(null);
+    setShowOffer(false);
+    setSimulateConflict(false);
+    dispatch({ type: 'reset' });
+  };
+
+  const statusLabel = `offerStatusEnum.${
+    status === 'invalid'
+      ? 'INVALID'
+      : status === 'on_chain'
+        ? 'ON_CHAIN'
+        : status === 'in_mempool'
+          ? 'IN_MEMPOOL'
+          : status === 'valid'
+            ? 'VALID'
+            : 'PENDING'
+  }`;
+
+  return (
+    <div className="border-border bg-card text-card-foreground rounded-xl border p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-primary font-mono text-xs">{statusLabel}</span>
+      </div>
+
+      {stage === 'idle' ? (
+        <div>
+          <p className="text-foreground mb-3 text-sm">
+            Connect a wallet to sign the offer.
+          </p>
+          <div className="flex flex-col gap-2">
+            {WALLETS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleConnect(option)}
+                className="border-border bg-muted/30 text-foreground flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold"
+              >
+                <span className="bg-primary text-primary-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                  {option.mono}
+                </span>
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {stage === 'connected' ? (
+        <div>
+          <div className="border-primary/30 bg-primary/10 mb-3 flex items-center justify-between rounded-lg border px-3 py-2">
+            <span className="text-foreground text-sm font-semibold">
+              {wallet?.label ?? 'Wallet'}
+            </span>
+            <span className="text-primary font-mono text-xs">
+              fp {MOCK_FINGERPRINT}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'review' })}
+              className="bg-primary text-primary-foreground h-10 flex-1 rounded-md px-4 text-sm font-semibold"
+            >
+              Review swap
+            </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="border-border text-foreground h-10 rounded-md border px-4 text-sm font-semibold"
+            >
+              Disconnect
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {stage === 'review' ? (
+        <div>
+          <p className="text-foreground mb-3 text-sm font-semibold">
+            Confirm swap
+          </p>
+          <div className="border-border bg-muted/30 mb-3 flex flex-col gap-1.5 rounded-lg border p-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Offered</span>
+              <span className="font-semibold text-orange-500">
+                − 1,000.00 XCH
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Requested</span>
+              <span className="text-primary font-semibold">
+                + ≈ 364.29 hUSDC
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Network fee</span>
+              <span>0.000005 XCH</span>
+            </div>
+          </div>
+          <label className="mb-3 flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={simulateConflict}
+              onChange={(e) => setSimulateConflict(e.target.checked)}
+              className="accent-primary"
+            />
+            <span className="text-muted-foreground">
+              simulate a conflicting spend (offer invalidated in mempool)
+            </span>
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'approve' })}
+              className="bg-primary text-primary-foreground h-10 flex-1 rounded-md px-4 text-sm font-bold"
+            >
+              Approve &amp; sign
+            </button>
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'reject' })}
+              className="border-destructive/50 text-destructive h-10 rounded-md border px-4 text-sm font-semibold"
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {stage === 'signing' ? (
+        <div className="flex items-center gap-3 py-2">
+          <span
+            className="border-muted-foreground/30 border-t-primary h-5 w-5 shrink-0 animate-spin rounded-full border-2"
+            aria-hidden="true"
+          />
+          <span className="text-foreground text-sm">
+            Assembling offer · signing bundle with BLS keys…
+          </span>
+        </div>
+      ) : null}
+
+      {stage === 'tracking' ? (
+        <div>
+          <div className="mb-3 flex gap-2">
+            {STATUS_STEPS.map((step) => {
+              const rank = statusRank(status);
+              const stepRank = statusRank(step.status);
+              const failed = status === 'invalid' && stepRank === 2;
+              const done = status !== 'invalid' && rank >= stepRank;
+              const current =
+                status !== 'invalid' && rank === stepRank - 1 && rank > 0;
+              return (
+                <div
+                  key={step.status}
+                  className={`flex-1 rounded-md border px-2 py-2 text-center ${
+                    done
+                      ? 'border-primary/40 bg-primary/10'
+                      : failed
+                        ? 'border-destructive/40 bg-destructive/10'
+                        : current
+                          ? 'border-amber-400/40 bg-amber-400/10'
+                          : 'border-border'
+                  }`}
+                >
+                  <div
+                    className={`text-base ${
+                      done
+                        ? 'text-primary'
+                        : failed
+                          ? 'text-destructive'
+                          : 'text-muted-foreground'
+                    }`}
+                  >
+                    {done ? '✓' : failed ? '✗' : current ? '●' : '—'}
+                  </div>
+                  <div className="text-muted-foreground font-mono text-[10px]">
+                    {step.label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {status === 'on_chain' ? (
+            <p
+              role="status"
+              className="mb-3 rounded-lg border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-500"
+            >
+              Settled on-chain · swap complete.
+            </p>
+          ) : null}
+          {status === 'invalid' ? (
+            <p
+              role="alert"
+              className="border-destructive/40 bg-destructive/10 text-destructive mb-3 rounded-lg border px-3 py-2 text-sm"
+            >
+              Offer invalidated — a coin it spent was used elsewhere first. No
+              funds moved.
+            </p>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => setShowOffer((prev) => !prev)}
+            className="text-primary font-mono text-xs"
+          >
+            {showOffer ? '▾ hide offer' : '▸ view offer'}
+          </button>
+          {showOffer ? (
+            <div className="border-border bg-muted/40 mb-3 mt-2 break-all rounded-md border p-2 font-mono text-xs">
+              {MOCK_OFFER}
+            </div>
+          ) : null}
+
+          <div>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="border-border text-foreground h-9 rounded-md border px-4 text-sm font-semibold"
+            >
+              New swap
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default OfferState;
