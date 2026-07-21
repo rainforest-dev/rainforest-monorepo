@@ -10,6 +10,7 @@ import {
   getWorkExperience,
   searchByTechnology,
 } from '@rainforest-dev/personal-data';
+import { hasCaseStudy } from '@rainforest-dev/portfolio/content';
 import type { SkillTag } from '@types';
 import { tags } from '@utils/constants';
 import { getEntry } from 'astro:content';
@@ -145,7 +146,14 @@ export function registerProfileMcp(server: McpServer): void {
     async (uri, { id }) => {
       const project = await getProjectById(id as string);
       if (!project) throw new Error(`Project not found: ${id}`);
-      return { contents: [{ uri: uri.href, text: JSON.stringify(project) }] };
+      // `id` is `<lang>/<slug>` (e.g. `en/hoogii-wallet`) — the slug is the last segment,
+      // and doubles as the portfolio lib's case-study registry key.
+      const slug = project.id.split('/').pop();
+      const caseStudyUrl =
+        slug && hasCaseStudy(slug) ? `https://rainforest.tools/en/portfolio/${slug}` : undefined;
+      return {
+        contents: [{ uri: uri.href, text: JSON.stringify({ ...project, caseStudyUrl }) }],
+      };
     },
   );
 
