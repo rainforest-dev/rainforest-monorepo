@@ -151,10 +151,10 @@ export function EnvDeploy(): JSX.Element {
             <span
               key={i}
               aria-hidden="true"
-              className="h-3 w-3 rounded-sm bg-emerald-500"
+              className="bg-primary h-3 w-3 rounded-sm"
             />
           ))}
-          <span className="ml-1 text-xs text-emerald-500">Ready</span>
+          <span className="text-primary ml-1 text-xs">Ready</span>
         </div>
       ) : null}
 
