@@ -843,17 +843,19 @@ git commit -m "feat(personal-website): portfolio index + detail routes, nav swap
 ### Task 9–11: One task per remaining project (repeat Phase 2 recipe)
 
 For each of `hashgreen-dex`, `hashgreen-swap`, `opencgt`, do exactly what Phases 2 produced for Hoogii:
-1. Content file `libs/portfolio/src/content/<slug>.ts` (5 sections from the content spec) + register it in `content/index.ts`.
-2. Five islands under `src/islands/<kind>/` following the Task 4 recipe (logic + logic test + tsx + smoke test + index), ported from the reference source.
-3. Register each island in `island-registry.ts`.
-4. The theme block already exists (Task 7) — verify it renders.
-5. `getStaticPaths` already iterates `listCaseStudies()`, so the routes pick up the new project automatically.
+1. Content file `libs/portfolio/src/content/<slug>.ts` (5 sections) + register it in `content/index.ts`. **Transcribe the real sections from `libs/portfolio/.reference/CaseStudy.dc.html`** (`isDex`/`isSwap`/`isOpencgt` branches) — the island slugs listed below are the plan's GUESSES; use the ACTUAL sections/interactions from the reference, adding the real kebab-case kinds to the project's `InteractionKind` sub-union in `content/types.ts` (as Task 2 did for Hoogii, whose real kinds differed from the guesses).
+2. Five islands under `src/islands/<kind>/` following the Task 4 recipe (logic + logic test + tsx + smoke test + index). Reuse `_shared/useReducedMotion` for any animating island; use `import { type JSX } from 'react'`; stock shadcn tokens only; cosmetic/client-side only.
+3. **Extend `libs/portfolio/src/sections/CaseStudySection.astro`** — it uses STATIC per-interaction imports + branches (Astro requires `client:*` targets to be statically traceable to a literal import; the dynamic `islandFor` lookup throws `NoMatchingImport` at prerender — discovered in Phase 2). Add each new island to its static imports and its branch chain. Also add each kind to `island-registry.ts` (still exercised by its own unit test) for consistency.
+4. Theme block already exists (Task 7) — verify via the built HTML's inlined `[data-project=<slug>]` rule.
+5. `getStaticPaths` already iterates `listCaseStudies()`, so routes pick up the new project automatically.
+
+**Verification note (from Phase 2):** the Browser preview pane renders with a hidden, 0×0 viewport, so `client:visible` islands never hydrate there and interaction can't be click-tested. Verify instead via (a) the island's jsdom smoke test, and (b) `grep` the built `dist/.../portfolio/<slug>/index.html` for the `astro-island` markup + `component-export` name + inlined theme rule. Live interaction works for real users; it's just not exercisable in this pane.
 
 Per-island pure-logic signatures to TDD (see §"Per-island port recipe"). Commit per project (or per island for large ones).
 
-- [ ] **Task 9: Hashgreen DEX** — islands: `orderbook`, `store-graph`, `popper-reconcile`, `ably-feed`, `refetch-toggle`.
-- [ ] **Task 10: HashgreenSwap** — islands: `amm-quote`, `offer-state`, `zap-liquidity`, `env-deploy`, `i18n-card`.
-- [ ] **Task 11: OpenCGT** — islands: `jwt-decode`, `role-shell`, `casbin-playground`, `phi-encrypt`, `affected-pipeline`.
+- [ ] **Task 9: Hashgreen DEX** — real sections/kinds from the `isDex` reference block (plan's guesses: `orderbook`, `store-graph`, `popper-reconcile`, `ably-feed`, `refetch-toggle`).
+- [ ] **Task 10: HashgreenSwap** — real sections/kinds from the `isSwap` reference block (plan's guesses: `amm-quote`, `offer-state`, `zap-liquidity`, `env-deploy`, `i18n-card`).
+- [ ] **Task 11: OpenCGT** — real sections/kinds from the `isOpencgt` reference block (plan's guesses: `jwt-decode`, `role-shell`, `casbin-playground`, `phi-encrypt`, `affected-pipeline`).
 
 - [ ] **After all three:** run `pnpm nx test portfolio` (all island logic + smoke tests green) and `pnpm nx build personal-website` (all four detail routes emit). Commit any registry/route fixups.
 
