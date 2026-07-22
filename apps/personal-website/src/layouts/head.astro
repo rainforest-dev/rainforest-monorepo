@@ -56,7 +56,15 @@ const url = Astro.url.toString();
           } catch (err) {
             // ignore storage failures (private mode, disabled cookies)
           }
-          applyTo(document.documentElement);
+          const commit = () => applyTo(document.documentElement);
+          // Cross-fade the light/dark change via the View Transitions API,
+          // respecting reduced-motion; instant swap where unsupported.
+          const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (document.startViewTransition && !reduce) {
+            document.startViewTransition(commit);
+          } else {
+            commit();
+          }
         });
       }
     })();
