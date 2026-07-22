@@ -190,7 +190,7 @@ export function VirtualizedSearch(): JSX.Element {
             aria-label="Search markets"
             spellCheck={false}
             autoComplete="off"
-            className="text-foreground min-w-0 flex-1 bg-transparent text-sm outline-none"
+            className="text-foreground min-w-0 flex-1 border-0 bg-transparent text-sm outline-none"
           />
           <span className="text-primary bg-primary/10 border-primary/30 rounded-md border px-2 py-1 font-mono text-xs whitespace-nowrap">
             {mountedRows.length} / {ranked.length} rows mounted

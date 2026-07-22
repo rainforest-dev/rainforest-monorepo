@@ -66,7 +66,7 @@ export function CasbinPlayground(): JSX.Element {
               setSub(e.target.value);
               resetPhase();
             }}
-            className="border-border bg-background text-foreground h-9 rounded-md border px-2 font-mono text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="border-border bg-background text-foreground h-9 rounded-md border pl-2 pr-8 font-mono text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {SUBJECTS.map((option) => (
               <option key={option} value={option}>
@@ -85,7 +85,7 @@ export function CasbinPlayground(): JSX.Element {
               setObj(e.target.value);
               resetPhase();
             }}
-            className="border-border bg-background text-foreground h-9 rounded-md border px-2 font-mono text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="border-border bg-background text-foreground h-9 rounded-md border pl-2 pr-8 font-mono text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {OBJECTS.map((option) => (
               <option key={option} value={option}>
@@ -104,7 +104,7 @@ export function CasbinPlayground(): JSX.Element {
               setAct(e.target.value);
               resetPhase();
             }}
-            className="border-border bg-background text-foreground h-9 rounded-md border px-2 font-mono text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="border-border bg-background text-foreground h-9 rounded-md border pl-2 pr-8 font-mono text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {ACTIONS.map((option) => (
               <option key={option} value={option}>
@@ -146,7 +146,7 @@ export function CasbinPlayground(): JSX.Element {
                   aria-label={`policy action for ${row.policy.sub} ${row.policy.obj}`}
                   value={row.policy.act}
                   onChange={(e) => handleActEdit(i, e.target.value)}
-                  className="border-border bg-background h-7 rounded-md border px-1.5 font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="border-border bg-background h-7 rounded-md border pl-1.5 pr-7 font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {EDITABLE_ACTIONS.map((option) => (
                     <option key={option} value={option}>
