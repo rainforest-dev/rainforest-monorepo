@@ -1,4 +1,5 @@
 ---
+import ThemeToggle from '@components/shell/ThemeToggle.astro';
 import { useTranslation } from '@utils/i18n';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 
@@ -111,6 +112,8 @@ const home = getRelativeLocaleUrl(lang, '/');
           ))
         }
       </div>
+
+      <ThemeToggle />
 
       <details class="relative md:hidden">
         <summary

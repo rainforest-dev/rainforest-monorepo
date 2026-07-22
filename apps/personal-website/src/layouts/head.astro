@@ -14,6 +14,53 @@ const url = Astro.url.toString();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width" />
+
+  {/* Resolve the colour scheme before first paint (no FOUC). Precedence:
+      a page's product-locked `data-force-scheme` (case studies) always wins;
+      otherwise the visitor's stored light/dark preference; otherwise `system`
+      (unset → the shadcn plugin follows the OS via prefers-color-scheme).
+      `data-theme-pref` mirrors the raw preference so the header toggle shows
+      the right icon with no flash. Re-applied on the *incoming* document during
+      view-transition swaps so client-side navigation never flashes either. */}
+  <script is:inline>
+    (function () {
+      const ORDER = ['system', 'light', 'dark'];
+      function readPref() {
+        try {
+          const v = localStorage.getItem('theme');
+          return ORDER.indexOf(v) > 0 ? v : 'system';
+        } catch (e) {
+          return 'system';
+        }
+      }
+      function applyTo(root) {
+        const pref = readPref();
+        root.setAttribute('data-theme-pref', pref);
+        const forced = root.getAttribute('data-force-scheme');
+        const eff = forced || (pref === 'system' ? null : pref);
+        if (eff) root.setAttribute('data-scheme', eff);
+        else root.removeAttribute('data-scheme');
+      }
+      applyTo(document.documentElement);
+      if (!window.__themeBound) {
+        window.__themeBound = true;
+        document.addEventListener('astro:before-swap', (e) => {
+          applyTo(e.newDocument.documentElement);
+        });
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest && e.target.closest('[data-theme-toggle]');
+          if (!btn) return;
+          const next = ORDER[(ORDER.indexOf(readPref()) + 1) % ORDER.length];
+          try {
+            localStorage.setItem('theme', next);
+          } catch (err) {
+            // ignore storage failures (private mode, disabled cookies)
+          }
+          applyTo(document.documentElement);
+        });
+      }
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="generator" content={Astro.generator} />
   <link rel="sitemap" href="/sitemap-index.xml" />
