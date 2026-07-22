@@ -3,6 +3,8 @@ import type { CaseStudy } from './types';
 export const hashgreenSwap: CaseStudy = {
   slug: 'hashgreen-swap',
   variant: 'swap',
+  // HashgreenSwap is a dark-only interface.
+  theme: 'dark',
   title: 'HashgreenSwap',
   tagline:
     'The AMM swap interface for Chia CAT tokens, built on the Project Pyke exchange backend.',

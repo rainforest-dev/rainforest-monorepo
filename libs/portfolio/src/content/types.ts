@@ -1,6 +1,16 @@
 export type ProjectVariant = 'hoogii' | 'dex' | 'swap' | 'opencgt';
 
 /**
+ * The colour scheme a case-study page renders in, matching the real product's
+ * design language:
+ * - `dark`  — force dark (e.g. the Hoogii wallet / HashgreenSwap, dark-only UIs)
+ * - `light` — force light
+ * - `system` (default) — follow the visitor's OS preference (products that
+ *   themselves support light *and* dark, e.g. Hashgreen DEX)
+ */
+export type ProjectTheme = 'dark' | 'light' | 'system';
+
+/**
  * Hoogii Wallet — five real interactive sections transcribed from the
  * portfolio case-study reference:
  * 1. phrase-grid   — 12-cell backup-phrase grid
@@ -113,6 +123,8 @@ export interface CaseStudy {
   role: string;
   period: string;
   stack: string[];
+  /** Colour scheme the case-study page renders in. Defaults to `system`. */
+  theme?: ProjectTheme;
   sections: Section[]; // exactly 5, each a distinct interaction kind
   /**
    * Optional product-screenshot gallery, shown as a carousel near the top of
