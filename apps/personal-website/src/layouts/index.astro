@@ -24,7 +24,7 @@ const dir = _dir(lang);
 ---
 
 <!doctype html>
-<html lang={lang} dir={dir} data-scheme={forceScheme}>
+<html lang={lang} dir={dir} data-force-scheme={forceScheme}>
   <Head {...rest}>
     <ThemeProvider server:defer />
     {viewTransition.enabled && <ClientRouter />}
