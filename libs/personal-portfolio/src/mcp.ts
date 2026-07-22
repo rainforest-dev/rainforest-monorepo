@@ -3,7 +3,16 @@ import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { getCaseStudy } from './content';
-import type { CaseStudy } from './content/types';
+import type { CaseStudy, GalleryImage } from './content/types';
+
+/**
+ * Optional hook for merging a project's screenshot gallery (owned by
+ * @rainforest-dev/personal-data, not this lib) into the case-study output.
+ * Injected by the host so this lib stays decoupled from the data package.
+ */
+export interface PortfolioMcpOptions {
+  getGallery?: (slug: string) => GalleryImage[];
+}
 
 // Same rationale as apps/personal-website/src/mcp/profile.ts's PROFILE_MCP_TOOLS/
 // PROFILE_MCP_RESOURCES: single source of truth for name/description/URI template, read by
@@ -37,13 +46,24 @@ export function caseStudyResource(slug: string): CaseStudy {
  * dependency, unlike apps/personal-website/src/mcp/profile.ts's skill resource — so this can
  * be composed into any host's MCP server, not just the Astro app's.
  */
-export function registerPortfolioMcp(server: McpServer): void {
+export function registerPortfolioMcp(
+  server: McpServer,
+  options: PortfolioMcpOptions = {},
+): void {
+  // Serialize a case study, merging in its (host-provided) screenshot gallery so
+  // the profile API exposes the same screenshots as the site's carousels.
+  const serialize = (slug: string): string =>
+    JSON.stringify({
+      ...caseStudyResource(slug),
+      gallery: options.getGallery?.(slug) ?? [],
+    });
+
   server.registerResource(
     'case-study',
     new ResourceTemplate(caseStudyResourceDef.uriTemplate, { list: undefined }),
     { title: caseStudyResourceDef.title, mimeType: 'application/json' },
     async (uri, { slug }) => ({
-      contents: [{ uri: uri.href, text: JSON.stringify(caseStudyResource(slug as string)) }],
+      contents: [{ uri: uri.href, text: serialize(slug as string) }],
     }),
   );
 
@@ -51,7 +71,7 @@ export function registerPortfolioMcp(server: McpServer): void {
     getCaseStudyTool.name,
     { description: getCaseStudyTool.description, inputSchema: { slug: z.string() } },
     async ({ slug }) => ({
-      content: [{ type: 'text', text: JSON.stringify(caseStudyResource(slug)) }],
+      content: [{ type: 'text', text: serialize(slug) }],
     }),
   );
 }

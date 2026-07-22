@@ -1,4 +1,7 @@
 // @ts-check
+import { cpSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { unified } from '@astrojs/markdown-remark';
 import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
@@ -33,6 +36,28 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
   integrations: [
+    {
+      // The portfolio screenshots are owned by @rainforest-dev/personal-data (a
+      // dist-built lib whose static assets aren't otherwise served). Copy them
+      // into public/images/portfolio (a git-ignored build artifact) before dev
+      // and build so Astro serves them at /images/portfolio/<slug>/… — the URLs
+      // getProjectGallery() returns.
+      name: 'copy-portfolio-screenshots',
+      hooks: {
+        'astro:config:setup'() {
+          cpSync(
+            fileURLToPath(
+              new URL(
+                '../../libs/personal-data/src/assets/portfolio',
+                import.meta.url,
+              ),
+            ),
+            fileURLToPath(new URL('./public/images/portfolio', import.meta.url)),
+            { recursive: true },
+          );
+        },
+      },
+    },
     react(),
     vue({
       template: {

@@ -1,3 +1,4 @@
+import { getProjectGallery } from '@rainforest-dev/personal-data';
 import { PORTFOLIO_MCP_RESOURCES, PORTFOLIO_MCP_TOOLS, registerPortfolioMcp } from '@rainforest-dev/personal-portfolio/mcp';
 import { createMcpHandler } from 'mcp-handler';
 
@@ -25,7 +26,7 @@ export function createProfileMcpHandler(basePath?: string) {
   return createMcpHandler(
     (server) => {
       registerProfileMcp(server);
-      registerPortfolioMcp(server);
+      registerPortfolioMcp(server, { getGallery: getProjectGallery });
     },
     {},
     { basePath },

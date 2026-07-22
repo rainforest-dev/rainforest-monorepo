@@ -67,8 +67,4 @@ export const opencgt: CaseStudy = {
       sourceRef: 'nx.json · .github/workflows/ci.yml · apps/web-e2e · apps/web-load',
     },
   ],
-  // No public screenshots exist for OpenCGT (it's an internal B2B admin platform,
-  // not on the Cake portfolio). Add real shots to
-  // apps/personal-website/public/images/portfolio/opencgt/ and populate `gallery`
-  // to show a carousel here.
 };

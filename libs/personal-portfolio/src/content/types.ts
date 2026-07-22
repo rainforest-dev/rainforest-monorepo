@@ -101,17 +101,12 @@ export interface Section {
   sourceRef?: string;
 }
 
+/** Prop shape for the shared Gallery carousel. The gallery *data* is owned by
+ *  @rainforest-dev/personal-data (getProjectGallery); this is just the component
+ *  contract, structurally compatible with personal-data's GalleryImage. */
 export interface GalleryImage {
-  /**
-   * Public image URL of a real product screenshot, e.g.
-   * `/images/portfolio/hoogii-wallet/dashboard.png`. Leave undefined to render
-   * a labelled placeholder slide until a real screenshot is dropped in — the
-   * `caption` then doubles as a note for what that slide should show.
-   */
   src?: string;
-  /** Alt text describing the screenshot (required for a11y). */
   alt: string;
-  /** Short caption shown beneath the slide. */
   caption?: string;
 }
 
@@ -126,10 +121,4 @@ export interface CaseStudy {
   /** Colour scheme the case-study page renders in. Defaults to `system`. */
   theme?: ProjectTheme;
   sections: Section[]; // exactly 5, each a distinct interaction kind
-  /**
-   * Optional product-screenshot gallery, shown as a carousel near the top of
-   * the case study. Real images go under the consuming app's public dir; until
-   * then, entries without `src` render as labelled placeholders.
-   */
-  gallery?: GalleryImage[];
 }

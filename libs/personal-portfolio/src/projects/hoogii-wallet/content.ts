@@ -69,27 +69,4 @@ export const hoogiiWallet: CaseStudy = {
         'src/injected-scripts/index.ts · src/background/index.ts · src/popup/',
     },
   ],
-  // Real product screenshots, in apps/personal-website/public/images/portfolio/hoogii-wallet/.
-  gallery: [
-    {
-      src: '/images/portfolio/hoogii-wallet/01.jpeg',
-      alt: 'Hoogii Wallet landing page — a fully open-source Chia crypto wallet extension',
-      caption: 'Landing page',
-    },
-    {
-      src: '/images/portfolio/hoogii-wallet/02.jpeg',
-      alt: 'Hoogii Wallet dashboard showing the XCH balance and asset list',
-      caption: 'Dashboard — balances & assets',
-    },
-    {
-      src: '/images/portfolio/hoogii-wallet/03.jpeg',
-      alt: 'Hoogii Wallet activity tab with pending and past transactions',
-      caption: 'Activity & transaction history',
-    },
-    {
-      src: '/images/portfolio/hoogii-wallet/04.jpeg',
-      alt: 'Verify Backup Phrase screen with the 12-word recovery-phrase grid',
-      caption: 'Verify backup phrase',
-    },
-  ],
 };

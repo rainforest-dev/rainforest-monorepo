@@ -69,22 +69,4 @@ export const hashgreenDex: CaseStudy = {
       sourceRef: 'src/stores/OrderStore.ts · src/hooks/useUserOrders.ts',
     },
   ],
-  // Real product screenshots, in apps/personal-website/public/images/portfolio/hashgreen-dex/.
-  gallery: [
-    {
-      src: '/images/portfolio/hashgreen-dex/03.jpeg',
-      alt: 'Hashgreen DEX trading interface with the price chart, order book and trade history',
-      caption: 'Trading — chart, order book & trade history',
-    },
-    {
-      src: '/images/portfolio/hashgreen-dex/02.png',
-      alt: 'Hashgreen DEX market selector with a searchable list of CAT/token markets',
-      caption: 'Searchable CAT market list',
-    },
-    {
-      src: '/images/portfolio/hashgreen-dex/04.jpeg',
-      alt: 'Hashgreen DEX order history with market, status and date-range filters and pagination',
-      caption: 'My orders — filterable & paginated',
-    },
-  ],
 };

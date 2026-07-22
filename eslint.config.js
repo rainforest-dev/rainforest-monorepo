@@ -17,11 +17,11 @@ module.exports = [
         'error',
         {
           enforceBuildableLibDependency: true,
-          // @rainforest-dev/portfolio is deliberately non-buildable — its exports point at
+          // @rainforest-dev/personal-portfolio is deliberately non-buildable — its exports point at
           // .ts/.astro source, not a dist — so importing it carries no stale-artifact hazard.
           // This allow entry unblocks just that edge; enforceBuildableLibDependency still
           // protects every other buildable-lib pair.
-          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?js$', '@rainforest-dev/portfolio/**'],
+          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?js$', '@rainforest-dev/personal-portfolio/**'],
           depConstraints: [
             {
               sourceTag: '*',

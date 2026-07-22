@@ -72,12 +72,4 @@ export const hashgreenSwap: CaseStudy = {
         'libs/ui-libraries/pyke · next-i18next.config.js · public/locales/',
     },
   ],
-  // Real product screenshot, in apps/personal-website/public/images/portfolio/hashgreen-swap/.
-  gallery: [
-    {
-      src: '/images/portfolio/hashgreen-swap/01.jpeg',
-      alt: 'HashgreenSwap swap-confirm flow with the swap summary and the Hoogii wallet signature request',
-      caption: 'Swap confirm & wallet signature',
-    },
-  ],
 };
