@@ -70,12 +70,12 @@ export const hashgreenSwap: CaseStudy = {
         'libs/ui-libraries/pyke · next-i18next.config.js · public/locales/',
     },
   ],
-  // Placeholder gallery — drop real screenshots into
-  // apps/personal-website/public/images/portfolio/hashgreen-swap/ and set `src`.
+  // Real product screenshot, in apps/personal-website/public/images/portfolio/hashgreen-swap/.
   gallery: [
-    { alt: 'HashgreenSwap swap interface with the live quote', caption: 'Swap — live quote' },
-    { alt: 'Add-liquidity flow with balanced and zap deposits', caption: 'Add liquidity' },
-    { alt: 'Pool list with TVL and volume', caption: 'Pools' },
-    { alt: 'Swap summary card rendered in EN / 简 / 繁', caption: 'i18n swap summary' },
+    {
+      src: '/images/portfolio/hashgreen-swap/01.jpeg',
+      alt: 'HashgreenSwap swap-confirm flow with the swap summary and the Hoogii wallet signature request',
+      caption: 'Swap confirm & wallet signature',
+    },
   ],
 };

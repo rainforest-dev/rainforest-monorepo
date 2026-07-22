@@ -128,8 +128,9 @@ export function Gallery({ images }: GalleryProps): JSX.Element | null {
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       >
-        {/* stage */}
-        <div className="aspect-video w-full overflow-hidden">
+        {/* stage — object-contain on a muted backdrop so mixed portrait/landscape
+            screenshots are never cropped */}
+        <div className="bg-muted/40 aspect-video w-full overflow-hidden">
           <div
             className={cx(
               'flex size-full',
@@ -155,7 +156,7 @@ export function Gallery({ images }: GalleryProps): JSX.Element | null {
                     alt={image.alt}
                     draggable={false}
                     loading={i === 0 ? 'eager' : 'lazy'}
-                    className="size-full object-cover"
+                    className="size-full object-contain"
                   />
                 ) : (
                   <Placeholder image={image} />
