@@ -5,6 +5,9 @@ import { getCollection } from 'astro:content';
 
 import QuickPostLayout from '@/layouts/quick-post.astro';
 
+// Same as the blog index: a static content-collection listing, so prerender it.
+export const prerender = true;
+
 const posts = await getCollection('blog', ({ data }) =>
   data.tags.includes('type:quick-post')
 );
