@@ -2,14 +2,14 @@
  * Shared shadcn-aligned class helpers for the portfolio islands.
  *
  * Every island is a React component rendered inside apps/personal-website, whose
- * Tailwind build scans `libs/portfolio/src` (app.css `@source`) and loads the
+ * Tailwind build scans `libs/personal-portfolio/src` (app.css `@source`) and loads the
  * shadcn token plugin. Centralising the button / avatar / badge / field look here
  * keeps every island matching the app's shadcn components — the same focus ring,
  * transition, hover state, radius and icon sizing — instead of each island
  * hand-rolling slightly different classes (which is what left them looking
  * "not quite shadcn", with no focus rings and inconsistent icon sizes).
  *
- * Dependency-free by design: libs/portfolio ships no cva/clsx, so this is a small
+ * Dependency-free by design: libs/personal-portfolio ships no cva/clsx, so this is a small
  * template-string joiner rather than a class-variance-authority config. Mirrors
  * apps/personal-website/src/components/ui/button/Button.vue.
  */

@@ -1,5 +1,5 @@
 {
-  "name": "@rainforest-dev/portfolio",
+  "name": "@rainforest-dev/personal-portfolio",
   "version": "0.0.1",
   "type": "module",
   "private": true,
@@ -13,8 +13,8 @@
     "./theme.css": "./src/theme.css"
   },
   "nx": {
-    "sourceRoot": "libs/portfolio/src",
-    "name": "portfolio"
+    "sourceRoot": "libs/personal-portfolio/src",
+    "name": "personal-portfolio"
   },
   "peerDependencies": {
     "react": "catalog:",

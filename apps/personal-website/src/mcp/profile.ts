@@ -10,7 +10,7 @@ import {
   getWorkExperience,
   searchByTechnology,
 } from '@rainforest-dev/personal-data';
-import { hasCaseStudy } from '@rainforest-dev/portfolio/content';
+import { hasCaseStudy } from '@rainforest-dev/personal-portfolio/content';
 import type { SkillTag } from '@types';
 import { info, tags } from '@utils/constants';
 import { getEntry } from 'astro:content';
