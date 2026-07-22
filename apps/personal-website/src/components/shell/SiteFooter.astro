@@ -1,16 +1,18 @@
 ---
 import { getGitHubUrl, getLinkedInUrl } from '@utils';
 import { info } from '@utils/constants';
+import { useTranslation } from '@utils/i18n';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 
 const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
+const { t } = await useTranslation(lang, 'common');
 const year = new Date().getFullYear();
 
 const nav = [
-  { label: 'Home', href: getRelativeLocaleUrl(lang, '/') },
-  { label: 'Portfolio', href: getRelativeLocaleUrl(lang, '/portfolio') },
-  { label: 'Blog', href: '/blog' },
-  { label: 'Resume', href: getRelativeLocaleUrl(lang, '/resume') },
+  { label: t('home'), href: getRelativeLocaleUrl(lang, '/') },
+  { label: t('portfolio'), href: getRelativeLocaleUrl(lang, '/portfolio') },
+  { label: t('blog'), href: '/blog' },
+  { label: t('resume'), href: getRelativeLocaleUrl(lang, '/resume') },
 ];
 const social = [
   { label: 'GitHub', href: getGitHubUrl(info.links.github) },
