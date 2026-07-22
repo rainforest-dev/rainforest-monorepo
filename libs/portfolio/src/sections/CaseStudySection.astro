@@ -84,7 +84,7 @@ const hasIsland = HYDRATED_KINDS.includes(section.interaction);
   </div>
   {
     hasIsland && (
-      <div class="mt-8">
+      <div class="mt-8 font-sans">
         {section.interaction === 'phrase-grid' && <PhraseGrid client:load />}
         {section.interaction === 'fuzzy-search' && <FuzzySearch client:load />}
         {section.interaction === 'live-ledger' && <LiveLedger client:load />}
