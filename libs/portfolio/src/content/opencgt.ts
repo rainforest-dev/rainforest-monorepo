@@ -67,4 +67,12 @@ export const opencgt: CaseStudy = {
       sourceRef: 'nx.json · .github/workflows/ci.yml · apps/web-e2e · apps/web-load',
     },
   ],
+  // Placeholder gallery — drop real screenshots into
+  // apps/personal-website/public/images/portfolio/opencgt/ and set `src`.
+  gallery: [
+    { alt: 'OpenCGT admin dashboard for cell & gene therapy orchestration', caption: 'Admin dashboard' },
+    { alt: 'Patient Chain-of-Identity enrollment form', caption: 'Patient enrollment' },
+    { alt: 'Material and shipment tracking timeline', caption: 'Material & shipment tracking' },
+    { alt: 'Role-based access with hospital / manufacturer / root shells', caption: 'Role-based shells' },
+  ],
 };
