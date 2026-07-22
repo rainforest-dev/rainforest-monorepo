@@ -24,6 +24,10 @@ if (!study) return new Response(null, { status: 404 });
 const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
 const { t } = await useTranslation(lang, 'portfolio');
 const portfolioHref = getRelativeLocaleUrl(lang, '/portfolio');
+// Match the product's design language: dark-only products force dark, others
+// (theme: 'system' / unset) follow the visitor's OS preference.
+const forceScheme =
+  study.theme && study.theme !== 'system' ? study.theme : undefined;
 ---
 
 <Layout
@@ -31,6 +35,7 @@ const portfolioHref = getRelativeLocaleUrl(lang, '/portfolio');
   description={study.tagline}
   viewTransition={{ enabled: true }}
   shell
+  forceScheme={forceScheme}
 >
   <article data-project={study.slug} class="mx-auto max-w-4xl px-6 py-20">
     <a

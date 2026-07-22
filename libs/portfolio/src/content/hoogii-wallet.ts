@@ -3,6 +3,8 @@ import type { CaseStudy } from './types';
 export const hoogiiWallet: CaseStudy = {
   slug: 'hoogii-wallet',
   variant: 'hoogii',
+  // The Hoogii wallet extension is a dark-only product.
+  theme: 'dark',
   title: 'Hoogii Wallet',
   tagline:
     'A browser-extension wallet for the Chia blockchain — send, receive and manage XCH and CATs, and review transaction history.',

@@ -22,4 +22,10 @@ export interface Props extends HeadProps {
    * its bespoke hero nav instead of this shell.
    */
   shell?: boolean;
+  /**
+   * Force the page's colour scheme by stamping `data-scheme` on `<html>`,
+   * overriding the visitor's OS preference. Used by case-study pages to match a
+   * product's design language (e.g. a dark-only wallet). Omit to follow the OS.
+   */
+  forceScheme?: 'dark' | 'light';
 }

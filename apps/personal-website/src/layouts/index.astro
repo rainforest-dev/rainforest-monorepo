@@ -14,6 +14,7 @@ const {
   viewTransition = { enabled: false },
   hideSourceColorPicker = false,
   shell = false,
+  forceScheme,
   ...rest
 } = Astro.props;
 
@@ -22,7 +23,7 @@ const dir = _dir(lang);
 ---
 
 <!doctype html>
-<html lang={lang} dir={dir}>
+<html lang={lang} dir={dir} data-scheme={forceScheme}>
   <Head {...rest}>
     <ThemeProvider server:defer />
     {viewTransition.enabled && <ClientRouter />}
