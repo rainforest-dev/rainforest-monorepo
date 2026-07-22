@@ -1,0 +1,63 @@
+---
+import { getGitHubUrl, getLinkedInUrl } from '@utils';
+import { info } from '@utils/constants';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+
+const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
+const year = new Date().getFullYear();
+
+const nav = [
+  { label: 'Home', href: getRelativeLocaleUrl(lang, '/') },
+  { label: 'Portfolio', href: getRelativeLocaleUrl(lang, '/portfolio') },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Resume', href: getRelativeLocaleUrl(lang, '/resume') },
+];
+const social = [
+  { label: 'GitHub', href: getGitHubUrl(info.links.github) },
+  { label: 'LinkedIn', href: getLinkedInUrl(info.links.linkedin) },
+];
+---
+
+<footer class="border-border mt-24 border-t print:hidden">
+  <div
+    class="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-10 sm:flex-row sm:items-start sm:justify-between"
+  >
+    <div>
+      <a
+        href={getRelativeLocaleUrl(lang, '/')}
+        class="hover:text-primary font-semibold transition-colors"
+      >
+        Rainforest Cheng
+      </a>
+      <p class="text-foreground/50 mt-1 text-sm">© {year} Rainforest Cheng</p>
+    </div>
+
+    <nav class="flex flex-wrap gap-x-5 gap-y-2 text-sm" aria-label="Footer">
+      {
+        nav.map((item) => (
+          <a
+            href={item.href}
+            class="text-foreground/70 hover:text-foreground transition-colors"
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="flex gap-4 text-sm">
+      {
+        social.map((item) => (
+          <a
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-foreground/70 hover:text-foreground transition-colors"
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</footer>

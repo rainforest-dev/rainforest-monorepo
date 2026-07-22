@@ -1,20 +1,12 @@
 ---
 import Layout from '@layouts/index.astro';
-import { Home, ImageIcon } from '@lucide/vue';
-import {
-  getBrandIconName,
-  getGitHubUrl,
-  getLinkedInUrl,
-  useTranslatedPath,
-  useTranslation,
-} from '@utils';
-import { info } from '@utils/constants';
+import { ImageIcon } from '@lucide/vue';
+import { useTranslatedPath, useTranslation } from '@utils';
 import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 
 import { Navigation } from '@/components/blog';
 import Icon from '@/components/icon.vue';
-import { Button } from '@/components/ui/button';
 
 const posts = (
   await getCollection(
@@ -30,34 +22,8 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
   title={t('metadata-title')}
   description={t('metadata-description')}
   viewTransition={{ enabled: true }}
+  shell
 >
-  <nav class="flex-row-center justify-between container">
-    <div>
-      <Button variant="ghost" size="icon" href="/">
-        <Icon icon={Home} />
-      </Button>
-    </div>
-    <div>
-      <Button
-        variant="ghost"
-        size="icon"
-        href={getGitHubUrl(info.links.github)}
-        target="_blank"
-      >
-        <iconify-icon icon={getBrandIconName('github')} height="none"
-        ></iconify-icon>
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        href={getLinkedInUrl(info.links.linkedin)}
-        target="_blank"
-      >
-        <iconify-icon icon={getBrandIconName('linkedin')} height="none"
-        ></iconify-icon>
-      </Button>
-    </div>
-  </nav>
   <main class="container py-10">
     <h1 class="text-5xl md:text-9xl text-center mb-10">Rainforest Cheng</h1>
     <div
