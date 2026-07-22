@@ -8,6 +8,10 @@ import { getCollection } from 'astro:content';
 import { Navigation } from '@/components/blog';
 import Icon from '@/components/icon.vue';
 
+// Pure content-collection listing with no request-time data — prerender it (the
+// blog posts already are). Keeps it off the SSR path and cacheable at the edge.
+export const prerender = true;
+
 const posts = (
   await getCollection(
     'blog',
