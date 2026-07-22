@@ -4,7 +4,7 @@ import '@rainforest-dev/portfolio/theme.css';
 import Layout from '@layouts/index.astro';
 import { getProjects, type ResolvedProject } from '@rainforest-dev/personal-data';
 import { getCaseStudy, hasCaseStudy } from '@rainforest-dev/portfolio/content';
-import { supportedLngs } from '@utils/i18n';
+import { supportedLngs, useTranslation } from '@utils/i18n';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 
 export const prerender = true;
@@ -13,7 +13,8 @@ export function getStaticPaths() {
 }
 
 const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
-const description = 'Selected work — interactive case studies.';
+const { t } = await useTranslation(lang, 'portfolio');
+const description = t('subtitle');
 // Featured-first, then `order` — already sorts featured work to the top. If a
 // non-featured tail is ever added, it lands after the featured group for free;
 // no extra "view all" affordance needed until that tail actually exists.
@@ -23,9 +24,9 @@ const projects = (await getProjects({ lang })).sort(
 const slugOf = (p: ResolvedProject) => p.id.split('/').pop()!;
 ---
 
-<Layout title="Portfolio" description={description} viewTransition={{ enabled: true }} shell>
+<Layout title={t('title')} description={description} viewTransition={{ enabled: true }} shell>
   <main class="mx-auto max-w-4xl px-6 py-20">
-    <h1 class="mb-2 text-4xl">Portfolio</h1>
+    <h1 class="mb-2 text-4xl">{t('title')}</h1>
     <p class="mb-10 max-w-2xl text-foreground/70">{description}</p>
     <ul class="grid gap-6 md:grid-cols-2">
       {
@@ -49,8 +50,8 @@ const slugOf = (p: ResolvedProject) => p.id.split('/').pop()!;
               </h2>
               <p class="text-foreground/70">{tagline}</p>
               <ul class="flex flex-wrap gap-2">
-                {stack.map((t) => (
-                  <li class="rounded bg-primary/10 px-2.5 py-1 text-xs text-primary">{t}</li>
+                {stack.map((tech) => (
+                  <li class="rounded bg-primary/10 px-2.5 py-1 text-xs text-primary">{tech}</li>
                 ))}
               </ul>
               <div class="mt-auto pt-2">
@@ -58,12 +59,12 @@ const slugOf = (p: ResolvedProject) => p.id.split('/').pop()!;
                   <a
                     class="inline-flex w-fit items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
                     href={href}
-                    aria-label={`View case study: ${title}`}
+                    aria-label={`${t('view-case-study')}: ${title}`}
                   >
-                    View case study <span aria-hidden="true">→</span>
+                    {t('view-case-study')} <span aria-hidden="true">→</span>
                   </a>
                 ) : (
-                  <p class="text-sm text-foreground/60">Summary</p>
+                  <p class="text-sm text-foreground/60">{t('summary')}</p>
                 )}
               </div>
             </li>

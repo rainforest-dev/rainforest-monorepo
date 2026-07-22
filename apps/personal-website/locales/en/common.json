@@ -16,6 +16,7 @@
   "tailwindcss": "Tailwind CSS",
   "mui": "MUI",
   "fastapi": "FastAPI",
+  "home": "Home",
   "blog": "Blog",
   "resume": "Resume",
   "portfolio": "Portfolio",
