@@ -1,5 +1,5 @@
 import { getProfileSummary, getSkills } from '@rainforest-dev/personal-data';
-import { listCaseStudies } from '@rainforest-dev/portfolio/content';
+import { listCaseStudies } from '@rainforest-dev/personal-portfolio/content';
 import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';

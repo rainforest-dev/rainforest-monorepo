@@ -28,7 +28,7 @@
       "path": "./apps/rss-manager"
     },
     {
-      "path": "./libs/portfolio"
+      "path": "./libs/personal-portfolio"
     }
   ]
 }

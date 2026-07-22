@@ -1,9 +1,9 @@
 /* tailwindcss */
 @import 'tailwindcss';
-/* libs/portfolio is a non-buildable source lib with no CSS of its own — scan its
+/* libs/personal-portfolio is a non-buildable source lib with no CSS of its own — scan its
    source so the Tailwind utilities used in its section wrapper and React islands
    are generated here (the app is the only place its classes get compiled). */
-@source '../../../libs/portfolio/src';
+@source '../../../libs/personal-portfolio/src';
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
 @plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";

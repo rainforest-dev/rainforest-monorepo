@@ -382,9 +382,9 @@ importers:
       '@rainforest-dev/personal-data':
         specifier: workspace:*
         version: link:../../libs/personal-data
-      '@rainforest-dev/portfolio':
+      '@rainforest-dev/personal-portfolio':
         specifier: workspace:*
-        version: link:../../libs/portfolio
+        version: link:../../libs/personal-portfolio
       '@rainforest-dev/rainforest-ui':
         specifier: workspace:*
         version: link:../../libs/rainforest-ui
@@ -581,7 +581,7 @@ importers:
         specifier: ^4.5.4
         version: 4.5.4(@types/node@25.6.0)(rollup@4.62.2)(typescript@5.9.3)(vite@8.0.16(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.6.1)(less@4.1.3)(sass-embedded@1.100.0)(sass@1.101.0)(stylus@0.64.0)(terser@5.48.0)(tsx@4.23.0)(yaml@2.9.0))
 
-  libs/portfolio:
+  libs/personal-portfolio:
     dependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0

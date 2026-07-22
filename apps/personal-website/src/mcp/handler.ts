@@ -1,11 +1,11 @@
-import { PORTFOLIO_MCP_RESOURCES, PORTFOLIO_MCP_TOOLS, registerPortfolioMcp } from '@rainforest-dev/portfolio/mcp';
+import { PORTFOLIO_MCP_RESOURCES, PORTFOLIO_MCP_TOOLS, registerPortfolioMcp } from '@rainforest-dev/personal-portfolio/mcp';
 import { createMcpHandler } from 'mcp-handler';
 
 import { PROFILE_MCP_RESOURCES, PROFILE_MCP_TOOLS, registerProfileMcp } from './profile';
 
 // Composition root: each domain contributes its own tool/resource registrations —
 // registerProfileMcp here (stays in the app; depends on astro:content), registerPortfolioMcp
-// from @rainforest-dev/portfolio/mcp (sources its own typed content, no astro:content).
+// from @rainforest-dev/personal-portfolio/mcp (sources its own typed content, no astro:content).
 // MCP_TOOLS/MCP_RESOURCES stay the single source of truth llms.txt.ts / llms-full.txt.ts
 // read from to describe this server's capabilities.
 export const MCP_TOOLS = [...PROFILE_MCP_TOOLS, ...PORTFOLIO_MCP_TOOLS];

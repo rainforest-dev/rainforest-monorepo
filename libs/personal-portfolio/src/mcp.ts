@@ -33,7 +33,7 @@ export function caseStudyResource(slug: string): CaseStudy {
 
 /**
  * Registers the portfolio case-study resource + tool on an MCP server. Sources its data
- * from this lib's own typed content registry (libs/portfolio/src/content) — no astro:content
+ * from this lib's own typed content registry (libs/personal-portfolio/src/content) — no astro:content
  * dependency, unlike apps/personal-website/src/mcp/profile.ts's skill resource — so this can
  * be composed into any host's MCP server, not just the Astro app's.
  */
