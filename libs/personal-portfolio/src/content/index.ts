@@ -1,7 +1,7 @@
-import { hashgreenDex } from './hashgreen-dex';
-import { hashgreenSwap } from './hashgreen-swap';
-import { hoogiiWallet } from './hoogii-wallet';
-import { opencgt } from './opencgt';
+import { hashgreenDex } from '../projects/hashgreen-dex/content';
+import { hashgreenSwap } from '../projects/hashgreen-swap/content';
+import { hoogiiWallet } from '../projects/hoogii-wallet/content';
+import { opencgt } from '../projects/opencgt/content';
 import type { CaseStudy } from './types';
 
 const REGISTRY: Record<string, CaseStudy> = {

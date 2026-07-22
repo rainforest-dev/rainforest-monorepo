@@ -1,25 +1,25 @@
 ---
 import type { InteractionKind, Section } from '../content/types';
-import { AffectedPipeline } from '../islands/affected-pipeline';
-import { AmmQuote } from '../islands/amm-quote';
-import { CasbinPlayground } from '../islands/casbin-playground';
-import { EnvDeploy } from '../islands/env-deploy';
-import { FetchThenStream } from '../islands/fetch-then-stream';
-import { FuzzySearch } from '../islands/fuzzy-search';
-import { I18nCard } from '../islands/i18n-card';
-import { IdleLock } from '../islands/idle-lock';
-import { JwtDecode } from '../islands/jwt-decode';
-import { LiveLedger } from '../islands/live-ledger';
-import { OfferState } from '../islands/offer-state';
-import { OrderBook } from '../islands/order-book';
-import { PatchVsRefetch } from '../islands/patch-vs-refetch';
-import { PhiEncrypt } from '../islands/phi-encrypt';
-import { PhraseGrid } from '../islands/phrase-grid';
-import { RelayGate } from '../islands/relay-gate';
-import { RoleShell } from '../islands/role-shell';
-import { VirtualizedSearch } from '../islands/virtualized-search';
-import { WalletStateMachine } from '../islands/wallet-state-machine';
-import { ZapLiquidity } from '../islands/zap-liquidity';
+import { AffectedPipeline } from '../projects/opencgt/affected-pipeline';
+import { AmmQuote } from '../projects/hashgreen-swap/amm-quote';
+import { CasbinPlayground } from '../projects/opencgt/casbin-playground';
+import { EnvDeploy } from '../projects/hashgreen-swap/env-deploy';
+import { FetchThenStream } from '../projects/hashgreen-dex/fetch-then-stream';
+import { FuzzySearch } from '../projects/hoogii-wallet/fuzzy-search';
+import { I18nCard } from '../projects/hashgreen-swap/i18n-card';
+import { IdleLock } from '../projects/hoogii-wallet/idle-lock';
+import { JwtDecode } from '../projects/opencgt/jwt-decode';
+import { LiveLedger } from '../projects/hoogii-wallet/live-ledger';
+import { OfferState } from '../projects/hashgreen-swap/offer-state';
+import { OrderBook } from '../projects/hashgreen-dex/order-book';
+import { PatchVsRefetch } from '../projects/hashgreen-dex/patch-vs-refetch';
+import { PhiEncrypt } from '../projects/opencgt/phi-encrypt';
+import { PhraseGrid } from '../projects/hoogii-wallet/phrase-grid';
+import { RelayGate } from '../projects/hoogii-wallet/relay-gate';
+import { RoleShell } from '../projects/opencgt/role-shell';
+import { VirtualizedSearch } from '../projects/hashgreen-dex/virtualized-search';
+import { WalletStateMachine } from '../projects/hashgreen-dex/wallet-state-machine';
+import { ZapLiquidity } from '../projects/hashgreen-swap/zap-liquidity';
 import { parseTech } from './parse-tech';
 
 interface Props {
