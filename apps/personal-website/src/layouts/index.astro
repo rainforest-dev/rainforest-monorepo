@@ -2,6 +2,8 @@
 import '../app.css';
 
 import { SourceColor, ThemeProvider } from '@components';
+import SiteFooter from '@components/shell/SiteFooter.astro';
+import SiteHeader from '@components/shell/SiteHeader.astro';
 import { ClientRouter } from 'astro:transitions';
 import { dir as _dir } from 'i18next';
 
@@ -11,6 +13,7 @@ import type { Props } from './types';
 const {
   viewTransition = { enabled: false },
   hideSourceColorPicker = false,
+  shell = false,
   ...rest
 } = Astro.props;
 
@@ -25,7 +28,9 @@ const dir = _dir(lang);
     {viewTransition.enabled && <ClientRouter />}
   </Head>
   <body>
+    {shell && <SiteHeader />}
     <slot />
+    {shell && <SiteFooter />}
     {
       !hideSourceColorPicker && (
         <div class="fixed right-10 bottom-10 z-10 print:hidden">

@@ -15,4 +15,11 @@ export interface Props extends HeadProps {
    * otherwise sit on top of page content with no way to scroll clear.
    */
   hideSourceColorPicker?: boolean;
+  /**
+   * Wrap the page in the shared site chrome — a global sticky header (primary
+   * nav + language switch) and a footer. Off by default; content pages
+   * (portfolio, blog, posts, resume, future pages) opt in. The home page keeps
+   * its bespoke hero nav instead of this shell.
+   */
+  shell?: boolean;
 }

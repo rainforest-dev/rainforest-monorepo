@@ -10,7 +10,7 @@ const posts = await getCollection('blog', ({ data }) =>
 );
 ---
 
-<Layout title="Quick Posts" viewTransition={{ enabled: true }}>
+<Layout title="Quick Posts" viewTransition={{ enabled: true }} shell>
   <main class="container py-10 space-y-8">
     {
       posts

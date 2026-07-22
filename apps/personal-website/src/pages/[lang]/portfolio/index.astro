@@ -23,7 +23,7 @@ const projects = (await getProjects({ lang })).sort(
 const slugOf = (p: ResolvedProject) => p.id.split('/').pop()!;
 ---
 
-<Layout title="Portfolio" description={description} viewTransition={{ enabled: true }}>
+<Layout title="Portfolio" description={description} viewTransition={{ enabled: true }} shell>
   <main class="mx-auto max-w-4xl px-6 py-20">
     <h1 class="mb-2 text-4xl">Portfolio</h1>
     <p class="mb-10 max-w-2xl text-foreground/70">{description}</p>
