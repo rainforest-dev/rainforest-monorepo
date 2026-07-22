@@ -67,12 +67,27 @@ export const hoogiiWallet: CaseStudy = {
         'src/injected-scripts/index.ts · src/background/index.ts · src/popup/',
     },
   ],
-  // Placeholder gallery — drop real screenshots at these captions' subjects into
-  // apps/personal-website/public/images/portfolio/hoogii-wallet/ and set `src`.
+  // Real product screenshots, in apps/personal-website/public/images/portfolio/hoogii-wallet/.
   gallery: [
-    { alt: 'Hoogii Wallet dashboard listing XCH and CAT balances', caption: 'Dashboard — balances & assets' },
-    { alt: 'Send flow with recipient address, amount and network fee', caption: 'Send flow' },
-    { alt: 'Transaction history with incoming and outgoing transfers', caption: 'Transaction history' },
-    { alt: 'Create / import wallet with the 12-word recovery phrase', caption: 'Create / import' },
+    {
+      src: '/images/portfolio/hoogii-wallet/01.jpeg',
+      alt: 'Hoogii Wallet landing page — a fully open-source Chia crypto wallet extension',
+      caption: 'Landing page',
+    },
+    {
+      src: '/images/portfolio/hoogii-wallet/02.jpeg',
+      alt: 'Hoogii Wallet dashboard showing the XCH balance and asset list',
+      caption: 'Dashboard — balances & assets',
+    },
+    {
+      src: '/images/portfolio/hoogii-wallet/03.jpeg',
+      alt: 'Hoogii Wallet activity tab with pending and past transactions',
+      caption: 'Activity & transaction history',
+    },
+    {
+      src: '/images/portfolio/hoogii-wallet/04.jpeg',
+      alt: 'Verify Backup Phrase screen with the 12-word recovery-phrase grid',
+      caption: 'Verify backup phrase',
+    },
   ],
 };
