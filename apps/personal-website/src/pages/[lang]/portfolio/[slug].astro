@@ -2,6 +2,7 @@
 import '@rainforest-dev/personal-portfolio/theme.css';
 
 import Layout from '@layouts/index.astro';
+import { getProjectGallery } from '@rainforest-dev/personal-data';
 import { getCaseStudy, listCaseStudies } from '@rainforest-dev/personal-portfolio/content';
 import CaseStudyGallery from '@rainforest-dev/personal-portfolio/sections/CaseStudyGallery.astro';
 import CaseStudySection from '@rainforest-dev/personal-portfolio/sections/CaseStudySection.astro';
@@ -58,7 +59,7 @@ const forceScheme =
         ))
       }
     </ul>
-    <CaseStudyGallery images={study.gallery} />
+    <CaseStudyGallery images={getProjectGallery(study.slug)} />
     {study.sections.map((section) => <CaseStudySection section={section} />)}
   </article>
 </Layout>
