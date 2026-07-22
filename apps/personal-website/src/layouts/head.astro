@@ -48,23 +48,42 @@ const url = Astro.url.toString();
           applyTo(e.newDocument.documentElement);
         });
         document.addEventListener('click', (e) => {
-          const btn = e.target.closest && e.target.closest('[data-theme-toggle]');
-          if (!btn) return;
-          const next = ORDER[(ORDER.indexOf(readPref()) + 1) % ORDER.length];
-          try {
-            localStorage.setItem('theme', next);
-          } catch (err) {
-            // ignore storage failures (private mode, disabled cookies)
+          const target = e.target;
+          const setBtn = target.closest && target.closest('[data-theme-set]');
+          if (setBtn) {
+            const val = setBtn.getAttribute('data-theme-set');
+            const d = setBtn.closest('details');
+            if (d) d.open = false;
+            if (ORDER.indexOf(val) >= 0) {
+              try {
+                localStorage.setItem('theme', val);
+              } catch (err) {
+                // ignore storage failures (private mode, disabled cookies)
+              }
+              const commit = () => applyTo(document.documentElement);
+              // Cross-fade the scheme change via the View Transitions API,
+              // respecting reduced-motion; instant swap where unsupported.
+              const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+              if (document.startViewTransition && !reduce) {
+                document.startViewTransition(commit);
+              } else {
+                commit();
+              }
+            }
+            return;
           }
-          const commit = () => applyTo(document.documentElement);
-          // Cross-fade the light/dark change via the View Transitions API,
-          // respecting reduced-motion; instant swap where unsupported.
-          const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-          if (document.startViewTransition && !reduce) {
-            document.startViewTransition(commit);
-          } else {
-            commit();
-          }
+          // Click outside an open popover menu closes it.
+          document.querySelectorAll('details[data-menu][open]').forEach((d) => {
+            if (!d.contains(target)) d.open = false;
+          });
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return;
+          document
+            .querySelectorAll('details[data-menu][open]')
+            .forEach((d) => {
+              d.open = false;
+            });
         });
       }
     })();
