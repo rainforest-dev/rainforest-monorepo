@@ -9,9 +9,15 @@
 @plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
 
 @theme {
-  --font-family-serif: 'Lora', serif;
-  --font-family-sans: 'Lora', sans-serif;
-  --font-family-resume-serif: Georgia, serif;
+  /* Tailwind v4 reads font-family tokens from the `--font-*` namespace (these
+     feed the `font-serif` / `font-sans` / `font-resume-serif` utilities). The
+     earlier `--font-family-*` names were inert, so `font-serif` fell back to the
+     built-in Georgia stack and Lora — though linked — was never referenced and
+     so never downloaded. Lora carries the editorial serif (body + headings);
+     Inter drives the app-style island UI (see CaseStudySection's font-sans). */
+  --font-serif: 'Lora', serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-resume-serif: Georgia, serif;
 
   --breakpoint-3xl: 112rem;
 
