@@ -4,6 +4,7 @@ import '../app.css';
 import { SourceColor, ThemeProvider } from '@components';
 import SiteFooter from '@components/shell/SiteFooter.astro';
 import SiteHeader from '@components/shell/SiteHeader.astro';
+import SpeedInsights from '@vercel/speed-insights/astro';
 import { ClientRouter } from 'astro:transitions';
 import { dir as _dir } from 'i18next';
 
@@ -39,5 +40,6 @@ const dir = _dir(lang);
         </div>
       )
     }
+    <SpeedInsights />
   </body>
 </html>
