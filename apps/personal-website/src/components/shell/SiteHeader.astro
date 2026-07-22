@@ -1,5 +1,5 @@
 ---
-import ThemeToggle from '@components/shell/ThemeToggle.astro';
+import SettingsMenu from '@components/shell/SettingsMenu.astro';
 import { useTranslation } from '@utils/i18n';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 
@@ -50,6 +50,12 @@ const langs = [
 ] as const;
 const langHref = (l: string) =>
   localeAgnostic ? getRelativeLocaleUrl(l, '/') : getRelativeLocaleUrl(l, stripped);
+const langItems = langs.map((l) => ({
+  key: l.key,
+  label: t(l.key),
+  href: langHref(l.key),
+  active: l.key === lang,
+}));
 
 const home = getRelativeLocaleUrl(lang, '/');
 ---
@@ -87,35 +93,9 @@ const home = getRelativeLocaleUrl(lang, '/');
         }
       </nav>
 
-      <div class="flex items-center gap-0.5 text-sm" aria-label="Language">
-        {
-          langs.map((l, i) => (
-            <Fragment>
-              {i > 0 && (
-                <span class="text-border" aria-hidden="true">
-                  /
-                </span>
-              )}
-              <a
-                href={langHref(l.key)}
-                aria-current={l.key === lang ? 'true' : undefined}
-                class:list={[
-                  'rounded px-1.5 py-1 transition-colors',
-                  l.key === lang
-                    ? 'text-foreground font-medium'
-                    : 'text-foreground/50 hover:text-foreground',
-                ]}
-              >
-                {l.label}
-              </a>
-            </Fragment>
-          ))
-        }
-      </div>
+      <SettingsMenu langItems={langItems} />
 
-      <ThemeToggle />
-
-      <details class="relative md:hidden">
+      <details class="relative md:hidden" data-menu>
         <summary
           class="flex-center hover:bg-muted list-none cursor-pointer rounded-md p-2 [&::-webkit-details-marker]:hidden"
           aria-label="Menu"
