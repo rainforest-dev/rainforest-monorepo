@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useRef, useState } from 'react';
 
+import { Switch } from '../_shared/Switch';
 import { useReducedMotion } from '../_shared/useReducedMotion';
 import { channelFor, lifecycleLog, pushTrade } from './logic';
 
@@ -136,17 +137,14 @@ export function FetchThenStream(): JSX.Element {
           </span>
         </div>
 
-        <label className="text-foreground flex items-center gap-2 text-sm">
+        <div className="text-foreground flex items-center gap-2 text-sm">
           Live
-          <input
-            type="checkbox"
-            role="switch"
+          <Switch
             checked={live}
-            onChange={(event) => setLive(event.target.checked)}
-            aria-label="Toggle live subscription"
-            className="accent-primary h-5 w-9 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onChange={setLive}
+            label="Toggle live subscription"
           />
-        </label>
+        </div>
       </div>
 
       <div className="mb-5 flex flex-wrap gap-6">

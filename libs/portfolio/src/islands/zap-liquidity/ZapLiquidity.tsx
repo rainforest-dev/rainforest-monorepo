@@ -1,5 +1,6 @@
 import { type JSX, useState } from 'react';
 
+import { Switch } from '../_shared/Switch';
 import {
   type AssetSide,
   pairedAmount,
@@ -53,17 +54,16 @@ export function ZapLiquidity(): JSX.Element {
 
   return (
     <div className="border-border bg-card text-card-foreground max-w-md rounded-xl border p-6">
-      <label className="mb-4 flex cursor-pointer items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <span className="text-foreground text-sm font-semibold">
           Zap · single-sided deposit
         </span>
-        <input
-          type="checkbox"
+        <Switch
           checked={zap}
-          onChange={(e) => setZap(e.target.checked)}
-          className="accent-primary h-5 w-9 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onChange={setZap}
+          label="Zap · single-sided deposit"
         />
-      </label>
+      </div>
 
       {zap ? (
         <div>
