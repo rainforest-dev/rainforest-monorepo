@@ -8,13 +8,13 @@
  * case-study routes, scoped to a `[data-project="<slug>"]` attribute the
  * detail route sets on its wrapper element (the case-study `<article>`).
  *
- * No scheme-specific (light/dark) variants are needed here: each accent is
- * scheme-invariant by design, and the override is set directly on the
- * `[data-project]` element itself. CSS custom properties resolve from the
- * nearest ancestor that sets them, so this declaration always wins for that
- * subtree over whatever `--primary` the app's light/dark mechanism set
- * further up at `:root` — in both light and dark — with no duplicate,
- * scheme-specific rule required.
+ * Three of the four accents are scheme-invariant by design — dark/saturated
+ * enough to stay legible on both the light and dark card — so a single
+ * declaration on the `[data-project]` element suffices. CSS custom properties
+ * resolve from the nearest ancestor that sets them, so that declaration always
+ * wins for the subtree over whatever `--primary` the app's light/dark mechanism
+ * set further up at `:root`. The one exception is `hashgreen-swap`, whose bright
+ * accent needs a per-scheme value (see its block below).
  *
  * Nothing here touches `:root`, so pages without a `data-project` attribute
  * are completely unaffected — zero leakage.
@@ -32,7 +32,36 @@
   --ring: #008c15;
 }
 
+/*
+ * hashgreen-swap's brand accent (#00f8cb) is a bright spring-cyan — the one
+ * accent that can't be scheme-invariant. It reads well as text/fill on a dark
+ * surface but washes out on the light card (contrast ~1.3:1 as text on white),
+ * so light mode gets a darker teal from the same hue (readable on white, with a
+ * white foreground on the button fill) while dark mode keeps the vivid brand
+ * cyan (dark foreground on the fill). The four rules mirror the shadcn plugin's
+ * own light/dark wiring: base = light default, prefers-color-scheme:dark =
+ * system dark, and the two [data-scheme] rules honour an explicit ThemeProvider
+ * override — those outrank the media rule by specificity, so an explicit choice
+ * always wins over the system preference.
+ */
 [data-project='hashgreen-swap'] {
+  --primary: #00786a;
+  --primary-foreground: #ffffff;
+  --ring: #00786a;
+}
+@media (prefers-color-scheme: dark) {
+  [data-project='hashgreen-swap'] {
+    --primary: #00f8cb;
+    --primary-foreground: #04302a;
+    --ring: #00f8cb;
+  }
+}
+[data-scheme='light'] [data-project='hashgreen-swap'] {
+  --primary: #00786a;
+  --primary-foreground: #ffffff;
+  --ring: #00786a;
+}
+[data-scheme='dark'] [data-project='hashgreen-swap'] {
   --primary: #00f8cb;
   --primary-foreground: #04302a;
   --ring: #00f8cb;
