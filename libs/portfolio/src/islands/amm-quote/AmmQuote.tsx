@@ -1,5 +1,6 @@
 import { type JSX, useState } from 'react';
 
+import { cx, segment } from '../_shared/ui';
 import { applySlippage, calcUserSwap, type SwapPool } from './logic';
 
 /** Fabricated pool reserves — cosmetic only, mirrors the mock pool used in the review demo. */
@@ -57,11 +58,7 @@ export function AmmQuote(): JSX.Element {
           type="button"
           aria-pressed={exactIn}
           onClick={() => setMode('in')}
-          className={`h-8 rounded-md px-3 text-xs font-semibold ${
-            exactIn
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground'
-          }`}
+          className={segment(exactIn, 'h-8 px-3 text-xs font-semibold')}
         >
           Exact in
         </button>
@@ -69,17 +66,13 @@ export function AmmQuote(): JSX.Element {
           type="button"
           aria-pressed={!exactIn}
           onClick={() => setMode('out')}
-          className={`h-8 rounded-md px-3 text-xs font-semibold ${
-            !exactIn
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground'
-          }`}
+          className={segment(!exactIn, 'h-8 px-3 text-xs font-semibold')}
         >
           Exact out
         </button>
       </div>
 
-      <label className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3">
+      <label className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
         <span className="min-w-0 flex-1">
           <span className="text-muted-foreground mb-1 block text-xs">
             You pay
@@ -106,7 +99,7 @@ export function AmmQuote(): JSX.Element {
         ↓
       </div>
 
-      <label className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3">
+      <label className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
         <span className="min-w-0 flex-1">
           <span className="text-muted-foreground mb-1 block text-xs">
             You receive
@@ -134,11 +127,12 @@ export function AmmQuote(): JSX.Element {
             type="button"
             aria-pressed={slippage === option}
             onClick={() => setSlippage(option)}
-            className={`h-7 rounded-full border px-3 text-xs font-semibold ${
+            className={cx(
+              'h-7 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               slippage === option
                 ? 'border-primary bg-primary/15 text-primary'
-                : 'border-border text-muted-foreground'
-            }`}
+                : 'border-border text-muted-foreground hover:bg-muted',
+            )}
           >
             {option.toFixed(1)}%
           </button>
@@ -175,7 +169,7 @@ export function AmmQuote(): JSX.Element {
       <button
         type="button"
         onClick={() => setShowMath((prev) => !prev)}
-        className="text-primary mt-3 font-mono text-xs"
+        className="text-primary mt-3 rounded font-mono text-xs transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {showMath ? '▾ hide the math' : '▸ show the math'}
       </button>

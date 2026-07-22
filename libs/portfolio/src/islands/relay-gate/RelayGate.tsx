@@ -1,5 +1,6 @@
 import { type JSX, useState } from 'react';
 
+import { button } from '../_shared/ui';
 import { evaluateRelay, type RelayOutcome } from './logic';
 
 interface LogEntry {
@@ -33,7 +34,7 @@ export function RelayGate(): JSX.Element {
             type="checkbox"
             checked={isValidWallet}
             onChange={(event) => setIsValidWallet(event.target.checked)}
-            className="accent-primary"
+            className="accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           valid wallet
         </label>
@@ -42,7 +43,7 @@ export function RelayGate(): JSX.Element {
             type="checkbox"
             checked={isLocked}
             onChange={(event) => setIsLocked(event.target.checked)}
-            className="accent-primary"
+            className="accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           locked
         </label>
@@ -51,7 +52,7 @@ export function RelayGate(): JSX.Element {
             type="checkbox"
             checked={isConnected}
             onChange={(event) => setIsConnected(event.target.checked)}
-            className="accent-primary"
+            className="accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           connected
         </label>
@@ -81,7 +82,7 @@ export function RelayGate(): JSX.Element {
       <button
         type="button"
         onClick={handleRequest}
-        className="bg-primary text-primary-foreground mb-4 h-10 rounded-md px-4 text-sm font-semibold"
+        className={button({ className: 'mb-4' })}
       >
         dApp requests signing
       </button>

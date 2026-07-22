@@ -74,7 +74,7 @@ export function PhraseGrid(): JSX.Element {
         <button
           type="button"
           onClick={handlePaste}
-          className="border-primary/50 text-foreground hover:bg-primary/10 h-8 rounded-md border bg-transparent px-3 text-sm font-semibold"
+          className="border-primary/50 text-foreground hover:bg-primary/10 h-8 rounded-md border bg-transparent px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           paste a phrase
         </button>
@@ -86,7 +86,7 @@ export function PhraseGrid(): JSX.Element {
           return (
             <label
               key={index}
-              className={`bg-muted/40 flex h-11 items-center gap-2 rounded-lg border px-3 ${
+              className={`bg-muted/40 flex h-11 items-center gap-2 rounded-lg border px-3 transition-colors focus-within:ring-2 focus-within:ring-ring ${
                 invalid
                   ? 'border-destructive ring-destructive ring-1'
                   : 'border-border'

@@ -1,5 +1,6 @@
 import { type JSX, useMemo, useState } from 'react';
 
+import { avatar } from '../_shared/ui';
 import { rank } from './logic';
 
 /**
@@ -46,7 +47,7 @@ export function FuzzySearch(): JSX.Element {
 
   return (
     <div className="border-border bg-card text-card-foreground rounded-xl border p-6">
-      <label className="border-border bg-muted/40 mb-3 flex h-11 items-center gap-2 rounded-lg border px-3">
+      <label className="border-border bg-muted/40 mb-3 flex h-11 items-center gap-2 rounded-lg border px-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
         <span className="text-primary text-sm" aria-hidden="true">
           ⌕
         </span>
@@ -68,7 +69,7 @@ export function FuzzySearch(): JSX.Element {
             key={preset}
             type="button"
             onClick={() => setQuery(preset)}
-            className="border-primary/40 bg-primary/10 text-primary h-7 rounded-full border px-3 text-xs font-medium"
+            className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 h-7 rounded-full border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {preset}
           </button>
@@ -84,7 +85,7 @@ export function FuzzySearch(): JSX.Element {
             key={asset.code}
             className="border-border bg-muted/40 flex items-center gap-3 rounded-lg border px-3 py-2"
           >
-            <span className="bg-primary/20 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+            <span className={avatar('bg-primary/20 text-primary')}>
               {asset.code.slice(0, 2)}
             </span>
             <div className="min-w-0 flex-1">

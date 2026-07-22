@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useState } from 'react';
 
+import { button, segment } from '../_shared/ui';
 import { useReducedMotion } from '../_shared/useReducedMotion';
 import {
   REAL_METRICS,
@@ -75,11 +76,7 @@ export function EnvDeploy(): JSX.Element {
             type="button"
             aria-pressed={env === option}
             onClick={() => handleSetEnv(option)}
-            className={`h-8 rounded-md px-3 font-mono text-xs font-semibold ${
-              env === option
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground'
-            }`}
+            className={segment(env === option, 'h-8 px-3 font-mono text-xs font-semibold')}
           >
             {option}
           </button>
@@ -109,7 +106,7 @@ export function EnvDeploy(): JSX.Element {
             setStage('idle');
             setVisibleLines(0);
           }}
-          className="accent-primary flex-1"
+          className="accent-primary flex-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <span className="text-primary font-mono text-xs">
           HPA {Math.max(cfg.minReplicas, replicas)}–
@@ -121,7 +118,7 @@ export function EnvDeploy(): JSX.Element {
         type="button"
         onClick={handleDeploy}
         disabled={stage === 'running'}
-        className="bg-primary text-primary-foreground mt-4 h-10 rounded-md px-5 text-sm font-semibold disabled:opacity-60"
+        className={button({ className: 'mt-4' })}
       >
         {deployLabel}
       </button>

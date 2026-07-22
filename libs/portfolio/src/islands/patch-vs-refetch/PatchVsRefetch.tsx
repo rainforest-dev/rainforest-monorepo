@@ -1,5 +1,6 @@
 import { type JSX, useState } from 'react';
 
+import { button } from '../_shared/ui';
 import {
   matchesDateRange,
   matchesFilters,
@@ -106,7 +107,7 @@ export function PatchVsRefetch(): JSX.Element {
           <select
             value={filters.market}
             onChange={(event) => handleFilterChange({ market: event.target.value })}
-            className="border-border bg-muted/40 text-foreground h-8 rounded-md border px-2 text-sm"
+            className="border-border bg-muted/40 text-foreground h-8 rounded-md border px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {MARKET_OPTS.map((opt) => (
               <option key={opt} value={opt}>
@@ -120,7 +121,7 @@ export function PatchVsRefetch(): JSX.Element {
           <select
             value={filters.status}
             onChange={(event) => handleFilterChange({ status: event.target.value })}
-            className="border-border bg-muted/40 text-foreground h-8 rounded-md border px-2 text-sm"
+            className="border-border bg-muted/40 text-foreground h-8 rounded-md border px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {STATUS_OPTS.map((opt) => (
               <option key={opt} value={opt}>
@@ -134,7 +135,7 @@ export function PatchVsRefetch(): JSX.Element {
           <select
             value={filters.range}
             onChange={(event) => handleFilterChange({ range: event.target.value })}
-            className="border-border bg-muted/40 text-foreground h-8 rounded-md border px-2 text-sm"
+            className="border-border bg-muted/40 text-foreground h-8 rounded-md border px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {RANGE_OPTS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -186,7 +187,7 @@ export function PatchVsRefetch(): JSX.Element {
           onClick={() => setPage((prev) => Math.max(0, prev - 1))}
           disabled={clampedPage === 0}
           aria-label="Previous page"
-          className="border-border text-foreground h-8 w-8 rounded-md border text-sm disabled:opacity-40"
+          className={button({ variant: 'outline', size: 'icon' })}
         >
           ←
         </button>
@@ -198,7 +199,7 @@ export function PatchVsRefetch(): JSX.Element {
           onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
           disabled={clampedPage >= totalPages - 1}
           aria-label="Next page"
-          className="border-border text-foreground h-8 w-8 rounded-md border text-sm disabled:opacity-40"
+          className={button({ variant: 'outline', size: 'icon' })}
         >
           →
         </button>
@@ -208,7 +209,7 @@ export function PatchVsRefetch(): JSX.Element {
         <button
           type="button"
           onClick={handleSimulateFill}
-          className="bg-primary text-primary-foreground h-10 rounded-md px-5 text-sm font-semibold"
+          className={button()}
         >
           simulate a fill
         </button>

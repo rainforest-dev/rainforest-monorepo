@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useState } from 'react';
 
+import { button, cx } from '../_shared/ui';
 import { useReducedMotion } from '../_shared/useReducedMotion';
 import {
   advanceEncryptStage,
@@ -122,7 +123,7 @@ export function PhiEncrypt(): JSX.Element {
             <input
               value={record.fullName}
               onChange={(e) => updateField('fullName', e.target.value)}
-              className="border-border bg-background text-foreground mt-1.5 h-9 w-full rounded-md border px-3 text-sm"
+              className="border-border bg-background text-foreground mt-1.5 h-9 w-full rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
           </label>
           <label className="mb-3 block text-xs">
@@ -130,7 +131,7 @@ export function PhiEncrypt(): JSX.Element {
             <input
               value={record.dob}
               onChange={(e) => updateField('dob', e.target.value)}
-              className="border-border bg-background text-foreground mt-1.5 h-9 w-full rounded-md border px-3 text-sm"
+              className="border-border bg-background text-foreground mt-1.5 h-9 w-full rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
           </label>
           <label className="mb-3 block text-xs">
@@ -138,7 +139,7 @@ export function PhiEncrypt(): JSX.Element {
             <input
               value={record.mrn}
               onChange={(e) => updateField('mrn', e.target.value)}
-              className="border-border bg-background text-foreground mt-1.5 h-9 w-full rounded-md border px-3 text-sm"
+              className="border-border bg-background text-foreground mt-1.5 h-9 w-full rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
           </label>
 
@@ -150,7 +151,7 @@ export function PhiEncrypt(): JSX.Element {
               type="button"
               onClick={addOrg}
               disabled={orgs.length >= MAX_ORGS}
-              className="text-primary text-xs font-semibold disabled:opacity-40"
+              className="text-primary rounded text-xs font-semibold transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
             >
               + add org
             </button>
@@ -161,16 +162,17 @@ export function PhiEncrypt(): JSX.Element {
                 value={org.name}
                 onChange={(e) => updateOrgName(i, e.target.value)}
                 aria-label={`Org ${i + 1} name`}
-                className="border-border bg-background text-foreground h-9 min-w-0 flex-1 rounded-md border px-2.5 text-xs"
+                className="border-border bg-background text-foreground h-9 min-w-0 flex-1 rounded-md border px-2.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               />
               <button
                 type="button"
                 onClick={() => toggleOrgGrant(i)}
-                className={`h-9 shrink-0 rounded-md border px-2.5 font-mono text-xs whitespace-nowrap ${
+                className={cx(
+                  'h-9 shrink-0 rounded-md border px-2.5 font-mono text-xs whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   org.grant === 'phi'
                     ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground'
-                }`}
+                    : 'border-border text-muted-foreground hover:bg-muted',
+                )}
               >
                 {org.grant}
               </button>
@@ -179,7 +181,7 @@ export function PhiEncrypt(): JSX.Element {
                 onClick={() => removeOrg(i)}
                 disabled={orgs.length <= 1}
                 aria-label={`Remove ${org.name || 'org'}`}
-                className="border-border text-muted-foreground h-9 w-9 shrink-0 rounded-md border text-sm disabled:opacity-40"
+                className={button({ variant: 'outline', size: 'icon' })}
               >
                 ✕
               </button>
@@ -190,7 +192,7 @@ export function PhiEncrypt(): JSX.Element {
             type="button"
             onClick={handleEncrypt}
             disabled={stage !== 'idle' && stage !== 'done'}
-            className="bg-primary text-primary-foreground mt-4 h-10 rounded-md px-5 text-sm font-semibold disabled:opacity-60"
+            className={button({ className: 'mt-4' })}
           >
             {encrypted ? 'Re-encrypt & submit' : 'Encrypt & submit'}
           </button>
@@ -260,11 +262,12 @@ export function PhiEncrypt(): JSX.Element {
                     type="button"
                     aria-pressed={openIndex === i}
                     onClick={() => setOpenIndex(i)}
-                    className={`h-8 rounded-md border px-3 text-xs font-semibold ${
+                    className={cx(
+                      'h-8 rounded-md border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       openIndex === i
                         ? 'bg-primary text-primary-foreground border-primary'
-                        : 'border-primary/30 text-primary'
-                    }`}
+                        : 'border-primary/30 text-primary hover:bg-primary/10',
+                    )}
                   >
                     open as {org.name} ({org.grant})
                   </button>

@@ -5,6 +5,7 @@ import Layout from '@layouts/index.astro';
 import { getCaseStudy, listCaseStudies } from '@rainforest-dev/portfolio/content';
 import CaseStudySection from '@rainforest-dev/portfolio/sections/CaseStudySection.astro';
 import { supportedLngs } from '@utils/i18n';
+import { getRelativeLocaleUrl } from 'astro:i18n';
 
 export const prerender = true;
 export function getStaticPaths() {
@@ -19,12 +20,27 @@ const study = getCaseStudy(slug!);
 // so `study` is always defined. Kept as a correct 404 rather than a redirect to a
 // non-existent /404 page, in case the generation strategy ever changes.
 if (!study) return new Response(null, { status: 404 });
+const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
+const portfolioHref = getRelativeLocaleUrl(lang, '/portfolio');
 ---
 
-<Layout title={`${study.title} — Case study`} description={study.tagline}>
+<Layout
+  title={`${study.title} — Case study`}
+  description={study.tagline}
+  viewTransition={{ enabled: true }}
+>
   <article data-project={study.slug} class="mx-auto max-w-4xl px-6 py-20">
-    <p class="text-xs uppercase tracking-widest text-primary/70">Case study</p>
-    <h1 class="mt-2 text-5xl">{study.title}</h1>
+    <a
+      href={portfolioHref}
+      class="group inline-flex items-center gap-1.5 text-sm text-foreground/60 transition-colors hover:text-foreground"
+    >
+      <span
+        aria-hidden="true"
+        class="transition-transform group-hover:-translate-x-0.5">←</span
+      > Back to portfolio
+    </a>
+    <p class="mt-8 text-xs uppercase tracking-widest text-primary/70">Case study</p>
+    <h1 transition:name={`case-study-${study.slug}`} class="mt-2 text-5xl">{study.title}</h1>
     <p class="mt-2 text-foreground/70">{study.role} · {study.period}</p>
     <p class="mt-6 max-w-2xl">{study.tagline}</p>
     <ul class="mt-6 flex flex-wrap gap-2">

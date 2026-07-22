@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useState } from 'react';
 
+import { button, cx } from '../_shared/ui';
 import { useReducedMotion } from '../_shared/useReducedMotion';
 import {
   buildMockJwt,
@@ -81,11 +82,12 @@ export function JwtDecode(): JSX.Element {
               type="button"
               aria-pressed={selected}
               onClick={() => handlePersona(id)}
-              className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold ${
+              className={cx(
+                'flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 selected
                   ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-foreground'
-              }`}
+                  : 'border-border text-foreground hover:bg-muted',
+              )}
             >
               <span
                 aria-hidden="true"
@@ -103,7 +105,7 @@ export function JwtDecode(): JSX.Element {
         type="button"
         onClick={handleLogin}
         disabled={stage === 'hop'}
-        className="bg-primary text-primary-foreground mt-4 h-10 rounded-md px-5 text-sm font-semibold disabled:opacity-60"
+        className={button({ className: 'mt-4' })}
       >
         {stage === 'hop'
           ? 'Signing in…'

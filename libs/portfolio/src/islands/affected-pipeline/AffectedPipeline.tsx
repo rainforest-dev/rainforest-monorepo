@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useState } from 'react';
 
+import { button, segment } from '../_shared/ui';
 import { useReducedMotion } from '../_shared/useReducedMotion';
 import {
   affectedFromFiles,
@@ -87,7 +88,7 @@ export function AffectedPipeline(): JSX.Element {
                 type="checkbox"
                 checked={!!changed[file.path]}
                 onChange={() => toggleFile(file.path)}
-                className="accent-primary h-3.5 w-3.5"
+                className="accent-primary h-3.5 w-3.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <span className="font-mono text-xs">{file.path}</span>
             </label>
@@ -98,11 +99,7 @@ export function AffectedPipeline(): JSX.Element {
                 type="button"
                 aria-pressed={event === 'pr'}
                 onClick={() => setEventAndReset('pr')}
-                className={`h-7 rounded-md px-3 font-mono text-xs font-bold ${
-                  event === 'pr'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground'
-                }`}
+                className={segment(event === 'pr', 'h-7 px-3 font-mono text-xs font-bold')}
               >
                 PR
               </button>
@@ -110,11 +107,7 @@ export function AffectedPipeline(): JSX.Element {
                 type="button"
                 aria-pressed={event === 'push'}
                 onClick={() => setEventAndReset('push')}
-                className={`h-7 rounded-md px-3 font-mono text-xs font-bold ${
-                  event === 'push'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground'
-                }`}
+                className={segment(event === 'push', 'h-7 px-3 font-mono text-xs font-bold')}
               >
                 push → main
               </button>
@@ -123,7 +116,7 @@ export function AffectedPipeline(): JSX.Element {
               type="button"
               onClick={runPipeline}
               disabled={running}
-              className="bg-primary text-primary-foreground ml-auto h-9 rounded-md px-4 text-sm font-semibold disabled:opacity-60"
+              className={button({ size: 'sm', className: 'ml-auto' })}
             >
               {running ? 'running…' : 'Run pipeline'}
             </button>
