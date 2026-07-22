@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useState } from 'react';
 
+import { avatar, button } from '../_shared/ui';
 import { useReducedMotion } from '../_shared/useReducedMotion';
 import {
   INITIAL_OFFER_STATE,
@@ -132,9 +133,9 @@ export function OfferState(): JSX.Element {
                 key={option.id}
                 type="button"
                 onClick={() => handleConnect(option)}
-                className="border-border bg-muted/30 text-foreground flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold"
+                className="border-border bg-muted/30 text-foreground flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="bg-primary text-primary-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                <span className={avatar('bg-primary text-primary-foreground')}>
                   {option.mono}
                 </span>
                 {option.label}
@@ -158,14 +159,14 @@ export function OfferState(): JSX.Element {
             <button
               type="button"
               onClick={() => dispatch({ type: 'review' })}
-              className="bg-primary text-primary-foreground h-10 flex-1 rounded-md px-4 text-sm font-semibold"
+              className={button({ className: 'flex-1' })}
             >
               Review swap
             </button>
             <button
               type="button"
               onClick={handleReset}
-              className="border-border text-foreground h-10 rounded-md border px-4 text-sm font-semibold"
+              className={button({ variant: 'outline' })}
             >
               Disconnect
             </button>
@@ -201,7 +202,7 @@ export function OfferState(): JSX.Element {
               type="checkbox"
               checked={simulateConflict}
               onChange={(e) => setSimulateConflict(e.target.checked)}
-              className="accent-primary"
+              className="accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <span className="text-muted-foreground">
               simulate a conflicting spend (offer invalidated in mempool)
@@ -211,14 +212,14 @@ export function OfferState(): JSX.Element {
             <button
               type="button"
               onClick={() => dispatch({ type: 'approve' })}
-              className="bg-primary text-primary-foreground h-10 flex-1 rounded-md px-4 text-sm font-bold"
+              className={button({ className: 'flex-1' })}
             >
               Approve &amp; sign
             </button>
             <button
               type="button"
               onClick={() => dispatch({ type: 'reject' })}
-              className="border-destructive/50 text-destructive h-10 rounded-md border px-4 text-sm font-semibold"
+              className={button({ variant: 'danger' })}
             >
               Reject
             </button>
@@ -309,7 +310,7 @@ export function OfferState(): JSX.Element {
           <button
             type="button"
             onClick={() => setShowOffer((prev) => !prev)}
-            className="text-primary font-mono text-xs"
+            className="text-primary rounded font-mono text-xs transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {showOffer ? '▾ hide offer' : '▸ view offer'}
           </button>
@@ -323,7 +324,7 @@ export function OfferState(): JSX.Element {
             <button
               type="button"
               onClick={handleReset}
-              className="border-border text-foreground h-9 rounded-md border px-4 text-sm font-semibold"
+              className={button({ variant: 'outline', size: 'sm' })}
             >
               New swap
             </button>

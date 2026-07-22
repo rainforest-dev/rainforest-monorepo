@@ -23,8 +23,8 @@ const projects = (await getProjects({ lang })).sort(
 const slugOf = (p: ResolvedProject) => p.id.split('/').pop()!;
 ---
 
-<Layout title="Portfolio" description={description}>
-  <main class="container py-20">
+<Layout title="Portfolio" description={description} viewTransition={{ enabled: true }}>
+  <main class="mx-auto max-w-4xl px-6 py-20">
     <h1 class="mb-2 text-4xl">Portfolio</h1>
     <p class="mb-10 max-w-2xl text-foreground/70">{description}</p>
     <ul class="grid gap-6 md:grid-cols-2">
@@ -41,7 +41,12 @@ const slugOf = (p: ResolvedProject) => p.id.split('/').pop()!;
               class="flex flex-col gap-4 rounded-lg border bg-card p-6 transition-shadow hover:shadow-md"
               data-project={study ? slug : undefined}
             >
-              <h2 class="text-2xl">{title}</h2>
+              <h2
+                class="text-2xl"
+                transition:name={study ? `case-study-${slug}` : undefined}
+              >
+                {title}
+              </h2>
               <p class="text-foreground/70">{tagline}</p>
               <ul class="flex flex-wrap gap-2">
                 {stack.map((t) => (

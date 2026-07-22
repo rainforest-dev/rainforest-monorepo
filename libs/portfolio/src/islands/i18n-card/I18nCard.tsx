@@ -1,5 +1,6 @@
 import { type JSX, useState } from 'react';
 
+import { segment } from '../_shared/ui';
 import { formatSwapSummary, SWAP_LOCALES, type SwapLocale } from './logic';
 
 const LOCALE_LABEL: Record<SwapLocale, string> = {
@@ -41,11 +42,7 @@ export function I18nCard(): JSX.Element {
               type="button"
               aria-pressed={locale === option}
               onClick={() => setLocale(option)}
-              className={`h-8 rounded-md px-4 text-sm font-semibold ${
-                locale === option
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground'
-              }`}
+              className={segment(locale === option, 'h-8 px-4 text-sm font-semibold')}
             >
               {LOCALE_LABEL[option]}
             </button>
@@ -60,7 +57,7 @@ export function I18nCard(): JSX.Element {
             checked={!dark}
             onChange={(e) => setDark(!e.target.checked)}
             aria-label="Toggle light theme"
-            className="accent-primary h-5 w-9"
+            className="accent-primary h-5 w-9 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </label>
       </div>

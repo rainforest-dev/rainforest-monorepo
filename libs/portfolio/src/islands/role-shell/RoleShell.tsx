@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useState } from 'react';
 
+import { cx, segment } from '../_shared/ui';
 import { useReducedMotion } from '../_shared/useReducedMotion';
 import { findNavItem, isForbidden, NAV_ITEMS, navFor, type Role } from './logic';
 
@@ -82,11 +83,7 @@ export function RoleShell(): JSX.Element {
               type="button"
               aria-pressed={role === option.id}
               onClick={() => handleRole(option.id)}
-              className={`h-7 rounded-md px-3 text-xs font-bold ${
-                role === option.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground'
-              }`}
+              className={segment(role === option.id, 'h-7 px-3 text-xs font-bold')}
             >
               {option.label}
             </button>
@@ -107,11 +104,12 @@ export function RoleShell(): JSX.Element {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => go(item.id)}
-                className={`rounded-md px-2.5 py-2 text-left text-sm font-semibold ${
+                className={cx(
+                  'rounded-md px-2.5 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   selected
                     ? 'bg-primary/10 text-primary'
-                    : 'text-foreground'
-                }`}
+                    : 'text-foreground hover:bg-muted',
+                )}
               >
                 {item.label}
               </button>
@@ -201,11 +199,12 @@ export function RoleShell(): JSX.Element {
                 key={item.id}
                 type="button"
                 onClick={() => go(item.id)}
-                className={`h-7 rounded-md border px-2.5 font-mono text-[11px] ${
+                className={cx(
+                  'h-7 rounded-md border px-2.5 font-mono text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   allowed
-                    ? 'border-primary/30 text-primary'
-                    : 'border-border text-muted-foreground'
-                }`}
+                    ? 'border-primary/30 text-primary hover:bg-primary/10'
+                    : 'border-border text-muted-foreground',
+                )}
               >
                 /{item.id}
                 {allowed ? '' : ' ✕'}

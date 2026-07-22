@@ -1,5 +1,6 @@
 import { type JSX, type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 
+import { cx } from '../_shared/ui';
 import {
   computeWindow,
   filterByTab,
@@ -156,11 +157,12 @@ export function VirtualizedSearch(): JSX.Element {
                 setScrollTop(0);
               }}
               onKeyDown={(event) => handleTabKeyDown(event, index)}
-              className={`h-8 rounded-md border px-3 text-xs font-semibold ${
+              className={cx(
+                'h-8 rounded-md border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 selected
                   ? 'border-primary/50 bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:bg-muted/50'
-              }`}
+                  : 'border-border text-muted-foreground hover:bg-muted/50',
+              )}
             >
               {tabDef.label(favorites.size)}
             </button>
@@ -173,7 +175,7 @@ export function VirtualizedSearch(): JSX.Element {
         role="tabpanel"
         aria-labelledby={`vs-tab-${tab}`}
       >
-        <label className="border-border bg-muted/40 mb-3 flex h-11 items-center gap-2 rounded-lg border px-3">
+        <label className="border-border bg-muted/40 mb-3 flex h-11 items-center gap-2 rounded-lg border px-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
           <span className="text-primary text-sm" aria-hidden="true">
             ⌕
           </span>
@@ -221,9 +223,10 @@ export function VirtualizedSearch(): JSX.Element {
                       : `Add ${market.code} to favorites`
                   }
                   onClick={() => toggleStar(market.code)}
-                  className={`shrink-0 text-base leading-none ${
-                    isFavorite ? 'text-primary' : 'text-muted-foreground'
-                  }`}
+                  className={cx(
+                    'shrink-0 rounded text-base leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    isFavorite ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+                  )}
                 >
                   <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
                 </button>

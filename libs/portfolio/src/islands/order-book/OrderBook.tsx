@@ -1,5 +1,6 @@
 import { type JSX, useState } from 'react';
 
+import { cx } from '../_shared/ui';
 import { type Level, levelKey, reconcileSelection } from './logic';
 
 const MARKET = 'HGN-USDC';
@@ -89,9 +90,10 @@ export function OrderBook(): JSX.Element {
         aria-pressed={isSelected}
         aria-label={`${isAsk ? 'Ask' : 'Bid'} ${level.price} · amount ${level.amount} · total ${level.total}`}
         onClick={() => handleSelect(level)}
-        className={`grid w-full grid-cols-3 gap-2 rounded-md px-3 py-1.5 text-left font-mono text-xs ${
-          isSelected ? 'bg-primary/10 ring-primary ring-1' : 'hover:bg-muted/50'
-        }`}
+        className={cx(
+          'grid w-full grid-cols-3 gap-2 rounded-md px-3 py-1.5 text-left font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          isSelected ? 'bg-primary/10 ring-primary ring-1' : 'hover:bg-muted/50',
+        )}
       >
         <span className={isAsk ? 'text-destructive' : 'text-primary'}>
           {level.price.toFixed(4)}
@@ -114,14 +116,14 @@ export function OrderBook(): JSX.Element {
           <button
             type="button"
             onClick={() => setCollapseAsks((prev) => !prev)}
-            className="border-border text-foreground hover:bg-muted/50 h-8 rounded-md border bg-transparent px-3 text-xs font-semibold"
+            className="border-border text-foreground hover:bg-muted h-8 rounded-md border bg-transparent px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {collapseAsks ? 'show asks' : 'collapse asks'}
           </button>
           <button
             type="button"
             onClick={handleShuffle}
-            className="border-primary/50 bg-primary/10 text-primary h-8 rounded-md border px-3 text-xs font-semibold"
+            className="border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 h-8 rounded-md border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             shuffle the book
           </button>

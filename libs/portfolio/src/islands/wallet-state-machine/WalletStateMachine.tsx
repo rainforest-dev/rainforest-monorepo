@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useState } from 'react';
 
+import { avatar, button } from '../_shared/ui';
 import { useReducedMotion } from '../_shared/useReducedMotion';
 import { nextWalletStage, type WalletStage } from './logic';
 
@@ -66,7 +67,7 @@ export function WalletStateMachine(): JSX.Element {
               <button
                 type="button"
                 onClick={() => dispatch({ type: 'connect' })}
-                className="bg-primary text-primary-foreground h-11 rounded-md px-6 text-sm font-semibold"
+                className={button()}
               >
                 Connect wallet
               </button>
@@ -86,9 +87,9 @@ export function WalletStateMachine(): JSX.Element {
                     key={option.id}
                     type="button"
                     onClick={() => handleSelectWallet(option)}
-                    className="border-border bg-muted/30 text-foreground flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold"
+                    className="border-border bg-muted/30 text-foreground flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <span className="bg-primary text-primary-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    <span className={avatar('bg-primary text-primary-foreground')}>
                       {option.mono}
                     </span>
                     {option.label}
@@ -113,14 +114,14 @@ export function WalletStateMachine(): JSX.Element {
                 <button
                   type="button"
                   onClick={() => dispatch({ type: 'reject' })}
-                  className="border-destructive/50 text-destructive h-9 rounded-md border px-4 text-sm font-semibold"
+                  className={button({ variant: 'danger', size: 'sm' })}
                 >
                   reject pairing
                 </button>
                 <button
                   type="button"
                   onClick={() => dispatch({ type: 'timeout' })}
-                  className="border-border text-foreground h-9 rounded-md border px-4 text-sm font-semibold"
+                  className={button({ variant: 'outline', size: 'sm' })}
                 >
                   pairing timeout
                 </button>
@@ -131,7 +132,7 @@ export function WalletStateMachine(): JSX.Element {
           {stage === 'connected' ? (
             <div>
               <div className="border-primary/40 bg-primary/10 mb-4 flex items-center gap-3 rounded-lg border px-3 py-2">
-                <span className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                <span className={avatar('bg-primary text-primary-foreground')}>
                   {wallet?.mono ?? '?'}
                 </span>
                 <div>
@@ -152,7 +153,7 @@ export function WalletStateMachine(): JSX.Element {
               <button
                 type="button"
                 onClick={handleReset}
-                className="border-border text-foreground h-9 rounded-md border px-4 text-sm font-semibold"
+                className={button({ variant: 'outline', size: 'sm' })}
               >
                 disconnect
               </button>
@@ -171,14 +172,14 @@ export function WalletStateMachine(): JSX.Element {
                 <button
                   type="button"
                   onClick={() => dispatch({ type: 'connect' })}
-                  className="bg-primary text-primary-foreground h-9 rounded-md px-4 text-sm font-semibold"
+                  className={button({ size: 'sm' })}
                 >
                   try again
                 </button>
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="border-border text-foreground h-9 rounded-md border px-4 text-sm font-semibold"
+                  className={button({ variant: 'outline', size: 'sm' })}
                 >
                   reset
                 </button>
