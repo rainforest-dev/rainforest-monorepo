@@ -1,5 +1,6 @@
 import { type JSX, useState } from 'react';
 
+import { Switch } from '../_shared/Switch';
 import { segment } from '../_shared/ui';
 import { formatSwapSummary, SWAP_LOCALES, type SwapLocale } from './logic';
 
@@ -48,26 +49,24 @@ export function I18nCard(): JSX.Element {
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-xs">
             {dark ? 'dark' : 'light'}
           </span>
-          <input
-            type="checkbox"
+          <Switch
             checked={!dark}
-            onChange={(e) => setDark(!e.target.checked)}
-            aria-label="Toggle light theme"
-            className="accent-primary h-5 w-9 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onChange={(v) => setDark(!v)}
+            label="Toggle light theme"
           />
-        </label>
+        </div>
       </div>
 
+      {/* data-scheme flips the shadcn tokens for this subtree, so the preview is
+          genuinely light or dark (not just a tinted background in the current
+          scheme). This is what the toggle is demonstrating. */}
       <div
-        className={`mx-auto max-w-sm rounded-xl border p-5 ${
-          dark
-            ? 'border-primary/30 bg-muted/60 text-foreground'
-            : 'border-primary/20 bg-background text-foreground shadow-md'
-        }`}
+        data-scheme={dark ? 'dark' : 'light'}
+        className="border-border bg-card text-card-foreground mx-auto max-w-sm rounded-xl border p-5 shadow-md"
       >
         <div className="mb-3 text-base font-bold">{summary.title}</div>
         <dl className="flex flex-col gap-0.5">

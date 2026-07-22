@@ -14,7 +14,7 @@ describe('<ZapLiquidity>', () => {
   it('morphs to a single input and add_liquidity_zap when Zap is toggled on', () => {
     render(<ZapLiquidity />);
     fireEvent.click(
-      screen.getByRole('checkbox', { name: /zap · single-sided deposit/i }),
+      screen.getByRole('switch', { name: /zap · single-sided deposit/i }),
     );
     expect(screen.getByText('add_liquidity_zap')).toBeDefined();
     expect(screen.queryByLabelText(/deposit amount, in husdc/i)).toBeNull();

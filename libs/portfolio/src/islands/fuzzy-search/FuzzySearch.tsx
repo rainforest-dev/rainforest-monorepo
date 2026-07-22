@@ -48,9 +48,20 @@ export function FuzzySearch(): JSX.Element {
   return (
     <div className="border-border bg-card text-card-foreground rounded-xl border p-6">
       <label className="border-border bg-muted/40 mb-3 flex h-11 items-center gap-2 rounded-lg border px-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
-        <span className="text-primary text-sm" aria-hidden="true">
-          ⌕
-        </span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-primary size-4 shrink-0"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
         <input
           type="text"
           value={query}
