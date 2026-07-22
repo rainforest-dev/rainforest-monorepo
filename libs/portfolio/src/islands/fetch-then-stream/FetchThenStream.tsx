@@ -122,7 +122,7 @@ export function FetchThenStream(): JSX.Element {
             id="fts-market"
             value={market}
             onChange={(event) => setMarket(event.target.value)}
-            className="border-border bg-muted/40 text-foreground h-9 rounded-md border px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="border-border bg-muted/40 text-foreground h-9 rounded-md border pl-2 pr-8 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {MARKET_OPTS.map((opt) => (
               <option key={opt} value={opt}>

@@ -84,7 +84,7 @@ export function AmmQuote(): JSX.Element {
             inputMode="decimal"
             spellCheck={false}
             aria-label="You pay, in XCH"
-            className="text-foreground w-full bg-transparent text-2xl font-semibold outline-none"
+            className="text-foreground w-full border-0 bg-transparent text-2xl font-semibold outline-none"
           />
         </span>
         <span className="bg-primary/10 border-primary/30 flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold">
@@ -111,7 +111,7 @@ export function AmmQuote(): JSX.Element {
             inputMode="decimal"
             spellCheck={false}
             aria-label="You receive, in hUSDC"
-            className="text-foreground w-full bg-transparent text-2xl font-semibold outline-none"
+            className="text-foreground w-full border-0 bg-transparent text-2xl font-semibold outline-none"
           />
         </span>
         <span className="border-border bg-muted/50 flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold">

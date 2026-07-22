@@ -76,7 +76,7 @@ export function ZapLiquidity(): JSX.Element {
                 inputMode="decimal"
                 spellCheck={false}
                 aria-label={`Deposit amount, in ${ASSET_A}`}
-                className="text-foreground w-full bg-transparent text-xl font-semibold outline-none"
+                className="text-foreground w-full border-0 bg-transparent text-xl font-semibold outline-none"
               />
             </span>
             <span className="bg-primary/10 border-primary/30 flex shrink-0 items-center rounded-full border px-3 py-1.5 text-sm font-semibold">
@@ -118,7 +118,7 @@ export function ZapLiquidity(): JSX.Element {
                 inputMode="decimal"
                 spellCheck={false}
                 aria-label={`Deposit amount, in ${ASSET_A}`}
-                className="text-foreground w-full bg-transparent text-lg font-semibold outline-none"
+                className="text-foreground w-full border-0 bg-transparent text-lg font-semibold outline-none"
               />
             </span>
             <span className="bg-primary/10 border-primary/30 flex shrink-0 items-center rounded-full border px-3 py-1.5 text-sm font-semibold">
@@ -140,7 +140,7 @@ export function ZapLiquidity(): JSX.Element {
                 inputMode="decimal"
                 spellCheck={false}
                 aria-label={`Deposit amount, in ${ASSET_B}`}
-                className="text-foreground w-full bg-transparent text-lg font-semibold outline-none"
+                className="text-foreground w-full border-0 bg-transparent text-lg font-semibold outline-none"
               />
             </span>
             <span className="border-border bg-muted/50 flex shrink-0 items-center rounded-full border px-3 py-1.5 text-sm font-semibold">

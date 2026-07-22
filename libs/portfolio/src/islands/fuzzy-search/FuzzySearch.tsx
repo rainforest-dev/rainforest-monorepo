@@ -59,7 +59,7 @@ export function FuzzySearch(): JSX.Element {
           aria-label="Search assets"
           spellCheck={false}
           autoComplete="off"
-          className="text-foreground min-w-0 flex-1 bg-transparent text-sm outline-none"
+          className="text-foreground min-w-0 flex-1 border-0 bg-transparent text-sm outline-none"
         />
       </label>
 
