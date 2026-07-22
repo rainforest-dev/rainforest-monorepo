@@ -122,3 +122,27 @@ export interface CaseStudy {
   theme?: ProjectTheme;
   sections: Section[]; // exactly 5, each a distinct interaction kind
 }
+
+export type Locale = 'en' | 'zh';
+
+/**
+ * A per-locale overlay for a case study's translatable prose. English (in each
+ * project's `content.ts`) is the base; a translation supplies only the fields
+ * it localizes and anything omitted falls back to English (see getCaseStudy /
+ * listCaseStudies). Sections are matched by their stable `id`, so reordering or
+ * rewording English never silently mismatches a translation. Conventions:
+ * product names (`title`) and code spans inside `tech` stay in English.
+ */
+export interface SectionTranslation {
+  title?: string;
+  feature?: string;
+  contribution?: string;
+  tech?: string;
+}
+export interface CaseStudyTranslation {
+  tagline?: string;
+  role?: string;
+  period?: string;
+  /** Keyed by Section.id. */
+  sections?: Record<string, SectionTranslation>;
+}
