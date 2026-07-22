@@ -32,7 +32,7 @@ const slugOf = (p: ResolvedProject) => p.id.split('/').pop()!;
       {
         projects.map((p) => {
           const slug = slugOf(p);
-          const study = hasCaseStudy(slug) ? getCaseStudy(slug) : undefined;
+          const study = hasCaseStudy(slug) ? getCaseStudy(slug, lang) : undefined;
           const href = study ? getRelativeLocaleUrl(lang, `/portfolio/${slug}`) : undefined;
           const title = study?.title ?? p.name;
           const tagline = study?.tagline ?? p.organization.name;
