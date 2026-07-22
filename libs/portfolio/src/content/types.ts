@@ -91,6 +91,20 @@ export interface Section {
   sourceRef?: string;
 }
 
+export interface GalleryImage {
+  /**
+   * Public image URL of a real product screenshot, e.g.
+   * `/images/portfolio/hoogii-wallet/dashboard.png`. Leave undefined to render
+   * a labelled placeholder slide until a real screenshot is dropped in — the
+   * `caption` then doubles as a note for what that slide should show.
+   */
+  src?: string;
+  /** Alt text describing the screenshot (required for a11y). */
+  alt: string;
+  /** Short caption shown beneath the slide. */
+  caption?: string;
+}
+
 export interface CaseStudy {
   slug: string;
   variant: ProjectVariant;
@@ -100,4 +114,10 @@ export interface CaseStudy {
   period: string;
   stack: string[];
   sections: Section[]; // exactly 5, each a distinct interaction kind
+  /**
+   * Optional product-screenshot gallery, shown as a carousel near the top of
+   * the case study. Real images go under the consuming app's public dir; until
+   * then, entries without `src` render as labelled placeholders.
+   */
+  gallery?: GalleryImage[];
 }

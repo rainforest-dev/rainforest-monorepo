@@ -67,4 +67,12 @@ export const hoogiiWallet: CaseStudy = {
         'src/injected-scripts/index.ts · src/background/index.ts · src/popup/',
     },
   ],
+  // Placeholder gallery — drop real screenshots at these captions' subjects into
+  // apps/personal-website/public/images/portfolio/hoogii-wallet/ and set `src`.
+  gallery: [
+    { alt: 'Hoogii Wallet dashboard listing XCH and CAT balances', caption: 'Dashboard — balances & assets' },
+    { alt: 'Send flow with recipient address, amount and network fee', caption: 'Send flow' },
+    { alt: 'Transaction history with incoming and outgoing transfers', caption: 'Transaction history' },
+    { alt: 'Create / import wallet with the 12-word recovery phrase', caption: 'Create / import' },
+  ],
 };

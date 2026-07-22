@@ -69,4 +69,12 @@ export const hashgreenDex: CaseStudy = {
       sourceRef: 'src/stores/OrderStore.ts · src/hooks/useUserOrders.ts',
     },
   ],
+  // Placeholder gallery — drop real screenshots into
+  // apps/personal-website/public/images/portfolio/hashgreen-dex/ and set `src`.
+  gallery: [
+    { alt: 'Hashgreen DEX market page with the live order book', caption: 'Market — live order book' },
+    { alt: 'Searchable 500+ CAT market list', caption: 'Market list & search' },
+    { alt: 'Place-order panel with the offer summary', caption: 'Place order' },
+    { alt: 'Open orders and history with per-market filters', caption: 'Orders & history' },
+  ],
 };
