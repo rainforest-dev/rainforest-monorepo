@@ -1,5 +1,6 @@
 ---
 import { Comments } from '@components/blog';
+import { info } from '@utils/constants';
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import clsx from 'clsx';
@@ -16,6 +17,19 @@ const {
   author: _author,
   image,
 } = Astro.props.data;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
+const postSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: title,
+  description,
+  datePublished: new Date(pubDate).toISOString(),
+  author: { '@type': 'Person', name: 'Rainforest Cheng', url: info.links.website },
+  url: canonicalUrl,
+  mainEntityOfPage: canonicalUrl,
+  ...(image?.src && { image: new URL(image.src, Astro.site).href }),
+};
 ---
 
 <BaseLayout
@@ -25,6 +39,7 @@ const {
   viewTransition={{ enabled: true }}
   shell
 >
+  <script type="application/ld+json" set:html={JSON.stringify(postSchema)} />
   {
     image?.src && (
       <Image
