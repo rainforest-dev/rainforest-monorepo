@@ -1,4 +1,7 @@
 // @ts-check
+import { cpSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { unified } from '@astrojs/markdown-remark';
 import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
@@ -20,6 +23,15 @@ export default defineConfig({
     defaultLocale: fallbackLng,
     locales: [...supportedLngs],
   },
+  // Back-compat: English used to live under /en/…; it's now canonical at the root.
+  // Redirect the previously-shipped English pages to their bare paths. Exact paths
+  // only — Astro's Vercel adapter doesn't substitute a rest param into a redirect
+  // target, so a `/en/[...slug]` catch-all would emit a literal, broken Location.
+  redirects: {
+    '/en': '/',
+    '/en/portfolio': '/portfolio',
+    '/en/resume': '/resume',
+  },
   markdown: {
     shikiConfig: {
       themes: {
@@ -33,6 +45,28 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
   integrations: [
+    {
+      // The portfolio screenshots are owned by @rainforest-dev/personal-data (a
+      // dist-built lib whose static assets aren't otherwise served). Copy them
+      // into public/images/portfolio (a git-ignored build artifact) before dev
+      // and build so Astro serves them at /images/portfolio/<slug>/… — the URLs
+      // getProjectGallery() returns.
+      name: 'copy-portfolio-screenshots',
+      hooks: {
+        'astro:config:setup'() {
+          cpSync(
+            fileURLToPath(
+              new URL(
+                '../../libs/personal-data/src/assets/portfolio',
+                import.meta.url,
+              ),
+            ),
+            fileURLToPath(new URL('./public/images/portfolio', import.meta.url)),
+            { recursive: true },
+          );
+        },
+      },
+    },
     react(),
     vue({
       template: {

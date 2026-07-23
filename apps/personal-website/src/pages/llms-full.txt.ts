@@ -6,6 +6,7 @@ import {
   getWorkExperience,
   type ResolvedExperience,
 } from '@rainforest-dev/personal-data';
+import { listCaseStudies } from '@rainforest-dev/personal-portfolio/content';
 import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
@@ -62,6 +63,10 @@ export const GET: APIRoute = async ({ site, request }) => {
     .map((post) => `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`)
     .join('\n');
 
+  const caseStudyLinks = listCaseStudies()
+    .map((cs) => `- [${cs.title}](${base}/portfolio/${cs.slug}): ${cs.tagline}`)
+    .join('\n');
+
   const body = `# Rainforest Cheng — Full Profile
 
 > ${summary.experienceCount} work experiences, ${summary.projectCount} projects, ${summary.skillCount} skills. This is the expanded companion to ${base}/llms.txt — the full resume content inlined below, rather than links out. For structured, queryable access to this same data (filter by technology, fetch a single entry, etc.) use the MCP server at ${base}/mcp instead of re-parsing this text.
@@ -81,6 +86,10 @@ ${projectsText}
 ## Skills
 
 ${skillsText}
+
+## Case studies
+
+${caseStudyLinks}
 
 ## Blog
 

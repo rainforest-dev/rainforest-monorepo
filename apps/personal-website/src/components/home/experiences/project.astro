@@ -1,9 +1,18 @@
 ---
+import { hasCaseStudy } from '@rainforest-dev/personal-portfolio/content';
 import { type DataEntryMap, render } from 'astro:content';
+import { getRelativeLocaleUrl } from 'astro:i18n';
 
 type Props = DataEntryMap['projects'][string];
 
-const { name } = Astro.props.data;
+const { id, data } = Astro.props;
+const { name } = data;
+
+const lang = Astro.currentLocale ?? 'en';
+const slug = id.split('/').pop()!;
+const caseStudyHref = hasCaseStudy(slug)
+  ? getRelativeLocaleUrl(lang, `/portfolio/${slug}`)
+  : undefined;
 
 const { Content } = await render(Astro.props);
 ---
@@ -12,7 +21,15 @@ const { Content } = await render(Astro.props);
   class="**:[li]:list-disc **:[li]:list-inside **:[li]:text-xs sm:**:[li]:text-base"
 >
   <h4 class="text-sm mb-0.5 mt-2 sm:text-lg sm:mb-1.5 sm:mt-3">
-    {name}
+    {
+      caseStudyHref ? (
+        <a href={caseStudyHref} class="text-primary hover:underline">
+          {name}
+        </a>
+      ) : (
+        name
+      )
+    }
   </h4>
   <Content />
 </li>

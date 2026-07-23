@@ -42,8 +42,8 @@ export const links: {
     },
     {
       label: 'portfolio',
-      href: 'https://www.cake.me/rainforest-cheng-bbc4f2/portfolios',
-      external: true,
+      href: '/portfolio',
+      i18n: true,
     },
   ],
   external: [

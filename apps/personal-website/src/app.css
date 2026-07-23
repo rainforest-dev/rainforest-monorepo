@@ -1,13 +1,23 @@
 /* tailwindcss */
 @import 'tailwindcss';
+/* libs/personal-portfolio is a non-buildable source lib with no CSS of its own — scan its
+   source so the Tailwind utilities used in its section wrapper and React islands
+   are generated here (the app is the only place its classes get compiled). */
+@source '../../../libs/personal-portfolio/src';
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
 @plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
 
 @theme {
-  --font-family-serif: 'Lora', serif;
-  --font-family-sans: 'Lora', sans-serif;
-  --font-family-resume-serif: Georgia, serif;
+  /* Tailwind v4 reads font-family tokens from the `--font-*` namespace (these
+     feed the `font-serif` / `font-sans` / `font-resume-serif` utilities). The
+     earlier `--font-family-*` names were inert, so `font-serif` fell back to the
+     built-in Georgia stack and Lora — though linked — was never referenced and
+     so never downloaded. Lora carries the editorial serif (body + headings);
+     Inter drives the app-style island UI (see CaseStudySection's font-sans). */
+  --font-serif: 'Lora', serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-resume-serif: Georgia, serif;
 
   --breakpoint-3xl: 112rem;
 
@@ -40,6 +50,28 @@
       text-decoration: var(--shiki-dark-text-decoration) !important;
     }
   }
+}
+
+/* Segmented System/Light/Dark control used by the source-color float on
+   shell-less pages (home). The active segment is driven by html[data-theme-pref],
+   which the inline head script keeps in sync — the same hook as the header's
+   settings menu, so both stay flash-free and consistent across navigation. */
+.theme-seg > [data-theme-set] {
+  color: var(--foreground);
+  opacity: 0.55;
+}
+.theme-seg > [data-theme-set]:hover {
+  opacity: 0.85;
+}
+:root:not([data-theme-pref]) .theme-seg > [data-theme-set='system'],
+:root[data-theme-pref='system'] .theme-seg > [data-theme-set='system'],
+:root[data-theme-pref='light'] .theme-seg > [data-theme-set='light'],
+:root[data-theme-pref='dark'] .theme-seg > [data-theme-set='dark'] {
+  /* Primary-tinted pill reads clearly on the muted track in both light and
+     dark — unlike `--background`, which is dark-on-dark in dark mode. */
+  background-color: color-mix(in oklch, var(--primary) 16%, transparent);
+  color: var(--primary);
+  opacity: 1;
 }
 
 @utility flex-center {

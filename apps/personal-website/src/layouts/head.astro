@@ -1,5 +1,4 @@
 ---
-import SpeedInsights from '@vercel/speed-insights/astro';
 import { pwaInfo } from 'virtual:pwa-info';
 
 import type { HeadProps as Props } from './types';
@@ -15,6 +14,80 @@ const url = Astro.url.toString();
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width" />
+
+  {/* Resolve the colour scheme before first paint (no FOUC). Precedence:
+      a page's product-locked `data-force-scheme` (case studies) always wins;
+      otherwise the visitor's stored light/dark preference; otherwise `system`
+      (unset → the shadcn plugin follows the OS via prefers-color-scheme).
+      `data-theme-pref` mirrors the raw preference so the header toggle shows
+      the right icon with no flash. Re-applied on the *incoming* document during
+      view-transition swaps so client-side navigation never flashes either. */}
+  <script is:inline>
+    (function () {
+      const ORDER = ['system', 'light', 'dark'];
+      function readPref() {
+        try {
+          const v = localStorage.getItem('theme');
+          return ORDER.indexOf(v) > 0 ? v : 'system';
+        } catch (e) {
+          return 'system';
+        }
+      }
+      function applyTo(root) {
+        const pref = readPref();
+        root.setAttribute('data-theme-pref', pref);
+        const forced = root.getAttribute('data-force-scheme');
+        const eff = forced || (pref === 'system' ? null : pref);
+        if (eff) root.setAttribute('data-scheme', eff);
+        else root.removeAttribute('data-scheme');
+      }
+      applyTo(document.documentElement);
+      if (!window.__themeBound) {
+        window.__themeBound = true;
+        document.addEventListener('astro:before-swap', (e) => {
+          applyTo(e.newDocument.documentElement);
+        });
+        document.addEventListener('click', (e) => {
+          const target = e.target;
+          const setBtn = target.closest && target.closest('[data-theme-set]');
+          if (setBtn) {
+            const val = setBtn.getAttribute('data-theme-set');
+            const d = setBtn.closest('details');
+            if (d) d.open = false;
+            if (ORDER.indexOf(val) >= 0) {
+              try {
+                localStorage.setItem('theme', val);
+              } catch (err) {
+                // ignore storage failures (private mode, disabled cookies)
+              }
+              const commit = () => applyTo(document.documentElement);
+              // Cross-fade the scheme change via the View Transitions API,
+              // respecting reduced-motion; instant swap where unsupported.
+              const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+              if (document.startViewTransition && !reduce) {
+                document.startViewTransition(commit);
+              } else {
+                commit();
+              }
+            }
+            return;
+          }
+          // Click outside an open popover menu closes it.
+          document.querySelectorAll('details[data-menu][open]').forEach((d) => {
+            if (!d.contains(target)) d.open = false;
+          });
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return;
+          document
+            .querySelectorAll('details[data-menu][open]')
+            .forEach((d) => {
+              d.open = false;
+            });
+        });
+      }
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="generator" content={Astro.generator} />
   <link rel="sitemap" href="/sitemap-index.xml" />
@@ -50,17 +123,17 @@ const url = Astro.url.toString();
     )
   }
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts: Lora (editorial serif) + Inter (app-UI sans) -->
   <link
     rel="preload"
-    href="https://fonts.googleapis.com/css2?family=Lora&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600;700&display=swap"
     as="style"
     onload="this.onload=null;this.rel='stylesheet'"
   />
   <noscript>
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Lora&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600;700&display=swap"
     />
   </noscript>
 
@@ -80,6 +153,4 @@ const url = Astro.url.toString();
 
   <!-- PWA Manifest -->
   {pwaInfo && <Fragment set:html={pwaInfo.webManifest.linkTag} />}
-
-  <SpeedInsights />
 </head>

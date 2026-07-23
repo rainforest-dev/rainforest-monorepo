@@ -51,6 +51,15 @@ describe('profile-data', () => {
     expect(project?.name).toBe('OpenCGT');
   });
 
+  it('getProjects exposes featured/order and an id whose last segment is a stable slug', async () => {
+    const projects = await getProjects({ lang: 'en' });
+    const hoogii = projects.find((p) => p.id === 'en/hoogii-wallet');
+    expect(hoogii?.featured).toBe(true);
+    expect(hoogii?.id.split('/').pop()).toBe('hoogii-wallet');
+    // order is optional in the schema — current fixtures don't set it, so it stays undefined.
+    expect(hoogii?.order).toBeUndefined();
+  });
+
   it('getSkills returns entries scoped to the requested language', async () => {
     const skills = await getSkills({ lang: 'en' });
     expect(skills.some((s) => s.id === 'en/ts')).toBe(true);

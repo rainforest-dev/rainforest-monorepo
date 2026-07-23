@@ -30,6 +30,9 @@
       "path": "../../libs/rainforest-ui"
     },
     {
+      "path": "../../libs/personal-portfolio"
+    },
+    {
       "path": "../../libs/personal-data"
     }
   ]

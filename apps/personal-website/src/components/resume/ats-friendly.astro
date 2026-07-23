@@ -1,4 +1,5 @@
 ---
+import { hasCaseStudy } from '@rainforest-dev/personal-portfolio/content';
 import type { IResumeProps as Props } from '@types';
 import { getGitHubUrl, getLinkedInUrl } from '@utils';
 import { resumeDateFormat } from '@utils/constants';
@@ -92,9 +93,22 @@ const skills = groupBy(
                 {projects &&
                   projects.map(async (project) => {
                     const { Content } = await render(project);
+                    const slug = project.id.split('/').pop()!;
+                    const caseStudyUrl =
+                      project.data.featured && hasCaseStudy(slug)
+                        ? `${info.links.website}/portfolio/${slug}`
+                        : undefined;
                     return (
                       <li>
-                        <h4>{project.data.name}</h4>
+                        <h4>
+                          {project.data.name}
+                          {caseStudyUrl && (
+                            <Fragment>
+                              {' — '}
+                              <a href={caseStudyUrl}>{caseStudyUrl}</a>
+                            </Fragment>
+                          )}
+                        </h4>
                         <Content />
                       </li>
                     );
