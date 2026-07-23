@@ -1,0 +1,68 @@
+---
+import '@rainforest-dev/personal-portfolio/theme.css';
+
+import Layout from '@layouts/index.astro';
+import { getProjectGallery } from '@rainforest-dev/personal-data';
+import { getCaseStudy } from '@rainforest-dev/personal-portfolio/content';
+import CaseStudyGallery from '@rainforest-dev/personal-portfolio/sections/CaseStudyGallery.astro';
+import CaseStudySection from '@rainforest-dev/personal-portfolio/sections/CaseStudySection.astro';
+import { useTranslation } from '@utils/i18n';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+
+// Shared renderer for a case study, used by both the default-locale route at
+// /portfolio/[slug] and the prefixed route at /[lang]/portfolio/[slug]. `slug` is
+// always one getStaticPaths emitted, so `study` is defined in practice.
+interface Props {
+  lang: 'en' | 'zh';
+  slug: string;
+}
+const { lang, slug } = Astro.props;
+const study = getCaseStudy(slug, lang);
+const { t } = await useTranslation(lang, 'portfolio');
+const portfolioHref = getRelativeLocaleUrl(lang, '/portfolio');
+// Match the product's design language: dark-only products force dark, others
+// (theme: 'system' / unset) follow the visitor's OS preference.
+const forceScheme =
+  study?.theme && study.theme !== 'system' ? study.theme : undefined;
+---
+
+{
+  study && (
+    <Layout
+      title={`${study.title} — ${t('case-study')}`}
+      description={study.tagline}
+      viewTransition={{ enabled: true }}
+      shell
+      forceScheme={forceScheme}
+    >
+      <article data-project={study.slug} class="mx-auto max-w-4xl px-6 py-20">
+        <a
+          href={portfolioHref}
+          class="group text-foreground/60 hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+        >
+          <span aria-hidden="true" class="transition-transform group-hover:-translate-x-0.5">
+            ←
+          </span>{' '}
+          {t('back')}
+        </a>
+        <p class="text-primary/70 mt-8 text-xs uppercase tracking-widest">{t('case-study')}</p>
+        <h1 transition:name={`case-study-${study.slug}`} class="mt-2 text-5xl">
+          {study.title}
+        </h1>
+        <p class="text-foreground/70 mt-2">
+          {study.role} · {study.period}
+        </p>
+        <p class="mt-6 max-w-2xl">{study.tagline}</p>
+        <ul class="mt-6 flex flex-wrap gap-2">
+          {study.stack.map((tech) => (
+            <li class="bg-primary/10 text-primary rounded px-3 py-1 text-sm">{tech}</li>
+          ))}
+        </ul>
+        <CaseStudyGallery images={getProjectGallery(study.slug)} />
+        {study.sections.map((section) => (
+          <CaseStudySection section={section} />
+        ))}
+      </article>
+    </Layout>
+  )
+}

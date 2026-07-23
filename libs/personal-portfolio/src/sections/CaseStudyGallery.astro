@@ -1,0 +1,19 @@
+---
+import type { GalleryImage } from '../content/types';
+import { Gallery } from '../shared/gallery';
+
+interface Props {
+  images?: GalleryImage[];
+}
+
+const { images } = Astro.props;
+const hasImages = Array.isArray(images) && images.length > 0;
+---
+
+{
+  hasImages && (
+    <div class="mt-10 font-sans">
+      <Gallery client:load images={images} />
+    </div>
+  )
+}

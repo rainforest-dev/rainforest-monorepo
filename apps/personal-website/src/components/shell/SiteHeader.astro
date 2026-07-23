@@ -1,0 +1,139 @@
+---
+import SettingsMenu from '@components/shell/SettingsMenu.astro';
+import { useTranslation } from '@utils/i18n';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+
+const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
+const { t } = await useTranslation(lang, 'common');
+// Path with any leading locale segment stripped, so active-state and the
+// language switch reason about the route independent of the current locale.
+const stripped = Astro.url.pathname.replace(/^\/(en|zh)(?=\/|$)/, '') || '/';
+
+interface NavItem {
+  key: string;
+  label: string;
+  href: string;
+  isActive: (path: string) => boolean;
+}
+
+const nav: NavItem[] = [
+  { key: 'home', label: t('home'), href: getRelativeLocaleUrl(lang, '/'), isActive: (p) => p === '/' },
+  {
+    key: 'portfolio',
+    label: t('portfolio'),
+    href: getRelativeLocaleUrl(lang, '/portfolio'),
+    isActive: (p) => p.startsWith('/portfolio'),
+  },
+  // Blog + quick posts live outside the [lang] tree, so they are locale-agnostic.
+  {
+    key: 'blog',
+    label: t('blog'),
+    href: '/blog',
+    isActive: (p) => p.startsWith('/blog') || p.startsWith('/posts'),
+  },
+  {
+    key: 'resume',
+    label: t('resume'),
+    href: getRelativeLocaleUrl(lang, '/resume'),
+    isActive: (p) => p.startsWith('/resume'),
+  },
+];
+const activeKey = nav.find((item) => item.isActive(stripped))?.key;
+
+// The language switch keeps you on the same page for localized routes; on the
+// locale-agnostic blog/posts it points at that language's home (there is no
+// localized variant of those routes to switch to).
+const localeAgnostic = /^\/(blog|posts)(\/|$)/.test(stripped);
+const langs = [
+  { key: 'en', label: 'EN' },
+  { key: 'zh', label: '中' },
+] as const;
+const langHref = (l: string) =>
+  localeAgnostic ? getRelativeLocaleUrl(l, '/') : getRelativeLocaleUrl(l, stripped);
+const langItems = langs.map((l) => ({
+  key: l.key,
+  label: t(l.key),
+  href: langHref(l.key),
+  active: l.key === lang,
+}));
+
+const home = getRelativeLocaleUrl(lang, '/');
+---
+
+<header
+  class="border-border bg-background/85 sticky top-0 z-40 border-b backdrop-blur print:hidden"
+>
+  <div
+    class="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-6"
+  >
+    <a
+      href={home}
+      class="hover:text-primary text-lg font-semibold tracking-tight transition-colors"
+    >
+      Rainforest Cheng
+    </a>
+
+    <div class="flex items-center gap-2">
+      <nav class="hidden items-center gap-1 md:flex" aria-label="Primary">
+        {
+          nav.map((item) => (
+            <a
+              href={item.href}
+              aria-current={item.key === activeKey ? 'page' : undefined}
+              class:list={[
+                'rounded-md px-3 py-1.5 text-sm transition-colors',
+                item.key === activeKey
+                  ? 'text-primary font-medium'
+                  : 'text-foreground/70 hover:text-foreground hover:bg-muted',
+              ]}
+            >
+              {item.label}
+            </a>
+          ))
+        }
+      </nav>
+
+      <SettingsMenu langItems={langItems} />
+
+      <details class="relative md:hidden" data-menu>
+        <summary
+          class="flex-center hover:bg-muted list-none cursor-pointer rounded-md p-2 [&::-webkit-details-marker]:hidden"
+          aria-label="Menu"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            class="size-5"
+          >
+            <path d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </summary>
+        <nav
+          class="border-border bg-background absolute right-0 top-full z-50 mt-2 flex w-44 flex-col gap-0.5 rounded-lg border p-2 shadow-lg"
+          aria-label="Primary (mobile)"
+        >
+          {
+            nav.map((item) => (
+              <a
+                href={item.href}
+                aria-current={item.key === activeKey ? 'page' : undefined}
+                class:list={[
+                  'rounded-md px-3 py-2 text-sm transition-colors',
+                  item.key === activeKey
+                    ? 'text-primary font-medium'
+                    : 'text-foreground/80 hover:bg-muted',
+                ]}
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>

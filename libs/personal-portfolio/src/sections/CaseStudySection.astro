@@ -1,0 +1,112 @@
+---
+import type { InteractionKind, Section } from '../content/types';
+import { AffectedPipeline } from '../projects/opencgt/affected-pipeline';
+import { AmmQuote } from '../projects/hashgreen-swap/amm-quote';
+import { CasbinPlayground } from '../projects/opencgt/casbin-playground';
+import { EnvDeploy } from '../projects/hashgreen-swap/env-deploy';
+import { FetchThenStream } from '../projects/hashgreen-dex/fetch-then-stream';
+import { FuzzySearch } from '../projects/hoogii-wallet/fuzzy-search';
+import { I18nCard } from '../projects/hashgreen-swap/i18n-card';
+import { IdleLock } from '../projects/hoogii-wallet/idle-lock';
+import { JwtDecode } from '../projects/opencgt/jwt-decode';
+import { LiveLedger } from '../projects/hoogii-wallet/live-ledger';
+import { OfferState } from '../projects/hashgreen-swap/offer-state';
+import { OrderBook } from '../projects/hashgreen-dex/order-book';
+import { PatchVsRefetch } from '../projects/hashgreen-dex/patch-vs-refetch';
+import { PhiEncrypt } from '../projects/opencgt/phi-encrypt';
+import { PhraseGrid } from '../projects/hoogii-wallet/phrase-grid';
+import { RelayGate } from '../projects/hoogii-wallet/relay-gate';
+import { RoleShell } from '../projects/opencgt/role-shell';
+import { VirtualizedSearch } from '../projects/hashgreen-dex/virtualized-search';
+import { WalletStateMachine } from '../projects/hashgreen-dex/wallet-state-machine';
+import { ZapLiquidity } from '../projects/hashgreen-swap/zap-liquidity';
+import { parseTech } from './parse-tech';
+
+interface Props {
+  section: Section;
+}
+
+const { section } = Astro.props;
+const techSegments = parseTech(section.tech);
+
+// Astro's `client:*` hydration directives require the tag to resolve to a component
+// literally imported in this file (see the `NoMatchingImport` compiler error) — a
+// runtime lookup returning a component variable isn't statically analyzable, so each
+// known interaction kind gets its own branch here instead of a single dynamic
+// `<Island />` tag. Unmapped kinds render no island — tracked here so the wrapper
+// `<div>` below is skipped entirely rather than left rendering empty.
+//
+// Islands hydrate `client:load` (not `client:visible`): the interactive demo IS the
+// content of a case study, so eager hydration gives immediate interactivity with no
+// "static until scrolled into view" flash. The per-page cost is small (5 compact
+// islands) and scoped to these demo pages.
+const HYDRATED_KINDS: InteractionKind[] = [
+  'phrase-grid',
+  'fuzzy-search',
+  'live-ledger',
+  'idle-lock',
+  'relay-gate',
+  'virtualized-search',
+  'order-book',
+  'fetch-then-stream',
+  'wallet-state-machine',
+  'patch-vs-refetch',
+  'amm-quote',
+  'offer-state',
+  'zap-liquidity',
+  'env-deploy',
+  'i18n-card',
+  'jwt-decode',
+  'role-shell',
+  'casbin-playground',
+  'phi-encrypt',
+  'affected-pipeline',
+];
+const hasIsland = HYDRATED_KINDS.includes(section.interaction);
+---
+
+<section class="py-14" aria-labelledby={`sec-${section.id}`}>
+  <div class="max-w-prose">
+    <p class="text-xs tracking-widest uppercase text-primary/70">{section.title}</p>
+    <h3 id={`sec-${section.id}`} class="mt-2 text-2xl leading-snug">{section.feature}</h3>
+    <p class="mt-4 border-l-2 border-primary/50 pl-4 italic">{section.contribution}</p>
+    <p class="mt-4 leading-relaxed text-foreground/80">
+      {
+        techSegments.map((seg) =>
+          seg.code ? (
+            <code class="rounded bg-muted px-1 py-0.5 text-sm">{seg.text}</code>
+          ) : (
+            <span>{seg.text}</span>
+          )
+        )
+      }
+    </p>
+  </div>
+  {
+    hasIsland && (
+      <div class="mt-8 font-sans">
+        {section.interaction === 'phrase-grid' && <PhraseGrid client:load />}
+        {section.interaction === 'fuzzy-search' && <FuzzySearch client:load />}
+        {section.interaction === 'live-ledger' && <LiveLedger client:load />}
+        {section.interaction === 'idle-lock' && <IdleLock client:load />}
+        {section.interaction === 'relay-gate' && <RelayGate client:load />}
+        {section.interaction === 'virtualized-search' && <VirtualizedSearch client:load />}
+        {section.interaction === 'order-book' && <OrderBook client:load />}
+        {section.interaction === 'fetch-then-stream' && <FetchThenStream client:load />}
+        {section.interaction === 'wallet-state-machine' && <WalletStateMachine client:load />}
+        {section.interaction === 'patch-vs-refetch' && <PatchVsRefetch client:load />}
+        {section.interaction === 'amm-quote' && <AmmQuote client:load />}
+        {section.interaction === 'offer-state' && <OfferState client:load />}
+        {section.interaction === 'zap-liquidity' && <ZapLiquidity client:load />}
+        {section.interaction === 'env-deploy' && <EnvDeploy client:load />}
+        {section.interaction === 'i18n-card' && <I18nCard client:load />}
+        {section.interaction === 'jwt-decode' && <JwtDecode client:load />}
+        {section.interaction === 'role-shell' && <RoleShell client:load />}
+        {section.interaction === 'casbin-playground' && <CasbinPlayground client:load />}
+        {section.interaction === 'phi-encrypt' && <PhiEncrypt client:load />}
+        {section.interaction === 'affected-pipeline' && <AffectedPipeline client:load />}
+      </div>
+    )
+  }
+  {section.sourceRef && <p class="mt-4 text-xs text-foreground/50">Mirrors {section.sourceRef}</p>}
+</section>

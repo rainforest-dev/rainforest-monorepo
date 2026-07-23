@@ -1,101 +1,14 @@
 ---
-import profile from '@assets/images/profile/1.webp';
-import { ATSFriendly } from '@components/resume';
-import Layout from '@layouts/index.astro';
-import { getEducation, getSkills, getWorkExperience } from '@rainforest-dev/personal-data';
-import type { IResumeProps } from '@types';
-import { getGitHubUrl, getLinkedInUrl } from '@utils';
-import { hero, info } from '@utils/constants';
-import { supportedLngs, useTranslation } from '@utils/i18n';
+import ResumePage from '@components/pages/ResumePage.astro';
+import { fallbackLng, supportedLngs } from '@utils/i18n';
 
 export const prerender = true;
-export async function getStaticPaths() {
-  return supportedLngs.map((lng) => ({
-    params: { lang: lng },
-  }));
+export function getStaticPaths() {
+  return supportedLngs
+    .filter((lng) => lng !== fallbackLng)
+    .map((lang) => ({ params: { lang } }));
 }
-
-const { t } = await useTranslation(Astro.currentLocale, ['home', 'resume']);
-// Narrowed for @rainforest-dev/personal-data's Locale-typed params below —
-// Astro.currentLocale is `string | undefined`, but getStaticPaths only ever
-// generates 'en'/'zh' paths for this route.
 const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
-
-const resumeProps: IResumeProps = {
-  ...info,
-  name: {
-    first: t('info-name-first', { context: 'formal' }),
-    last: t('info-name-last', { context: 'formal' }),
-    fullname: t('info-fullname', { context: 'formal' }),
-  },
-  profile,
-  dateOfBirth: new Date(info.dateOfBirth),
-  jobPosition: t('info-job-position'),
-  location: {
-    city: t('info-location', { context: 'city' }),
-    country: t('info-location', { context: 'country' }),
-  },
-  summaries: [
-    t('home:hero-summaries.0'),
-    t('home:hero-summaries.1'),
-    t('home:hero-summaries.2'),
-  ],
-  tags: hero.tags.map((tag) => t(tag)),
-};
-
-// schema.org Person JSON-LD, sourced from the same @rainforest-dev/personal-data functions
-// the MCP server and llms.txt(-full) read — one source of truth for "what's on record"
-// across the resume's visual rendering, AI-facing text endpoints, and this structured-data
-// block, rather than a hand-maintained fourth copy of the same facts. Placement in <body>
-// rather than threaded through Layout's <head> is intentional: Google explicitly supports
-// JSON-LD anywhere in the document, and this data is resume-page-specific (a blog post would
-// want BlogPosting, not Person), so it doesn't belong in the shared cross-page <head>.
-const [skills, workExperience, education] = await Promise.all([
-  getSkills({ lang }),
-  getWorkExperience({ lang }),
-  getEducation({ lang }),
-]);
-const mostRecentJob = workExperience.toSorted((a, b) => b.startAt.valueOf() - a.startAt.valueOf())[0];
-const personSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Person',
-  // Not resumeProps.name.fullname: the locale string behind it joins first/last with a
-  // literal "\n" for the resume's stacked visual layout, which is wrong inside structured
-  // data (recruiters' tooling would see a name with an embedded line break).
-  name: `${resumeProps.name.first} ${resumeProps.name.last}`,
-  jobTitle: resumeProps.jobPosition,
-  url: info.links.website,
-  email: `mailto:${info.email}`,
-  sameAs: [getLinkedInUrl(info.links.linkedin), getGitHubUrl(info.links.github)],
-  knowsAbout: skills.map((s) => s.name),
-  ...(mostRecentJob && {
-    worksFor: { '@type': 'Organization', name: mostRecentJob.organization.name },
-  }),
-  alumniOf: education.map((e) => ({ '@type': 'EducationalOrganization', name: e.organization.name })),
-};
 ---
 
-<Layout
-  title={t('resume:metadata-title')}
-  description={t('metadata-description')}
-  hideSourceColorPicker
->
-  <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
-  <main
-    class="w-screen h-screen flex-col-center p-10 bg-foreground overflow-scroll
-            print:justify-start print:items-start print:p-0 print:overflow-visible"
-  >
-    <div
-      class="w-[75rem] h-[105rem] origin-top scale-30 sm:scale-50 md:scale-75 lg:scale-100
-              print:scale-100 print:origin-top-left"
-    >
-      <ATSFriendly {...resumeProps} />
-    </div>
-  </main>
-  <style media="print">
-    @page {
-      size: A4;
-      margin: 0;
-    }
-  </style>
-</Layout>
+<ResumePage lang={lang} />

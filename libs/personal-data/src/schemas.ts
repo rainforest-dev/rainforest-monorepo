@@ -34,6 +34,8 @@ export const projectSchema = z.object({
   technologies: z.array(z.enum(skillTags)),
   organization: z.string(),
   experience: z.string(),
+  featured: z.boolean().default(false),
+  order: z.number().optional(),
 });
 
 export const skillSchema = z.object({

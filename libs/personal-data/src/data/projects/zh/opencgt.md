@@ -4,6 +4,7 @@ language: 'zh'
 technologies: ['nextjs', 'auth0', 'mui', 'playwright', 'vitest']
 organization: 'zh/codegreen'
 experience: 'zh/6'
+featured: true
 ---
 
 - 領導使用 Next.js 開發 B2B 產品的前端開發工作，與設計師和後端工程師密切合作，提供無縫的用戶體驗。

@@ -1,13 +1,9 @@
 ---
 import { Comments } from '@components/blog';
-import { ArrowLeft } from '@lucide/vue';
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import clsx from 'clsx';
 import { format } from 'date-fns';
-
-import Icon from '@/components/icon.vue';
-import { Button } from '@/components/ui/button';
 
 import BaseLayout from './index.astro';
 
@@ -27,6 +23,7 @@ const {
   description={description}
   imageUrl={image?.src}
   viewTransition={{ enabled: true }}
+  shell
 >
   {
     image?.src && (
@@ -40,14 +37,6 @@ const {
       />
     )
   }
-  <Button
-    variant="secondary"
-    size="icon"
-    onclick="history.back()"
-    class="fixed top-10 left-10 rounded-full text-primary"
-  >
-    <Icon icon={ArrowLeft} />
-  </Button>
   <article
     class={clsx(
       'container prose md:prose-xl lg:prose-2xl py-4',

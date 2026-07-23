@@ -1,0 +1,11 @@
+---
+import CaseStudyPage from '@components/pages/CaseStudyPage.astro';
+import { listCaseStudies } from '@rainforest-dev/personal-portfolio/content';
+
+export const prerender = true;
+export function getStaticPaths() {
+  return listCaseStudies().map((cs) => ({ params: { slug: cs.slug } }));
+}
+---
+
+<CaseStudyPage lang="en" slug={Astro.params.slug!} />

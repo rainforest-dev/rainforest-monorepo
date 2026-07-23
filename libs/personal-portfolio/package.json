@@ -1,0 +1,33 @@
+{
+  "name": "@rainforest-dev/personal-portfolio",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/index.ts",
+    "./content": "./src/content/index.ts",
+    "./mcp": "./src/mcp.ts",
+    "./sections/CaseStudySection.astro": "./src/sections/CaseStudySection.astro",
+    "./sections/CaseStudyGallery.astro": "./src/sections/CaseStudyGallery.astro",
+    "./theme.css": "./src/theme.css"
+  },
+  "nx": {
+    "sourceRoot": "libs/personal-portfolio/src",
+    "name": "personal-portfolio"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:"
+  }
+}

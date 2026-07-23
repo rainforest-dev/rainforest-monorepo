@@ -1,3 +1,5 @@
+export type { GalleryImage } from './galleries';
+export { getProjectGallery } from './galleries';
 export type { Entry } from './loader';
 export type {
   ProfileSummary,
