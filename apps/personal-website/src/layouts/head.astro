@@ -1,4 +1,6 @@
 ---
+import { fallbackLng, supportedLngs } from '@utils/i18n';
+import { getRelativeLocaleUrl } from 'astro:i18n';
 import { pwaInfo } from 'virtual:pwa-info';
 
 import type { HeadProps as Props } from './types';
@@ -9,6 +11,29 @@ const {
   imageUrl = new URL('/images/thumbnail/1.jpg', Astro.site),
 } = Astro.props;
 const url = Astro.url.toString();
+
+// Microsoft Clarity (heatmaps + session replay). Loads only when the public
+// project id is configured, so dev/preview stay clean unless you set it.
+const clarityId = import.meta.env.PUBLIC_CLARITY_PROJECT_ID;
+
+// Self-referencing canonical (each URL is its own canonical).
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+// hreflang alternates only for the localized routes: home, portfolio and resume
+// have per-locale variants (en at root, zh under /zh). Blog, posts and the machine
+// endpoints (llms.txt, sitemap, mcp…) are locale-agnostic, so they get no alternates.
+const localePath = Astro.url.pathname.replace(/^\/zh(?=\/|$)/, '') || '/';
+const isLocalized =
+  localePath === '/' || /^\/(portfolio|resume)(\/|$)/.test(localePath);
+const alternates = isLocalized
+  ? supportedLngs.map((l) => ({
+      // Traditional Chinese (Taiwan) is more precise than a bare `zh` for search.
+      hreflang: l === 'zh' ? 'zh-Hant' : l,
+      href: new URL(getRelativeLocaleUrl(l, localePath), Astro.site).href,
+    }))
+  : [];
+const xDefaultHref = isLocalized
+  ? new URL(getRelativeLocaleUrl(fallbackLng, localePath), Astro.site).href
+  : null;
 ---
 
 <head>
@@ -88,9 +113,21 @@ const url = Astro.url.toString();
       }
     })();
   </script>
+  {
+    clarityId && (
+      <script
+        is:inline
+        set:html={`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script",${JSON.stringify(clarityId)})`}
+      />
+    )
+  }
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="generator" content={Astro.generator} />
   <link rel="sitemap" href="/sitemap-index.xml" />
+
+  <link rel="canonical" href={canonical} />
+  {alternates.map((a) => <link rel="alternate" hreflang={a.hreflang} href={a.href} />)}
+  {xDefaultHref && <link rel="alternate" hreflang="x-default" href={xDefaultHref} />}
 
   <!-- Open Graph and Twitter Card Metadata  -->
   <title>{title}</title>
