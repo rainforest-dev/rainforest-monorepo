@@ -15,7 +15,7 @@ catalog:
   react: 19.2.3
   react-dom: 19.2.3
   tailwindcss: 4.2.2
-  typescript: 5.9.3
+  typescript: 6.0.3
   class-variance-authority: ^0.7.1
   tailwind-merge: ^3.5.0
 
