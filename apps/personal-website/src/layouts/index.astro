@@ -36,7 +36,7 @@ const dir = _dir(lang);
     {
       !hideSourceColorPicker && (
         <div class="fixed right-10 bottom-10 z-10 print:hidden">
-          <SourceColor client:only="vue" />
+          <SourceColor client:only="vue" showTheme={!shell} />
         </div>
       )
     }

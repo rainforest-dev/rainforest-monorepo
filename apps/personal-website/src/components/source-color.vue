@@ -19,6 +19,46 @@
     </PopoverTrigger>
     <PopoverContent>
       <div class="space-y-2 px-4 py-2">
+        <div
+          v-if="showTheme"
+          class="theme-seg bg-muted/60 flex gap-1 rounded-lg p-1"
+        >
+          <button
+            type="button"
+            data-theme-set="system"
+            aria-label="System theme"
+            title="System"
+            class="flex-center flex-1 rounded-md py-1.5 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+              <rect width="20" height="14" x="2" y="3" rx="2" />
+              <path d="M8 21h8M12 17v4" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            data-theme-set="light"
+            aria-label="Light theme"
+            title="Light"
+            class="flex-center flex-1 rounded-md py-1.5 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            data-theme-set="dark"
+            aria-label="Dark theme"
+            title="Dark"
+            class="flex-center flex-1 rounded-md py-1.5 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+          </button>
+        </div>
         <div class="relative">
           <label
             for="source-color-image"
@@ -79,6 +119,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+
+// `showTheme` renders a System/Light/Dark segmented control inside the picker —
+// enabled on shell-less pages (home) so they get a theme switch without the header.
+// Clicks are handled by the inline head script via the shared data-theme-set hook.
+defineProps<{ showTheme?: boolean }>();
 
 const sourceColor = useVModel($sourceColor);
 const sourceImage = useLocalStorage('source-image', '');
