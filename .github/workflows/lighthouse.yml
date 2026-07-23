@@ -1,0 +1,37 @@
+name: Lighthouse
+
+# Audits the deployed site's Core Web Vitals / Lighthouse categories. Runs on a
+# weekly schedule against production, and on demand against any URL (paste a
+# Vercel preview deployment to check a branch before merging). Budgets live in
+# .lighthouserc.cjs as "warn" assertions, so this reports rather than blocks.
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Base URL to audit (defaults to production)'
+        required: false
+        default: 'https://rainforest.tools'
+  schedule:
+    # Mondays 06:00 UTC. Scheduled runs only fire once this workflow is on the
+    # default branch (a GitHub constraint); workflow_dispatch works from any
+    # branch via the Actions tab.
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Audit with Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        env:
+          # A workflow_dispatch input (authorized users only), consumed only as
+          # a URL string by .lighthouserc.cjs — never interpolated into a shell
+          # command. Empty on scheduled runs → the config falls back to prod.
+          LHCI_BASE_URL: ${{ inputs.base_url }}
+        with:
+          configPath: ./.lighthouserc.cjs
