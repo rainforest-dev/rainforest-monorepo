@@ -64,7 +64,7 @@ export const GET: APIRoute = async ({ site, request }) => {
     .join('\n');
 
   const caseStudyLinks = listCaseStudies()
-    .map((cs) => `- [${cs.title}](${base}/en/portfolio/${cs.slug}): ${cs.tagline}`)
+    .map((cs) => `- [${cs.title}](${base}/portfolio/${cs.slug}): ${cs.tagline}`)
     .join('\n');
 
   const body = `# Rainforest Cheng — Full Profile

@@ -1,3 +1,7 @@
 ---
-return Astro.redirect('/en/portfolio');
+import PortfolioIndexPage from '@components/pages/PortfolioIndexPage.astro';
+
+export const prerender = true;
 ---
+
+<PortfolioIndexPage lang="en" />

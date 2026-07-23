@@ -150,7 +150,7 @@ export function registerProfileMcp(server: McpServer): void {
       // and doubles as the portfolio lib's case-study registry key.
       const slug = project.id.split('/').pop();
       const caseStudyUrl =
-        slug && hasCaseStudy(slug) ? `${info.links.website}/en/portfolio/${slug}` : undefined;
+        slug && hasCaseStudy(slug) ? `${info.links.website}/portfolio/${slug}` : undefined;
       return {
         contents: [{ uri: uri.href, text: JSON.stringify({ ...project, caseStudyUrl }) }],
       };

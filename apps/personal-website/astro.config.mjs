@@ -23,6 +23,15 @@ export default defineConfig({
     defaultLocale: fallbackLng,
     locales: [...supportedLngs],
   },
+  // Back-compat: English used to live under /en/…; it's now canonical at the root.
+  // Redirect the previously-shipped English pages to their bare paths. Exact paths
+  // only — Astro's Vercel adapter doesn't substitute a rest param into a redirect
+  // target, so a `/en/[...slug]` catch-all would emit a literal, broken Location.
+  redirects: {
+    '/en': '/',
+    '/en/portfolio': '/portfolio',
+    '/en/resume': '/resume',
+  },
   markdown: {
     shikiConfig: {
       themes: {

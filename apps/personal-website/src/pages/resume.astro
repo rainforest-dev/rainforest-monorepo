@@ -1,3 +1,7 @@
 ---
-return Astro.redirect('/en/resume');
+import ResumePage from '@components/pages/ResumePage.astro';
+
+export const prerender = true;
 ---
+
+<ResumePage lang="en" />

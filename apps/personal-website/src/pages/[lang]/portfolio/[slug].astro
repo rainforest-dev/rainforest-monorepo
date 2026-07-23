@@ -1,65 +1,17 @@
 ---
-import '@rainforest-dev/personal-portfolio/theme.css';
-
-import Layout from '@layouts/index.astro';
-import { getProjectGallery } from '@rainforest-dev/personal-data';
-import { getCaseStudy, listCaseStudies } from '@rainforest-dev/personal-portfolio/content';
-import CaseStudyGallery from '@rainforest-dev/personal-portfolio/sections/CaseStudyGallery.astro';
-import CaseStudySection from '@rainforest-dev/personal-portfolio/sections/CaseStudySection.astro';
-import { supportedLngs, useTranslation } from '@utils/i18n';
-import { getRelativeLocaleUrl } from 'astro:i18n';
+import CaseStudyPage from '@components/pages/CaseStudyPage.astro';
+import { listCaseStudies } from '@rainforest-dev/personal-portfolio/content';
+import { fallbackLng, supportedLngs } from '@utils/i18n';
 
 export const prerender = true;
 export function getStaticPaths() {
-  return supportedLngs.flatMap((lang) =>
-    listCaseStudies().map((cs) => ({ params: { lang, slug: cs.slug } })),
-  );
+  return supportedLngs
+    .filter((lng) => lng !== fallbackLng)
+    .flatMap((lang) =>
+      listCaseStudies().map((cs) => ({ params: { lang, slug: cs.slug } })),
+    );
 }
-
-const { slug } = Astro.params;
 const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
-const study = getCaseStudy(slug!, lang);
-// Unreachable by construction: getStaticPaths only emits slugs from listCaseStudies(),
-// so `study` is always defined. Kept as a correct 404 rather than a redirect to a
-// non-existent /404 page, in case the generation strategy ever changes.
-if (!study) return new Response(null, { status: 404 });
-const { t } = await useTranslation(lang, 'portfolio');
-const portfolioHref = getRelativeLocaleUrl(lang, '/portfolio');
-// Match the product's design language: dark-only products force dark, others
-// (theme: 'system' / unset) follow the visitor's OS preference.
-const forceScheme =
-  study.theme && study.theme !== 'system' ? study.theme : undefined;
 ---
 
-<Layout
-  title={`${study.title} — ${t('case-study')}`}
-  description={study.tagline}
-  viewTransition={{ enabled: true }}
-  shell
-  forceScheme={forceScheme}
->
-  <article data-project={study.slug} class="mx-auto max-w-4xl px-6 py-20">
-    <a
-      href={portfolioHref}
-      class="group inline-flex items-center gap-1.5 text-sm text-foreground/60 transition-colors hover:text-foreground"
-    >
-      <span
-        aria-hidden="true"
-        class="transition-transform group-hover:-translate-x-0.5">←</span
-      > {t('back')}
-    </a>
-    <p class="mt-8 text-xs uppercase tracking-widest text-primary/70">{t('case-study')}</p>
-    <h1 transition:name={`case-study-${study.slug}`} class="mt-2 text-5xl">{study.title}</h1>
-    <p class="mt-2 text-foreground/70">{study.role} · {study.period}</p>
-    <p class="mt-6 max-w-2xl">{study.tagline}</p>
-    <ul class="mt-6 flex flex-wrap gap-2">
-      {
-        study.stack.map((tech) => (
-          <li class="rounded bg-primary/10 px-3 py-1 text-sm text-primary">{tech}</li>
-        ))
-      }
-    </ul>
-    <CaseStudyGallery images={getProjectGallery(study.slug)} />
-    {study.sections.map((section) => <CaseStudySection section={section} />)}
-  </article>
-</Layout>
+<CaseStudyPage lang={lang} slug={Astro.params.slug!} />

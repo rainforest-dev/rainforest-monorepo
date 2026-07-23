@@ -96,7 +96,7 @@ const skills = groupBy(
                     const slug = project.id.split('/').pop()!;
                     const caseStudyUrl =
                       project.data.featured && hasCaseStudy(slug)
-                        ? `${info.links.website}/en/portfolio/${slug}`
+                        ? `${info.links.website}/portfolio/${slug}`
                         : undefined;
                     return (
                       <li>
