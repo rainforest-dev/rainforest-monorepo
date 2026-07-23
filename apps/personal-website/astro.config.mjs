@@ -8,6 +8,7 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 import vue from '@astrojs/vue';
+import sentry from '@sentry/astro';
 import tailwindcss from '@tailwindcss/vite';
 import pwa from '@vite-pwa/astro';
 import { defineConfig } from 'astro/config';
@@ -15,6 +16,13 @@ import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
 
 import { fallbackLng, supportedLngs } from './src/utils/i18n/settings';
+
+// Wire Sentry only when the (public) DSN is configured — i.e. production and
+// preview on Vercel. Local/dev builds have no DSN, so the integration is
+// omitted entirely and nothing Sentry-related ships. SDK init + options live in
+// sentry.{client,server}.config.js; source-map upload is disabled so no
+// SENTRY_AUTH_TOKEN (and no @sentry/cli binary) is required.
+const sentryEnabled = !!process.env.PUBLIC_SENTRY_DSN;
 
 // https://astro.build/config
 export default defineConfig({
@@ -104,6 +112,20 @@ export default defineConfig({
         directoryAndTrailingSlashHandler: true,
       },
     }),
+    ...(sentryEnabled
+      ? [
+          sentry({
+            sourceMapsUploadOptions: { enabled: false },
+            // Error monitoring only — tree-shake the tracing and replay code we
+            // never initialise (see sentry.{client,server}.config.js) out of the
+            // client bundle.
+            bundleSizeOptimizations: {
+              excludeTracing: true,
+              excludeReplay: true,
+            },
+          }),
+        ]
+      : []),
   ],
   output: 'server',
   adapter: vercel({
