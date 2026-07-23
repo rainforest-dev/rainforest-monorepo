@@ -3,105 +3,105 @@
     <PopoverTrigger as-child>
       <button
         id="source-color"
-        class="ring-accent/80 ring-offset-3 block size-10 cursor-pointer rounded-full ring-4 duration-300"
-        :style="{
-          backgroundColor: $sourceColor.value,
-        }"
-        title="Source Color Picker"
+        class="border-border/70 ring-primary/50 block size-9 cursor-pointer overflow-hidden rounded-full border shadow-sm transition duration-300 hover:ring-2"
+        :style="{ backgroundColor: $sourceColor.value }"
+        title="Appearance"
+        aria-label="Appearance"
       >
         <img
           :src="sourceImage"
           alt="source image"
-          class="size-full rounded-full"
+          class="size-full object-cover"
           v-if="sourceImage"
         />
       </button>
     </PopoverTrigger>
-    <PopoverContent>
-      <div class="space-y-2 px-4 py-2">
-        <div
-          v-if="showTheme"
-          class="theme-seg bg-muted/60 flex gap-1 rounded-lg p-1"
-        >
-          <button
-            type="button"
-            data-theme-set="system"
-            aria-label="System theme"
-            title="System"
-            class="flex-center flex-1 rounded-md py-1.5 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-              <rect width="20" height="14" x="2" y="3" rx="2" />
-              <path d="M8 21h8M12 17v4" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            data-theme-set="light"
-            aria-label="Light theme"
-            title="Light"
-            class="flex-center flex-1 rounded-md py-1.5 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            data-theme-set="dark"
-            aria-label="Dark theme"
-            title="Dark"
-            class="flex-center flex-1 rounded-md py-1.5 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-            </svg>
-          </button>
-        </div>
-        <div class="relative">
-          <label
-            for="source-color-image"
-            :style="{
-              borderColor: $sourceColor.value,
-              color: $sourceColor.value,
-            }"
-            class="flex-center aspect-square w-full cursor-pointer rounded border"
-            title="Source Image"
-          >
-            <img
-              :src="sourceImage"
-              alt="source image"
-              class="peer size-full object-cover"
-              v-if="sourceImage"
+    <PopoverContent class="w-52">
+      <div class="space-y-2.5 p-2.5">
+        <!-- Source colour (seed): pick a colour, or extract one from an image -->
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <label
+              for="source-color-picker"
+              class="border-border block h-9 w-full cursor-pointer rounded-md border"
+              :style="{ backgroundColor: $sourceColor.value }"
+              title="Source color — pick"
+            ></label>
+            <input
+              type="color"
+              name="source-color-picker"
+              id="source-color-picker"
+              v-model="sourceColor"
+              @change="handleColorChange"
+              class="sr-only"
             />
-            <ImageIcon v-else class="size-12" />
-          </label>
-          <input
-            type="file"
-            name="source-color-image"
-            id="source-color-image"
-            accept="image/*"
-            @change="handleImageChange"
-            class="sr-only inset-4 size-auto"
-          />
+          </div>
+          <div class="relative">
+            <label
+              for="source-color-image"
+              class="border-border text-foreground/60 hover:text-foreground hover:bg-muted flex-center size-9 cursor-pointer overflow-hidden rounded-md border transition-colors"
+              title="Source color — extract from an image"
+            >
+              <img
+                :src="sourceImage"
+                alt="source image"
+                class="size-full object-cover"
+                v-if="sourceImage"
+              />
+              <ImageIcon v-else class="size-4.5" />
+            </label>
+            <input
+              type="file"
+              name="source-color-image"
+              id="source-color-image"
+              accept="image/*"
+              @change="handleImageChange"
+              class="sr-only"
+            />
+          </div>
         </div>
-        <div class="relative">
-          <label
-            for="source-color-picker"
-            class="block h-6 w-full cursor-pointer rounded"
-            :style="{ backgroundColor: $sourceColor.value }"
-            title="Source Color"
-          ></label>
-          <input
-            type="color"
-            name="source-color-picker"
-            id="source-color-picker"
-            v-model="sourceColor"
-            @change="handleColorChange"
-            class="sr-only inset-0 size-auto"
-          />
-        </div>
+
+        <!-- Theme (preview mode) — only where there's no header settings menu -->
+        <template v-if="showTheme">
+          <hr class="border-border/70" />
+          <div class="theme-seg bg-muted/60 flex gap-1 rounded-lg p-1">
+            <button
+              type="button"
+              data-theme-set="system"
+              aria-label="System theme"
+              title="System"
+              class="flex-center flex-1 rounded-md py-1.5 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                <rect width="20" height="14" x="2" y="3" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              data-theme-set="light"
+              aria-label="Light theme"
+              title="Light"
+              class="flex-center flex-1 rounded-md py-1.5 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              data-theme-set="dark"
+              aria-label="Dark theme"
+              title="Dark"
+              class="flex-center flex-1 rounded-md py-1.5 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+              </svg>
+            </button>
+          </div>
+        </template>
       </div>
     </PopoverContent>
   </Popover>
