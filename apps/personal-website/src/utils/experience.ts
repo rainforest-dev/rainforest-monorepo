@@ -1,4 +1,4 @@
-import { IExperience } from '@types';
+import type { IExperience } from '@types';
 
 export const getTopTechnologies = (
   experience: {

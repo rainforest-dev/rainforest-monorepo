@@ -1,6 +1,6 @@
 import type { ImageMetadata } from 'astro';
 
-import { ILocation, IName, ISkill, SkillTag } from './data';
+import type { ILocation, IName, ISkill, SkillTag } from './data';
 
 export interface IContactProps {
   email: string;

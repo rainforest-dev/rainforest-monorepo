@@ -24,7 +24,8 @@
       "@/*": ["./*"]
     },
     "outDir": "out-tsc/personal-liff",
-    "rootDir": "."
+    "rootDir": ".",
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "pages/**/*.ts",

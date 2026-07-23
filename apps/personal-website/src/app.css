@@ -92,7 +92,6 @@
 
 @utility skeleton-* {
   background-color: --value(--color-*);
-  background-color: --value(color);
   background-color: --value([color]);
   @apply rounded-lh animate-pulse;
 }
