@@ -57,9 +57,8 @@ import { Menu, X } from '@lucide/vue';
 import { useWindowScroll } from '@vueuse/core';
 import { isServerSide, removeUrlHashAfterNavigation } from '@utils';
 import { Button } from '@/components/ui/button';
-import LanguagePicker, {
-  IProps as ILanguagePickerProps,
-} from './language-picker.vue';
+import LanguagePicker from './language-picker.vue';
+import type { IProps as ILanguagePickerProps } from './language-picker.vue';
 import useThemeColorMeta from '@/hooks/use-theme-color-meta';
 
 interface ILink {

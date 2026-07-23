@@ -1,4 +1,4 @@
-import { Description, ISkill, Skill } from '@types';
+import type { Description, ISkill, Skill } from '@types';
 import type { i18n as I18nInstance, TFunction } from 'i18next';
 import i18next from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';

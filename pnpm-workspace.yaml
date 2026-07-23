@@ -22,7 +22,9 @@ catalog:
 # pnpm 11 settings (moved from package.json pnpm field)
 peerDependencyRules:
   allowedVersions:
-    '@vite-pwa/astro>astro': '6'
+    # @vite-pwa/astro's published peer range lags Astro's releases; it works
+    # with Astro 6/7 in practice, so allow both explicitly.
+    '@vite-pwa/astro>astro': '6 || 7'
     '@nanostores/lit>nanostores': '1'
 
 minimumReleaseAge: 1440
