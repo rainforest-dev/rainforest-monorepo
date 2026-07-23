@@ -52,6 +52,28 @@
   }
 }
 
+/* Segmented System/Light/Dark control used by the source-color float on
+   shell-less pages (home). The active segment is driven by html[data-theme-pref],
+   which the inline head script keeps in sync — the same hook as the header's
+   settings menu, so both stay flash-free and consistent across navigation. */
+.theme-seg > [data-theme-set] {
+  color: var(--foreground);
+  opacity: 0.55;
+}
+.theme-seg > [data-theme-set]:hover {
+  opacity: 0.85;
+}
+:root:not([data-theme-pref]) .theme-seg > [data-theme-set='system'],
+:root[data-theme-pref='system'] .theme-seg > [data-theme-set='system'],
+:root[data-theme-pref='light'] .theme-seg > [data-theme-set='light'],
+:root[data-theme-pref='dark'] .theme-seg > [data-theme-set='dark'] {
+  /* Primary-tinted pill reads clearly on the muted track in both light and
+     dark — unlike `--background`, which is dark-on-dark in dark mode. */
+  background-color: color-mix(in oklch, var(--primary) 16%, transparent);
+  color: var(--primary);
+  opacity: 1;
+}
+
 @utility flex-center {
   @apply flex items-center justify-center;
 }
