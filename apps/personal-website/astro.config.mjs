@@ -7,6 +7,7 @@ import mdx from '@astrojs/mdx';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
+import { cacheVercel } from '@astrojs/vercel/cache';
 import vue from '@astrojs/vue';
 import sentry from '@sentry/astro';
 import tailwindcss from '@tailwindcss/vite';
@@ -134,4 +135,12 @@ export default defineConfig({
     },
     imageService: true,
   }),
+  // Astro 7 route caching (@astrojs/vercel 11): on-demand responses that opt in
+  // via `context.cache.set()` / `Astro.cache.set()` are pushed to Vercel's edge
+  // and served straight from the CDN on a hit, without invoking the function.
+  // Most pages are prerendered (already CDN-static) so this only matters for the
+  // few genuinely on-demand routes — see src/pages/[lang]/rss.xml.ts.
+  cache: {
+    provider: cacheVercel(),
+  },
 });

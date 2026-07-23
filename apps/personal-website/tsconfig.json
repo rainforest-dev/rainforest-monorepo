@@ -5,6 +5,7 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
+    "verbatimModuleSyntax": true,
     "experimentalDecorators": true,
     "emitDeclarationOnly": false,
     "noEmit": true,
@@ -23,7 +24,8 @@
       "@types": ["src/types/index.ts"],
       "@types/*": ["src/types/*"]
     },
-    "types": ["@webgpu/types", "@types/dom-chromium-ai"]
+    "types": ["@webgpu/types", "@types/dom-chromium-ai"],
+    "ignoreDeprecations": "6.0"
   },
   "references": [
     {

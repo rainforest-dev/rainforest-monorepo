@@ -9,13 +9,10 @@
     "target": "ESNext",
     "moduleResolution": "bundler",
     "module": "ESNext",
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client"],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "references": [],
-  "exclude": [
-    "vite.config.ts",
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts"
-  ]
+  "exclude": ["vite.config.ts", "src/**/*.test.ts", "src/**/*.spec.ts"]
 }
