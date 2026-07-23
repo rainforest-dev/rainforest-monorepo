@@ -9,7 +9,8 @@
     "module": "ESNext",
     "jsx": "react-jsx",
     "types": ["node", "vite/client"],
-    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": [

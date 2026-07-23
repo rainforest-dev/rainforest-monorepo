@@ -30,5 +30,8 @@
     {
       "path": "./libs/personal-portfolio"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  }
 }
