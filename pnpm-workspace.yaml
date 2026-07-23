@@ -29,6 +29,9 @@ minimumReleaseAge: 1440
 
 allowBuilds:
   '@parcel/watcher': true
+  # Only used for source-map upload, which we keep disabled (personal-website's
+  # astro.config.mjs) — skip its binary-downloading postinstall.
+  '@sentry/cli': false
   '@swc/core': true
   better-sqlite3: true
   core-js: true
