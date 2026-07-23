@@ -1,5 +1,9 @@
 import type { APIRoute } from 'astro';
 
+// Fully build-static (no per-request logic, no AI-crawler tracking) — prerender
+// it so it ships as a CDN file instead of invoking a serverless function.
+export const prerender = true;
+
 // Explicitly welcome everyone, including AI crawlers (GPTBot, ClaudeBot, …), and
 // point both classic crawlers (Sitemap) and agents (llms.txt) at their entry points.
 const getRobotsTxt = (site: URL) => `
