@@ -6,6 +6,7 @@ import {
   type MachineBudgetMap,
   readMachineBudgets,
 } from './budget.js';
+import { stripHtmlComments } from './html.js';
 
 /** Loop budget mode per the autonomous-task-loop §0 thresholds. */
 export type BudgetMode = 'green' | 'yellow' | 'red' | 'dark';
@@ -66,11 +67,12 @@ function readFileOrEmpty(path: string): string {
 
 /** Strip markdown checkbox/list prefix and inline HTML comments from a task line. */
 function cleanTaskText(line: string): string {
-  return line
+  const withoutBullet = line
     .replace(/^\s*[-*]\s*\[[ xX]\]\s*/, '') // "- [ ] " / "- [x] "
-    .replace(/^\s*[-*]\s*/, '') // bare list bullet
-    .replace(/<!--.*?-->/g, '') // inline round markers etc.
-    .trim();
+    .replace(/^\s*[-*]\s*/, ''); // bare list bullet
+  // Inline round markers etc. Shared helper so multi-line and nested comment
+  // openers are handled — a plain /<!--.*?-->/ misses both.
+  return stripHtmlComments(withoutBullet).trim();
 }
 
 /** Remove backtick-delimited inline code so legend/doc examples aren't matched. */

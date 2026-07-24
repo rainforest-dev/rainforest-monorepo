@@ -9,6 +9,8 @@
  * the text renders as inert text rather than executing).
  */
 
+import { stripHtmlComments } from './html.js';
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -50,7 +52,7 @@ function renderInline(raw: string): string {
 /** Render a Markdown body (frontmatter already stripped) to an HTML string. */
 export function renderMarkdown(md: string): string {
   // Drop HTML comments (e.g. the managed-sync markers) — hidden in Obsidian.
-  const src = md.replace(/<!--[\s\S]*?-->/g, '');
+  const src = stripHtmlComments(md);
   const lines = src.split('\n');
 
   const html: string[] = [];
