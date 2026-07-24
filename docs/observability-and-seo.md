@@ -1,16 +1,15 @@
 # Observability, Analytics & SEO
 
 How `personal-website` is instrumented for search discovery, real-user metrics,
-error monitoring, and performance regression tracking — what each piece is, where
-it lives, what turns it on, and **how to review that it's actually working**
-(see [Periodic review](#periodic-review)).
+conversion tracking, error monitoring, and performance regression tracking — what
+each piece is, where it lives, what turns it on, and **how to review that it's
+actually working** (see [Periodic review](#periodic-review)).
 
-> **Activation caveat.** The SEO, JSON-LD, Clarity, and Sentry work landed on the
-> `analytics-perf` branch, which is **stacked on the redesign branch** — none of it
-> is in production until that merges to `main` and deploys. The Vercel env vars
-> below sit idle until then. `PUBLIC_SENTRY_DSN` is also scoped to **Preview**, so a
-> preview deployment activates Sentry immediately (useful for validating before the
-> merge).
+> **No cookie-consent banner.** Every tool here is either cookieless by design
+> (Vercel Analytics, the GA4 Measurement Protocol paths) or self-degrades without a
+> consent signal (Clarity drops to a cookieless mode for EEA/UK/CH visitors — see
+> [Clarity](#3-microsoft-clarity--heatmaps--session-replay)). There is deliberately
+> **no client-side `gtag`**, which is what would require a banner.
 
 ---
 
@@ -18,13 +17,14 @@ it lives, what turns it on, and **how to review that it's actually working**
 
 | Layer | Tool | Turned on by | Status |
 |---|---|---|---|
-| Search / SEO | Canonical + hreflang, JSON-LD, sitemap, robots, llms.txt | always on (SSR) | ships with the branch |
+| Search / SEO | Canonical + hreflang, JSON-LD, sitemap, robots, llms.txt | always on | ✅ live |
 | Search consoles | Google Search Console + Bing Webmaster | dashboards (verified) | ✅ live |
-| Real-user metrics | Vercel Web Analytics + Speed Insights | `astro.config.mjs` | ✅ live (already on prod) |
-| Product analytics | Microsoft Clarity (heatmaps + replay) | `PUBLIC_CLARITY_PROJECT_ID` | env-gated, idle until deploy |
+| Real-user metrics | Vercel Web Analytics + Speed Insights | `astro.config.mjs` | ✅ live |
+| Product analytics | Microsoft Clarity (heatmaps + replay) | `PUBLIC_CLARITY_PROJECT_ID` | ✅ live |
+| **Conversion tracking** | **Cookieless GA4 events via `/api/event`** | `GA_MEASUREMENT_ID` + `GA_API_SECRET` | ✅ live |
 | AI-crawler analytics | GA4 Measurement Protocol (`ai_resource_fetch`) | `GA_MEASUREMENT_ID` + `GA_API_SECRET` | ✅ live (server-side) |
-| Error monitoring | Sentry (`@sentry/astro`, error-only) | `PUBLIC_SENTRY_DSN` | env-gated, idle until deploy |
-| Performance CI | Lighthouse CI (weekly + on-demand) | `.github/workflows/lighthouse.yml` | active once on `main` |
+| Error monitoring | Sentry (`@sentry/astro`, error-only) | `PUBLIC_SENTRY_DSN` | ✅ live |
+| Performance CI | Lighthouse CI (weekly + on-demand) | `.github/workflows/lighthouse.yml` | ✅ live on `main` |
 
 ---
 
@@ -68,14 +68,45 @@ Env-gated inline tag in [`src/layouts/head.astro`](../apps/personal-website/src/
 loaded only when `PUBLIC_CLARITY_PROJECT_ID` is set (so dev/preview stay clean).
 Dashboard: <https://clarity.microsoft.com>.
 
-### 4. GA4 Measurement Protocol — AI-crawler tracking
+**Consent:** Clarity is the one cookie-setting tool here, but it **self-degrades**.
+Since Microsoft's Oct-2025 enforcement, a visit from the EEA/UK/CH without a consent
+signal runs in a cookieless mode: a unique id per page view, **heatmaps and
+page-level metrics still work**, while **session recordings and funnels are
+limited**. That is why the site ships no consent banner — full features apply
+outside those regions, and EU visitors are handled compliantly by Clarity itself.
 
+### 4. GA4 — AI-crawler tracking + cookieless conversions
+
+Both GA4 paths are **server-side Measurement Protocol** through one shared sender,
+[`src/utils/ga4.ts`](../apps/personal-website/src/utils/ga4.ts). There is
+deliberately **no client-side `gtag`**: a fresh random `client_id` is minted per
+event, so nothing is stored on the visitor and no consent banner is required. The
+trade-off is that GA4's *user/session* counts are meaningless here — **event counts
+are the signal**, which is all these questions need.
+
+**a) AI-crawler discovery** —
 [`src/utils/track-ai-resource.ts`](../apps/personal-website/src/utils/track-ai-resource.ts)
-fires a **server-side** `ai_resource_fetch` event (via `mp/collect`) when an AI
-crawler (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, CCBot…) fetches a
-machine endpoint. There is **no** client-side gtag / `page_view` — human traffic
-is covered by Vercel + Clarity. Needs `GA_MEASUREMENT_ID` + `GA_API_SECRET`.
-Dashboard: GA4 → Reports / Realtime, event `ai_resource_fetch`.
+fires `ai_resource_fetch { resource, bot }` when an AI crawler (GPTBot, ClaudeBot,
+PerplexityBot, Google-Extended, CCBot…) fetches a machine endpoint (llms.txt,
+llms-full.txt, the MCP routes).
+
+**b) Recruiter conversions** — the browser posts to
+[`src/pages/api/event.ts`](../apps/personal-website/src/pages/api/event.ts) (an
+allowlisted, sanitised, same-origin-guarded sink that keeps `GA_API_SECRET`
+server-side), driven by
+[`src/scripts/conversion-tracking.ts`](../apps/personal-website/src/scripts/conversion-tracking.ts)
+— one delegated click listener plus page-view hooks, loaded site-wide from
+[`src/layouts/index.astro`](../apps/personal-website/src/layouts/index.astro):
+
+| Event | Params | Fires when |
+|---|---|---|
+| `outbound_click` | `target`: `github` \| `linkedin` \| `email` | a profile/mail link is clicked |
+| `contact_submit` | — | the contact form's `mailto:` submit is clicked |
+| `resume_view` | — | `/resume` is viewed |
+| `case_study_view` | `slug` | a `/portfolio/<slug>` page is viewed |
+
+To add an event: add it to the `ALLOWED` map in `api/event.ts`, then call `send()`
+from the client script. Dashboard: GA4 → Reports / Realtime.
 
 ### 5. Sentry — error monitoring
 
@@ -108,8 +139,13 @@ Set in Vercel → personal-website → Settings → Environment Variables (Proje
 |---|---|---|---|---|
 | `PUBLIC_SENTRY_DSN` | Production + Preview | no (public DSN) | Sentry init | `sentry.{client,server}.config.js` |
 | `PUBLIC_CLARITY_PROJECT_ID` | Production | no | Clarity tag | `head.astro` |
-| `GA_MEASUREMENT_ID` | Production | no | GA4 MP endpoint | `track-ai-resource.ts` |
-| `GA_API_SECRET` | Production | **yes** | GA4 MP auth | `track-ai-resource.ts` |
+| `GA_MEASUREMENT_ID` | Production | no | GA4 MP endpoint | `ga4.ts` (→ `track-ai-resource.ts`, `api/event.ts`) |
+| `GA_API_SECRET` | Production | **yes** | GA4 MP auth | `ga4.ts` (→ `track-ai-resource.ts`, `api/event.ts`) |
+
+> Both GA vars are **Production-scoped**, so GA4 events no-op on preview deploys —
+> expected. Preview deploys are also behind Vercel Deployment Protection (they
+> return `401` to unauthenticated requests), so verify `/api/event` against
+> production, not a preview URL.
 
 > The `PUBLIC_` prefix is **required** for Sentry/Clarity: Vite only inlines
 > `PUBLIC_`-prefixed vars into the client bundle. A Sentry DSN and a Clarity
@@ -147,38 +183,47 @@ update/remove the "weekly observability review" cron.
 | Lighthouse CI | `gh run list --workflow=lighthouse.yml` | recent run, no budget warnings trending down | perf/LCP/CLS warnings appearing |
 | Vercel deploy | Vercel MCP / dashboard | latest Production deploy = Ready | build failing, cold-start TTFB spikes |
 | llms.txt | GET `/llms.txt` + `/llms-full.txt` | 200, current content | 404 / stale |
+| RSS feed | GET `/rss.xml` (+ `/zh/rss.xml`) | 200, valid feed XML | 404 (it regressed once — see below) |
+| Conversion sink | `POST /api/event` `{"event":"resume_view"}` | **204**; a bogus event returns 400 | 404/500 = tracking silently dead |
 
 ### Manual glance (login required)
 
 | Dashboard | Look for | Notes |
 |---|---|---|
-| Search Console | Sitemap status **Success** (not "Couldn't fetch"); Pages indexed climbing; no manual actions | "Couldn't fetch" right after submit is normal; should flip within hours |
-| Bing Webmaster | Sitemap **Processed**; URLs discovered > 0 | data populates ~48h after import |
-| Sentry | New unresolved issues; error-rate spikes after a deploy | only active once deployed to prod/preview |
-| Clarity | Sessions recording; rage-clicks / dead-clicks | only active once deployed |
-| GA4 | `ai_resource_fetch` events present | server-side AI-crawler signal |
-| Vercel Speed Insights | RES score, TTFB, LCP, INP, CLS trend | TTFB was the prior bottleneck — watch it post-routing-refactor |
+| Search Console | Sitemap status **Success**; Pages indexed climbing; **high-impression / low-CTR queries** | those queries are the cheapest exposure win — sharpen those titles/descriptions |
+| Bing Webmaster | Sitemap **Processed**; URLs discovered > 0 | feeds ChatGPT's search index |
+| **GA4 — conversions** | `outbound_click` (github/linkedin/email), `contact_submit`, `resume_view`, `case_study_view` | **the recruiter funnel.** Count events, not users (ids are random by design) |
+| GA4 — AI exposure | `ai_resource_fetch` present, trend by `bot` | are AI agents discovering you |
+| Sentry | New unresolved issues; error-rate spikes after a deploy | |
+| Clarity | Heatmaps on key pages; rage/dead-clicks | replay is limited for EU visitors (cookieless mode) |
+| Vercel Speed Insights | RES score, TTFB, LCP, INP, CLS trend | TTFB should now be low — most routes are prerendered |
 
-### First-month watch items
+### The growth loop (why these are reviewed together)
 
-1. GSC sitemap "Couldn't fetch" → **Success** (within hours of submission).
-2. Bing sitemap **Processing** → **Processed**, URLs discovered > 0 (~48h).
-3. After `analytics-perf` merges + deploys: confirm Clarity sessions appear and
-   Sentry receives a test error (both were idle pre-deploy).
-4. Once the Lighthouse workflow is on `main`: confirm the weekly run executes and
-   note the baseline scores.
+Exposure sources (**Search Console** queries + Vercel referrers) → engagement
+(**Clarity** + `case_study_view`) → conversion (`outbound_click` / `contact_submit`
+/ `resume_view`). Read them in that order: if impressions are rising but
+conversions aren't, the problem is the page, not the reach — and vice versa.
+
+### Watch items
+
+1. **Conversion baseline** — after ~2 weeks, note typical weekly counts for each
+   event so later changes have something to compare against.
+2. **GSC query mining** — pick the top high-impression/low-CTR pages each review
+   and improve their title/description.
+3. **`/rss.xml`** — regressed to 404 once (the `[lang]` route only emitted prefixed
+   URLs); the auto-check above guards it.
 
 ---
 
 ## Change provenance
 
-Commits on `analytics-perf` (stacked on the redesign branch):
+All merged to `main` and live in production:
 
-| Commit | Change |
+| PR | Change |
 |---|---|
-| `3c6e3d1` | SEO — canonical + hreflang + robots→llms.txt |
-| `0a010d3` | JSON-LD — WebSite/Person (home), BlogPosting (posts) |
-| `e608ad1` | perf — hero image quality 100→72 + descriptive alt |
-| `97b88a9` | Microsoft Clarity (env-gated) |
-| `3a4610a` | Sentry error monitoring (env-gated, error-only) |
-| `f0f97d7` | Lighthouse CI |
+| [#246](https://github.com/rainforest-dev/rainforest-monorepo/pull/246) | Redesign + interactive portfolio (the base this is instrumented on) |
+| [#247](https://github.com/rainforest-dev/rainforest-monorepo/pull/247) | SEO (canonical/hreflang/robots→llms.txt), JSON-LD, hero-image perf, Clarity, Sentry, Lighthouse CI |
+| [#251](https://github.com/rainforest-dev/rainforest-monorepo/pull/251) | Astro 7 + TypeScript 6 + Nx 23.1; route caching (`cacheVercel`), prerendered robots/settings |
+| [#252](https://github.com/rainforest-dev/rainforest-monorepo/pull/252) | fix: English RSS feed at the canonical `/rss.xml` |
+| [#253](https://github.com/rainforest-dev/rainforest-monorepo/pull/253) | Cookieless recruiter-conversion tracking (`/api/event` + client tracker) |
