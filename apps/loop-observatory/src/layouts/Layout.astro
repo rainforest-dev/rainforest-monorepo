@@ -26,13 +26,34 @@ const navLinks = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <!-- Apply the saved theme before paint to avoid a flash. -->
+
+    <!-- Inter: the same app-UI typeface personal-website uses, loaded the same
+         non-render-blocking way (preload as=style, swapped to a stylesheet on
+         load) so the dashboard matches the site's look. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      />
+    </noscript>
+
+    <!-- Apply the saved theme before paint to avoid a flash. Uses the same
+         `theme` key and system/light/dark vocabulary as personal-website so both
+         apps share one convention (`system`/absent = follow the OS). -->
     <script is:inline>
       (function () {
         try {
-          var s = localStorage.getItem('scheme');
-          if (s === 'dark' || s === 'light')
-            document.documentElement.dataset.scheme = s;
+          var t = localStorage.getItem('theme');
+          if (t === 'dark' || t === 'light')
+            document.documentElement.dataset.scheme = t;
         } catch (e) {}
       })();
     </script>
@@ -174,7 +195,9 @@ const navLinks = [
             document.documentElement.dataset.scheme = s;
             btn.dataset.scheme = s;
             try {
-              localStorage.setItem('scheme', s);
+              // Same key/vocabulary as personal-website (see the pre-paint
+              // script above) — toggling always writes an explicit light|dark.
+              localStorage.setItem('theme', s);
             } catch (e) {}
           };
           btn.dataset.scheme = current();

@@ -4,14 +4,20 @@
 
 @theme {
   --radius: 0.625rem;
+
+  /* Inter — the same app-UI typeface personal-website uses for its island/app
+     surfaces, so the dashboard reads as part of the same product rather than a
+     separate tool. Loaded in Layout.astro; the system stack stays as fallback.
+     (Colours already match: both apps use the shadcn plugin above, so the whole
+     palette derives from the same default seed.) */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
 }
 
 @layer base {
   html,
   body {
-    @apply bg-background text-foreground m-0 size-full p-0;
-    font-family:
-      ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    @apply bg-background text-foreground font-sans m-0 size-full p-0;
   }
 }
 
