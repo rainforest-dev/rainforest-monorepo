@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     if (body.defaultAgent !== undefined) {
       if (!isLoopAgent(body.defaultAgent)) {
-        return Response.json({ error: 'defaultAgent must be claude or codex' }, { status: 400 });
+        return Response.json({ error: 'defaultAgent must be claude, codex, or agy' }, { status: 400 });
       }
       setDefaultAgent(body.defaultAgent);
     }
@@ -38,9 +38,9 @@ export const POST: APIRoute = async ({ request }) => {
         return Response.json({ error: 'id must be a string or number' }, { status: 400 });
       }
       if (body.agent !== null && !isLoopAgent(body.agent)) {
-        return Response.json({ error: 'agent must be claude, codex, or null' }, { status: 400 });
+        return Response.json({ error: 'agent must be claude, codex, agy, or null' }, { status: 400 });
       }
-      setTaskAgent(String(body.id), body.agent as 'claude' | 'codex' | null);
+      setTaskAgent(String(body.id), body.agent as 'claude' | 'codex' | 'agy' | null);
     }
 
     return Response.json(response());

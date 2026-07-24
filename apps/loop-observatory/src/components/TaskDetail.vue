@@ -297,6 +297,7 @@ onMounted(() => {
                 >
                   <option value="claude">Claude</option>
                   <option value="codex">Codex</option>
+                  <option value="agy">Agy</option>
                 </select>
                 <Check v-if="agentSaved" class="size-3" aria-label="Agent saved" />
                 <span v-if="agentError" class="text-destructive text-[11px]">{{ agentError }}</span>

@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 
 import { usageDir } from './ledger.js';
 
-export const LOOP_AGENTS = ['claude', 'codex'] as const;
+export const LOOP_AGENTS = ['claude', 'codex', 'agy'] as const;
 export type LoopAgent = (typeof LOOP_AGENTS)[number];
 
 export interface AgentConfig {

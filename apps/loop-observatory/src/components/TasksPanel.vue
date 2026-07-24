@@ -181,6 +181,7 @@ function openTask(task: SprintTask) {
                 >
                   <option value="claude">Claude</option>
                   <option value="codex">Codex</option>
+                  <option value="agy">Agy</option>
                 </select>
               </label>
               <span v-if="agentSaveError" class="text-destructive text-xs">{{ agentSaveError }}</span>
