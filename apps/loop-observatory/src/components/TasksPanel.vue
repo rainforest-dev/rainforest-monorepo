@@ -10,12 +10,15 @@ import TasksGraph from '@/components/TasksGraph.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { LoopAgent } from '@/lib/agents';
 import type { SprintTask, TasksData } from '@/lib/tasks';
 
 // Self-fetching page island (mounted directly on /tasks).
 const data = ref<TasksData | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
+const defaultAgent = ref<LoopAgent>('claude');
+const agentSaveError = ref<string | null>(null);
 
 async function load() {
   loading.value = true;
@@ -25,10 +28,29 @@ async function load() {
     if (!res.ok) throw new Error(`/api/tasks HTTP ${res.status}`);
     const d = (await res.json()) as TasksData | { error: string } | null;
     data.value = d && 'error' in d ? null : d;
+    if (d && !('error' in d) && d.defaultAgent) defaultAgent.value = d.defaultAgent;
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
     loading.value = false;
+  }
+}
+
+async function saveDefaultAgent() {
+  agentSaveError.value = null;
+  try {
+    const res = await fetch('/api/task-agent', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ defaultAgent: defaultAgent.value }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(body?.error ?? `HTTP ${res.status}`);
+    }
+    await load();
+  } catch (e) {
+    agentSaveError.value = e instanceof Error ? e.message : String(e);
   }
 }
 
@@ -149,6 +171,19 @@ function openTask(task: SprintTask) {
               <p class="text-muted-foreground text-sm tabular-nums">
                 {{ filteredTasks.length }} tasks · {{ filteredPoints }} pts
               </p>
+              <label class="text-muted-foreground inline-flex items-center gap-2 text-xs">
+                Default agent
+                <select
+                  v-model="defaultAgent"
+                  class="border-border bg-background text-foreground rounded-md border px-2 py-1 text-xs"
+                  aria-label="Default Loop agent"
+                  @change="saveDefaultAgent"
+                >
+                  <option value="claude">Claude</option>
+                  <option value="codex">Codex</option>
+                </select>
+              </label>
+              <span v-if="agentSaveError" class="text-destructive text-xs">{{ agentSaveError }}</span>
             </div>
             <TabsList>
               <TabsTrigger value="board" class="gap-1.5">
@@ -178,6 +213,8 @@ function openTask(task: SprintTask) {
       :task="selected"
       :open="drawerOpen"
       :statuses="data?.statuses ?? []"
+      :default-agent="defaultAgent"
+      @changed="load"
       @close="drawerOpen = false"
     />
   </section>

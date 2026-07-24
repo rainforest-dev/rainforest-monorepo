@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { usageDir } from './ledger.js';
 import { DEFAULT_STATUSES } from './taskStatus.js';
+import { isLoopAgent, type LoopAgent } from './agents.js';
 
 /** A linked Notion record (epic or parent story) referenced by a task. */
 export interface TaskLink {
@@ -51,6 +52,8 @@ export interface SprintTask {
   loopStatus?: string | null;
   pr?: string | null;
   loopNote?: string | null;
+  /** Effective executor: per-task assignment or the configured default. */
+  agent?: LoopAgent;
 }
 
 /** The active sprint the board is scoped to. */
@@ -70,6 +73,8 @@ export interface TasksData {
   board_url: string | null;
   sprint: Sprint | null;
   assignee: string | null;
+  /** Configured default executor used when a task has no explicit assignment. */
+  defaultAgent?: LoopAgent;
   /** Status columns in board order. */
   statuses: string[];
   tasks: SprintTask[];
@@ -216,6 +221,8 @@ export interface TaskProgress {
   pr: string | null;
   /** Short free-text note from the loop. */
   note: string | null;
+  /** Explicit executor assignment, when present. */
+  agent?: LoopAgent;
 }
 
 /** Absolute path of the loop-progress overlay. */
@@ -250,6 +257,7 @@ export function parseTasksProgress(content: string): Record<string, TaskProgress
       pr: strOrNull(o.pr),
       note: strOrNull(o.note),
     };
+    if (isLoopAgent(o.agent)) out[id].agent = o.agent;
   }
   return out;
 }

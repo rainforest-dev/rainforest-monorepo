@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import type { LoopAgent } from '@/lib/agents';
 import type { SprintTask } from '@/lib/tasks';
 import {
   effectiveStatus,
@@ -14,8 +15,13 @@ import {
   taskOwner,
 } from '@/lib/taskStatus';
 
-const props = defineProps<{ task: SprintTask | null; open: boolean; statuses: string[] }>();
-const emit = defineEmits<{ close: [] }>();
+const props = defineProps<{
+  task: SprintTask | null;
+  open: boolean;
+  statuses: string[];
+  defaultAgent: LoopAgent;
+}>();
+const emit = defineEmits<{ close: []; changed: [] }>();
 
 // The column the loop moved the task to (or the Notion status when untouched).
 // The Status row leads with this so it never contradicts the ◆ Loop row below;
@@ -53,6 +59,10 @@ const saving = ref(false);
 const saved = ref(false);
 const saveError = ref<string | null>(null);
 const dirty = ref(false);
+const assignedAgent = ref<LoopAgent>('claude');
+const agentSaving = ref(false);
+const agentSaved = ref(false);
+const agentError = ref<string | null>(null);
 
 // Parse a JSON response defensively: an error status can come back with an
 // empty body (e.g. a 500 from the node adapter), and `res.json()` on empty text
@@ -121,6 +131,29 @@ async function saveFeedback() {
   }
 }
 
+async function saveAgent() {
+  const id = props.task?.id;
+  if (id == null || agentSaving.value) return;
+  agentSaving.value = true;
+  agentSaved.value = false;
+  agentError.value = null;
+  try {
+    const res = await fetch('/api/task-agent', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id: String(id), agent: assignedAgent.value }),
+    });
+    const data = await readJson<{ error?: string }>(res);
+    if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    agentSaved.value = true;
+    emit('changed');
+  } catch (e) {
+    agentError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    agentSaving.value = false;
+  }
+}
+
 function onFeedbackInput() {
   dirty.value = true;
   saved.value = false;
@@ -130,6 +163,15 @@ watch(
   () => [props.open, props.task?.id] as const,
   ([open, id]) => {
     if (open && id != null) fetchNote(String(id));
+  },
+  { immediate: true },
+);
+watch(
+  () => [props.task?.id, props.task?.agent, props.defaultAgent] as const,
+  () => {
+    assignedAgent.value = props.task?.agent ?? props.defaultAgent;
+    agentSaved.value = false;
+    agentError.value = null;
   },
   { immediate: true },
 );
@@ -241,6 +283,23 @@ onMounted(() => {
                 >
                   {{ scopeBadge(task.scope).label }}
                 </span>
+              </dd>
+            </div>
+            <div class="flex items-center gap-2">
+              <dt class="text-muted-foreground text-xs">Agent</dt>
+              <dd class="flex items-center gap-1.5">
+                <select
+                  v-model="assignedAgent"
+                  class="border-border bg-background text-foreground rounded-md border px-2 py-1 text-xs"
+                  aria-label="Task agent"
+                  :disabled="agentSaving"
+                  @change="saveAgent"
+                >
+                  <option value="claude">Claude</option>
+                  <option value="codex">Codex</option>
+                </select>
+                <Check v-if="agentSaved" class="size-3" aria-label="Agent saved" />
+                <span v-if="agentError" class="text-destructive text-[11px]">{{ agentError }}</span>
               </dd>
             </div>
             <div v-if="task.priority" class="flex items-center gap-2">
