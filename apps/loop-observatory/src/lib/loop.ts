@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { readMachineBudgets, type MachineBudget, type MachineBudgetMap } from './budget.js';
+import {
+  type MachineBudget,
+  type MachineBudgetMap,
+  readMachineBudgets,
+} from './budget.js';
 
 /** Loop budget mode per the autonomous-task-loop §0 thresholds. */
 export type BudgetMode = 'green' | 'yellow' | 'red' | 'dark';
@@ -99,7 +103,8 @@ export function parseTaskQueue(content: string): {
     const line = raw.replace(/\r$/, '');
 
     // Round markers can appear inline on a task line.
-    const marker = /<!--\s*last round\s+(\d{4}-\d{2}-\d{2})\s*:\s*(.*?)\s*-->/i.exec(line);
+    const marker =
+      /<!--\s*last round\s+(\d{4}-\d{2}-\d{2})\s*:\s*(.*?)\s*-->/i.exec(line);
     if (marker) {
       recent_rounds.push({ date: marker[1], note: marker[2].trim() });
     }
@@ -175,9 +180,12 @@ export function budgetMode(mb: MachineBudget | null | undefined): BudgetMode {
   return 'green';
 }
 
-export function budgetModesByMachine(map: MachineBudgetMap): Record<string, BudgetMode> {
+export function budgetModesByMachine(
+  map: MachineBudgetMap,
+): Record<string, BudgetMode> {
   const out: Record<string, BudgetMode> = {};
-  for (const [machine, mb] of Object.entries(map)) out[machine] = budgetMode(mb);
+  for (const [machine, mb] of Object.entries(map))
+    out[machine] = budgetMode(mb);
   return out;
 }
 
@@ -188,7 +196,9 @@ export function readLoopState(nowMs: number = Date.now()): LoopState {
   );
   const recent_progress = parseProgress(readFileOrEmpty(progressPath()));
   const last_handoff = parseHandoffIndex(readFileOrEmpty(handoffIndexPath()));
-  const budget_mode_by_machine = budgetModesByMachine(readMachineBudgets(nowMs));
+  const budget_mode_by_machine = budgetModesByMachine(
+    readMachineBudgets(nowMs),
+  );
 
   return {
     claimed,

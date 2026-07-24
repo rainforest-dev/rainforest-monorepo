@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   combinedBudget,
+  type MachineBudgetMap,
   parseMachineBudget,
   providerStale,
   sourceLagMinutes,
-  type MachineBudgetMap,
 } from './budget.js';
 
 // A fixed "now" so stale_minutes is deterministic. FRESH.written_at below is
@@ -70,8 +70,14 @@ describe('parseMachineBudget', () => {
     expect(mb!.machine).toBe('Angibles-MacBook-Air');
 
     expect(mb!.claude!.plan).toBe('team');
-    expect(mb!.claude!.five_hour).toEqual({ used_pct: 35.4, resets_at: 1752000000 });
-    expect(mb!.claude!.weekly_all).toEqual({ used_pct: 61.2, resets_at: 1752000000 });
+    expect(mb!.claude!.five_hour).toEqual({
+      used_pct: 35.4,
+      resets_at: 1752000000,
+    });
+    expect(mb!.claude!.weekly_all).toEqual({
+      used_pct: 61.2,
+      resets_at: 1752000000,
+    });
     expect(mb!.claude!.weekly_by_model).toBeNull();
 
     expect(mb!.codex!.plan).toBe('team');
@@ -105,7 +111,11 @@ describe('parseMachineBudget', () => {
 
   it('degrades an agy block with neither cost nor activity to null', () => {
     const mb = parseMachineBudget(
-      JSON.stringify({ machine: 'm', written_at: 100, agy: { estimated: true } }),
+      JSON.stringify({
+        machine: 'm',
+        written_at: 100,
+        agy: { estimated: true },
+      }),
       'm',
       NOW_MS,
     )!;
@@ -166,7 +176,12 @@ describe('parseMachineBudget', () => {
       JSON.stringify({
         machine: 'm',
         written_at: 100,
-        claude: { plan: 'pro', five_hour: { used_pct: 12.5 }, weekly_all: null, weekly_by_model: null },
+        claude: {
+          plan: 'pro',
+          five_hour: { used_pct: 12.5 },
+          weekly_all: null,
+          weekly_by_model: null,
+        },
       }),
       'm',
       NOW_MS,
@@ -180,7 +195,11 @@ describe('parseMachineBudget', () => {
   it('degrades a malformed provider to null without failing the snapshot', () => {
     const mb = parseMachineBudget(
       JSON.stringify({
-        claude: { five_hour: { used_pct: 'oops' }, weekly_all: null, weekly_by_model: null },
+        claude: {
+          five_hour: { used_pct: 'oops' },
+          weekly_all: null,
+          weekly_by_model: null,
+        },
         codex: { weekly: { used_pct: 5 } },
         machine: 'm',
         written_at: 100,
@@ -190,7 +209,9 @@ describe('parseMachineBudget', () => {
     );
     expect(mb!.claude).toBeNull();
     expect(mb!.codex!.weekly).toEqual({ used_pct: 5, resets_at: null });
-    expect(mb!.codex!.bars).toEqual([{ label: 'Weekly', used_pct: 5, resets_at: null }]);
+    expect(mb!.codex!.bars).toEqual([
+      { label: 'Weekly', used_pct: 5, resets_at: null },
+    ]);
   });
 
   it('returns null written_at / stale_minutes when written_at is absent', () => {
@@ -213,9 +234,15 @@ describe('sourceLagMinutes / providerStale', () => {
   it('measures how far the provider source lags the snapshot', () => {
     const mb = parseMachineBudget(FRESH, 'a', NOW_MS)!;
     // Claude source is ~24h behind written_at (86160s / 60 = 1436 min).
-    expect(sourceLagMinutes(mb.written_at, mb.claude!.source_ts)).toBeCloseTo(1436, 0);
+    expect(sourceLagMinutes(mb.written_at, mb.claude!.source_ts)).toBeCloseTo(
+      1436,
+      0,
+    );
     // Codex source is ~2 min behind written_at.
-    expect(sourceLagMinutes(mb.written_at, mb.codex!.source_ts)).toBeCloseTo(2, 0);
+    expect(sourceLagMinutes(mb.written_at, mb.codex!.source_ts)).toBeCloseTo(
+      2,
+      0,
+    );
   });
 
   it('flags a provider stale only when its source lags written_at by > 10 min', () => {
