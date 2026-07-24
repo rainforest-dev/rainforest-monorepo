@@ -1,0 +1,233 @@
+---
+import '@/app.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  active?: 'overview' | 'tasks';
+}
+
+const {
+  title = 'Loop Observatory',
+  description = 'Autonomous-loop dashboard: usage, budget, machines, loop status and sprint tasks.',
+  active,
+} = Astro.props;
+
+const navLinks = [
+  { key: 'overview', label: 'Overview', href: '/' },
+  { key: 'tasks', label: 'Tasks', href: '/tasks' },
+] as const;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Inter: the same app-UI typeface personal-website uses, loaded the same
+         non-render-blocking way (preload as=style, swapped to a stylesheet on
+         load) so the dashboard matches the site's look. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      />
+    </noscript>
+
+    <!-- Apply the saved theme before paint to avoid a flash. Uses the same
+         `theme` key and system/light/dark vocabulary as personal-website so both
+         apps share one convention (`system`/absent = follow the OS). -->
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t === 'dark' || t === 'light')
+            document.documentElement.dataset.scheme = t;
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      #theme-toggle .icon-sun,
+      #theme-toggle .icon-moon {
+        display: none;
+      }
+      #theme-toggle[data-scheme='light'] .icon-sun {
+        display: block;
+      }
+      #theme-toggle[data-scheme='dark'] .icon-moon {
+        display: block;
+      }
+      @keyframes lo-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #refresh-btn[data-busy] .refresh-icon {
+        animation: lo-spin 0.9s linear infinite;
+      }
+    </style>
+  </head>
+  <body class="bg-background text-foreground min-h-screen">
+    <header
+      class="border-border bg-background/80 sticky top-0 z-30 border-b backdrop-blur"
+    >
+      <div class="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3">
+        <a href="/" class="flex items-center gap-2">
+          <span
+            class="inline-block size-2.5 rounded-full"
+            style="background-color: var(--status-good)"
+            aria-hidden="true"></span>
+          <span class="text-foreground font-semibold tracking-tight">
+            Loop Observatory
+          </span>
+        </a>
+
+        <nav class="ml-2 flex items-center gap-1" aria-label="Primary">
+          {
+            navLinks.map((link) => (
+              <a
+                href={link.href}
+                aria-current={active === link.key ? 'page' : undefined}
+                class:list={[
+                  'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                  active === link.key
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
+                ]}
+              >
+                {link.label}
+              </a>
+            ))
+          }
+        </nav>
+
+        <div class="ml-auto flex items-center gap-1">
+          <button
+            id="refresh-btn"
+            type="button"
+            aria-label="Refresh data (re-run quota, enrich, task sync)"
+            title="Refresh: export quota, enrich ledger, sync tasks"
+            class="text-muted-foreground hover:text-foreground hover:bg-muted/60 inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors disabled:opacity-60"
+          >
+            <svg
+              class="refresh-icon size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+              <path d="M21 3v6h-6"></path>
+            </svg>
+            <span class="hidden sm:inline">Refresh</span>
+          </button>
+
+          <button
+            id="theme-toggle"
+            type="button"
+            aria-label="Toggle color theme"
+            class="text-muted-foreground hover:text-foreground hover:bg-muted/60 inline-flex size-9 items-center justify-center rounded-md transition-colors"
+          >
+            <svg
+              class="icon-sun size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="4"></circle>
+              <path
+                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+              ></path>
+            </svg>
+            <svg
+              class="icon-moon size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-6 py-8">
+      <slot />
+    </main>
+
+    <script is:inline>
+      (function () {
+        // Theme toggle — flips data-scheme (both shadcn + chart tokens honor it).
+        var btn = document.getElementById('theme-toggle');
+        if (btn) {
+          var current = function () {
+            var ds = document.documentElement.dataset.scheme;
+            if (ds === 'dark' || ds === 'light') return ds;
+            return window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+          };
+          var apply = function (s) {
+            document.documentElement.dataset.scheme = s;
+            btn.dataset.scheme = s;
+            try {
+              // Same key/vocabulary as personal-website (see the pre-paint
+              // script above) — toggling always writes an explicit light|dark.
+              localStorage.setItem('theme', s);
+            } catch (e) {}
+          };
+          btn.dataset.scheme = current();
+          btn.addEventListener('click', function () {
+            apply(current() === 'dark' ? 'light' : 'dark');
+          });
+        }
+
+        // Refresh — POST /api/refresh, then tell the islands to re-fetch.
+        var rbtn = document.getElementById('refresh-btn');
+        if (rbtn) {
+          var busy = false;
+          rbtn.addEventListener('click', async function () {
+            if (busy) return;
+            busy = true;
+            rbtn.dataset.busy = '1';
+            rbtn.disabled = true;
+            try {
+              await fetch('/api/refresh', { method: 'POST' });
+            } catch (e) {
+              /* even on failure we re-fetch what's on disk */
+            } finally {
+              busy = false;
+              delete rbtn.dataset.busy;
+              rbtn.disabled = false;
+              window.dispatchEvent(new CustomEvent('lo:refresh'));
+            }
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

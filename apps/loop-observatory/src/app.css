@@ -1,0 +1,78 @@
+/* tailwindcss */
+@import 'tailwindcss';
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+
+@theme {
+  --radius: 0.625rem;
+
+  /* Inter — the same app-UI typeface personal-website uses for its island/app
+     surfaces, so the dashboard reads as part of the same product rather than a
+     separate tool. Loaded in Layout.astro; the system stack stays as fallback.
+     (Colours already match: both apps use the shadcn plugin above, so the whole
+     palette derives from the same default seed.) */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
+}
+
+@layer base {
+  html,
+  body {
+    @apply bg-background text-foreground font-sans m-0 size-full p-0;
+  }
+}
+
+/*
+ * Chart series + status colors for the hand-rolled SVG charts.
+ * Categorical hues come from the validated data-viz reference palette
+ * (blue / aqua), stepped separately for the light and dark chart surface.
+ * Status colors are fixed (not themed) — they clear contrast on both
+ * surfaces — and pair with a label so meaning is never color-alone.
+ */
+@layer base {
+  :root {
+    --chart-1: #2a78d6;
+    --chart-2: #1baf7a;
+    --chart-3: #6455d0;
+    --chart-4: #c14b8f;
+    --chart-5: #0e8f9e;
+    --status-good: #0ca30c;
+    --status-warning: #d98a00;
+    --status-critical: #d03b3b;
+    --scope-personal: #7c3aed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --chart-1: #3987e5;
+      --chart-2: #199e70;
+      --chart-3: #7d6ee8;
+      --chart-4: #d466a4;
+      --chart-5: #1aa6b5;
+      --status-good: #16b516;
+      --status-warning: #fab219;
+      --status-critical: #e05a5a;
+      --scope-personal: #a78bfa;
+    }
+  }
+  :root[data-scheme='dark'] {
+    --chart-1: #3987e5;
+    --chart-2: #199e70;
+    --chart-3: #7d6ee8;
+    --chart-4: #d466a4;
+    --chart-5: #1aa6b5;
+    --status-good: #16b516;
+    --status-warning: #fab219;
+    --status-critical: #e05a5a;
+    --scope-personal: #a78bfa;
+  }
+  :root[data-scheme='light'] {
+    --chart-1: #2a78d6;
+    --chart-2: #1baf7a;
+    --chart-3: #6455d0;
+    --chart-4: #c14b8f;
+    --chart-5: #0e8f9e;
+    --status-good: #0ca30c;
+    --status-warning: #d98a00;
+    --status-critical: #d03b3b;
+    --scope-personal: #7c3aed;
+  }
+}
