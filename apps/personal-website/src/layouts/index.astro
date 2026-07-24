@@ -41,5 +41,10 @@ const dir = _dir(lang);
       )
     }
     <SpeedInsights />
+    <script>
+      // Cookieless recruiter-conversion tracking (outbound clicks, contact, resume,
+      // case-study views) → /api/event → GA4. No cookies, no consent banner.
+      import '../scripts/conversion-tracking';
+    </script>
   </body>
 </html>
