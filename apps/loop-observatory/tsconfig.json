@@ -13,5 +13,10 @@
     }
   },
   "include": [".astro/types.d.ts", "src", "**/*.vue"],
-  "exclude": ["dist"]
+  "exclude": ["dist"],
+  "references": [
+    {
+      "path": "../../libs/rainforest-ui"
+    }
+  ]
 }
