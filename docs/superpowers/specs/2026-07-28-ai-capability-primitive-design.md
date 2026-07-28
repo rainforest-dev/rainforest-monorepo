@@ -22,7 +22,7 @@ fallback says.
    portfolio library is React and the prior implementation this design derives from was React, so
    the core carries no framework import.
 2. **⌘K degrades to deterministic search, not to an apology.** The palette is a fuzzy search over
-   `@rainforest-dev/personal-data` that works everywhere; on-device AI is an *upgrade* that adds
+   `@rainforest-dev/personal-data` that works everywhere; on-device AI is an _upgrade_ that adds
    natural-language querying. This makes the unsupported path a working feature rather than a
    recorded video, and it is why E0's fallback slot is cheap.
 3. **Feature detection only — no UA sniffing.** See §4; this reverses an earlier assumption and the
@@ -32,11 +32,11 @@ fallback says.
 
 `apps/personal-website/src/utils/ai/`
 
-| File | Responsibility |
-|---|---|
-| `language-model.ts` | Framework-agnostic core. No Vue import. Owns detection, session lifecycle, the constrained call, and bounds. |
-| `use-language-model.ts` | Vue composable exposing the core as refs, plus lifecycle cleanup. |
-| `AiCapability.vue` | Slot-per-state wrapper. Maps `AiState` to whichever slot the consumer supplied. |
+| File                    | Responsibility                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `language-model.ts`     | Framework-agnostic core. No Vue import. Owns detection, session lifecycle, the constrained call, and bounds. |
+| `use-language-model.ts` | Vue composable exposing the core as refs, plus lifecycle cleanup.                                            |
+| `AiCapability.vue`      | Slot-per-state wrapper. Maps `AiState` to whichever slot the consumer supplied.                              |
 
 `@types/dom-chromium-ai` is already in `apps/personal-website/tsconfig.json`'s `types` array, so
 `LanguageModel` is an ambient global. No import and no `declare global` shim.
@@ -47,10 +47,10 @@ One discriminated union — the only thing consumers switch on.
 
 ```ts
 type AiState =
-  | { kind: 'unsupported' }                    // no global, or the constraint probe failed
-  | { kind: 'unavailable' }                    // availability() === 'unavailable' (hardware)
-  | { kind: 'downloadable' }                   // present and runnable, needs a gesture
-  | { kind: 'downloading'; progress: number }  // monitor → downloadprogress
+  | { kind: 'unsupported' } // no global, or the constraint probe failed
+  | { kind: 'unavailable' } // availability() === 'unavailable' (hardware)
+  | { kind: 'downloadable' } // present and runnable, needs a gesture
+  | { kind: 'downloading'; progress: number } // monitor → downloadprogress
   | { kind: 'ready' };
 ```
 
@@ -69,7 +69,7 @@ The capability ladder has three rungs and **the third cannot be climbed early**:
    session, which requires the model to be downloaded, which requires a user gesture.
 
 So rung 3 runs on **first real use**, after `ready`. If the constrained call fails, E0 transitions
-to `unsupported` *after* having reported `ready`, and caches that per session
+to `unsupported` _after_ having reported `ready`, and caches that per session
 (`sessionStorage`, keyed by a version string so a browser update re-probes).
 
 Consumers must therefore tolerate a `ready → unsupported` transition mid-flight. This is the
@@ -77,18 +77,18 @@ single most important thing to get right: a palette that renders "ready" and the
 first query is a worse experience than one that never claimed to be ready.
 
 **Why no UA gate.** An earlier design gated on `!/Edg\//.test(ua)` because Edge's `prompt()`
-rejects the `tool` role. That gate was correct for a *tool-role round-trip* architecture, which
+rejects the `tool` role. That gate was correct for a _tool-role round-trip_ architecture, which
 this design does not use — tool selection is a single `responseConstraint` call whose result is
 executed in JS, and Edge documents `responseConstraint` (JSON schema or regex) as supported.
 
 Measured on 2026-07-28 rather than assumed, on this machine, default profiles, no flags:
 
-| Global | Chrome 150 stable | Edge 150 stable | Chromium 148 (in-app) |
-|---|---|---|---|
-| `LanguageModel` | ✅ | ❌ | ✅ (`availability()` → `downloadable`) |
-| `document.modelContext` | ❌ | ❌ | ❌ |
-| `Summarizer` / `Translator` / `LanguageDetector` | ✅ | ✅ | ✅ |
-| `Writer` / `Rewriter` / `Proofreader` | ❌ | ❌ | — |
+| Global                                           | Chrome 150 stable | Edge 150 stable | Chromium 148 (in-app)                  |
+| ------------------------------------------------ | ----------------- | --------------- | -------------------------------------- |
+| `LanguageModel`                                  | ✅                | ❌              | ✅ (`availability()` → `downloadable`) |
+| `document.modelContext`                          | ❌                | ❌              | ❌                                     |
+| `Summarizer` / `Translator` / `LanguageDetector` | ✅                | ✅              | ✅                                     |
+| `Writer` / `Rewriter` / `Proofreader`            | ❌                | ❌              | —                                      |
 
 **Stable Edge does not expose `LanguageModel` at all** — the Prompt API remains Canary/Dev behind a
 flag. So a UA gate would have excluded a browser that already excludes itself, while risking a
@@ -116,13 +116,13 @@ destroy(): void
 
 Encoded in the module so consumers cannot get them wrong individually:
 
-| Rule | Why |
-|---|---|
-| One constrained call per turn; no multi-step loops | Multi-step is unreliable, and each call lengthens the main-thread freeze |
-| Wall-clock timeout on every run, via `AbortSignal` | On-device inference is single-threaded; a `setTimeout` watchdog cannot fire while the thread is blocked |
-| `session.destroy()` on unmount / navigation | Sessions hold the model in memory; the platform guide requires explicit release |
-| Model output is **untrusted** — `textContent`, never `innerHTML` | Marked MANDATORY by the platform guidance; output can contain injected markup |
-| Output pinned to English via `expectedOutputs` | Non-English output is unreliable on the current on-device models |
+| Rule                                                             | Why                                                                                                     |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| One constrained call per turn; no multi-step loops               | Multi-step is unreliable, and each call lengthens the main-thread freeze                                |
+| Wall-clock timeout on every run, via `AbortSignal`               | On-device inference is single-threaded; a `setTimeout` watchdog cannot fire while the thread is blocked |
+| `session.destroy()` on unmount / navigation                      | Sessions hold the model in memory; the platform guide requires explicit release                         |
+| Model output is **untrusted** — `textContent`, never `innerHTML` | Marked MANDATORY by the platform guidance; output can contain injected markup                           |
+| Output pinned to English via `expectedOutputs`                   | Non-English output is unreliable on the current on-device models                                        |
 
 ## 7. Fallback contract
 
@@ -130,7 +130,7 @@ Encoded in the module so consumers cannot get them wrong individually:
 produces the recorded demo later, and can only do so once E works.
 
 Because ⌘K degrades to deterministic search (§1, decision 2), the `unsupported` slot's default is
-the plain search UI. The recording is for the blog post's *demos*, not a crutch for the palette.
+the plain search UI. The recording is for the blog post's _demos_, not a crutch for the palette.
 
 ## 8. WebMCP — designed for, not depended on
 
@@ -140,7 +140,7 @@ palette uses: one catalog would then serve the local model, remote MCP clients v
 `src/pages/mcp.ts`, and browser agents.
 
 **It does not exist in any browser available to test** — `document.modelContext` is `false` in
-Chrome 150, Edge 150 and Chromium 148 (§4). So E0 carries the *mechanism*, feature-detected and
+Chrome 150, Edge 150 and Chromium 148 (§4). So E0 carries the _mechanism_, feature-detected and
 inert today, and gains a real consumer the moment the API lands.
 
 ```ts
@@ -148,17 +148,17 @@ registerAgentTools(tools: ToolDescriptor[]): { registered: boolean; dispose: () 
 ```
 
 > **Revised 2026-07-28 during implementation.** This originally took a required `AbortSignal`.
-> A required parameter only catches *"forgot to pass anything"* — it does nothing about
+> A required parameter only catches _"forgot to pass anything"_ — it does nothing about
 > `registerAgentTools(tools, new AbortController().signal)`, which type-checks and leaks exactly
 > as much as passing nothing. Owning the controller and returning `dispose` means a caller cannot
 > forget to abort a controller it never created.
 
 - Returns `false` and no-ops when `document.modelContext` is undefined. Never throws, never blocks
   startup, and is not part of the `AiState` machine — WebMCP availability is orthogonal to whether
-  the *local* model can run, and conflating them would let one break the other.
+  the _local_ model can run, and conflating them would let one break the other.
 - **Unregistration is via `AbortSignal` only** — WebMCP has no `unregisterTool()`. E0 owns that
   lifecycle so consumers cannot leak registrations across route changes.
-- `inputSchema` is JSON Schema — the *same shape* `selectTool()` passes as `responseConstraint`.
+- `inputSchema` is JSON Schema — the _same shape_ `selectTool()` passes as `responseConstraint`.
   This is the reason to build both here: one descriptor type feeds local constrained decoding and
   remote agent registration, so they cannot drift.
 

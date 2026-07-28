@@ -14,17 +14,17 @@
 
 ## File Structure
 
-| File | Responsibility |
-|---|---|
-| `apps/personal-website/vitest.config.ts` | **Already exists** (PR #224) and already yields an inferred `test` target. Modified only to switch `environment` to `jsdom`. See Task 1's correction note. |
-| `apps/personal-website/src/utils/ai/types.ts` | `AiState`, `ToolDescriptor`. No logic. |
-| `apps/personal-website/src/utils/ai/language-model.ts` | The core. Detection, session lifecycle, constrained call, bounds, probe-failure cache. |
-| `apps/personal-website/src/utils/ai/language-model.test.ts` | Unit tests against a stubbed `LanguageModel` global. |
-| `apps/personal-website/src/utils/ai/webmcp.ts` | `registerAgentTools()`. Inert when `document.modelContext` is absent. |
-| `apps/personal-website/src/utils/ai/webmcp.test.ts` | Unit tests, including the no-op path (which is every browser today). |
-| `apps/personal-website/src/utils/ai/use-language-model.ts` | Vue composable. Refs + lifecycle cleanup. |
-| `apps/personal-website/src/utils/ai/AiCapability.vue` | Slot-per-state wrapper. |
-| `apps/personal-website/src/utils/ai/index.ts` | Barrel export. |
+| File                                                        | Responsibility                                                                                                                                             |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/personal-website/vitest.config.ts`                    | **Already exists** (PR #224) and already yields an inferred `test` target. Modified only to switch `environment` to `jsdom`. See Task 1's correction note. |
+| `apps/personal-website/src/utils/ai/types.ts`               | `AiState`, `ToolDescriptor`. No logic.                                                                                                                     |
+| `apps/personal-website/src/utils/ai/language-model.ts`      | The core. Detection, session lifecycle, constrained call, bounds, probe-failure cache.                                                                     |
+| `apps/personal-website/src/utils/ai/language-model.test.ts` | Unit tests against a stubbed `LanguageModel` global.                                                                                                       |
+| `apps/personal-website/src/utils/ai/webmcp.ts`              | `registerAgentTools()`. Inert when `document.modelContext` is absent.                                                                                      |
+| `apps/personal-website/src/utils/ai/webmcp.test.ts`         | Unit tests, including the no-op path (which is every browser today).                                                                                       |
+| `apps/personal-website/src/utils/ai/use-language-model.ts`  | Vue composable. Refs + lifecycle cleanup.                                                                                                                  |
+| `apps/personal-website/src/utils/ai/AiCapability.vue`       | Slot-per-state wrapper.                                                                                                                                    |
+| `apps/personal-website/src/utils/ai/index.ts`               | Barrel export.                                                                                                                                             |
 
 Vue layer (`use-language-model.ts`, `AiCapability.vue`) is verified in the browser during D, per spec §10. Only the framework-agnostic core is unit-tested here.
 
@@ -32,11 +32,11 @@ Vue layer (`use-language-model.ts`, `AiCapability.vue`) is verified in the brows
 
 ### Task 1: Test infrastructure
 
-> **Corrected 2026-07-28 during execution.** This task originally said *Create*
+> **Corrected 2026-07-28 during execution.** This task originally said _Create_
 > `apps/personal-website/vitest.config.ts` on the premise that the app had no test target. That
 > premise was wrong — the file has existed since commit `6212b2e` (PR #224), and Nx already
 > infers a `test` target from it. The original check missed it because in zsh
-> `ls vite.config.* vitest.config.*` aborts the whole command when the *first* glob has no match,
+> `ls vite.config.* vitest.config.*` aborts the whole command when the _first_ glob has no match,
 > reporting "none" while the file was present.
 >
 > Landing the original content would also have **broken CI**: it dropped `passWithNoTests: true`,
@@ -44,6 +44,7 @@ Vue layer (`use-language-model.ts`, `AiCapability.vue`) is verified in the brows
 > window before Task 3 adds the first test file.
 
 **Files:**
+
 - Modify: `apps/personal-website/vitest.config.ts`
 
 - [ ] **Step 1: Make the minimal change**
@@ -83,6 +84,7 @@ git commit -m "test(personal-website): run app tests in jsdom for the AI capabil
 ### Task 2: Types
 
 **Files:**
+
 - Create: `apps/personal-website/src/utils/ai/types.ts`
 
 - [ ] **Step 1: Write the types**
@@ -135,6 +137,7 @@ git commit -m "feat(ai): add AiState and ToolDescriptor types"
 ### Task 3: `detectCapability()` — rungs 1 and 2
 
 **Files:**
+
 - Create: `apps/personal-website/src/utils/ai/language-model.test.ts`
 - Create: `apps/personal-website/src/utils/ai/language-model.ts`
 
@@ -145,7 +148,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { detectCapability, __resetForTests } from './language-model';
 
-type Availability = 'unavailable' | 'downloadable' | 'downloading' | 'available';
+type Availability =
+  | 'unavailable'
+  | 'downloadable'
+  | 'downloading'
+  | 'available';
 
 /** Install a stub `LanguageModel` global. Pass `null` to remove it entirely. */
 function stubLanguageModel(availability: Availability | null) {
@@ -180,7 +187,10 @@ describe('detectCapability', () => {
     expect(await detectCapability()).toEqual({ kind: 'downloadable' });
 
     stubLanguageModel('downloading');
-    expect(await detectCapability()).toEqual({ kind: 'downloading', progress: 0 });
+    expect(await detectCapability()).toEqual({
+      kind: 'downloading',
+      progress: 0,
+    });
 
     stubLanguageModel('available');
     expect(await detectCapability()).toEqual({ kind: 'ready' });
@@ -260,6 +270,7 @@ git commit -m "feat(ai): detect Prompt API capability (presence + availability)"
 ### Task 4: `enableModel()` — gesture-triggered download
 
 **Files:**
+
 - Modify: `apps/personal-website/src/utils/ai/language-model.ts`
 - Modify: `apps/personal-website/src/utils/ai/language-model.test.ts`
 
@@ -284,7 +295,10 @@ describe('enableModel', () => {
         create: vi.fn(async (opts: { monitor?: (m: EventTarget) => void }) => {
           const monitor = new EventTarget();
           opts.monitor?.(monitor);
-          const event = new Event('downloadprogress') as Event & { loaded: number; total: number };
+          const event = new Event('downloadprogress') as Event & {
+            loaded: number;
+            total: number;
+          };
           event.loaded = 5;
           event.total = 10;
           monitor.dispatchEvent(event);
@@ -311,7 +325,9 @@ describe('enableModel', () => {
       },
     });
 
-    await expect(enableModel()).rejects.toMatchObject({ name: 'NotAllowedError' });
+    await expect(enableModel()).rejects.toMatchObject({
+      name: 'NotAllowedError',
+    });
   });
 });
 ```
@@ -328,7 +344,10 @@ Expected: FAIL — `enableModel` is not exported.
 Add to `language-model.ts`:
 
 ```typescript
-type Session = { prompt: (input: string, opts?: unknown) => Promise<string>; destroy: () => void };
+type Session = {
+  prompt: (input: string, opts?: unknown) => Promise<string>;
+  destroy: () => void;
+};
 
 let session: Session | null = null;
 
@@ -339,7 +358,9 @@ let session: Session | null = null;
  * multi-hundred-megabyte download and throws `NotAllowedError` outside a user gesture, so this
  * cannot be called on ⌘K-open or on keystroke — consumers wire it to an explicit control.
  */
-export async function enableModel(onProgress?: (progress: number) => void): Promise<void> {
+export async function enableModel(
+  onProgress?: (progress: number) => void,
+): Promise<void> {
   if (typeof LanguageModel === 'undefined') {
     throw new Error('Prompt API is not available in this browser');
   }
@@ -349,7 +370,10 @@ export async function enableModel(onProgress?: (progress: number) => void): Prom
     expectedOutputs: [{ type: 'text', languages: ['en'] }],
     monitor(m: EventTarget) {
       m.addEventListener('downloadprogress', (event) => {
-        const { loaded, total } = event as Event & { loaded: number; total: number };
+        const { loaded, total } = event as Event & {
+          loaded: number;
+          total: number;
+        };
         onProgress?.(total > 0 ? loaded / total : 0);
       });
     },
@@ -376,6 +400,7 @@ git commit -m "feat(ai): gesture-triggered model download with progress"
 This is the task the spec calls the single most important thing to get right.
 
 **Files:**
+
 - Modify: `apps/personal-website/src/utils/ai/language-model.ts`
 - Modify: `apps/personal-website/src/utils/ai/language-model.test.ts`
 
@@ -401,18 +426,24 @@ describe('selectTool', () => {
   it('returns parsed schema-valid JSON', async () => {
     stubSession(async () => '{"tool":"get_skills"}');
     await enableModel();
-    expect(await selectTool('what can he do', SCHEMA)).toEqual({ tool: 'get_skills' });
+    expect(await selectTool('what can he do', SCHEMA)).toEqual({
+      tool: 'get_skills',
+    });
   });
 
   it('passes the schema as responseConstraint', async () => {
     // Explicit generic: an argumentless `vi.fn(async () => ...)` infers Mock<() => Promise<string>>,
     // so `mock.calls` is typed `[][]` and `calls[0][1]` is out of bounds. Runtime is fine, but
     // `astro check` type-checks test files and rejects it.
-    const prompt = vi.fn<(q: string, o?: unknown) => Promise<string>>(async () => '{"tool":"x"}');
+    const prompt = vi.fn<(q: string, o?: unknown) => Promise<string>>(
+      async () => '{"tool":"x"}',
+    );
     stubSession(prompt);
     await enableModel();
     await selectTool('q', SCHEMA);
-    expect(prompt.mock.calls[0][1]).toMatchObject({ responseConstraint: SCHEMA });
+    expect(prompt.mock.calls[0][1]).toMatchObject({
+      responseConstraint: SCHEMA,
+    });
   });
 
   it('degrades ready -> unsupported when the first constrained call fails', async () => {
@@ -491,11 +522,14 @@ export async function selectTool<T>(
   schema: Record<string, unknown>,
   opts: { signal?: AbortSignal } = {},
 ): Promise<T> {
-  if (!session) throw new Error('enableModel() must be called before selectTool()');
+  if (!session)
+    throw new Error('enableModel() must be called before selectTool()');
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
-  opts.signal?.addEventListener('abort', () => controller.abort(), { once: true });
+  opts.signal?.addEventListener('abort', () => controller.abort(), {
+    once: true,
+  });
 
   try {
     const raw = await session.prompt(query, {
@@ -505,7 +539,8 @@ export async function selectTool<T>(
     hasSucceededOnce = true;
     return JSON.parse(raw) as T;
   } catch (error) {
-    const aborted = error instanceof DOMException && error.name === 'AbortError';
+    const aborted =
+      error instanceof DOMException && error.name === 'AbortError';
     if (!hasSucceededOnce && !aborted) markProbeFailed();
     throw error;
   } finally {
@@ -541,6 +576,7 @@ git commit -m "feat(ai): constrained tool selection with first-use capability pr
 ### Task 6: `destroy()`
 
 **Files:**
+
 - Modify: `apps/personal-website/src/utils/ai/language-model.ts`
 - Modify: `apps/personal-website/src/utils/ai/language-model.test.ts`
 
@@ -607,11 +643,12 @@ git commit -m "feat(ai): release the model session explicitly"
 
 > **Revised 2026-07-28 during execution.** The signature below took a required `AbortSignal`;
 > it now owns its own `AbortController` and returns `{ registered, dispose }`. See the spec's §8
-> revision note for why — in short, a required signal makes callers *look* responsible without
-> making them *be* responsible. The code blocks in this task are superseded by the shipped
+> revision note for why — in short, a required signal makes callers _look_ responsible without
+> making them _be_ responsible. The code blocks in this task are superseded by the shipped
 > implementation in `apps/personal-website/src/utils/ai/webmcp.ts`.
 
 **Files:**
+
 - Create: `apps/personal-website/src/utils/ai/webmcp.ts`
 - Create: `apps/personal-website/src/utils/ai/webmcp.test.ts`
 
@@ -693,13 +730,20 @@ type ModelContext = {
  * Unregistration is via `signal` only — WebMCP has no `unregisterTool()`. This function owns that
  * contract so consumers cannot leak registrations across route changes.
  */
-export function registerAgentTools(tools: ToolDescriptor[], signal: AbortSignal): boolean {
-  const context = (document as Document & { modelContext?: ModelContext }).modelContext;
+export function registerAgentTools(
+  tools: ToolDescriptor[],
+  signal: AbortSignal,
+): boolean {
+  const context = (document as Document & { modelContext?: ModelContext })
+    .modelContext;
   if (!context?.registerTool) return false;
 
   for (const tool of tools) {
     // Every tool here reads profile data and mutates nothing.
-    context.registerTool({ ...tool, annotations: { readOnlyHint: true } }, { signal });
+    context.registerTool(
+      { ...tool, annotations: { readOnlyHint: true } },
+      { signal },
+    );
   }
   return true;
 }
@@ -722,6 +766,7 @@ git commit -m "feat(ai): WebMCP tool registration, inert until browsers ship it"
 ### Task 8: Vue composable
 
 **Files:**
+
 - Create: `apps/personal-website/src/utils/ai/use-language-model.ts`
 
 - [ ] **Step 1: Write the composable**
@@ -764,7 +809,10 @@ export function useLanguageModel() {
     }
   }
 
-  async function selectTool<T>(query: string, schema: Record<string, unknown>): Promise<T | null> {
+  async function selectTool<T>(
+    query: string,
+    schema: Record<string, unknown>,
+  ): Promise<T | null> {
     try {
       return await selectToolCore<T>(query, schema);
     } catch (cause) {
@@ -778,7 +826,13 @@ export function useLanguageModel() {
 
   onUnmounted(destroy);
 
-  return { state: readonly(state), error: readonly(error), refresh, enable, selectTool };
+  return {
+    state: readonly(state),
+    error: readonly(error),
+    refresh,
+    enable,
+    selectTool,
+  };
 }
 ```
 
@@ -799,6 +853,7 @@ git commit -m "feat(ai): Vue composable over the capability core"
 ### Task 9: `AiCapability.vue`
 
 **Files:**
+
 - Create: `apps/personal-website/src/utils/ai/AiCapability.vue`
 
 - [ ] **Step 1: Write the component**
@@ -824,7 +879,11 @@ onMounted(refresh);
     name="downloading"
     :progress="state.progress"
   />
-  <slot v-else-if="state.kind === 'downloadable'" name="downloadable" :enable="enable" />
+  <slot
+    v-else-if="state.kind === 'downloadable'"
+    name="downloadable"
+    :enable="enable"
+  />
   <slot v-else-if="state.kind === 'unavailable'" name="unavailable" />
   <slot v-else name="unsupported" :error="error" />
 </template>
@@ -847,13 +906,19 @@ git commit -m "feat(ai): slot-per-state capability wrapper"
 ### Task 10: Barrel export and final verification
 
 **Files:**
+
 - Create: `apps/personal-website/src/utils/ai/index.ts`
 
 - [ ] **Step 1: Write the barrel**
 
 ```typescript
 export { default as AiCapability } from './AiCapability.vue';
-export { destroy, detectCapability, enableModel, selectTool } from './language-model';
+export {
+  destroy,
+  detectCapability,
+  enableModel,
+  selectTool,
+} from './language-model';
 export type { AiState, ToolDescriptor } from './types';
 export { useLanguageModel } from './use-language-model';
 export { registerAgentTools } from './webmcp';
@@ -880,7 +945,7 @@ git commit -m "feat(ai): barrel export for the capability primitive"
 
 ## Correction to spec §6
 
-The spec lists *"model output is untrusted — `textContent`, never `innerHTML`"* among the rules
+The spec lists _"model output is untrusted — `textContent`, never `innerHTML`"_ among the rules
 **E0 enforces**. E0 cannot enforce it: E0 never renders, and after this plan every rendering
 decision belongs to the slot content that E and D supply. Listing it as enforced would give false
 assurance.
