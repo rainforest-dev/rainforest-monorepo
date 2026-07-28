@@ -605,6 +605,12 @@ git commit -m "feat(ai): release the model session explicitly"
 
 ### Task 7: WebMCP registration
 
+> **Revised 2026-07-28 during execution.** The signature below took a required `AbortSignal`;
+> it now owns its own `AbortController` and returns `{ registered, dispose }`. See the spec's §8
+> revision note for why — in short, a required signal makes callers *look* responsible without
+> making them *be* responsible. The code blocks in this task are superseded by the shipped
+> implementation in `apps/personal-website/src/utils/ai/webmcp.ts`.
+
 **Files:**
 - Create: `apps/personal-website/src/utils/ai/webmcp.ts`
 - Create: `apps/personal-website/src/utils/ai/webmcp.test.ts`

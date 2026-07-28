@@ -144,8 +144,14 @@ Chrome 150, Edge 150 and Chromium 148 (§4). So E0 carries the *mechanism*, feat
 inert today, and gains a real consumer the moment the API lands.
 
 ```ts
-registerAgentTools(tools: ToolDescriptor[], signal: AbortSignal): boolean
+registerAgentTools(tools: ToolDescriptor[]): { registered: boolean; dispose: () => void }
 ```
+
+> **Revised 2026-07-28 during implementation.** This originally took a required `AbortSignal`.
+> A required parameter only catches *"forgot to pass anything"* — it does nothing about
+> `registerAgentTools(tools, new AbortController().signal)`, which type-checks and leaks exactly
+> as much as passing nothing. Owning the controller and returning `dispose` means a caller cannot
+> forget to abort a controller it never created.
 
 - Returns `false` and no-ops when `document.modelContext` is undefined. Never throws, never blocks
   startup, and is not part of the `AiState` machine — WebMCP availability is orthogonal to whether
