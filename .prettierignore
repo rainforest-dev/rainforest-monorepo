@@ -4,3 +4,22 @@
 /.nx/cache
 /.nx/workspace-data
 .nx/self-healing
+
+# Build output. The bare `/dist` above is root-anchored, so it never matched
+# apps/*/dist or libs/*/dist — those were being format-checked until now.
+**/dist
+**/.astro
+**/.vercel
+**/storybook-static
+**/coverage
+
+# Vendored third-party agent skills. These are re-vendored from upstream rather than
+# edited here, so formatting them would produce a large diff that conflicts on every
+# refresh. 254 of the 445 files the checker originally flagged were these.
+/.agents
+
+# Generated / exported artifacts, not hand-authored source.
+# .reference holds a 9,200-line Claude Design HTML export kept for reference; formatting it
+# expands it by ~11,000 lines of pure churn.
+**/.reference
+pnpm-lock.yaml
