@@ -60,6 +60,7 @@ const experiences = defineCollection({
   }),
   schema: z.object({
     type: z.enum(tags.experience),
+    employment: z.enum(tags.employment).default('full-time'),
     language: z.enum(supportedLngs),
     organization: reference('organizations'),
     position: z.string(),

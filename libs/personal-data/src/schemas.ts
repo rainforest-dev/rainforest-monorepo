@@ -8,7 +8,7 @@
 // vice versa.
 import { z } from 'zod';
 
-import { experienceTypes, locales, skillTags } from './vocab';
+import { employmentTypes, experienceTypes, locales, skillTags } from './vocab';
 
 export const organizationSchema = z.object({
   name: z.string(),
@@ -19,6 +19,7 @@ export const organizationSchema = z.object({
 
 export const experienceSchema = z.object({
   type: z.enum(experienceTypes),
+  employment: z.enum(employmentTypes).default('full-time'),
   language: z.enum(locales),
   organization: z.string(),
   position: z.string(),

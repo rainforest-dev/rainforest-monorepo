@@ -29,8 +29,15 @@ export const skillTags = [
 
 export const experienceTypes = ['job', 'education'] as const;
 
+// Distinguishes substantive employment from student-era internships/assistantships. Only
+// `full-time` entries count toward the years-of-experience figure the hero renders, so the
+// public number matches how a résumé screen counts it rather than spanning back to the first
+// student role. Defaults to `full-time` — tag the exceptions, not the norm.
+export const employmentTypes = ['full-time', 'internship'] as const;
+
 export const locales = ['en', 'zh'] as const;
 
 export type SkillTag = (typeof skillTags)[number];
 export type ExperienceType = (typeof experienceTypes)[number];
+export type EmploymentType = (typeof employmentTypes)[number];
 export type Locale = (typeof locales)[number];

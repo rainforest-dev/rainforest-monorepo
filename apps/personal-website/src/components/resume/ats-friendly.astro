@@ -82,8 +82,10 @@ const skills = groupBy(
             <li>
               <Fragment>
                 <time>{format(startAt, resumeDateFormat, { locale })}</time> -{' '}
-                {endAt && (
+                {endAt ? (
                   <time>{format(endAt, resumeDateFormat, { locale })}</time>
+                ) : (
+                  <span>{t('present')}</span>
                 )}
               </Fragment>
               <h3>{organization.data.name}</h3>
