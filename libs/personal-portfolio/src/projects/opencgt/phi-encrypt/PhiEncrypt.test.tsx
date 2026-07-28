@@ -25,9 +25,7 @@ describe('<PhiEncrypt>', () => {
 
   it('mounts with the mock patient record and two orgs', () => {
     render(<PhiEncrypt />);
-    expect(
-      screen.getByDisplayValue('Jordan Avery'),
-    ).toBeDefined();
+    expect(screen.getByDisplayValue('Jordan Avery')).toBeDefined();
     expect(screen.getByDisplayValue("St. Mary's Hospital")).toBeDefined();
     expect(screen.getByDisplayValue('Novacell Therapeutics')).toBeDefined();
   });
@@ -37,7 +35,9 @@ describe('<PhiEncrypt>', () => {
     render(<PhiEncrypt />);
     fireEvent.click(screen.getByRole('button', { name: /encrypt & submit/i }));
     fireEvent.click(
-      screen.getByRole('button', { name: /open as st\. mary's hospital \(phi\)/i }),
+      screen.getByRole('button', {
+        name: /open as st\. mary's hospital \(phi\)/i,
+      }),
     );
     expect(screen.getByRole('status')).toBeDefined();
     expect(screen.getByText('Jordan Avery')).toBeDefined();

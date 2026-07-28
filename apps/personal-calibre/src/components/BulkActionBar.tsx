@@ -32,13 +32,13 @@ export function BulkActionBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 flex-wrap items-center gap-3 rounded-xl border border-border px-4 py-3 shadow-xl backdrop-blur">
+    <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 border-border fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 flex-wrap items-center gap-3 rounded-xl border px-4 py-3 shadow-xl backdrop-blur">
       <span className="text-sm font-medium">{selectedCount} selected</span>
 
       <div className="flex items-center gap-2">
         <select
           aria-label="Platform"
-          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+          className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
           value={selectedPlatformKey}
           onChange={(e) => onPlatformChange(e.target.value)}
           disabled={isSubmitting}
@@ -53,7 +53,7 @@ export function BulkActionBar({
           type="button"
           onClick={onAddToPlatform}
           disabled={isSubmitting || !selectedPlatformKey}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
         >
           {isSubmitting ? 'Adding…' : 'Add to platform'}
         </button>
@@ -62,7 +62,7 @@ export function BulkActionBar({
       <div className="flex items-center gap-2">
         <select
           aria-label="Download format"
-          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+          className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
           value={zipFormat}
           onChange={(e) => onZipFormatChange(e.target.value)}
           disabled={isSubmitting}
@@ -77,7 +77,7 @@ export function BulkActionBar({
           type="button"
           onClick={onDownloadZip}
           disabled={isSubmitting}
-          className="hover:bg-accent rounded-lg border border-input px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+          className="hover:bg-accent border-input rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
         >
           Download ZIP
         </button>

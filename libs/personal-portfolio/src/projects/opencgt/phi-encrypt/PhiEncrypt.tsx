@@ -115,7 +115,7 @@ export function PhiEncrypt(): JSX.Element {
     <div className="border-border bg-card text-card-foreground rounded-xl border p-6">
       <div className="flex flex-wrap gap-6">
         <div className="min-w-[260px] flex-1">
-          <div className="text-muted-foreground mb-3 text-[11px] font-semibold tracking-wide uppercase">
+          <div className="text-muted-foreground mb-3 text-[11px] font-semibold uppercase tracking-wide">
             Patient record
           </div>
           <label className="mb-3 block text-xs">
@@ -123,7 +123,7 @@ export function PhiEncrypt(): JSX.Element {
             <input
               value={record.fullName}
               onChange={(e) => updateField('fullName', e.target.value)}
-              className="border-border bg-background text-foreground mt-1.5 h-9 w-full rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="border-border bg-background text-foreground focus-visible:ring-ring focus-visible:ring-offset-background mt-1.5 h-9 w-full rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             />
           </label>
           <label className="mb-3 block text-xs">
@@ -131,7 +131,7 @@ export function PhiEncrypt(): JSX.Element {
             <input
               value={record.dob}
               onChange={(e) => updateField('dob', e.target.value)}
-              className="border-border bg-background text-foreground mt-1.5 h-9 w-full rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="border-border bg-background text-foreground focus-visible:ring-ring focus-visible:ring-offset-background mt-1.5 h-9 w-full rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             />
           </label>
           <label className="mb-3 block text-xs">
@@ -139,19 +139,19 @@ export function PhiEncrypt(): JSX.Element {
             <input
               value={record.mrn}
               onChange={(e) => updateField('mrn', e.target.value)}
-              className="border-border bg-background text-foreground mt-1.5 h-9 w-full rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="border-border bg-background text-foreground focus-visible:ring-ring focus-visible:ring-offset-background mt-1.5 h-9 w-full rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             />
           </label>
 
-          <div className="mt-1 mb-2 flex items-center justify-between">
-            <span className="text-muted-foreground text-[11px] font-semibold tracking-wide uppercase">
+          <div className="mb-2 mt-1 flex items-center justify-between">
+            <span className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
               Orgs that can access
             </span>
             <button
               type="button"
               onClick={addOrg}
               disabled={orgs.length >= MAX_ORGS}
-              className="text-primary rounded text-xs font-semibold transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+              className="text-primary hover:text-primary/80 focus-visible:ring-ring rounded text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-40"
             >
               + add org
             </button>
@@ -162,13 +162,13 @@ export function PhiEncrypt(): JSX.Element {
                 value={org.name}
                 onChange={(e) => updateOrgName(i, e.target.value)}
                 aria-label={`Org ${i + 1} name`}
-                className="border-border bg-background text-foreground h-9 min-w-0 flex-1 rounded-md border px-2.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="border-border bg-background text-foreground focus-visible:ring-ring focus-visible:ring-offset-background h-9 min-w-0 flex-1 rounded-md border px-2.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               />
               <button
                 type="button"
                 onClick={() => toggleOrgGrant(i)}
                 className={cx(
-                  'h-9 shrink-0 rounded-md border px-2.5 font-mono text-xs whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'focus-visible:ring-ring h-9 shrink-0 whitespace-nowrap rounded-md border px-2.5 font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2',
                   org.grant === 'phi'
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border text-muted-foreground hover:bg-muted',
@@ -199,7 +199,7 @@ export function PhiEncrypt(): JSX.Element {
         </div>
 
         <div className="min-w-[260px] flex-1">
-          <div className="text-muted-foreground mb-3 text-[11px] font-semibold tracking-wide uppercase">
+          <div className="text-muted-foreground mb-3 text-[11px] font-semibold uppercase tracking-wide">
             Pipeline
           </div>
           <div className="flex flex-col gap-2">
@@ -238,10 +238,10 @@ export function PhiEncrypt(): JSX.Element {
               <div className="text-muted-foreground mb-1.5 text-xs">
                 ciphertext (stored server-side)
               </div>
-              <div className="border-border bg-muted/30 text-muted-foreground rounded-md border p-2.5 font-mono text-[11px] break-all">
+              <div className="border-border bg-muted/30 text-muted-foreground break-all rounded-md border p-2.5 font-mono text-[11px]">
                 {MOCK_BLOB}
               </div>
-              <div className="text-muted-foreground mt-3 mb-1.5 text-xs">
+              <div className="text-muted-foreground mb-1.5 mt-3 text-xs">
                 wrapped AES key · per recipient
               </div>
               {orgs.map((org, i) => (
@@ -252,7 +252,7 @@ export function PhiEncrypt(): JSX.Element {
                   </span>
                 </div>
               ))}
-              <div className="text-muted-foreground mt-3.5 mb-2 text-[11px] font-semibold tracking-wide uppercase">
+              <div className="text-muted-foreground mb-2 mt-3.5 text-[11px] font-semibold uppercase tracking-wide">
                 Open as…
               </div>
               <div className="flex flex-wrap gap-2">
@@ -263,7 +263,7 @@ export function PhiEncrypt(): JSX.Element {
                     aria-pressed={openIndex === i}
                     onClick={() => setOpenIndex(i)}
                     className={cx(
-                      'h-8 rounded-md border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      'focus-visible:ring-ring h-8 rounded-md border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2',
                       openIndex === i
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'border-primary/30 text-primary hover:bg-primary/10',

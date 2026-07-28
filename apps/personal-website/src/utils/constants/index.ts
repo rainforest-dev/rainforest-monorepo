@@ -1,4 +1,8 @@
-import { employmentTypes, experienceTypes, skillTags } from '@rainforest-dev/personal-data/vocab';
+import {
+  employmentTypes,
+  experienceTypes,
+  skillTags,
+} from '@rainforest-dev/personal-data/vocab';
 import type { ILink, SkillTag } from '@types';
 import { getGitHubUrl, getLinkedInUrl } from '@utils';
 

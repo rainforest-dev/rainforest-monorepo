@@ -14,9 +14,10 @@
 
 ### Task 1: Vitest setup for `apps/personal-website`
 
-**2026-07-05 revision:** the original version of this task used Astro's `getViteConfig` helper, on the assumption that it makes `astro:content` resolve live inside Vitest. It doesn't — this was tried and confirmed broken (Task 1's first implementer hit it; the controller then verified independently: even after a successful `astro build` that writes real data into `node_modules/.astro/data-store.json`, a Vitest process still sees every collection as empty). This is a known, unresolved gap in the wider Astro/Vitest ecosystem, not a local misconfiguration — see [withastro/astro#12836](https://github.com/withastro/astro/issues/12836) and [withastro/astro#7051](https://github.com/withastro/astro/issues/7051). The documented, ecosystem-standard fix is to **mock `astro:content` in tests** rather than resolve it live — see [Giorgiosaud: How to Mock astro:content in Vitest](https://www.giorgiosaud.io/notebook/how-to-mock-astro-content-in-vitest). This task (and Tasks 2-3) are rewritten around that fix. `profile-data.ts`'s implementation is unaffected — only how it's tested changes. Real, live content resolution is still verified, just later: Tasks 4-5's curl checks hit the actual running Astro dev server, which *does* populate content correctly outside of Vitest's process.
+**2026-07-05 revision:** the original version of this task used Astro's `getViteConfig` helper, on the assumption that it makes `astro:content` resolve live inside Vitest. It doesn't — this was tried and confirmed broken (Task 1's first implementer hit it; the controller then verified independently: even after a successful `astro build` that writes real data into `node_modules/.astro/data-store.json`, a Vitest process still sees every collection as empty). This is a known, unresolved gap in the wider Astro/Vitest ecosystem, not a local misconfiguration — see [withastro/astro#12836](https://github.com/withastro/astro/issues/12836) and [withastro/astro#7051](https://github.com/withastro/astro/issues/7051). The documented, ecosystem-standard fix is to **mock `astro:content` in tests** rather than resolve it live — see [Giorgiosaud: How to Mock astro:content in Vitest](https://www.giorgiosaud.io/notebook/how-to-mock-astro-content-in-vitest). This task (and Tasks 2-3) are rewritten around that fix. `profile-data.ts`'s implementation is unaffected — only how it's tested changes. Real, live content resolution is still verified, just later: Tasks 4-5's curl checks hit the actual running Astro dev server, which _does_ populate content correctly outside of Vitest's process.
 
 **Files:**
+
 - Create: `apps/personal-website/vitest.config.ts`
 - Create: `apps/personal-website/src/mcp/profile-data.fixtures.ts`
 - Create: `apps/personal-website/src/mcp/smoke.test.ts`
@@ -41,9 +42,25 @@ export default defineConfig({
 // apps/personal-website/src/mcp/profile-data.fixtures.ts
 
 export const organizationFixtures = [
-  { id: 'en/codegreen', collection: 'organizations' as const, data: { name: 'CodeGreen', language: 'en', link: 'https://www.codegreen.org' } },
-  { id: 'en/jubo', collection: 'organizations' as const, data: { name: 'Jubo', language: 'en' } },
-  { id: 'en/master', collection: 'organizations' as const, data: { name: 'Master University', language: 'en' } },
+  {
+    id: 'en/codegreen',
+    collection: 'organizations' as const,
+    data: {
+      name: 'CodeGreen',
+      language: 'en',
+      link: 'https://www.codegreen.org',
+    },
+  },
+  {
+    id: 'en/jubo',
+    collection: 'organizations' as const,
+    data: { name: 'Jubo', language: 'en' },
+  },
+  {
+    id: 'en/master',
+    collection: 'organizations' as const,
+    data: { name: 'Master University', language: 'en' },
+  },
 ];
 
 export const experienceFixtures = [
@@ -53,7 +70,10 @@ export const experienceFixtures = [
     data: {
       type: 'job' as const,
       language: 'en',
-      organization: { collection: 'organizations' as const, id: 'en/codegreen' },
+      organization: {
+        collection: 'organizations' as const,
+        id: 'en/codegreen',
+      },
       position: 'Senior Frontend Engineer',
       startAt: new Date('2022-07-01'),
       endAt: new Date('2024-10-01'),
@@ -102,7 +122,10 @@ export const projectFixtures = [
       name: 'OpenCGT',
       language: 'en',
       technologies: ['nextjs', 'auth0', 'mui', 'playwright', 'vitest'],
-      organization: { collection: 'organizations' as const, id: 'en/codegreen' },
+      organization: {
+        collection: 'organizations' as const,
+        id: 'en/codegreen',
+      },
       experience: { collection: 'experiences' as const, id: 'en/6' },
     },
     body: 'Led frontend development for a B2B product.',
@@ -110,7 +133,12 @@ export const projectFixtures = [
 ];
 
 export const skillFixtures = [
-  { id: 'en/ts', collection: 'skills' as const, data: { name: 'TypeScript', icon: 'typescript', tags: ['languages'] }, body: '' },
+  {
+    id: 'en/ts',
+    collection: 'skills' as const,
+    data: { name: 'TypeScript', icon: 'typescript', tags: ['languages'] },
+    body: '',
+  },
 ];
 
 export const fixturesByCollection = {
@@ -136,13 +164,21 @@ vi.mock('astro:content', () => ({
 import { getCollection, getEntry } from 'astro:content';
 
 beforeEach(() => {
-  vi.mocked(getCollection).mockImplementation(async (name: string, filter?: (e: unknown) => boolean) => {
-    const entries = fixturesByCollection[name as keyof typeof fixturesByCollection] ?? [];
-    return filter ? entries.filter(filter) : entries;
-  });
+  vi.mocked(getCollection).mockImplementation(
+    async (name: string, filter?: (e: unknown) => boolean) => {
+      const entries =
+        fixturesByCollection[name as keyof typeof fixturesByCollection] ?? [];
+      return filter ? entries.filter(filter) : entries;
+    },
+  );
   vi.mocked(getEntry).mockImplementation(async (a: unknown, b?: unknown) => {
-    const [collection, id] = typeof a === 'string' ? [a, b as string] : [(a as { collection: string }).collection, (a as { id: string }).id];
-    const entries = fixturesByCollection[collection as keyof typeof fixturesByCollection] ?? [];
+    const [collection, id] =
+      typeof a === 'string'
+        ? [a, b as string]
+        : [(a as { collection: string }).collection, (a as { id: string }).id];
+    const entries =
+      fixturesByCollection[collection as keyof typeof fixturesByCollection] ??
+      [];
     return entries.find((e) => e.id === id);
   });
 });
@@ -154,7 +190,10 @@ describe('astro:content mocking harness', () => {
   });
 
   it('resolves a single fixture entry through the mocked getEntry (reference-object form)', async () => {
-    const org = await getEntry({ collection: 'organizations', id: 'en/codegreen' });
+    const org = await getEntry({
+      collection: 'organizations',
+      id: 'en/codegreen',
+    });
     expect(org?.data.name).toBe('CodeGreen');
   });
 
@@ -187,6 +226,7 @@ git commit -m "test(personal-website): add vitest config and astro:content mocki
 ### Task 2: Profile data access layer — experiences
 
 **Files:**
+
 - Create: `apps/personal-website/src/mcp/profile-data.ts`
 - Create: `apps/personal-website/src/mcp/profile-data.test.ts`
 
@@ -208,13 +248,21 @@ import { getCollection, getEntry } from 'astro:content';
 import { getWorkExperience } from './profile-data';
 
 beforeEach(() => {
-  vi.mocked(getCollection).mockImplementation(async (name: string, filter?: (e: unknown) => boolean) => {
-    const entries = fixturesByCollection[name as keyof typeof fixturesByCollection] ?? [];
-    return filter ? entries.filter(filter) : entries;
-  });
+  vi.mocked(getCollection).mockImplementation(
+    async (name: string, filter?: (e: unknown) => boolean) => {
+      const entries =
+        fixturesByCollection[name as keyof typeof fixturesByCollection] ?? [];
+      return filter ? entries.filter(filter) : entries;
+    },
+  );
   vi.mocked(getEntry).mockImplementation(async (a: unknown, b?: unknown) => {
-    const [collection, id] = typeof a === 'string' ? [a, b as string] : [(a as { collection: string }).collection, (a as { id: string }).id];
-    const entries = fixturesByCollection[collection as keyof typeof fixturesByCollection] ?? [];
+    const [collection, id] =
+      typeof a === 'string'
+        ? [a, b as string]
+        : [(a as { collection: string }).collection, (a as { id: string }).id];
+    const entries =
+      fixturesByCollection[collection as keyof typeof fixturesByCollection] ??
+      [];
     return entries.find((e) => e.id === id);
   });
 });
@@ -309,7 +357,9 @@ async function resolveExperience(
 }
 
 /** Technologies declared directly on the experience, plus technologies of any linked projects. */
-async function experienceTechnologies(entry: CollectionEntry<'experiences'>): Promise<SkillTag[]> {
+async function experienceTechnologies(
+  entry: CollectionEntry<'experiences'>,
+): Promise<SkillTag[]> {
   const direct = entry.data.technologies ?? [];
   const projectRefs = entry.data.projects ?? [];
   const projects = await Promise.all(projectRefs.map((ref) => getEntry(ref)));
@@ -334,7 +384,11 @@ export async function getWorkExperience(
   const filtered = technology
     ? withTech.filter(({ technologies }) => technologies.includes(technology))
     : withTech;
-  return Promise.all(filtered.map(({ entry, technologies }) => resolveExperience(entry, technologies)));
+  return Promise.all(
+    filtered.map(({ entry, technologies }) =>
+      resolveExperience(entry, technologies),
+    ),
+  );
 }
 ```
 
@@ -355,6 +409,7 @@ git commit -m "feat(personal-website): add getWorkExperience profile data access
 ### Task 3: Profile data access layer — education, projects, skills, summary, search
 
 **Files:**
+
 - Modify: `apps/personal-website/src/mcp/profile-data.ts`
 - Modify: `apps/personal-website/src/mcp/profile-data.test.ts`
 
@@ -391,8 +446,13 @@ describe('getProjects', () => {
   });
 
   it('filters by technology', async () => {
-    const projects = await getProjects({ lang: 'en', technology: 'playwright' });
-    expect(projects.every((p) => p.technologies.includes('playwright'))).toBe(true);
+    const projects = await getProjects({
+      lang: 'en',
+      technology: 'playwright',
+    });
+    expect(projects.every((p) => p.technologies.includes('playwright'))).toBe(
+      true,
+    );
     expect(projects.length).toBeGreaterThan(0);
   });
 });
@@ -451,7 +511,9 @@ export async function getEducation(
     (entry) => entry.data.type === 'education' && entry.data.language === lang,
   );
   return Promise.all(
-    entries.map(async (entry) => resolveExperience(entry, await experienceTechnologies(entry))),
+    entries.map(async (entry) =>
+      resolveExperience(entry, await experienceTechnologies(entry)),
+    ),
   );
 }
 
@@ -465,7 +527,9 @@ export interface ResolvedProject {
   content: string;
 }
 
-async function resolveProject(entry: CollectionEntry<'projects'>): Promise<ResolvedProject> {
+async function resolveProject(
+  entry: CollectionEntry<'projects'>,
+): Promise<ResolvedProject> {
   return {
     id: entry.id,
     name: entry.data.name,
@@ -498,9 +562,13 @@ export interface ResolvedSkill {
   content: string;
 }
 
-export async function getSkills(options: { lang?: string } = {}): Promise<ResolvedSkill[]> {
+export async function getSkills(
+  options: { lang?: string } = {},
+): Promise<ResolvedSkill[]> {
   const { lang = 'en' } = options;
-  const entries = await getCollection('skills', (entry) => entry.id.startsWith(`${lang}/`));
+  const entries = await getCollection('skills', (entry) =>
+    entry.id.startsWith(`${lang}/`),
+  );
   return entries.map((entry) => ({
     id: entry.id,
     name: entry.data.name,
@@ -517,7 +585,9 @@ export interface ProfileSummary {
   topTechnologies: SkillTag[];
 }
 
-export async function getProfileSummary(options: { lang?: string } = {}): Promise<ProfileSummary> {
+export async function getProfileSummary(
+  options: { lang?: string } = {},
+): Promise<ProfileSummary> {
   const { lang = 'en' } = options;
   const [experiences, projects, skills] = await Promise.all([
     getWorkExperience({ lang }),
@@ -526,10 +596,12 @@ export async function getProfileSummary(options: { lang?: string } = {}): Promis
   ]);
   const techCounts = new Map<SkillTag, number>();
   for (const exp of experiences) {
-    for (const tech of exp.technologies) techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
+    for (const tech of exp.technologies)
+      techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
   }
   for (const project of projects) {
-    for (const tech of project.technologies) techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
+    for (const tech of project.technologies)
+      techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
   }
   const topTechnologies = [...techCounts.entries()]
     .sort((a, b) => b[1] - a[1])
@@ -553,8 +625,12 @@ export async function searchByTechnology(
     getProjects({ lang }),
   ]);
   return {
-    experiences: experiences.filter((e) => e.technologies.some((t) => t.toLowerCase().includes(q))),
-    projects: projects.filter((p) => p.technologies.some((t) => t.toLowerCase().includes(q))),
+    experiences: experiences.filter((e) =>
+      e.technologies.some((t) => t.toLowerCase().includes(q)),
+    ),
+    projects: projects.filter((p) =>
+      p.technologies.some((t) => t.toLowerCase().includes(q)),
+    ),
   };
 }
 ```
@@ -578,6 +654,7 @@ git commit -m "feat(personal-website): add remaining profile data accessors"
 This resolves the design spec's open risk (§3): confirm `mcp-handler`'s handler wires into an Astro `APIRoute` before building the full tool surface on top of it.
 
 **Files:**
+
 - Modify: `apps/personal-website/package.json`
 - Create: `apps/personal-website/src/pages/api/mcp.ts`
 
@@ -596,9 +673,14 @@ import type { APIRoute } from 'astro';
 
 const handler = createMcpHandler(
   (server) => {
-    server.tool('ping', 'Health check tool', { echo: z.string().optional() }, async ({ echo }) => ({
-      content: [{ type: 'text', text: `pong${echo ? `: ${echo}` : ''}` }],
-    }));
+    server.tool(
+      'ping',
+      'Health check tool',
+      { echo: z.string().optional() },
+      async ({ echo }) => ({
+        content: [{ type: 'text', text: `pong${echo ? `: ${echo}` : ''}` }],
+      }),
+    );
   },
   {},
   { basePath: '/api' },
@@ -630,6 +712,7 @@ git commit -m "feat(personal-website): spike mcp-handler on an Astro API route"
 **2026-07-05 note:** uses `server.registerTool(name, {description, inputSchema}, cb)` for all 6 tools, not `server.tool(name, description, schema, cb)` — Task 4's code-quality review found the latter is deprecated in the installed `@modelcontextprotocol/sdk@1.29.0` (`astro check` surfaces the warning directly) and Task 4's spike was already fixed to match. Zod stays pinned to `^3.25.76` (not bumped to match `astro/zod`'s v4) — see Task 4's fix commit for the reasoning.
 
 **Files:**
+
 - Modify: `apps/personal-website/src/pages/api/mcp.ts`
 
 - [ ] **Step 1: Replace the spike tool with the full tool/resource surface**
@@ -658,11 +741,17 @@ const handler = createMcpHandler(
     server.registerTool(
       'get_profile_summary',
       {
-        description: 'Professional profile overview: counts and top technologies',
+        description:
+          'Professional profile overview: counts and top technologies',
         inputSchema: { lang: langSchema },
       },
       async ({ lang }) => ({
-        content: [{ type: 'text', text: JSON.stringify(await getProfileSummary({ lang })) }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(await getProfileSummary({ lang })),
+          },
+        ],
       }),
     );
 
@@ -674,7 +763,12 @@ const handler = createMcpHandler(
       },
       async ({ technology, lang }) => ({
         content: [
-          { type: 'text', text: JSON.stringify(await getWorkExperience({ technology: technology as any, lang })) },
+          {
+            type: 'text',
+            text: JSON.stringify(
+              await getWorkExperience({ technology: technology as any, lang }),
+            ),
+          },
         ],
       }),
     );
@@ -683,7 +777,9 @@ const handler = createMcpHandler(
       'get_education',
       { description: 'Academic background', inputSchema: { lang: langSchema } },
       async ({ lang }) => ({
-        content: [{ type: 'text', text: JSON.stringify(await getEducation({ lang })) }],
+        content: [
+          { type: 'text', text: JSON.stringify(await getEducation({ lang })) },
+        ],
       }),
     );
 
@@ -695,27 +791,43 @@ const handler = createMcpHandler(
       },
       async ({ technology, lang }) => ({
         content: [
-          { type: 'text', text: JSON.stringify(await getProjects({ technology: technology as any, lang })) },
+          {
+            type: 'text',
+            text: JSON.stringify(
+              await getProjects({ technology: technology as any, lang }),
+            ),
+          },
         ],
       }),
     );
 
     server.registerTool(
       'get_skills',
-      { description: 'Technical skills inventory', inputSchema: { lang: langSchema } },
+      {
+        description: 'Technical skills inventory',
+        inputSchema: { lang: langSchema },
+      },
       async ({ lang }) => ({
-        content: [{ type: 'text', text: JSON.stringify(await getSkills({ lang })) }],
+        content: [
+          { type: 'text', text: JSON.stringify(await getSkills({ lang })) },
+        ],
       }),
     );
 
     server.registerTool(
       'search_by_technology',
       {
-        description: 'Substring-match a technology name across all experiences and projects',
+        description:
+          'Substring-match a technology name across all experiences and projects',
         inputSchema: { query: z.string(), lang: langSchema },
       },
       async ({ query, lang }) => ({
-        content: [{ type: 'text', text: JSON.stringify(await searchByTechnology(query, { lang })) }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(await searchByTechnology(query, { lang })),
+          },
+        ],
       }),
     );
 
@@ -728,7 +840,9 @@ const handler = createMcpHandler(
       async (uri, { id }) => {
         const entry = await getEntry('experiences', id as string);
         if (!entry) throw new Error(`Experience not found: ${id}`);
-        return { contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }] };
+        return {
+          contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }],
+        };
       },
     );
 
@@ -739,7 +853,9 @@ const handler = createMcpHandler(
       async (uri, { id }) => {
         const entry = await getEntry('projects', id as string);
         if (!entry) throw new Error(`Project not found: ${id}`);
-        return { contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }] };
+        return {
+          contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }],
+        };
       },
     );
 
@@ -750,7 +866,9 @@ const handler = createMcpHandler(
       async (uri, { id }) => {
         const entry = await getEntry('skills', id as string);
         if (!entry) throw new Error(`Skill not found: ${id}`);
-        return { contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }] };
+        return {
+          contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }],
+        };
       },
     );
   },

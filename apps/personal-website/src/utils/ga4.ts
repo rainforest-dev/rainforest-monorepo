@@ -25,7 +25,10 @@ export async function sendGa4Event(
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ client_id: clientId, events: [{ name, params }] }),
+        body: JSON.stringify({
+          client_id: clientId,
+          events: [{ name, params }],
+        }),
       },
     );
   } catch {

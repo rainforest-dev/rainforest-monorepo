@@ -3,7 +3,11 @@ import { useTranslation } from '@utils';
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 
-export const GET: APIRoute = async ({ site, params: { lang = 'en' }, cache }) => {
+export const GET: APIRoute = async ({
+  site,
+  params: { lang = 'en' },
+  cache,
+}) => {
   // Astro 7 route caching: the feed only changes when blog content changes (on
   // deploy), so push it to Vercel's edge and serve cache hits from the CDN
   // instead of re-rendering per request. No AI-crawler tracking runs here, so

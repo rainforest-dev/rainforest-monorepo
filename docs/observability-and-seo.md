@@ -15,16 +15,16 @@ actually working** (see [Periodic review](#periodic-review)).
 
 ## What's instrumented
 
-| Layer | Tool | Turned on by | Status |
-|---|---|---|---|
-| Search / SEO | Canonical + hreflang, JSON-LD, sitemap, robots, llms.txt | always on | ✅ live |
-| Search consoles | Google Search Console + Bing Webmaster | dashboards (verified) | ✅ live |
-| Real-user metrics | Vercel Web Analytics + Speed Insights | `astro.config.mjs` | ✅ live |
-| Product analytics | Microsoft Clarity (heatmaps + replay) | `PUBLIC_CLARITY_PROJECT_ID` | ✅ live |
-| **Conversion tracking** | **Cookieless GA4 events via `/api/event`** | `GA_MEASUREMENT_ID` + `GA_API_SECRET` | ✅ live |
-| AI-crawler analytics | GA4 Measurement Protocol (`ai_resource_fetch`) | `GA_MEASUREMENT_ID` + `GA_API_SECRET` | ✅ live (server-side) |
-| Error monitoring | Sentry (`@sentry/astro`, error-only) | `PUBLIC_SENTRY_DSN` | ✅ live |
-| Performance CI | Lighthouse CI (weekly + on-demand) | `.github/workflows/lighthouse.yml` | ✅ live on `main` |
+| Layer                   | Tool                                                     | Turned on by                          | Status                |
+| ----------------------- | -------------------------------------------------------- | ------------------------------------- | --------------------- |
+| Search / SEO            | Canonical + hreflang, JSON-LD, sitemap, robots, llms.txt | always on                             | ✅ live               |
+| Search consoles         | Google Search Console + Bing Webmaster                   | dashboards (verified)                 | ✅ live               |
+| Real-user metrics       | Vercel Web Analytics + Speed Insights                    | `astro.config.mjs`                    | ✅ live               |
+| Product analytics       | Microsoft Clarity (heatmaps + replay)                    | `PUBLIC_CLARITY_PROJECT_ID`           | ✅ live               |
+| **Conversion tracking** | **Cookieless GA4 events via `/api/event`**               | `GA_MEASUREMENT_ID` + `GA_API_SECRET` | ✅ live               |
+| AI-crawler analytics    | GA4 Measurement Protocol (`ai_resource_fetch`)           | `GA_MEASUREMENT_ID` + `GA_API_SECRET` | ✅ live (server-side) |
+| Error monitoring        | Sentry (`@sentry/astro`, error-only)                     | `PUBLIC_SENTRY_DSN`                   | ✅ live               |
+| Performance CI          | Lighthouse CI (weekly + on-demand)                       | `.github/workflows/lighthouse.yml`    | ✅ live on `main`     |
 
 ---
 
@@ -81,7 +81,7 @@ Both GA4 paths are **server-side Measurement Protocol** through one shared sende
 [`src/utils/ga4.ts`](../apps/personal-website/src/utils/ga4.ts). There is
 deliberately **no client-side `gtag`**: a fresh random `client_id` is minted per
 event, so nothing is stored on the visitor and no consent banner is required. The
-trade-off is that GA4's *user/session* counts are meaningless here — **event counts
+trade-off is that GA4's _user/session_ counts are meaningless here — **event counts
 are the signal**, which is all these questions need.
 
 **a) AI-crawler discovery** —
@@ -98,12 +98,12 @@ server-side), driven by
 — one delegated click listener plus page-view hooks, loaded site-wide from
 [`src/layouts/index.astro`](../apps/personal-website/src/layouts/index.astro):
 
-| Event | Params | Fires when |
-|---|---|---|
-| `outbound_click` | `target`: `github` \| `linkedin` \| `email` | a profile/mail link is clicked |
-| `contact_submit` | — | the contact form's `mailto:` submit is clicked |
-| `resume_view` | — | `/resume` is viewed |
-| `case_study_view` | `slug` | a `/portfolio/<slug>` page is viewed |
+| Event             | Params                                      | Fires when                                     |
+| ----------------- | ------------------------------------------- | ---------------------------------------------- |
+| `outbound_click`  | `target`: `github` \| `linkedin` \| `email` | a profile/mail link is clicked                 |
+| `contact_submit`  | —                                           | the contact form's `mailto:` submit is clicked |
+| `resume_view`     | —                                           | `/resume` is viewed                            |
+| `case_study_view` | `slug`                                      | a `/portfolio/<slug>` page is viewed           |
 
 To add an event: add it to the `ALLOWED` map in `api/event.ts`, then call `send()`
 from the client script. Dashboard: GA4 → Reports / Realtime.
@@ -135,12 +135,12 @@ the workflow is on `main`.
 
 Set in Vercel → personal-website → Settings → Environment Variables (Project scope).
 
-| Variable | Scope | Sensitive | Purpose | Consumed by |
-|---|---|---|---|---|
-| `PUBLIC_SENTRY_DSN` | Production + Preview | no (public DSN) | Sentry init | `sentry.{client,server}.config.js` |
-| `PUBLIC_CLARITY_PROJECT_ID` | Production | no | Clarity tag | `head.astro` |
-| `GA_MEASUREMENT_ID` | Production | no | GA4 MP endpoint | `ga4.ts` (→ `track-ai-resource.ts`, `api/event.ts`) |
-| `GA_API_SECRET` | Production | **yes** | GA4 MP auth | `ga4.ts` (→ `track-ai-resource.ts`, `api/event.ts`) |
+| Variable                    | Scope                | Sensitive       | Purpose         | Consumed by                                         |
+| --------------------------- | -------------------- | --------------- | --------------- | --------------------------------------------------- |
+| `PUBLIC_SENTRY_DSN`         | Production + Preview | no (public DSN) | Sentry init     | `sentry.{client,server}.config.js`                  |
+| `PUBLIC_CLARITY_PROJECT_ID` | Production           | no              | Clarity tag     | `head.astro`                                        |
+| `GA_MEASUREMENT_ID`         | Production           | no              | GA4 MP endpoint | `ga4.ts` (→ `track-ai-resource.ts`, `api/event.ts`) |
+| `GA_API_SECRET`             | Production           | **yes**         | GA4 MP auth     | `ga4.ts` (→ `track-ai-resource.ts`, `api/event.ts`) |
 
 > Both GA vars are **Production-scoped**, so GA4 events no-op on preview deploys —
 > expected. Preview deploys are also behind Vercel Deployment Protection (they
@@ -155,14 +155,14 @@ Set in Vercel → personal-website → Settings → Environment Variables (Proje
 
 ## External dashboards configured
 
-| Service | What was set up | Where |
-|---|---|---|
+| Service               | What was set up                                                                                    | Where                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | Google Search Console | Domain property `sc-domain:rainforest.tools` (DNS-verified); sitemap `sitemap-index.xml` submitted | <https://search.google.com/search-console> |
-| Bing Webmaster Tools | Site imported from GSC (verified, Administrator); sitemap submitted | <https://www.bing.com/webmasters> |
-| Microsoft Clarity | Project created; id in `PUBLIC_CLARITY_PROJECT_ID` | <https://clarity.microsoft.com> |
-| Sentry | Org `rainforesttools`, project `javascript-astro`; DSN in `PUBLIC_SENTRY_DSN` | <https://rainforesttools.sentry.io> |
-| GA4 | Measurement id + MP API secret | <https://analytics.google.com> |
-| Vercel | Web Analytics + Speed Insights enabled | Vercel dashboard |
+| Bing Webmaster Tools  | Site imported from GSC (verified, Administrator); sitemap submitted                                | <https://www.bing.com/webmasters>          |
+| Microsoft Clarity     | Project created; id in `PUBLIC_CLARITY_PROJECT_ID`                                                 | <https://clarity.microsoft.com>            |
+| Sentry                | Org `rainforesttools`, project `javascript-astro`; DSN in `PUBLIC_SENTRY_DSN`                      | <https://rainforesttools.sentry.io>        |
+| GA4                   | Measurement id + MP API secret                                                                     | <https://analytics.google.com>             |
+| Vercel                | Web Analytics + Speed Insights enabled                                                             | Vercel dashboard                           |
 
 ---
 
@@ -176,27 +176,27 @@ update/remove the "weekly observability review" cron.
 
 ### Auto-checked (no login)
 
-| Check | How | Healthy | Red flag |
-|---|---|---|---|
-| Sitemap live | GET `/sitemap-index.xml` | 200, valid XML index → `sitemap-0.xml` | non-200 / not XML |
-| robots.txt | GET `/robots.txt` | `Allow: /` + `Sitemap:` line | disallow rules, missing sitemap |
-| Lighthouse CI | `gh run list --workflow=lighthouse.yml` | recent run, no budget warnings trending down | perf/LCP/CLS warnings appearing |
-| Vercel deploy | Vercel MCP / dashboard | latest Production deploy = Ready | build failing, cold-start TTFB spikes |
-| llms.txt | GET `/llms.txt` + `/llms-full.txt` | 200, current content | 404 / stale |
-| RSS feed | GET `/rss.xml` (+ `/zh/rss.xml`) | 200, valid feed XML | 404 (it regressed once — see below) |
-| Conversion sink | `POST /api/event` `{"event":"resume_view"}` | **204**; a bogus event returns 400 | 404/500 = tracking silently dead |
+| Check           | How                                         | Healthy                                      | Red flag                              |
+| --------------- | ------------------------------------------- | -------------------------------------------- | ------------------------------------- |
+| Sitemap live    | GET `/sitemap-index.xml`                    | 200, valid XML index → `sitemap-0.xml`       | non-200 / not XML                     |
+| robots.txt      | GET `/robots.txt`                           | `Allow: /` + `Sitemap:` line                 | disallow rules, missing sitemap       |
+| Lighthouse CI   | `gh run list --workflow=lighthouse.yml`     | recent run, no budget warnings trending down | perf/LCP/CLS warnings appearing       |
+| Vercel deploy   | Vercel MCP / dashboard                      | latest Production deploy = Ready             | build failing, cold-start TTFB spikes |
+| llms.txt        | GET `/llms.txt` + `/llms-full.txt`          | 200, current content                         | 404 / stale                           |
+| RSS feed        | GET `/rss.xml` (+ `/zh/rss.xml`)            | 200, valid feed XML                          | 404 (it regressed once — see below)   |
+| Conversion sink | `POST /api/event` `{"event":"resume_view"}` | **204**; a bogus event returns 400           | 404/500 = tracking silently dead      |
 
 ### Manual glance (login required)
 
-| Dashboard | Look for | Notes |
-|---|---|---|
-| Search Console | Sitemap status **Success**; Pages indexed climbing; **high-impression / low-CTR queries** | those queries are the cheapest exposure win — sharpen those titles/descriptions |
-| Bing Webmaster | Sitemap **Processed**; URLs discovered > 0 | feeds ChatGPT's search index |
-| **GA4 — conversions** | `outbound_click` (github/linkedin/email), `contact_submit`, `resume_view`, `case_study_view` | **the recruiter funnel.** Count events, not users (ids are random by design) |
-| GA4 — AI exposure | `ai_resource_fetch` present, trend by `bot` | are AI agents discovering you |
-| Sentry | New unresolved issues; error-rate spikes after a deploy | |
-| Clarity | Heatmaps on key pages; rage/dead-clicks | replay is limited for EU visitors (cookieless mode) |
-| Vercel Speed Insights | RES score, TTFB, LCP, INP, CLS trend | TTFB should now be low — most routes are prerendered |
+| Dashboard             | Look for                                                                                     | Notes                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Search Console        | Sitemap status **Success**; Pages indexed climbing; **high-impression / low-CTR queries**    | those queries are the cheapest exposure win — sharpen those titles/descriptions |
+| Bing Webmaster        | Sitemap **Processed**; URLs discovered > 0                                                   | feeds ChatGPT's search index                                                    |
+| **GA4 — conversions** | `outbound_click` (github/linkedin/email), `contact_submit`, `resume_view`, `case_study_view` | **the recruiter funnel.** Count events, not users (ids are random by design)    |
+| GA4 — AI exposure     | `ai_resource_fetch` present, trend by `bot`                                                  | are AI agents discovering you                                                   |
+| Sentry                | New unresolved issues; error-rate spikes after a deploy                                      |                                                                                 |
+| Clarity               | Heatmaps on key pages; rage/dead-clicks                                                      | replay is limited for EU visitors (cookieless mode)                             |
+| Vercel Speed Insights | RES score, TTFB, LCP, INP, CLS trend                                                         | TTFB should now be low — most routes are prerendered                            |
 
 ### The growth loop (why these are reviewed together)
 
@@ -220,10 +220,10 @@ conversions aren't, the problem is the page, not the reach — and vice versa.
 
 All merged to `main` and live in production:
 
-| PR | Change |
-|---|---|
-| [#246](https://github.com/rainforest-dev/rainforest-monorepo/pull/246) | Redesign + interactive portfolio (the base this is instrumented on) |
+| PR                                                                     | Change                                                                                             |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [#246](https://github.com/rainforest-dev/rainforest-monorepo/pull/246) | Redesign + interactive portfolio (the base this is instrumented on)                                |
 | [#247](https://github.com/rainforest-dev/rainforest-monorepo/pull/247) | SEO (canonical/hreflang/robots→llms.txt), JSON-LD, hero-image perf, Clarity, Sentry, Lighthouse CI |
-| [#251](https://github.com/rainforest-dev/rainforest-monorepo/pull/251) | Astro 7 + TypeScript 6 + Nx 23.1; route caching (`cacheVercel`), prerendered robots/settings |
-| [#252](https://github.com/rainforest-dev/rainforest-monorepo/pull/252) | fix: English RSS feed at the canonical `/rss.xml` |
-| [#253](https://github.com/rainforest-dev/rainforest-monorepo/pull/253) | Cookieless recruiter-conversion tracking (`/api/event` + client tracker) |
+| [#251](https://github.com/rainforest-dev/rainforest-monorepo/pull/251) | Astro 7 + TypeScript 6 + Nx 23.1; route caching (`cacheVercel`), prerendered robots/settings       |
+| [#252](https://github.com/rainforest-dev/rainforest-monorepo/pull/252) | fix: English RSS feed at the canonical `/rss.xml`                                                  |
+| [#253](https://github.com/rainforest-dev/rainforest-monorepo/pull/253) | Cookieless recruiter-conversion tracking (`/api/event` + client tracker)                           |

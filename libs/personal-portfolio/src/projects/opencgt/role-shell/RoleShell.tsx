@@ -2,7 +2,13 @@ import { type JSX, useEffect, useState } from 'react';
 
 import { cx, segment } from '../../../shared/ui';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
-import { findNavItem, isForbidden, NAV_ITEMS, navFor, type Role } from './logic';
+import {
+  findNavItem,
+  isForbidden,
+  NAV_ITEMS,
+  navFor,
+  type Role,
+} from './logic';
 
 interface RoleOption {
   id: Role;
@@ -83,7 +89,10 @@ export function RoleShell(): JSX.Element {
               type="button"
               aria-pressed={role === option.id}
               onClick={() => handleRole(option.id)}
-              className={segment(role === option.id, 'h-7 px-3 text-xs font-bold')}
+              className={segment(
+                role === option.id,
+                'h-7 px-3 text-xs font-bold',
+              )}
             >
               {option.label}
             </button>
@@ -93,7 +102,7 @@ export function RoleShell(): JSX.Element {
 
       <div className="flex min-h-[220px]">
         <div className="border-border bg-muted/10 flex w-[168px] shrink-0 flex-col gap-1 border-r p-3">
-          <div className="text-muted-foreground px-2 py-1 text-[10px] tracking-wide uppercase">
+          <div className="text-muted-foreground px-2 py-1 text-[10px] uppercase tracking-wide">
             Navigation
           </div>
           {nav.map((item) => {
@@ -105,7 +114,7 @@ export function RoleShell(): JSX.Element {
                 aria-pressed={selected}
                 onClick={() => go(item.id)}
                 className={cx(
-                  'rounded-md px-2.5 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'focus-visible:ring-ring rounded-md px-2.5 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2',
                   selected
                     ? 'bg-primary/10 text-primary'
                     : 'text-foreground hover:bg-muted',
@@ -164,7 +173,7 @@ export function RoleShell(): JSX.Element {
               </div>
               {route === 'patients' ? (
                 <div className="border-border overflow-hidden rounded-lg border">
-                  <div className="bg-muted/40 text-muted-foreground grid grid-cols-[1.4fr_1fr_0.8fr] px-3 py-2 text-[11px] tracking-wide uppercase">
+                  <div className="bg-muted/40 text-muted-foreground grid grid-cols-[1.4fr_1fr_0.8fr] px-3 py-2 text-[11px] uppercase tracking-wide">
                     <span>Patient (COI)</span>
                     <span>Therapy</span>
                     <span>Status</span>
@@ -172,9 +181,7 @@ export function RoleShell(): JSX.Element {
                   <div className="grid grid-cols-[1.4fr_1fr_0.8fr] items-center px-3 py-2.5 text-sm">
                     <span className="font-mono">COI-8842 · redacted</span>
                     <span>CAR-T · CTL019</span>
-                    <span className="text-primary font-semibold">
-                      Enrolled
-                    </span>
+                    <span className="text-primary font-semibold">Enrolled</span>
                   </div>
                 </div>
               ) : (
@@ -200,7 +207,7 @@ export function RoleShell(): JSX.Element {
                 type="button"
                 onClick={() => go(item.id)}
                 className={cx(
-                  'h-7 rounded-md border px-2.5 font-mono text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'focus-visible:ring-ring h-7 rounded-md border px-2.5 font-mono text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2',
                   allowed
                     ? 'border-primary/30 text-primary hover:bg-primary/10'
                     : 'border-border text-muted-foreground',
@@ -213,7 +220,7 @@ export function RoleShell(): JSX.Element {
           })}
         </div>
       </div>
-      <p className="text-muted-foreground px-4 pt-3 pb-4 font-mono text-xs">
+      <p className="text-muted-foreground px-4 pb-4 pt-3 font-mono text-xs">
         Mirrors app/(protected)/layout.tsx · middleware.ts ·
         providers/accessControl.ts
       </p>

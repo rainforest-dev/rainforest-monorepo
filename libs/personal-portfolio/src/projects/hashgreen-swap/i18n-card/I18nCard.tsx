@@ -43,7 +43,10 @@ export function I18nCard(): JSX.Element {
               type="button"
               aria-pressed={locale === option}
               onClick={() => setLocale(option)}
-              className={segment(locale === option, 'h-8 px-4 text-sm font-semibold')}
+              className={segment(
+                locale === option,
+                'h-8 px-4 text-sm font-semibold',
+              )}
             >
               {LOCALE_LABEL[option]}
             </button>

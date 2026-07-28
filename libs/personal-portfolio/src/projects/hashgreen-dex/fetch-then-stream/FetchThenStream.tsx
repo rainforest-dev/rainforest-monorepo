@@ -114,7 +114,7 @@ export function FetchThenStream(): JSX.Element {
 
   return (
     <div className="border-border bg-card text-card-foreground rounded-xl border p-6">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+      <div className="border-border mb-5 flex flex-wrap items-center justify-between gap-4 border-b pb-4">
         <div className="flex items-center gap-3">
           <label className="sr-only" htmlFor="fts-market">
             Market
@@ -123,7 +123,7 @@ export function FetchThenStream(): JSX.Element {
             id="fts-market"
             value={market}
             onChange={(event) => setMarket(event.target.value)}
-            className="border-border bg-muted/40 text-foreground h-9 min-w-32 rounded-md border pl-2 pr-8 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="border-border bg-muted/40 text-foreground focus-visible:ring-ring focus-visible:ring-offset-background h-9 min-w-32 rounded-md border pl-2 pr-8 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             {MARKET_OPTS.map((opt) => (
               <option key={opt} value={opt}>
@@ -132,7 +132,10 @@ export function FetchThenStream(): JSX.Element {
             ))}
           </select>
           <span className="text-muted-foreground flex items-center gap-2 text-xs">
-            <span className={`h-2 w-2 rounded-full ${dotClass}`} aria-hidden="true" />
+            <span
+              className={`h-2 w-2 rounded-full ${dotClass}`}
+              aria-hidden="true"
+            />
             {connState}
           </span>
         </div>
@@ -160,17 +163,24 @@ export function FetchThenStream(): JSX.Element {
           <div className="text-muted-foreground font-mono text-[11px] uppercase">
             24h high
           </div>
-          <div className="text-foreground font-mono text-xl font-bold">1.3129</div>
+          <div className="text-foreground font-mono text-xl font-bold">
+            1.3129
+          </div>
         </div>
         <div>
           <div className="text-muted-foreground font-mono text-[11px] uppercase">
             24h low
           </div>
-          <div className="text-foreground font-mono text-xl font-bold">1.1904</div>
+          <div className="text-foreground font-mono text-xl font-bold">
+            1.1904
+          </div>
         </div>
       </div>
 
-      <ul aria-label="Trade tape" className="mb-5 flex min-h-[6.5rem] flex-col gap-1">
+      <ul
+        aria-label="Trade tape"
+        className="mb-5 flex min-h-[6.5rem] flex-col gap-1"
+      >
         {trades.map((trade) => (
           <li
             key={trade.id}
@@ -193,7 +203,10 @@ export function FetchThenStream(): JSX.Element {
         </div>
         <ul aria-label="Subscription log" className="flex flex-col gap-0.5">
           {log.map((line, index) => (
-            <li key={`${line}-${index}`} className="text-primary font-mono text-xs">
+            <li
+              key={`${line}-${index}`}
+              className="text-primary font-mono text-xs"
+            >
               {line}
             </li>
           ))}

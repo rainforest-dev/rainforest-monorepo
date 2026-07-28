@@ -67,7 +67,7 @@ export function IdleLock(): JSX.Element {
           setIdleMs(0);
         }}
         aria-label="Idle threshold in milliseconds"
-        className="accent-primary mb-5 w-full rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="accent-primary focus-visible:ring-ring mb-5 w-full rounded focus-visible:outline-none focus-visible:ring-2"
       />
 
       <div className="text-muted-foreground mb-1 flex items-center justify-between text-xs">
@@ -101,7 +101,7 @@ export function IdleLock(): JSX.Element {
           type="button"
           onClick={lockNow}
           disabled={state === 'locked'}
-          className="border-primary/50 text-foreground hover:bg-primary/10 h-9 rounded-md border bg-transparent px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+          className="border-primary/50 text-foreground hover:bg-primary/10 focus-visible:ring-ring h-9 rounded-md border bg-transparent px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-40"
         >
           lock now
         </button>

@@ -76,15 +76,14 @@ export function button(
  * state, but shares the focus ring + transition so it reads as one family with
  * `button()`. Colour is left to `className` since active styling varies.
  */
-export function segment(
-  active: boolean,
-  className?: string,
-): string {
+export function segment(active: boolean, className?: string): string {
   return cx(
     'inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium ' +
       'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
       '[&_svg]:size-4 [&_svg]:shrink-0',
-    active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+    active
+      ? 'bg-primary text-primary-foreground'
+      : 'text-muted-foreground hover:text-foreground',
     className,
   );
 }

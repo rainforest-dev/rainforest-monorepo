@@ -19,8 +19,13 @@ describe('loader', () => {
   });
 
   it('supports a filter predicate on getCollection', async () => {
-    const jobs = await getCollection('experiences', (e) => e.data.type === 'job' && e.data.language === 'en');
-    expect(jobs.every((e) => e.data.type === 'job' && e.data.language === 'en')).toBe(true);
+    const jobs = await getCollection(
+      'experiences',
+      (e) => e.data.type === 'job' && e.data.language === 'en',
+    );
+    expect(
+      jobs.every((e) => e.data.type === 'job' && e.data.language === 'en'),
+    ).toBe(true);
   });
 
   it('returns undefined from getEntry for an unknown id', async () => {
@@ -36,7 +41,11 @@ describe('loader', () => {
     it('identifies the offending file when content fails schema validation', () => {
       const badFile = './data/organizations/en/__invalid-test-fixture__.json';
       expect(() =>
-        parseEntry('organizations', badFile, JSON.stringify({ name: 'Bad Org', language: 'not-a-real-locale' })),
+        parseEntry(
+          'organizations',
+          badFile,
+          JSON.stringify({ name: 'Bad Org', language: 'not-a-real-locale' }),
+        ),
       ).toThrow(/__invalid-test-fixture__\.json/);
     });
   });

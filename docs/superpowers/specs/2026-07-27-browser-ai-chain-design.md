@@ -33,7 +33,7 @@ and two Readwise captures of web.dev's Prompt API articles (2024-10-26, 2025-01-
 
 1. **Public stance (A):** add Angible to the public timeline, `2025-05` → present, with generic
    non-metric descriptions. Location Tainan → Taipei. Keep the recruiter funnel but soften
-   *"actively seeking new employment opportunities"* → *"open to"*.
+   _"actively seeking new employment opportunities"_ → _"open to"_.
 2. **Survey sourcing (C):** the vault notes and the work codebase are **research inputs only**. No
    new artifact is committed to any company repository. One public blog post is the sole output.
 3. **Confidentiality (C, E):** generic transferable pattern only — see §6.
@@ -42,14 +42,14 @@ and two Readwise captures of web.dev's Prompt API articles (2024-10-26, 2025-01-
 
 ## 2. Order and rationale
 
-| Step | Sub-project | Why here |
-|------|-------------|----------|
-| **A** | Career state refresh | Independent of everything else; ships immediately. Its data feeds E's tools, so it must precede E. |
-| **E0** | Capability primitive | Consumed by both E and D. Building it once is the entire point of this decomposition. |
-| **E** | ⌘K command palette | The flagship. Port of the documented four-layer architecture. |
-| **D** | Blog demos + recorded fallback | **The fallback recording cannot be produced until the feature works.** D's demos reuse E0, and the recording is captured from a working E. |
-| **C** | Survey post | Written last so it documents what actually shipped, with live demos embedded, rather than describing an API landscape abstractly. |
-| **B** | Career snapshot | **Blocked** — see §7. Nothing else depends on it, so it costs nothing to defer. Running it after E is a bonus: E changes the MCP surface that claim F1 concerns. |
+| Step   | Sub-project                    | Why here                                                                                                                                                         |
+| ------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A**  | Career state refresh           | Independent of everything else; ships immediately. Its data feeds E's tools, so it must precede E.                                                               |
+| **E0** | Capability primitive           | Consumed by both E and D. Building it once is the entire point of this decomposition.                                                                            |
+| **E**  | ⌘K command palette             | The flagship. Port of the documented four-layer architecture.                                                                                                    |
+| **D**  | Blog demos + recorded fallback | **The fallback recording cannot be produced until the feature works.** D's demos reuse E0, and the recording is captured from a working E.                       |
+| **C**  | Survey post                    | Written last so it documents what actually shipped, with live demos embedded, rather than describing an API landscape abstractly.                                |
+| **B**  | Career snapshot                | **Blocked** — see §7. Nothing else depends on it, so it costs nothing to defer. Running it after E is a bonus: E changes the MCP surface that claim F1 concerns. |
 
 Two deviations from the originally-requested A → B → C → D → E:
 
@@ -71,13 +71,13 @@ one site.
 
 E0 owns every fragile concern:
 
-| Concern | Required behaviour |
-|---|---|
-| Availability | Call `LanguageModel.availability()` → `unavailable \| downloadable \| downloading \| available`. Never infer support from API presence alone. |
-| Browser gate | Exclude Edge via `!/Edg\//.test(ua)`. Edge exposes the same Prompt API backed by Phi-4-mini, whose `prompt()` accepts only `user`/`assistant` roles — the tool round-trip fails with `UnknownError: kErrorUnknown`. |
-| Model download | `create({ monitor })` must be invoked **synchronously from a user gesture** or it throws `NotAllowedError`. Requires an explicit "download model" button and progress reporting. |
-| Bounds | Wall-clock timeout plus a tight step cap (≈4). A higher cap lengthens the main-thread freeze window without improving capability. |
-| Degradation | Named fallback slot rendering the recorded demo plus a plain explanation of why the live version is unavailable. |
+| Concern        | Required behaviour                                                                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Availability   | Call `LanguageModel.availability()` → `unavailable \| downloadable \| downloading \| available`. Never infer support from API presence alone.                                                                       |
+| Browser gate   | Exclude Edge via `!/Edg\//.test(ua)`. Edge exposes the same Prompt API backed by Phi-4-mini, whose `prompt()` accepts only `user`/`assistant` roles — the tool round-trip fails with `UnknownError: kErrorUnknown`. |
+| Model download | `create({ monitor })` must be invoked **synchronously from a user gesture** or it throws `NotAllowedError`. Requires an explicit "download model" button and progress reporting.                                    |
+| Bounds         | Wall-clock timeout plus a tight step cap (≈4). A higher cap lengthens the main-thread freeze window without improving capability.                                                                                   |
+| Degradation    | Named fallback slot rendering the recorded demo plus a plain explanation of why the live version is unavailable.                                                                                                    |
 
 **Consumers:** E (⌘K) and D (blog demos). Neither may call `LanguageModel` directly.
 
@@ -131,7 +131,7 @@ Run per the `career-snapshot` skill once §7's blocker is cleared. Window starts
 
 Note for that run: claim **F1** (`mcp.rainforest.tools` 有實質進展) should be re-worded before it is
 judged. `apps/personal-website/src/pages/mcp.ts` documents that the root route exists specifically
-*because* the `mcp.rainforest.tools` host rewrite does not reliably take effect ahead of Astro's
+_because_ the `mcp.rainforest.tools` host rewrite does not reliably take effect ahead of Astro's
 generated routing. The server is real and reachable at `rainforest.tools/mcp`; the hostname is the
 part that does not work. As literally worded, F1 is closer to **PARTIAL** than **NOT-FOUND**.
 
@@ -143,14 +143,14 @@ Excluded by the documented limits of on-device Gemini Nano, not by preference:
   to ship.
 - **Multi-step agent loops.** Multi-call turns are unreliable; raising the step cap does not help.
 - **Non-English output.** Output is English-mostly and non-English replies are flaky. A Chinese
-  summarizer is explicitly *not* a viable on-device feature.
+  summarizer is explicitly _not_ a viable on-device feature.
 - **Streaming chat UI / AI SDK dependency.** One constrained call per turn does not require a
   streaming chat framework. Revisit only if E's own cycle proves otherwise.
 - **Any new artifact in a company repository.**
 
 Further on-device-AI ideas (the original request's "brainstorm other usages") are deliberately
-folded into **E's brainstorm cycle**, where they can be evaluated as *single-call, English,
-single-tool* features against real constraints instead of speculatively.
+folded into **E's brainstorm cycle**, where they can be evaluated as _single-call, English,
+single-tool_ features against real constraints instead of speculatively.
 
 ## 6. Confidentiality boundary
 
@@ -193,7 +193,7 @@ is out of date** — the laptop re-registered under a new node name at a new add
 times out even while the machine is online. Worth refreshing independently of this work.
 (Addresses and identifiers deliberately omitted: this repository is public.)
 
-**Vault access:** no remote access needed for research. The local vault copy is *ahead* of the
+**Vault access:** no remote access needed for research. The local vault copy is _ahead_ of the
 laptop's (`2026-07-27` vs `2026-07-24`) and contains every relevant note.
 
 ## 8. Next step

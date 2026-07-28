@@ -3,13 +3,13 @@
     <td :title="format(date, 'yyyy-MM-dd')" class="px-4">
       {{ isToday(date) ? 'Today' : format(date, 'eee') }}
     </td>
-    <td class="w-full flex-row-center gap-2 px-4 text-on-surface/60">
+    <td class="flex-row-center text-on-surface/60 w-full gap-2 px-4">
       <span>{{ tempMin }}°C</span>
       <span
-        class="relative h-3 grow rounded-full bg-surface-container-high inset-shadow-sm"
+        class="bg-surface-container-high inset-shadow-sm relative h-3 grow rounded-full"
       >
         <span
-          class="absolute top-1/2 -translate-y-1/2 h-full rounded-[inherit] bg-linear-to-r from-(--color-from) to-(--color-to) transition-all indicator"
+          class="bg-linear-to-r from-(--color-from) to-(--color-to) indicator absolute top-1/2 h-full -translate-y-1/2 rounded-[inherit] transition-all"
         ></span>
       </span>
       <span>{{ tempMax }}°C</span>

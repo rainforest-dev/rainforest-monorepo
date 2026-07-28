@@ -19,7 +19,7 @@ export const hoogiiWallet: CaseStudy = {
         'A 12-cell backup-phrase grid that validates each word as you type and accepts a whole pasted phrase.',
       contribution:
         'I built the custom phrase input, and made the call to open create and import in a full browser tab instead of the 360-pixel popup — key material deserves room to breathe.',
-      tech: "The grid is a `react-hook-form` `useFieldArray`. A cell turns red only when it is non-empty and missing from the BIP39 `wordlist_en.json` set — a membership test, never a network call. Paste splits on spaces and distributes across the remaining cells.",
+      tech: 'The grid is a `react-hook-form` `useFieldArray`. A cell turns red only when it is non-empty and missing from the BIP39 `wordlist_en.json` set — a membership test, never a network call. Paste splits on spaces and distributes across the remaining cells.',
       interaction: 'phrase-grid',
       sourceRef: 'src/components/Mnemonic.tsx · src/store/MnemonicStore.ts',
     },

@@ -9,7 +9,7 @@ export const showDefaultLanguage = false as const;
 
 export const getOptions = (
   lng: string = fallbackLng,
-  ns?: string | string[]
+  ns?: string | string[],
 ) => ({
   supportedLngs,
   fallbackLng,

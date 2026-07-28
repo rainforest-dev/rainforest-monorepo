@@ -7,7 +7,7 @@
 ## 1. Goal & context
 
 Promote the four projects (Hoogii Wallet, Hashgreen DEX, HashgreenSwap/Pyke, OpenCGT) from
-short bullet lists under *experiences* into first-class, interactive **portfolio case studies**
+short bullet lists under _experiences_ into first-class, interactive **portfolio case studies**
 on rainforest.tools. The rich content already exists as four 5-section case studies built in
 Claude Design (project `0c5411d1-48e7-4514-aef9-9dab9d268b9b`, `CaseStudy.dc.html`, `project`
 prop enum `hoogii|dex|swap|opencgt`). This spec covers bringing them **natively into the repo**
@@ -20,6 +20,7 @@ Per-section content (feature / contribution / tech / interaction, ×5 per projec
 this file is the **architecture source of truth**.
 
 ### Decisions locked in brainstorming
+
 1. **Native in-repo ownership** — Claude Design was the design tool; the repo becomes canonical.
 2. **New `libs/portfolio` Nx lib** holds case-study components + islands + data + MCP surface.
 3. **React islands** for interactivity — authentic to the projects' real React/Next stacks, and
@@ -43,22 +44,22 @@ apps/personal-website ── thin shell: routes, i18n, layout, SEO, nav, MCP com
 `nx affected` rebuilds/tests only the layer touched. The app never grows past routing, layout,
 and composition. `libs/portfolio` is a **non-buildable source lib** — Astro/Vite compiles its
 `.tsx`/`.astro`/`.ts` directly, so there is no dist build step (leaner than `rainforest-ui`,
-which is buildable because it is a *published* web-component library).
+which is buildable because it is a _published_ web-component library).
 
 ## 3. Microfrontend — considered and rejected
 
 Surveyed the Astro-specific MFE options; none change the recommendation for a single-author,
 single-deploy site:
 
-| Option | What it buys | Verdict |
-|---|---|---|
-| Astro islands (already used) | per-component hydration | ✅ already the model; the "good 80%" of MFE |
-| **Server Islands (`server:defer`)** | independent *dynamic* fragment + own caching/TTL, encrypted props | ❌ demos are cosmetic/client-side with no per-user data — pure overhead here |
-| Module Federation (Vite plugin) | runtime remote composition | ❌ fights Astro SSR/islands, fragile, industry receding from it |
-| Multi-Zones / multi-app | independent deploys | ❌ fragments shared nav/i18n/theme; one author, one deploy |
+| Option                              | What it buys                                                      | Verdict                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Astro islands (already used)        | per-component hydration                                           | ✅ already the model; the "good 80%" of MFE                                  |
+| **Server Islands (`server:defer`)** | independent _dynamic_ fragment + own caching/TTL, encrypted props | ❌ demos are cosmetic/client-side with no per-user data — pure overhead here |
+| Module Federation (Vite plugin)     | runtime remote composition                                        | ❌ fights Astro SSR/islands, fragile, industry receding from it              |
+| Multi-Zones / multi-app             | independent deploys                                               | ❌ fragments shared nav/i18n/theme; one author, one deploy                   |
 
-**Why:** MFE solves *team autonomy + independent deploys*. This site has neither constraint; its
-constraint is *code modularity + lean app + fast site*, which is a **build-time library-boundary**
+**Why:** MFE solves _team autonomy + independent deploys_. This site has neither constraint; its
+constraint is _code modularity + lean app + fast site_, which is a **build-time library-boundary**
 problem already solved by Nx libs + Astro islands. **Server Islands are noted as a future escape
 hatch** only if a case study ever needs genuinely dynamic, independently-cached server data
 (cosmetic demos never will).
@@ -81,7 +82,7 @@ libs/portfolio/
 ```
 
 Every island is **pure, cosmetic, client-side**: no `crypto.subtle`, no real keys, no network;
-all data mocked; `prefers-reduced-motion` honored. Interaction *kinds* never repeat within a
+all data mocked; `prefers-reduced-motion` honored. Interaction _kinds_ never repeat within a
 project (already enforced by the content spec).
 
 ## 5. Data model & flow
@@ -162,6 +163,7 @@ to a **composition root**: each domain lib contributes its own registrations.
   `llms.txt.ts` / `llms-full.txt.ts` in sync automatically.
 
 **Minimal portfolio surface (YAGNI):**
+
 - Resource `portfolio://case-study/{+slug}` → structured 5-section case study (mirrors the
   existing `profile://project/{+id}` style, same slug namespace).
 - Optional tool `get_case_study(slug, lang?)` for tool-preferring agents.
@@ -185,7 +187,7 @@ follow-up, not a blocker.
 
 ## 12. Testing & leanness guarantees
 
-- Vitest unit tests for island *logic* (pure compute functions) in the lib.
+- Vitest unit tests for island _logic_ (pure compute functions) in the lib.
 - One render smoke test per detail page.
 - Leanness: app = shell only; React ships only to `/portfolio/*`; islands `client:visible`; no
   MFE runtime, no federation tax; `libs/portfolio` non-buildable source lib.
@@ -220,9 +222,9 @@ sections; analytics on the demos; a global self-registering MCP registry; Server
 
 The design is **additive** — a new project is data, not code:
 
-| To add a project | Touch | Untouched |
-|---|---|---|
-| Identity (always) | `personal-data/projects/{en,zh}/<slug>.md` | — |
+| To add a project           | Touch                                                                        | Untouched                                    |
+| -------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------- |
+| Identity (always)          | `personal-data/projects/{en,zh}/<slug>.md`                                   | —                                            |
 | Full case study (optional) | `libs/portfolio/content/<slug>.ts` + one `[data-project="<slug>"]` theme row | index/detail routes, MCP, section components |
 
 Routes and the MCP resource **iterate the collection**, so they pick up new projects with no edit.
@@ -237,14 +239,15 @@ headline work and links out for depth rather than trying to contain everything.
 Every surface that mentions a project links to its case study **only when a matching
 `libs/portfolio` slug exists** (summary-only projects never dead-link):
 
-| Mention site | File | Link |
-|---|---|---|
-| Nav "portfolio" | `utils/constants/index.ts` | → `/[lang]/portfolio` (replaces cake.me) |
-| Home experience bullets | `components/home/experiences/project.astro` | name → `/[lang]/portfolio/[slug]` |
-| Resume | `components/resume/ats-friendly.astro` | featured projects → case study (render full URL for print/ATS) |
-| MCP project resource | `mcp/handler.ts` | add `caseStudyUrl` to the resolved project shape |
-| llms.txt / llms-full.txt | `pages/llms*.ts` | list case-study URLs for agent crawling |
-| schema.org JSON-LD | `[lang]/resume.astro` | `hasPart`/`subjectOf` → case-study URLs |
+| Mention site             | File                                        | Link                                                           |
+| ------------------------ | ------------------------------------------- | -------------------------------------------------------------- |
+| Nav "portfolio"          | `utils/constants/index.ts`                  | → `/[lang]/portfolio` (replaces cake.me)                       |
+| Home experience bullets  | `components/home/experiences/project.astro` | name → `/[lang]/portfolio/[slug]`                              |
+| Resume                   | `components/resume/ats-friendly.astro`      | featured projects → case study (render full URL for print/ATS) |
+| MCP project resource     | `mcp/handler.ts`                            | add `caseStudyUrl` to the resolved project shape               |
+| llms.txt / llms-full.txt | `pages/llms*.ts`                            | list case-study URLs for agent crawling                        |
+| schema.org JSON-LD       | `[lang]/resume.astro`                       | `hasPart`/`subjectOf` → case-study URLs                        |
 
 Principle: **resume = curated teaser → portfolio = depth.** The resume carries `featured` highlights
-+ links; the portfolio holds the full set and the rich detail.
+
+- links; the portfolio holds the full set and the rich detail.

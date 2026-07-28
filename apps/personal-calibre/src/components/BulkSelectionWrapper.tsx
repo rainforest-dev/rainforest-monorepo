@@ -20,7 +20,9 @@ export function BulkSelectionWrapper({ books, from, platforms }: Props) {
   const router = useRouter();
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [selectedPlatformKey, setSelectedPlatformKey] = useState(platforms[0]?.key ?? '');
+  const [selectedPlatformKey, setSelectedPlatformKey] = useState(
+    platforms[0]?.key ?? '',
+  );
   const [zipFormat, setZipFormat] = useState('EPUB');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,9 @@ export function BulkSelectionWrapper({ books, from, platforms }: Props) {
     setError(null);
     setIsSubmitting(true);
     const count = selectedIds.size;
-    const platformName = platforms.find((p) => p.key === selectedPlatformKey)?.name ?? selectedPlatformKey;
+    const platformName =
+      platforms.find((p) => p.key === selectedPlatformKey)?.name ??
+      selectedPlatformKey;
     try {
       const res = await fetch('/api/books/deliveries/bulk', {
         method: 'POST',
@@ -63,7 +67,9 @@ export function BulkSelectionWrapper({ books, from, platforms }: Props) {
         throw new Error(body.error ?? 'Failed to add deliveries');
       }
       exitSelectMode();
-      toast.success(`${count} book${count !== 1 ? 's' : ''} marked as delivered to ${platformName}`);
+      toast.success(
+        `${count} book${count !== 1 ? 's' : ''} marked as delivered to ${platformName}`,
+      );
       router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unexpected error';
@@ -112,7 +118,9 @@ export function BulkSelectionWrapper({ books, from, platforms }: Props) {
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => (isSelectMode ? exitSelectMode() : setIsSelectMode(true))}
+          onClick={() =>
+            isSelectMode ? exitSelectMode() : setIsSelectMode(true)
+          }
           className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
             isSelectMode
               ? 'bg-primary text-primary-foreground border-primary'

@@ -13,4 +13,6 @@ export const POST: APIRoute = async ({ request }) => {
 
 // llms.txt names this path as the alternate endpoint, so it needs the same GET note as /mcp.
 export const GET: APIRoute = ({ site }) =>
-  mcpUsageResponse(new URL('/api/mcp', site ?? 'https://rainforest.tools').href);
+  mcpUsageResponse(
+    new URL('/api/mcp', site ?? 'https://rainforest.tools').href,
+  );
