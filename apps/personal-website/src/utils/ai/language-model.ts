@@ -43,3 +43,31 @@ export async function detectCapability(): Promise<AiState> {
       return { kind: 'ready' };
   }
 }
+
+type Session = { prompt: (input: string, opts?: unknown) => Promise<string>; destroy: () => void };
+
+let session: Session | null = null;
+
+/**
+ * Starts the model download and opens a session.
+ *
+ * MUST be called synchronously from a click handler. The first `create()` triggers a
+ * multi-hundred-megabyte download and throws `NotAllowedError` outside a user gesture, so this
+ * cannot be called on ⌘K-open or on keystroke — consumers wire it to an explicit control.
+ */
+export async function enableModel(onProgress?: (progress: number) => void): Promise<void> {
+  if (typeof LanguageModel === 'undefined') {
+    throw new Error('Prompt API is not available in this browser');
+  }
+
+  session = (await LanguageModel.create({
+    // Output is pinned to English: non-English replies are unreliable on current on-device models.
+    expectedOutputs: [{ type: 'text', languages: ['en'] }],
+    monitor(m: EventTarget) {
+      m.addEventListener('downloadprogress', (event) => {
+        const { loaded, total } = event as Event & { loaded: number; total: number };
+        onProgress?.(total > 0 ? loaded / total : 0);
+      });
+    },
+  } as never)) as unknown as Session;
+}
