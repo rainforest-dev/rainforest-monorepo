@@ -98,12 +98,14 @@ function markProbeFailed(): void {
 }
 
 /**
- * One constrained call per turn. `responseConstraint` guarantees schema-valid JSON by
- * construction, so there is no free-form parse step to fail.
+ * One constrained call per turn. `responseConstraint` is *supposed* to guarantee schema-valid
+ * JSON by construction — but we parse defensively rather than trust it, because a browser that
+ * accepts the option and then ignores it is exactly the failure this function must detect.
  *
- * If the FIRST call fails, we treat it as rung 3 of the capability ladder failing and degrade to
- * `unsupported`. After one success we never blame the browser again — a later error is transient,
- * not a capability verdict. Aborts are excluded either way: a timeout says nothing about support.
+ * If the FIRST call fails — including failing to parse — we treat it as rung 3 of the capability
+ * ladder failing and degrade to `unsupported`. After one success we never blame the browser again:
+ * a later error is transient, not a capability verdict. Aborts are excluded either way, since a
+ * timeout says nothing about whether constraints are supported.
  */
 export async function selectTool<T>(
   query: string,
