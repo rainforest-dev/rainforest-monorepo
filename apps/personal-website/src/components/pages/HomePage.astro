@@ -9,6 +9,7 @@ import {
 } from '@components/home';
 import Experiences from '@components/home/experiences/index.astro';
 import Layout from '@layouts/index.astro';
+import { getYearsOfExperience } from '@rainforest-dev/personal-data';
 import type { IHeroProps } from '@types';
 import { getBrandIconName, getGitHubUrl, getLinkedInUrl } from '@utils';
 import { hero, info } from '@utils/constants';
@@ -33,6 +34,10 @@ const profile =
   ]();
 
 const { t } = await useTranslation(lang, 'home');
+
+// Derived from the experience content files rather than written into the locale string, so the
+// figure can't go stale the way the previous hardcoded one did.
+const years = await getYearsOfExperience({ lang });
 
 const pathnameWithoutLang = Astro.url.pathname.replaceAll(`/${lang}`, '');
 
@@ -68,7 +73,7 @@ const heroProps: IHeroProps = {
     country: t('info-location', { context: 'country' }),
   },
   summaries: [
-    t('home:hero-summaries.0'),
+    t('home:hero-summaries.0', { years }),
     t('home:hero-summaries.1'),
     t('home:hero-summaries.2'),
   ],

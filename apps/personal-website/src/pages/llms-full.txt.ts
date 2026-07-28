@@ -41,13 +41,21 @@ export const GET: APIRoute = async ({ site, request }) => {
     getCollection('blog'),
   ]);
 
-  const experienceText = experiences.map(formatExperience).join('\n\n');
-  const educationText = education.map(formatExperience).join('\n\n');
+  // Same reason as projects below: the site renders these newest-first, so this file must not
+  // disagree. Blog was already sorted; experiences and education were the remaining exceptions.
+  const byNewest = (a: ResolvedExperience, b: ResolvedExperience) =>
+    b.startAt.getTime() - a.startAt.getTime();
+  const experienceText = [...experiences].sort(byNewest).map(formatExperience).join('\n\n');
+  const educationText = [...education].sort(byNewest).map(formatExperience).join('\n\n');
 
-  const projectsText = projects
+  // Newest-first, matching what the portfolio index renders — this file exists to give agents an
+  // accurate picture, so it shouldn't disagree with the human-facing page about which work is
+  // recent. The year is included for the same reason: order alone doesn't survive summarisation.
+  const projectsText = [...projects]
+    .sort((a, b) => b.startAt.getTime() - a.startAt.getTime())
     .map(
       (p) =>
-        `### ${p.name} — ${p.organization.name}\nTechnologies: ${p.technologies.join(', ')}\n\n${p.content}`,
+        `### ${p.name} — ${p.organization.name} (${p.startAt.getFullYear()})\nTechnologies: ${p.technologies.join(', ')}\n\n${p.content}`,
     )
     .join('\n\n');
 
