@@ -4,6 +4,7 @@ language: 'en'
 technologies: ['nextjs', 'auth0', 'mui', 'playwright', 'vitest']
 organization: 'en/codegreen'
 experience: 'en/6'
+startAt: '2024'
 featured: true
 ---
 

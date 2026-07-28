@@ -84,6 +84,16 @@ describe('profile-data', () => {
     expect(hoogii?.order).toBeUndefined();
   });
 
+  it('getProjects exposes startAt so the portfolio index can sort newest-first', async () => {
+    const projects = await getProjects({ lang: 'en' });
+    const opencgt = projects.find((p) => p.id === 'en/opencgt');
+    const dex = projects.find((p) => p.id === 'en/hashgreen-dex');
+    expect(opencgt?.startAt.getFullYear()).toBe(2024);
+    expect(dex?.startAt.getFullYear()).toBe(2022);
+    // The index renders newest first; this is the comparison it relies on.
+    expect(opencgt!.startAt.getTime()).toBeGreaterThan(dex!.startAt.getTime());
+  });
+
   it('getSkills returns entries scoped to the requested language', async () => {
     const skills = await getSkills({ lang: 'en' });
     expect(skills.some((s) => s.id === 'en/ts')).toBe(true);

@@ -4,6 +4,7 @@ language: 'en'
 technologies: ['react', 'tailwindcss']
 organization: 'en/codegreen'
 experience: 'en/6'
+startAt: '2022'
 featured: true
 ---
 

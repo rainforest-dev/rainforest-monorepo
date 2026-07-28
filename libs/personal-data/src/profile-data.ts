@@ -141,6 +141,8 @@ export interface ResolvedProject {
   organization: ResolvedOrganization;
   experience: string;
   content: string;
+  /** When the project started — the portfolio index's primary sort key (newest first). */
+  startAt: Date;
   /** Curation flag surfaced by the portfolio index to sort featured work first. */
   featured: boolean;
   /** Tie-breaker within the featured/unfeatured groups; lower sorts first. Unset sorts last. */
@@ -158,6 +160,7 @@ async function resolveProject(
     organization: await resolveOrganization(entry.data.organization),
     experience: entry.data.experience,
     content: entry.body,
+    startAt: entry.data.startAt,
     featured: entry.data.featured,
     order: entry.data.order,
   };
