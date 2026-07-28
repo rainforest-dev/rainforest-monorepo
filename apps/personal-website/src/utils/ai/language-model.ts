@@ -11,6 +11,8 @@ let probeFailed = false;
 /** Test-only: clear module state between cases. */
 export function __resetForTests(): void {
   probeFailed = false;
+  hasSucceededOnce = false;
+  session = null;
 }
 
 function hasProbeFailure(): boolean {
@@ -70,4 +72,54 @@ export async function enableModel(onProgress?: (progress: number) => void): Prom
       });
     },
   } as never)) as unknown as Session;
+}
+
+/** Wall clock, not step count. On-device inference blocks the main thread, so a hung run has to
+ *  be cut off by an abort signal the platform honours rather than a timer we can't fire. */
+const RUN_TIMEOUT_MS = 20_000;
+
+let hasSucceededOnce = false;
+
+function markProbeFailed(): void {
+  probeFailed = true;
+  try {
+    sessionStorage.setItem(PROBE_CACHE_KEY, 'failed');
+  } catch {
+    // Storage blocked; the in-memory flag still holds for this page.
+  }
+}
+
+/**
+ * One constrained call per turn. `responseConstraint` guarantees schema-valid JSON by
+ * construction, so there is no free-form parse step to fail.
+ *
+ * If the FIRST call fails, we treat it as rung 3 of the capability ladder failing and degrade to
+ * `unsupported`. After one success we never blame the browser again — a later error is transient,
+ * not a capability verdict. Aborts are excluded either way: a timeout says nothing about support.
+ */
+export async function selectTool<T>(
+  query: string,
+  schema: Record<string, unknown>,
+  opts: { signal?: AbortSignal } = {},
+): Promise<T> {
+  if (!session) throw new Error('enableModel() must be called before selectTool()');
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
+  opts.signal?.addEventListener('abort', () => controller.abort(), { once: true });
+
+  try {
+    const raw = await session.prompt(query, {
+      responseConstraint: schema,
+      signal: controller.signal,
+    });
+    hasSucceededOnce = true;
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    const aborted = error instanceof DOMException && error.name === 'AbortError';
+    if (!hasSucceededOnce && !aborted) markProbeFailed();
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }

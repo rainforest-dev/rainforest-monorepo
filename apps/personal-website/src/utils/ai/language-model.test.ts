@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { detectCapability, enableModel, __resetForTests } from './language-model';
+import { detectCapability, enableModel, selectTool, __resetForTests } from './language-model';
 
 type Availability = 'unavailable' | 'downloadable' | 'downloading' | 'available';
 
@@ -88,5 +88,68 @@ describe('enableModel', () => {
     });
 
     await expect(enableModel()).rejects.toMatchObject({ name: 'NotAllowedError' });
+  });
+});
+
+function stubSession(prompt: (q: string, o?: unknown) => Promise<string>) {
+  Object.defineProperty(globalThis, 'LanguageModel', {
+    configurable: true,
+    writable: true,
+    value: {
+      availability: vi.fn(async () => 'available'),
+      create: vi.fn(async () => ({ prompt, destroy: vi.fn() })),
+    },
+  });
+}
+
+const SCHEMA = { type: 'object', properties: { tool: { type: 'string' } } };
+
+describe('selectTool', () => {
+  it('returns parsed schema-valid JSON', async () => {
+    stubSession(async () => '{"tool":"get_skills"}');
+    await enableModel();
+    expect(await selectTool('what can he do', SCHEMA)).toEqual({ tool: 'get_skills' });
+  });
+
+  it('passes the schema as responseConstraint', async () => {
+    const prompt = vi.fn(async () => '{"tool":"x"}');
+    stubSession(prompt);
+    await enableModel();
+    await selectTool('q', SCHEMA);
+    expect(prompt.mock.calls[0][1]).toMatchObject({ responseConstraint: SCHEMA });
+  });
+
+  it('degrades ready -> unsupported when the first constrained call fails', async () => {
+    stubSession(async () => {
+      throw new DOMException('nope', 'NotSupportedError');
+    });
+    await enableModel();
+    expect(await detectCapability()).toEqual({ kind: 'ready' });
+
+    await expect(selectTool('q', SCHEMA)).rejects.toThrow();
+
+    // The transition the spec warns about: it reported ready, then the probe failed.
+    expect(await detectCapability()).toEqual({ kind: 'unsupported' });
+    expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBe('failed');
+  });
+
+  it('does not blame the browser for a later failure after one success', async () => {
+    let calls = 0;
+    stubSession(async () => {
+      calls += 1;
+      if (calls === 1) return '{"tool":"ok"}';
+      throw new Error('transient');
+    });
+    await enableModel();
+    await selectTool('q', SCHEMA);
+    await expect(selectTool('q', SCHEMA)).rejects.toThrow('transient');
+
+    // One success proves the browser can do this — a later error is not a capability verdict.
+    expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBeNull();
+  });
+
+  it('throws when called before enableModel', async () => {
+    stubLanguageModel('available');
+    await expect(selectTool('q', SCHEMA)).rejects.toThrow(/enableModel/);
   });
 });
