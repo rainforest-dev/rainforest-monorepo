@@ -112,7 +112,7 @@ describe('selectTool', () => {
   });
 
   it('passes the schema as responseConstraint', async () => {
-    const prompt = vi.fn(async () => '{"tool":"x"}');
+    const prompt = vi.fn<(q: string, o?: unknown) => Promise<string>>(async () => '{"tool":"x"}');
     stubSession(prompt);
     await enableModel();
     await selectTool('q', SCHEMA);
