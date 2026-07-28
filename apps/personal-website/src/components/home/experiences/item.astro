@@ -51,7 +51,7 @@ const {Content} = await render(Astro.props)
         return icon ? (
           <iconify-icon icon={icon} class="size-5" height="none" />
         ) : (
-          <></>
+          null
         );
       })}
     </div>

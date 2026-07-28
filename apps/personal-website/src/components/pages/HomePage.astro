@@ -146,7 +146,7 @@ const homeSchema = {
           {
             skills.map(async (skill) => {
               const { Content } = await render(skill);
-              if (!skill.body) return <></>;
+              if (!skill.body) return null;
               return (
                 <li class="min-w-80 bg-card text-foreground px-5 py-4 rounded min-h-80 shadow-lg flex flex-col gap-5 relative **:[li]:list-disc **:[li]:list-inside">
                   <h3 class="text-xl capitalize">{skill.data.name}</h3>
