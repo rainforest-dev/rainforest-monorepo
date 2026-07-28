@@ -25,7 +25,7 @@ interface Props {
 const { lang } = Astro.props;
 
 const profiles = import.meta.glob<{ default: ImageMetadata }>(
-  '/src/assets/images/profile/*.{jpeg,jpg,png,gif,webp}'
+  '/src/assets/images/profile/*.{jpeg,jpg,png,gif,webp}',
 );
 // randomly select a image from dict
 const profile =
@@ -85,7 +85,7 @@ const skills = (
 ).sort(
   (a, b) =>
     Number(b.data.tags.includes('prioritized')) -
-    Number(a.data.tags.includes('prioritized'))
+    Number(a.data.tags.includes('prioritized')),
 );
 
 // schema.org WebSite + Person for the home — the primary page humans and AI agents
@@ -126,34 +126,34 @@ const homeSchema = {
       </Fragment>
     </Nav>
     <!-- hero -->
-    <section class="flex-center container h-screen xl:flex hidden">
+    <section class="flex-center container hidden h-screen xl:flex">
       <ThreeColumns {...heroProps} />
     </section>
-    <section class="flex xl:hidden w-full min-h-screen">
+    <section class="flex min-h-screen w-full xl:hidden">
       <OneColumns {...heroProps} />
     </section>
     <!-- experience -->
     <section id="experience" class="py-10">
-      <div class="container flex-col-center size-full">
-        <h2 class="text-4xl mb-10">{t('experience')}</h2>
+      <div class="flex-col-center container size-full">
+        <h2 class="mb-10 text-4xl">{t('experience')}</h2>
         <Experiences />
       </div>
     </section>
-    <section id="skills" class="py-10 min-h-screen flex flex-col">
-      <div class="container grow min-h-[90vh]">
-        <h2 class="text-4xl mb-10">{t('skills')}</h2>
-        <ul class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-8">
+    <section id="skills" class="flex min-h-screen flex-col py-10">
+      <div class="container min-h-[90vh] grow">
+        <h2 class="mb-10 text-4xl">{t('skills')}</h2>
+        <ul class="grid gap-4 md:grid-cols-2 xl:grid-cols-3 xl:gap-8">
           {
             skills.map(async (skill) => {
               const { Content } = await render(skill);
               if (!skill.body) return null;
               return (
-                <li class="min-w-80 bg-card text-foreground px-5 py-4 rounded min-h-80 shadow-lg flex flex-col gap-5 relative **:[li]:list-disc **:[li]:list-inside">
+                <li class="bg-card text-foreground **:[li]:list-disc **:[li]:list-inside relative flex min-h-80 min-w-80 flex-col gap-5 rounded px-5 py-4 shadow-lg">
                   <h3 class="text-xl capitalize">{skill.data.name}</h3>
                   <Content />
                   <iconify-icon
                     icon={getBrandIconName(skill.data.icon)}
-                    class="absolute right-5 bottom-4 size-12"
+                    class="absolute bottom-4 right-5 size-12"
                     height="none"
                   />
                 </li>
@@ -171,7 +171,7 @@ const homeSchema = {
       @apply snap-y snap-mandatory overscroll-none scroll-smooth;
     }
     main > section {
-      @apply snap-always snap-start;
+      @apply snap-start snap-always;
     }
   </style>
 </Layout>

@@ -9,7 +9,7 @@ import Project from './project.astro';
 type Props = DataEntryMap['experiences'][string];
 
 const { data } = Astro.props;
-const { startAt, position } = data
+const { startAt, position } = data;
 
 const organization = (await getEntry(data.organization)).data;
 const projects = await getEntries(data.projects || []);
@@ -19,41 +19,41 @@ const technologies = getTopTechnologies({
     technologies: project.data.technologies,
   })),
 });
-const {Content} = await render(Astro.props)
+const { Content } = await render(Astro.props);
 ---
 
 <li
-  class="flex flex-col *:flex-1 pl-[1em] relative
-          sm:pl-0 sm:flex-row sm:items-center sm:even:flex-row-reverse sm:even:*:last:text-right sm:odd:*:first:text-right sm:gap-10"
+  class="relative flex flex-col pl-[1em] *:flex-1 sm:flex-row sm:items-center sm:gap-10 sm:pl-0 sm:odd:*:first:text-right sm:even:flex-row-reverse sm:even:*:last:text-right"
 >
   <div class="text-xs sm:text-base">
     {format(new Date(startAt), resumeDateFormat)}
   </div>
   <div
-    class="absolute size-2 bg-foreground rounded-full
-                      left-0 -translate-x-1/2 top-7 
-                      sm:top-auto sm:left-1/2 sm:-translate-x-1/2"
-  />
+    class="bg-foreground absolute left-0 top-7 size-2 -translate-x-1/2 rounded-full sm:left-1/2 sm:top-auto sm:-translate-x-1/2"
+  >
+  </div>
   <div>
     <h3 class="sm:text-2xl">{organization.name}</h3>
-    <p class="text-sm sm:text-lg text-primary/85">{position}</p>
+    <p class="text-primary/85 text-sm sm:text-lg">{position}</p>
     <Content />
     {
-      <ul>
-        {projects.map((project) => (
-          <Project {...project} />
-        ))}
-      </ul>
+      (
+        <ul>
+          {projects.map((project) => (
+            <Project {...project} />
+          ))}
+        </ul>
+      )
     }
-    <div class="inline-flex gap-2 mt-4">
-      {technologies.map((tag) => {
-        const icon = getBrandIconName(tag);
-        return icon ? (
-          <iconify-icon icon={icon} class="size-5" height="none" />
-        ) : (
-          null
-        );
-      })}
+    <div class="mt-4 inline-flex gap-2">
+      {
+        technologies.map((tag) => {
+          const icon = getBrandIconName(tag);
+          return icon ? (
+            <iconify-icon icon={icon} class="size-5" height="none" />
+          ) : null;
+        })
+      }
     </div>
   </div>
 </li>

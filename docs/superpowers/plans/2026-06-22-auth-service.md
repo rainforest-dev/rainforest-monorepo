@@ -784,6 +784,7 @@ if (!registrationToken || token !== registrationToken) {
   return Astro.redirect('/login');
 }
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -791,13 +792,19 @@ if (!registrationToken || token !== registrationToken) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Register Passkey — Rainforest Tools</title>
     <style>
-      body { background: #0f1117; color: #e2e4ed; font-family: system-ui, sans-serif; }
+      body {
+        background: #0f1117;
+        color: #e2e4ed;
+        font-family: system-ui, sans-serif;
+      }
     </style>
   </head>
-  <body class="min-h-screen flex items-center justify-center">
-    <div class="text-center space-y-6">
+  <body class="flex min-h-screen items-center justify-center">
+    <div class="space-y-6 text-center">
       <h1 class="text-2xl font-semibold">Register Passkey</h1>
-      <p class="text-gray-400 text-sm">One-time setup. Use your device's biometric or PIN.</p>
+      <p class="text-sm text-gray-400">
+        One-time setup. Use your device's biometric or PIN.
+      </p>
       <PasskeyRegister client:load />
     </div>
   </body>
@@ -965,6 +972,7 @@ import PasskeyLogin from '../components/PasskeyLogin.tsx';
 
 const redirect = Astro.url.searchParams.get('redirect') ?? '/';
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -972,13 +980,17 @@ const redirect = Astro.url.searchParams.get('redirect') ?? '/';
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign In — Rainforest Tools</title>
     <style>
-      body { background: #0f1117; color: #e2e4ed; font-family: system-ui, sans-serif; }
+      body {
+        background: #0f1117;
+        color: #e2e4ed;
+        font-family: system-ui, sans-serif;
+      }
     </style>
   </head>
-  <body class="min-h-screen flex items-center justify-center">
-    <div class="text-center space-y-6">
+  <body class="flex min-h-screen items-center justify-center">
+    <div class="space-y-6 text-center">
       <h1 class="text-2xl font-semibold">Rainforest Tools</h1>
-      <p class="text-gray-400 text-sm">Use your passkey to sign in.</p>
+      <p class="text-sm text-gray-400">Use your passkey to sign in.</p>
       <PasskeyLogin redirect={redirect} client:load />
     </div>
   </body>
