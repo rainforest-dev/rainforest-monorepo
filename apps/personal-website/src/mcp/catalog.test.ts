@@ -1,0 +1,43 @@
+// @vitest-environment node
+//
+// This file (via handler.ts -> profile.ts) statically imports the `astro:content` virtual
+// module, which Astro's content-collection Vite plugin refuses to resolve in a "client" Vite
+// environment (jsdom/happy-dom) — see https://github.com/withastro/astro/issues/14895. The
+// project default is jsdom (src/utils/ai/ needs sessionStorage); this file overrides to node,
+// which Astro treats as server-side, so astro:content resolves.
+import { describe, expect, it } from 'vitest';
+
+import { MCP_TOOLS } from './handler';
+
+/**
+ * Characterisation, not specification: this records what the live server at
+ * rainforest.tools/mcp advertises TODAY, so the catalog refactor in Tasks 2–3 is provably
+ * behaviour-preserving. A remote MCP client breaking is invisible from the site itself, so
+ * "it still looks fine" is not evidence.
+ *
+ * If a change to this list is intended, update it deliberately — do not "fix" it to make a
+ * refactor pass.
+ */
+describe('MCP tool surface (characterisation)', () => {
+  it('advertises exactly these tools', () => {
+    expect(MCP_TOOLS.map((t) => t.name).sort()).toEqual([
+      'get_case_study',
+      'get_education',
+      'get_profile_summary',
+      'get_projects',
+      'get_skills',
+      'get_work_experience',
+      'search_by_technology',
+    ]);
+  });
+
+  it('keeps get_case_study, which comes from the portfolio library, not profile.ts', () => {
+    expect(MCP_TOOLS.find((t) => t.name === 'get_case_study')).toBeDefined();
+  });
+
+  it('gives every tool a non-empty description', () => {
+    for (const tool of MCP_TOOLS) {
+      expect(tool.description.length).toBeGreaterThan(0);
+    }
+  });
+});
