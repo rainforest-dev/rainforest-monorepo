@@ -9,6 +9,9 @@ export const prerender = true;
 const getRobotsTxt = (site: URL) => `
 User-agent: *
 Allow: /
+# POST-only analytics collector — a crawler GET returns 404, which Search Console reports
+# as "Blocked due to other 4xx issue". Nothing to index here, so keep crawlers off it.
+Disallow: /api/event
 
 Sitemap: ${new URL('/sitemap-index.xml', site).href}
 

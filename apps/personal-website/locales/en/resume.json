@@ -3,5 +3,6 @@
   "key-skills": "Key Skills",
   "education": "Education",
   "website": "Website",
+  "present": "Present",
   "education-description": "{{degree}} in {{major}}"
 }

@@ -58,6 +58,7 @@ describe('schemas', () => {
       technologies: ['nextjs', 'auth0'],
       organization: 'en/codegreen',
       experience: 'en/6',
+      startAt: '2024',
     });
     expect(project.technologies).toEqual(['nextjs', 'auth0']);
   });
@@ -70,6 +71,7 @@ describe('schemas', () => {
         technologies: ['not-a-real-tag'],
         organization: 'en/codegreen',
         experience: 'en/6',
+        startAt: '2024',
       }),
     ).toThrow();
   });
@@ -94,6 +96,7 @@ describe('projectSchema curation', () => {
       technologies: [],
       organization: 'en/o',
       experience: 'en/1',
+      startAt: '2024',
     };
     expect(projectSchema.parse(base).featured).toBe(false);
     expect(

@@ -1,5 +1,5 @@
 import { getCollection, getEntry } from './loader';
-import type { ExperienceType, Locale, SkillTag } from './vocab';
+import type { EmploymentType, ExperienceType, Locale, SkillTag } from './vocab';
 
 export interface ResolvedOrganization {
   id: string;
@@ -10,6 +10,7 @@ export interface ResolvedOrganization {
 export interface ResolvedExperience {
   id: string;
   type: ExperienceType;
+  employment: EmploymentType;
   language: string;
   position: string;
   startAt: Date;
@@ -38,6 +39,7 @@ async function resolveExperience(
   return {
     id: entry.id,
     type: entry.data.type,
+    employment: entry.data.employment,
     language: entry.data.language,
     position: entry.data.position,
     startAt: entry.data.startAt,
@@ -81,6 +83,34 @@ export async function getWorkExperience(
   return Promise.all(filtered.map(({ entry, technologies }) => resolveExperience(entry, technologies)));
 }
 
+/** Whole months from `start` to `end`, floored at 0. Day-of-month is ignored — the source
+ * data is month-precision (`2025-05`), so counting days would imply accuracy it doesn't have. */
+function monthsBetween(start: Date, end: Date): number {
+  const months =
+    (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  return Math.max(0, months);
+}
+
+/**
+ * Whole years of professional experience, derived from the content files rather than hardcoded —
+ * a hardcoded figure is what silently drifted out of date before.
+ *
+ * Counts only `job` entries marked `employment: 'full-time'`, so student-era internships are
+ * excluded. Durations are **summed, not spanned**, so career gaps don't inflate the total.
+ * Floors to a whole year; render it with a "+" suffix. An open-ended entry (no `endAt`) runs
+ * to `asOf`, which is injectable so tests aren't time-dependent.
+ */
+export async function getYearsOfExperience(
+  options: { lang?: Locale; asOf?: Date } = {},
+): Promise<number> {
+  const { lang = 'en', asOf = new Date() } = options;
+  const entries = await getExperiencesByType('job', lang);
+  const totalMonths = entries
+    .filter((entry) => entry.data.employment === 'full-time')
+    .reduce((sum, { data }) => sum + monthsBetween(data.startAt, data.endAt ?? asOf), 0);
+  return Math.floor(totalMonths / 12);
+}
+
 export async function getEducation(
   options: { lang?: Locale } = {},
 ): Promise<ResolvedExperience[]> {
@@ -111,6 +141,8 @@ export interface ResolvedProject {
   organization: ResolvedOrganization;
   experience: string;
   content: string;
+  /** When the project started — the portfolio index's primary sort key (newest first). */
+  startAt: Date;
   /** Curation flag surfaced by the portfolio index to sort featured work first. */
   featured: boolean;
   /** Tie-breaker within the featured/unfeatured groups; lower sorts first. Unset sorts last. */
@@ -128,6 +160,7 @@ async function resolveProject(
     organization: await resolveOrganization(entry.data.organization),
     experience: entry.data.experience,
     content: entry.body,
+    startAt: entry.data.startAt,
     featured: entry.data.featured,
     order: entry.data.order,
   };

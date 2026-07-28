@@ -2,5 +2,6 @@
   "key-skills": "技能",
   "education": "學歷",
   "website": "個人網頁",
+  "present": "至今",
   "education-description": "{{major}}, {{degree}}"
 }

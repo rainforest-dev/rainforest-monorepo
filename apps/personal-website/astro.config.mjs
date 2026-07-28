@@ -1,5 +1,5 @@
 // @ts-check
-import { cpSync } from 'node:fs';
+import { cpSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { unified } from '@astrojs/markdown-remark';
@@ -17,6 +17,16 @@ import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
 
 import { fallbackLng, supportedLngs } from './src/utils/i18n/settings';
+
+// Legacy English case-study URLs. Derived from the project files rather than listed by hand
+// so a newly added case study can't silently ship without its redirect — the hand-maintained
+// list is exactly how /en/portfolio/<slug> got missed when /en/portfolio itself was covered.
+const legacyPortfolioRedirects = Object.fromEntries(
+  readdirSync(fileURLToPath(new URL('../../libs/personal-data/src/data/projects/en', import.meta.url)))
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => file.replace(/\.md$/, ''))
+    .map((slug) => [`/en/portfolio/${slug}`, `/portfolio/${slug}`]),
+);
 
 // Wire Sentry only when the (public) DSN is configured — i.e. production and
 // preview on Vercel. Local/dev builds have no DSN, so the integration is
@@ -40,6 +50,7 @@ export default defineConfig({
     '/en': '/',
     '/en/portfolio': '/portfolio',
     '/en/resume': '/resume',
+    ...legacyPortfolioRedirects,
   },
   markdown: {
     shikiConfig: {
@@ -51,7 +62,29 @@ export default defineConfig({
     processor: unified({ remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] }),
   },
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [
+      tailwindcss(),
+      // @vitejs/plugin-react runs React Fast Refresh inside Vite's oxc transform and enables
+      // it from a `pre` config hook (`oxc.jsx.refresh = command === 'serve'`). oxc decides per
+      // module from the resolved lang, and Vite serves a Vue SFC's `<script setup lang="ts">`
+      // as `Foo.vue?vue&type=script&setup=true&lang.ts` — so the refresh helpers were injected
+      // into Vue components and `astro dev` died on every page with
+      // `$RefreshSig$ is not defined`. Dev-only: production strips Fast Refresh, which is why
+      // `astro build` passed the whole time dev was unusable.
+      //
+      // Neither react({ exclude }) nor oxc.jsxRefreshExclude reaches this — the plugin's own
+      // `pre` hook re-supplies those filters — and narrowing react({ include }) breaks the
+      // build, since `include` also drives Astro's renderer detection for the .tsx case
+      // studies in libs/personal-portfolio. A `post` plugin is what actually wins the merge.
+      //
+      // Cost: the React case studies fall back to a full reload instead of state-preserving
+      // refresh. Vue/Astro HMR is untouched.
+      {
+        name: 'rainforest:disable-react-fast-refresh',
+        enforce: 'post',
+        config: () => ({ oxc: { jsx: { refresh: false } } }),
+      },
+    ],
   },
   integrations: [
     {

@@ -8,7 +8,7 @@
 // vice versa.
 import { z } from 'zod';
 
-import { experienceTypes, locales, skillTags } from './vocab';
+import { employmentTypes, experienceTypes, locales, skillTags } from './vocab';
 
 export const organizationSchema = z.object({
   name: z.string(),
@@ -19,6 +19,7 @@ export const organizationSchema = z.object({
 
 export const experienceSchema = z.object({
   type: z.enum(experienceTypes),
+  employment: z.enum(employmentTypes).default('full-time'),
   language: z.enum(locales),
   organization: z.string(),
   position: z.string(),
@@ -34,6 +35,11 @@ export const projectSchema = z.object({
   technologies: z.array(z.enum(skillTags)),
   organization: z.string(),
   experience: z.string(),
+  // Sort key for the portfolio index (newest first). Required on purpose: a project with no
+  // date can't be ordered, and defaulting one in would silently bury it at the end. The
+  // case-study `period` strings in @rainforest-dev/personal-portfolio are display copy
+  // ("2024 — Present", with inconsistent dashes) and deliberately not parsed for this.
+  startAt: z.coerce.date(),
   featured: z.boolean().default(false),
   order: z.number().optional(),
 });

@@ -17,6 +17,7 @@ export {
   getSkillById,
   getSkills,
   getWorkExperience,
+  getYearsOfExperience,
   searchByTechnology,
 } from './profile-data';
 export type {
@@ -25,5 +26,5 @@ export type {
   ProjectData,
   SkillData,
 } from './schemas';
-export type { ExperienceType, Locale, SkillTag } from './vocab';
-export { experienceTypes, locales, skillTags } from './vocab';
+export type { EmploymentType, ExperienceType, Locale, SkillTag } from './vocab';
+export { employmentTypes, experienceTypes, locales, skillTags } from './vocab';

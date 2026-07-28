@@ -13,6 +13,34 @@ export const MCP_TOOLS = [...PROFILE_MCP_TOOLS, ...PORTFOLIO_MCP_TOOLS];
 export const MCP_RESOURCES = [...PROFILE_MCP_RESOURCES, ...PORTFOLIO_MCP_RESOURCES];
 
 /**
+ * llms.txt advertises the MCP endpoint as a markdown link, so crawlers discover it and fetch
+ * it with GET. The routes are POST-only (stateless JSON-RPC), so a GET used to 404 — which is
+ * what Google Search Console reported as "Blocked due to other 4xx issue". Answer GET with a
+ * real 200 usage note instead. `noindex` because this is an API endpoint, not a page: the goal
+ * is to stop it being an error, not to get it into the index.
+ */
+export function mcpUsageResponse(endpoint: string): Response {
+  const body = [
+    'Rainforest Cheng — personal MCP server',
+    '',
+    `Endpoint: ${endpoint}`,
+    'Transport: JSON-RPC 2.0 over HTTP POST. This endpoint is POST-only; GET returns this note.',
+    '',
+    `Tools: ${MCP_TOOLS.map((tool) => tool.name).join(', ')}`,
+    '',
+    'Prose summaries for agents: https://rainforest.tools/llms.txt',
+  ].join('\n');
+
+  return new Response(body, {
+    headers: {
+      'content-type': 'text/plain; charset=utf-8',
+      'x-robots-tag': 'noindex',
+      'cache-control': 'public, max-age=3600',
+    },
+  });
+}
+
+/**
  * Builds an MCP request handler mounted at `${basePath}/mcp` — mcp-handler validates the
  * incoming request's pathname against exactly that computed endpoint (see its
  * `deriveEndpointsFromBasePath`), so basePath must match wherever the caller actually
