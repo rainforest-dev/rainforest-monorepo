@@ -77,6 +77,17 @@ export function readAck(slug: string, id: string): OutboxAck | null {
   return readJson<OutboxAck>(ackPath(slug, id));
 }
 
+/**
+ * True when a parsed ack does not count as an answer: missing, a protocol
+ * version we do not recognise, or a result we do not recognise. Shared by
+ * requestState and prunePairs so what counts as failed cannot drift between
+ * the two -- an ack that requestState reports as failed must be exactly the
+ * set of acks prunePairs refuses to delete.
+ */
+function isFailedAck(ack: OutboxAck | null): boolean {
+  return !ack || ack.version !== OUTBOX_VERSION || (ack.result !== 'applied' && ack.result !== 'duplicate');
+}
+
 export function requestState(slug: string, id: string): OutboxState {
   if (!readRequest(slug, id)) return 'none';
   // Distinguish "no ack file yet" (pending) from "ack file exists but is
@@ -85,10 +96,8 @@ export function requestState(slug: string, id: string): OutboxState {
   // Air simply had not answered yet.
   if (!existsSync(ackPath(slug, id))) return 'pending';
   const ack = readAck(slug, id);
-  if (!ack) return 'failed';
-  if (ack.version !== OUTBOX_VERSION) return 'failed';
-  if (ack.result === 'applied' || ack.result === 'duplicate') return ack.result;
-  return 'failed';
+  if (!ack || isFailedAck(ack)) return 'failed';
+  return ack.result;
 }
 
 /**
@@ -110,7 +119,7 @@ export function prunePairs(slug: string, now: Date = new Date()): string[] {
     const age = now.getTime() - Date.parse(request.requestedAt);
     if (!Number.isFinite(age) || age < PRUNE_AFTER_MS) continue;
     const ack = readAck(slug, id);
-    if (!ack || ack.result === 'failed') continue;
+    if (isFailedAck(ack)) continue;
     rmSync(requestPath(slug, id), { force: true });
     rmSync(ackPath(slug, id), { force: true });
     removed.push(id);

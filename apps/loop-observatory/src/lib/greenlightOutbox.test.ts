@@ -148,6 +148,23 @@ describe('prunePairs', () => {
     expect(requestState(SLUG, '132')).toBe('failed');
   });
 
+  it('never removes a pair with an unknown ack version, however old', () => {
+    writeRequest(task(135), SLUG, null, '', OLD);
+    writeFileSync(
+      join(dir, SLUG, '135.ack.json'),
+      JSON.stringify({
+        version: 999,
+        id: '135',
+        result: 'applied',
+        reason: null,
+        appliedAt: OLD.toISOString(),
+        machine: 'Angibles-MacBook-Air',
+      }),
+    );
+    expect(prunePairs(SLUG, NOW)).toEqual([]);
+    expect(requestState(SLUG, '135')).toBe('failed');
+  });
+
   it('never removes an unacked request, however old — it is still owed an answer', () => {
     writeRequest(task(133), SLUG, null, '', OLD);
     expect(prunePairs(SLUG, NOW)).toEqual([]);
