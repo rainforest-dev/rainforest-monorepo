@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 
 import { searchRecords, type Searchable } from '@utils/search';
 
@@ -10,6 +10,7 @@ const props = defineProps<{ records: Searchable[]; lang: 'en' | 'zh' }>();
 const open = ref(false);
 const query = ref('');
 const selected = ref(0);
+const inputEl = ref<HTMLInputElement | null>(null);
 
 const results = computed(() => searchRecords(query.value, props.records));
 
@@ -20,10 +21,28 @@ const results = computed(() => searchRecords(query.value, props.records));
  */
 const rows = computed(() => results.value);
 
+/**
+ * Opens with a clean slate — otherwise a second ⌘K reopens with the previous search still in
+ * the box — and focuses the input explicitly. The `autofocus` attribute doesn't fire here: this
+ * element is never present at initial page parse (it's inserted by `v-if`), which is exactly
+ * the case the HTML attribute doesn't cover. Without this, ⌘K immediately followed by typing —
+ * precisely the reflex the shortcut exists to serve — drops the first keystrokes.
+ */
+function togglePalette() {
+  if (open.value) {
+    open.value = false;
+    return;
+  }
+  query.value = '';
+  selected.value = 0;
+  open.value = true;
+  nextTick(() => inputEl.value?.focus());
+}
+
 function onKeydown(event: KeyboardEvent) {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
     event.preventDefault();
-    open.value = !open.value;
+    togglePalette();
     return;
   }
   if (!open.value) return;
@@ -64,11 +83,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
       aria-modal="true"
     >
       <input
+        ref="inputEl"
         v-model="query"
         class="w-full border-b bg-transparent px-4 py-3 outline-none"
         placeholder="Search experience, projects, skills…"
         aria-label="Search"
-        autofocus
         @input="selected = 0"
       />
       <ul class="max-h-80 overflow-y-auto py-1" role="listbox">
