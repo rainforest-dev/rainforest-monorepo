@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   __resetForTests,
+  acquire,
   destroy,
   detectCapability,
   enableModel,
@@ -242,6 +243,51 @@ describe('selectTool', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('acquire', () => {
+  function stubWithDestroy(destroySpy: () => void) {
+    Object.defineProperty(globalThis, 'LanguageModel', {
+      configurable: true,
+      writable: true,
+      value: {
+        availability: vi.fn(async () => 'available'),
+        create: vi.fn(async () => ({ prompt: vi.fn(), destroy: destroySpy })),
+      },
+    });
+  }
+
+  it('keeps the session alive until the last consumer releases', async () => {
+    const destroySpy = vi.fn();
+    stubWithDestroy(destroySpy);
+
+    const releaseFirst = acquire();
+    const releaseSecond = acquire();
+    await enableModel();
+
+    releaseFirst();
+    // The palette must survive an embedded demo unmounting.
+    expect(destroySpy).not.toHaveBeenCalled();
+
+    releaseSecond();
+    expect(destroySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a repeated release so the count cannot go negative', async () => {
+    const destroySpy = vi.fn();
+    stubWithDestroy(destroySpy);
+
+    const releaseFirst = acquire();
+    const releaseSecond = acquire();
+    await enableModel();
+
+    releaseFirst();
+    releaseFirst(); // double unmount must not free a session others still hold
+    expect(destroySpy).not.toHaveBeenCalled();
+
+    releaseSecond();
+    expect(destroySpy).toHaveBeenCalledTimes(1);
   });
 });
 

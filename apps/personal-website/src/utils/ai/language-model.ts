@@ -13,6 +13,7 @@ export function __resetForTests(): void {
   probeFailed = false;
   hasSucceededOnce = false;
   session = null;
+  consumers = 0;
 }
 
 function hasProbeFailure(): boolean {
@@ -155,8 +156,39 @@ export async function selectTool<T>(
   }
 }
 
-/** Sessions hold the model in memory; the platform guidance requires explicit release. */
+/**
+ * Tears the session down immediately, regardless of how many consumers are live.
+ *
+ * Prefer `acquire()` unless you genuinely own the whole page — see below for why.
+ */
 export function destroy(): void {
   session?.destroy();
   session = null;
+}
+
+let consumers = 0;
+
+/**
+ * Registers a consumer and returns its release function. The session is destroyed only when the
+ * LAST consumer releases.
+ *
+ * There is one session per page, so a consumer that tears down on its own unmount takes the
+ * session out from under everyone else. That is not hypothetical: the command palette and an
+ * embedded demo can share a page, and the demo unmounting on a route change would leave the
+ * palette's next call throwing "enableModel() must be called before selectTool()" — recoverable
+ * only by another real user gesture, which the palette has no way to stage.
+ *
+ * Release is idempotent per consumer, so a double-unmount can't drive the count negative and
+ * free a session other consumers are still using.
+ */
+export function acquire(): () => void {
+  consumers += 1;
+  let released = false;
+
+  return () => {
+    if (released) return;
+    released = true;
+    consumers = Math.max(0, consumers - 1);
+    if (consumers === 0) destroy();
+  };
 }

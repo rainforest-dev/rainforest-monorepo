@@ -1,7 +1,7 @@
 import { onUnmounted, readonly, ref } from 'vue';
 
 import {
-  destroy,
+  acquire,
   detectCapability,
   enableModel as enableModelCore,
   selectTool as selectToolCore,
@@ -12,10 +12,9 @@ import type { AiState } from './types';
  * Vue adapter over the framework-agnostic core. Holds no logic of its own beyond reactivity and
  * cleanup — everything fragile lives in language-model.ts so a React consumer could reuse it.
  *
- * ONE SESSION PER PAGE. The core keeps a single module-level session, so two components each
- * calling `enable()`/unmounting will fight over it: whichever unmounts first destroys the session
- * the other is still using. Until ownership is designed properly, use this from ONE component per
- * page.
+ * ONE SESSION PER PAGE, shared by every consumer. Teardown is reference-counted via the core's
+ * `acquire()`, so the session survives until the last component using it unmounts — a demo
+ * unmounting on a route change no longer destroys the palette's session.
  */
 export function useLanguageModel() {
   const state = ref<AiState>({ kind: 'unsupported' });
@@ -55,7 +54,10 @@ export function useLanguageModel() {
     }
   }
 
-  onUnmounted(destroy);
+  // acquire() runs now, registering this consumer; the returned release runs on unmount and
+  // only tears the session down when it is the last one out.
+  const release = acquire();
+  onUnmounted(release);
 
   return {
     state: readonly(state),
