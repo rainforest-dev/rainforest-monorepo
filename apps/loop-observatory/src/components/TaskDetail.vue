@@ -1,10 +1,24 @@
 <script setup lang="ts">
-import { Bot, Check, Circle, ExternalLink, FileText, Hand, Loader2, Save, X } from '@lucide/vue';
+import {
+  AlertTriangle,
+  Bot,
+  Check,
+  Circle,
+  Cpu,
+  ExternalLink,
+  FileText,
+  Hand,
+  Loader2,
+  Save,
+  ShieldCheck,
+  X,
+} from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { SprintTask } from '@/lib/tasks';
+import type { ExecutionPlan, PlanCandidate } from '@/lib/taskPlan';
 import {
   effectiveStatus,
   ownerMeta,
@@ -54,6 +68,77 @@ const saved = ref(false);
 const saveError = ref<string | null>(null);
 const dirty = ref(false);
 
+interface DecisionResponse {
+  found: boolean;
+  id: string;
+  recommendation: 'greenlight' | 'plan-first';
+  title: string;
+  summary: string;
+  reasons: string[];
+  suggestedComment: string;
+  project: string | null;
+  executorReady: boolean;
+  deliveryMode: 'local' | 'remote-queue' | 'none';
+  outboxState: 'none' | 'pending' | 'applied' | 'duplicate' | 'failed';
+  greenlit: boolean;
+  existing: { decision: 'greenlight' | 'plan-first'; comment: string; updatedAt: string | null } | null;
+  executionPlan: ExecutionPlan | null;
+}
+
+const decision = ref<DecisionResponse | null>(null);
+const decisionDraft = ref('');
+const decisionLoading = ref(false);
+const decisionSaving = ref(false);
+const decisionError = ref<string | null>(null);
+const decisionSaved = ref(false);
+
+const greenlightLabel = computed(() =>
+  decision.value?.deliveryMode === 'remote-queue' ? 'Greenlight → Air' : 'Greenlight',
+);
+
+const outboxMessage = computed(() => {
+  switch (decision.value?.outboxState) {
+    case 'pending':
+      return 'Queued to Air — applies on its next pull (up to ~5 minutes).';
+    case 'applied':
+      return 'Applied on Air.';
+    case 'duplicate':
+      return 'Already on Air’s allowlist.';
+    case 'failed':
+      return 'Air rejected this request. Check the ack for the reason.';
+    default:
+      return null;
+  }
+});
+
+interface PlanResponse {
+  found: boolean;
+  id: string;
+  candidates: PlanCandidate[];
+  saved: ExecutionPlan | null;
+  error?: string;
+}
+
+const plan = ref<PlanResponse | null>(null);
+const planLoading = ref(false);
+const planSaving = ref(false);
+const planError = ref<string | null>(null);
+const planSaved = ref(false);
+const selectedPlanId = ref('');
+
+function planId(value: Pick<ExecutionPlan, 'provider' | 'model' | 'effort'>): string {
+  return `${value.provider}:${value.model}:${value.effort}`;
+}
+
+const selectedPlan = computed<PlanCandidate | null>(() => {
+  if (!plan.value) return null;
+  return plan.value.candidates.find((candidate) => candidate.id === selectedPlanId.value) ?? null;
+});
+
+function formatTokens(value: number): string {
+  return `${Math.round(value / 1000)}k`;
+}
+
 // Parse a JSON response defensively: an error status can come back with an
 // empty body (e.g. a 500 from the node adapter), and `res.json()` on empty text
 // throws a cryptic "Unexpected end of JSON input". Return null instead so
@@ -94,6 +179,72 @@ async function fetchNote(id: string) {
   }
 }
 
+async function fetchDecision(id: string) {
+  decisionLoading.value = true;
+  decisionError.value = null;
+  decisionSaved.value = false;
+  decision.value = null;
+  decisionDraft.value = '';
+  try {
+    const res = await fetch(`/api/task-decision?id=${encodeURIComponent(id)}`);
+    const data = await readJson<DecisionResponse & { error?: string }>(res);
+    if (!res.ok || !data) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    decision.value = data;
+    decisionDraft.value = data.existing?.comment || data.suggestedComment;
+  } catch (e) {
+    decisionError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    decisionLoading.value = false;
+  }
+}
+
+async function fetchPlan(id: string) {
+  planLoading.value = true;
+  planError.value = null;
+  planSaved.value = false;
+  plan.value = null;
+  selectedPlanId.value = '';
+  try {
+    const res = await fetch(`/api/task-plan?id=${encodeURIComponent(id)}`);
+    const data = await readJson<PlanResponse>(res);
+    if (!res.ok || !data) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    plan.value = data;
+    selectedPlanId.value = data.saved
+      ? planId(data.saved)
+      : data.candidates.find((candidate) => candidate.recommended)?.id ?? data.candidates[0]?.id ?? '';
+  } catch (e) {
+    planError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    planLoading.value = false;
+  }
+}
+
+async function savePlan() {
+  const id = props.task?.id;
+  const candidate = selectedPlan.value;
+  if (id == null || !candidate || planSaving.value) return;
+  planSaving.value = true;
+  planError.value = null;
+  planSaved.value = false;
+  try {
+    const res = await fetch(`/api/task-plan?id=${encodeURIComponent(String(id))}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ plan: candidate }),
+    });
+    const data = await readJson<{ plan?: ExecutionPlan; error?: string }>(res);
+    if (!res.ok || !data?.plan) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    if (plan.value) plan.value.saved = data.plan;
+    selectedPlanId.value = planId(data.plan);
+    planSaved.value = true;
+    await fetchDecision(String(id));
+  } catch (e) {
+    planError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    planSaving.value = false;
+  }
+}
+
 async function saveFeedback() {
   const id = props.task?.id;
   if (id == null || saving.value) return;
@@ -121,6 +272,36 @@ async function saveFeedback() {
   }
 }
 
+async function saveDecision(kind: 'greenlight' | 'plan-first') {
+  const id = props.task?.id;
+  if (id == null || decisionSaving.value) return;
+  decisionSaving.value = true;
+  decisionError.value = null;
+  decisionSaved.value = false;
+  try {
+    const res = await fetch(`/api/task-decision?id=${encodeURIComponent(String(id))}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ decision: kind, comment: decisionDraft.value }),
+    });
+    const data = await readJson<{
+      guidance?: DecisionResponse;
+      error?: string;
+    }>(res);
+    if (!res.ok || !data?.guidance) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    decision.value = data.guidance;
+    decisionDraft.value = data.guidance.existing?.comment || data.guidance.suggestedComment;
+    decisionSaved.value = true;
+    // The greenlight file and note are server-side state; refresh the board so
+    // the pending/owner indicators are not stale after the drawer action.
+    window.dispatchEvent(new CustomEvent('lo:refresh'));
+  } catch (e) {
+    decisionError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    decisionSaving.value = false;
+  }
+}
+
 function onFeedbackInput() {
   dirty.value = true;
   saved.value = false;
@@ -129,7 +310,11 @@ function onFeedbackInput() {
 watch(
   () => [props.open, props.task?.id] as const,
   ([open, id]) => {
-    if (open && id != null) fetchNote(String(id));
+    if (open && id != null) {
+      fetchNote(String(id));
+      fetchDecision(String(id));
+      fetchPlan(String(id));
+    }
   },
   { immediate: true },
 );
@@ -314,6 +499,159 @@ onMounted(() => {
 
           <!-- Note body + feedback editor -->
           <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <!-- Provider/model selection is a required budget gate for both
+                 plan-first and greenlight decisions. It never starts work. -->
+            <section
+              v-if="planLoading || plan || planError"
+              class="border-border bg-muted/25 mb-5 rounded-lg border p-3.5"
+              aria-label="Execution plan"
+            >
+              <div class="flex items-start gap-2">
+                <Cpu class="text-primary mt-0.5 size-4 shrink-0" />
+                <div class="min-w-0">
+                  <h3 class="text-foreground text-sm font-semibold">Choose an execution plan</h3>
+                  <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    Compare all supported providers before deciding who should run this task.
+                    Estimates are token/time caps; subscription quota is not a bill.
+                  </p>
+                </div>
+              </div>
+              <div v-if="planLoading" class="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
+                <Loader2 class="size-3.5 animate-spin" /> Reading provider budgets…
+              </div>
+              <p v-else-if="planError" class="text-destructive mt-3 text-xs">
+                Unable to prepare provider plans: {{ planError }}
+              </p>
+              <div v-else-if="plan" class="mt-3 space-y-2">
+                <button
+                  v-for="candidate in plan.candidates"
+                  :key="candidate.id"
+                  type="button"
+                  class="border-border bg-background hover:border-primary/60 w-full rounded-md border p-2.5 text-left transition-colors"
+                  :class="selectedPlanId === candidate.id ? 'border-primary ring-primary/30 ring-2' : ''"
+                  :aria-pressed="selectedPlanId === candidate.id"
+                  @click="selectedPlanId = candidate.id"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-foreground text-xs font-semibold">{{ candidate.label }}</span>
+                    <span
+                      v-if="candidate.recommended"
+                      class="text-primary rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium"
+                    >
+                      Recommended
+                    </span>
+                  </div>
+                  <div class="text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px]">
+                    <span>{{ candidate.model }}</span>
+                    <span>· {{ candidate.effort }}</span>
+                    <span>· {{ formatTokens(candidate.inputTokens) }} in / {{ formatTokens(candidate.outputTokens) }} out</span>
+                    <span>· {{ candidate.maxMinutes }} min cap</span>
+                  </div>
+                  <div class="text-muted-foreground mt-1 flex flex-wrap gap-x-2 text-[10px]">
+                    <span>{{ candidate.quotaWindow }}</span>
+                    <span>· {{ candidate.sourceMachine ?? 'no snapshot' }}</span>
+                    <span v-if="candidate.usedPct !== null">· {{ candidate.usedPct }}% used</span>
+                    <span v-else>· estimate only</span>
+                    <span v-if="candidate.availability === 'stale'" class="text-status-warning">· stale</span>
+                  </div>
+                </button>
+                <p class="text-muted-foreground text-[11px]">{{ selectedPlan?.rationale }}</p>
+                <div class="flex items-center justify-between gap-2 pt-1">
+                  <p v-if="planSaved || plan.saved" class="text-[11px]" :style="{ color: 'var(--status-good)' }">
+                    Plan saved. You can still change it before greenlighting.
+                  </p>
+                  <span v-else />
+                  <Button size="sm" :disabled="planSaving || !selectedPlan" @click="savePlan">
+                    <Loader2 v-if="planSaving" class="size-3.5 animate-spin" />
+                    <Cpu v-else class="size-3.5" />
+                    {{ planSaving ? 'Saving…' : 'Save plan' }}
+                  </Button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Decision support is deliberately separate from execution: the
+                 owner chooses the action, and neither button starts a loop run. -->
+            <section
+              v-if="decisionLoading || decision || decisionError"
+              class="border-border bg-muted/25 mb-5 rounded-lg border p-3.5"
+              aria-label="Loop decision"
+            >
+              <div v-if="decisionLoading" class="text-muted-foreground flex items-center gap-2 text-sm">
+                <Loader2 class="size-3.5 animate-spin" /> Preparing decision guidance…
+              </div>
+              <p v-else-if="decisionError" class="text-destructive text-sm">
+                Unable to load decision guidance: {{ decisionError }}
+              </p>
+              <template v-else-if="decision">
+                <div class="flex items-start gap-2">
+                  <ShieldCheck
+                    v-if="decision.recommendation === 'greenlight'"
+                    class="mt-0.5 size-4 shrink-0"
+                    :style="{ color: 'var(--status-good)' }"
+                  />
+                  <AlertTriangle
+                    v-else
+                    class="text-status-warning mt-0.5 size-4 shrink-0"
+                  />
+                  <div class="min-w-0">
+                    <h3 class="text-foreground text-sm font-semibold">{{ decision.title }}</h3>
+                    <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                      {{ decision.summary }}
+                    </p>
+                  </div>
+                </div>
+                <ul v-if="decision.reasons.length" class="text-muted-foreground mt-2.5 space-y-1 pl-5 text-xs">
+                  <li v-for="reason in decision.reasons" :key="reason">{{ reason }}</li>
+                </ul>
+                <label class="text-muted-foreground mt-3 block text-xs font-medium" for="decision-comment">
+                  Owner comment
+                </label>
+                <textarea
+                  id="decision-comment"
+                  v-model="decisionDraft"
+                  rows="3"
+                  class="border-border bg-background text-foreground focus-visible:ring-ring mt-1.5 w-full resize-y rounded-md border p-2.5 text-xs focus-visible:outline-none focus-visible:ring-2"
+                  placeholder="Add the context you want the executor to see…"
+                />
+                <p v-if="decisionError" class="text-destructive mt-1.5 text-xs">
+                  {{ decisionError }}
+                </p>
+                <p v-if="decisionSaved" class="mt-1.5 text-xs" :style="{ color: 'var(--status-good)' }">
+                  Decision saved. The loop remains stopped until its normal scheduler/command runs.
+                </p>
+                <div class="mt-3 flex flex-wrap items-center justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    :disabled="decisionSaving"
+                    @click="saveDecision('plan-first')"
+                  >
+                    <Loader2 v-if="decisionSaving" class="size-3.5 animate-spin" />
+                    <AlertTriangle v-else class="size-3.5" />
+                    Plan first
+                  </Button>
+                  <Button
+                    v-if="decision.project"
+                    size="sm"
+                    :disabled="decisionSaving || decision.recommendation !== 'greenlight' || decision.greenlit"
+                    :title="
+                      decision.greenlit
+                        ? 'Already on the owner-maintained greenlight list'
+                        : decision.recommendation !== 'greenlight'
+                          ? 'Resolve the planning notes first'
+                          : 'Queue this task; do not start execution'
+                    "
+                    @click="saveDecision('greenlight')"
+                  >
+                    <Loader2 v-if="decisionSaving" class="size-3.5 animate-spin" />
+                    <ShieldCheck v-else class="size-3.5" />
+                    {{ decision.greenlit ? 'Greenlit' : greenlightLabel }}
+                  </Button>
+                </div>
+                <p v-if="outboxMessage" class="text-muted-foreground mt-2 text-xs">{{ outboxMessage }}</p>
+              </template>
+            </section>
             <p v-if="loading" class="text-muted-foreground py-8 text-center text-sm">
               Loading note…
             </p>
