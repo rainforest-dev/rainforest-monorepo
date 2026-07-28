@@ -5,7 +5,11 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 // astro.config.mjs — Astro reads aliases from tsconfig `paths`, and none exists), so this is a
 // relative import rather than the `@mcp/catalog` shown in the plan.
 import { PROFILE_TOOLS, toToolDescriptors } from '../../mcp/catalog';
-import { useLanguageModel } from '@utils/ai';
+import {
+  type AgentToolRegistration,
+  registerAgentTools,
+  useLanguageModel,
+} from '@utils/ai';
 import { searchRecords, type Searchable } from '@utils/search';
 
 // `lang` is unused by search, but a later task gates the AI path on locale. Accepting it now
@@ -73,8 +77,8 @@ const SELECTION_SCHEMA = {
   },
 };
 
-// Same JSON Schema descriptors `catalog.ts` builds for the MCP route — used here so `ask()`
-// validates the model's chosen args through the real per-tool schema before running anything.
+// Built once and shared by the ask flow above and the WebMCP registration at the bottom of this
+// file — one array of descriptors, not two independently-constructed schema trees.
 const toolDescriptors = toToolDescriptors();
 
 async function ask() {
@@ -180,6 +184,20 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 // remounts this component on every navigation, so a stale verdict from a previous page never
 // lingers into the next one.
 onMounted(refresh);
+
+// No-ops in every shipping browser today — document.modelContext exists in none of them
+// (verified 2026-07-28: Chrome 150, Edge 150, Chromium 148). Wired now because the descriptors
+// already exist and the dispose handle makes it leak-free.
+//
+// Registered inside onMounted, not at setup() top level: setup() also runs during Astro's SSR
+// prerender, where there is no `document` at all, and registerAgentTools() dereferences it
+// unconditionally. onMounted is the standard Vue SSR-safe boundary — it never runs on the
+// server — which is why the ⌘K keydown listener above is wired the same way.
+let registration: AgentToolRegistration | undefined;
+onMounted(() => {
+  registration = registerAgentTools(toolDescriptors);
+});
+onUnmounted(() => registration?.dispose());
 </script>
 
 <template>
