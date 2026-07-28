@@ -1,5 +1,5 @@
 // @ts-check
-import { cpSync } from 'node:fs';
+import { cpSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { unified } from '@astrojs/markdown-remark';
@@ -17,6 +17,16 @@ import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
 
 import { fallbackLng, supportedLngs } from './src/utils/i18n/settings';
+
+// Legacy English case-study URLs. Derived from the project files rather than listed by hand
+// so a newly added case study can't silently ship without its redirect — the hand-maintained
+// list is exactly how /en/portfolio/<slug> got missed when /en/portfolio itself was covered.
+const legacyPortfolioRedirects = Object.fromEntries(
+  readdirSync(fileURLToPath(new URL('../../libs/personal-data/src/data/projects/en', import.meta.url)))
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => file.replace(/\.md$/, ''))
+    .map((slug) => [`/en/portfolio/${slug}`, `/portfolio/${slug}`]),
+);
 
 // Wire Sentry only when the (public) DSN is configured — i.e. production and
 // preview on Vercel. Local/dev builds have no DSN, so the integration is
@@ -40,6 +50,7 @@ export default defineConfig({
     '/en': '/',
     '/en/portfolio': '/portfolio',
     '/en/resume': '/resume',
+    ...legacyPortfolioRedirects,
   },
   markdown: {
     shikiConfig: {
