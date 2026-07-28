@@ -34,6 +34,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v5
 
+      # Formatting is not covered by lint: eslint-config-prettier switches off ESLint's
+      # stylistic rules on the assumption Prettier owns them, but nothing ran Prettier, so
+      # malformed code passed lint, typecheck and tests alike.
+      #
+      # Repo-wide rather than an Nx target on purpose: the whole check takes ~6s, and 43 of the
+      # files it covers (.github/, conductor/, docs/, root CLAUDE.md, .mcp.json) live outside
+      # any Nx project, so `nx affected` would never reach them.
+      - name: Check formatting
+        run: pnpm format:check
+
       # Run affected tasks. Nx Cloud is opt-in via the NX_CLOUD_ENABLED repo
       # variable (same flag that gates the agents above). When it's off —
       # including if the Nx Cloud plan lapses — set NX_NO_CLOUD so `nx affected`
