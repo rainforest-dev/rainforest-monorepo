@@ -5,6 +5,7 @@ import {
   destroy,
   detectCapability,
   enableModel,
+  RUN_TIMEOUT_MS,
   selectTool,
 } from './language-model';
 
@@ -157,6 +158,18 @@ describe('selectTool', () => {
     expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBe('failed');
   });
 
+  it('degrades on the first call when the response is not parseable JSON', async () => {
+    // responseConstraint is supposed to guarantee schema-valid JSON. If it resolves with
+    // something else on the first call, that is the constraint silently not constraining —
+    // exactly the capability failure the probe exists to catch.
+    stubSession(async () => 'not json');
+    await enableModel();
+
+    await expect(selectTool('q', SCHEMA)).rejects.toThrow();
+
+    expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBe('failed');
+  });
+
   it('does not blame the browser for a later failure after one success', async () => {
     let calls = 0;
     stubSession(async () => {
@@ -175,6 +188,58 @@ describe('selectTool', () => {
   it('throws when called before enableModel', async () => {
     stubLanguageModel('available');
     await expect(selectTool('q', SCHEMA)).rejects.toThrow(/enableModel/);
+  });
+
+  it('does not degrade when the caller aborts mid-flight', async () => {
+    // A hung `session.prompt()` that only settles once its `signal` fires — this is how the
+    // platform is expected to behave when asked to abort.
+    stubSession(
+      (_query, opts) =>
+        new Promise<string>((_resolve, reject) => {
+          (
+            opts as { signal?: AbortSignal } | undefined
+          )?.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          );
+        }),
+    );
+    await enableModel();
+
+    const controller = new AbortController();
+    const pending = selectTool('q', SCHEMA, { signal: controller.signal });
+    controller.abort();
+
+    await expect(pending).rejects.toThrow();
+
+    // An abort is never a capability verdict.
+    expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBeNull();
+  });
+
+  it('does not degrade when the run times out', async () => {
+    vi.useFakeTimers();
+    try {
+      stubSession(
+        (_query, opts) =>
+          new Promise<string>((_resolve, reject) => {
+            (
+              opts as { signal?: AbortSignal } | undefined
+            )?.signal?.addEventListener('abort', () =>
+              reject(new DOMException('timed out', 'AbortError')),
+            );
+          }),
+      );
+      await enableModel();
+
+      const pending = selectTool('q', SCHEMA);
+      const assertion = expect(pending).rejects.toThrow();
+      await vi.advanceTimersByTimeAsync(RUN_TIMEOUT_MS);
+      await assertion;
+
+      // A timeout says nothing about support either.
+      expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

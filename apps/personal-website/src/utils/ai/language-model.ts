@@ -46,7 +46,10 @@ export async function detectCapability(): Promise<AiState> {
   }
 }
 
-type Session = { prompt: (input: string, opts?: unknown) => Promise<string>; destroy: () => void };
+type Session = {
+  prompt: (input: string, opts?: unknown) => Promise<string>;
+  destroy: () => void;
+};
 
 let session: Session | null = null;
 
@@ -57,7 +60,9 @@ let session: Session | null = null;
  * multi-hundred-megabyte download and throws `NotAllowedError` outside a user gesture, so this
  * cannot be called on ⌘K-open or on keystroke — consumers wire it to an explicit control.
  */
-export async function enableModel(onProgress?: (progress: number) => void): Promise<void> {
+export async function enableModel(
+  onProgress?: (progress: number) => void,
+): Promise<void> {
   if (typeof LanguageModel === 'undefined') {
     throw new Error('Prompt API is not available in this browser');
   }
@@ -67,16 +72,19 @@ export async function enableModel(onProgress?: (progress: number) => void): Prom
     expectedOutputs: [{ type: 'text', languages: ['en'] }],
     monitor(m: EventTarget) {
       m.addEventListener('downloadprogress', (event) => {
-        const { loaded, total } = event as Event & { loaded: number; total: number };
+        const { loaded, total } = event as Event & {
+          loaded: number;
+          total: number;
+        };
         onProgress?.(total > 0 ? loaded / total : 0);
       });
     },
   } as never)) as unknown as Session;
 }
 
-/** Wall clock, not step count. On-device inference blocks the main thread, so a hung run has to
- *  be cut off by an abort signal the platform honours rather than a timer we can't fire. */
-const RUN_TIMEOUT_MS = 20_000;
+/** Wall-clock bound on a single run. The abort is what the platform honours — we ask it to
+ *  stop rather than assuming we can interrupt inference ourselves. */
+export const RUN_TIMEOUT_MS = 20_000;
 
 let hasSucceededOnce = false;
 
@@ -102,25 +110,30 @@ export async function selectTool<T>(
   schema: Record<string, unknown>,
   opts: { signal?: AbortSignal } = {},
 ): Promise<T> {
-  if (!session) throw new Error('enableModel() must be called before selectTool()');
+  if (!session)
+    throw new Error('enableModel() must be called before selectTool()');
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
-  opts.signal?.addEventListener('abort', () => controller.abort(), { once: true });
+  const onCallerAbort = () => controller.abort();
+  opts.signal?.addEventListener('abort', onCallerAbort, { once: true });
 
   try {
     const raw = await session.prompt(query, {
       responseConstraint: schema,
       signal: controller.signal,
     });
+    const parsed = JSON.parse(raw) as T;
     hasSucceededOnce = true;
-    return JSON.parse(raw) as T;
+    return parsed;
   } catch (error) {
-    const aborted = error instanceof DOMException && error.name === 'AbortError';
+    const aborted =
+      error instanceof DOMException && error.name === 'AbortError';
     if (!hasSucceededOnce && !aborted) markProbeFailed();
     throw error;
   } finally {
     clearTimeout(timer);
+    opts.signal?.removeEventListener('abort', onCallerAbort);
   }
 }
 
