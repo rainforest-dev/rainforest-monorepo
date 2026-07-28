@@ -7,13 +7,26 @@ import { BulkSelectionWrapper } from '@/components/BulkSelectionWrapper';
 import { FilterBar } from '@/components/FilterBar';
 import { buildPageUrl, Pagination } from '@/components/Pagination';
 import { listDeliveryPlatforms } from '@/lib/delivery';
-import { getBookList, getFilterOptions, getGroupedBookList,type GroupBy } from '@/lib/queries';
+import {
+  getBookList,
+  getFilterOptions,
+  getGroupedBookList,
+  type GroupBy,
+} from '@/lib/queries';
 import type { BookGroup } from '@/types/calibre';
 
 interface Props {
   searchParams: Promise<{
-    page?: string; q?: string; author?: string; tag?: string; series?: string;
-    platform?: string; delivered?: string; groupBy?: string; sortBy?: string; sortDir?: string;
+    page?: string;
+    q?: string;
+    author?: string;
+    tag?: string;
+    series?: string;
+    platform?: string;
+    delivered?: string;
+    groupBy?: string;
+    sortBy?: string;
+    sortDir?: string;
   }>;
 }
 
@@ -28,20 +41,43 @@ export default function LibraryPage({ searchParams }: Props) {
 async function LibraryPageContent({ searchParams }: Props) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? '1') || 1);
-  const authorId = params.author ? (parseInt(params.author) || undefined) : undefined;
-  const tagId = params.tag ? (parseInt(params.tag) || undefined) : undefined;
-  const seriesId = params.series ? (parseInt(params.series) || undefined) : undefined;
-  const delivered = params.delivered === 'true' ? true : params.delivered === 'false' ? false : undefined;
-  const groupBy = (['series', 'tag', 'author'] as const).find((v) => v === params.groupBy);
-  const sortBy = (['title', 'author', 'pubdate', 'added', 'rating'] as const).find((v) => v === params.sortBy);
+  const authorId = params.author
+    ? parseInt(params.author) || undefined
+    : undefined;
+  const tagId = params.tag ? parseInt(params.tag) || undefined : undefined;
+  const seriesId = params.series
+    ? parseInt(params.series) || undefined
+    : undefined;
+  const delivered =
+    params.delivered === 'true'
+      ? true
+      : params.delivered === 'false'
+        ? false
+        : undefined;
+  const groupBy = (['series', 'tag', 'author'] as const).find(
+    (v) => v === params.groupBy,
+  );
+  const sortBy = (
+    ['title', 'author', 'pubdate', 'added', 'rating'] as const
+  ).find((v) => v === params.sortBy);
   const sortDir = params.sortDir === 'desc' ? 'desc' : 'asc';
 
-  const [filters, platforms] = await Promise.all([getFilterOptions(), listDeliveryPlatforms()]);
+  const [filters, platforms] = await Promise.all([
+    getFilterOptions(),
+    listDeliveryPlatforms(),
+  ]);
 
   if (groupBy) {
     const { groups } = await getGroupedBookList({
-      q: params.q, authorId, tagId, seriesId,
-      platformKey: params.platform, delivered, groupBy, sortBy, sortDir,
+      q: params.q,
+      authorId,
+      tagId,
+      seriesId,
+      platformKey: params.platform,
+      delivered,
+      groupBy,
+      sortBy,
+      sortDir,
     });
     const total = groups.reduce((n, g) => n + g.total, 0);
 
@@ -60,13 +96,27 @@ async function LibraryPageContent({ searchParams }: Props) {
   }
 
   const { books, total } = await getBookList({
-    page, q: params.q, authorId, tagId, seriesId,
-    platformKey: params.platform, delivered, sortBy, sortDir,
+    page,
+    q: params.q,
+    authorId,
+    tagId,
+    seriesId,
+    platformKey: params.platform,
+    delivered,
+    sortBy,
+    sortDir,
   });
 
   const totalPages = Math.ceil(total / 30);
   if (page > totalPages && totalPages > 0) {
-    redirect(buildPageUrl(1, { q: params.q, author: params.author, tag: params.tag, series: params.series }));
+    redirect(
+      buildPageUrl(1, {
+        q: params.q,
+        author: params.author,
+        tag: params.tag,
+        series: params.series,
+      }),
+    );
   }
 
   return (
@@ -84,15 +134,24 @@ async function LibraryPageContent({ searchParams }: Props) {
   );
 }
 
-function GroupedView({ groups, groupBy }: { groups: BookGroup[]; groupBy: GroupBy }) {
-  const filterParam = groupBy === 'series' ? 'series' : groupBy === 'tag' ? 'tag' : 'author';
+function GroupedView({
+  groups,
+  groupBy,
+}: {
+  groups: BookGroup[];
+  groupBy: GroupBy;
+}) {
+  const filterParam =
+    groupBy === 'series' ? 'series' : groupBy === 'tag' ? 'tag' : 'author';
   return (
     <div className="space-y-10">
       {groups.map((group) => (
         <section key={group.key}>
           <div className="mb-3 flex items-baseline justify-between border-b pb-1">
             <h2 className="text-sm font-semibold">{group.label}</h2>
-            <span className="text-muted-foreground text-xs">{group.total} books</span>
+            <span className="text-muted-foreground text-xs">
+              {group.total} books
+            </span>
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             {group.books.map((book) => (
@@ -101,7 +160,10 @@ function GroupedView({ groups, groupBy }: { groups: BookGroup[]; groupBy: GroupB
           </div>
           {group.total > 6 && (
             <div className="mt-3 text-right">
-              <Link href={`/?${filterParam}=${group.key}`} className="text-primary text-sm hover:underline">
+              <Link
+                href={`/?${filterParam}=${group.key}`}
+                className="text-primary text-sm hover:underline"
+              >
                 See all {group.total} →
               </Link>
             </div>

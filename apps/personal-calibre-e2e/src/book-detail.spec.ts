@@ -17,7 +17,9 @@ test.describe('book detail', () => {
     await expect(page.locator('button:has-text("+ Add tag")')).toBeVisible();
   });
 
-  test('back link with from param returns to filtered library', async ({ page }) => {
+  test('back link with from param returns to filtered library', async ({
+    page,
+  }) => {
     await page.goto('/?author=1');
     await page.click('[data-testid="book-card"] >> nth=0');
     await expect(page).toHaveURL(/\/books\/\d+\?from=/);

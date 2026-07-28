@@ -5,4 +5,4 @@ This file tracks all major tracks for the project. Each track has its own detail
 ---
 
 - [ ] **Track: Implement new features for Personal Calibre**
-  *Link: [./tracks/personal_calibre_20260513/](./tracks/personal_calibre_20260513/)*
+      _Link: [./tracks/personal_calibre_20260513/](./tracks/personal_calibre_20260513/)_

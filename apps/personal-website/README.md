@@ -12,8 +12,9 @@
 ## ✨ Features
 
 ### 🚀 Core Features
+
 - **⚡ Astro-powered** - Lightning-fast static site generation with component islands
-- **🎨 Multi-framework** - React, Vue, and Lit components working together seamlessly  
+- **🎨 Multi-framework** - React, Vue, and Lit components working together seamlessly
 - **📱 Progressive Web App** - Offline support, app-like experience
 - **🌍 Internationalization** - Multi-language support with i18next
 - **🤖 AI/ML Integration** - Web LLM capabilities for intelligent interactions
@@ -21,6 +22,7 @@
 - **📝 MDX Content** - Rich content authoring with React components
 
 ### 🎯 Advanced Capabilities
+
 - **🧠 Web AI** - Client-side AI models with @mlc-ai/web-llm
 - **🎨 Material Design 3** - Google's latest design system
 - **📊 Analytics** - Vercel Speed Insights integration
@@ -33,22 +35,26 @@
 ### Technology Stack
 
 **Core Framework**
+
 - **Astro 5.7** - Modern static site generator
 - **TypeScript 5.8** - Type-safe development
 - **Vite** - Fast build tooling
 
 **UI Frameworks**
+
 - **React 19** - Interactive components and client-side features
 - **Vue 3.5** - Reactive components with Composition API
 - **Lit 3.3** - Lightweight web components
 - **@rainforest-dev/rainforest-ui** - Custom component library
 
 **Styling & Design**
+
 - **Tailwind CSS 4.1** - Utility-first CSS framework
 - **Material Design 3** - Google's design system
 - **@tailwindcss/typography** - Beautiful typographic defaults
 
 **Advanced Features**
+
 - **@mlc-ai/web-llm** - Client-side AI/ML capabilities
 - **i18next** - Internationalization framework
 - **Nanostores** - Tiny state management
@@ -126,12 +132,12 @@ apps/personal-website/
 
 ### Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `nx dev personal-website` | Start development server |
-| `nx build personal-website` | Build for production |
+| Command                       | Description              |
+| ----------------------------- | ------------------------ |
+| `nx dev personal-website`     | Start development server |
+| `nx build personal-website`   | Build for production     |
 | `nx preview personal-website` | Preview production build |
-| `nx check personal-website` | Run Astro type checking |
+| `nx check personal-website`   | Run Astro type checking  |
 
 ### Adding New Content
 
@@ -141,10 +147,10 @@ Create MDX files in `src/pages/posts/`:
 
 ```mdx
 ---
-title: "Your Post Title"
-description: "Post description"
-date: "2025-06-29"
-tags: ["tech", "development"]
+title: 'Your Post Title'
+description: 'Post description'
+date: '2025-06-29'
+tags: ['tech', 'development']
 ---
 
 # Your Post Title
@@ -179,7 +185,7 @@ import { useState } from 'react';
 
 export default function MyReactComponent() {
   const [count, setCount] = useState(0);
-  
+
   return (
     <button onClick={() => setCount(count + 1)}>
       Count: {count}
@@ -193,9 +199,7 @@ export default function MyReactComponent() {
 ```vue
 <!-- src/components/MyVueComponent.vue -->
 <template>
-  <button @click="increment">
-    Count: {{ count }}
-  </button>
+  <button @click="increment">Count: {{ count }}</button>
 </template>
 
 <script setup lang="ts">
@@ -246,7 +250,7 @@ The site supports multiple languages using i18next:
 {
   "nav": {
     "home": "首頁",
-    "blog": "部落格", 
+    "blog": "部落格",
     "resume": "履歷"
   }
 }
@@ -278,11 +282,9 @@ import { WebLLM } from '@mlc-ai/web-llm';
 const initializeAI = async () => {
   const engine = new WebLLM();
   await engine.reload('llama-2-7b-chat-q4f32_1');
-  
-  const response = await engine.chat([
-    { role: 'user', content: 'Hello, AI!' }
-  ]);
-  
+
+  const response = await engine.chat([{ role: 'user', content: 'Hello, AI!' }]);
+
   return response;
 };
 ```
@@ -290,6 +292,7 @@ const initializeAI = async () => {
 ### AI-Powered Components
 
 The site includes several AI-enhanced components:
+
 - **Smart Search** - Semantic content search
 - **Content Generation** - Dynamic content creation
 - **Interactive Chat** - Real-time AI conversations
@@ -309,10 +312,10 @@ export default {
       colors: {
         primary: 'var(--color-primary)',
         secondary: 'var(--color-secondary)',
-      }
-    }
-  }
-}
+      },
+    },
+  },
+};
 ```
 
 ### Material Design 3
@@ -408,12 +411,12 @@ export default defineConfig({
     mdx(),
     sitemap(),
     vercel({
-      speedInsights: { enabled: true }
-    })
+      speedInsights: { enabled: true },
+    }),
   ],
   vite: {
-    plugins: [VitePWA(pwaConfig)]
-  }
+    plugins: [VitePWA(pwaConfig)],
+  },
 });
 ```
 
@@ -439,12 +442,14 @@ See the main [Contributing Guide](../../CONTRIBUTING.md) for general guidelines.
 ## 📚 Resources
 
 ### Documentation
+
 - [Astro Documentation](https://docs.astro.build)
 - [Material Design 3](https://m3.material.io)
 - [Tailwind CSS](https://tailwindcss.com)
 - [i18next](https://www.i18next.com)
 
 ### Tools
+
 - [Astro DevTools](https://github.com/withastro/language-tools)
 - [PWA Builder](https://www.pwabuilder.com)
 - [Lighthouse](https://developers.google.com/web/tools/lighthouse)

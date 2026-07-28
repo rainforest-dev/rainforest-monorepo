@@ -27,7 +27,10 @@ export const GET: APIRoute = async ({ site, request }) => {
 
   const blogLinks = blog
     .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-    .map((post) => `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`)
+    .map(
+      (post) =>
+        `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`,
+    )
     .join('\n');
 
   const caseStudyLinks = listCaseStudies()

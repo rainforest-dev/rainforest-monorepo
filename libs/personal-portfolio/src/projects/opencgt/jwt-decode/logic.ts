@@ -86,7 +86,9 @@ export function buildMockJwt(persona: Persona): string {
 }
 
 /** Decodes a JWT's payload segment into a plain object — null if malformed. */
-export function decodeJwtPayload(token: string): Record<string, unknown> | null {
+export function decodeJwtPayload(
+  token: string,
+): Record<string, unknown> | null {
   try {
     const [, payloadSegment] = token.split('.');
     if (!payloadSegment) return null;

@@ -13,12 +13,23 @@ export const GET: APIRoute = () => {
 
 export const PATCH: APIRoute = async ({ request }) => {
   try {
-    const { name, action } = (await request.json()) as { name: string; action: string };
-    if (!name || !action) return Response.json({ error: 'Missing name or action' }, { status: 400 });
+    const { name, action } = (await request.json()) as {
+      name: string;
+      action: string;
+    };
+    if (!name || !action)
+      return Response.json(
+        { error: 'Missing name or action' },
+        { status: 400 },
+      );
 
     if (action === 'activate') activateTopic(name);
     else if (action === 'decline') declineTopic(name);
-    else return Response.json({ error: `Unknown action: ${action}` }, { status: 400 });
+    else
+      return Response.json(
+        { error: `Unknown action: ${action}` },
+        { status: 400 },
+      );
 
     return Response.json({ ok: true });
   } catch (err) {

@@ -4,9 +4,7 @@ import { nextWalletStage } from './logic';
 
 describe('wallet-state-machine logic — nextWalletStage', () => {
   it('moves Unspecified -> Initial on connect', () => {
-    expect(nextWalletStage('unspecified', { type: 'connect' })).toBe(
-      'initial',
-    );
+    expect(nextWalletStage('unspecified', { type: 'connect' })).toBe('initial');
   });
 
   it('moves Initial -> Pairing when a wallet is picked', () => {
@@ -32,16 +30,12 @@ describe('wallet-state-machine logic — nextWalletStage', () => {
       'unspecified',
     );
     expect(nextWalletStage('initial', { type: 'paired' })).toBe('initial');
-    expect(nextWalletStage('connected', { type: 'reject' })).toBe(
-      'connected',
-    );
+    expect(nextWalletStage('connected', { type: 'reject' })).toBe('connected');
   });
 
   it('resets to Unspecified from any stage, including Error', () => {
     expect(nextWalletStage('error', { type: 'reset' })).toBe('unspecified');
-    expect(nextWalletStage('connected', { type: 'reset' })).toBe(
-      'unspecified',
-    );
+    expect(nextWalletStage('connected', { type: 'reset' })).toBe('unspecified');
   });
 
   it('is idempotent: connecting again from Initial stays at Initial', () => {

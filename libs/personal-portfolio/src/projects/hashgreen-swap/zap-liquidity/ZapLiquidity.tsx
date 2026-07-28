@@ -67,7 +67,7 @@ export function ZapLiquidity(): JSX.Element {
 
       {zap ? (
         <div>
-          <label className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
+          <label className="border-border bg-muted/30 focus-within:border-primary/50 focus-within:ring-ring focus-within:ring-offset-background flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-offset-2">
             <span className="min-w-0 flex-1">
               <input
                 value={amount}
@@ -109,7 +109,7 @@ export function ZapLiquidity(): JSX.Element {
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <label className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
+          <label className="border-border bg-muted/30 focus-within:border-primary/50 focus-within:ring-ring focus-within:ring-offset-background flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-offset-2">
             <span className="min-w-0 flex-1">
               <input
                 value={aValue}
@@ -131,7 +131,7 @@ export function ZapLiquidity(): JSX.Element {
           >
             +
           </div>
-          <label className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
+          <label className="border-border bg-muted/30 focus-within:border-primary/50 focus-within:ring-ring focus-within:ring-offset-background flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-offset-2">
             <span className="min-w-0 flex-1">
               <input
                 value={bValue}

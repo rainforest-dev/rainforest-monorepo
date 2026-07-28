@@ -1,4 +1,11 @@
-import { type JSX, type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type JSX,
+  type KeyboardEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { cx } from '../../../shared/ui';
 import {
@@ -108,10 +115,19 @@ export function VirtualizedSearch(): JSX.Element {
     () => filterByTab(MOCK_MARKETS, tab, favorites),
     [tab, favorites],
   );
-  const ranked = useMemo(() => rankMarkets(query, tabMarkets), [query, tabMarkets]);
+  const ranked = useMemo(
+    () => rankMarkets(query, tabMarkets),
+    [query, tabMarkets],
+  );
   const win = useMemo(
     () =>
-      computeWindow(scrollTop, ROW_HEIGHT, VIEWPORT_HEIGHT, ranked.length, OVERSCAN),
+      computeWindow(
+        scrollTop,
+        ROW_HEIGHT,
+        VIEWPORT_HEIGHT,
+        ranked.length,
+        OVERSCAN,
+      ),
     [scrollTop, ranked.length],
   );
   const mountedRows = ranked.slice(win.start, win.end);
@@ -137,7 +153,11 @@ export function VirtualizedSearch(): JSX.Element {
 
   return (
     <div className="border-border bg-card text-card-foreground rounded-xl border p-6">
-      <div role="tablist" aria-label="Market list tabs" className="mb-3 flex gap-2">
+      <div
+        role="tablist"
+        aria-label="Market list tabs"
+        className="mb-3 flex gap-2"
+      >
         {TABS.map((tabDef, index) => {
           const selected = tab === tabDef.id;
           return (
@@ -158,7 +178,7 @@ export function VirtualizedSearch(): JSX.Element {
               }}
               onKeyDown={(event) => handleTabKeyDown(event, index)}
               className={cx(
-                'h-8 rounded-md border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'focus-visible:ring-ring h-8 rounded-md border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2',
                 selected
                   ? 'border-primary/50 bg-primary/10 text-primary'
                   : 'border-border text-muted-foreground hover:bg-muted/50',
@@ -170,12 +190,8 @@ export function VirtualizedSearch(): JSX.Element {
         })}
       </div>
 
-      <div
-        id="vs-tabpanel"
-        role="tabpanel"
-        aria-labelledby={`vs-tab-${tab}`}
-      >
-        <label className="border-border bg-muted/40 mb-3 flex h-11 items-center gap-2 rounded-lg border px-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
+      <div id="vs-tabpanel" role="tabpanel" aria-labelledby={`vs-tab-${tab}`}>
+        <label className="border-border bg-muted/40 focus-within:border-primary/50 focus-within:ring-ring focus-within:ring-offset-background mb-3 flex h-11 items-center gap-2 rounded-lg border px-3 transition-colors focus-within:ring-2 focus-within:ring-offset-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -203,7 +219,7 @@ export function VirtualizedSearch(): JSX.Element {
             autoComplete="off"
             className="text-foreground min-w-0 flex-1 border-0 bg-transparent text-sm outline-none"
           />
-          <span className="text-primary bg-primary/10 border-primary/30 rounded-md border px-2 py-1 font-mono text-xs whitespace-nowrap">
+          <span className="text-primary bg-primary/10 border-primary/30 whitespace-nowrap rounded-md border px-2 py-1 font-mono text-xs">
             {mountedRows.length} / {ranked.length} rows mounted
           </span>
         </label>
@@ -235,8 +251,10 @@ export function VirtualizedSearch(): JSX.Element {
                   }
                   onClick={() => toggleStar(market.code)}
                   className={cx(
-                    'shrink-0 rounded text-base leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    isFavorite ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+                    'focus-visible:ring-ring shrink-0 rounded text-base leading-none transition-colors focus-visible:outline-none focus-visible:ring-2',
+                    isFavorite
+                      ? 'text-primary'
+                      : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
                   <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>

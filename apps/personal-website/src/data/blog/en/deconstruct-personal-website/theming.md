@@ -136,12 +136,12 @@ export default plugin.withOptions(
       addBase({
         '@media (prefers-color-scheme: light)': {
           ':root': schemePropertiesToCssInJs(
-            getSchemeProperties(theme.schemes.light)
+            getSchemeProperties(theme.schemes.light),
           ),
         },
         '@media (prefers-color-scheme: dark)': {
           ':root': schemePropertiesToCssInJs(
-            getSchemeProperties(theme.schemes.dark)
+            getSchemeProperties(theme.schemes.dark),
           ),
         },
       });
@@ -150,14 +150,14 @@ export default plugin.withOptions(
   () => {
     const roles = getColorRoles();
     const colors = Object.fromEntries(
-      Object.entries(roles).map(([key]) => [key, `var(--md-sys-color-${key})`])
+      Object.entries(roles).map(([key]) => [key, `var(--md-sys-color-${key})`]),
     );
     return {
       theme: {
         colors,
       },
     };
-  }
+  },
 ) as ReturnType<typeof plugin.withOptions>;
 ```
 
@@ -171,10 +171,10 @@ const getSchemeStyles = (properties: { [key: string]: number }) => {
     .join('\n');
 };
 const lightSchemeStyles = getSchemeStyles(
-  getSchemeProperties(theme.schemes.light)
+  getSchemeProperties(theme.schemes.light),
 );
 const darkSchemeStyles = getSchemeStyles(
-  getSchemeProperties(theme.schemes.dark)
+  getSchemeProperties(theme.schemes.dark),
 );
 
 const styleRaw = `

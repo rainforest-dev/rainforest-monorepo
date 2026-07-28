@@ -14,7 +14,9 @@ export default function LibraryLayout({
           </Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
+        {children}
+      </main>
     </div>
   );
 }

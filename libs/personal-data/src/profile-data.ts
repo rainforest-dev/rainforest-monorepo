@@ -56,14 +56,19 @@ async function experienceTechnologies(
 ): Promise<SkillTag[]> {
   const direct = entry.data.technologies ?? [];
   const projectIds = entry.data.projects ?? [];
-  const projects = await Promise.all(projectIds.map((id) => getEntry('projects', id)));
+  const projects = await Promise.all(
+    projectIds.map((id) => getEntry('projects', id)),
+  );
   const fromProjects = projects.flatMap((p) => p?.data.technologies ?? []);
   return Array.from(new Set([...direct, ...fromProjects]));
 }
 
 /** Experience entries of a given type (`job` or `education`) in a given language. */
 function getExperiencesByType(type: ExperienceType, lang: string) {
-  return getCollection('experiences', (entry) => entry.data.type === type && entry.data.language === lang);
+  return getCollection(
+    'experiences',
+    (entry) => entry.data.type === type && entry.data.language === lang,
+  );
 }
 
 export async function getWorkExperience(
@@ -80,14 +85,19 @@ export async function getWorkExperience(
   const filtered = technology
     ? withTech.filter(({ technologies }) => technologies.includes(technology))
     : withTech;
-  return Promise.all(filtered.map(({ entry, technologies }) => resolveExperience(entry, technologies)));
+  return Promise.all(
+    filtered.map(({ entry, technologies }) =>
+      resolveExperience(entry, technologies),
+    ),
+  );
 }
 
 /** Whole months from `start` to `end`, floored at 0. Day-of-month is ignored — the source
  * data is month-precision (`2025-05`), so counting days would imply accuracy it doesn't have. */
 function monthsBetween(start: Date, end: Date): number {
   const months =
-    (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+    (end.getFullYear() - start.getFullYear()) * 12 +
+    (end.getMonth() - start.getMonth());
   return Math.max(0, months);
 }
 
@@ -107,7 +117,10 @@ export async function getYearsOfExperience(
   const entries = await getExperiencesByType('job', lang);
   const totalMonths = entries
     .filter((entry) => entry.data.employment === 'full-time')
-    .reduce((sum, { data }) => sum + monthsBetween(data.startAt, data.endAt ?? asOf), 0);
+    .reduce(
+      (sum, { data }) => sum + monthsBetween(data.startAt, data.endAt ?? asOf),
+      0,
+    );
   return Math.floor(totalMonths / 12);
 }
 
@@ -117,7 +130,9 @@ export async function getEducation(
   const { lang = 'en' } = options;
   const entries = await getExperiencesByType('education', lang);
   return Promise.all(
-    entries.map(async (entry) => resolveExperience(entry, await experienceTechnologies(entry))),
+    entries.map(async (entry) =>
+      resolveExperience(entry, await experienceTechnologies(entry)),
+    ),
   );
 }
 
@@ -127,7 +142,9 @@ export async function getEducation(
  * `profile://experience/{id}` read returns the same resolved organization/technologies
  * as the tool surface, not a raw entry with unresolved reference pointers.
  */
-export async function getExperienceById(id: string): Promise<ResolvedExperience | undefined> {
+export async function getExperienceById(
+  id: string,
+): Promise<ResolvedExperience | undefined> {
   const entry = await getEntry('experiences', id);
   if (!entry) return undefined;
   return resolveExperience(entry, await experienceTechnologies(entry));
@@ -180,7 +197,9 @@ export async function getProjects(
 }
 
 /** A single project by id, fully resolved — same rationale as `getExperienceById`. */
-export async function getProjectById(id: string): Promise<ResolvedProject | undefined> {
+export async function getProjectById(
+  id: string,
+): Promise<ResolvedProject | undefined> {
   const entry = await getEntry('projects', id);
   if (!entry) return undefined;
   return resolveProject(entry);
@@ -194,9 +213,13 @@ export interface ResolvedSkill {
   content: string;
 }
 
-export async function getSkills(options: { lang?: Locale } = {}): Promise<ResolvedSkill[]> {
+export async function getSkills(
+  options: { lang?: Locale } = {},
+): Promise<ResolvedSkill[]> {
   const { lang = 'en' } = options;
-  const entries = await getCollection('skills', (entry) => entry.id.startsWith(`${lang}/`));
+  const entries = await getCollection('skills', (entry) =>
+    entry.id.startsWith(`${lang}/`),
+  );
   return entries.map((entry) => ({
     id: entry.id,
     name: entry.data.name,
@@ -213,7 +236,9 @@ export async function getSkills(options: { lang?: Locale } = {}): Promise<Resolv
  * library's public surface is entirely profile-data.ts, keeping loader.ts
  * a private implementation detail.
  */
-export async function getSkillById(id: string): Promise<ResolvedSkill | undefined> {
+export async function getSkillById(
+  id: string,
+): Promise<ResolvedSkill | undefined> {
   const entry = await getEntry('skills', id);
   if (!entry) return undefined;
   return {
@@ -232,7 +257,9 @@ export interface ProfileSummary {
   topTechnologies: SkillTag[];
 }
 
-export async function getProfileSummary(options: { lang?: Locale } = {}): Promise<ProfileSummary> {
+export async function getProfileSummary(
+  options: { lang?: Locale } = {},
+): Promise<ProfileSummary> {
   const { lang = 'en' } = options;
   const [experiences, projects, skills] = await Promise.all([
     getWorkExperience({ lang }),
@@ -241,10 +268,12 @@ export async function getProfileSummary(options: { lang?: Locale } = {}): Promis
   ]);
   const techCounts = new Map<SkillTag, number>();
   for (const exp of experiences) {
-    for (const tech of exp.technologies) techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
+    for (const tech of exp.technologies)
+      techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
   }
   for (const project of projects) {
-    for (const tech of project.technologies) techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
+    for (const tech of project.technologies)
+      techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
   }
   const topTechnologies = [...techCounts.entries()]
     .sort((a, b) => b[1] - a[1])
@@ -268,7 +297,11 @@ export async function searchByTechnology(
     getProjects({ lang }),
   ]);
   return {
-    experiences: experiences.filter((e) => e.technologies.some((t) => t.toLowerCase().includes(q))),
-    projects: projects.filter((p) => p.technologies.some((t) => t.toLowerCase().includes(q))),
+    experiences: experiences.filter((e) =>
+      e.technologies.some((t) => t.toLowerCase().includes(q)),
+    ),
+    projects: projects.filter((p) =>
+      p.technologies.some((t) => t.toLowerCase().includes(q)),
+    ),
   };
 }

@@ -34,7 +34,7 @@ export function RelayGate(): JSX.Element {
             type="checkbox"
             checked={isValidWallet}
             onChange={(event) => setIsValidWallet(event.target.checked)}
-            className="accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="accent-primary focus-visible:ring-ring rounded focus-visible:outline-none focus-visible:ring-2"
           />
           valid wallet
         </label>
@@ -43,7 +43,7 @@ export function RelayGate(): JSX.Element {
             type="checkbox"
             checked={isLocked}
             onChange={(event) => setIsLocked(event.target.checked)}
-            className="accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="accent-primary focus-visible:ring-ring rounded focus-visible:outline-none focus-visible:ring-2"
           />
           locked
         </label>
@@ -52,7 +52,7 @@ export function RelayGate(): JSX.Element {
             type="checkbox"
             checked={isConnected}
             onChange={(event) => setIsConnected(event.target.checked)}
-            className="accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="accent-primary focus-visible:ring-ring rounded focus-visible:outline-none focus-visible:ring-2"
           />
           connected
         </label>
@@ -106,8 +106,8 @@ export function RelayGate(): JSX.Element {
             key={entry.id}
             className="text-muted-foreground font-mono text-xs"
           >
-            [background] {entry.outcome === 'pass' ? 'forwarded' : 'rejected'}{' '}
-            — {entry.outcome}
+            [background] {entry.outcome === 'pass' ? 'forwarded' : 'rejected'} —{' '}
+            {entry.outcome}
           </li>
         ))}
         {log.length === 0 ? (

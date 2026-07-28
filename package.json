@@ -7,7 +7,10 @@
   "engines": {
     "node": "22.x"
   },
-  "scripts": {},
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
     "@nx/devkit": "23.1.0",

@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-4">
     <article
-      class="flex-grow min-h-40 max-h-125 max-w-none overflow-auto px-10 prose"
+      class="max-h-125 prose min-h-40 max-w-none flex-grow overflow-auto px-10"
     >
       <p
         v-if="reply"

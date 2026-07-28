@@ -22,15 +22,17 @@ This also creates an opportunity to fix an unrelated wart: `apps/personal-websit
 ## 2. Scope
 
 **In scope:**
+
 - New Nx library `libs/personal-data` — content files, Zod schemas, canonical vocabularies (skill tags, experience types, supported languages), and the plain data-access functions currently in `profile-data.ts`.
 - New Nx app `apps/personal-mcp` — a minimal Hono service wrapping `mcp-handler`, importing `libs/personal-data`, deployed as its own Vercel project.
 - `mcp.rainforest.tools` moved from the `personal-website` Vercel project to the new `personal-mcp` project (direct domain-to-project binding, no rewrite).
 - Removal from `apps/personal-website`: `/api/mcp` route, `vercel.json`, the `organizations`/`experiences`/`projects`/`skills` entries in `content.config.ts`, the `mcp-handler`/`@modelcontextprotocol/sdk` dependencies, and the now-redundant `tags.skills`/`tags.experience`/`supportedLngs` definitions (re-pointed to import from `libs/personal-data` instead).
 
 **Explicitly out of scope:**
+
 - Everything in `2026-07-04-personal-context-mcp-design.md` §2's "out of scope" list still applies (blog search, WebMCP, private/authenticated tools, MCP registry submission).
 - `@hono/zod-openapi` — considered, but the service exposes exactly one HTTP route (the MCP transport endpoint), whose request shapes are already validated and exposed via each tool's own Zod schema (surfaced through `tools/list`). Adding a parallel OpenAPI/REST layer has nothing to document yet. Revisit if a plain REST surface or the private/authenticated tools (future scope, above) are added later — at that point `apps/personal-mcp` gains more than one route and the auto-docs value becomes real.
-- Rewriting the MCP server in Python (FastMCP) or Go — considered as a learning opportunity, but ruled out for *this* service because neither language can import a TypeScript Nx library; that would force the shared data into a language-neutral export step (static JSON) instead of a code-level import, which is a strictly worse fit given the site and the MCP server want to share the exact same resolve/filter logic, not just the raw data.
+- Rewriting the MCP server in Python (FastMCP) or Go — considered as a learning opportunity, but ruled out for _this_ service because neither language can import a TypeScript Nx library; that would force the shared data into a language-neutral export step (static JSON) instead of a code-level import, which is a strictly worse fit given the site and the MCP server want to share the exact same resolve/filter logic, not just the raw data.
 
 ---
 
@@ -72,7 +74,7 @@ apps/personal-website/       (existing — loses MCP-specific code)
 
 ## 4. Data model changes
 
-Same four entities as `2026-07-04-personal-context-mcp-design.md` §5 (`Organization`, `Experience`, `Project`, `Skill`), same fields, same bilingual-entries-not-nested-translations convention. What changes is *how* they're loaded:
+Same four entities as `2026-07-04-personal-context-mcp-design.md` §5 (`Organization`, `Experience`, `Project`, `Skill`), same fields, same bilingual-entries-not-nested-translations convention. What changes is _how_ they're loaded:
 
 - **Before:** `defineCollection({ loader: glob(...), schema: ... })` in Astro's `content.config.ts`, resolved at request time via `astro:content`'s `getCollection`/`getEntry`.
 - **After:** `libs/personal-data/src/loader.ts` walks the same directory layout directly (`fast-glob` for file discovery, `gray-matter` for frontmatter+body parsing on the `.md` collections, `JSON.parse` for the `organizations` collection, which has no body), validates each entry against the Zod schemas in `schemas.ts`, and returns the same `{ id, data, body }`-shaped objects `profile-data.ts` already expects — so `profile-data.ts` itself needs only its imports changed (`astro:content` → `./loader`), not its logic.
@@ -86,7 +88,7 @@ Reference fields (`organization`, `projects`, `experience`) currently rely on As
 - **`server.ts`**: a Hono app (plain, no `zod-openapi` per §2). Single responsibility: mount the `mcp-handler`-produced Fetch handler at the transport endpoint, plus whatever minimal middleware is worth having (request logging, a `/healthz` route for platform monitoring — not part of the MCP protocol surface itself).
 - **`tools.ts`**: the six `server.registerTool` calls and three `server.registerResource` calls, ported verbatim from the current `apps/personal-website/src/pages/api/mcp.ts` (§6 of the original design — tool/resource list unchanged), now importing from `@rainforest-dev/personal-data` instead of the app-local `../../mcp/profile-data`.
 - **Transport**: unchanged — stateless POST-only Streamable HTTP, same rationale as the original design's §4.
-- **Root routing**: since this project serves *only* `mcp.rainforest.tools`, the MCP endpoint can live at the project root (`/`) rather than `/api/mcp` — no rewrite needed to make the friendly URL work, because there's no *other* content on this domain competing for the root path.
+- **Root routing**: since this project serves _only_ `mcp.rainforest.tools`, the MCP endpoint can live at the project root (`/`) rather than `/api/mcp` — no rewrite needed to make the friendly URL work, because there's no _other_ content on this domain competing for the root path.
 
 ---
 

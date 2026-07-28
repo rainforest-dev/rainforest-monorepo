@@ -56,7 +56,8 @@ export function EpubReader({ bookId, title }: Props) {
           else if (e.key === 'ArrowRight') rendition.next();
         };
         document.addEventListener('keydown', onKeyDown);
-        cleanupKeydown = () => document.removeEventListener('keydown', onKeyDown);
+        cleanupKeydown = () =>
+          document.removeEventListener('keydown', onKeyDown);
       })
       .catch((err) => console.error(err));
 
@@ -69,11 +70,14 @@ export function EpubReader({ bookId, title }: Props) {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="bg-background/80 absolute top-4 left-4 z-10 flex items-center gap-4 rounded-md p-2 text-sm shadow backdrop-blur">
+      <div className="bg-background/80 absolute left-4 top-4 z-10 flex items-center gap-4 rounded-md p-2 text-sm shadow backdrop-blur">
         <span className="font-semibold">{title}</span>
       </div>
 
-      <div ref={viewerRef} className="h-full w-full flex-grow overflow-hidden" />
+      <div
+        ref={viewerRef}
+        className="h-full w-full flex-grow overflow-hidden"
+      />
 
       <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => rendition?.prev()}>

@@ -22,6 +22,7 @@ This project and everyone participating in it is governed by our Code of Conduct
 ### Our Standards
 
 **Positive behaviors include:**
+
 - Using welcoming and inclusive language
 - Being respectful of differing viewpoints and experiences
 - Gracefully accepting constructive criticism
@@ -29,6 +30,7 @@ This project and everyone participating in it is governed by our Code of Conduct
 - Showing empathy towards other community members
 
 **Unacceptable behaviors include:**
+
 - Harassment of any kind
 - Discriminatory language or actions
 - Publishing others' private information without permission
@@ -48,6 +50,7 @@ Before you begin, ensure you have the following installed:
 
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
+
    ```bash
    git clone https://github.com/your-username/rainforest-monorepo.git
    cd rainforest-monorepo
@@ -78,11 +81,11 @@ pnpm test
 We use a **feature branch workflow**:
 
 1. **main** - Production-ready code
-2. **feature/*** - New features
-3. **fix/*** - Bug fixes  
-4. **docs/*** - Documentation updates
-5. **refactor/*** - Code refactoring
-6. **perf/*** - Performance improvements
+2. **feature/\*** - New features
+3. **fix/\*** - Bug fixes
+4. **docs/\*** - Documentation updates
+5. **refactor/\*** - Code refactoring
+6. **perf/\*** - Performance improvements
 
 ### Creating a Feature Branch
 
@@ -138,6 +141,7 @@ rainforest-monorepo/
 ### Working with Specific Projects
 
 #### Personal Website (Astro)
+
 ```bash
 # Start development server
 nx dev personal-website
@@ -150,6 +154,7 @@ nx check personal-website
 ```
 
 #### Personal LIFF App (Next.js)
+
 ```bash
 # Start development server with HTTPS
 nx dev personal-liff
@@ -162,6 +167,7 @@ nx start personal-liff
 ```
 
 #### Rainforest UI Library (Lit)
+
 ```bash
 # Build the library
 nx build rainforest-ui
@@ -223,12 +229,12 @@ nx format:check
 ```typescript
 // ✅ Good naming
 const userProfile = getUserProfile();
-interface UserData { }
+interface UserData {}
 const API_BASE_URL = 'https://api.example.com';
 
 // Component files
-UserProfile.tsx
-user-profile.component.ts
+UserProfile.tsx;
+user - profile.component.ts;
 ```
 
 ### Import Organization
@@ -298,9 +304,11 @@ import { render, fireEvent } from '@testing-library/lit';
 import './button';
 
 test('renders button with correct variant', () => {
-  const { container } = render('<rf-button variant="primary">Click me</rf-button>');
+  const { container } = render(
+    '<rf-button variant="primary">Click me</rf-button>',
+  );
   const button = container.querySelector('rf-button');
-  
+
   expect(button).toBeInTheDocument();
   expect(button).toHaveAttribute('variant', 'primary');
   expect(button).toHaveTextContent('Click me');
@@ -310,10 +318,12 @@ test('handles click events', async () => {
   let clicked = false;
   const { container } = render('<rf-button>Click me</rf-button>');
   const button = container.querySelector('rf-button');
-  
-  button.addEventListener('click', () => { clicked = true; });
+
+  button.addEventListener('click', () => {
+    clicked = true;
+  });
   await fireEvent.click(button);
-  
+
   expect(clicked).toBe(true);
 });
 ```
@@ -332,7 +342,7 @@ describe('User Authentication Flow', () => {
     cy.get('[data-testid="email-input"]').type('test@example.com');
     cy.get('[data-testid="password-input"]').type('password123');
     cy.get('[data-testid="submit-button"]').click();
-    
+
     cy.url().should('include', '/dashboard');
     cy.get('[data-testid="user-menu"]').should('be.visible');
   });
@@ -372,13 +382,13 @@ Good documentation is essential for maintainability:
 
 #### Code Documentation
 
-```typescript
+````typescript
 /**
  * Validates an email address using RFC 5322 specification
- * 
+ *
  * @param email - The email address to validate
  * @returns True if email is valid, false otherwise
- * 
+ *
  * @example
  * ```typescript
  * const isValid = validateEmail('test@example.com'); // true
@@ -389,33 +399,33 @@ export function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
-```
+````
 
 #### Component Documentation
 
-```typescript
+````typescript
 /**
  * @element rf-button
- * 
+ *
  * @summary A customizable button component with multiple variants and sizes
- * 
+ *
  * @description
  * The Button component provides a consistent interface for user actions.
  * It supports multiple visual variants, sizes, and states including loading
  * and disabled states.
- * 
+ *
  * @prop {string} variant - Button visual variant
  * @prop {string} size - Button size
  * @prop {boolean} disabled - Whether button is disabled
  * @prop {boolean} loading - Whether button shows loading state
- * 
+ *
  * @event {CustomEvent} click - Fired when button is clicked
- * 
+ *
  * @slot - Button content
- * 
+ *
  * @csspart button - The button element
  * @csspart icon - The icon container
- * 
+ *
  * @example
  * ```html
  * <rf-button variant="primary" size="medium">
@@ -427,7 +437,7 @@ export function validateEmail(email: string): boolean {
 export class Button extends LitElement {
   // Implementation...
 }
-```
+````
 
 #### README Updates
 
@@ -452,34 +462,35 @@ const meta: Meta = {
   parameters: {
     docs: {
       description: {
-        component: 'A versatile button component with multiple variants and states.'
-      }
-    }
+        component:
+          'A versatile button component with multiple variants and states.',
+      },
+    },
   },
   argTypes: {
     variant: {
       control: { type: 'select' },
       options: ['primary', 'secondary', 'outline', 'ghost', 'danger'],
-      description: 'Visual style variant'
+      description: 'Visual style variant',
     },
     size: {
       control: { type: 'select' },
       options: ['small', 'medium', 'large'],
-      description: 'Button size'
-    }
-  }
+      description: 'Button size',
+    },
+  },
 };
 
 export const Interactive: Story = {
   args: {
     variant: 'primary',
-    size: 'medium'
+    size: 'medium',
   },
   render: (args) => html`
     <rf-button variant=${args.variant} size=${args.size}>
       ${args.children || 'Button Text'}
     </rf-button>
-  `
+  `,
 };
 ```
 
@@ -507,9 +518,11 @@ Use this template for your PRs:
 
 ```markdown
 ## Description
+
 Brief description of changes made.
 
 ## Type of Change
+
 - [ ] Bug fix (non-breaking change that fixes an issue)
 - [ ] New feature (non-breaking change that adds functionality)
 - [ ] Breaking change (fix or feature that causes existing functionality to change)
@@ -518,15 +531,18 @@ Brief description of changes made.
 - [ ] Code refactoring
 
 ## Testing
+
 - [ ] Unit tests added/updated
 - [ ] Integration tests added/updated
 - [ ] E2E tests added/updated
 - [ ] Manual testing completed
 
 ## Screenshots (if applicable)
+
 Include screenshots for UI changes.
 
 ## Checklist
+
 - [ ] Code follows project style guidelines
 - [ ] Self-review completed
 - [ ] Tests added for new functionality
@@ -559,6 +575,7 @@ chore(deps): update dependencies
 ```
 
 **Types:**
+
 - `feat`: New features
 - `fix`: Bug fixes
 - `docs`: Documentation changes
@@ -580,6 +597,7 @@ Clear description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
+
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
@@ -592,10 +610,11 @@ Clear description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Environment:**
- - OS: [e.g. macOS 12.0]
- - Browser: [e.g. Chrome 95]
- - Node.js version: [e.g. 18.0.0]
- - Project version: [e.g. 1.0.0]
+
+- OS: [e.g. macOS 12.0]
+- Browser: [e.g. Chrome 95]
+- Node.js version: [e.g. 18.0.0]
+- Project version: [e.g. 1.0.0]
 
 **Additional context**
 Any other context about the problem.
@@ -637,7 +656,7 @@ Any other context or screenshots about the feature request.
   "recommendations": [
     "bradlc.vscode-tailwindcss",
     "esbenp.prettier-vscode",
-    "dbaeumer.vscode-eslint", 
+    "dbaeumer.vscode-eslint",
     "ms-vscode.vscode-typescript-next",
     "nrwl.angular-console",
     "runem.lit-plugin",

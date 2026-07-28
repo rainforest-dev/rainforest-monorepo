@@ -19,15 +19,15 @@
 
 ## File Map
 
-| File | Change |
-|---|---|
-| `apps/personal-calibre/src/components/Pagination.tsx` | **Create** — Prev/Next link nav, preserves all search params |
-| `apps/personal-calibre/src/app/(library)/page.tsx` | **Modify** — invalid-page redirect, wire `<Pagination>`, pass `from` to `<BookGrid>` |
-| `apps/personal-calibre/src/components/BookGrid.tsx` | **Modify** — thread `from` prop down to `<BookCard>` |
-| `apps/personal-calibre/src/components/BookCard.tsx` | **Modify** — append `?from=` to book detail link href |
-| `apps/personal-calibre/src/components/FilterPanel.tsx` | **Modify** — visible labels on each Select, × clear button, active-filter chips |
+| File                                                          | Change                                                                                            |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `apps/personal-calibre/src/components/Pagination.tsx`         | **Create** — Prev/Next link nav, preserves all search params                                      |
+| `apps/personal-calibre/src/app/(library)/page.tsx`            | **Modify** — invalid-page redirect, wire `<Pagination>`, pass `from` to `<BookGrid>`              |
+| `apps/personal-calibre/src/components/BookGrid.tsx`           | **Modify** — thread `from` prop down to `<BookCard>`                                              |
+| `apps/personal-calibre/src/components/BookCard.tsx`           | **Modify** — append `?from=` to book detail link href                                             |
+| `apps/personal-calibre/src/components/FilterPanel.tsx`        | **Modify** — visible labels on each Select, × clear button, active-filter chips                   |
 | `apps/personal-calibre/src/app/(library)/books/[id]/page.tsx` | **Modify** — `generateMetadata`, `loading="eager"` on hero cover, read `from` param for back link |
-| `apps/personal-calibre/src/lib/queries.ts` | **Modify** — `q` LIKE condition also searches `authors.name` |
+| `apps/personal-calibre/src/lib/queries.ts`                    | **Modify** — `q` LIKE condition also searches `authors.name`                                      |
 
 ---
 
@@ -38,6 +38,7 @@
 **The bug:** `/?q=rust&page=2` shows "2 books total" but "No books found." Page 2 is empty for a 2-result set and there are no navigation controls at all — "Page X of Y" is plain text only.
 
 **Files:**
+
 - Create: `apps/personal-calibre/src/components/Pagination.tsx`
 - Modify: `apps/personal-calibre/src/app/(library)/page.tsx`
 
@@ -150,9 +151,13 @@ export default function LibraryPage({ searchParams }: Props) {
 async function LibraryPageContent({ searchParams }: Props) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? '1') || 1);
-  const authorId = params.author ? (parseInt(params.author) || undefined) : undefined;
-  const tagId = params.tag ? (parseInt(params.tag) || undefined) : undefined;
-  const seriesId = params.series ? (parseInt(params.series) || undefined) : undefined;
+  const authorId = params.author
+    ? parseInt(params.author) || undefined
+    : undefined;
+  const tagId = params.tag ? parseInt(params.tag) || undefined : undefined;
+  const seriesId = params.series
+    ? parseInt(params.series) || undefined
+    : undefined;
 
   const [{ books, total }, filters] = await Promise.all([
     getBookList({ page, q: params.q, authorId, tagId, seriesId }),
@@ -231,6 +236,7 @@ git commit -m "feat(personal-calibre): add pagination controls and redirect out-
 **Security note:** The detail page only trusts `from` values that start with `/` to prevent open-redirect attacks.
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/components/BookGrid.tsx`
 - Modify: `apps/personal-calibre/src/components/BookCard.tsx`
 - Modify: `apps/personal-calibre/src/app/(library)/books/[id]/page.tsx`
@@ -319,7 +325,9 @@ export function BookCard({ book, from }: Props) {
           )}
         </div>
         <CardContent className="p-3">
-          <p className="line-clamp-2 text-sm font-medium leading-snug">{book.title}</p>
+          <p className="line-clamp-2 text-sm font-medium leading-snug">
+            {book.title}
+          </p>
           {book.authors.length > 0 && (
             <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">
               {book.authors.join(', ')}
@@ -334,7 +342,11 @@ export function BookCard({ book, from }: Props) {
           {book.formats.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {book.formats.map((fmt) => (
-                <Badge key={fmt} variant="outline" className="px-1 py-0 text-[10px]">
+                <Badge
+                  key={fmt}
+                  variant="outline"
+                  className="px-1 py-0 text-[10px]"
+                >
                   {fmt}
                 </Badge>
               ))}
@@ -371,7 +383,9 @@ interface Props {
   searchParams: Promise<{ from?: string }>;
 }
 
-export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: Pick<Props, 'params'>): Promise<Metadata> {
   const { id } = await params;
   const book = await getBook(Number(id));
   if (!book) return { title: 'Book Not Found — Personal Calibre Library' };
@@ -404,7 +418,10 @@ async function BookDetailContent({ params, searchParams }: Props) {
   const safeDescription = book.description
     ? sanitizeHtml(book.description, {
         allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
-        allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, '*': ['class'] },
+        allowedAttributes: {
+          ...sanitizeHtml.defaults.allowedAttributes,
+          '*': ['class'],
+        },
       })
     : null;
 
@@ -413,7 +430,10 @@ async function BookDetailContent({ params, searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      <Link href={backHref} className="text-muted-foreground hover:text-foreground text-sm">
+      <Link
+        href={backHref}
+        className="text-muted-foreground hover:text-foreground text-sm"
+      >
         ← Back to library
       </Link>
 
@@ -431,9 +451,13 @@ async function BookDetailContent({ params, searchParams }: Props) {
 
         <div className="flex-1 space-y-4">
           <div>
-            <h1 className="text-2xl font-semibold leading-tight">{book.title}</h1>
+            <h1 className="text-2xl font-semibold leading-tight">
+              {book.title}
+            </h1>
             {book.authors.length > 0 && (
-              <p className="text-muted-foreground mt-1">{book.authors.join(', ')}</p>
+              <p className="text-muted-foreground mt-1">
+                {book.authors.join(', ')}
+              </p>
             )}
             {book.series && (
               <p className="text-muted-foreground text-sm">
@@ -484,7 +508,9 @@ async function BookDetailContent({ params, searchParams }: Props) {
                 key={format}
                 href={`/api/books/${book.id}/download/${format.toLowerCase()}`}
                 download={`${name}.${format.toLowerCase()}`}
-                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                className={cn(
+                  buttonVariants({ variant: 'outline', size: 'sm' }),
+                )}
               >
                 Download {format}
               </a>
@@ -543,9 +569,11 @@ git commit -m "feat(personal-calibre): preserve context in back link, dynamic ti
 **Fixes:** U2 (three unlabelled dropdowns all showing "all"), U4 (no way to clear active search without reloading), U5 (no visible indicator of which filters are on).
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/components/FilterPanel.tsx`
 
 **What changes:**
+
 1. Each `SelectTrigger` gets a small muted label prefix ("Author", "Tag", "Series").
 2. An × button inside the search box appears when any text is typed; clicking it clears the input and the `?q` param.
 3. A chip row renders below the filter bar when any filter is active, with per-filter × buttons and a "Clear all" link.
@@ -641,16 +669,23 @@ function FilterPanelInner({ filters }: Props) {
   const activeTag = searchParams.get('tag');
   const activeSeries = searchParams.get('series');
   const activeQ = searchParams.get('q');
-  const hasActiveFilters = !!(activeAuthor || activeTag || activeSeries || activeQ);
+  const hasActiveFilters = !!(
+    activeAuthor ||
+    activeTag ||
+    activeSeries ||
+    activeQ
+  );
 
   const authorLabel = activeAuthor
-    ? (filters.authors.find((a) => String(a.id) === activeAuthor)?.name ?? activeAuthor)
+    ? (filters.authors.find((a) => String(a.id) === activeAuthor)?.name ??
+      activeAuthor)
     : null;
   const tagLabel = activeTag
     ? (filters.tags.find((t) => String(t.id) === activeTag)?.name ?? activeTag)
     : null;
   const seriesLabel = activeSeries
-    ? (filters.series.find((s) => String(s.id) === activeSeries)?.name ?? activeSeries)
+    ? (filters.series.find((s) => String(s.id) === activeSeries)?.name ??
+      activeSeries)
     : null;
 
   const clearAll = useCallback(() => {
@@ -721,7 +756,9 @@ function FilterPanelInner({ filters }: Props) {
           onValueChange={(v) => updateParam('author', v)}
         >
           <SelectTrigger className="w-44" aria-label="Filter by author">
-            <span className="text-muted-foreground mr-1 shrink-0 text-xs">Author</span>
+            <span className="text-muted-foreground mr-1 shrink-0 text-xs">
+              Author
+            </span>
             <SelectValue placeholder="All" />
           </SelectTrigger>
           <SelectContent>
@@ -740,7 +777,9 @@ function FilterPanelInner({ filters }: Props) {
           onValueChange={(v) => updateParam('tag', v)}
         >
           <SelectTrigger className="w-36" aria-label="Filter by tag">
-            <span className="text-muted-foreground mr-1 shrink-0 text-xs">Tag</span>
+            <span className="text-muted-foreground mr-1 shrink-0 text-xs">
+              Tag
+            </span>
             <SelectValue placeholder="All" />
           </SelectTrigger>
           <SelectContent>
@@ -759,7 +798,9 @@ function FilterPanelInner({ filters }: Props) {
           onValueChange={(v) => updateParam('series', v)}
         >
           <SelectTrigger className="w-44" aria-label="Filter by series">
-            <span className="text-muted-foreground mr-1 shrink-0 text-xs">Series</span>
+            <span className="text-muted-foreground mr-1 shrink-0 text-xs">
+              Series
+            </span>
             <SelectValue placeholder="All" />
           </SelectTrigger>
           <SelectContent>
@@ -816,7 +857,13 @@ function FilterPanelInner({ filters }: Props) {
   );
 }
 
-function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+function FilterChip({
+  label,
+  onRemove,
+}: {
+  label: string;
+  onRemove: () => void;
+}) {
   return (
     <span className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs">
       {label}
@@ -835,7 +882,9 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 export function FilterPanel(props: Props) {
   return (
     <Suspense
-      fallback={<div className="bg-muted h-10 w-full animate-pulse rounded-md" />}
+      fallback={
+        <div className="bg-muted h-10 w-full animate-pulse rounded-md" />
+      }
     >
       <FilterPanelInner {...props} />
     </Suspense>
@@ -874,6 +923,7 @@ git commit -m "feat(personal-calibre): filter labels, search clear button, activ
 **Fixes:** M2 — `getBookList({ q: 'Robert Martin' })` returns nothing because the LIKE runs on `books.author_sort` ("Martin, Robert C."), not `authors.name`.
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/lib/queries.ts`
 
 ---
@@ -883,21 +933,21 @@ git commit -m "feat(personal-calibre): filter labels, search clear button, activ
 In `queries.ts`, find the `if (q)` block (lines 48–52). Replace it with:
 
 ```typescript
-  if (q) {
-    const authorBookIds = db
-      .select({ id: booksAuthorsLink.book })
-      .from(booksAuthorsLink)
-      .innerJoin(authors, eq(authors.id, booksAuthorsLink.author))
-      .where(like(authors.name, `%${q}%`));
+if (q) {
+  const authorBookIds = db
+    .select({ id: booksAuthorsLink.book })
+    .from(booksAuthorsLink)
+    .innerJoin(authors, eq(authors.id, booksAuthorsLink.author))
+    .where(like(authors.name, `%${q}%`));
 
-    conditions.push(
-      or(
-        like(books.title, `%${q}%`),
-        like(books.authorSort, `%${q}%`),
-        inArray(books.id, authorBookIds),
-      ),
-    );
-  }
+  conditions.push(
+    or(
+      like(books.title, `%${q}%`),
+      like(books.authorSort, `%${q}%`),
+      inArray(books.id, authorBookIds),
+    ),
+  );
+}
 ```
 
 All imports (`inArray`, `or`, `like`, `eq`, `authors`, `booksAuthorsLink`) are already present in the file.
@@ -931,17 +981,17 @@ git commit -m "fix(personal-calibre): grid search also matches author real name 
 
 ### Spec coverage
 
-| Issue | Task | Status |
-|---|---|---|
-| B2 — invalid page contradictory empty state | Task 1 | ✅ redirect to page 1 |
-| U1 — no pagination controls | Task 1 | ✅ Prev/Next `<Link>` |
-| U2 — filter dropdowns unlabelled | Task 3 | ✅ label prefix + `aria-label` |
-| U3 — back link loses context | Task 2 | ✅ `from` param end-to-end |
-| U4 — no search clear button | Task 3 | ✅ × button inside input |
-| U5 — no active filter indicators | Task 3 | ✅ chips + Clear all |
-| M1 — static page title | Task 2 | ✅ `generateMetadata` added |
-| M2 — LIKE misses author real names | Task 4 | ✅ subquery on `authors.name` |
-| M3 — cover LCP hint | Task 2 | ✅ `loading="eager"` |
+| Issue                                       | Task   | Status                         |
+| ------------------------------------------- | ------ | ------------------------------ |
+| B2 — invalid page contradictory empty state | Task 1 | ✅ redirect to page 1          |
+| U1 — no pagination controls                 | Task 1 | ✅ Prev/Next `<Link>`          |
+| U2 — filter dropdowns unlabelled            | Task 3 | ✅ label prefix + `aria-label` |
+| U3 — back link loses context                | Task 2 | ✅ `from` param end-to-end     |
+| U4 — no search clear button                 | Task 3 | ✅ × button inside input       |
+| U5 — no active filter indicators            | Task 3 | ✅ chips + Clear all           |
+| M1 — static page title                      | Task 2 | ✅ `generateMetadata` added    |
+| M2 — LIKE misses author real names          | Task 4 | ✅ subquery on `authors.name`  |
+| M3 — cover LCP hint                         | Task 2 | ✅ `loading="eager"`           |
 
 ### Placeholder scan
 

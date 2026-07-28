@@ -51,14 +51,14 @@ libs/
 
 ### `rss-manager`
 
-| Concern | Choice |
-|---------|--------|
-| Framework | Astro SSR (`@astrojs/node` adapter) |
-| UI | React islands (interactive RSS table, feed validator) |
-| API routes | `src/pages/api/` — reads Obsidian registry files |
-| Vault access | `VAULT_PATH` env var → mounted read-only volume at `/vault` |
-| Shared UI | `rainforest-ui` for primitives; custom dark theme stays in-app |
-| Build | Nx + Vite (existing monorepo infrastructure) |
+| Concern      | Choice                                                         |
+| ------------ | -------------------------------------------------------------- |
+| Framework    | Astro SSR (`@astrojs/node` adapter)                            |
+| UI           | React islands (interactive RSS table, feed validator)          |
+| API routes   | `src/pages/api/` — reads Obsidian registry files               |
+| Vault access | `VAULT_PATH` env var → mounted read-only volume at `/vault`    |
+| Shared UI    | `rainforest-ui` for primitives; custom dark theme stays in-app |
+| Build        | Nx + Vite (existing monorepo infrastructure)                   |
 
 ```
 apps/rss-manager/
@@ -79,12 +79,12 @@ File reading is server-side in API routes. No database — registry markdown fil
 
 ### `auth-service`
 
-| Concern | Choice |
-|---------|--------|
-| Framework | Astro SSR (`@astrojs/node` adapter) |
-| Passkey | `@simplewebauthn/server` (server) + `@simplewebauthn/browser` (client) |
-| Session | Signed HTTP-only JWT cookie on `.rainforest.tools`, 7-day rolling |
-| Credential store | SQLite via `better-sqlite3` (one `credentials` table) |
+| Concern           | Choice                                                                   |
+| ----------------- | ------------------------------------------------------------------------ |
+| Framework         | Astro SSR (`@astrojs/node` adapter)                                      |
+| Passkey           | `@simplewebauthn/server` (server) + `@simplewebauthn/browser` (client)   |
+| Session           | Signed HTTP-only JWT cookie on `.rainforest.tools`, 7-day rolling        |
+| Credential store  | SQLite via `better-sqlite3` (one `credentials` table)                    |
 | Registration gate | `REGISTRATION_TOKEN` env var — must pass `?token=` to access `/register` |
 
 ```
@@ -107,6 +107,7 @@ apps/auth-service/
 ```
 
 **Session cookie:**
+
 ```
 Name:     rf_session
 Domain:   .rainforest.tools
@@ -117,6 +118,7 @@ Max-Age:  7 days (rolling — refreshed on each /verify pass)
 ```
 
 **SQLite schema:**
+
 ```sql
 CREATE TABLE credentials (
   id          TEXT PRIMARY KEY,  -- WebAuthn credential ID (base64url)
@@ -152,20 +154,22 @@ Subsequent visits to rss.rainforest.tools or any homelab subdomain:
 ## 6. Traefik & Docker Compose
 
 **ForwardAuth middleware (defined once):**
+
 ```yaml
 middlewares:
   homelab-auth:
     forwardAuth:
-      address: "http://auth-service:3001/verify"
+      address: 'http://auth-service:3001/verify'
       trustForwardHeader: true
 ```
 
 **Docker Compose:**
+
 ```yaml
 services:
   traefik:
     image: traefik:v3
-    ports: ["80:80", "443:443"]
+    ports: ['80:80', '443:443']
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./traefik/certs:/certs
@@ -178,7 +182,7 @@ services:
     volumes:
       - auth-data:/app/db
     labels:
-      - "traefik.http.routers.auth.rule=Host(`auth.rainforest.tools`)"
+      - 'traefik.http.routers.auth.rule=Host(`auth.rainforest.tools`)'
       # no homelab-auth middleware — auth-service IS the gate
 
   personal-calibre:
@@ -186,18 +190,18 @@ services:
     volumes:
       - calibre-data:/app/db
     labels:
-      - "traefik.http.routers.calibre.rule=Host(`calibre.rainforest.tools`)"
-      - "traefik.http.routers.calibre.middlewares=homelab-auth"
+      - 'traefik.http.routers.calibre.rule=Host(`calibre.rainforest.tools`)'
+      - 'traefik.http.routers.calibre.middlewares=homelab-auth'
 
   rss-manager:
     build: ./apps/rss-manager
     environment:
       - VAULT_PATH=/vault
     volumes:
-      - "${VAULT_PATH}/_system:/vault:ro"
+      - '${VAULT_PATH}/_system:/vault:ro'
     labels:
-      - "traefik.http.routers.rss.rule=Host(`rss.rainforest.tools`)"
-      - "traefik.http.routers.rss.middlewares=homelab-auth"
+      - 'traefik.http.routers.rss.rule=Host(`rss.rainforest.tools`)'
+      - 'traefik.http.routers.rss.middlewares=homelab-auth'
 
 volumes:
   auth-data:

@@ -1,4 +1,4 @@
-import { describe, expect,it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { parseSources, parseTopics } from './registry.js';
 
@@ -110,7 +110,9 @@ describe('parseTopics', () => {
     expect(active).toHaveLength(2);
     expect(active[0].name).toBe('AI agents & tools');
     expect(active[0].tags).toContain('domain/ai');
-    expect(active[0].description).toBe('Agents, LLMs, MCP ecosystem, Claude Code');
+    expect(active[0].description).toBe(
+      'Agents, LLMs, MCP ecosystem, Claude Code',
+    );
   });
 
   it('parses proposed topics correctly', () => {

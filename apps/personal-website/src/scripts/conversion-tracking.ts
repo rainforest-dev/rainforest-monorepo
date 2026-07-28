@@ -42,9 +42,12 @@ if (!w.__convClickBound) {
         send('contact_submit');
         return;
       }
-      if (/linkedin\.com/i.test(href)) send('outbound_click', { target: 'linkedin' });
-      else if (/github\.com/i.test(href)) send('outbound_click', { target: 'github' });
-      else if (href.startsWith('mailto:')) send('outbound_click', { target: 'email' });
+      if (/linkedin\.com/i.test(href))
+        send('outbound_click', { target: 'linkedin' });
+      else if (/github\.com/i.test(href))
+        send('outbound_click', { target: 'github' });
+      else if (href.startsWith('mailto:'))
+        send('outbound_click', { target: 'email' });
     },
     { capture: true },
   );

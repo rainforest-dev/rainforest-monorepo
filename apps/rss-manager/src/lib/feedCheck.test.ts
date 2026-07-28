@@ -1,4 +1,4 @@
-import { describe, expect,it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { detectFeedFormat, extractFeedMeta } from './feedCheck.js';
 
@@ -24,7 +24,8 @@ const HTML_FIXTURE = `<!DOCTYPE html><html><head><title>Not a feed</title></head
 describe('detectFeedFormat', () => {
   it('detects RSS', () => expect(detectFeedFormat(RSS_FIXTURE)).toBe('rss'));
   it('detects Atom', () => expect(detectFeedFormat(ATOM_FIXTURE)).toBe('atom'));
-  it('returns null for HTML', () => expect(detectFeedFormat(HTML_FIXTURE)).toBeNull());
+  it('returns null for HTML', () =>
+    expect(detectFeedFormat(HTML_FIXTURE)).toBeNull());
 });
 
 describe('extractFeedMeta', () => {

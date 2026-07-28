@@ -4,7 +4,7 @@ import { computed, ref, watch } from 'vue';
 export default function useThemeColorMeta() {
   const isDark = usePreferredDark();
   const media = computed(
-    () => `(prefers-color-scheme: ${isDark.value ? 'dark' : 'light'})`
+    () => `(prefers-color-scheme: ${isDark.value ? 'dark' : 'light'})`,
   );
   const snapshot = ref<string>();
   const metaRef = ref<HTMLMetaElement>();
@@ -17,7 +17,7 @@ export default function useThemeColorMeta() {
 
   const updateThemeColor = (color: string) => {
     const metaTag = document.querySelector(
-      `meta[name="theme-color"][media="${media.value}"]`
+      `meta[name="theme-color"][media="${media.value}"]`,
     ) as HTMLMetaElement;
     if (metaRef.value !== metaTag) {
       metaRef.value = metaTag;

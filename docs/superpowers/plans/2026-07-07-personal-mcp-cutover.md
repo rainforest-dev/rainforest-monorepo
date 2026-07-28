@@ -21,6 +21,7 @@ cd /Users/rainforest/Repositories/rainforest-monorepo
 git log --oneline -1 -- apps/personal-mcp
 git log --oneline -1 -- libs/personal-data
 ```
+
 Expected: both show commits (the two prior plans are done and merged to `main`).
 
 ---
@@ -40,6 +41,7 @@ pnpm install
 npx nx test personal-data
 npx nx test personal-mcp
 ```
+
 Expected: both pass, confirming there's no dependency resolution issue that only shows up in a clean install (this is exactly the kind of thing that differs between a local `node_modules` state and Vercel's fresh-clone build).
 
 - [ ] **Step 2: Push to `main` (or open a PR if you want CI green first — this repo's existing convention per `gh pr checks` usage earlier in this project)**
@@ -53,7 +55,7 @@ git push origin main
 
 ### Task 2: Create the new Vercel project for `apps/personal-mcp`
 
-This is a manual dashboard step — Vercel's GitHub integration auto-deploys pushes to *existing* projects, but a brand-new app in an already-connected monorepo needs to be explicitly imported once so Vercel knows to create a project scoped to its directory.
+This is a manual dashboard step — Vercel's GitHub integration auto-deploys pushes to _existing_ projects, but a brand-new app in an already-connected monorepo needs to be explicitly imported once so Vercel knows to create a project scoped to its directory.
 
 - [ ] **Step 1: In the Vercel dashboard, add a new project**
 
@@ -77,7 +79,8 @@ curl -s -X POST https://<the-vercel-app-url>/ \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
-Expected: same SSE-framed `tools/list` response verified locally in `2026-07-07-personal-mcp-app.md` Task 4. If this 401s with a Vercel SSO redirect, that's Vercel's Deployment Protection on preview URLs (expected — this project's earlier Task 6 investigation hit the same thing) — check the *production* alias URL instead (also shown in the dashboard, of the form `personal-mcp-<team>.vercel.app` or similar, distinct from the per-deployment hash URL).
+
+Expected: same SSE-framed `tools/list` response verified locally in `2026-07-07-personal-mcp-app.md` Task 4. If this 401s with a Vercel SSO redirect, that's Vercel's Deployment Protection on preview URLs (expected — this project's earlier Task 6 investigation hit the same thing) — check the _production_ alias URL instead (also shown in the dashboard, of the form `personal-mcp-<team>.vercel.app` or similar, distinct from the per-deployment hash URL).
 
 ---
 
@@ -101,6 +104,7 @@ curl -s -X POST https://mcp.rainforest.tools/ \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
+
 Expected: `HTTP 200` with the real `tools/list` response. If it 404s or 302-redirects (the old failure modes from this project's earlier Task 6 investigation), wait a few minutes for Vercel's domain verification/cert issuance and retry — do **not** proceed to Task 4 until this returns the correct tools list.
 
 - [ ] **Step 4: Spot-check a couple more calls against the live domain**
@@ -116,6 +120,7 @@ curl -s -X POST https://mcp.rainforest.tools/ \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":3,"method":"resources/read","params":{"uri":"profile://project/en/opencgt"}}'
 ```
+
 Expected: both return correct, real data (the CodeGreen job for the first, the OpenCGT project for the second).
 
 ---
@@ -123,6 +128,7 @@ Expected: both return correct, real data (the CodeGreen job for the first, the O
 ### Task 4: Remove the dead MCP code from `apps/personal-website`
 
 **Files:**
+
 - Delete: `apps/personal-website/src/pages/api/mcp.ts`
 - Delete: `apps/personal-website/vercel.json`
 - Modify: `apps/personal-website/package.json` (remove `mcp-handler`, `@modelcontextprotocol/sdk`)
@@ -140,6 +146,7 @@ git rm apps/personal-website/vercel.json
 - [ ] **Step 2: Remove the now-unused dependencies**
 
 Edit `apps/personal-website/package.json`, remove these two lines from `"dependencies"`:
+
 ```
     "@modelcontextprotocol/sdk": "^1.29.0",
     "mcp-handler": "^1.1.0",
@@ -158,6 +165,7 @@ Expected: succeeds — the site never linked to `/api/mcp` from any page, so not
 ```bash
 curl -s -o /dev/null -w "HTTP %{http_code}\n" https://rainforest.tools/
 ```
+
 Expected: `302` (the normal locale-redirect behavior, same as the healthy state confirmed during this project's Task 6 outage investigation) — this change only touched files with no other consumers, so this is a sanity check, not expected to find anything.
 
 - [ ] **Step 5: Commit**
@@ -189,6 +197,7 @@ This is Task 7 from the original `2026-07-04-personal-context-mcp.md` plan, fina
 - [ ] **Step 1: Add the remote MCP server to a real client config**
 
 In Claude Code (or Claude.ai's remote MCP connection settings), add:
+
 ```json
 {
   "mcpServers": {

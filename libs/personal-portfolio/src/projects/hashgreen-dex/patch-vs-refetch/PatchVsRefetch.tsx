@@ -28,16 +28,106 @@ const PAGE_SIZE = 5;
  * something real to demonstrate, not just market/status.
  */
 const INITIAL_ORDERS: Order[] = [
-  { id: 'ORD-101', market: 'HGN-USDC', status: 'Active', side: 'buy', price: 1.2401, amount: 120, age: '2m', ageMinutes: 2 },
-  { id: 'ORD-102', market: 'HGN-USDC', status: 'Active', side: 'sell', price: 1.2489, amount: 60, age: '4h', ageMinutes: 240 },
-  { id: 'ORD-103', market: 'XCH-USDC', status: 'Filled', side: 'buy', price: 18.2, amount: 5, age: '9m', ageMinutes: 9 },
-  { id: 'ORD-104', market: 'SBX-USDC', status: 'Active', side: 'buy', price: 0.041, amount: 4000, age: '5d', ageMinutes: 8000 },
-  { id: 'ORD-105', market: 'HGN-USDC', status: 'Cancelled', side: 'sell', price: 1.26, amount: 30, age: '14m', ageMinutes: 14 },
-  { id: 'ORD-106', market: 'XCH-USDC', status: 'Active', side: 'sell', price: 18.55, amount: 8, age: '16m', ageMinutes: 16 },
-  { id: 'ORD-107', market: 'SBX-USDC', status: 'Filled', side: 'sell', price: 0.039, amount: 2200, age: '19m', ageMinutes: 19 },
-  { id: 'ORD-108', market: 'HGN-USDC', status: 'Active', side: 'buy', price: 1.235, amount: 200, age: '22m', ageMinutes: 22 },
-  { id: 'ORD-109', market: 'XCH-USDC', status: 'Cancelled', side: 'buy', price: 17.9, amount: 3, age: '27m', ageMinutes: 27 },
-  { id: 'ORD-110', market: 'SBX-USDC', status: 'Active', side: 'sell', price: 0.043, amount: 1500, age: '14d', ageMinutes: 20000 },
+  {
+    id: 'ORD-101',
+    market: 'HGN-USDC',
+    status: 'Active',
+    side: 'buy',
+    price: 1.2401,
+    amount: 120,
+    age: '2m',
+    ageMinutes: 2,
+  },
+  {
+    id: 'ORD-102',
+    market: 'HGN-USDC',
+    status: 'Active',
+    side: 'sell',
+    price: 1.2489,
+    amount: 60,
+    age: '4h',
+    ageMinutes: 240,
+  },
+  {
+    id: 'ORD-103',
+    market: 'XCH-USDC',
+    status: 'Filled',
+    side: 'buy',
+    price: 18.2,
+    amount: 5,
+    age: '9m',
+    ageMinutes: 9,
+  },
+  {
+    id: 'ORD-104',
+    market: 'SBX-USDC',
+    status: 'Active',
+    side: 'buy',
+    price: 0.041,
+    amount: 4000,
+    age: '5d',
+    ageMinutes: 8000,
+  },
+  {
+    id: 'ORD-105',
+    market: 'HGN-USDC',
+    status: 'Cancelled',
+    side: 'sell',
+    price: 1.26,
+    amount: 30,
+    age: '14m',
+    ageMinutes: 14,
+  },
+  {
+    id: 'ORD-106',
+    market: 'XCH-USDC',
+    status: 'Active',
+    side: 'sell',
+    price: 18.55,
+    amount: 8,
+    age: '16m',
+    ageMinutes: 16,
+  },
+  {
+    id: 'ORD-107',
+    market: 'SBX-USDC',
+    status: 'Filled',
+    side: 'sell',
+    price: 0.039,
+    amount: 2200,
+    age: '19m',
+    ageMinutes: 19,
+  },
+  {
+    id: 'ORD-108',
+    market: 'HGN-USDC',
+    status: 'Active',
+    side: 'buy',
+    price: 1.235,
+    amount: 200,
+    age: '22m',
+    ageMinutes: 22,
+  },
+  {
+    id: 'ORD-109',
+    market: 'XCH-USDC',
+    status: 'Cancelled',
+    side: 'buy',
+    price: 17.9,
+    amount: 3,
+    age: '27m',
+    ageMinutes: 27,
+  },
+  {
+    id: 'ORD-110',
+    market: 'SBX-USDC',
+    status: 'Active',
+    side: 'sell',
+    price: 0.043,
+    amount: 1500,
+    age: '14d',
+    ageMinutes: 20000,
+  },
 ];
 
 interface Readout {
@@ -76,7 +166,8 @@ export function PatchVsRefetch(): JSX.Element {
   const handleSimulateFill = () => {
     const activeOrders = orders.filter((order) => order.status === 'Active');
     if (activeOrders.length === 0) return;
-    const target = activeOrders[Math.floor(Math.random() * activeOrders.length)];
+    const target =
+      activeOrders[Math.floor(Math.random() * activeOrders.length)];
     // Only status flips on a fill — ageMinutes is the order's placement
     // time, which a fill doesn't change, so the date-range check stays
     // meaningful (an old order can still fill; it just won't show up under
@@ -106,8 +197,10 @@ export function PatchVsRefetch(): JSX.Element {
           market
           <select
             value={filters.market}
-            onChange={(event) => handleFilterChange({ market: event.target.value })}
-            className="border-border bg-muted/40 text-foreground h-8 min-w-32 rounded-md border pl-2 pr-8 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            onChange={(event) =>
+              handleFilterChange({ market: event.target.value })
+            }
+            className="border-border bg-muted/40 text-foreground focus-visible:ring-ring focus-visible:ring-offset-background h-8 min-w-32 rounded-md border pl-2 pr-8 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             {MARKET_OPTS.map((opt) => (
               <option key={opt} value={opt}>
@@ -120,8 +213,10 @@ export function PatchVsRefetch(): JSX.Element {
           status
           <select
             value={filters.status}
-            onChange={(event) => handleFilterChange({ status: event.target.value })}
-            className="border-border bg-muted/40 text-foreground h-8 min-w-32 rounded-md border pl-2 pr-8 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            onChange={(event) =>
+              handleFilterChange({ status: event.target.value })
+            }
+            className="border-border bg-muted/40 text-foreground focus-visible:ring-ring focus-visible:ring-offset-background h-8 min-w-32 rounded-md border pl-2 pr-8 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             {STATUS_OPTS.map((opt) => (
               <option key={opt} value={opt}>
@@ -134,8 +229,10 @@ export function PatchVsRefetch(): JSX.Element {
           placed
           <select
             value={filters.range}
-            onChange={(event) => handleFilterChange({ range: event.target.value })}
-            className="border-border bg-muted/40 text-foreground h-8 min-w-32 rounded-md border pl-2 pr-8 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            onChange={(event) =>
+              handleFilterChange({ range: event.target.value })
+            }
+            className="border-border bg-muted/40 text-foreground focus-visible:ring-ring focus-visible:ring-offset-background h-8 min-w-32 rounded-md border pl-2 pr-8 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             {RANGE_OPTS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -155,7 +252,11 @@ export function PatchVsRefetch(): JSX.Element {
         <span className="text-right">age</span>
       </div>
 
-      <div role="table" aria-label="Order history" className="flex min-h-[10rem] flex-col gap-1">
+      <div
+        role="table"
+        aria-label="Order history"
+        className="flex min-h-[10rem] flex-col gap-1"
+      >
         {rows.map((order) => (
           <div
             key={order.id}
@@ -171,7 +272,9 @@ export function PatchVsRefetch(): JSX.Element {
             </span>
             <span className="text-foreground text-right">{order.amount}</span>
             <span className="text-muted-foreground">{order.status}</span>
-            <span className="text-muted-foreground text-right">{order.age}</span>
+            <span className="text-muted-foreground text-right">
+              {order.age}
+            </span>
           </div>
         ))}
         {rows.length === 0 ? (
@@ -206,11 +309,7 @@ export function PatchVsRefetch(): JSX.Element {
       </div>
 
       <div className="border-border mt-5 flex flex-wrap items-center gap-3 border-t pt-4">
-        <button
-          type="button"
-          onClick={handleSimulateFill}
-          className={button()}
-        >
+        <button type="button" onClick={handleSimulateFill} className={button()}>
           simulate a fill
         </button>
         <span className="text-muted-foreground text-sm">
@@ -225,8 +324,9 @@ export function PatchVsRefetch(): JSX.Element {
           className="border-border bg-muted/30 mt-4 rounded-lg border p-4"
         >
           <p className="text-foreground mb-3 text-sm">
-            Fill event · order <span className="font-mono">{readout.orderId}</span>{' '}
-            on <span className="font-mono">{readout.market}</span> →{' '}
+            Fill event · order{' '}
+            <span className="font-mono">{readout.orderId}</span> on{' '}
+            <span className="font-mono">{readout.market}</span> →{' '}
             <span className="text-primary font-mono">Filled</span>
           </p>
           <div className="mb-3 flex flex-wrap gap-2">

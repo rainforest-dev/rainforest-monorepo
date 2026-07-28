@@ -25,9 +25,7 @@ describe('<AffectedPipeline>', () => {
 
   it('mounts idle with the checked-files list and the PR/push toggle', () => {
     render(<AffectedPipeline />);
-    expect(
-      screen.getByText('apps/web/middleware.ts'),
-    ).toBeDefined();
+    expect(screen.getByText('apps/web/middleware.ts')).toBeDefined();
     expect(screen.getByRole('button', { name: 'PR' })).toBeDefined();
     expect(screen.getByText(/idle — tick files/i)).toBeDefined();
   });

@@ -16,7 +16,9 @@ describe('affected-pipeline logic — affectedFrom', () => {
 
   it('walks forward: a leaf dependency affects everything that (transitively) depends on it', () => {
     const result = affectedFrom(['api-client']);
-    expect(result).toEqual(new Set(['api-client', 'auth', 'web', 'e2e', 'load']));
+    expect(result).toEqual(
+      new Set(['api-client', 'auth', 'web', 'e2e', 'load']),
+    );
     expect(result.has('ui')).toBe(false);
   });
 
@@ -44,9 +46,9 @@ describe('affected-pipeline logic — affectedFromFiles', () => {
   });
 
   it('an auth-lib change affects auth, web, e2e, and load', () => {
-    expect(
-      affectedFromFiles(['libs/auth/src/getRolesFromJwt.ts']),
-    ).toEqual(new Set(['auth', 'web', 'e2e', 'load']));
+    expect(affectedFromFiles(['libs/auth/src/getRolesFromJwt.ts'])).toEqual(
+      new Set(['auth', 'web', 'e2e', 'load']),
+    );
   });
 
   it('resolves against the real CHANGED_FILES/PROJECTS graph by default', () => {

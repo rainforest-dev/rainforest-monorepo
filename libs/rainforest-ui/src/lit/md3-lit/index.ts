@@ -19,7 +19,7 @@ export class RfMd3Lit extends RfTwLit {
   static {
     if (!isServer) {
       const styleSheets = Object.entries(
-        getSchemeProperties(defaultTheme.schemes.light)
+        getSchemeProperties(defaultTheme.schemes.light),
       ).map(
         ([key, color]) =>
           unsafeCSS(`
@@ -28,7 +28,7 @@ export class RfMd3Lit extends RfTwLit {
         inherits: true;
         initial-value: ${hexFromArgb(color)};
       }
-    `).styleSheet as CSSStyleSheet
+    `).styleSheet as CSSStyleSheet,
       );
       document.adoptedStyleSheets.push(...styleSheets);
     }

@@ -35,7 +35,9 @@ test.describe('tag editing', () => {
   test('removing a tag unlinks it from the book', async ({ page }) => {
     await page.goto('/books/1'); // Dune has classic
     await page.click('button[aria-label="Remove tag classic"]');
-    await expect(page.locator('text=classic')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=classic')).not.toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('new tag appears in filter combobox', async ({ page }) => {

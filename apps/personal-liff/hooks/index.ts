@@ -6,7 +6,7 @@ export const useLineProfile = (): {
   isLoading: boolean;
 } => {
   const { data: profile, isLoading } = useSWRImmutable('liff/profile', () =>
-    liff.getProfile()
+    liff.getProfile(),
   );
 
   return { profile, isLoading };

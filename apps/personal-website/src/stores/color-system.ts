@@ -29,7 +29,7 @@ const storage = new Proxy(
       onChange(name, '');
       return true;
     },
-  }
+  },
 );
 
 const events: PersistentEvents = {
@@ -51,7 +51,7 @@ export const colorScheme = persistentAtom<boolean>(
   {
     encode: JSON.stringify,
     decode: JSON.parse,
-  }
+  },
 );
 export const updateColorScheme = (scheme: boolean) => {
   colorScheme.set(scheme);
@@ -61,5 +61,5 @@ export const updateColorScheme = (scheme: boolean) => {
 export const persistentKey = 'source-color';
 export const $sourceColor = persistentAtom<string>(
   persistentKey,
-  Cookies.get(persistentKey) || defaultSourceColor
+  Cookies.get(persistentKey) || defaultSourceColor,
 );

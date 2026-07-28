@@ -18,7 +18,9 @@ const formatMonth = (d: Date) => d.toISOString().slice(0, 7);
 
 function formatExperience(e: ResolvedExperience): string {
   const range = `${formatMonth(e.startAt)} – ${e.endAt ? formatMonth(e.endAt) : 'present'}`;
-  const tech = e.technologies.length ? `\nTechnologies: ${e.technologies.join(', ')}` : '';
+  const tech = e.technologies.length
+    ? `\nTechnologies: ${e.technologies.join(', ')}`
+    : '';
   return `### ${e.position} — ${e.organization.name}\n${range}${tech}\n\n${e.content}`;
 }
 
@@ -32,21 +34,28 @@ function formatExperience(e: ResolvedExperience): string {
 export const GET: APIRoute = async ({ site, request }) => {
   await trackAiResourceFetch('llms-full.txt', request);
   const base = site!.origin;
-  const [summary, experiences, education, projects, skills, blog] = await Promise.all([
-    getProfileSummary({ lang: 'en' }),
-    getWorkExperience({ lang: 'en' }),
-    getEducation({ lang: 'en' }),
-    getProjects({ lang: 'en' }),
-    getSkills({ lang: 'en' }),
-    getCollection('blog'),
-  ]);
+  const [summary, experiences, education, projects, skills, blog] =
+    await Promise.all([
+      getProfileSummary({ lang: 'en' }),
+      getWorkExperience({ lang: 'en' }),
+      getEducation({ lang: 'en' }),
+      getProjects({ lang: 'en' }),
+      getSkills({ lang: 'en' }),
+      getCollection('blog'),
+    ]);
 
   // Same reason as projects below: the site renders these newest-first, so this file must not
   // disagree. Blog was already sorted; experiences and education were the remaining exceptions.
   const byNewest = (a: ResolvedExperience, b: ResolvedExperience) =>
     b.startAt.getTime() - a.startAt.getTime();
-  const experienceText = [...experiences].sort(byNewest).map(formatExperience).join('\n\n');
-  const educationText = [...education].sort(byNewest).map(formatExperience).join('\n\n');
+  const experienceText = [...experiences]
+    .sort(byNewest)
+    .map(formatExperience)
+    .join('\n\n');
+  const educationText = [...education]
+    .sort(byNewest)
+    .map(formatExperience)
+    .join('\n\n');
 
   // Newest-first, matching what the portfolio index renders — this file exists to give agents an
   // accurate picture, so it shouldn't disagree with the human-facing page about which work is
@@ -68,7 +77,10 @@ export const GET: APIRoute = async ({ site, request }) => {
 
   const blogLinks = blog
     .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-    .map((post) => `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`)
+    .map(
+      (post) =>
+        `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`,
+    )
     .join('\n');
 
   const caseStudyLinks = listCaseStudies()

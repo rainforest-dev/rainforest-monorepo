@@ -17,8 +17,8 @@ test('get scheme json', () => {
   const scheme = getSchemeProperties(theme.schemes.light);
   expect(Object.keys(scheme)).toEqual(
     expect.arrayContaining(
-      Object.keys(roles).map((role) => `--md-sys-color-${role}`)
-    )
+      Object.keys(roles).map((role) => `--md-sys-color-${role}`),
+    ),
   );
   expect(Object.values(scheme)).not.toContain(undefined);
 });

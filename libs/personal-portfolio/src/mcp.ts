@@ -22,7 +22,10 @@ export const PORTFOLIO_MCP_RESOURCES = [
   { uriTemplate: 'portfolio://case-study/{+slug}', title: 'Case study' },
 ] as const;
 export const PORTFOLIO_MCP_TOOLS = [
-  { name: 'get_case_study', description: 'Full interactive case study for a project slug' },
+  {
+    name: 'get_case_study',
+    description: 'Full interactive case study for a project slug',
+  },
 ] as const;
 
 const [caseStudyResourceDef] = PORTFOLIO_MCP_RESOURCES;
@@ -69,7 +72,10 @@ export function registerPortfolioMcp(
 
   server.registerTool(
     getCaseStudyTool.name,
-    { description: getCaseStudyTool.description, inputSchema: { slug: z.string() } },
+    {
+      description: getCaseStudyTool.description,
+      inputSchema: { slug: z.string() },
+    },
     async ({ slug }) => ({
       content: [{ type: 'text', text: serialize(slug) }],
     }),

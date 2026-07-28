@@ -36,11 +36,21 @@ test.describe('filters', () => {
 
   test('platform filter shows undelivered books', async ({ page }) => {
     await page.goto('/');
-    await page.selectOption('[aria-label="Filter by platform"]', 'readwise-reader');
-    await expect(page.locator('[aria-label="Filter by delivery status"]')).toBeVisible();
-    await page.selectOption('[aria-label="Filter by delivery status"]', 'false');
+    await page.selectOption(
+      '[aria-label="Filter by platform"]',
+      'readwise-reader',
+    );
+    await expect(
+      page.locator('[aria-label="Filter by delivery status"]'),
+    ).toBeVisible();
+    await page.selectOption(
+      '[aria-label="Filter by delivery status"]',
+      'false',
+    );
     await expect(page).toHaveURL(/platform=readwise-reader/);
-    await expect(page.locator('[data-testid="book-card"]').first()).toBeVisible();
+    await expect(
+      page.locator('[data-testid="book-card"]').first(),
+    ).toBeVisible();
   });
 
   test('sort direction toggle changes URL', async ({ page }) => {

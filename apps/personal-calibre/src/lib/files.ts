@@ -16,7 +16,10 @@ export const MIME_TYPES: Record<string, string> = {
 
 // Retries EAGAIN (errno -35) from Synology VirtioFS: first read triggers the
 // FileProvider to download an online-only file; subsequent reads succeed.
-export async function readWithRetry(filePath: string, attempts = 5): Promise<Buffer> {
+export async function readWithRetry(
+  filePath: string,
+  attempts = 5,
+): Promise<Buffer> {
   for (let i = 0; i < attempts; i++) {
     try {
       return await readFile(filePath);
@@ -33,16 +36,32 @@ export async function readWithRetry(filePath: string, attempts = 5): Promise<Buf
   throw new Error('unreachable');
 }
 
-export function resolveFilePath(libraryPath: string, bookPath: string, name: string, format: string): string {
+export function resolveFilePath(
+  libraryPath: string,
+  bookPath: string,
+  name: string,
+  format: string,
+): string {
   const root = path.resolve(libraryPath);
-  const resolved = path.resolve(root, bookPath, `${name}.${format.toLowerCase()}`);
+  const resolved = path.resolve(
+    root,
+    bookPath,
+    `${name}.${format.toLowerCase()}`,
+  );
   if (!resolved.startsWith(root + path.sep)) {
     throw new Error('Path traversal detected');
   }
   return resolved;
 }
 
-export function staticDownloadUrl(bookPath: string, fileName: string, format: string): string {
-  const segments = [...bookPath.split('/'), `${fileName}.${format.toLowerCase()}`];
+export function staticDownloadUrl(
+  bookPath: string,
+  fileName: string,
+  format: string,
+): string {
+  const segments = [
+    ...bookPath.split('/'),
+    `${fileName}.${format.toLowerCase()}`,
+  ];
   return '/files/' + segments.map(encodeURIComponent).join('/');
 }

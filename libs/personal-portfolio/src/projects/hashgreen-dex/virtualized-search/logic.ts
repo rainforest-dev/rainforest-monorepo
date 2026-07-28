@@ -130,14 +130,18 @@ type WritableStorage = Pick<Storage, 'setItem'>;
  * server-rendered pass instead of touching `window`. Recovers to an empty
  * set on missing, corrupt, or unexpectedly-shaped persisted data.
  */
-export function readFavorites(storage: ReadableStorage | undefined): Set<string> {
+export function readFavorites(
+  storage: ReadableStorage | undefined,
+): Set<string> {
   if (!storage) return new Set();
   try {
     const raw = storage.getItem(FAVORITES_STORAGE_KEY);
     if (!raw) return new Set();
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((item): item is string => typeof item === 'string'));
+    return new Set(
+      parsed.filter((item): item is string => typeof item === 'string'),
+    );
   } catch {
     return new Set();
   }

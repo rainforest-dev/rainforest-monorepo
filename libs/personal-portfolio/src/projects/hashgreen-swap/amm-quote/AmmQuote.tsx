@@ -72,7 +72,7 @@ export function AmmQuote(): JSX.Element {
         </button>
       </div>
 
-      <label className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
+      <label className="border-border bg-muted/30 focus-within:border-primary/50 focus-within:ring-ring focus-within:ring-offset-background flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-offset-2">
         <span className="min-w-0 flex-1">
           <span className="text-muted-foreground mb-1 block text-xs">
             You pay
@@ -99,7 +99,7 @@ export function AmmQuote(): JSX.Element {
         ↓
       </div>
 
-      <label className="border-border bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
+      <label className="border-border bg-muted/30 focus-within:border-primary/50 focus-within:ring-ring focus-within:ring-offset-background flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-offset-2">
         <span className="min-w-0 flex-1">
           <span className="text-muted-foreground mb-1 block text-xs">
             You receive
@@ -128,7 +128,7 @@ export function AmmQuote(): JSX.Element {
             aria-pressed={slippage === option}
             onClick={() => setSlippage(option)}
             className={cx(
-              'h-7 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'focus-visible:ring-ring h-7 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2',
               slippage === option
                 ? 'border-primary bg-primary/15 text-primary'
                 : 'border-border text-muted-foreground hover:bg-muted',
@@ -169,7 +169,7 @@ export function AmmQuote(): JSX.Element {
       <button
         type="button"
         onClick={() => setShowMath((prev) => !prev)}
-        className="text-primary mt-3 rounded font-mono text-xs transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="text-primary hover:text-primary/80 focus-visible:ring-ring mt-3 rounded font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2"
       >
         {showMath ? '▾ hide the math' : '▸ show the math'}
       </button>

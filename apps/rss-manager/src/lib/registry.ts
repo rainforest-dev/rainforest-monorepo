@@ -186,16 +186,24 @@ function spliceEntry(lines: string[], name: string): string[] {
 }
 
 /** Insert entry lines before the next ## section (end of target section). */
-function insertAtSectionEnd(lines: string[], section: string, entry: string[]): void {
+function insertAtSectionEnd(
+  lines: string[],
+  section: string,
+  entry: string[],
+): void {
   const sectionIdx = lines.findIndex((l) => l === `## ${section}`);
   if (sectionIdx === -1) throw new Error(`Section not found: ## ${section}`);
 
   let insertIdx = lines.length;
   for (let i = sectionIdx + 1; i < lines.length; i++) {
-    if (lines[i].startsWith('## ')) { insertIdx = i; break; }
+    if (lines[i].startsWith('## ')) {
+      insertIdx = i;
+      break;
+    }
   }
   // Back over trailing blank lines so we don't double-space
-  while (insertIdx > sectionIdx + 1 && lines[insertIdx - 1].trim() === '') insertIdx--;
+  while (insertIdx > sectionIdx + 1 && lines[insertIdx - 1].trim() === '')
+    insertIdx--;
 
   lines.splice(insertIdx, 0, '', ...entry);
 }
@@ -212,7 +220,10 @@ export function activateSource(name: string): void {
   // Determine current section
   let currentSection = '';
   for (let i = idx; i >= 0; i--) {
-    if (lines[i].startsWith('## ')) { currentSection = lines[i].slice(3).trim(); break; }
+    if (lines[i].startsWith('## ')) {
+      currentSection = lines[i].slice(3).trim();
+      break;
+    }
   }
 
   if (currentSection === 'Active Sources') {

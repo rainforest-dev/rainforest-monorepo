@@ -7,8 +7,12 @@ export function getOrCreateTag(name: string): number {
   if (!trimmed) throw new Error('Tag name is required');
 
   // INSERT OR IGNORE is atomic — safe under concurrent requests hitting Calibre's UNIQUE index on tags.name.
-  writableSqlite.prepare('INSERT OR IGNORE INTO tags (name) VALUES (?)').run(trimmed);
-  const row = writableSqlite.prepare('SELECT id FROM tags WHERE name = ?').get(trimmed) as { id: number };
+  writableSqlite
+    .prepare('INSERT OR IGNORE INTO tags (name) VALUES (?)')
+    .run(trimmed);
+  const row = writableSqlite
+    .prepare('SELECT id FROM tags WHERE name = ?')
+    .get(trimmed) as { id: number };
   return Number(row.id);
 }
 

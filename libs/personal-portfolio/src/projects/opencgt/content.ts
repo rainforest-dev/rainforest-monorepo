@@ -64,7 +64,8 @@ export const opencgt: CaseStudy = {
         'I focused on the parts closest to the app — wiring nx affected with tag exclusions, the container build configs, and both suites: Playwright logging in as each role, and k6 ramping real VUs through the actual Auth0 login.',
       tech: "It's driven by the Nx project graph, not a job list — `nx-set-shas` computes base/head and `nx affected` walks the graph. The k6 browser test drives the real Auth0 form under 100 ramping VUs, asserting a `1.00` checks rate.",
       interaction: 'affected-pipeline',
-      sourceRef: 'nx.json · .github/workflows/ci.yml · apps/web-e2e · apps/web-load',
+      sourceRef:
+        'nx.json · .github/workflows/ci.yml · apps/web-e2e · apps/web-load',
     },
   ],
 };

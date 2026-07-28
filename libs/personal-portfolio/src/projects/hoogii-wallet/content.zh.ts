@@ -34,8 +34,7 @@ export const hoogiiWalletZh: CaseStudyTranslation = {
     },
     'what-locking-actually-does': {
       title: '「鎖定」實際上做了什麼',
-      feature:
-        '靜態時加密助記詞、解鎖需要密碼、機器閒置時自動上鎖。',
+      feature: '靜態時加密助記詞、解鎖需要密碼、機器閒置時自動上鎖。',
       contribution:
         '鎖定的生命週期由我負責：種子在靜態時從不解密、密碼只存在於短暫的 session 記憶體、自動上鎖依靠瀏覽器本身的閒置訊號，而不是我得自己盯著的計時器。',
       tech: '`encryption.ts` 以 `PBKDF2` · SHA-512 · 100,000 次迭代 · 32-byte salt 推導出 `AES-GCM` 金鑰。自動上鎖掛在 `chrome.idle.setDetectionInterval` 上，而不是 `setInterval` —— 真實的輸入會重置倒數。',

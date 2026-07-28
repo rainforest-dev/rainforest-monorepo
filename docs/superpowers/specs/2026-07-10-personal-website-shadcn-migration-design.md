@@ -59,17 +59,17 @@ A new shared CSS token layer in `libs/rainforest-ui` (structurally where `md3.ts
 
 ### Component migration map
 
-| Current (Material Web) | Files | New (shadcn-vue) |
-|---|---|---|
-| `md-filled-button`, `md-outlined-button` | `three-columns.astro`, `contact-form.astro` | `Button` (`variant="default"/"outline"`) |
-| `md-icon-button` + `md-icon` | `nav.vue`, `language-picker.vue`, `fab.vue`, `blog/index.astro` | `Button` `variant="ghost"` `size="icon"` + `lucide-vue-next` icon inside |
-| `md-fab` | `fab.vue` | No Radix/reka-ui equivalent — kept as a small custom component, restyled with the new tokens |
-| `md-menu` + `md-menu-item` | `language-picker.vue`, `fab.vue`, `source-color.vue` | `DropdownMenu` |
-| `md-outlined-text-field` | `contact-form.astro`, webgpu demo | `Input` / `Textarea` |
-| `md-outlined-select` + `md-select-option` | dead `md3.ts` React wrappers (unused — delete) | n/a, delete |
-| `md-chip-set` + `md-filter-chip` | `blog/post.astro` tag filters | `Badge` / `ToggleGroup` |
-| `md-tabs` + `md-primary-tab` | `color-system.vue` (settings page) | `Tabs` |
-| `md-ai-button` (custom, `ai-button.ts`, unused) | none | delete |
+| Current (Material Web)                          | Files                                                           | New (shadcn-vue)                                                                             |
+| ----------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `md-filled-button`, `md-outlined-button`        | `three-columns.astro`, `contact-form.astro`                     | `Button` (`variant="default"/"outline"`)                                                     |
+| `md-icon-button` + `md-icon`                    | `nav.vue`, `language-picker.vue`, `fab.vue`, `blog/index.astro` | `Button` `variant="ghost"` `size="icon"` + `lucide-vue-next` icon inside                     |
+| `md-fab`                                        | `fab.vue`                                                       | No Radix/reka-ui equivalent — kept as a small custom component, restyled with the new tokens |
+| `md-menu` + `md-menu-item`                      | `language-picker.vue`, `fab.vue`, `source-color.vue`            | `DropdownMenu`                                                                               |
+| `md-outlined-text-field`                        | `contact-form.astro`, webgpu demo                               | `Input` / `Textarea`                                                                         |
+| `md-outlined-select` + `md-select-option`       | dead `md3.ts` React wrappers (unused — delete)                  | n/a, delete                                                                                  |
+| `md-chip-set` + `md-filter-chip`                | `blog/post.astro` tag filters                                   | `Badge` / `ToggleGroup`                                                                      |
+| `md-tabs` + `md-primary-tab`                    | `color-system.vue` (settings page)                              | `Tabs`                                                                                       |
+| `md-ai-button` (custom, `ai-button.ts`, unused) | none                                                            | delete                                                                                       |
 
 ### RWD hardening
 

@@ -5,11 +5,15 @@
   "nx": {
     "projectType": "application",
     "sourceRoot": "apps/personal-calibre-e2e/src",
-    "implicitDependencies": ["personal-calibre"],
+    "implicitDependencies": [
+      "personal-calibre"
+    ],
     "targets": {
       "e2e": {
         "executor": "@nx/playwright:playwright",
-        "outputs": ["{workspaceRoot}/dist/.playwright/apps/personal-calibre-e2e"],
+        "outputs": [
+          "{workspaceRoot}/dist/.playwright/apps/personal-calibre-e2e"
+        ],
         "options": {
           "config": "apps/personal-calibre-e2e/playwright.config.ts"
         }

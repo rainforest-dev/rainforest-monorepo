@@ -13,16 +13,16 @@ This monorepo contains a collection of modern web applications and reusable libr
 
 ### 📱 Applications
 
-| Project | Description | Tech Stack | Status |
-|---------|-------------|------------|--------|
-| **[personal-website](./apps/personal-website/)** | Advanced personal portfolio with AI/ML capabilities | Astro, React, Vue, Lit, PWA | ✅ Active |
-| **[personal-liff](./apps/personal-liff/)** | LINE mini-app for mobile integration | Next.js, LIFF, Mantine UI | ✅ Active |
-| **[personal-liff-e2e](./apps/personal-liff-e2e/)** | End-to-end testing suite for LIFF app | Cypress, Nx | ✅ Active |
+| Project                                            | Description                                         | Tech Stack                  | Status    |
+| -------------------------------------------------- | --------------------------------------------------- | --------------------------- | --------- |
+| **[personal-website](./apps/personal-website/)**   | Advanced personal portfolio with AI/ML capabilities | Astro, React, Vue, Lit, PWA | ✅ Active |
+| **[personal-liff](./apps/personal-liff/)**         | LINE mini-app for mobile integration                | Next.js, LIFF, Mantine UI   | ✅ Active |
+| **[personal-liff-e2e](./apps/personal-liff-e2e/)** | End-to-end testing suite for LIFF app               | Cypress, Nx                 | ✅ Active |
 
 ### 📚 Libraries
 
-| Project | Description | Tech Stack | Status |
-|---------|-------------|------------|--------|
+| Project                                    | Description                 | Tech Stack                   | Status    |
+| ------------------------------------------ | --------------------------- | ---------------------------- | --------- |
 | **[rainforest-ui](./libs/rainforest-ui/)** | Modern UI component library | Lit, Tailwind CSS, Storybook | ✅ Active |
 
 ## 🚀 Quick Start
@@ -68,12 +68,14 @@ nx format:write
 ## 🛠️ Technology Stack
 
 ### Core Technologies
+
 - **Framework**: Nx Monorepo
 - **Language**: TypeScript 5.8+
 - **Package Manager**: pnpm with workspaces
 - **Build Tools**: Vite, Astro, Next.js
 
 ### Frontend Technologies
+
 - **Astro** - Static site generation with component islands
 - **Next.js** - React framework for production
 - **Lit** - Lightweight web components
@@ -82,6 +84,7 @@ nx format:write
 - **Tailwind CSS** - Utility-first CSS framework
 
 ### Advanced Features
+
 - **AI/ML Integration** - Web LLM capabilities
 - **PWA Support** - Offline-first applications
 - **Internationalization** - Multi-language support
@@ -90,15 +93,15 @@ nx format:write
 
 ## 📋 Project Scripts
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start all development servers |
-| `pnpm build` | Build all projects for production |
-| `pnpm test` | Run tests across all projects |
-| `pnpm lint` | Lint all code |
-| `pnpm format` | Format code with Prettier |
-| `pnpm nx graph` | View dependency graph |
-| `pnpm nx release` | Version and release packages |
+| Command           | Description                       |
+| ----------------- | --------------------------------- |
+| `pnpm dev`        | Start all development servers     |
+| `pnpm build`      | Build all projects for production |
+| `pnpm test`       | Run tests across all projects     |
+| `pnpm lint`       | Lint all code                     |
+| `pnpm format`     | Format code with Prettier         |
+| `pnpm nx graph`   | View dependency graph             |
+| `pnpm nx release` | Version and release packages      |
 
 ## 🏃‍♂️ Development Commands
 
@@ -137,17 +140,20 @@ nx test rainforest-ui --coverage
 ## 🔧 Development Tools
 
 ### Code Quality
+
 - **ESLint** - JavaScript/TypeScript linting
 - **Prettier** - Code formatting
 - **TypeScript** - Static type checking
 - **Nx** - Monorepo management and build optimization
 
 ### Testing
+
 - **Vitest** - Unit testing framework
 - **Cypress** - End-to-end testing
 - **Storybook** - Component testing and documentation
 
 ### CI/CD
+
 - **GitHub Actions** - Continuous integration
 - **Vercel** - Deployment platform
 - **Nx Cloud** - Build caching and distribution
@@ -223,11 +229,13 @@ Each module has comprehensive documentation:
 ## 🔗 Useful Links
 
 ### Nx Resources
+
 - [Learn more about Nx](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 - [Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 - [Releasing Packages](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 
 ### Community
+
 - [Discord](https://go.nx.dev/community)
 - [Twitter](https://twitter.com/nxdevtools)
 - [LinkedIn](https://www.linkedin.com/company/nrwl)

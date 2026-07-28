@@ -36,11 +36,13 @@ Canonical project slugs (match `personal-data` filenames) → Claude Design vari
 ### Task 0: Pull the Claude Design case-study source for reference
 
 **Files:**
+
 - Create: `libs/portfolio/.reference/CaseStudy.dc.html` (git-ignored working reference, not shipped)
 
 - [ ] **Step 1: Add the reference dir to git-ignore**
 
 Append to `.gitignore`:
+
 ```
 libs/portfolio/.reference/
 ```
@@ -48,6 +50,7 @@ libs/portfolio/.reference/
 - [ ] **Step 2: Pull the built case-study source via DesignSync**
 
 Use the DesignSync MCP tool:
+
 - `DesignSync get_file` with `projectId: 0c5411d1-48e7-4514-aef9-9dab9d268b9b`, `path: CaseStudy.dc.html`.
 - Save the returned content to `libs/portfolio/.reference/CaseStudy.dc.html`.
 
@@ -62,6 +65,7 @@ This file is the porting source for every island body (its per-variant `data`/`m
 ### Task 1: Scaffold `libs/portfolio` as a non-buildable source lib
 
 **Files:**
+
 - Create: `libs/portfolio/package.json`
 - Create: `libs/portfolio/tsconfig.json`
 - Create: `libs/portfolio/tsconfig.lib.json`
@@ -72,6 +76,7 @@ This file is the porting source for every island body (its per-variant `data`/`m
 - [ ] **Step 1: Write the failing smoke test**
 
 `libs/portfolio/src/smoke.test.ts`:
+
 ```ts
 import { describe, expect, it } from 'vitest';
 
@@ -87,6 +92,7 @@ describe('portfolio lib', () => {
 - [ ] **Step 2: Create the package manifest (source exports, non-buildable)**
 
 `libs/portfolio/package.json`:
+
 ```json
 {
   "name": "@rainforest-dev/portfolio",
@@ -114,12 +120,14 @@ describe('portfolio lib', () => {
   }
 }
 ```
+
 > **Exports grow incrementally** — declare a subpath only once its file exists, so an early import can't hard-fail: `./sections/CaseStudySection.astro` is added in Task 6, `./theme.css` in Task 7, `./mcp` in Task 13.
 > **No explicit `jsdom` dep** — mirror `libs/rainforest-ui`, which uses `environment: 'jsdom'` with no `jsdom` in its manifest and resolves the root-hoisted `jsdom` (`~27`). Pinning `^26` here would fork the workspace onto two jsdom majors.
 
 - [ ] **Step 3: Create tsconfig files (typecheck tsx as source, no dist build)**
 
 `libs/portfolio/tsconfig.json`:
+
 ```json
 {
   "extends": "../../tsconfig.base.json",
@@ -130,6 +138,7 @@ describe('portfolio lib', () => {
 ```
 
 `libs/portfolio/tsconfig.lib.json`:
+
 ```json
 {
   "extends": "../../tsconfig.base.json",
@@ -152,6 +161,7 @@ describe('portfolio lib', () => {
 - [ ] **Step 4: Create the vitest config (jsdom, no lib build)**
 
 `libs/portfolio/vite.config.ts`:
+
 ```ts
 import { defineConfig } from 'vitest/config';
 
@@ -175,12 +185,15 @@ export default defineConfig({
 - [ ] **Step 5: Create the barrel entry**
 
 `libs/portfolio/src/index.ts`:
+
 ```ts
 export const PORTFOLIO_LIB = '@rainforest-dev/portfolio';
 
 export * from './content';
 ```
+
 > Note: `./content` does not exist yet — create a temporary stub so this compiles, replaced in Task 2. Stub `libs/portfolio/src/content/index.ts`:
+
 ```ts
 export {};
 ```
@@ -188,10 +201,12 @@ export {};
 - [ ] **Step 6: Install the new dev deps and sync Nx**
 
 Run:
+
 ```bash
 pnpm install
 pnpm nx sync
 ```
+
 Expected: install succeeds; `pnpm nx sync` updates TS project references without error.
 
 - [ ] **Step 7: Run the smoke test**
@@ -209,6 +224,7 @@ git commit -m "feat(portfolio): scaffold libs/portfolio source lib"
 ### Task 2: Content types + registry
 
 **Files:**
+
 - Create: `libs/portfolio/src/content/types.ts`
 - Create: `libs/portfolio/src/content/index.ts` (replaces stub)
 - Create: `libs/portfolio/src/content/hoogii-wallet.ts`
@@ -217,6 +233,7 @@ git commit -m "feat(portfolio): scaffold libs/portfolio source lib"
 - [ ] **Step 1: Write the failing test**
 
 `libs/portfolio/src/content/index.test.ts`:
+
 ```ts
 import { describe, expect, it } from 'vitest';
 
@@ -250,18 +267,35 @@ Expected: FAIL (no exports `getCaseStudy`/`hasCaseStudy`/`listCaseStudies`).
 - [ ] **Step 3: Write the content types**
 
 `libs/portfolio/src/content/types.ts`:
+
 ```ts
 export type ProjectVariant = 'hoogii' | 'dex' | 'swap' | 'opencgt';
 
 export type InteractionKind =
   // hoogii
-  | 'phrase-grid' | 'relay-gate' | 'idle-lock' | 'kdf-meter' | 'fuzzy-search'
+  | 'phrase-grid'
+  | 'relay-gate'
+  | 'idle-lock'
+  | 'kdf-meter'
+  | 'fuzzy-search'
   // dex
-  | 'orderbook' | 'store-graph' | 'popper-reconcile' | 'ably-feed' | 'refetch-toggle'
+  | 'orderbook'
+  | 'store-graph'
+  | 'popper-reconcile'
+  | 'ably-feed'
+  | 'refetch-toggle'
   // swap
-  | 'amm-quote' | 'offer-state' | 'zap-liquidity' | 'env-deploy' | 'i18n-card'
+  | 'amm-quote'
+  | 'offer-state'
+  | 'zap-liquidity'
+  | 'env-deploy'
+  | 'i18n-card'
   // opencgt
-  | 'jwt-decode' | 'role-shell' | 'casbin-playground' | 'phi-encrypt' | 'affected-pipeline';
+  | 'jwt-decode'
+  | 'role-shell'
+  | 'casbin-playground'
+  | 'phi-encrypt'
+  | 'affected-pipeline';
 
 export interface Section {
   id: string;
@@ -295,6 +329,7 @@ export interface CaseStudy {
 - [ ] **Step 4: Write the first case study data (Hoogii), ported from the content spec**
 
 `libs/portfolio/src/content/hoogii-wallet.ts` — transcribe the five Hoogii sections from `docs/portfolio-interactive-sections-spec.md` (Hoogii section) into this shape. Example scaffold (fill all five from the spec):
+
 ```ts
 import type { CaseStudy } from './types';
 
@@ -327,6 +362,7 @@ export const hoogiiWallet: CaseStudy = {
 - [ ] **Step 5: Write the registry**
 
 `libs/portfolio/src/content/index.ts` (replace the stub):
+
 ```ts
 import { hoogiiWallet } from './hoogii-wallet';
 import type { CaseStudy } from './types';
@@ -347,7 +383,12 @@ export function hasCaseStudy(slug: string): boolean {
   return slug in REGISTRY;
 }
 
-export type { CaseStudy, Section, InteractionKind, ProjectVariant } from './types';
+export type {
+  CaseStudy,
+  Section,
+  InteractionKind,
+  ProjectVariant,
+} from './types';
 ```
 
 - [ ] **Step 6: Run the test**
@@ -365,6 +406,7 @@ git commit -m "feat(portfolio): case-study content model + hoogii data"
 ### Task 3: Add the `featured`/`order` curation field to the project schema
 
 **Files:**
+
 - Modify: `libs/personal-data/src/schemas.ts` (projectSchema)
 - Modify: `apps/personal-website/src/content.config.ts` (projects collection)
 - Modify: `libs/personal-data/src/schemas.test.ts`
@@ -373,6 +415,7 @@ git commit -m "feat(portfolio): case-study content model + hoogii data"
 - [ ] **Step 1: Write the failing test**
 
 Add to `libs/personal-data/src/schemas.test.ts`:
+
 ```ts
 import { projectSchema } from './schemas';
 
@@ -386,7 +429,9 @@ describe('projectSchema curation', () => {
       experience: 'en/1',
     };
     expect(projectSchema.parse(base).featured).toBe(false);
-    expect(projectSchema.parse({ ...base, featured: true, order: 1 }).order).toBe(1);
+    expect(
+      projectSchema.parse({ ...base, featured: true, order: 1 }).order,
+    ).toBe(1);
   });
 });
 ```
@@ -399,6 +444,7 @@ Expected: FAIL (`featured` is not on the parsed type / undefined).
 - [ ] **Step 3: Add the fields to the lib schema**
 
 In `libs/personal-data/src/schemas.ts`, extend `projectSchema`:
+
 ```ts
 export const projectSchema = z.object({
   name: z.string(),
@@ -414,6 +460,7 @@ export const projectSchema = z.object({
 - [ ] **Step 4: Mirror in the Astro content config**
 
 In `apps/personal-website/src/content.config.ts`, extend the `projects` collection schema with the same two lines:
+
 ```ts
     featured: z.boolean().default(false),
     order: z.number().optional(),
@@ -427,6 +474,7 @@ Expected: PASS.
 - [ ] **Step 6: Mark the four case-study projects featured (fixture data)**
 
 In each `libs/personal-data/src/data/projects/{en,zh}/{hoogii-wallet,hashgreen-dex,hashgreen-swap,opencgt}.md`, add to frontmatter:
+
 ```yaml
 featured: true
 ```
@@ -450,6 +498,7 @@ git commit -m "feat(personal-data): featured/order curation field on projects"
 ### Task 4: First island, worked end-to-end (`phrase-grid`) — the template for all islands
 
 **Files:**
+
 - Create: `libs/portfolio/src/islands/phrase-grid/logic.ts`
 - Create: `libs/portfolio/src/islands/phrase-grid/logic.test.ts`
 - Create: `libs/portfolio/src/islands/phrase-grid/PhraseGrid.tsx`
@@ -459,6 +508,7 @@ git commit -m "feat(personal-data): featured/order curation field on projects"
 - [ ] **Step 1: Write the failing logic test (the real unit test)**
 
 `libs/portfolio/src/islands/phrase-grid/logic.test.ts`:
+
 ```ts
 import { describe, expect, it } from 'vitest';
 
@@ -475,7 +525,18 @@ describe('phrase-grid logic', () => {
 
   it('splits a pasted phrase across cells by whitespace', () => {
     expect(distributePaste('abandon ability able', 12)).toEqual([
-      'abandon', 'ability', 'able', '', '', '', '', '', '', '', '', '',
+      'abandon',
+      'ability',
+      'able',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
     ]);
   });
 });
@@ -489,9 +550,13 @@ Expected: FAIL (module not found).
 - [ ] **Step 3: Implement the pure logic (cosmetic, no network)**
 
 `libs/portfolio/src/islands/phrase-grid/logic.ts`:
+
 ```ts
 /** Membership test only — a cell errors when non-empty and absent from the wordlist. */
-export function isValidWord(word: string, wordlist: ReadonlySet<string>): boolean {
+export function isValidWord(
+  word: string,
+  wordlist: ReadonlySet<string>,
+): boolean {
   if (word.length === 0) return true;
   return wordlist.has(word);
 }
@@ -511,14 +576,18 @@ Expected: PASS.
 - [ ] **Step 5: Port the presentational component from the reference source**
 
 `libs/portfolio/src/islands/phrase-grid/PhraseGrid.tsx` — a React component that renders a 12-cell grid, a "paste a phrase" button, uses `isValidWord`/`distributePaste`, styled with stock shadcn utilities (`bg-primary`, `text-primary-foreground`, `ring-primary`) and a small mock BIP39 subset. Honor `prefers-reduced-motion` (guard any transition with a `useReducedMotion`-style check or a CSS media query). No `crypto.subtle`, no network. Transcribe structure/behavior from `libs/portfolio/.reference/CaseStudy.dc.html` (Hoogii H1). Signature:
+
 ```tsx
-export function PhraseGrid(): JSX.Element { /* ...ported... */ }
+export function PhraseGrid(): JSX.Element {
+  /* ...ported... */
+}
 export default PhraseGrid;
 ```
 
 - [ ] **Step 6: Write the render smoke test**
 
 `libs/portfolio/src/islands/phrase-grid/PhraseGrid.test.tsx`:
+
 ```tsx
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
@@ -541,6 +610,7 @@ Expected: PASS.
 - [ ] **Step 8: Barrel-export the island**
 
 `libs/portfolio/src/islands/phrase-grid/index.ts`:
+
 ```ts
 export { PhraseGrid, default } from './PhraseGrid';
 ```
@@ -566,6 +636,7 @@ For each island below, follow the exact five-artifact recipe from Task 4 (`logic
 ### Task 6: Section wrapper + island registry
 
 **Files:**
+
 - Create: `libs/portfolio/src/sections/island-registry.ts`
 - Create: `libs/portfolio/src/sections/island-registry.test.ts`
 - Create: `libs/portfolio/src/sections/CaseStudySection.astro`
@@ -573,6 +644,7 @@ For each island below, follow the exact five-artifact recipe from Task 4 (`logic
 - [ ] **Step 1: Write the failing registry test**
 
 `libs/portfolio/src/sections/island-registry.test.ts`:
+
 ```ts
 import { describe, expect, it } from 'vitest';
 
@@ -597,6 +669,7 @@ Expected: FAIL (module not found).
 - [ ] **Step 3: Implement the registry (maps InteractionKind → React component)**
 
 `libs/portfolio/src/sections/island-registry.ts`:
+
 ```ts
 import type { ComponentType } from 'react';
 
@@ -622,6 +695,7 @@ Expected: PASS.
 - [ ] **Step 5: Write the Astro section wrapper (dynamic island, `client:visible`)**
 
 `libs/portfolio/src/sections/CaseStudySection.astro`:
+
 ```astro
 ---
 import type { Section } from '../content/types';
@@ -646,6 +720,7 @@ const Island = islandFor(section.interaction);
   )}
 </section>
 ```
+
 > Note: `set:html` on `section.tech` renders markdown-style code spans that were pre-rendered to HTML at content-authoring time; if `tech` is kept as plain text with backticks, replace with `{section.tech}` and style `<code>` separately. Keep whichever the content files use — decide in Task 2 and stay consistent.
 
 - [ ] **Step 6: Commit**
@@ -658,24 +733,36 @@ git commit -m "feat(portfolio): section wrapper + island registry"
 ### Task 7: Per-project theme tokens (shadcn-scoped)
 
 **Files:**
+
 - Create: `libs/portfolio/src/theme.css`
 - Create: `libs/portfolio/src/theme.test.ts`
 
 - [ ] **Step 1: Write the failing test (every variant defines the primary cluster)**
 
 `libs/portfolio/src/theme.test.ts`:
+
 ```ts
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const css = readFileSync(fileURLToPath(new URL('./theme.css', import.meta.url)), 'utf8');
+const css = readFileSync(
+  fileURLToPath(new URL('./theme.css', import.meta.url)),
+  'utf8',
+);
 
 describe('per-project theme tokens', () => {
-  for (const slug of ['hoogii-wallet', 'hashgreen-dex', 'hashgreen-swap', 'opencgt']) {
+  for (const slug of [
+    'hoogii-wallet',
+    'hashgreen-dex',
+    'hashgreen-swap',
+    'opencgt',
+  ]) {
     it(`defines a scoped primary token block for ${slug}`, () => {
       expect(css).toContain(`[data-project="${slug}"]`);
-      expect(css).toMatch(new RegExp(`\\[data-project="${slug}"\\][^}]*--primary:`));
+      expect(css).toMatch(
+        new RegExp(`\\[data-project="${slug}"\\][^}]*--primary:`),
+      );
     });
   }
 });
@@ -689,17 +776,18 @@ Expected: FAIL (theme.css missing).
 - [ ] **Step 3: Write the theme tokens (hand-set hex, light + dark)**
 
 `libs/portfolio/src/theme.css` — one scoped block per slug overriding only the shadcn `primary` cluster (accent seeds: Hoogii violet, Dex `#008C15`, Swap `#00F8CB`, OpenCGT `#1976D2`), plus a `.dark` counterpart each. Example:
+
 ```css
-[data-project="hashgreen-swap"] {
-  --primary: #00F8CB;
+[data-project='hashgreen-swap'] {
+  --primary: #00f8cb;
   --primary-foreground: #04302a;
-  --ring: #00F8CB;
+  --ring: #00f8cb;
 }
-[data-project="hashgreen-swap"].dark,
-.dark [data-project="hashgreen-swap"] {
-  --primary: #00F8CB;
+[data-project='hashgreen-swap'].dark,
+.dark [data-project='hashgreen-swap'] {
+  --primary: #00f8cb;
   --primary-foreground: #04302a;
-  --ring: #00F8CB;
+  --ring: #00f8cb;
 }
 /* repeat for hoogii-wallet, hashgreen-dex, opencgt */
 ```
@@ -719,6 +807,7 @@ git commit -m "feat(portfolio): per-project shadcn theme tokens"
 ### Task 8: Astro routes (index + detail) + nav swap
 
 **Files:**
+
 - Create: `apps/personal-website/src/pages/[lang]/portfolio/index.astro`
 - Create: `apps/personal-website/src/pages/[lang]/portfolio/[slug].astro`
 - Modify: `apps/personal-website/src/utils/constants/index.ts` (nav portfolio link)
@@ -727,10 +816,13 @@ git commit -m "feat(portfolio): per-project shadcn theme tokens"
 - [ ] **Step 1: Add the workspace dependency**
 
 In `apps/personal-website/package.json` dependencies:
+
 ```json
 "@rainforest-dev/portfolio": "workspace:*",
 ```
+
 Run:
+
 ```bash
 pnpm install
 pnpm nx sync
@@ -739,6 +831,7 @@ pnpm nx sync
 - [ ] **Step 2: Write the detail route**
 
 `apps/personal-website/src/pages/[lang]/portfolio/[slug].astro`:
+
 ```astro
 ---
 import '@rainforest-dev/portfolio/theme.css';
@@ -775,6 +868,7 @@ if (!study) return Astro.redirect('/404');
 - [ ] **Step 3: Write the index route (featured-first)**
 
 `apps/personal-website/src/pages/[lang]/portfolio/index.astro`:
+
 ```astro
 ---
 import { hasCaseStudy } from '@rainforest-dev/portfolio/content';
@@ -810,14 +904,17 @@ const projects = (await getProjects({ lang })).sort(
   </main>
 </Layout>
 ```
+
 > Note: confirm `getProjects` returns `slug`, `featured`, `order`. If the resolved project shape lacks `slug`, derive it from the entry `id` in the same task and add it to `ResolvedProject` in `libs/personal-data/src/profile-data.ts` (with a test), since the join depends on it.
 
 - [ ] **Step 4: Swap the nav portfolio link to internal**
 
 In `apps/personal-website/src/utils/constants/index.ts`, change the portfolio nav entry:
+
 ```ts
 { label: 'portfolio', href: '/portfolio' },
 ```
+
 (remove `external: true` and the cake.me URL). Verify the nav component composes `/${lang}` correctly; if it expects locale-relative hrefs, use the existing helper the other anchors use.
 
 - [ ] **Step 5: Build the app to verify routes compile & islands hydrate**
@@ -843,6 +940,7 @@ git commit -m "feat(personal-website): portfolio index + detail routes, nav swap
 ### Task 9–11: One task per remaining project (repeat Phase 2 recipe)
 
 For each of `hashgreen-dex`, `hashgreen-swap`, `opencgt`, do exactly what Phases 2 produced for Hoogii:
+
 1. Content file `libs/portfolio/src/content/<slug>.ts` (5 sections) + register it in `content/index.ts`. **Transcribe the real sections from `libs/portfolio/.reference/CaseStudy.dc.html`** (`isDex`/`isSwap`/`isOpencgt` branches) — the island slugs listed below are the plan's GUESSES; use the ACTUAL sections/interactions from the reference, adding the real kebab-case kinds to the project's `InteractionKind` sub-union in `content/types.ts` (as Task 2 did for Hoogii, whose real kinds differed from the guesses).
 2. Five islands under `src/islands/<kind>/` following the Task 4 recipe (logic + logic test + tsx + smoke test + index). Reuse `_shared/useReducedMotion` for any animating island; use `import { type JSX } from 'react'`; stock shadcn tokens only; cosmetic/client-side only.
 3. **Extend `libs/portfolio/src/sections/CaseStudySection.astro`** — it uses STATIC per-interaction imports + branches (Astro requires `client:*` targets to be statically traceable to a literal import; the dynamic `islandFor` lookup throws `NoMatchingImport` at prerender — discovered in Phase 2). Add each new island to its static imports and its branch chain. Also add each kind to `island-registry.ts` (still exercised by its own unit test) for consistency.
@@ -866,6 +964,7 @@ Per-island pure-logic signatures to TDD (see §"Per-island port recipe"). Commit
 ### Task 12: Extract `registerProfileMcp` (pure move, no behavior change)
 
 **Files:**
+
 - Create: `apps/personal-website/src/mcp/profile.ts`
 - Modify: `apps/personal-website/src/mcp/handler.ts`
 
@@ -876,15 +975,26 @@ Create `src/mcp/profile.ts` exporting `PROFILE_MCP_TOOLS`, `PROFILE_MCP_RESOURCE
 - [ ] **Step 2: Reduce `handler.ts` to a composition root**
 
 `handler.ts` becomes:
+
 ```ts
 import { createMcpHandler } from 'mcp-handler';
-import { PROFILE_MCP_RESOURCES, PROFILE_MCP_TOOLS, registerProfileMcp } from './profile';
+import {
+  PROFILE_MCP_RESOURCES,
+  PROFILE_MCP_TOOLS,
+  registerProfileMcp,
+} from './profile';
 
 export const MCP_TOOLS = [...PROFILE_MCP_TOOLS];
 export const MCP_RESOURCES = [...PROFILE_MCP_RESOURCES];
 
 export function createProfileMcpHandler(basePath?: string) {
-  return createMcpHandler((server) => { registerProfileMcp(server); }, {}, { basePath });
+  return createMcpHandler(
+    (server) => {
+      registerProfileMcp(server);
+    },
+    {},
+    { basePath },
+  );
 }
 ```
 
@@ -903,6 +1013,7 @@ git commit -m "refactor(mcp): extract registerProfileMcp; handler becomes compos
 ### Task 13: Add `registerPortfolioMcp` + `caseStudyUrl`
 
 **Files:**
+
 - Create: `libs/portfolio/src/mcp.ts`
 - Create: `libs/portfolio/src/mcp.test.ts`
 - Modify: `apps/personal-website/src/mcp/handler.ts` (compose portfolio)
@@ -911,6 +1022,7 @@ git commit -m "refactor(mcp): extract registerProfileMcp; handler becomes compos
 - [ ] **Step 1: Write the failing test for the resource content**
 
 `libs/portfolio/src/mcp.test.ts`:
+
 ```ts
 import { describe, expect, it } from 'vitest';
 
@@ -918,7 +1030,9 @@ import { caseStudyResource, PORTFOLIO_MCP_RESOURCES } from './mcp';
 
 describe('portfolio mcp', () => {
   it('declares the case-study resource template', () => {
-    expect(PORTFOLIO_MCP_RESOURCES[0].uriTemplate).toBe('portfolio://case-study/{+slug}');
+    expect(PORTFOLIO_MCP_RESOURCES[0].uriTemplate).toBe(
+      'portfolio://case-study/{+slug}',
+    );
   });
   it('resolves a known case study and throws on unknown', () => {
     expect(caseStudyResource('hoogii-wallet').slug).toBe('hoogii-wallet');
@@ -935,6 +1049,7 @@ Expected: FAIL (module not found).
 - [ ] **Step 3: Implement the portfolio contribution**
 
 `libs/portfolio/src/mcp.ts`:
+
 ```ts
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 
@@ -946,7 +1061,10 @@ export const PORTFOLIO_MCP_RESOURCES = [
 ] as const;
 
 export const PORTFOLIO_MCP_TOOLS = [
-  { name: 'get_case_study', description: 'Full interactive case study for a project slug' },
+  {
+    name: 'get_case_study',
+    description: 'Full interactive case study for a project slug',
+  },
 ] as const;
 
 export function caseStudyResource(slug: string): CaseStudy {
@@ -962,7 +1080,9 @@ export function registerPortfolioMcp(server: any): void {
     new ResourceTemplate(csResource.uriTemplate, { list: undefined }),
     { title: csResource.title, mimeType: 'application/json' },
     async (uri: URL, { slug }: { slug: string }) => ({
-      contents: [{ uri: uri.href, text: JSON.stringify(caseStudyResource(slug)) }],
+      contents: [
+        { uri: uri.href, text: JSON.stringify(caseStudyResource(slug)) },
+      ],
     }),
   );
   const [csTool] = PORTFOLIO_MCP_TOOLS;
@@ -970,11 +1090,14 @@ export function registerPortfolioMcp(server: any): void {
     csTool.name,
     { description: csTool.description, inputSchema: {} },
     async ({ slug }: { slug: string }) => ({
-      content: [{ type: 'text', text: JSON.stringify(caseStudyResource(slug)) }],
+      content: [
+        { type: 'text', text: JSON.stringify(caseStudyResource(slug)) },
+      ],
     }),
   );
 }
 ```
+
 > `@modelcontextprotocol/sdk` is already a transitive dep of the app via `mcp-handler`; add it to `libs/portfolio/package.json` dependencies so the import resolves in the lib.
 
 - [ ] **Step 4: Run it to verify it passes**
@@ -985,23 +1108,35 @@ Expected: PASS.
 - [ ] **Step 5: Compose portfolio into the app handler + merge descriptors**
 
 In `handler.ts`:
+
 ```ts
-import { PORTFOLIO_MCP_RESOURCES, PORTFOLIO_MCP_TOOLS, registerPortfolioMcp } from '@rainforest-dev/portfolio/mcp';
+import {
+  PORTFOLIO_MCP_RESOURCES,
+  PORTFOLIO_MCP_TOOLS,
+  registerPortfolioMcp,
+} from '@rainforest-dev/portfolio/mcp';
 
 export const MCP_TOOLS = [...PROFILE_MCP_TOOLS, ...PORTFOLIO_MCP_TOOLS];
-export const MCP_RESOURCES = [...PROFILE_MCP_RESOURCES, ...PORTFOLIO_MCP_RESOURCES];
+export const MCP_RESOURCES = [
+  ...PROFILE_MCP_RESOURCES,
+  ...PORTFOLIO_MCP_RESOURCES,
+];
 
 export function createProfileMcpHandler(basePath?: string) {
-  return createMcpHandler((server) => {
-    registerProfileMcp(server);
-    registerPortfolioMcp(server);
-  }, {}, { basePath });
+  return createMcpHandler(
+    (server) => {
+      registerProfileMcp(server);
+      registerPortfolioMcp(server);
+    },
+    {},
+    { basePath },
+  );
 }
 ```
 
 - [ ] **Step 6: Add `caseStudyUrl` to the project resource**
 
-In `profile.ts`, where the project resource/tool serializes a project, add `caseStudyUrl: hasCaseStudy(id) ? \`https://rainforest.tools/en/portfolio/${slug}\` : undefined` (import `hasCaseStudy` from `@rainforest-dev/portfolio/content`). Keep it a plain field on the serialized object.
+In `profile.ts`, where the project resource/tool serializes a project, add `caseStudyUrl: hasCaseStudy(id) ? \`https://rainforest.tools/en/portfolio/${slug}\` : undefined`(import`hasCaseStudy`from`@rainforest-dev/portfolio/content`). Keep it a plain field on the serialized object.
 
 - [ ] **Step 7: Verify merged surface**
 
@@ -1021,6 +1156,7 @@ git commit -m "feat(mcp): compose portfolio case-study resource + tool"
 ### Task 14: Link case studies from every mention site
 
 **Files:**
+
 - Modify: `apps/personal-website/src/components/home/experiences/project.astro`
 - Modify: `apps/personal-website/src/components/resume/ats-friendly.astro`
 - Modify: `apps/personal-website/src/pages/[lang]/resume.astro` (JSON-LD)
@@ -1060,6 +1196,7 @@ git commit -m "feat(personal-website): cross-link case studies from home, resume
 ### Task 15: Featured-first index, filtering, reduced-motion audit, perf
 
 **Files:**
+
 - Modify: `apps/personal-website/src/pages/[lang]/portfolio/index.astro`
 - Create (optional): `apps/personal-website/src/components/portfolio/filter.vue`
 - Audit: all `libs/portfolio/src/islands/**`
@@ -1075,9 +1212,11 @@ If added, mirror `components/home/experiences/store.ts`'s `$filter` atom pattern
 - [ ] **Step 3: Reduced-motion audit**
 
 Grep every island for animation/transition and confirm each is gated by `prefers-reduced-motion`:
+
 ```bash
 grep -rl "transition\|animate\|requestAnimationFrame" libs/portfolio/src/islands
 ```
+
 Add a static fallback wherever missing. Add one vitest assertion per animated island that the motion path is skipped when a `prefersReducedMotion()` helper returns true.
 
 - [ ] **Step 4: Perf check**
@@ -1087,10 +1226,12 @@ Run `pnpm nx build personal-website` and confirm React ships only to `/portfolio
 - [ ] **Step 5: Full affected verification**
 
 Run:
+
 ```bash
 pnpm nx affected -t lint test typecheck
 pnpm nx build personal-website
 ```
+
 Expected: all green.
 
 - [ ] **Step 6: Commit**
@@ -1106,34 +1247,35 @@ git commit -m "feat(portfolio): featured-first index, reduced-motion audit, perf
 
 Each island's `.tsx` is transcribed from the reference source; its `logic.ts` gets a TDD unit test with this signature:
 
-| Kind | Pure logic to TDD |
-|---|---|
-| phrase-grid | `isValidWord(w, set)`, `distributePaste(s, n)` — done in Task 4 |
-| relay-gate | `evaluateRelay(ctx): GateResult` — the IS_VALID_WALLET→IS_LOCK→IS_CONNECTED order |
-| idle-lock | `nextLockState(idleMs, thresholdMs)` |
-| kdf-meter | `costLabel(iterations)` (cosmetic) |
-| fuzzy-search | `rank(query, items, threshold=0.1)` |
-| orderbook | `buildLadder(mid, depth): {bids, asks}` |
-| store-graph | `onBecomeObserved(state): state` (MobX lifecycle sim) |
-| popper-reconcile | `reconcileKey(prev, next): string` |
-| ably-feed | `applyTrade(feed, trade): feed` (bounded log) |
-| refetch-toggle | `decide(mode, delta): 'patch' \| 'refetch'` |
-| amm-quote | `calcUserSwap(inAmt, reserves): {out, impact, fee}` — log-space invariant, NOT x·y=k |
-| offer-state | `nextOfferState(s): 'VALID' \| 'IN_MEMPOOL' \| 'ON_CHAIN' \| 'INVALID'` |
-| zap-liquidity | `splitZap(amount, ratio): {a, b}` |
-| env-deploy | `resolveEnv(env): {image, replicas, values}` (4-env map; real metric strip TVL ~$780k / ~21,494) |
-| i18n-card | `formatSummary(locale, values)` (EN/简/繁 locale-aware) |
-| jwt-decode | `getRolesFromJwt(token): RoleEnum[]` — base64url decode + scan keys for "roles" |
-| role-shell | `navFor(role): NavItem[]` + `isForbidden(role, route): boolean` |
-| casbin-playground | `enforce(req, policies): boolean` — `keyMatch`/`regexMatch`/`*` matcher |
-| phi-encrypt | `redactFor(grant, record)` — phi vs non-phi view (cosmetic; no crypto.subtle) |
-| affected-pipeline | `affectedFrom(changedFiles, graph): string[]` — nx-affected lookup |
+| Kind              | Pure logic to TDD                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| phrase-grid       | `isValidWord(w, set)`, `distributePaste(s, n)` — done in Task 4                                  |
+| relay-gate        | `evaluateRelay(ctx): GateResult` — the IS_VALID_WALLET→IS_LOCK→IS_CONNECTED order                |
+| idle-lock         | `nextLockState(idleMs, thresholdMs)`                                                             |
+| kdf-meter         | `costLabel(iterations)` (cosmetic)                                                               |
+| fuzzy-search      | `rank(query, items, threshold=0.1)`                                                              |
+| orderbook         | `buildLadder(mid, depth): {bids, asks}`                                                          |
+| store-graph       | `onBecomeObserved(state): state` (MobX lifecycle sim)                                            |
+| popper-reconcile  | `reconcileKey(prev, next): string`                                                               |
+| ably-feed         | `applyTrade(feed, trade): feed` (bounded log)                                                    |
+| refetch-toggle    | `decide(mode, delta): 'patch' \| 'refetch'`                                                      |
+| amm-quote         | `calcUserSwap(inAmt, reserves): {out, impact, fee}` — log-space invariant, NOT x·y=k             |
+| offer-state       | `nextOfferState(s): 'VALID' \| 'IN_MEMPOOL' \| 'ON_CHAIN' \| 'INVALID'`                          |
+| zap-liquidity     | `splitZap(amount, ratio): {a, b}`                                                                |
+| env-deploy        | `resolveEnv(env): {image, replicas, values}` (4-env map; real metric strip TVL ~$780k / ~21,494) |
+| i18n-card         | `formatSummary(locale, values)` (EN/简/繁 locale-aware)                                          |
+| jwt-decode        | `getRolesFromJwt(token): RoleEnum[]` — base64url decode + scan keys for "roles"                  |
+| role-shell        | `navFor(role): NavItem[]` + `isForbidden(role, route): boolean`                                  |
+| casbin-playground | `enforce(req, policies): boolean` — `keyMatch`/`regexMatch`/`*` matcher                          |
+| phi-encrypt       | `redactFor(grant, record)` — phi vs non-phi view (cosmetic; no crypto.subtle)                    |
+| affected-pipeline | `affectedFrom(changedFiles, graph): string[]` — nx-affected lookup                               |
 
 ---
 
 ## Self-Review
 
 **Spec coverage:**
+
 - §2 architecture → Task 1 (lib), Task 8 (routes/app). ✅
 - §3 MFE rejected → design-only, no task needed. ✅
 - §4 lib structure → Tasks 1,2,4–7,13. ✅

@@ -63,12 +63,12 @@ export class RfDesignSystemColors extends RfMd3Lit {
   override render() {
     return html`
       <div
-        class="grid grid-cols-1 gap-8 capitalize text-xs sm:grid-cols-2 lg:grid-cols-4"
+        class="grid grid-cols-1 gap-8 text-xs capitalize sm:grid-cols-2 lg:grid-cols-4"
       >
         ${primary.map(
           ([name, ...items]) => html`
             <div class="flex flex-col gap-4">
-              <ul class="flex flex-col *:odd:h-16 *:even:h-8 *:p-1">
+              <ul class="flex flex-col *:p-1 *:odd:h-16 *:even:h-8">
                 ${items.map((classes, index) => {
                   const titles = [
                     name,
@@ -96,7 +96,7 @@ export class RfDesignSystemColors extends RfMd3Lit {
                     ];
                     return html`
                       <li
-                        class="${classes} first:h-16 nth-2:h-16 first:col-span-1 nth-2:col-span-1 col-span-2 h-8 p-1"
+                        class="${classes} nth-2:h-16 nth-2:col-span-1 col-span-2 h-8 p-1 first:col-span-1 first:h-16"
                       >
                         ${titles[index]}
                       </li>
@@ -104,9 +104,9 @@ export class RfDesignSystemColors extends RfMd3Lit {
                   })}
               </ul>
             </div>
-          `
+          `,
         )}
-        <div class="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
+        <div class="col-span-1 flex flex-col sm:col-span-2 lg:col-span-3">
           ${[
             [
               ['surface dim', 'bg-surface-dim text-on-surface'],
@@ -143,14 +143,14 @@ export class RfDesignSystemColors extends RfMd3Lit {
               <ul class="flex h-16">
                 ${row.map(
                   ([title, classes]) => html`
-                    <li class="${classes} p-1 flex-1">${title}</li>
-                  `
+                    <li class="${classes} flex-1 p-1">${title}</li>
+                  `,
                 )}
               </ul>
-            `
+            `,
           )}
         </div>
-        <ul class="grid grid-cols-2 h-full">
+        <ul class="grid h-full grid-cols-2">
           ${[
             ['inverse surface', 'bg-inverse-surface text-inverse-on-surface'],
             [
@@ -161,14 +161,13 @@ export class RfDesignSystemColors extends RfMd3Lit {
             ['scrim', 'bg-scrim text-inverse-on-surface'],
             ['shadow', 'bg-shadow text-inverse-on-surface'],
           ].map(
-            ([name, classes]) =>
-              html`
-                <li
-                  class="${classes} flex-1 p-1 col-span-2 last:col-span-1 nth-last-2:col-span-1"
-                >
-                  ${name}
-                </li>
-              `
+            ([name, classes]) => html`
+              <li
+                class="${classes} nth-last-2:col-span-1 col-span-2 flex-1 p-1 last:col-span-1"
+              >
+                ${name}
+              </li>
+            `,
           )}
         </ul>
       </div>

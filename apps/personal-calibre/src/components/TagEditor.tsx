@@ -11,7 +11,11 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import type { FilterOptions } from '@/types/calibre';
 
 interface Props {
@@ -55,7 +59,9 @@ export function TagEditor({ bookId, tagIds, allTags }: Props) {
   }
 
   const existingIds = new Set(tagIds.map((t) => t.id));
-  const availableTags = allTags.filter((t) => t.id !== null && !existingIds.has(t.id));
+  const availableTags = allTags.filter(
+    (t) => t.id !== null && !existingIds.has(t.id),
+  );
   const matchesExisting = allTags.some(
     (t) => t.name?.toLowerCase() === inputValue.toLowerCase(),
   );
@@ -109,7 +115,11 @@ export function TagEditor({ bookId, tagIds, allTags }: Props) {
             </CommandEmpty>
             <CommandList>
               {availableTags.map((t) => (
-                <CommandItem key={t.id} value={t.name ?? ''} onSelect={() => addTag(t.name ?? '')}>
+                <CommandItem
+                  key={t.id}
+                  value={t.name ?? ''}
+                  onSelect={() => addTag(t.name ?? '')}
+                >
                   {t.name}
                 </CommandItem>
               ))}

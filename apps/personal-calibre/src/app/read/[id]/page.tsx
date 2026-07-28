@@ -8,9 +8,7 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default function ReadPage({
-  params,
-}: Props) {
+export default function ReadPage({ params }: Props) {
   return (
     <Suspense fallback={<div className="bg-background h-screen w-screen" />}>
       <ReadPageContent params={params} />

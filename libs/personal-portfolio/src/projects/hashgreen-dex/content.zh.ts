@@ -21,7 +21,7 @@ export const hashgreenDexZh: CaseStudyTranslation = {
         '即時的買/賣掛單簿，點某個價位會開出摘要面板，而當該價位移出盤面時會立刻關閉。',
       contribution:
         '我守住一條不變式：交易者絕不能對一個已經移動的價位下手。錨定在某列的 tooltip，當那列被取代時，是一個一級事件、會關掉 popover —— 而不是渲染時的事後補救。',
-      tech: "一個對帳的 `useEffect` 以 `key(market, price, amount, total)` 為每個價位編鍵，一旦這個 key 不再對應到當前盤面中的任何項目，就立刻清掉選取 —— 這正是正式介面裡那個分辨買賣方向的 `react-popper` tooltip 所依賴的同一條不變式，以免錨定到一列早已不存在的資料。",
+      tech: '一個對帳的 `useEffect` 以 `key(market, price, amount, total)` 為每個價位編鍵，一旦這個 key 不再對應到當前盤面中的任何項目，就立刻清掉選取 —— 這正是正式介面裡那個分辨買賣方向的 `react-popper` tooltip 所依賴的同一條不變式，以免錨定到一列早已不存在的資料。',
     },
     'fetch-once-then-stream': {
       title: '先抓一次，然後串流',

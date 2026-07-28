@@ -39,7 +39,10 @@ export async function POST(
   };
 
   if (!body.platformKey) {
-    return NextResponse.json({ error: 'platformKey is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'platformKey is required' },
+      { status: 400 },
+    );
   }
 
   try {
@@ -51,7 +54,9 @@ export async function POST(
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : 'Failed to create delivery event';
+      error instanceof Error
+        ? error.message
+        : 'Failed to create delivery event';
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
@@ -69,7 +74,10 @@ export async function DELETE(
 
   const deliveryId = Number(request.nextUrl.searchParams.get('deliveryId'));
   if (Number.isNaN(deliveryId)) {
-    return NextResponse.json({ error: 'deliveryId is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'deliveryId is required' },
+      { status: 400 },
+    );
   }
 
   await deleteBookDeliveryEvent(bookId, deliveryId);

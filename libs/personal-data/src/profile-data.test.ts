@@ -25,7 +25,10 @@ describe('profile-data', () => {
   });
 
   it('getWorkExperience filters by technology using the merged set', async () => {
-    const auth0Jobs = await getWorkExperience({ technology: 'auth0', lang: 'en' });
+    const auth0Jobs = await getWorkExperience({
+      technology: 'auth0',
+      lang: 'en',
+    });
     expect(auth0Jobs.some((j) => j.id === 'en/6')).toBe(true);
   });
 
@@ -37,7 +40,10 @@ describe('profile-data', () => {
   // `asOf` is pinned so this suite doesn't start failing on a future date. At 2026-07 the
   // full-time entries are en/6 (2022-07 → 2024-10, 27mo) and en/7 (2025-05 → open, 14mo) = 41mo.
   it('getYearsOfExperience counts only full-time roles, summing durations', async () => {
-    const years = await getYearsOfExperience({ lang: 'en', asOf: new Date('2026-07-01') });
+    const years = await getYearsOfExperience({
+      lang: 'en',
+      asOf: new Date('2026-07-01'),
+    });
     expect(years).toBe(3);
   });
 
@@ -47,13 +53,22 @@ describe('profile-data', () => {
     const jobs = await getWorkExperience({ lang: 'en' });
     const interns = jobs.filter((j) => j.employment === 'internship');
     expect(interns.length).toBeGreaterThan(0);
-    const years = await getYearsOfExperience({ lang: 'en', asOf: new Date('2026-07-01') });
+    const years = await getYearsOfExperience({
+      lang: 'en',
+      asOf: new Date('2026-07-01'),
+    });
     expect(years).toBeLessThan(5);
   });
 
   it('getYearsOfExperience grows an open-ended role with the clock', async () => {
-    const at2026 = await getYearsOfExperience({ lang: 'en', asOf: new Date('2026-07-01') });
-    const at2028 = await getYearsOfExperience({ lang: 'en', asOf: new Date('2028-07-01') });
+    const at2026 = await getYearsOfExperience({
+      lang: 'en',
+      asOf: new Date('2026-07-01'),
+    });
+    const at2028 = await getYearsOfExperience({
+      lang: 'en',
+      asOf: new Date('2028-07-01'),
+    });
     expect(at2028).toBe(at2026 + 2);
   });
 

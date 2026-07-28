@@ -59,9 +59,12 @@ describe('casbin-playground logic — enforce / isAllowed', () => {
       DEFAULT_POLICIES,
     );
     expect(rows.some((r) => r.match)).toBe(true);
-    expect(isAllowed({ sub: 'root', obj: '/users', act: 'delete' }, DEFAULT_POLICIES)).toBe(
-      true,
-    );
+    expect(
+      isAllowed(
+        { sub: 'root', obj: '/users', act: 'delete' },
+        DEFAULT_POLICIES,
+      ),
+    ).toBe(true);
   });
 
   it('allows hospital_admin to read/write patients but not materials', () => {

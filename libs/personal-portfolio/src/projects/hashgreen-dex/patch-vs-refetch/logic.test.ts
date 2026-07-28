@@ -52,7 +52,10 @@ describe('patch-vs-refetch logic — matchesDateRange (checkDateRange)', () => {
 
   it('"today" matches an order placed within the last 24h', () => {
     expect(
-      matchesDateRange({ ...ORDER, ageMinutes: 500 }, { ...NO_FILTER, range: 'today' }),
+      matchesDateRange(
+        { ...ORDER, ageMinutes: 500 },
+        { ...NO_FILTER, range: 'today' },
+      ),
     ).toBe(true);
   });
 
@@ -89,7 +92,11 @@ describe('patch-vs-refetch logic — matchesFilters / needsRefetch', () => {
   it('does not need a refetch when the updated order still matches every active filter', () => {
     expect(needsRefetch(ORDER, NO_FILTER)).toBe(false);
     expect(
-      needsRefetch(ORDER, { market: 'HGN-USDC', status: 'Active', range: 'all' }),
+      needsRefetch(ORDER, {
+        market: 'HGN-USDC',
+        status: 'Active',
+        range: 'all',
+      }),
     ).toBe(false);
   });
 
@@ -142,10 +149,16 @@ describe('patch-vs-refetch logic — matchesFilters / needsRefetch', () => {
   });
 
   it('matchesFilters is the exact negation of needsRefetch', () => {
-    const filters: OrderFilters = { market: 'all', status: 'all', range: 'week' };
+    const filters: OrderFilters = {
+      market: 'all',
+      status: 'all',
+      range: 'week',
+    };
     for (const ageMinutes of [10, 8000, 20000]) {
       const order: Order = { ...ORDER, ageMinutes };
-      expect(matchesFilters(order, filters)).toBe(!needsRefetch(order, filters));
+      expect(matchesFilters(order, filters)).toBe(
+        !needsRefetch(order, filters),
+      );
     }
   });
 });

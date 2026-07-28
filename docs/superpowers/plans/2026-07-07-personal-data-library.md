@@ -15,6 +15,7 @@
 See `docs/superpowers/specs/2026-07-07-personal-mcp-split-design.md` for the full rationale. This plan implements that spec's §3–4 and the first part of §7 (steps 1).
 
 Source files being ported (read these before starting, they are the ground truth for behavior):
+
 - `apps/personal-website/src/mcp/profile-data.ts` (business logic to port)
 - `apps/personal-website/src/mcp/profile-data.fixtures.ts` (fixtures — become real test data instead)
 - `apps/personal-website/src/mcp/smoke.test.ts` (the `astro:content` mocking harness — being replaced, not ported)
@@ -24,6 +25,7 @@ Source files being ported (read these before starting, they are the ground truth
 - `apps/personal-website/src/data/{organizations,experiences,projects,skills}/**` (the actual content files, moving)
 
 Confirmed on-disk frontmatter shapes (read directly, not assumed from the Astro schema):
+
 - `organizations/{lang}/{id}.json` — plain JSON, no body: `{"name": "...", "link": "...", "language": "en"}`.
 - `experiences/{lang}/{id}.md` — frontmatter + markdown body. Reference fields (`organization`, `projects`) are **plain string IDs** in the frontmatter (e.g. `organization: 'en/codegreen'`, `projects: [en/hashgreen-dex, ...]`) — Astro's `reference()` helper is what turns these into `{collection, id}` objects at parse time; our own loader does not need to reproduce that indirection, it can treat them as plain strings directly.
 - `projects/{lang}/{id}.md` — same shape, `organization`/`experience` are plain string IDs.
@@ -36,6 +38,7 @@ Confirmed on-disk frontmatter shapes (read directly, not assumed from the Astro 
 ### Task 1: Scaffold the `libs/personal-data` package
 
 **Files:**
+
 - Create: `libs/personal-data/package.json`
 - Create: `libs/personal-data/tsconfig.json`
 - Create: `libs/personal-data/tsconfig.lib.json`
@@ -107,11 +110,7 @@ Confirmed on-disk frontmatter shapes (read directly, not assumed from the Astro 
   },
   "include": ["src/**/*.ts"],
   "references": [],
-  "exclude": [
-    "vite.config.ts",
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts"
-  ]
+  "exclude": ["vite.config.ts", "src/**/*.test.ts", "src/**/*.spec.ts"]
 }
 ```
 
@@ -189,6 +188,7 @@ EOF
 ### Task 2: Canonical vocab
 
 **Files:**
+
 - Create: `libs/personal-data/src/vocab.ts`
 - Test: `libs/personal-data/src/vocab.test.ts`
 
@@ -286,6 +286,7 @@ EOF
 ### Task 3: Zod schemas
 
 **Files:**
+
 - Create: `libs/personal-data/src/schemas.ts`
 - Test: `libs/personal-data/src/schemas.test.ts`
 
@@ -442,6 +443,7 @@ EOF
 ### Task 4: Move the content data files
 
 **Files:**
+
 - Create: `libs/personal-data/src/data/organizations/{en,zh}/*.json` (copied from `apps/personal-website/src/data/organizations/`)
 - Create: `libs/personal-data/src/data/experiences/{en,zh}/*.md` (copied from `apps/personal-website/src/data/experiences/`)
 - Create: `libs/personal-data/src/data/projects/{en,zh}/*.md` (copied from `apps/personal-website/src/data/projects/`)
@@ -461,7 +463,7 @@ git mv apps/personal-website/src/data/skills libs/personal-data/src/data/skills
 
 - [ ] **Step 2: Verify the move**
 
-Run: `find libs/personal-data/src/data -type f | wc -l` (expect 52: 12 organizations + 12 experiences + 8 projects + 26 skills — recount against `find apps/personal-website/src/data/{organizations,experiences,projects,skills} -type f | wc -l` run *before* Step 1 if you want to double check the exact number; the point is nothing got lost, not that it's exactly 52)
+Run: `find libs/personal-data/src/data -type f | wc -l` (expect 52: 12 organizations + 12 experiences + 8 projects + 26 skills — recount against `find apps/personal-website/src/data/{organizations,experiences,projects,skills} -type f | wc -l` run _before_ Step 1 if you want to double check the exact number; the point is nothing got lost, not that it's exactly 52)
 Run: `ls apps/personal-website/src/data/` (expect only `blog` and `authors` remain)
 
 - [ ] **Step 3: Commit**
@@ -482,6 +484,7 @@ EOF
 ### Task 5: Filesystem-based loader
 
 **Files:**
+
 - Create: `libs/personal-data/src/loader.ts`
 - Test: `libs/personal-data/src/loader.test.ts`
 
@@ -512,8 +515,13 @@ describe('loader', () => {
   });
 
   it('supports a filter predicate on getCollection', async () => {
-    const jobs = await getCollection('experiences', (e) => e.data.type === 'job' && e.data.language === 'en');
-    expect(jobs.every((e) => e.data.type === 'job' && e.data.language === 'en')).toBe(true);
+    const jobs = await getCollection(
+      'experiences',
+      (e) => e.data.type === 'job' && e.data.language === 'en',
+    );
+    expect(
+      jobs.every((e) => e.data.type === 'job' && e.data.language === 'en'),
+    ).toBe(true);
   });
 
   it('returns undefined from getEntry for an unknown id', async () => {
@@ -564,7 +572,10 @@ export interface Entry<Data> {
 
 type CollectionData<C extends CollectionName> = z.infer<(typeof schemas)[C]>;
 
-function readEntry<C extends CollectionName>(collection: C, filePath: string): Entry<CollectionData<C>> {
+function readEntry<C extends CollectionName>(
+  collection: C,
+  filePath: string,
+): Entry<CollectionData<C>> {
   const collectionRoot = path.join(DATA_ROOT, collection);
   const id = path
     .relative(collectionRoot, filePath)
@@ -579,7 +590,11 @@ function readEntry<C extends CollectionName>(collection: C, filePath: string): E
   }
 
   const { data, content } = matter(fs.readFileSync(filePath, 'utf-8'));
-  return { id, data: schema.parse(data) as CollectionData<C>, body: content.trim() };
+  return {
+    id,
+    data: schema.parse(data) as CollectionData<C>,
+    body: content.trim(),
+  };
 }
 
 export async function getCollection<C extends CollectionName>(
@@ -630,10 +645,11 @@ EOF
 ### Task 6: Port the data-access layer (`profile-data.ts`)
 
 **Files:**
+
 - Create: `libs/personal-data/src/profile-data.ts`
 - Test: `libs/personal-data/src/profile-data.test.ts`
 
-This ports every exported function from `apps/personal-website/src/mcp/profile-data.ts` unchanged in *behavior*, only changing the import source (`astro:content` → `./loader`) and the reference-field handling (plain string ids instead of `{collection, id}` objects — see Task 3's note).
+This ports every exported function from `apps/personal-website/src/mcp/profile-data.ts` unchanged in _behavior_, only changing the import source (`astro:content` → `./loader`) and the reference-field handling (plain string ids instead of `{collection, id}` objects — see Task 3's note).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -665,7 +681,10 @@ describe('profile-data', () => {
   });
 
   it('getWorkExperience filters by technology using the merged set', async () => {
-    const auth0Jobs = await getWorkExperience({ technology: 'auth0', lang: 'en' });
+    const auth0Jobs = await getWorkExperience({
+      technology: 'auth0',
+      lang: 'en',
+    });
     expect(auth0Jobs.some((j) => j.id === 'en/6')).toBe(true);
   });
 
@@ -787,14 +806,19 @@ async function experienceTechnologies(
 ): Promise<SkillTag[]> {
   const direct = entry.data.technologies ?? [];
   const projectIds = entry.data.projects ?? [];
-  const projects = await Promise.all(projectIds.map((id) => getEntry('projects', id)));
+  const projects = await Promise.all(
+    projectIds.map((id) => getEntry('projects', id)),
+  );
   const fromProjects = projects.flatMap((p) => p?.data.technologies ?? []);
   return Array.from(new Set([...direct, ...fromProjects]));
 }
 
 /** Experience entries of a given type (`job` or `education`) in a given language. */
 function getExperiencesByType(type: ExperienceType, lang: string) {
-  return getCollection('experiences', (entry) => entry.data.type === type && entry.data.language === lang);
+  return getCollection(
+    'experiences',
+    (entry) => entry.data.type === type && entry.data.language === lang,
+  );
 }
 
 export async function getWorkExperience(
@@ -811,7 +835,11 @@ export async function getWorkExperience(
   const filtered = technology
     ? withTech.filter(({ technologies }) => technologies.includes(technology))
     : withTech;
-  return Promise.all(filtered.map(({ entry, technologies }) => resolveExperience(entry, technologies)));
+  return Promise.all(
+    filtered.map(({ entry, technologies }) =>
+      resolveExperience(entry, technologies),
+    ),
+  );
 }
 
 export async function getEducation(
@@ -820,7 +848,9 @@ export async function getEducation(
   const { lang = 'en' } = options;
   const entries = await getExperiencesByType('education', lang);
   return Promise.all(
-    entries.map(async (entry) => resolveExperience(entry, await experienceTechnologies(entry))),
+    entries.map(async (entry) =>
+      resolveExperience(entry, await experienceTechnologies(entry)),
+    ),
   );
 }
 
@@ -830,7 +860,9 @@ export async function getEducation(
  * `profile://experience/{id}` read returns the same resolved organization/technologies
  * as the tool surface, not a raw entry with unresolved reference pointers.
  */
-export async function getExperienceById(id: string): Promise<ResolvedExperience | undefined> {
+export async function getExperienceById(
+  id: string,
+): Promise<ResolvedExperience | undefined> {
   const entry = await getEntry('experiences', id);
   if (!entry) return undefined;
   return resolveExperience(entry, await experienceTechnologies(entry));
@@ -874,7 +906,9 @@ export async function getProjects(
 }
 
 /** A single project by id, fully resolved — same rationale as `getExperienceById`. */
-export async function getProjectById(id: string): Promise<ResolvedProject | undefined> {
+export async function getProjectById(
+  id: string,
+): Promise<ResolvedProject | undefined> {
   const entry = await getEntry('projects', id);
   if (!entry) return undefined;
   return resolveProject(entry);
@@ -888,9 +922,13 @@ export interface ResolvedSkill {
   content: string;
 }
 
-export async function getSkills(options: { lang?: Locale } = {}): Promise<ResolvedSkill[]> {
+export async function getSkills(
+  options: { lang?: Locale } = {},
+): Promise<ResolvedSkill[]> {
   const { lang = 'en' } = options;
-  const entries = await getCollection('skills', (entry) => entry.id.startsWith(`${lang}/`));
+  const entries = await getCollection('skills', (entry) =>
+    entry.id.startsWith(`${lang}/`),
+  );
   return entries.map((entry) => ({
     id: entry.id,
     name: entry.data.name,
@@ -907,7 +945,9 @@ export async function getSkills(options: { lang?: Locale } = {}): Promise<Resolv
  * library's public surface is entirely profile-data.ts, keeping loader.ts
  * a private implementation detail.
  */
-export async function getSkillById(id: string): Promise<ResolvedSkill | undefined> {
+export async function getSkillById(
+  id: string,
+): Promise<ResolvedSkill | undefined> {
   const entry = await getEntry('skills', id);
   if (!entry) return undefined;
   return {
@@ -926,7 +966,9 @@ export interface ProfileSummary {
   topTechnologies: SkillTag[];
 }
 
-export async function getProfileSummary(options: { lang?: Locale } = {}): Promise<ProfileSummary> {
+export async function getProfileSummary(
+  options: { lang?: Locale } = {},
+): Promise<ProfileSummary> {
   const { lang = 'en' } = options;
   const [experiences, projects, skills] = await Promise.all([
     getWorkExperience({ lang }),
@@ -935,10 +977,12 @@ export async function getProfileSummary(options: { lang?: Locale } = {}): Promis
   ]);
   const techCounts = new Map<SkillTag, number>();
   for (const exp of experiences) {
-    for (const tech of exp.technologies) techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
+    for (const tech of exp.technologies)
+      techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
   }
   for (const project of projects) {
-    for (const tech of project.technologies) techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
+    for (const tech of project.technologies)
+      techCounts.set(tech, (techCounts.get(tech) ?? 0) + 1);
   }
   const topTechnologies = [...techCounts.entries()]
     .sort((a, b) => b[1] - a[1])
@@ -962,8 +1006,12 @@ export async function searchByTechnology(
     getProjects({ lang }),
   ]);
   return {
-    experiences: experiences.filter((e) => e.technologies.some((t) => t.toLowerCase().includes(q))),
-    projects: projects.filter((p) => p.technologies.some((t) => t.toLowerCase().includes(q))),
+    experiences: experiences.filter((e) =>
+      e.technologies.some((t) => t.toLowerCase().includes(q)),
+    ),
+    projects: projects.filter((p) =>
+      p.technologies.some((t) => t.toLowerCase().includes(q)),
+    ),
   };
 }
 ```
@@ -996,6 +1044,7 @@ EOF
 ### Task 7: Public exports
 
 **Files:**
+
 - Modify: `libs/personal-data/src/index.ts`
 
 - [ ] **Step 1: Replace the placeholder index with real exports**
@@ -1061,6 +1110,7 @@ EOF
 ### Task 8: Wire `apps/personal-website` to consume the library
 
 **Files:**
+
 - Modify: `apps/personal-website/package.json` (add dependency, remove nothing yet — MCP deps come out in the cutover plan)
 - Modify: `apps/personal-website/src/utils/constants/index.ts`
 - Modify: `apps/personal-website/src/utils/i18n/settings.ts`
@@ -1070,7 +1120,7 @@ EOF
 - Delete: `apps/personal-website/src/mcp/profile-data.fixtures.ts`
 - Delete: `apps/personal-website/src/mcp/smoke.test.ts`
 
-This task keeps `mcp.rainforest.tools` working exactly as it does today (still routed through `apps/personal-website`'s existing, if imperfect, `vercel.json` rewrite) — only the *source* of the data changes. The route itself gets deleted later, in the cutover plan, once `apps/personal-mcp` is live.
+This task keeps `mcp.rainforest.tools` working exactly as it does today (still routed through `apps/personal-website`'s existing, if imperfect, `vercel.json` rewrite) — only the _source_ of the data changes. The route itself gets deleted later, in the cutover plan, once `apps/personal-mcp` is live.
 
 - [ ] **Step 1: Add the workspace dependency**
 
