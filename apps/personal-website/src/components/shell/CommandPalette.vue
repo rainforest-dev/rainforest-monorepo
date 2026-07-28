@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 
+// No `@mcp` path alias is configured for this app (checked tsconfig.json/tsconfig.base.json and
+// astro.config.mjs — Astro reads aliases from tsconfig `paths`, and none exists), so this is a
+// relative import rather than the `@mcp/catalog` shown in the plan.
+import { PROFILE_TOOLS, toToolDescriptors } from '../../mcp/catalog';
+import { useLanguageModel } from '@utils/ai';
 import { searchRecords, type Searchable } from '@utils/search';
 
 // `lang` is unused by search, but a later task gates the AI path on locale. Accepting it now
@@ -14,12 +19,103 @@ const inputEl = ref<HTMLInputElement | null>(null);
 
 const results = computed(() => searchRecords(query.value, props.records));
 
+const { state, refresh, enable, selectTool } = useLanguageModel();
+const answer = ref<string | null>(null);
+const asking = ref(false);
+
+// No answer strip in zh: E0 pins model output to English because non-English replies are
+// unreliable, and English prose above Chinese records reads as a bug rather than a decision.
+const canAsk = computed(
+  () => props.lang === 'en' && state.value.kind === 'ready',
+);
+
+// Gates the enable/downloading chrome the same way canAsk gates the answer strip — the whole AI
+// surface stays invisible in zh, not just the sentence, so a reopened zh palette is
+// pixel-identical to before this task.
+const showAiChrome = computed(() => props.lang === 'en');
+
+const downloadProgress = computed(() =>
+  state.value.kind === 'downloading'
+    ? Math.round(state.value.progress * 100)
+    : 0,
+);
+
+type Row = Omit<Searchable, 'kind'> & { kind: Searchable['kind'] | 'ask' };
+
 /**
- * Rows, not modes. A later task prepends an "Ask" row when on-device AI is available; keeping
- * activation as "activate the selected row" means Enter never changes meaning — only the
- * contents of the list do.
+ * Rows, not modes. Row 0 becomes an "Ask" row when on-device AI can answer and there is
+ * something to ask about; keeping activation as "activate the selected row" means Enter never
+ * changes meaning — only the contents of the list do.
  */
-const rows = computed(() => results.value);
+const rows = computed<Row[]>(() =>
+  canAsk.value && query.value.trim()
+    ? [
+        {
+          id: '__ask__',
+          kind: 'ask',
+          title: `Ask: "${query.value}"`,
+          keywords: [],
+          href: '',
+        },
+        ...results.value,
+      ]
+    : results.value,
+);
+
+const SELECTION_SCHEMA = {
+  type: 'object',
+  required: ['tool'],
+  additionalProperties: false,
+  properties: {
+    tool: { type: 'string', enum: PROFILE_TOOLS.map((tool) => tool.name) },
+    technology: { type: 'string' },
+    query: { type: 'string' },
+  },
+};
+
+// Same JSON Schema descriptors `catalog.ts` builds for the MCP route — used here so `ask()`
+// validates the model's chosen args through the real per-tool schema before running anything.
+const toolDescriptors = toToolDescriptors();
+
+async function ask() {
+  if (asking.value) return;
+  asking.value = true;
+  answer.value = null;
+  try {
+    const choice = await selectTool<{
+      tool: string;
+      technology?: string;
+      query?: string;
+    }>(query.value, SELECTION_SCHEMA);
+    // null means the call failed; selectTool has already re-read capability state, and the
+    // search results below are unaffected.
+    if (!choice) return;
+    const tool = PROFILE_TOOLS.find((entry) => entry.name === choice.tool);
+    const descriptor = toolDescriptors.find(
+      (entry) => entry.name === choice.tool,
+    );
+    if (!tool || !descriptor) return;
+    const args = {
+      technology: choice.technology,
+      query: choice.query,
+      lang: props.lang,
+    };
+    // Go through the validated `execute`, not `tool.run` directly: SELECTION_SCHEMA's
+    // `technology`/`query` are unconstrained strings, unlike the real per-tool params (e.g. an
+    // enum of known skill tags). Calling `run` on a near-miss value would still return a *real*
+    // but wrong result — "typescript" vs "TypeScript" silently yields 0 roles — and the strip
+    // would present that confidently. `execute` rejects it instead, so the strip shows nothing
+    // rather than a plausible-looking wrong answer.
+    const result = await descriptor.execute(args);
+    // The sentence comes from the real result, never from the model.
+    answer.value = tool.summarise(result as never, args as never);
+  } catch {
+    // A failed ask must not break search. Leave the strip empty and let the list stand.
+    answer.value = null;
+  } finally {
+    asking.value = false;
+  }
+}
 
 /**
  * Opens with a clean slate — otherwise a second ⌘K reopens with the previous search still in
@@ -35,8 +131,14 @@ function togglePalette() {
   }
   query.value = '';
   selected.value = 0;
+  answer.value = null;
   open.value = true;
   nextTick(() => inputEl.value?.focus());
+}
+
+function onQueryInput() {
+  selected.value = 0;
+  answer.value = null;
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -63,13 +165,21 @@ function onKeydown(event: KeyboardEvent) {
 
 function activate(index: number) {
   const row = rows.value[index];
-  if (row) window.location.href = row.href;
+  if (!row) return;
+  if (row.id === '__ask__') void ask();
+  else window.location.href = row.href;
 }
 
 // Removed on unmount because the layout uses Astro's ClientRouter: components remount on every
 // navigation, so a listener left behind would accumulate and fire ⌘K more than once.
 onMounted(() => window.addEventListener('keydown', onKeydown));
 onUnmounted(() => window.removeEventListener('keydown', onKeydown));
+
+// Re-probes on every mount rather than once globally: state can go ready -> unsupported
+// mid-flight (E0 confirms responseConstraint actually works on first real use), and ClientRouter
+// remounts this component on every navigation, so a stale verdict from a previous page never
+// lingers into the next one.
+onMounted(refresh);
 </script>
 
 <template>
@@ -88,8 +198,38 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
         class="w-full border-b bg-transparent px-4 py-3 outline-none"
         placeholder="Search experience, projects, skills…"
         aria-label="Search"
-        @input="selected = 0"
+        @input="onQueryInput"
       />
+      <div
+        v-if="showAiChrome && state.kind === 'downloadable'"
+        class="border-b px-4 py-2 text-sm"
+      >
+        <button
+          type="button"
+          class="text-primary hover:underline"
+          @click="enable"
+        >
+          Enable on-device AI
+        </button>
+      </div>
+      <div
+        v-else-if="showAiChrome && state.kind === 'downloading'"
+        class="text-muted-foreground border-b px-4 py-2 text-sm"
+      >
+        Downloading on-device model… {{ downloadProgress }}%
+      </div>
+      <div v-if="asking" class="border-b px-4 py-2 text-sm">
+        <span class="text-muted-foreground mr-2 text-xs uppercase"
+          >On-device answer</span
+        >
+        <p class="text-muted-foreground">Thinking…</p>
+      </div>
+      <div v-else-if="answer" class="border-b px-4 py-2 text-sm">
+        <span class="text-muted-foreground mr-2 text-xs uppercase"
+          >On-device answer</span
+        >
+        <p>{{ answer }}</p>
+      </div>
       <ul class="max-h-80 overflow-y-auto py-1" role="listbox">
         <li
           v-for="(row, index) in rows"
