@@ -79,9 +79,23 @@ first query is a worse experience than one that never claimed to be ready.
 **Why no UA gate.** An earlier design gated on `!/Edg\//.test(ua)` because Edge's `prompt()`
 rejects the `tool` role. That gate was correct for a *tool-role round-trip* architecture, which
 this design does not use — tool selection is a single `responseConstraint` call whose result is
-executed in JS, and Edge's documentation confirms `responseConstraint` (JSON schema or regex) is
-supported. A UA denylist would exclude a browser that can probably run this, and would rot as
-engines change. Feature detection is self-correcting; a regex is not.
+executed in JS, and Edge documents `responseConstraint` (JSON schema or regex) as supported.
+
+Measured on 2026-07-28 rather than assumed, on this machine, default profiles, no flags:
+
+| Global | Chrome 150 stable | Edge 150 stable | Chromium 148 (in-app) |
+|---|---|---|---|
+| `LanguageModel` | ✅ | ❌ | ✅ (`availability()` → `downloadable`) |
+| `document.modelContext` | ❌ | ❌ | ❌ |
+| `Summarizer` / `Translator` / `LanguageDetector` | ✅ | ✅ | ✅ |
+| `Writer` / `Rewriter` / `Proofreader` | ❌ | ❌ | — |
+
+**Stable Edge does not expose `LanguageModel` at all** — the Prompt API remains Canary/Dev behind a
+flag. So a UA gate would have excluded a browser that already excludes itself, while risking a
+wrong answer the moment Edge ships. Feature detection is self-correcting; a regex is not.
+
+(`availability()` does not resolve under `--headless`, so the trustworthy reading is the
+non-headless `downloadable`. Headless numbers are not evidence of real-world availability.)
 
 ## 5. Public surface
 
@@ -118,22 +132,52 @@ produces the recorded demo later, and can only do so once E works.
 Because ⌘K degrades to deterministic search (§1, decision 2), the `unsupported` slot's default is
 the plain search UI. The recording is for the blog post's *demos*, not a crutch for the palette.
 
-## 8. Out of scope
+## 8. WebMCP — designed for, not depended on
 
-- The tool catalog and its descriptors — that is **E**, and it must be shared with
-  `src/mcp/profile.ts` so the remote MCP surface and the local palette cannot drift.
+`document.modelContext.registerTool()` (WebMCP) lets a page expose client-side JS functions as
+tools to external agents. That makes it a natural second consumer of the same descriptors the
+palette uses: one catalog would then serve the local model, remote MCP clients via
+`src/pages/mcp.ts`, and browser agents.
+
+**It does not exist in any browser available to test** — `document.modelContext` is `false` in
+Chrome 150, Edge 150 and Chromium 148 (§4). So E0 carries the *mechanism*, feature-detected and
+inert today, and gains a real consumer the moment the API lands.
+
+```ts
+registerAgentTools(tools: ToolDescriptor[], signal: AbortSignal): boolean
+```
+
+- Returns `false` and no-ops when `document.modelContext` is undefined. Never throws, never blocks
+  startup, and is not part of the `AiState` machine — WebMCP availability is orthogonal to whether
+  the *local* model can run, and conflating them would let one break the other.
+- **Unregistration is via `AbortSignal` only** — WebMCP has no `unregisterTool()`. E0 owns that
+  lifecycle so consumers cannot leak registrations across route changes.
+- `inputSchema` is JSON Schema — the *same shape* `selectTool()` passes as `responseConstraint`.
+  This is the reason to build both here: one descriptor type feeds local constrained decoding and
+  remote agent registration, so they cannot drift.
+
+The **descriptors themselves remain E's**, along with their `execute` implementations over
+`@rainforest-dev/personal-data`. E0 defines only the `ToolDescriptor` type and the registration
+plumbing.
+
+## 9. Out of scope
+
+- The tool catalog's contents and `execute` bodies — that is **E**, and the catalog must be shared
+  with `src/mcp/profile.ts` so the remote MCP surface and the local palette cannot drift.
 - Server-model fallback, streaming chat UI, multi-step agent loops — excluded by the chain spec.
-- **WebMCP (`document.modelContext`)** — registering the same tools for external agents is a
-  genuinely attractive second consumer, but the descriptors belong to E. Revisit once E exists.
+- The task-specific APIs (`Summarizer`, `Translator`, `LanguageDetector`) — present in both Chrome
+  and Edge stable per §4, and worth their own step later, but not part of this primitive.
 
-## 9. Testing
+## 10. Testing
 
 - Core is framework-agnostic, so it unit-tests under Vitest with a stubbed `LanguageModel` global.
 - Cover each ladder rung: absent global; `availability()` returning each value; a successful probe;
   and **a probe that fails after `ready`**, which is the transition most likely to regress.
 - `enableModel()` outside a gesture must surface `NotAllowedError` rather than hanging.
+- `registerAgentTools()` must return `false` and no-op with `document.modelContext` undefined —
+  which is every browser today, so this is the default path, not an edge case.
 - Real-browser behaviour is verified in D, not here.
 
-## 10. Next step
+## 11. Next step
 
 Implementation plan for E0, then **E** (⌘K palette) consuming it.
