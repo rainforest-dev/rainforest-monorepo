@@ -116,6 +116,27 @@ git commit -m "test(mcp): pin the live tool surface before refactoring the catal
 
 ### Task 2: The catalog
 
+> **Corrected 2026-07-28 during execution.** The code below had two defects, both found by the
+> implementer and confirmed by review:
+>
+> 1. It built `params` with classic `zod` (v3) but converted with `zod/v4`'s `toJSONSchema`. Those
+>    schema instances have incompatible internals and the conversion throws
+>    `Cannot read properties of undefined (reading 'def')`. **Build everything from `zod/v4`.** The
+>    MCP SDK's zod-compat layer accepts v4 schemas and validates them fully — verified live by
+>    rejecting bad arguments with real Zod errors.
+> 2. `run: (args: Record<string, never>)` severs the type link between a tool's `params` and its
+>    `run`. Proven: renaming a `params` key without touching `run` compiles with **0 errors**, and
+>    the tool then validates one name while the handler reads another, silently returning
+>    unfiltered results. Use a generic `defineTool` factory that infers the shape per entry.
+>
+> A third gap, harmless here but not later: `toToolDescriptors().execute` calls `run` **without
+> parsing against `params`**. The MCP path is validated by the SDK, but the palette feeds it
+> model-produced arguments — parse before running.
+>
+> Also note: this was the app's first local test importing app code, so `vitest.config.ts` needed
+> switching to `getViteConfig` from `astro/config` before any of it could load. E0's tests only
+> used relative imports, so that path had never been exercised.
+
 **Files:**
 
 - Create: `apps/personal-website/src/mcp/catalog.ts`
