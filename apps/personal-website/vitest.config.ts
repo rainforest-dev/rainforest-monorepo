@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { getViteConfig } from 'astro/config';
 
 // getViteConfig (not plain vitest/config's defineConfig) because src/mcp/profile.ts — pulled
