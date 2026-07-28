@@ -16,7 +16,7 @@
 
 | File | Responsibility |
 |---|---|
-| `apps/personal-website/vitest.config.ts` | Test target for the app. Named `vitest.config.ts`, **not** `vite.config.ts`, so `@nx/vite/plugin` does not infer `build`/`serve`/`preview` targets that collide with Astro's. |
+| `apps/personal-website/vitest.config.ts` | **Already exists** (PR #224) and already yields an inferred `test` target. Modified only to switch `environment` to `jsdom`. See Task 1's correction note. |
 | `apps/personal-website/src/utils/ai/types.ts` | `AiState`, `ToolDescriptor`. No logic. |
 | `apps/personal-website/src/utils/ai/language-model.ts` | The core. Detection, session lifecycle, constrained call, bounds, probe-failure cache. |
 | `apps/personal-website/src/utils/ai/language-model.test.ts` | Unit tests against a stubbed `LanguageModel` global. |
@@ -32,47 +32,50 @@ Vue layer (`use-language-model.ts`, `AiCapability.vue`) is verified in the brows
 
 ### Task 1: Test infrastructure
 
-**Files:**
-- Create: `apps/personal-website/vitest.config.ts`
+> **Corrected 2026-07-28 during execution.** This task originally said *Create*
+> `apps/personal-website/vitest.config.ts` on the premise that the app had no test target. That
+> premise was wrong — the file has existed since commit `6212b2e` (PR #224), and Nx already
+> infers a `test` target from it. The original check missed it because in zsh
+> `ls vite.config.* vitest.config.*` aborts the whole command when the *first* glob has no match,
+> reporting "none" while the file was present.
+>
+> Landing the original content would also have **broken CI**: it dropped `passWithNoTests: true`,
+> and `pnpm nx affected -t lint test typecheck` would then fail `personal-website:test` in the
+> window before Task 3 adds the first test file.
 
-- [ ] **Step 1: Create the vitest config**
+**Files:**
+- Modify: `apps/personal-website/vitest.config.ts`
+
+- [ ] **Step 1: Make the minimal change**
+
+Change only the `environment` line, and add a comment in the voice of the existing one. Keep
+`include`, and keep `passWithNoTests: true` **and its full comment** — that comment records a real
+decision from PR #224 and is still accurate.
 
 ```typescript
-import { defineConfig } from 'vitest/config';
-
-// Deliberately `vitest.config.ts` and not `vite.config.ts`: @nx/vite/plugin infers
-// build/serve/preview targets from `vite.config.*`, which would collide with the Astro-based
-// `build` and `dev` targets declared in package.json. @nx/vitest infers only `test` from this
-// filename. Astro's own Vite config stays in astro.config.mjs and is untouched.
-export default defineConfig({
-  root: __dirname,
-  cacheDir: '../../node_modules/.vite/apps/personal-website',
-  test: {
-    watch: false,
-    globals: true,
-    // jsdom, not node: the capability core caches a probe failure in sessionStorage.
+    // jsdom rather than node: the on-device AI capability core (src/utils/ai/) caches a
+    // failed capability probe in sessionStorage, which node's environment doesn't provide.
     environment: 'jsdom',
-    include: ['src/**/*.test.ts'],
-    reporters: ['default'],
-    coverage: {
-      reportsDirectory: '../../coverage/apps/personal-website',
-      provider: 'v8',
-    },
-  },
-});
 ```
 
-- [ ] **Step 2: Verify Nx infers the test target**
+Do **not** add `root`, `cacheDir`, `watch`, `globals`, `reporters` or `coverage`. Nothing needs
+them — the tests import `describe`/`it`/`expect` explicitly from `vitest`, so `globals` is
+unnecessary — and churning a working config for cosmetics is not worth it.
 
-Run: `pnpm nx show project personal-website --json | python3 -c "import json,sys; print(sorted(json.load(sys.stdin)['targets']))"`
+- [ ] **Step 2: Verify nothing regressed**
 
-Expected: output includes `test` alongside `build` and `dev`.
+Run: `pnpm nx test personal-website`
+Expected: PASS. It reports no test files; `passWithNoTests` keeps that green, which is precisely
+why it stays.
+
+Run: `pnpm nx build personal-website`
+Expected: `Complete!`
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add apps/personal-website/vitest.config.ts
-git commit -m "test(personal-website): add vitest config so the app can unit-test"
+git commit -m "test(personal-website): run app tests in jsdom for the AI capability core"
 ```
 
 ---
