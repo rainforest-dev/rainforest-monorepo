@@ -405,7 +405,10 @@ describe('selectTool', () => {
   });
 
   it('passes the schema as responseConstraint', async () => {
-    const prompt = vi.fn(async () => '{"tool":"x"}');
+    // Explicit generic: an argumentless `vi.fn(async () => ...)` infers Mock<() => Promise<string>>,
+    // so `mock.calls` is typed `[][]` and `calls[0][1]` is out of bounds. Runtime is fine, but
+    // `astro check` type-checks test files and rejects it.
+    const prompt = vi.fn<(q: string, o?: unknown) => Promise<string>>(async () => '{"tool":"x"}');
     stubSession(prompt);
     await enableModel();
     await selectTool('q', SCHEMA);
@@ -878,6 +881,19 @@ assurance.
 
 It is a real rule and it still applies — it just belongs to the **consumer**, so it moves to E's
 spec as a requirement on how tool results are displayed. No task here implements it, deliberately.
+
+## Verification order matters
+
+`astro check` (run as part of `pnpm nx build personal-website`) type-checks **test files too**, so
+the suite must satisfy the app's strict TypeScript config — not merely run green under Vitest,
+whose transform does not type-check.
+
+Each task above verifies with `nx test` alone, which is correct for the TDD loop but means a
+type-only defect can survive several tasks before the build catches it. That happened during
+execution: the mock typing above passed every `nx test` run and only surfaced at the end.
+
+**When executing, run `pnpm nx build personal-website` after each task that touches a `.test.ts`
+file**, not just at the end.
 
 ## Definition of done
 
