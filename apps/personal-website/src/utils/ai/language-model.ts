@@ -59,6 +59,10 @@ let session: Session | null = null;
  * MUST be called synchronously from a click handler. The first `create()` triggers a
  * multi-hundred-megabyte download and throws `NotAllowedError` outside a user gesture, so this
  * cannot be called on ⌘K-open or on keystroke — consumers wire it to an explicit control.
+ *
+ * There is ONE session per page. Calling this again replaces the previous one, releasing it first
+ * so a double-click or a re-mounting component can't strand a session holding the model in memory.
+ * Consumers sharing a page must coordinate `enableModel`/`destroy` between themselves.
  */
 export async function enableModel(
   onProgress?: (progress: number) => void,
@@ -66,6 +70,10 @@ export async function enableModel(
   if (typeof LanguageModel === 'undefined') {
     throw new Error('Prompt API is not available in this browser');
   }
+
+  // Release any existing session before overwriting the reference — otherwise the old one leaks,
+  // which is the exact thing destroy()'s "platform requires explicit release" note warns about.
+  session?.destroy();
 
   session = (await LanguageModel.create({
     // Output is pinned to English: non-English replies are unreliable on current on-device models.
@@ -79,7 +87,7 @@ export async function enableModel(
         onProgress?.(total > 0 ? loaded / total : 0);
       });
     },
-  } as never)) as unknown as Session;
+  })) as unknown as Session;
 }
 
 /** Wall-clock bound on a single run. The abort is what the platform honours — we ask it to
@@ -118,7 +126,15 @@ export async function selectTool<T>(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
   const onCallerAbort = () => controller.abort();
-  opts.signal?.addEventListener('abort', onCallerAbort, { once: true });
+
+  // An `abort` listener never fires on a signal that is ALREADY aborted — the event fires once,
+  // when abort() is called. Subscribing alone would let a pre-aborted caller signal run the full
+  // RUN_TIMEOUT_MS as if nothing were wrong, so check the current state first.
+  if (opts.signal?.aborted) {
+    controller.abort();
+  } else {
+    opts.signal?.addEventListener('abort', onCallerAbort, { once: true });
+  }
 
   try {
     const raw = await session.prompt(query, {

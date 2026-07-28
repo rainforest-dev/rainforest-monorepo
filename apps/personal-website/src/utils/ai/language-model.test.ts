@@ -133,6 +133,8 @@ describe('selectTool', () => {
   });
 
   it('passes the schema as responseConstraint', async () => {
+    // Explicit generic: an argumentless vi.fn(async () => ...) infers a zero-arg mock type, so
+    // mock.calls[0][1] is out of bounds under astro check's strict pass even though it runs fine.
     const prompt = vi.fn<(q: string, o?: unknown) => Promise<string>>(
       async () => '{"tool":"x"}',
     );
@@ -240,6 +242,62 @@ describe('selectTool', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('enableModel re-entrancy', () => {
+  it('releases the previous session instead of leaking it', async () => {
+    const firstDestroy = vi.fn();
+    const sessions = [
+      { prompt: vi.fn(), destroy: firstDestroy },
+      { prompt: vi.fn(), destroy: vi.fn() },
+    ];
+    let created = 0;
+    Object.defineProperty(globalThis, 'LanguageModel', {
+      configurable: true,
+      writable: true,
+      value: {
+        availability: vi.fn(async () => 'available'),
+        create: vi.fn(async () => sessions[created++]),
+      },
+    });
+
+    await enableModel();
+    await enableModel();
+
+    // Without the release, the first session would be overwritten and never freed.
+    expect(firstDestroy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('selectTool with an already-aborted signal', () => {
+  it('aborts immediately rather than waiting out the timeout', async () => {
+    let promptStarted = false;
+    stubSession((_q, o) => {
+      promptStarted = true;
+      const { signal } = o as { signal: AbortSignal };
+      return new Promise((_resolve, reject) => {
+        if (signal.aborted) {
+          reject(new DOMException('aborted', 'AbortError'));
+          return;
+        }
+        signal.addEventListener('abort', () =>
+          reject(new DOMException('aborted', 'AbortError')),
+        );
+      });
+    });
+    await enableModel();
+
+    const controller = new AbortController();
+    controller.abort(); // already aborted BEFORE the call
+
+    await expect(
+      selectTool('q', SCHEMA, { signal: controller.signal }),
+    ).rejects.toThrow();
+
+    // Subscribing alone would miss this: the abort event already fired.
+    expect(promptStarted).toBe(true);
+    expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBeNull();
   });
 });
 
