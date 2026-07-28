@@ -45,82 +45,111 @@ const count = (value: unknown): number =>
 const plural = (n: number, one: string, many: string) =>
   `${n} ${n === 1 ? one : many}`;
 
+/**
+ * Ties `run`'s argument shape and `summarise`'s `result` type to `params`, per call site.
+ *
+ * Without this, `params`, `run`, and `summarise` below are three independently-typed object
+ * properties with no relationship enforced between them — `ProfileTool.run` is erased to
+ * `(args: Record<string, never>) => Promise<unknown>`, so renaming a `params` key while leaving
+ * `run`'s destructuring untouched compiles cleanly. The tool then advertises and validates the
+ * new key, the handler destructures the old one and gets `undefined`, and it fails silently
+ * (e.g. an unrecognised filter is just ignored, returning unfiltered results) — no type error,
+ * no runtime error, nothing to catch it in review. `S`/`R` here are inferred fresh per
+ * `defineTool(...)` call from `params` and `run`'s actual return value, so `run`'s parameter and
+ * `summarise`'s `result` are checked against that call's own `params`/`run`, not the erased
+ * common shape. The `as unknown as ProfileTool` on return is what erases back to that common
+ * shape so heterogeneous entries can still collect into one `ProfileTool[]`.
+ */
+function defineTool<S extends z.ZodRawShape, R>(tool: {
+  name: string;
+  description: string;
+  params: S;
+  run: (args: z.infer<z.ZodObject<S>>) => Promise<R>;
+  summarise: (result: R, args: z.infer<z.ZodObject<S>>) => string | null;
+}): ProfileTool {
+  return tool as unknown as ProfileTool;
+}
+
 export const PROFILE_TOOLS: ProfileTool[] = [
-  {
+  defineTool({
     name: 'get_profile_summary',
     description: 'Professional profile overview: counts and top technologies',
     params: { lang: langSchema },
     run: ({ lang }) => getProfileSummary({ lang }),
-    summarise: (result: { experienceCount: number; projectCount: number }) =>
+    summarise: (result) =>
       `${plural(result.experienceCount, 'role', 'roles')} and ${plural(result.projectCount, 'project', 'projects')} on record.`,
-  },
-  {
+  }),
+  defineTool({
     name: 'get_work_experience',
     description: 'Work history, optionally filtered by technology',
     params: { technology: technologySchema, lang: langSchema },
     run: ({ technology, lang }) => getWorkExperience({ technology, lang }),
-    summarise: (result: unknown[], { technology }) =>
+    summarise: (result, { technology }) =>
       technology
         ? `${technology} appears in ${plural(count(result), 'role', 'roles')}.`
         : `${plural(count(result), 'role', 'roles')} on record.`,
-  },
-  {
+  }),
+  defineTool({
     name: 'get_education',
     description: 'Academic background',
     params: { lang: langSchema },
     run: ({ lang }) => getEducation({ lang }),
-    summarise: (result: unknown[]) =>
+    summarise: (result) =>
       `${plural(count(result), 'qualification', 'qualifications')} on record.`,
-  },
-  {
+  }),
+  defineTool({
     name: 'get_projects',
     description: 'Portfolio projects, optionally filtered by technology',
     params: { technology: technologySchema, lang: langSchema },
     run: ({ technology, lang }) => getProjects({ technology, lang }),
-    summarise: (result: unknown[], { technology }) =>
+    summarise: (result, { technology }) =>
       technology
         ? `${technology} appears in ${plural(count(result), 'project', 'projects')}.`
         : `${plural(count(result), 'project', 'projects')} on record.`,
-  },
-  {
+  }),
+  defineTool({
     name: 'get_skills',
     description: 'Technical skills inventory',
     params: { lang: langSchema },
     run: ({ lang }) => getSkills({ lang }),
-    summarise: (result: unknown[]) =>
+    summarise: (result) =>
       `${plural(count(result), 'skill', 'skills')} listed.`,
-  },
-  {
+  }),
+  defineTool({
     name: 'search_by_technology',
     description:
       'Substring-match a technology name across all experiences and projects',
     params: { query: z.string(), lang: langSchema },
     run: ({ query, lang }) => searchByTechnology(query, { lang }),
-    summarise: (
-      result: { experiences: unknown[]; projects: unknown[] },
-      { query },
-    ) => {
+    summarise: (result, { query }) => {
       const total = count(result.experiences) + count(result.projects);
       return total === 0
         ? `No records mention ${query}.`
         : `${query} appears in ${plural(count(result.experiences), 'role', 'roles')} and ${plural(count(result.projects), 'project', 'projects')}.`;
     },
-  },
+  }),
 ];
 
 /**
  * Adapter for the palette and WebMCP: JSON Schema instead of Zod, plain data instead of an
  * MCP envelope. `inputSchema` is the same shape `selectTool()` passes as `responseConstraint`
  * and the same shape WebMCP's `registerTool()` expects.
+ *
+ * `execute` parses `input` against `params` before calling `run`. The MCP path doesn't need
+ * this — `server.registerTool` already validates through the SDK's own zod-compat layer — but
+ * this path feeds arguments a browser's on-device model produced from `inputSchema` as a
+ * `responseConstraint`, and a model can accept a response schema and still not honour it.
+ * Without this parse, a malformed arg reaches `run` (and the data layer) as `undefined` or the
+ * wrong type instead of being rejected here.
  */
 export function toToolDescriptors(): ToolDescriptor[] {
-  return PROFILE_TOOLS.map((tool) => ({
-    name: tool.name,
-    description: tool.description,
-    inputSchema: z.toJSONSchema(z.object(tool.params)) as Record<
-      string,
-      unknown
-    >,
-    execute: tool.run as ToolDescriptor['execute'],
-  }));
+  return PROFILE_TOOLS.map((tool) => {
+    const schema = z.object(tool.params);
+    return {
+      name: tool.name,
+      description: tool.description,
+      inputSchema: z.toJSONSchema(schema) as Record<string, unknown>,
+      execute: async (input) => tool.run(schema.parse(input) as never),
+    };
+  });
 }

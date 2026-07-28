@@ -60,4 +60,84 @@ describe('toToolDescriptors', () => {
         .sort(),
     ).toEqual(PROFILE_TOOLS.map((t) => t.name).sort());
   });
+
+  // The palette/WebMCP path feeds `execute` arguments an on-device model produced from
+  // `inputSchema` as a `responseConstraint` — a model can accept a response schema and still
+  // not honour it (this is E0's premise). `execute` must reject before the bad value ever
+  // reaches `run`/the data layer, unlike the MCP path, which the SDK's own zod-compat layer
+  // already validates.
+  it('rejects a model-produced argument that violates params, before reaching run', async () => {
+    const descriptors = toToolDescriptors();
+    const summary = descriptors.find((d) => d.name === 'get_profile_summary');
+    await expect(summary?.execute({ lang: 'fr' })).rejects.toThrow();
+  });
+});
+
+describe('summarise', () => {
+  const find = (name: string) => {
+    const tool = PROFILE_TOOLS.find((t) => t.name === name);
+    if (!tool) throw new Error(`no such tool: ${name}`);
+    return tool;
+  };
+
+  it('get_profile_summary', () => {
+    const tool = find('get_profile_summary');
+    const result = { experienceCount: 5, projectCount: 4 };
+    expect(tool.summarise(result as never, { lang: 'en' } as never)).toBe(
+      '5 roles and 4 projects on record.',
+    );
+  });
+
+  it('get_work_experience, filtered by technology', () => {
+    const tool = find('get_work_experience');
+    const result = [{ id: 'en/1' }, { id: 'en/2' }];
+    expect(
+      tool.summarise(result as never, { technology: 'react' } as never),
+    ).toBe('react appears in 2 roles.');
+  });
+
+  it('get_education', () => {
+    const tool = find('get_education');
+    const result = [{ id: 'en/1' }];
+    expect(tool.summarise(result as never, {} as never)).toBe(
+      '1 qualification on record.',
+    );
+  });
+
+  it('get_projects, filtered by technology', () => {
+    const tool = find('get_projects');
+    const result = [{ id: 'en/1' }, { id: 'en/2' }, { id: 'en/3' }];
+    expect(
+      tool.summarise(result as never, { technology: 'vue' } as never),
+    ).toBe('vue appears in 3 projects.');
+  });
+
+  it('get_skills', () => {
+    const tool = find('get_skills');
+    const result = [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }];
+    expect(tool.summarise(result as never, {} as never)).toBe(
+      '4 skills listed.',
+    );
+  });
+
+  it('search_by_technology, with matches', () => {
+    const tool = find('search_by_technology');
+    const result = {
+      experiences: [{ id: 'en/1' }, { id: 'en/2' }],
+      projects: [{ id: 'en/1' }],
+    };
+    expect(tool.summarise(result as never, { query: 'react' } as never)).toBe(
+      'react appears in 2 roles and 1 project.',
+    );
+  });
+
+  // search_by_technology's zero-match branch — a separate code path from the matches case
+  // above, not just a boundary value of it.
+  it('search_by_technology, with no matches', () => {
+    const tool = find('search_by_technology');
+    const result = { experiences: [], projects: [] };
+    expect(tool.summarise(result as never, { query: 'cobol' } as never)).toBe(
+      'No records mention cobol.',
+    );
+  });
 });

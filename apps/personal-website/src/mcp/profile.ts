@@ -15,7 +15,7 @@ import { PROFILE_TOOLS } from './catalog';
 export const PROFILE_MCP_TOOLS = PROFILE_TOOLS.map(({ name, description }) => ({
   name,
   description,
-})) as ReadonlyArray<{ name: string; description: string }>;
+}));
 
 // Same rationale as PROFILE_MCP_TOOLS, for the resource URI templates registered below. `{+id}`
 // (RFC 6570 reserved expansion), not `{id}` — our ids contain slashes (e.g. `en/6`), and
