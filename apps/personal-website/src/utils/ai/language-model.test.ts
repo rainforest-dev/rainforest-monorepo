@@ -1,8 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { detectCapability, enableModel, selectTool, destroy, __resetForTests } from './language-model';
+import {
+  __resetForTests,
+  destroy,
+  detectCapability,
+  enableModel,
+  selectTool,
+} from './language-model';
 
-type Availability = 'unavailable' | 'downloadable' | 'downloading' | 'available';
+type Availability =
+  | 'unavailable'
+  | 'downloadable'
+  | 'downloading'
+  | 'available';
 
 /** Install a stub `LanguageModel` global. Pass `null` to remove it entirely. */
 function stubLanguageModel(availability: Availability | null) {
@@ -37,7 +47,10 @@ describe('detectCapability', () => {
     expect(await detectCapability()).toEqual({ kind: 'downloadable' });
 
     stubLanguageModel('downloading');
-    expect(await detectCapability()).toEqual({ kind: 'downloading', progress: 0 });
+    expect(await detectCapability()).toEqual({
+      kind: 'downloading',
+      progress: 0,
+    });
 
     stubLanguageModel('available');
     expect(await detectCapability()).toEqual({ kind: 'ready' });
@@ -60,7 +73,10 @@ describe('enableModel', () => {
         create: vi.fn(async (opts: { monitor?: (m: EventTarget) => void }) => {
           const monitor = new EventTarget();
           opts.monitor?.(monitor);
-          const event = new Event('downloadprogress') as Event & { loaded: number; total: number };
+          const event = new Event('downloadprogress') as Event & {
+            loaded: number;
+            total: number;
+          };
           event.loaded = 5;
           event.total = 10;
           monitor.dispatchEvent(event);
@@ -87,7 +103,9 @@ describe('enableModel', () => {
       },
     });
 
-    await expect(enableModel()).rejects.toMatchObject({ name: 'NotAllowedError' });
+    await expect(enableModel()).rejects.toMatchObject({
+      name: 'NotAllowedError',
+    });
   });
 });
 
@@ -108,15 +126,21 @@ describe('selectTool', () => {
   it('returns parsed schema-valid JSON', async () => {
     stubSession(async () => '{"tool":"get_skills"}');
     await enableModel();
-    expect(await selectTool('what can he do', SCHEMA)).toEqual({ tool: 'get_skills' });
+    expect(await selectTool('what can he do', SCHEMA)).toEqual({
+      tool: 'get_skills',
+    });
   });
 
   it('passes the schema as responseConstraint', async () => {
-    const prompt = vi.fn<(q: string, o?: unknown) => Promise<string>>(async () => '{"tool":"x"}');
+    const prompt = vi.fn<(q: string, o?: unknown) => Promise<string>>(
+      async () => '{"tool":"x"}',
+    );
     stubSession(prompt);
     await enableModel();
     await selectTool('q', SCHEMA);
-    expect(prompt.mock.calls[0][1]).toMatchObject({ responseConstraint: SCHEMA });
+    expect(prompt.mock.calls[0][1]).toMatchObject({
+      responseConstraint: SCHEMA,
+    });
   });
 
   it('degrades ready -> unsupported when the first constrained call fails', async () => {
