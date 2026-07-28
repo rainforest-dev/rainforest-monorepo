@@ -7,6 +7,7 @@
 // which Astro treats as server-side, so astro:content resolves.
 import { describe, expect, it } from 'vitest';
 
+import { PROFILE_TOOLS, toToolDescriptors } from './catalog';
 import { MCP_TOOLS } from './handler';
 
 /**
@@ -39,5 +40,24 @@ describe('MCP tool surface (characterisation)', () => {
     for (const tool of MCP_TOOLS) {
       expect(tool.description.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('toToolDescriptors', () => {
+  it('derives JSON Schema from the Zod params', () => {
+    const descriptors = toToolDescriptors();
+    const search = descriptors.find((d) => d.name === 'search_by_technology');
+    expect(search?.inputSchema).toMatchObject({
+      type: 'object',
+      properties: { query: { type: 'string' } },
+    });
+  });
+
+  it('exposes every catalog tool', () => {
+    expect(
+      toToolDescriptors()
+        .map((d) => d.name)
+        .sort(),
+    ).toEqual(PROFILE_TOOLS.map((t) => t.name).sort());
   });
 });
