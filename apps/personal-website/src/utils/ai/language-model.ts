@@ -123,3 +123,9 @@ export async function selectTool<T>(
     clearTimeout(timer);
   }
 }
+
+/** Sessions hold the model in memory; the platform guidance requires explicit release. */
+export function destroy(): void {
+  session?.destroy();
+  session = null;
+}

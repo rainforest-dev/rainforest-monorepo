@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { detectCapability, enableModel, selectTool, __resetForTests } from './language-model';
+import { detectCapability, enableModel, selectTool, destroy, __resetForTests } from './language-model';
 
 type Availability = 'unavailable' | 'downloadable' | 'downloading' | 'available';
 
@@ -151,5 +151,25 @@ describe('selectTool', () => {
   it('throws when called before enableModel', async () => {
     stubLanguageModel('available');
     await expect(selectTool('q', SCHEMA)).rejects.toThrow(/enableModel/);
+  });
+});
+
+describe('destroy', () => {
+  it('releases the session and is safe to call twice', async () => {
+    const destroySpy = vi.fn();
+    Object.defineProperty(globalThis, 'LanguageModel', {
+      configurable: true,
+      writable: true,
+      value: {
+        availability: vi.fn(async () => 'available'),
+        create: vi.fn(async () => ({ prompt: vi.fn(), destroy: destroySpy })),
+      },
+    });
+
+    await enableModel();
+    destroy();
+    destroy();
+
+    expect(destroySpy).toHaveBeenCalledTimes(1);
   });
 });
