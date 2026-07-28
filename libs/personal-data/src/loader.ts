@@ -2,7 +2,9 @@
 // (and the Zod schemas that validate it) can be consumed outside of Astro —
 // e.g. by the personal-data MCP server — without pulling in the Astro runtime.
 // See docs/superpowers/specs/2026-07-07-personal-mcp-split-design.md.
-import { type z, ZodError } from 'zod';
+// `/v4` to match ./schemas.ts — see the comment on its import. The `instanceof ZodError`
+// check below only catches errors thrown by schemas built from the *same* namespace.
+import { type z, ZodError } from 'zod/v4';
 
 import {
   experienceSchema,
