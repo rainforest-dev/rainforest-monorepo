@@ -882,6 +882,29 @@ assurance.
 It is a real rule and it still applies — it just belongs to the **consumer**, so it moves to E's
 spec as a requirement on how tool results are displayed. No task here implements it, deliberately.
 
+## Lint is a gate, not an afterthought
+
+This repo enforces `simple-import-sort` via ESLint (see the root `CLAUDE.md`). Tasks 3–6 each
+append a new named import to the same line in `language-model.test.ts`, so the import list grows
+unsorted and trips the rule — but only if something checks. No task in the original plan ran lint,
+so it went unnoticed until the end of the group.
+
+**Run `pnpm nx lint personal-website --fix` after each task that adds an import**, and commit the
+result with the task rather than as a separate cleanup.
+
+## A known limit of these tests
+
+Every stub installs the global via `Object.defineProperty(globalThis, 'LanguageModel', { value: … })`.
+`PropertyDescriptor.value` is typed `any`, so **none of these stubs is checked against the real
+ambient `LanguageModel` type** from `@types/dom-chromium-ai`. The stubs implement only
+`availability` and `create`; the fake session only `prompt` and `destroy`.
+
+This is fine — it is the ordinary way to stub a global, and typing it faithfully would mean
+maintaining a fake that tracks an abstract class we do not control. Record it so the blast radius
+is known: if that types package is bumped and `availability()` gains a required argument, or
+`create()`'s return shape changes, **this suite will keep passing while the real code breaks**.
+Re-verify against a real browser (workstream D) after any such bump.
+
 ## Verification order matters
 
 `astro check` (run as part of `pnpm nx build personal-website`) type-checks **test files too**, so
