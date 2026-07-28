@@ -87,9 +87,11 @@ export function WalletStateMachine(): JSX.Element {
                     key={option.id}
                     type="button"
                     onClick={() => handleSelectWallet(option)}
-                    className="border-border bg-muted/30 text-foreground flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="border-border bg-muted/30 text-foreground hover:bg-muted focus-visible:ring-ring flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
                   >
-                    <span className={avatar('bg-primary text-primary-foreground')}>
+                    <span
+                      className={avatar('bg-primary text-primary-foreground')}
+                    >
                       {option.mono}
                     </span>
                     {option.label}
@@ -147,8 +149,8 @@ export function WalletStateMachine(): JSX.Element {
               <p className="text-muted-foreground mb-4 text-sm">
                 The navbar and order book reshape for a connected account —
                 <span className="font-mono"> shortenAddress</span> and
-                <span className="font-mono"> iconUrl</span> come off one
-                account object.
+                <span className="font-mono"> iconUrl</span> come off one account
+                object.
               </p>
               <button
                 type="button"

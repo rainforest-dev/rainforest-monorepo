@@ -173,7 +173,7 @@ export function Gallery({ images }: GalleryProps): JSX.Element | null {
               type="button"
               onClick={() => go(-1)}
               aria-label="Previous screenshot"
-              className="border-border/60 bg-background/70 text-foreground hover:bg-background absolute top-1/2 left-3 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border opacity-0 backdrop-blur transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+              className="border-border/60 bg-background/70 text-foreground hover:bg-background focus-visible:ring-ring absolute left-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border opacity-0 backdrop-blur transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100"
             >
               <Chevron dir="left" />
             </button>
@@ -181,7 +181,7 @@ export function Gallery({ images }: GalleryProps): JSX.Element | null {
               type="button"
               onClick={() => go(1)}
               aria-label="Next screenshot"
-              className="border-border/60 bg-background/70 text-foreground hover:bg-background absolute top-1/2 right-3 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border opacity-0 backdrop-blur transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+              className="border-border/60 bg-background/70 text-foreground hover:bg-background focus-visible:ring-ring absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border opacity-0 backdrop-blur transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 group-hover:opacity-100"
             >
               <Chevron dir="right" />
             </button>
@@ -190,7 +190,7 @@ export function Gallery({ images }: GalleryProps): JSX.Element | null {
 
         {/* counter */}
         {count > 1 && (
-          <div className="bg-background/70 text-foreground absolute right-3 bottom-3 rounded-full px-2.5 py-1 font-mono text-xs backdrop-blur">
+          <div className="bg-background/70 text-foreground absolute bottom-3 right-3 rounded-full px-2.5 py-1 font-mono text-xs backdrop-blur">
             {index + 1} / {count}
           </div>
         )}
@@ -219,7 +219,7 @@ export function Gallery({ images }: GalleryProps): JSX.Element | null {
               aria-label={`Screenshot ${i + 1}`}
               onClick={() => setIndex(i)}
               className={cx(
-                'relative aspect-video h-14 shrink-0 snap-start overflow-hidden rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'focus-visible:ring-ring relative aspect-video h-14 shrink-0 snap-start overflow-hidden rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2',
                 i === index
                   ? 'border-primary ring-primary/40 ring-1'
                   : 'border-border opacity-60 hover:opacity-100',

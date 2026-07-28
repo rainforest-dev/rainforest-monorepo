@@ -5,7 +5,9 @@ export const deliveryPlatforms = sqliteTable('delivery_platforms', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   key: text('key').notNull().unique(),
   name: text('name').notNull(),
-  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const bookDeliveries = sqliteTable('book_deliveries', {
@@ -14,7 +16,9 @@ export const bookDeliveries = sqliteTable('book_deliveries', {
   platformId: integer('platform_id')
     .notNull()
     .references(() => deliveryPlatforms.id),
-  addedAt: text('added_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  addedAt: text('added_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
   note: text('note'),
   externalRef: text('external_ref'),
 });

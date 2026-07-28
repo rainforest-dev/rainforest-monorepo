@@ -19,6 +19,7 @@ See `docs/superpowers/specs/2026-07-07-personal-mcp-split-design.md` §5 and §7
 ```bash
 cd /Users/rainforest/Repositories/rainforest-monorepo && npx nx build personal-data
 ```
+
 Expected: succeeds.
 
 ---
@@ -28,6 +29,7 @@ Expected: succeeds.
 ### Task 1: Scaffold `apps/personal-mcp`
 
 **Files:**
+
 - Create: `apps/personal-mcp/package.json`
 - Create: `apps/personal-mcp/tsconfig.json`
 - Create: `apps/personal-mcp/vitest.config.ts`
@@ -140,6 +142,7 @@ EOF
 ### Task 2: Port the tools/resources
 
 **Files:**
+
 - Create: `apps/personal-mcp/src/tools.ts`
 - Test: `apps/personal-mcp/src/tools.test.ts`
 
@@ -159,9 +162,16 @@ import { registerTools } from './tools';
 async function callTool(name: string, args: Record<string, unknown> = {}) {
   const server = new McpServer({ name: 'test', version: '0.0.0' });
   registerTools(server);
-  const result = await (server as unknown as {
-    server: { _registeredTools: Record<string, { callback: (args: unknown) => Promise<unknown> }> };
-  }).server._registeredTools[name].callback(args);
+  const result = await (
+    server as unknown as {
+      server: {
+        _registeredTools: Record<
+          string,
+          { callback: (args: unknown) => Promise<unknown> }
+        >;
+      };
+    }
+  ).server._registeredTools[name].callback(args);
   return result as { content: Array<{ type: string; text: string }> };
 }
 
@@ -173,7 +183,10 @@ describe('registerTools', () => {
   });
 
   it('get_work_experience filters by technology', async () => {
-    const result = await callTool('get_work_experience', { technology: 'auth0', lang: 'en' });
+    const result = await callTool('get_work_experience', {
+      technology: 'auth0',
+      lang: 'en',
+    });
     const jobs = JSON.parse(result.content[0].text);
     expect(jobs.some((j: { id: string }) => j.id === 'en/6')).toBe(true);
   });
@@ -185,9 +198,14 @@ describe('registerTools', () => {
   });
 
   it('get_projects filters by technology', async () => {
-    const result = await callTool('get_projects', { technology: 'nextjs', lang: 'en' });
+    const result = await callTool('get_projects', {
+      technology: 'nextjs',
+      lang: 'en',
+    });
     const projects = JSON.parse(result.content[0].text);
-    expect(projects.some((p: { id: string }) => p.id === 'en/opencgt')).toBe(true);
+    expect(projects.some((p: { id: string }) => p.id === 'en/opencgt')).toBe(
+      true,
+    );
   });
 
   it('get_skills returns entries', async () => {
@@ -197,14 +215,19 @@ describe('registerTools', () => {
   });
 
   it('search_by_technology matches across experiences and projects', async () => {
-    const result = await callTool('search_by_technology', { query: 'next', lang: 'en' });
+    const result = await callTool('search_by_technology', {
+      query: 'next',
+      lang: 'en',
+    });
     const { projects } = JSON.parse(result.content[0].text);
-    expect(projects.some((p: { id: string }) => p.id === 'en/opencgt')).toBe(true);
+    expect(projects.some((p: { id: string }) => p.id === 'en/opencgt')).toBe(
+      true,
+    );
   });
 });
 ```
 
-*Note on the test helper:* reaching into `server._registeredTools` is a pragmatic way to unit-test each tool's callback in isolation without spinning up a transport. Task 3's tests exercise the same tools through the real HTTP/JSON-RPC surface (`tools/call`), which is the stronger, more realistic check — this test is a fast first pass while writing `tools.ts`, not the only test coverage for this behavior.
+_Note on the test helper:_ reaching into `server._registeredTools` is a pragmatic way to unit-test each tool's callback in isolation without spinning up a transport. Task 3's tests exercise the same tools through the real HTTP/JSON-RPC surface (`tools/call`), which is the stronger, more realistic check — this test is a fast first pass while writing `tools.ts`, not the only test coverage for this behavior.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -234,7 +257,9 @@ import { z } from 'zod';
 const langSchema = z.enum(['en', 'zh']).optional();
 // Derived from the same skillTags vocabulary the content schemas use, rather than a
 // plain z.string() — this makes the parsed value a real SkillTag, not just a string.
-const technologySchema = z.enum(skillTags as unknown as [SkillTag, ...SkillTag[]]).optional();
+const technologySchema = z
+  .enum(skillTags as unknown as [SkillTag, ...SkillTag[]])
+  .optional();
 
 export function registerTools(server: McpServer) {
   server.registerTool(
@@ -244,7 +269,12 @@ export function registerTools(server: McpServer) {
       inputSchema: { lang: langSchema },
     },
     async ({ lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await getProfileSummary({ lang })) }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(await getProfileSummary({ lang })),
+        },
+      ],
     }),
   );
 
@@ -255,7 +285,12 @@ export function registerTools(server: McpServer) {
       inputSchema: { technology: technologySchema, lang: langSchema },
     },
     async ({ technology, lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await getWorkExperience({ technology, lang })) }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(await getWorkExperience({ technology, lang })),
+        },
+      ],
     }),
   );
 
@@ -263,7 +298,9 @@ export function registerTools(server: McpServer) {
     'get_education',
     { description: 'Academic background', inputSchema: { lang: langSchema } },
     async ({ lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await getEducation({ lang })) }],
+      content: [
+        { type: 'text', text: JSON.stringify(await getEducation({ lang })) },
+      ],
     }),
   );
 
@@ -274,26 +311,42 @@ export function registerTools(server: McpServer) {
       inputSchema: { technology: technologySchema, lang: langSchema },
     },
     async ({ technology, lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await getProjects({ technology, lang })) }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(await getProjects({ technology, lang })),
+        },
+      ],
     }),
   );
 
   server.registerTool(
     'get_skills',
-    { description: 'Technical skills inventory', inputSchema: { lang: langSchema } },
+    {
+      description: 'Technical skills inventory',
+      inputSchema: { lang: langSchema },
+    },
     async ({ lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await getSkills({ lang })) }],
+      content: [
+        { type: 'text', text: JSON.stringify(await getSkills({ lang })) },
+      ],
     }),
   );
 
   server.registerTool(
     'search_by_technology',
     {
-      description: 'Substring-match a technology name across all experiences and projects',
+      description:
+        'Substring-match a technology name across all experiences and projects',
       inputSchema: { query: z.string(), lang: langSchema },
     },
     async ({ query, lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await searchByTechnology(query, { lang })) }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(await searchByTechnology(query, { lang })),
+        },
+      ],
     }),
   );
 
@@ -306,7 +359,9 @@ export function registerTools(server: McpServer) {
     async (uri, { id }) => {
       const experience = await getExperienceById(id as string);
       if (!experience) throw new Error(`Experience not found: ${id}`);
-      return { contents: [{ uri: uri.href, text: JSON.stringify(experience) }] };
+      return {
+        contents: [{ uri: uri.href, text: JSON.stringify(experience) }],
+      };
     },
   );
 
@@ -362,6 +417,7 @@ EOF
 ### Task 3: Wire the Hono app + mcp-handler
 
 **Files:**
+
 - Modify: `apps/personal-mcp/src/index.ts`
 - Test: `apps/personal-mcp/src/index.test.ts`
 
@@ -388,7 +444,10 @@ async function jsonRpc(body: Record<string, unknown>) {
   // Streamable HTTP responses are SSE-framed ("event: message\ndata: {...}\n\n") —
   // extract the JSON payload from the "data:" line.
   const dataLine = text.split('\n').find((line) => line.startsWith('data:'));
-  return { status: res.status, body: dataLine ? JSON.parse(dataLine.slice('data:'.length)) : undefined };
+  return {
+    status: res.status,
+    body: dataLine ? JSON.parse(dataLine.slice('data:'.length)) : undefined,
+  };
 }
 
 describe('personal-mcp HTTP surface', () => {
@@ -398,7 +457,11 @@ describe('personal-mcp HTTP surface', () => {
   });
 
   it('tools/list returns all six registered tools', async () => {
-    const { status, body } = await jsonRpc({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+    const { status, body } = await jsonRpc({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/list',
+    });
     expect(status).toBe(200);
     const names = body.result.tools.map((t: { name: string }) => t.name);
     expect(names).toEqual([
@@ -416,7 +479,10 @@ describe('personal-mcp HTTP surface', () => {
       jsonrpc: '2.0',
       id: 2,
       method: 'tools/call',
-      params: { name: 'get_work_experience', arguments: { technology: 'auth0', lang: 'en' } },
+      params: {
+        name: 'get_work_experience',
+        arguments: { technology: 'auth0', lang: 'en' },
+      },
     });
     const jobs = JSON.parse(body.result.content[0].text);
     expect(jobs.some((j: { id: string }) => j.id === 'en/6')).toBe(true);
@@ -450,10 +516,14 @@ const app = new Hono();
 // Root-level endpoint, not /api/mcp — this project serves *only* mcp.rainforest.tools,
 // so there's no other content on this domain competing for the root path, and no
 // domain-conditional rewrite is needed the way the old colocated design required.
-const mcpHandler = createMcpHandler(registerTools, {}, {
-  streamableHttpEndpoint: '/',
-  disableSse: true,
-});
+const mcpHandler = createMcpHandler(
+  registerTools,
+  {},
+  {
+    streamableHttpEndpoint: '/',
+    disableSse: true,
+  },
+);
 
 app.post('/', (c) => mcpHandler(c.req.raw));
 app.get('/healthz', (c) => c.text('ok'));
@@ -488,6 +558,7 @@ EOF
 ### Task 4: Local dev server + manual verification
 
 **Files:**
+
 - Create: `apps/personal-mcp/src/serve.ts`
 
 - [ ] **Step 1: Write `apps/personal-mcp/src/serve.ts`**
@@ -511,34 +582,40 @@ Expected: prints `personal-mcp listening on http://localhost:3005`
 - [ ] **Step 3: Manually verify tools/list over real HTTP**
 
 Run:
+
 ```bash
 curl -s -X POST http://localhost:3005/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
+
 Expected: SSE-framed response containing all six tool definitions (same shape as the `tools/list` test in Task 3).
 
 - [ ] **Step 4: Manually verify a tool call**
 
 Run:
+
 ```bash
 curl -s -X POST http://localhost:3005/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_profile_summary","arguments":{}}}'
 ```
+
 Expected: SSE-framed response with `experienceCount`, `projectCount`, `skillCount`, `topTechnologies` populated with real data.
 
 - [ ] **Step 5: Manually verify a resource read**
 
 Run:
+
 ```bash
 curl -s -X POST http://localhost:3005/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":3,"method":"resources/read","params":{"uri":"profile://experience/en/6"}}'
 ```
+
 Expected: SSE-framed response with the CodeGreen experience, `organization.name: "CodeGreen"`, `technologies` including `auth0`.
 
 - [ ] **Step 6: Stop the dev server**

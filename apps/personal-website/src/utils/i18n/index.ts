@@ -8,15 +8,15 @@ import { isServerSide } from '..';
 import { fallbackLng, getOptions, supportedLngs } from './settings';
 
 export const createInstance = (
-  instance: I18nInstance = i18next.createInstance()
+  instance: I18nInstance = i18next.createInstance(),
 ): I18nInstance => {
   instance
     .use(LanguageDetector)
     .use(
       resourcesToBackend(
         (lng: string, ns: string) =>
-          import(`../../../locales/${lng}/${ns}.json`)
-      )
+          import(`../../../locales/${lng}/${ns}.json`),
+      ),
     );
 
   return instance;
@@ -47,7 +47,7 @@ export const initI18nextClient = async (instance = createInstance()) => {
 
 export const useTranslation = async (
   lng: string = fallbackLng,
-  ns?: string | string[]
+  ns?: string | string[],
 ): Promise<{ t: TFunction; i18n: I18nInstance }> => {
   const instance = await initI18next(lng, ns);
   return {
@@ -58,7 +58,7 @@ export const useTranslation = async (
 
 export const translateDescription = (
   t: TFunction,
-  description: Description
+  description: Description,
 ) => {
   if (Array.isArray(description)) {
     return description.map((desc) => t(desc));

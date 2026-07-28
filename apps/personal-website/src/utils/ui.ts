@@ -4,7 +4,7 @@ export const removeUrlHashAfterNavigation = () => {
     window.history.replaceState(
       null,
       '',
-      window.location.href.replace(window.location.hash, '')
+      window.location.href.replace(window.location.hash, ''),
     );
   });
 };

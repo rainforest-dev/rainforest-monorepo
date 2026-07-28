@@ -5,12 +5,7 @@ import { findNavItem, isForbidden, NAV_ITEMS, navFor } from './logic';
 describe('role-shell logic — navFor', () => {
   it('returns the nav items a hospital_admin can see', () => {
     const ids = navFor('hospital_admin').map((item) => item.id);
-    expect(ids).toEqual([
-      'dashboard',
-      'patients',
-      'enrollment',
-      'orders',
-    ]);
+    expect(ids).toEqual(['dashboard', 'patients', 'enrollment', 'orders']);
   });
 
   it('returns the nav items a manufacturer_admin can see', () => {

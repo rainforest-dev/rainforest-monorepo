@@ -8,18 +8,18 @@ tags:
   - tailwindcss
 ---
 
-<article className="prose dark:prose-dark w-full border border-dashed rounded px-4 py-3">
-  <h1 className="h-lh w-1/2 skeleton-surface-container-high"></h1>
-  <h2 className="h-lh w-1/3 skeleton-surface-container-high"></h2>
-  <h3 className="h-lh w-2/3 flex-row-center gap-2">
-    <div className="h-full aspect-square skeleton-surface-container"></div>
-    <span className="size-full skeleton-surface-container"></span>
+<article className="prose dark:prose-dark w-full rounded border border-dashed px-4 py-3">
+  <h1 className="h-lh skeleton-surface-container-high w-1/2"></h1>
+  <h2 className="h-lh skeleton-surface-container-high w-1/3"></h2>
+  <h3 className="h-lh flex-row-center w-2/3 gap-2">
+    <div className="skeleton-surface-container aspect-square h-full"></div>
+    <span className="skeleton-surface-container size-full"></span>
   </h3>
-  <p className="h-5lh w-full skeleton-surface-container"></p>
+  <p className="h-5lh skeleton-surface-container w-full"></p>
 </article>
 
-The lh unit is equal to the line height of the current font size. 
-This makes it a flexible unit to simulate the typography elements in the loading state. 
+The lh unit is equal to the line height of the current font size.
+This makes it a flexible unit to simulate the typography elements in the loading state.
 And, we can use the percentage unit to define the word length of the text in a responsive way.
 The following example demonstrates how to use the lh unit to create a skeleton loading effect with Tailwind CSS v4.
 
@@ -34,8 +34,9 @@ The following example demonstrates how to use the lh unit to create a skeleton l
   <p className="h-5lh w-full skeleton-red"></p>
 </article>
 ```
+
 In Tailwind CSS v4, although unit lh is not yet supported, we can define the spacing or radius in units of lh as theme variables in `@theme` directive.
-Then, we can use the utility class like `rounded-lh` to apply the rounded corner with the lh unit or 
+Then, we can use the utility class like `rounded-lh` to apply the rounded corner with the lh unit or
 `h-lh` to set the height of the element with the lh unit.
 
 Also, we can utilize the `@utility` directive to encapsulate the skeleton loading styles that supporting theme and arbitrary values together.
@@ -54,6 +55,6 @@ Also, we can utilize the `@utility` directive to encapsulate the skeleton loadin
 @utility skeleton-* {
   background-color: --value(--color-*);
   background-color: --value([color]);
-  @apply animate-pulse rounded-lh;
+  @apply rounded-lh animate-pulse;
 }
 ```

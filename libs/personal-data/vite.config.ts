@@ -23,7 +23,8 @@ export default defineConfig({
       // `@rainforest-dev/personal-data/vocab`, to avoid dragging that dataset into
       // their client bundle.
       entry: { index: 'src/index.ts', vocab: 'src/vocab.ts' },
-      fileName: (format, entryName) => `${entryName}.${format === 'es' ? 'js' : 'cjs'}`,
+      fileName: (format, entryName) =>
+        `${entryName}.${format === 'es' ? 'js' : 'cjs'}`,
       formats: ['es', 'cjs'],
     },
     ssr: true,

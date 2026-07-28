@@ -21,7 +21,9 @@ const langSchema = z.enum(['en', 'zh']).optional();
 // rather than a plain z.string() — this makes the parsed value a real SkillTag, not just a
 // string, so the tool handlers below no longer need an `as any` cast to call getWorkExperience/
 // getProjects (which require SkillTag, not string).
-const technologySchema = z.enum(tags.skills as unknown as [SkillTag, ...SkillTag[]]).optional();
+const technologySchema = z
+  .enum(tags.skills as unknown as [SkillTag, ...SkillTag[]])
+  .optional();
 
 // Single source of truth for each tool's name/description — server.registerTool below reads
 // from these instead of repeating the strings, and llms.txt.ts imports MCP_TOOLS (composed in
@@ -33,7 +35,10 @@ export const PROFILE_MCP_TOOLS = [
     name: 'get_profile_summary',
     description: 'Professional profile overview: counts and top technologies',
   },
-  { name: 'get_work_experience', description: 'Work history, optionally filtered by technology' },
+  {
+    name: 'get_work_experience',
+    description: 'Work history, optionally filtered by technology',
+  },
   { name: 'get_education', description: 'Academic background' },
   {
     name: 'get_projects',
@@ -42,7 +47,8 @@ export const PROFILE_MCP_TOOLS = [
   { name: 'get_skills', description: 'Technical skills inventory' },
   {
     name: 'search_by_technology',
-    description: 'Substring-match a technology name across all experiences and projects',
+    description:
+      'Substring-match a technology name across all experiences and projects',
   },
 ] as const;
 
@@ -51,14 +57,24 @@ export const PROFILE_MCP_TOOLS = [
 // plain `{id}` expansion only matches a single path segment, so this is the real template
 // clients need, not a simplified display form.
 export const PROFILE_MCP_RESOURCES = [
-  { uriTemplate: 'profile://experience/{+id}', title: 'Work/Education Experience' },
+  {
+    uriTemplate: 'profile://experience/{+id}',
+    title: 'Work/Education Experience',
+  },
   { uriTemplate: 'profile://project/{+id}', title: 'Project' },
   { uriTemplate: 'profile://skill/{+id}', title: 'Skill' },
 ] as const;
 
-const [profileSummaryTool, workExperienceTool, educationTool, projectsTool, skillsTool, searchTool] =
-  PROFILE_MCP_TOOLS;
-const [experienceResource, projectResource, skillResource] = PROFILE_MCP_RESOURCES;
+const [
+  profileSummaryTool,
+  workExperienceTool,
+  educationTool,
+  projectsTool,
+  skillsTool,
+  searchTool,
+] = PROFILE_MCP_TOOLS;
+const [experienceResource, projectResource, skillResource] =
+  PROFILE_MCP_RESOURCES;
 
 /**
  * Registers the profile tools/resources (profile summary, work experience, education,
@@ -69,9 +85,17 @@ const [experienceResource, projectResource, skillResource] = PROFILE_MCP_RESOURC
 export function registerProfileMcp(server: McpServer): void {
   server.registerTool(
     profileSummaryTool.name,
-    { description: profileSummaryTool.description, inputSchema: { lang: langSchema } },
+    {
+      description: profileSummaryTool.description,
+      inputSchema: { lang: langSchema },
+    },
     async ({ lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await getProfileSummary({ lang })) }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(await getProfileSummary({ lang })),
+        },
+      ],
     }),
   );
 
@@ -83,16 +107,24 @@ export function registerProfileMcp(server: McpServer): void {
     },
     async ({ technology, lang }) => ({
       content: [
-        { type: 'text', text: JSON.stringify(await getWorkExperience({ technology, lang })) },
+        {
+          type: 'text',
+          text: JSON.stringify(await getWorkExperience({ technology, lang })),
+        },
       ],
     }),
   );
 
   server.registerTool(
     educationTool.name,
-    { description: educationTool.description, inputSchema: { lang: langSchema } },
+    {
+      description: educationTool.description,
+      inputSchema: { lang: langSchema },
+    },
     async ({ lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await getEducation({ lang })) }],
+      content: [
+        { type: 'text', text: JSON.stringify(await getEducation({ lang })) },
+      ],
     }),
   );
 
@@ -103,7 +135,12 @@ export function registerProfileMcp(server: McpServer): void {
       inputSchema: { technology: technologySchema, lang: langSchema },
     },
     async ({ technology, lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await getProjects({ technology, lang })) }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(await getProjects({ technology, lang })),
+        },
+      ],
     }),
   );
 
@@ -111,15 +148,25 @@ export function registerProfileMcp(server: McpServer): void {
     skillsTool.name,
     { description: skillsTool.description, inputSchema: { lang: langSchema } },
     async ({ lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await getSkills({ lang })) }],
+      content: [
+        { type: 'text', text: JSON.stringify(await getSkills({ lang })) },
+      ],
     }),
   );
 
   server.registerTool(
     searchTool.name,
-    { description: searchTool.description, inputSchema: { query: z.string(), lang: langSchema } },
+    {
+      description: searchTool.description,
+      inputSchema: { query: z.string(), lang: langSchema },
+    },
     async ({ query, lang }) => ({
-      content: [{ type: 'text', text: JSON.stringify(await searchByTechnology(query, { lang })) }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(await searchByTechnology(query, { lang })),
+        },
+      ],
     }),
   );
 
@@ -135,7 +182,9 @@ export function registerProfileMcp(server: McpServer): void {
     async (uri, { id }) => {
       const experience = await getExperienceById(id as string);
       if (!experience) throw new Error(`Experience not found: ${id}`);
-      return { contents: [{ uri: uri.href, text: JSON.stringify(experience) }] };
+      return {
+        contents: [{ uri: uri.href, text: JSON.stringify(experience) }],
+      };
     },
   );
 
@@ -150,9 +199,13 @@ export function registerProfileMcp(server: McpServer): void {
       // and doubles as the portfolio lib's case-study registry key.
       const slug = project.id.split('/').pop();
       const caseStudyUrl =
-        slug && hasCaseStudy(slug) ? `${info.links.website}/portfolio/${slug}` : undefined;
+        slug && hasCaseStudy(slug)
+          ? `${info.links.website}/portfolio/${slug}`
+          : undefined;
       return {
-        contents: [{ uri: uri.href, text: JSON.stringify({ ...project, caseStudyUrl }) }],
+        contents: [
+          { uri: uri.href, text: JSON.stringify({ ...project, caseStudyUrl }) },
+        ],
       };
     },
   );
@@ -164,7 +217,9 @@ export function registerProfileMcp(server: McpServer): void {
     async (uri, { id }) => {
       const entry = await getEntry('skills', id as string);
       if (!entry) throw new Error(`Skill not found: ${id}`);
-      return { contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }] };
+      return {
+        contents: [{ uri: uri.href, text: JSON.stringify(entry.data) }],
+      };
     },
   );
 }

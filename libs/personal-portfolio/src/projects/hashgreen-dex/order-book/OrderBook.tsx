@@ -57,8 +57,7 @@ export function OrderBook(): JSX.Element {
 
   const allLevels = [...book.asks, ...book.bids];
   const selected =
-    allLevels.find((level) => levelKey(MARKET, level) === selectedKey) ??
-    null;
+    allLevels.find((level) => levelKey(MARKET, level) === selectedKey) ?? null;
 
   const handleSelect = (level: Row) => {
     const key = levelKey(MARKET, level);
@@ -91,14 +90,18 @@ export function OrderBook(): JSX.Element {
         aria-label={`${isAsk ? 'Ask' : 'Bid'} ${level.price} · amount ${level.amount} · total ${level.total}`}
         onClick={() => handleSelect(level)}
         className={cx(
-          'grid w-full grid-cols-3 gap-2 rounded-md px-3 py-1.5 text-left font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          isSelected ? 'bg-primary/10 ring-primary ring-1' : 'hover:bg-muted/50',
+          'focus-visible:ring-ring grid w-full grid-cols-3 gap-2 rounded-md px-3 py-1.5 text-left font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2',
+          isSelected
+            ? 'bg-primary/10 ring-primary ring-1'
+            : 'hover:bg-muted/50',
         )}
       >
         <span className={isAsk ? 'text-destructive' : 'text-primary'}>
           {level.price.toFixed(4)}
         </span>
-        <span className="text-foreground text-right">{level.amount.toFixed(2)}</span>
+        <span className="text-foreground text-right">
+          {level.amount.toFixed(2)}
+        </span>
         <span className="text-muted-foreground text-right">
           {level.total.toFixed(2)}
         </span>
@@ -116,14 +119,14 @@ export function OrderBook(): JSX.Element {
           <button
             type="button"
             onClick={() => setCollapseAsks((prev) => !prev)}
-            className="border-border text-foreground hover:bg-muted h-8 rounded-md border bg-transparent px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="border-border text-foreground hover:bg-muted focus-visible:ring-ring h-8 rounded-md border bg-transparent px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
           >
             {collapseAsks ? 'show asks' : 'collapse asks'}
           </button>
           <button
             type="button"
             onClick={handleShuffle}
-            className="border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 h-8 rounded-md border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 focus-visible:ring-ring h-8 rounded-md border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
           >
             shuffle the book
           </button>
@@ -167,7 +170,8 @@ export function OrderBook(): JSX.Element {
               : `Take bid · sell ${selected.amount.toFixed(2)}`}
           </p>
           <p className="text-muted-foreground mt-1">
-            @ {selected.price.toFixed(4)} · total {selected.total.toFixed(2)} USDC
+            @ {selected.price.toFixed(4)} · total {selected.total.toFixed(2)}{' '}
+            USDC
           </p>
         </div>
       ) : null}

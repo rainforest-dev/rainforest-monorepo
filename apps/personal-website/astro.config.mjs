@@ -22,7 +22,11 @@ import { fallbackLng, supportedLngs } from './src/utils/i18n/settings';
 // so a newly added case study can't silently ship without its redirect — the hand-maintained
 // list is exactly how /en/portfolio/<slug> got missed when /en/portfolio itself was covered.
 const legacyPortfolioRedirects = Object.fromEntries(
-  readdirSync(fileURLToPath(new URL('../../libs/personal-data/src/data/projects/en', import.meta.url)))
+  readdirSync(
+    fileURLToPath(
+      new URL('../../libs/personal-data/src/data/projects/en', import.meta.url),
+    ),
+  )
     .filter((file) => file.endsWith('.md'))
     .map((file) => file.replace(/\.md$/, ''))
     .map((slug) => [`/en/portfolio/${slug}`, `/portfolio/${slug}`]),
@@ -59,7 +63,10 @@ export default defineConfig({
         dark: 'material-theme',
       },
     },
-    processor: unified({ remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] }),
+    processor: unified({
+      remarkPlugins: [remarkMath],
+      rehypePlugins: [rehypeKatex],
+    }),
   },
   vite: {
     plugins: [
@@ -103,7 +110,9 @@ export default defineConfig({
                 import.meta.url,
               ),
             ),
-            fileURLToPath(new URL('./public/images/portfolio', import.meta.url)),
+            fileURLToPath(
+              new URL('./public/images/portfolio', import.meta.url),
+            ),
             { recursive: true },
           );
         },

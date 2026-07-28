@@ -11,6 +11,7 @@
 `apps/personal-calibre` is a personal Next.js 15 (App Router) web frontend for a Calibre SQLite library hosted on Synology NAS. It reads from Calibre's own SQLite DB and an app SQLite DB (`schema-app.ts`) that tracks book deliveries to external platforms (Readwise Reader, NotebookLM, etc.).
 
 **Current pain points being addressed:**
+
 - Search sometimes returns wrong/missing results (FTS5 reliability)
 - Filter state is lost on back navigation (local `useState` not synced to URL)
 - Bulk delivery actions give no confirmation and leave stale UI
@@ -56,8 +57,8 @@ export interface BookListParams {
   tagId?: number;
   seriesId?: number;
   // new
-  platformKey?: string;          // filter by delivery platform
-  delivered?: boolean;           // true = delivered, false = not yet
+  platformKey?: string; // filter by delivery platform
+  delivered?: boolean; // true = delivered, false = not yet
   groupBy?: 'series' | 'tag' | 'author';
   sortBy?: 'title' | 'author' | 'pubdate' | 'added' | 'rating';
   sortDir?: 'asc' | 'desc';
@@ -73,10 +74,10 @@ export interface BookListParams {
 
 ```typescript
 interface BookGroup {
-  key: string;     // e.g. tag ID or series ID as string
-  label: string;   // display name
-  total: number;   // total books in this group (for "See all N →")
-  books: BookSummary[];  // first 6 books only
+  key: string; // e.g. tag ID or series ID as string
+  label: string; // display name
+  total: number; // total books in this group (for "See all N →")
+  books: BookSummary[]; // first 6 books only
 }
 ```
 
@@ -87,7 +88,7 @@ Always included — one extra `WHERE id IN (...)` query against `book_deliveries
 ```typescript
 interface BookSummary {
   // existing fields...
-  deliveredTo: string[];  // platform keys, e.g. ['readwise-reader', 'notebooklm']
+  deliveredTo: string[]; // platform keys, e.g. ['readwise-reader', 'notebooklm']
 }
 ```
 
@@ -103,6 +104,7 @@ DELETE /api/books/[id]/tags/[tagId]                      → unlink tag from boo
 Both routes call `revalidateTag('books')` and `revalidateTag(`book-${id}`)` after write.
 
 **Write sequence for `POST`:**
+
 1. `SELECT id FROM tags WHERE name = ?` — find existing tag
 2. If not found: `INSERT INTO tags (name) VALUES (?)` — create it
 3. `INSERT OR IGNORE INTO books_tags_link (book, tag) VALUES (?, ?)` — link (idempotent)
@@ -116,6 +118,7 @@ Both routes call `revalidateTag('books')` and `revalidateTag(`book-${id}`)` afte
 All filter state removed from `useState`. Every control reads directly from `useSearchParams()` and writes via `router.replace()`. URL is the only state — back navigation works for free.
 
 **Row 1 — Search + active chips** (existing behavior, bug-fixed):
+
 - FTS search input with clear button
 - Active filter chips derived from URL params
 - Debounced autocomplete suggestions (300ms, existing)
@@ -210,19 +213,25 @@ list_tags()
 ```typescript
 list_books({
   // existing
-  query, authorId, tagId, seriesId, page, limit,
+  query,
+  authorId,
+  tagId,
+  seriesId,
+  page,
+  limit,
   // new
-  platformKey,   // delivery platform filter
-  delivered,     // boolean
-  groupBy,       // "series" | "tag" | "author"
-  sortBy,        // "title" | "author" | "pubdate" | "added" | "rating"
-  sortDir,       // "asc" | "desc"
-})
+  platformKey, // delivery platform filter
+  delivered, // boolean
+  groupBy, // "series" | "tag" | "author"
+  sortBy, // "title" | "author" | "pubdate" | "added" | "rating"
+  sortDir, // "asc" | "desc"
+});
 ```
 
 When `groupBy` is set, response is `{ groups: BookGroup[] }`.
 
 **Agent workflows enabled:**
+
 - `list_books({ platformKey: "readwise-reader", delivered: false, groupBy: "series" })` → which series still need to go to Readwise?
 - `add_tag(bookId, "to-read")` + `list_books({ tagId: X, sortBy: "rating", sortDir: "desc" })` → classify then browse
 - Full read → classify → delivery loop via MCP without touching the UI
@@ -238,6 +247,7 @@ After `bulk_add_delivery` succeeds: `"12 books marked as delivered to Readwise"`
 ### Optimistic UI + cache revalidation
 
 `BulkActionBar` updated flow:
+
 1. On submit: clear selection, show "Saving…" state, disable submit button (prevent double-submit)
 2. On success: show toast, call `router.refresh()`
 3. `router.refresh()` re-runs RSC fetches for current URL — server has already revalidated `cacheTag('books')`, so `getBookList` returns fresh delivery data
@@ -254,12 +264,14 @@ After `bulk_add_delivery` succeeds: `"12 books marked as delivered to Readwise"`
 Mirrors `apps/personal-liff-e2e` structure. Playwright project with `implicitDependencies: ['personal-calibre']` in Nx config.
 
 **Nx targets:**
+
 ```bash
 pnpm nx e2e personal-calibre-e2e          # run all
 pnpm nx e2e personal-calibre-e2e --ui     # Playwright UI mode
 ```
 
 **Test environment:**
+
 - Runs against `http://localhost:3333`
 - Calibre SQLite fixture: small seeded DB with known books/tags/series/ratings
 - App DB (deliveries) reset before each suite via setup script
@@ -267,14 +279,14 @@ pnpm nx e2e personal-calibre-e2e --ui     # Playwright UI mode
 
 **Spec files:**
 
-| File | Covers |
-|---|---|
-| `search.spec.ts` | FTS search returns results; autocomplete navigates to book detail |
-| `filter.spec.ts` | Author/tag/series/platform combobox filters; back nav restores filter state |
-| `group-by.spec.ts` | Group by series/tag/author; "See all" navigates with correct filter param |
-| `tag-editing.spec.ts` | Add tag via UI; tag appears in filter combobox; remove tag |
-| `bulk-delivery.spec.ts` | Select books; mark delivered; toast shown; platform badges updated |
-| `book-detail.spec.ts` | Detail page shows metadata, delivery history, tag editor |
+| File                    | Covers                                                                      |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `search.spec.ts`        | FTS search returns results; autocomplete navigates to book detail           |
+| `filter.spec.ts`        | Author/tag/series/platform combobox filters; back nav restores filter state |
+| `group-by.spec.ts`      | Group by series/tag/author; "See all" navigates with correct filter param   |
+| `tag-editing.spec.ts`   | Add tag via UI; tag appears in filter combobox; remove tag                  |
+| `bulk-delivery.spec.ts` | Select books; mark delivered; toast shown; platform badges updated          |
+| `book-detail.spec.ts`   | Detail page shows metadata, delivery history, tag editor                    |
 
 **CI:** Added to `pnpm nx affected -t e2e` — runs when `personal-calibre` is affected.
 

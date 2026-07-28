@@ -1,8 +1,16 @@
 import { getProjectGallery } from '@rainforest-dev/personal-data';
-import { PORTFOLIO_MCP_RESOURCES, PORTFOLIO_MCP_TOOLS, registerPortfolioMcp } from '@rainforest-dev/personal-portfolio/mcp';
+import {
+  PORTFOLIO_MCP_RESOURCES,
+  PORTFOLIO_MCP_TOOLS,
+  registerPortfolioMcp,
+} from '@rainforest-dev/personal-portfolio/mcp';
 import { createMcpHandler } from 'mcp-handler';
 
-import { PROFILE_MCP_RESOURCES, PROFILE_MCP_TOOLS, registerProfileMcp } from './profile';
+import {
+  PROFILE_MCP_RESOURCES,
+  PROFILE_MCP_TOOLS,
+  registerProfileMcp,
+} from './profile';
 
 // Composition root: each domain contributes its own tool/resource registrations —
 // registerProfileMcp here (stays in the app; depends on astro:content), registerPortfolioMcp
@@ -10,7 +18,10 @@ import { PROFILE_MCP_RESOURCES, PROFILE_MCP_TOOLS, registerProfileMcp } from './
 // MCP_TOOLS/MCP_RESOURCES stay the single source of truth llms.txt.ts / llms-full.txt.ts
 // read from to describe this server's capabilities.
 export const MCP_TOOLS = [...PROFILE_MCP_TOOLS, ...PORTFOLIO_MCP_TOOLS];
-export const MCP_RESOURCES = [...PROFILE_MCP_RESOURCES, ...PORTFOLIO_MCP_RESOURCES];
+export const MCP_RESOURCES = [
+  ...PROFILE_MCP_RESOURCES,
+  ...PORTFOLIO_MCP_RESOURCES,
+];
 
 /**
  * llms.txt advertises the MCP endpoint as a markdown link, so crawlers discover it and fetch

@@ -32,7 +32,7 @@ export function Switch({
       aria-label={label}
       onClick={() => onChange(!checked)}
       className={cx(
-        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full px-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'focus-visible:ring-ring focus-visible:ring-offset-background relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full px-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         checked ? 'bg-primary' : 'bg-muted-foreground/30',
         className,
       )}
@@ -40,7 +40,7 @@ export function Switch({
       <span
         aria-hidden="true"
         className={cx(
-          'pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform',
+          'bg-background pointer-events-none inline-block size-4 rounded-full shadow-sm transition-transform',
           checked ? 'translate-x-4' : 'translate-x-0',
         )}
       />

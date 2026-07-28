@@ -76,7 +76,7 @@ export function AffectedPipeline(): JSX.Element {
     <div className="border-border bg-card text-card-foreground rounded-xl border p-6">
       <div className="flex flex-wrap gap-6">
         <div className="min-w-[240px] flex-1">
-          <div className="text-muted-foreground mb-2 text-[11px] font-semibold tracking-wide uppercase">
+          <div className="text-muted-foreground mb-2 text-[11px] font-semibold uppercase tracking-wide">
             Changed files
           </div>
           {CHANGED_FILES.map((file) => (
@@ -88,7 +88,7 @@ export function AffectedPipeline(): JSX.Element {
                 type="checkbox"
                 checked={!!changed[file.path]}
                 onChange={() => toggleFile(file.path)}
-                className="accent-primary h-3.5 w-3.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="accent-primary focus-visible:ring-ring h-3.5 w-3.5 rounded focus-visible:outline-none focus-visible:ring-2"
               />
               <span className="font-mono text-xs">{file.path}</span>
             </label>
@@ -99,7 +99,10 @@ export function AffectedPipeline(): JSX.Element {
                 type="button"
                 aria-pressed={event === 'pr'}
                 onClick={() => setEventAndReset('pr')}
-                className={segment(event === 'pr', 'h-7 px-3 font-mono text-xs font-bold')}
+                className={segment(
+                  event === 'pr',
+                  'h-7 px-3 font-mono text-xs font-bold',
+                )}
               >
                 PR
               </button>
@@ -107,7 +110,10 @@ export function AffectedPipeline(): JSX.Element {
                 type="button"
                 aria-pressed={event === 'push'}
                 onClick={() => setEventAndReset('push')}
-                className={segment(event === 'push', 'h-7 px-3 font-mono text-xs font-bold')}
+                className={segment(
+                  event === 'push',
+                  'h-7 px-3 font-mono text-xs font-bold',
+                )}
               >
                 push → main
               </button>
@@ -124,7 +130,7 @@ export function AffectedPipeline(): JSX.Element {
         </div>
 
         <div className="min-w-[280px] flex-[1.3]">
-          <div className="text-muted-foreground mb-2 text-[11px] font-semibold tracking-wide uppercase">
+          <div className="text-muted-foreground mb-2 text-[11px] font-semibold uppercase tracking-wide">
             nx project graph
           </div>
           <div className="flex flex-wrap gap-2">
@@ -174,7 +180,7 @@ export function AffectedPipeline(): JSX.Element {
 
       <div className="border-border mt-5 flex flex-wrap gap-6 border-t pt-4">
         <div className="min-w-[240px] flex-1">
-          <div className="text-muted-foreground mb-2 text-[11px] font-semibold tracking-wide uppercase">
+          <div className="text-muted-foreground mb-2 text-[11px] font-semibold uppercase tracking-wide">
             Playwright · role matrix
           </div>
           <div className="border-border overflow-hidden rounded-lg border">
@@ -198,7 +204,7 @@ export function AffectedPipeline(): JSX.Element {
           </div>
         </div>
         <div className="min-w-[240px] flex-1">
-          <div className="text-muted-foreground mb-2 text-[11px] font-semibold tracking-wide uppercase">
+          <div className="text-muted-foreground mb-2 text-[11px] font-semibold uppercase tracking-wide">
             k6 · VU ramp
           </div>
           <div className="border-border flex h-[92px] items-end gap-1 rounded-lg border p-2.5">

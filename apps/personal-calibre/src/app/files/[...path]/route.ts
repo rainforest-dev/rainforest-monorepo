@@ -38,7 +38,9 @@ export async function GET(
     .select({ bookPath: books.path, name: data.name })
     .from(data)
     .innerJoin(books, eq(books.id, data.book))
-    .where(and(eq(books.path, bookPath), eq(data.name, stem), eq(data.format, fmt)))
+    .where(
+      and(eq(books.path, bookPath), eq(data.name, stem), eq(data.format, fmt)),
+    )
     .get();
 
   if (!row) {

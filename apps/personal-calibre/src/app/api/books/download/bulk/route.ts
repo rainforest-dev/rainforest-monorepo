@@ -12,12 +12,18 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as { bookIds?: unknown; format?: string };
 
   if (!Array.isArray(body.bookIds) || body.bookIds.length === 0) {
-    return NextResponse.json({ error: 'bookIds must be a non-empty array' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'bookIds must be a non-empty array' },
+      { status: 400 },
+    );
   }
 
   const bookIds = body.bookIds as number[];
   if (bookIds.some((id) => !Number.isInteger(id))) {
-    return NextResponse.json({ error: 'All bookIds must be integers' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'All bookIds must be integers' },
+      { status: 400 },
+    );
   }
 
   const format = (body.format ?? 'EPUB').toUpperCase();
@@ -37,7 +43,10 @@ export async function POST(request: NextRequest) {
   const matching = rows.filter((r) => r.format === format);
 
   if (matching.length === 0) {
-    return NextResponse.json({ error: `No ${format} files found for the selected books` }, { status: 404 });
+    return NextResponse.json(
+      { error: `No ${format} files found for the selected books` },
+      { status: 404 },
+    );
   }
 
   // Read all files into memory and assemble the ZIP.
@@ -47,7 +56,12 @@ export async function POST(request: NextRequest) {
     matching.map(async (row) => {
       const ext = format.toLowerCase();
       if (!row.name) return;
-      const filePath = resolveFilePath(libraryPath, row.bookPath, row.name, ext);
+      const filePath = resolveFilePath(
+        libraryPath,
+        row.bookPath,
+        row.name,
+        ext,
+      );
       if (!existsSync(filePath)) return;
       try {
         const buf = await readWithRetry(filePath);
@@ -60,7 +74,10 @@ export async function POST(request: NextRequest) {
   );
 
   if (Object.keys(fileMap).length === 0) {
-    return NextResponse.json({ error: 'No files could be read' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'No files could be read' },
+      { status: 500 },
+    );
   }
 
   const zipBuffer = await new Promise<Uint8Array>((resolve, reject) => {

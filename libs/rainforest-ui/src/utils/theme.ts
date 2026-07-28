@@ -61,7 +61,7 @@ export const constructors = {
 export const themeFromSourceColor = (
   sourceColorArgb: number,
   _variant: Variant = Variant.TONAL_SPOT,
-  _contrastLevel = 0.0
+  _contrastLevel = 0.0,
 ): Theme => {
   const sourceColorHct = Hct.fromInt(sourceColorArgb);
   const variant = _variant in Variant ? _variant : Variant.TONAL_SPOT;
@@ -69,12 +69,12 @@ export const themeFromSourceColor = (
   const scheme = new constructors[variant](
     sourceColorHct,
     false,
-    contrastLevel
+    contrastLevel,
   );
   const darkScheme = new constructors[variant](
     sourceColorHct,
     true,
-    contrastLevel
+    contrastLevel,
   );
 
   return {
@@ -117,7 +117,7 @@ export const getColorRoles = () => {
     roles[toKebabCase('on', role, 'container')] = toLowerCamelCase(
       'on',
       role,
-      'container'
+      'container',
     );
   }
   for (const role of ['primary', 'secondary', 'tertiary']) {
@@ -125,18 +125,18 @@ export const getColorRoles = () => {
     roles[toKebabCase(role, 'fixed', 'dim')] = toLowerCamelCase(
       role,
       'fixed',
-      'dim'
+      'dim',
     );
     roles[toKebabCase('on', role, 'fixed')] = toLowerCamelCase(
       'on',
       role,
-      'fixed'
+      'fixed',
     );
     roles[toKebabCase('on', role, 'fixed', 'variant')] = toLowerCamelCase(
       'on',
       role,
       'fixed',
-      'variant'
+      'variant',
     );
   }
   roles = {
@@ -164,7 +164,7 @@ export const getColorRoles = () => {
 
 export const getSchemeProperties = (
   scheme: DynamicScheme,
-  prefix = '--md-sys-color-'
+  prefix = '--md-sys-color-',
 ) => {
   const roles = getColorRoles();
 
@@ -172,16 +172,19 @@ export const getSchemeProperties = (
     key in scheme;
 
   return Object.fromEntries(
-    Object.entries(roles).reduce((acc, [key, value]) => {
-      if (isSchemeKey(value)) {
-        const schemeValue = scheme[value];
-        // check if the value is number
-        if (typeof schemeValue === 'number') {
-          acc.push([`${prefix}${key}`, schemeValue]);
+    Object.entries(roles).reduce(
+      (acc, [key, value]) => {
+        if (isSchemeKey(value)) {
+          const schemeValue = scheme[value];
+          // check if the value is number
+          if (typeof schemeValue === 'number') {
+            acc.push([`${prefix}${key}`, schemeValue]);
+          }
         }
-      }
-      return acc;
-    }, [] as [string, number][])
+        return acc;
+      },
+      [] as [string, number][],
+    ),
   );
 };
 
@@ -192,7 +195,7 @@ export const schemePropertiesToCssInJs = (properties: {
     Object.entries(properties).map(([key, value]) => {
       const color = hexFromArgb(value);
       return [key, color];
-    })
+    }),
   );
 
 export const schemePropertiesToCss = (properties: { [key: string]: number }) =>
@@ -208,10 +211,10 @@ export const applyTheme = (theme: Theme, options?: IApplyThemeOptions) => {
   const target = options?.target || document.body;
 
   const lightSchemeStyles = schemePropertiesToCss(
-    getSchemeProperties(theme.schemes.light)
+    getSchemeProperties(theme.schemes.light),
   );
   const darkSchemeStyles = schemePropertiesToCss(
-    getSchemeProperties(theme.schemes.dark)
+    getSchemeProperties(theme.schemes.dark),
   );
 
   // !breaking change here and unused in codebase

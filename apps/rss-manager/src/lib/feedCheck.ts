@@ -28,7 +28,8 @@ export function extractFeedMeta(content: string, format: FeedFormat): FeedMeta {
 
   // Use word boundary to avoid matching <items>, <itemset>, etc.
   const itemTag = format === 'rss' ? '<item' : '<entry';
-  const itemCount = (content.match(new RegExp(`${itemTag}[\\s>/]`, 'gi')) ?? []).length;
+  const itemCount = (content.match(new RegExp(`${itemTag}[\\s>/]`, 'gi')) ?? [])
+    .length;
 
   return { title, itemCount };
 }

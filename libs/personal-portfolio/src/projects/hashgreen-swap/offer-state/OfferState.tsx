@@ -133,7 +133,7 @@ export function OfferState(): JSX.Element {
                 key={option.id}
                 type="button"
                 onClick={() => handleConnect(option)}
-                className="border-border bg-muted/30 text-foreground flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="border-border bg-muted/30 text-foreground hover:bg-muted focus-visible:ring-ring flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2"
               >
                 <span className={avatar('bg-primary text-primary-foreground')}>
                   {option.mono}
@@ -202,7 +202,7 @@ export function OfferState(): JSX.Element {
               type="checkbox"
               checked={simulateConflict}
               onChange={(e) => setSimulateConflict(e.target.checked)}
-              className="accent-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="accent-primary focus-visible:ring-ring rounded focus-visible:outline-none focus-visible:ring-2"
             />
             <span className="text-muted-foreground">
               simulate a conflicting spend (offer invalidated in mempool)
@@ -310,7 +310,7 @@ export function OfferState(): JSX.Element {
           <button
             type="button"
             onClick={() => setShowOffer((prev) => !prev)}
-            className="text-primary rounded font-mono text-xs transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="text-primary hover:text-primary/80 focus-visible:ring-ring rounded font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2"
           >
             {showOffer ? '▾ hide offer' : '▸ view offer'}
           </button>

@@ -32,7 +32,10 @@ function classifyUserAgent(userAgent: string | null): string {
  * Measurement Protocol has no such constraints: plain HTTP, no SDK/dependency, works on
  * any plan. Human conversion events go through the same sender — see src/pages/api/event.ts.
  */
-export async function trackAiResourceFetch(resource: string, request: Request): Promise<void> {
+export async function trackAiResourceFetch(
+  resource: string,
+  request: Request,
+): Promise<void> {
   await sendGa4Event('ai_resource_fetch', {
     resource,
     bot: classifyUserAgent(request.headers.get('user-agent')),

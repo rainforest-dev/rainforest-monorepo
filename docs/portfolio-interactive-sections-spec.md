@@ -2,13 +2,14 @@
 
 > **STATUS — COMPLETE (2026-07-21).** All four case-study variants are built and verified in
 > the Portfolio project's `CaseStudy.dc.html` (`project` prop = hoogii/dex/swap/opencgt):
+>
 > - **Hoogii** ✓ 5 sections (React/Tailwind/Mobx/Ably; Mnemonic phrase grid, messaging relay, etc.)
 > - **Dex** ✓ 5 sections (Next.js 12/daisyUI; TableVirtuoso, MarketStore, react-popper, useAbly)
 > - **Swap** ✓ 5 sections (Next.js 13/Radix/RTK; calcUserSwap log-AMM, createOffer, Zap, 4-env Helm, i18next — teal #00F8CB)
 > - **OpenCGT** ✓ 5 sections (Next.js 14/Refine/MUI; getRolesFromJwt, CanAccess+middleware, Casbin, hybrid RSA-OAEP/AES E2EE, nx-affected — monochrome-blue #1976D2). **Carbon-credit copy corrected to cell & gene therapy.**
-> All three new design systems (Dex/Swap/OpenCGT) generated from their real repos and verified.
-> Remaining optional follow-ups: embed the Claude Design pages into apps/personal-website; a final
-> reduced-motion audit; polish copy. The sections below are the original build spec (kept for reference).
+>   All three new design systems (Dex/Swap/OpenCGT) generated from their real repos and verified.
+>   Remaining optional follow-ups: embed the Claude Design pages into apps/personal-website; a final
+>   reduced-motion audit; polish copy. The sections below are the original build spec (kept for reference).
 
 This is the durable spec for a scheduled/autonomous run to CONTINUE building interactive
 portfolio case studies in **Claude Design** (claude.ai/design). Hoogii (project 1) is
@@ -19,7 +20,7 @@ already built/building; this spec covers the remaining three: **Dex, HashgreenSw
 For each remaining project, build its portfolio case study as **FIVE distinct interactive
 sections**, each cleanly separating: (a) a product **FEATURE**, (b) Rainforest's specific
 **CONTRIBUTION** (a decision/ownership boundary, not a restatement), (c) a **TECH DETAIL**
-(named real symbols), and (d) a hands-on **INTERACTION** — never the same interaction *kind*
+(named real symbols), and (d) a hands-on **INTERACTION** — never the same interaction _kind_
 twice within a project. Everything is cosmetic/client-side: no real backend, keys, crypto, or
 network. Real metrics only (don't invent numbers). First-person, calm, precise, no emoji.
 Honor prefers-reduced-motion.
@@ -39,7 +40,7 @@ Honor prefers-reduced-motion.
 
 ## Per-project design systems (create like Hoogii's, then reference & rebuild inline)
 
-The established pattern (from Hoogii): create a Claude Design *design system* from the real
+The established pattern (from Hoogii): create a Claude Design _design system_ from the real
 repo (claude.ai/design → Design systems → Create design system → "Create here" → paste GitHub
 repo URL + a blurb + notes), let it generate (~5 min), then in the Portfolio project reference
 that design-system project URL in the composer and rebuild the case-study sections inline with
@@ -47,6 +48,7 @@ the project's brand tokens. GitHub is already connected in Claude Design (authed
 rainforest-dev). The user chose "rebuild demos inside the portfolio project" for integration.
 
 Repos:
+
 - **Dex:** `rainforest-dev/hashgreen-zed-frontend` — brand: primary #008C15 green, bid #19C08E, ask #FF4938, warning #FFB800; light+dark; daisyUI feel.
 - **Swap:** `rainforest-dev/hashgreen-pyke-frontend` — brand: accent orange #FA892A / #FFB84D; dark-first; Radix UI.
 - **OpenCGT:** `rainforest-dev/codegreen-monorepo` (focus `apps/opencgt`) — NO bespoke brand (stock Refine MUI blue). Give it a deliberate architecture-neutral monochrome-blue system so it looks intentional.
@@ -213,7 +215,7 @@ monochrome-blue (no brand). Correct the existing "carbon-credit" copy to cell & 
    app — wiring `nx affected` with tag exclusions, the container build configs, and both suites
    (Playwright logging in as each role, k6 ramping real VUs through the actual Auth0 login).
    Tech: driven by the Nx project graph, not a job list — `nx-set-shas` computes base/head, `nx
-   affected` walks the graph; the k6 *browser* test drives the real Auth0 form under 100 ramping
+affected` walks the graph; the k6 _browser_ test drives the real Auth0 form under 100 ramping
    VUs asserting a 1.0 checks rate. Interaction (tick-changed-files + simulate-pipeline): tick which
    files "changed" + flip PR↔push-to-main; "Run pipeline" lights only affected nodes in a project-graph
    DAG and streams a matching CI log; a side panel replays the Playwright role matrix + a k6 VU-ramp
@@ -237,6 +239,7 @@ session). For each project (Dex → Swap → OpenCGT in order):
 3. Wait for the build; verify via screenshots/DOM; step through interactions where possible.
 
 CAVEATS:
+
 - The Portfolio project's main chat is heavy (~150k tokens) and the renderer froze once mid-typing.
   Prefer starting a NEW chat in the Portfolio project per remaining project ("Start a new chat" keeps
   all files + carries a summary) to stay responsive. Send long instructions via the Send BUTTON, not

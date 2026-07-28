@@ -43,7 +43,9 @@ export function g(
   groupings: [string, string][] = GROUPINGS,
 ): boolean {
   if (sub === policySub) return true;
-  return groupings.some(([member, role]) => member === sub && role === policySub);
+  return groupings.some(
+    ([member, role]) => member === sub && role === policySub,
+  );
 }
 
 /**
@@ -83,8 +85,7 @@ export function enforce(
   return policies.map((policy) => {
     const gMatch = g(request.sub, policy.sub, groupings);
     const keyMatched = keyMatch(request.obj, policy.obj);
-    const actMatch =
-      policy.act === '*' || regexMatch(request.act, policy.act);
+    const actMatch = policy.act === '*' || regexMatch(request.act, policy.act);
     return {
       policy,
       g: gMatch,

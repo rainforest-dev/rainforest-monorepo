@@ -35,12 +35,15 @@ pnpm exec nx release                  # Version and release libraries
 ## Critical Architecture
 
 ### Dependency Chain
+
 personal-website → @rainforest-dev/rainforest-ui (via `workspace:*`)
 
 The `dependsOn: ["^build"]` is configured in `apps/personal-website/package.json` under `nx.targets.build` and `nx.targets.dev`, so building personal-website automatically builds rainforest-ui first.
 
 ### rainforest-ui Multi-Entry Build
+
 The library uses glob-based entry points in [vite.config.ts](libs/rainforest-ui/vite.config.ts):
+
 ```typescript
 entry: {
   index: 'src/index.ts',
@@ -53,42 +56,51 @@ entry: {
 ```
 
 **Key implication**: Every `.ts` file in `src/lit/` and `src/utils/` becomes an entry point. Deep imports work automatically:
+
 ```typescript
 import '@rainforest-dev/rainforest-ui/lit/design-system/colors';
 import { sourceColorFromImageBytes } from '@rainforest-dev/rainforest-ui';
 ```
 
 ### Astro Custom Elements
+
 [astro.config.mjs](apps/personal-website/astro.config.mjs) registers Material Web Components and custom components:
+
 ```javascript
 vue({
   template: {
     compilerOptions: {
       isCustomElement: (tag) =>
-        tag.startsWith('md-') || tag.startsWith('rf-') || ['iconify-icon'].includes(tag)
-    }
-  }
-})
+        tag.startsWith('md-') ||
+        tag.startsWith('rf-') ||
+        ['iconify-icon'].includes(tag),
+    },
+  },
+});
 ```
 
-Components from `@material/web` (md-*) and rainforest-ui (rf-*) work in Astro/Vue without framework wrappers.
+Components from `@material/web` (md-_) and rainforest-ui (rf-_) work in Astro/Vue without framework wrappers.
 
 ### React Wrappers for Material Web
+
 See [apps/personal-website/src/components/md3.ts](apps/personal-website/src/components/md3.ts) for the pattern:
+
 ```typescript
 import { createComponent } from '@lit/react';
 export const FilterChip = createComponent({
   tagName: 'md-filter-chip',
   elementClass: MdFilterChip,
   react: React,
-  events: { onClick: 'click' }
+  events: { onClick: 'click' },
 });
 ```
 
 ### Vercel SSR Adapter
+
 `astro.config.mjs` uses `@astrojs/vercel` with `output: 'server'`, Vercel Web Analytics, and Vercel image service enabled. The site deploys to `https://rainforest.tools`.
 
 ### PWA
+
 `personal-website` uses `@vite-pwa/astro` (wraps `vite-plugin-pwa`). PWA config lives in `astro.config.mjs`. Service worker is registered via `virtual:pwa-register` in `src/pwa.ts`. `devOptions.enabled: true` means the service worker is active in dev mode too.
 
 > **Note**: `astro-compress` is loaded via dynamic import (`(await import('astro-compress')).default()`) due to ESM compatibility constraints.
@@ -102,21 +114,27 @@ export const FilterChip = createComponent({
 ## Code Style
 
 ### Prettier
+
 Configured with `singleQuote: true` and `prettier-plugin-tailwindcss` for Tailwind class sorting. Run with:
+
 ```bash
 pnpm prettier --write <file>
 ```
 
 ### Import Sorting (Enforced)
+
 ESLint uses `simple-import-sort` - imports must be alphabetically sorted:
+
 ```bash
 pnpm nx lint <project> --fix  # Auto-sort imports
 ```
 
 ### Module Boundaries
+
 ESLint enforces Nx module boundaries with `@nx/enforce-module-boundaries` rule. Projects can only import from declared dependencies in package.json.
 
 ### rainforest-ui Lint Rules
+
 `libs/rainforest-ui` uses `eslint-plugin-lit` (`flat/recommended`) and `eslint-plugin-storybook` (`flat/recommended`). Story files must import types from `@storybook/web-components-vite` (the framework package), not `@storybook/web-components` (the renderer).
 
 ## Testing
@@ -142,33 +160,38 @@ Stories live in [libs/rainforest-ui/stories/](libs/rainforest-ui/stories/) using
 Content collection config lives at `apps/personal-website/src/content.config.ts` (not `src/content/config.ts` — that was the Astro 5 location).
 
 Always import `z` from `astro/zod`, not from `astro:content` (deprecated) or bare `zod`:
+
 ```typescript
 import { defineCollection, reference } from 'astro:content';
 import { z } from 'astro/zod';
 ```
 
 Zod v4 top-level validators replace deprecated string-chained ones:
+
 ```typescript
 // ✅ Zod v4
-z.url()
-z.email()
+z.url();
+z.email();
 
 // ❌ deprecated
-z.string().url()
-z.string().email()
+z.string().url();
+z.string().email();
 ```
 
 ## pnpm Catalogs
 
 Shared dependency versions are defined in `pnpm-workspace.yaml` under the `catalog:` key. When adding a package that already has a catalog entry (`react`, `react-dom`, `next`, `lit`, `tailwindcss`, `@tailwindcss/vite`, `@tailwindcss/typography`, `@material/material-color-utilities`, `@types/node`, `@types/react`, `@types/react-dom`, `typescript`), use `"catalog:"` as the version string in `package.json`:
+
 ```json
 "react": "catalog:"
 ```
+
 Run `pnpm install` after editing versions in `pnpm-workspace.yaml`.
 
 ## i18n (personal-website)
 
 Uses i18next with:
+
 - Translations in [apps/personal-website/locales/{en,zh}/](apps/personal-website/locales/)
 - Settings in `src/utils/i18n/settings.ts`
 - Astro i18n config uses `fallbackLng` and `supportedLngs` from settings
@@ -176,12 +199,14 @@ Uses i18next with:
 ## Markdown Rendering
 
 Astro markdown configured with:
+
 - `remark-math` + `rehype-katex` for LaTeX math
 - Shiki syntax highlighting with Material Theme (light/dark variants)
 
 ## CI/CD
 
 [.github/workflows/ci.yml](.github/workflows/ci.yml) runs on Node 20:
+
 ```bash
 pnpm nx affected -t lint test typecheck
 ```
@@ -191,12 +216,14 @@ Uses Nx Cloud with 3 distributed agents (`linux-medium-js`) and caches the pnpm 
 ## Common Workflows
 
 ### Adding Lit Component to rainforest-ui
+
 1. Create `libs/rainforest-ui/src/lit/<category>/<component-name>.ts`
 2. Export from `libs/rainforest-ui/src/index.ts` if needed for barrel exports
 3. Write stories in `libs/rainforest-ui/stories/<component-name>.stories.ts`
 4. Component automatically exposed for deep imports via glob config
 
 ### Using rainforest-ui Components
+
 ```typescript
 // Side-effect import (registers web component)
 import '@rainforest-dev/rainforest-ui/lit/design-system/colors';
@@ -206,6 +233,7 @@ import { sourceColorFromImageBytes } from '@rainforest-dev/rainforest-ui';
 ```
 
 ### Debugging Build Issues
+
 ```bash
 pnpm nx graph              # Check dependency relationships
 pnpm nx sync               # Fix TypeScript project references
@@ -215,11 +243,11 @@ pnpm nx reset              # Clear Nx cache
 ## Package Manager
 
 **MUST use pnpm@11.7.0** - specified in package.json `packageManager` field. Commands:
+
 ```bash
 pnpm install          # Install dependencies
 pnpm add <pkg>        # Add dependency (use -w for workspace root)
 ```
-
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->

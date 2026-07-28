@@ -69,7 +69,7 @@ export function JwtDecode(): JSX.Element {
 
   return (
     <div className="border-border bg-card text-card-foreground rounded-xl border p-6">
-      <div className="text-muted-foreground mb-3 font-mono text-[11px] tracking-wide uppercase">
+      <div className="text-muted-foreground mb-3 font-mono text-[11px] uppercase tracking-wide">
         Choose who signs in
       </div>
       <div className="flex flex-col gap-2">
@@ -83,7 +83,7 @@ export function JwtDecode(): JSX.Element {
               aria-pressed={selected}
               onClick={() => handlePersona(id)}
               className={cx(
-                'flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'focus-visible:ring-ring flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2',
                 selected
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border text-foreground hover:bg-muted',
@@ -107,11 +107,7 @@ export function JwtDecode(): JSX.Element {
         disabled={stage === 'hop'}
         className={button({ className: 'mt-4' })}
       >
-        {stage === 'hop'
-          ? 'Signing in…'
-          : decoded
-            ? 'Log in again'
-            : 'Log in'}
+        {stage === 'hop' ? 'Signing in…' : decoded ? 'Log in again' : 'Log in'}
       </button>
 
       <div className="my-5 flex flex-wrap items-stretch gap-0">
@@ -140,10 +136,7 @@ export function JwtDecode(): JSX.Element {
                 <span className="font-mono text-[11px]">{text}</span>
               </div>
               {i < HOPS.length - 1 ? (
-                <span
-                  aria-hidden="true"
-                  className="text-muted-foreground px-2"
-                >
+                <span aria-hidden="true" className="text-muted-foreground px-2">
                   →
                 </span>
               ) : null}
@@ -158,7 +151,7 @@ export function JwtDecode(): JSX.Element {
             <div className="text-muted-foreground mb-2 text-xs">
               access_token (opaque)
             </div>
-            <div className="border-border bg-muted/30 rounded-lg border p-3 font-mono text-xs break-all">
+            <div className="border-border bg-muted/30 break-all rounded-lg border p-3 font-mono text-xs">
               <span className="text-primary">{header}</span>
               <span className="text-muted-foreground">.</span>
               <span className="text-foreground">{payloadSegment}</span>

@@ -98,13 +98,23 @@ export function parseEntry<C extends CollectionName>(
   const schema = schemas[collection];
   try {
     if (JSON_COLLECTIONS.has(collection)) {
-      return { id, data: schema.parse(JSON.parse(raw)) as CollectionData<C>, body: '' };
+      return {
+        id,
+        data: schema.parse(JSON.parse(raw)) as CollectionData<C>,
+        body: '',
+      };
     }
     const { data, content } = matter(raw);
-    return { id, data: schema.parse(data) as CollectionData<C>, body: content.trim() };
+    return {
+      id,
+      data: schema.parse(data) as CollectionData<C>,
+      body: content.trim(),
+    };
   } catch (err) {
     if (err instanceof ZodError) {
-      throw new Error(`Invalid content in ${filePath} (id: ${id}): ${err.message}`);
+      throw new Error(
+        `Invalid content in ${filePath} (id: ${id}): ${err.message}`,
+      );
     }
     throw err;
   }
