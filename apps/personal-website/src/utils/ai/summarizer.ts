@@ -1,3 +1,4 @@
+import { withProbeTimeout } from './probe';
 import type { AiState } from './types';
 
 /**
@@ -42,7 +43,11 @@ export async function detectSummarizerCapability(
 ): Promise<AiState> {
   if (typeof Summarizer === 'undefined') return { kind: 'unsupported' };
 
-  const availability = await Summarizer.availability(options);
+  // A hung probe is treated as a no — see ./probe for the case that made this necessary.
+  const availability = await withProbeTimeout(
+    Summarizer.availability(options),
+    'unavailable',
+  );
   switch (availability) {
     case 'unavailable':
       return { kind: 'unavailable' };

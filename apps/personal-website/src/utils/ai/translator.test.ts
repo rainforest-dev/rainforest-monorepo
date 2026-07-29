@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { PROBE_TIMEOUT_MS } from './probe';
 import {
   __resetForTests,
   destroyTranslator,
@@ -60,6 +61,30 @@ describe('detectTranslatorCapability', () => {
     });
     stubTranslator('available');
     expect(await detectTranslatorCapability(EN_ZH)).toEqual({ kind: 'ready' });
+  });
+
+  // Regression, measured in Chromium 150: this exact call never resolved, while the other two
+  // APIs' probes answered in 0ms on the same page. A component gating its render on the result
+  // would have stayed invisible forever, with nothing logged.
+  it('treats a probe that never settles as unavailable rather than hanging', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(globalThis, 'Translator', {
+      configurable: true,
+      writable: true,
+      value: {
+        availability: vi.fn(
+          () =>
+            new Promise<string>(() => {
+              /* never settles, as observed */
+            }),
+        ),
+        create: vi.fn(),
+      },
+    });
+
+    const pending = detectTranslatorCapability(EN_ZH);
+    await vi.advanceTimersByTimeAsync(PROBE_TIMEOUT_MS + 10);
+    expect(await pending).toEqual({ kind: 'unavailable' });
   });
 
   it('asks about the specific pair — models are per pair, not global', async () => {

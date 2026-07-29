@@ -5,6 +5,7 @@ export {
   enableModel,
   selectTool,
 } from './language-model';
+export { PROBE_TIMEOUT_MS, withProbeTimeout } from './probe';
 export type { SummarizeFailure, SummarizeOptions } from './summarizer';
 export {
   destroySummarizer,

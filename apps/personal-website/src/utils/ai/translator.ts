@@ -1,3 +1,4 @@
+import { withProbeTimeout } from './probe';
 import type { AiState } from './types';
 
 /**
@@ -34,7 +35,12 @@ export async function detectTranslatorCapability(
 ): Promise<AiState> {
   if (typeof Translator === 'undefined') return { kind: 'unsupported' };
 
-  const availability = await Translator.availability(pair);
+  // A hung probe is treated as a no. This is the exact call measured hanging in Chromium 150;
+  // see ./probe.
+  const availability = await withProbeTimeout(
+    Translator.availability(pair),
+    'unavailable',
+  );
   switch (availability) {
     case 'unavailable':
       return { kind: 'unavailable' };

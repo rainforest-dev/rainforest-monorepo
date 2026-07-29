@@ -12,7 +12,15 @@ tags:
 ---
 
 import { Baseline } from '@components/blog';
-import { CheckGPU } from '@components/blog/demo';
+import { CheckGPU, SupportTable } from '@components/blog/demo';
+
+## What your browser can do
+
+The three built-in AI APIs have landed unevenly, and not along the lines you would guess. Chrome 150
+and Edge 150 are both Chromium 150, and they still disagree — Edge ships Summarizer and Translator
+with no Prompt API at all. This table is a live probe, not a copied compatibility chart:
+
+<SupportTable client:load />
 
 ## GPU support check
 

@@ -1,3 +1,4 @@
+import { withProbeTimeout } from './probe';
 import type { AiState } from './types';
 
 /**
@@ -34,7 +35,11 @@ export async function detectCapability(): Promise<AiState> {
   if (typeof LanguageModel === 'undefined') return { kind: 'unsupported' };
   if (hasProbeFailure()) return { kind: 'unsupported' };
 
-  const availability = await LanguageModel.availability();
+  // A hung probe is treated as a no — see ./probe.
+  const availability = await withProbeTimeout(
+    LanguageModel.availability(),
+    'unavailable',
+  );
   switch (availability) {
     case 'unavailable':
       return { kind: 'unavailable' };
