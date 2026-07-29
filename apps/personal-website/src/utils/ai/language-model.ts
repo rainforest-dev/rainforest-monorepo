@@ -112,10 +112,12 @@ async function ensureSession(): Promise<Session> {
 /** Wall-clock bound on a single run. The abort is what the platform honours — we ask it to
  *  stop rather than assuming we can interrupt inference ourselves.
  *
- *  30s, not 20s: measured against Chrome 150's on-device model, successful constrained runs are
- *  bimodal — roughly 0.6–2.4s or 20–21s, with nothing in between. A 20s bound sat directly on top
- *  of the slow mode, so a run that was going to succeed got aborted a second short often enough to
- *  make asking look broken. This is a ceiling for a hung call, not a latency target. */
+ *  A ceiling for a call that has hung, deliberately far above any healthy run. Typical constrained
+ *  runs against Chrome 150 land near a second; the 20–40s runs that originally forced this value up
+ *  from 20s turned out to be self-inflicted — an unconstrained string field in the caller's schema
+ *  invited the model to write an essay into it. Callers own their schemas, so this stays generous
+ *  rather than tight: a bound that trips on a slow-but-working run is worse than one that lets a
+ *  genuinely hung call sit a few extra seconds. */
 export const RUN_TIMEOUT_MS = 30_000;
 
 let hasSucceededOnce = false;

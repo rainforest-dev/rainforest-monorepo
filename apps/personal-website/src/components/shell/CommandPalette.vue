@@ -112,7 +112,17 @@ const SELECTION_SCHEMA = {
     // miss, leaving the strip blank. Making the wrong value unrepresentable beats validating it
     // after the fact.
     technology: { type: 'string', enum: tags.skills },
-    query: { type: 'string' },
+    // A single token, not free text — `search_by_technology` substring-matches technology names
+    // ('tailwindcss', 'github-actions'), so a phrase could never match one anyway.
+    //
+    // This is also, unexpectedly, the entire latency story. Left as `{ type: 'string' }` the model
+    // treats the field as room to answer the question itself: measured against Chrome 150 it wrote
+    // 2,805 characters of prose — a hallucinated list naming Shopify, Discord and Grafana as Vue
+    // projects — and took 39s to do it. That is what the run timeout kept cutting off, and what
+    // made latency look bimodal. Denying it spaces collapses the same call to ~1s and yields an
+    // actual search term ("script", "Vue.js"). Constraining the output shape turned out to be
+    // worth more than any timeout tuning.
+    query: { type: 'string', pattern: '^[A-Za-z0-9.#+-]{1,24}$' },
   },
 };
 
