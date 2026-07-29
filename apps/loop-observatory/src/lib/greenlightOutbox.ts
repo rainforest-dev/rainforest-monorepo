@@ -122,6 +122,20 @@ export function scanStates(slug: string): Record<string, OutboxState> {
 }
 
 /**
+ * Outbox state for every task, scanning each slug once.
+ *
+ * `scan` is injectable so a test can assert the call count: the board renders
+ * ~37 cards and a per-card scan would mean two filesystem checks each, so
+ * "once per slug" is a requirement, not an optimisation.
+ */
+export function statesForSlugs(
+  slugs: Iterable<string>,
+  scan: (slug: string) => Record<string, OutboxState> = scanStates,
+): Map<string, Record<string, OutboxState>> {
+  return new Map([...new Set(slugs)].map((slug) => [slug, scan(slug)]));
+}
+
+/**
  * Drop acked pairs past the retention window; return the ids removed.
  *
  * Two kinds of pair are deliberately immortal: an unacked request is still

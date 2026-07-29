@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 
-import { scanStates } from '../../lib/greenlightOutbox.js';
+import { statesForSlugs } from '../../lib/greenlightOutbox.js';
 import { GREENLIGHT_TARGETS } from '../../lib/taskDecision.js';
 import { noteHasFeedback } from '../../lib/taskNote.js';
 import { readTasks, readTasksProgress } from '../../lib/tasks.js';
@@ -22,7 +22,7 @@ export const GET: APIRoute = () => {
         .map((t) => (t.component ? GREENLIGHT_TARGETS[t.component]?.slug : undefined))
         .filter((slug): slug is string => Boolean(slug)),
     );
-    const outboxStates = new Map([...slugs].map((slug) => [slug, scanStates(slug)]));
+    const outboxStates = statesForSlugs(slugs);
 
     data.tasks = data.tasks.map((t) => {
       const p = progress?.[String(t.id)];

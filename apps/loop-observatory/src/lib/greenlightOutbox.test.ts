@@ -11,6 +11,7 @@ import {
   readRequest,
   requestState,
   scanStates,
+  statesForSlugs,
   writeRequest,
 } from './greenlightOutbox.js';
 import type { SprintTask } from './tasks.js';
@@ -207,9 +208,27 @@ describe('scanStates', () => {
     expect(scanStates(SLUG)).toEqual({ '130': 'pending', '131': 'applied' });
   });
 
-  it('ignores an entry whose id is unsafe', () => {
+  it('skips an entry whose id is not a safe id', () => {
     writeRequest(task(130), SLUG, null, '');
-    writeFileSync(join(dir, SLUG, '../escape.json'), '{}');
-    expect(Object.keys(scanStates(SLUG))).toEqual(['130']);
+    // `SAFE_ID` is /^[A-Za-z]{0,8}-?\d{1,9}$/ — each of these fails it for a
+    // different reason: no digits, a prefix over eight characters, and ten
+    // digits. All are legal filenames, so they reach the SAFE_ID guard rather
+    // than being filtered out earlier by the filesystem.
+    for (const bad of ['not-an-id', 'toolongprefix-1', '1234567890']) {
+      writeFileSync(join(dir, SLUG, `${bad}.json`), '{}');
+    }
+    expect(Object.keys(scanStates(SLUG)).sort()).toEqual(['130']);
+  });
+});
+
+describe('statesForSlugs', () => {
+  it('scans each slug once even when many tasks share it', () => {
+    const calls: string[] = [];
+    const scan = (slug: string) => {
+      calls.push(slug);
+      return {};
+    };
+    statesForSlugs(['a', 'a', 'b', 'a'], scan);
+    expect(calls).toEqual(['a', 'b']);
   });
 });
