@@ -8,6 +8,8 @@
  * reuse the themed chart/status tokens from `app.css` (light + dark aware).
  */
 
+import type { OutboxState } from './greenlightOutbox.js';
+
 /** Canonical Notion status order (also the fallback when the file omits it). */
 export const DEFAULT_STATUSES = [
   'Backlog',
@@ -293,3 +295,37 @@ export function scopeBadge(scope: string): ScopeBadge {
   }
   return { label: 'work', color: 'var(--muted-foreground)', bg: 'var(--muted)' };
 }
+
+/**
+ * Board chip for a task's greenlight-relay state, or null when there is
+ * nothing to say. `duplicate` reads the same as `applied` to the owner: Air has
+ * it either way.
+ */
+export function outboxChip(
+  state: OutboxState | null | undefined,
+): { label: string; color: string; title: string } | null {
+  switch (state) {
+    case 'pending':
+      return {
+        label: '⇢ Air',
+        color: 'var(--status-warning)',
+        title: 'Greenlight queued to Air — applies on its next pull (up to ~5 minutes)',
+      };
+    case 'applied':
+    case 'duplicate':
+      return {
+        label: '✓ Air',
+        color: 'var(--status-good)',
+        title: 'Greenlight applied on Air',
+      };
+    case 'failed':
+      return {
+        label: '⚠ Air',
+        color: 'var(--status-critical)',
+        title: 'Air rejected this greenlight request — open the task for the reason',
+      };
+    default:
+      return null;
+  }
+}
+

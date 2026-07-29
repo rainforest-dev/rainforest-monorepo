@@ -6,6 +6,7 @@ import {
   boardColumn,
   boardColumnColor,
   columnOwner,
+  outboxChip,
   ownerMeta,
   taskOwner,
 } from './taskStatus.js';
@@ -140,5 +141,27 @@ describe('boardColumn invariant', () => {
     for (const v of LOOP_VOCAB) {
       expect(BOARD_COLUMNS).toContain(boardColumn('Not started', v));
     }
+  });
+});
+
+describe('outboxChip', () => {
+  it('is null when there is no relay state to report', () => {
+    expect(outboxChip(null)).toBeNull();
+    expect(outboxChip(undefined)).toBeNull();
+    expect(outboxChip('none')).toBeNull();
+  });
+
+  it('marks a queued request as waiting on Air, and states the delay', () => {
+    const chip = outboxChip('pending');
+    expect(chip?.label).toBe('⇢ Air');
+    expect(chip?.title).toMatch(/5 minutes/);
+  });
+
+  it('treats duplicate the same as applied — Air has it either way', () => {
+    expect(outboxChip('duplicate')).toEqual(outboxChip('applied'));
+  });
+
+  it('distinguishes a rejection from a success', () => {
+    expect(outboxChip('failed')?.label).not.toBe(outboxChip('applied')?.label);
   });
 });

@@ -31,7 +31,7 @@ interface GreenlightTarget {
   component: string;
 }
 
-const GREENLIGHT_TARGETS: Record<string, GreenlightTarget> = {
+export const GREENLIGHT_TARGETS: Record<string, GreenlightTarget> = {
   'cloud-frontend': { slug: 'service-dashboard-frontend', component: 'cloud-frontend' },
   'cloud-backend': { slug: 'service-cloud-backend', component: 'cloud-backend' },
 };

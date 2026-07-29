@@ -12,6 +12,7 @@ import {
   boardColumnColor,
   columnOwner,
   loopStageLabel,
+  outboxChip,
   ownerMeta,
   priorityColor,
   scopeBadge,
@@ -144,6 +145,16 @@ const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
               title="Status tracked by the loop"
             >
               ◆ loop
+            </span>
+            <!-- Greenlight-relay state: must precede the hasFeedback dot, which
+                 uses ml-auto to pin itself to the right edge. -->
+            <span
+              v-if="outboxChip(card.outboxState)"
+              class="shrink-0 rounded px-1 text-[9px] font-medium"
+              :style="{ color: outboxChip(card.outboxState)!.color }"
+              :title="outboxChip(card.outboxState)!.title"
+            >
+              {{ outboxChip(card.outboxState)!.label }}
             </span>
             <span
               v-if="card.hasFeedback"

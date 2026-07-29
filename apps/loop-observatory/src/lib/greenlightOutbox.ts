@@ -101,6 +101,27 @@ export function requestState(slug: string, id: string): OutboxState {
 }
 
 /**
+ * Every request's state for one slug, from a single directory read.
+ *
+ * The board needs this for every card at once, so per-task `requestState` calls
+ * would mean two fs checks per card. A pending request needs no file read at
+ * all here — the absence of its ack in the same listing is the answer.
+ */
+export function scanStates(slug: string): Record<string, OutboxState> {
+  const dir = slugDir(slug);
+  if (!existsSync(dir)) return {};
+  const entries = new Set(readdirSync(dir));
+  const states: Record<string, OutboxState> = {};
+  for (const entry of entries) {
+    if (!entry.endsWith('.json') || entry.endsWith('.ack.json')) continue;
+    const id = entry.slice(0, -'.json'.length);
+    if (!SAFE_ID.test(id)) continue;
+    states[id] = entries.has(`${id}.ack.json`) ? requestState(slug, id) : 'pending';
+  }
+  return states;
+}
+
+/**
  * Drop acked pairs past the retention window; return the ids removed.
  *
  * Two kinds of pair are deliberately immortal: an unacked request is still

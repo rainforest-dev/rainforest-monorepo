@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { usageDir } from './ledger.js';
+import type { OutboxState } from './greenlightOutbox.js';
 import { DEFAULT_STATUSES } from './taskStatus.js';
 
 /** A linked Notion record (epic or parent story) referenced by a task. */
@@ -16,7 +17,7 @@ export type TaskScope = 'work' | 'personal';
 
 /** One sprint work item as it appears in `tasks.json`'s `tasks` array. */
 export interface SprintTask {
-  /** Numeric for Notion work tasks; a slug string for personal (Obsidian) ones. */
+  /** Board ID for Notion work tasks (for example `AG-297`); a slug for personal tasks. */
   id: number | string | null;
   /** Board sort order; drives card/node ordering. */
   order: number;
@@ -51,6 +52,12 @@ export interface SprintTask {
   loopStatus?: string | null;
   pr?: string | null;
   loopNote?: string | null;
+  /**
+   * Greenlight-relay state from the outbox, merged in by the tasks API so the
+   * board can show a queued authorisation. Absent for tasks with no company
+   * project.
+   */
+  outboxState?: OutboxState | null;
 }
 
 /** The active sprint the board is scoped to. */

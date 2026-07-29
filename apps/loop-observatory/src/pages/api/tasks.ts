@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 
+import { scanStates } from '../../lib/greenlightOutbox.js';
+import { GREENLIGHT_TARGETS } from '../../lib/taskDecision.js';
 import { noteHasFeedback } from '../../lib/taskNote.js';
 import { readTasks, readTasksProgress } from '../../lib/tasks.js';
 
@@ -14,14 +16,24 @@ export const GET: APIRoute = () => {
 
     // Augment each task with a cheap "has pending feedback" flag (from its local
     // note) and the loop-progress overlay merged by matching task id.
+    // One directory read per company slug, not one fs check per card.
+    const slugs = new Set(
+      data.tasks
+        .map((t) => (t.component ? GREENLIGHT_TARGETS[t.component]?.slug : undefined))
+        .filter((slug): slug is string => Boolean(slug)),
+    );
+    const outboxStates = new Map([...slugs].map((slug) => [slug, scanStates(slug)]));
+
     data.tasks = data.tasks.map((t) => {
       const p = progress?.[String(t.id)];
+      const slug = t.component ? GREENLIGHT_TARGETS[t.component]?.slug : undefined;
       return {
         ...t,
         hasFeedback: noteHasFeedback(t),
         loopStatus: p?.loop_status ?? null,
         pr: p?.pr ?? null,
         loopNote: p?.note ?? null,
+        outboxState: slug ? (outboxStates.get(slug)?.[String(t.id)] ?? null) : null,
       };
     });
     return Response.json(data);

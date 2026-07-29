@@ -10,6 +10,7 @@ import {
   readAck,
   readRequest,
   requestState,
+  scanStates,
   writeRequest,
 } from './greenlightOutbox.js';
 import type { SprintTask } from './tasks.js';
@@ -176,5 +177,39 @@ describe('prunePairs', () => {
     ack('134', 'applied');
     expect(prunePairs(SLUG, NOW)).toEqual([]);
     expect(requestState(SLUG, '134')).toBe('applied');
+  });
+});
+
+describe('scanStates', () => {
+  it('is empty when the slug has no directory', () => {
+    expect(scanStates('never-used-slug')).toEqual({});
+  });
+
+  it('reports pending for a request with no ack, without needing the ack file', () => {
+    writeRequest(task(130), SLUG, null, '');
+    expect(scanStates(SLUG)).toEqual({ '130': 'pending' });
+  });
+
+  it('reports each request independently', () => {
+    writeRequest(task(130), SLUG, null, '');
+    writeRequest(task(131), SLUG, null, '');
+    writeFileSync(
+      join(dir, SLUG, '131.ack.json'),
+      JSON.stringify({
+        version: OUTBOX_VERSION,
+        id: '131',
+        result: 'applied',
+        reason: null,
+        appliedAt: '2026-07-28T08:00:00.000Z',
+        machine: 'Angibles-MacBook-Air',
+      }),
+    );
+    expect(scanStates(SLUG)).toEqual({ '130': 'pending', '131': 'applied' });
+  });
+
+  it('ignores an entry whose id is unsafe', () => {
+    writeRequest(task(130), SLUG, null, '');
+    writeFileSync(join(dir, SLUG, '../escape.json'), '{}');
+    expect(Object.keys(scanStates(SLUG))).toEqual(['130']);
   });
 });
