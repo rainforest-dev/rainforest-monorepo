@@ -1,0 +1,16 @@
+# These exist in the INSTALL directory, never here. install.sh does not create,
+# overwrite, or read any of them. They are listed so that copying an install
+# directory into this tree — the obvious way to capture a change — cannot commit
+# them by accident.
+#
+# greenlight/ matters most: it records which tasks an unsupervised agent may act
+# on. In git, an authorisation would gain a version history, and checking out an
+# old commit would restore an authorisation the owner had withdrawn.
+config.yaml
+greenlight/
+projects/
+registry.json
+*.log
+.venv/
+__pycache__/
+*.pyc

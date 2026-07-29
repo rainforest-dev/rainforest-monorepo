@@ -1,0 +1,54 @@
+# Template for ~/.claude/loop/config.yaml.
+#
+# install.sh copies this ONLY when no config.yaml exists, and never overwrites a
+# real one -- the live file names actual repositories and absolute paths, so it
+# stays out of the repo and off this template.
+
+defaults:
+  # greenlit-only: the loop may touch a task only while it is listed in that
+  # project's allowlist, and stops at pr-ready. autonomous: runs to stop_at
+  # without per-task authorisation. read-only: scans and reports, never writes.
+  policy: greenlit-only
+  dormant_days: 21
+  budget_usd: 10
+  max_iter: 15
+
+  # Where loop state is published for Observatory to read. Set it explicitly on
+  # every machine. The fallback -- ~/Repositories/rainforest-obsidian -- happens
+  # to be the live vault on the Observatory host and a stale clone on the other
+  # one, so a machine that guesses can publish, succeed, and be read by nobody.
+  vault_path: /absolute/path/to/your/vault
+
+projects:
+  # A personal, read-only example: tasks come from vault notes, nothing is written.
+  - slug: my-vault
+    path: /absolute/path/to/your/vault
+    source: obsidian-base
+    source_config:
+      tasks_dir: _system/tasks
+      scope: personal
+    policy: read-only
+    stop_at: none
+    machines: [my-personal-host]
+
+  # A work project driven from a Notion board, gated per task.
+  - slug: my-frontend
+    path: /absolute/path/to/the/repo
+    source: notion
+    source_config:
+      tasks_dir: /absolute/path/to/your/vault/_system/tasks
+      tasks_path: /absolute/path/to/your/vault/_system/usage/notion-tasks.json
+      task_map_path: /absolute/path/to/your/vault/_system/usage/task-map.json
+      assignee: Your Name
+      components: [frontend]
+      base: origin/dev
+    # The allowlist this project is gated on. The file itself is owner-maintained
+    # and NOT in the repo: it records what an unsupervised agent may do, so a
+    # checkout of an old commit would restore an old authorisation.
+    greenlight: ~/.claude/loop/greenlight/my-frontend.md
+    policy: greenlit-only
+    stop_at: pr-ready
+    # Every hostname allowed to execute this project. A machine absent from this
+    # list will not pick the project up even if its allowlist has entries --
+    # which is how company work stays on the company machine.
+    machines: [my-work-host]

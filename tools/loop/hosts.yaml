@@ -1,0 +1,87 @@
+# Which machine runs which part of the loop.
+#
+# Roles, not directories. `engine` runs on every machine that executes work, so
+# splitting the tree by hostname would mean two copies of the same twelve Python
+# files -- and on 2026-07-29 the two installs were found already drifted from
+# each other (mini was missing greenlight.py and three modules behind). One copy,
+# many hosts, is the whole point.
+#
+# A hostname is also the least stable fact here: replace the laptop and every
+# path changes, while "the company executor" does not. So the roles below are
+# named after what a machine does, and this file is the only place that maps a
+# machine to them.
+#
+# Read by install.sh. Adding a host means adding an entry here, not a directory.
+
+roles:
+  engine:
+    description: loopctl + ralph.sh + the contract. Required by anything that executes.
+    installs:
+      - engine/ -> ~/.claude/loop/
+    note: >
+      Brings its own pyproject/uv.lock; install.sh creates the venv. Never
+      overwrites config.yaml or greenlight/ -- see "Not in this repo" in README.
+
+  ralph:
+    description: The LaunchAgent that drives iterations.
+    installs:
+      - launchd/<host>.tools.rainforest.loop-ralph.plist
+    note: >
+      Installed disabled. Enabling an unsupervised executor is a deliberate act,
+      never a side effect of running install.sh.
+
+  relay-pull:
+    description: >
+      Pulls greenlight requests queued by Observatory and applies them through
+      loopctl greenlight-apply. Only the machine that OWNS an allowlist runs
+      this -- it is the single writer of greenlight/<slug>.md.
+    installs:
+      - relay/pull.sh -> ~/.local/share/loop-greenlight-pull/
+      - launchd/<host>.com.rainforest.greenlight-pull.plist
+
+  usage-hourly:
+    description: Hourly quota and ledger refresh.
+    installs:
+      - launchd/<host>.com.rainforest.usage-hourly.plist
+    note: >
+      Air additionally needs usage/run-hourly-air.sh, because launchd there is
+      denied READ access to iCloud under TCC (writes are allowed) -- a plist
+      pointing straight at the iCloud path fails before the script starts, and
+      silently. That is a host-specific implementation of a shared role, which
+      is why it is a filename and not a directory.
+
+  usage-publish:
+    description: Pushes this machine's telemetry to the Observatory host.
+    installs:
+      - usage/publish-air-to-mini.sh -> ~/.local/share/loop-usage-runtime/
+      - launchd/<host>.com.rainforest.usage-air-publish.plist
+
+  observatory:
+    description: The Loop Observatory web app (apps/loop-observatory in this repo).
+    installs:
+      - launchd/<host>.tools.rainforest.loop-observatory.plist
+
+  loop-sync:
+    description: Notion/board sync service that owns provider credentials.
+    installs:
+      - launchd/<host>.com.rainforest.loop-sync.plist
+    note: Reads its tokens from ~/.config/loop/, which is not in this repo.
+
+  icloud-mirror:
+    description: Mirrors vault-authored files from iCloud into the readable clone.
+    installs:
+      - launchd/<host>.com.rainforest.icloud-mirror.plist
+    note: >
+      The script itself lives in the vault repo (scripts/usage/mirror_icloud.py),
+      not here; only the schedule is deployed from this repo.
+
+hosts:
+  Angibles-MacBook-Air:
+    scope: company
+    executes: company work only
+    roles: [engine, ralph, relay-pull, usage-hourly, usage-publish]
+
+  rainforest-mini:
+    scope: personal
+    executes: personal work only, and hosts Observatory for both
+    roles: [engine, ralph, observatory, loop-sync, usage-hourly, icloud-mirror]
