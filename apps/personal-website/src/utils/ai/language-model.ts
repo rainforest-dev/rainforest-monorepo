@@ -1,3 +1,4 @@
+import { withProbeTimeout } from './probe';
 import type { AiState } from './types';
 
 /**
@@ -34,7 +35,11 @@ export async function detectCapability(): Promise<AiState> {
   if (typeof LanguageModel === 'undefined') return { kind: 'unsupported' };
   if (hasProbeFailure()) return { kind: 'unsupported' };
 
-  const availability = await LanguageModel.availability();
+  // A hung probe is treated as a no — see ./probe.
+  const availability = await withProbeTimeout(
+    LanguageModel.availability(),
+    'unavailable',
+  );
   switch (availability) {
     case 'unavailable':
       return { kind: 'unavailable' };
@@ -91,9 +96,34 @@ export async function enableModel(
   })) as unknown as Session;
 }
 
+/**
+ * The live session, opening one first if there isn't one.
+ *
+ * Returns it rather than relying on the module-level `session` staying narrowed: an `await`
+ * between the null check and the use invalidates TypeScript's narrowing, and silencing that with
+ * `!` would assert something this function is better off actually proving.
+ *
+ * Opening on demand is what makes the `ready` path work at all. `ready` is reached only when
+ * availability is already `available`, meaning the weights are on disk and `create()` neither
+ * downloads nor needs a user gesture — the gesture requirement documented on `enableModel` is
+ * about the `downloadable` path, which still goes through the explicit control.
+ */
+async function ensureSession(): Promise<Session> {
+  if (!session) await enableModel();
+  if (!session) throw new Error('Could not open a language model session');
+  return session;
+}
+
 /** Wall-clock bound on a single run. The abort is what the platform honours — we ask it to
- *  stop rather than assuming we can interrupt inference ourselves. */
-export const RUN_TIMEOUT_MS = 20_000;
+ *  stop rather than assuming we can interrupt inference ourselves.
+ *
+ *  A ceiling for a call that has hung, deliberately far above any healthy run. Typical constrained
+ *  runs against Chrome 150 land near a second; the 20–40s runs that originally forced this value up
+ *  from 20s turned out to be self-inflicted — an unconstrained string field in the caller's schema
+ *  invited the model to write an essay into it. Callers own their schemas, so this stays generous
+ *  rather than tight: a bound that trips on a slow-but-working run is worse than one that lets a
+ *  genuinely hung call sit a few extra seconds. */
+export const RUN_TIMEOUT_MS = 30_000;
 
 let hasSucceededOnce = false;
 
@@ -121,9 +151,6 @@ export async function selectTool<T>(
   schema: Record<string, unknown>,
   opts: { signal?: AbortSignal } = {},
 ): Promise<T> {
-  if (!session)
-    throw new Error('enableModel() must be called before selectTool()');
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
   const onCallerAbort = () => controller.abort();
@@ -131,6 +158,9 @@ export async function selectTool<T>(
   // An `abort` listener never fires on a signal that is ALREADY aborted — the event fires once,
   // when abort() is called. Subscribing alone would let a pre-aborted caller signal run the full
   // RUN_TIMEOUT_MS as if nothing were wrong, so check the current state first.
+  //
+  // This is wired up BEFORE opening the session, and the timeout covers that too: the whole
+  // operation is what the caller asked to bound, not just the inference part of it.
   if (opts.signal?.aborted) {
     controller.abort();
   } else {
@@ -138,7 +168,15 @@ export async function selectTool<T>(
   }
 
   try {
-    const raw = await session.prompt(query, {
+    const active = await ensureSession();
+    // Opening a session is itself awaitable, so the caller can abort while it is in flight. Do
+    // not hand an already-aborted signal to `prompt()` and hope: its `abort` event has already
+    // fired and fires only once, so an implementation that merely subscribes would hang until
+    // the timeout — the same one-shot-event trap guarded above, reachable a level up.
+    if (controller.signal.aborted) {
+      throw new DOMException('aborted', 'AbortError');
+    }
+    const raw = await active.prompt(query, {
       responseConstraint: schema,
       signal: controller.signal,
     });
