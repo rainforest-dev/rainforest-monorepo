@@ -346,8 +346,15 @@ describe('selectTool with an already-aborted signal', () => {
       selectTool('q', SCHEMA, { signal: controller.signal }),
     ).rejects.toThrow();
 
-    // Subscribing alone would miss this: the abort event already fired.
-    expect(promptStarted).toBe(true);
+    // The contract this pins is "reject promptly, without waiting out RUN_TIMEOUT_MS", and the
+    // rejection above is that contract. `prompt` is deliberately NOT started: an already-aborted
+    // caller has given up, so there is no inference worth beginning, and not starting it is the
+    // one behaviour that does not depend on the platform rejecting a pre-aborted signal.
+    //
+    // This assertion previously read `toBe(true)` — it documented an implementation that handed
+    // the aborted signal to `prompt` and relied on it to reject. Opening the session became
+    // awaitable, which made that route hang against any implementation that only subscribes.
+    expect(promptStarted).toBe(false);
     expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBeNull();
   });
 });

@@ -91,9 +91,32 @@ export async function enableModel(
   })) as unknown as Session;
 }
 
+/**
+ * The live session, opening one first if there isn't one.
+ *
+ * Returns it rather than relying on the module-level `session` staying narrowed: an `await`
+ * between the null check and the use invalidates TypeScript's narrowing, and silencing that with
+ * `!` would assert something this function is better off actually proving.
+ *
+ * Opening on demand is what makes the `ready` path work at all. `ready` is reached only when
+ * availability is already `available`, meaning the weights are on disk and `create()` neither
+ * downloads nor needs a user gesture — the gesture requirement documented on `enableModel` is
+ * about the `downloadable` path, which still goes through the explicit control.
+ */
+async function ensureSession(): Promise<Session> {
+  if (!session) await enableModel();
+  if (!session) throw new Error('Could not open a language model session');
+  return session;
+}
+
 /** Wall-clock bound on a single run. The abort is what the platform honours — we ask it to
- *  stop rather than assuming we can interrupt inference ourselves. */
-export const RUN_TIMEOUT_MS = 20_000;
+ *  stop rather than assuming we can interrupt inference ourselves.
+ *
+ *  30s, not 20s: measured against Chrome 150's on-device model, successful constrained runs are
+ *  bimodal — roughly 0.6–2.4s or 20–21s, with nothing in between. A 20s bound sat directly on top
+ *  of the slow mode, so a run that was going to succeed got aborted a second short often enough to
+ *  make asking look broken. This is a ceiling for a hung call, not a latency target. */
+export const RUN_TIMEOUT_MS = 30_000;
 
 let hasSucceededOnce = false;
 
@@ -121,17 +144,6 @@ export async function selectTool<T>(
   schema: Record<string, unknown>,
   opts: { signal?: AbortSignal } = {},
 ): Promise<T> {
-  // Open a session on demand rather than requiring enableModel() first. `ready` is reached only
-  // when availability is already `available` (detectCapability), which means the weights are on
-  // disk and `create()` neither downloads nor needs a user gesture — the constraint enableModel's
-  // doc comment describes applies to the `downloadable` path, not this one.
-  //
-  // Without this, the AI path was dead on exactly the machines it was built for: a visitor whose
-  // model is already downloaded gets `ready`, so the palette offers the Ask row, but the Enable
-  // control that used to be the only caller of enableModel() renders solely for `downloadable`.
-  // Asking threw here, ask()'s catch swallowed it, and the strip stayed blank forever.
-  if (!session) await enableModel();
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
   const onCallerAbort = () => controller.abort();
@@ -139,6 +151,9 @@ export async function selectTool<T>(
   // An `abort` listener never fires on a signal that is ALREADY aborted — the event fires once,
   // when abort() is called. Subscribing alone would let a pre-aborted caller signal run the full
   // RUN_TIMEOUT_MS as if nothing were wrong, so check the current state first.
+  //
+  // This is wired up BEFORE opening the session, and the timeout covers that too: the whole
+  // operation is what the caller asked to bound, not just the inference part of it.
   if (opts.signal?.aborted) {
     controller.abort();
   } else {
@@ -146,7 +161,15 @@ export async function selectTool<T>(
   }
 
   try {
-    const raw = await session.prompt(query, {
+    const active = await ensureSession();
+    // Opening a session is itself awaitable, so the caller can abort while it is in flight. Do
+    // not hand an already-aborted signal to `prompt()` and hope: its `abort` event has already
+    // fired and fires only once, so an implementation that merely subscribes would hang until
+    // the timeout — the same one-shot-event trap guarded above, reachable a level up.
+    if (controller.signal.aborted) {
+      throw new DOMException('aborted', 'AbortError');
+    }
+    const raw = await active.prompt(query, {
       responseConstraint: schema,
       signal: controller.signal,
     });

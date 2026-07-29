@@ -24,9 +24,42 @@ const inputEl = ref<HTMLInputElement | null>(null);
 
 const results = computed(() => searchRecords(query.value, props.records));
 
-const { state, refresh, enable, selectTool } = useLanguageModel();
+const {
+  state,
+  // The composable turns a failed run into `null` + this ref rather than rethrowing, so a
+  // timeout never reaches the catch below — reading it here is the only way to tell "took too
+  // long" apart from "could not answer".
+  error: aiError,
+  refresh,
+  enable,
+  selectTool,
+} = useLanguageModel();
 const answer = ref<string | null>(null);
 const asking = ref(false);
+/**
+ * Why a failed ask is shown rather than swallowed.
+ *
+ * This started as a bare `catch` that set `answer` to null, on the reasoning that a failed ask
+ * must not break search. It doesn't — but it also made three separate defects indistinguishable
+ * from "the model had nothing to say": a missing session, a schema near-miss, and a timeout all
+ * rendered as the same silent nothing, with no error in the console either. Two of them survived
+ * a full review and only surfaced when the feature was driven by hand in a real browser.
+ *
+ * 'timeout' is kept distinct from 'failed' because the two ask different things of the reader:
+ * one is worth retrying, the other isn't.
+ */
+const askError = ref<'timeout' | 'failed' | null>(null);
+
+/** Both the run timeout and a caller abort surface as an AbortError; nothing else does. */
+const isAbort = (cause: unknown): boolean =>
+  cause instanceof DOMException && cause.name === 'AbortError';
+
+/** Both halves of the answer strip, cleared together — three call sites reset this, and a
+ *  stale error under a fresh answer is exactly the drift separate assignments invite. */
+function resetAnswer() {
+  answer.value = null;
+  askError.value = null;
+}
 
 // No answer strip in zh: E0 pins model output to English because non-English replies are
 // unreliable, and English prose above Chinese records reads as a bug rather than a decision.
@@ -90,7 +123,7 @@ const toolDescriptors = toToolDescriptors();
 async function ask() {
   if (asking.value) return;
   asking.value = true;
-  answer.value = null;
+  resetAnswer();
   try {
     const choice = await selectTool<{
       tool: string;
@@ -98,30 +131,42 @@ async function ask() {
       query?: string;
     }>(query.value, SELECTION_SCHEMA);
     // null means the call failed; selectTool has already re-read capability state, and the
-    // search results below are unaffected.
-    if (!choice) return;
+    // search results below are unaffected. This — not the catch — is the path a timeout takes,
+    // because the composable converts a throw into null.
+    if (!choice) {
+      askError.value = isAbort(aiError.value) ? 'timeout' : 'failed';
+      return;
+    }
     const tool = PROFILE_TOOLS.find((entry) => entry.name === choice.tool);
     const descriptor = toolDescriptors.find(
       (entry) => entry.name === choice.tool,
     );
-    if (!tool || !descriptor) return;
+    // The model named a tool that isn't in the catalog. `tool` is enum-constrained, so this
+    // should be unreachable — but it is a silent dead end if it ever is reached, which is the
+    // failure mode this whole strip exists to eliminate.
+    if (!tool || !descriptor) {
+      askError.value = 'failed';
+      return;
+    }
     const args = {
       technology: choice.technology,
       query: choice.query,
       lang: props.lang,
     };
-    // Go through the validated `execute`, not `tool.run` directly: SELECTION_SCHEMA's
-    // `technology`/`query` are unconstrained strings, unlike the real per-tool params (e.g. an
-    // enum of known skill tags). Calling `run` on a near-miss value would still return a *real*
-    // but wrong result — "typescript" vs "TypeScript" silently yields 0 roles — and the strip
-    // would present that confidently. `execute` rejects it instead, so the strip shows nothing
-    // rather than a plausible-looking wrong answer.
+    // Go through the validated `execute`, not `tool.run` directly. `technology` is now
+    // enum-constrained above, but `query` is still a free string and `responseConstraint` is a
+    // request to the platform, not a guarantee we control — a model that ignores the schema is
+    // the exact failure E0 exists to catch. Calling `run` on a near-miss value would return a
+    // *real* but wrong result ("typescript" vs "TypeScript" silently yields 0 roles) and the
+    // strip would state it confidently. `execute` rejects it instead.
     const result = await descriptor.execute(args);
     // The sentence comes from the real result, never from the model.
     answer.value = tool.summarise(result as never, args as never);
-  } catch {
-    // A failed ask must not break search. Leave the strip empty and let the list stand.
+  } catch (error) {
+    // A failed ask still must not break search — the list below stands untouched. What changed is
+    // that the reader is told, instead of being shown a strip that silently disappears.
     answer.value = null;
+    askError.value = isAbort(error) ? 'timeout' : 'failed';
   } finally {
     asking.value = false;
   }
@@ -141,14 +186,14 @@ function togglePalette() {
   }
   query.value = '';
   selected.value = 0;
-  answer.value = null;
+  resetAnswer();
   open.value = true;
   nextTick(() => inputEl.value?.focus());
 }
 
 function onQueryInput() {
   selected.value = 0;
-  answer.value = null;
+  resetAnswer();
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -253,6 +298,23 @@ onUnmounted(() => registration?.dispose());
           >On-device answer</span
         >
         <p>{{ answer }}</p>
+      </div>
+      <div
+        v-else-if="askError"
+        class="border-b px-4 py-2 text-sm"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="text-muted-foreground mr-2 text-xs uppercase"
+          >On-device answer</span
+        >
+        <p class="text-muted-foreground">
+          {{
+            askError === 'timeout'
+              ? 'The on-device model took too long. Your search results are below.'
+              : "Couldn't answer that one. Your search results are below."
+          }}
+        </p>
       </div>
       <ul class="max-h-80 overflow-y-auto py-1" role="listbox">
         <li
