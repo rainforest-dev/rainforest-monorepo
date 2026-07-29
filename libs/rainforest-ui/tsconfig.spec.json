@@ -10,7 +10,8 @@
       "vitest"
     ],
     "module": "NodeNext",
-    "moduleResolution": "nodenext"
+    "moduleResolution": "nodenext",
+    "rootDir": "."
   },
   "include": [
     "vite.config.ts",

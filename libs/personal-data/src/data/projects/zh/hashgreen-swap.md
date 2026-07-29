@@ -4,6 +4,8 @@ language: 'zh'
 technologies: ['nextjs', 'tailwindcss', 'vitest']
 organization: 'zh/codegreen'
 experience: 'zh/6'
+startAt: '2023'
+featured: true
 ---
 
 - 領導了 Chia 區塊鏈上第一個自動化市場製造商（AMM）的前端開發工作，與設計師和後端工程師密切合作，提供無縫的用戶體驗。

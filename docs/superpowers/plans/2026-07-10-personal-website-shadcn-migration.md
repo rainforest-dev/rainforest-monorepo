@@ -13,6 +13,7 @@
 ## File Structure
 
 **New files:**
+
 - `libs/rainforest-ui/src/tailwindcss/shadcn.ts` — the new token-engine Tailwind plugin
 - `apps/personal-website/components.json` — shadcn-vue CLI config (for future `shadcn-vue add`, even though this plan hand-writes the components)
 - `apps/personal-website/src/utils/cn.ts` — `clsx` + `tailwind-merge` class helper
@@ -24,6 +25,7 @@
 - `apps/personal-website/src/components/ui/tabs/{Tabs,TabsList,TabsTrigger,TabsContent}.vue`, `index.ts`
 
 **Modified files (existing Material Web usage → shadcn-vue/lucide):**
+
 - `libs/rainforest-ui/vite.config.ts`, `libs/rainforest-ui/src/index.ts`
 - `apps/personal-website/src/app.css`, `apps/personal-website/src/layouts/head.astro`
 - `apps/personal-website/src/components/theme-provider.astro`
@@ -38,6 +40,7 @@
 - `apps/personal-website/package.json`, `pnpm-workspace.yaml`
 
 **Deleted files:**
+
 - `libs/rainforest-ui/src/tailwindcss/md3.ts`
 - `apps/personal-website/src/components/md3.ts`
 - `apps/personal-website/src/components/ai-button.ts`
@@ -51,6 +54,7 @@
 ## Task 1: Add dependencies
 
 **Files:**
+
 - Modify: `pnpm-workspace.yaml`
 - Modify: `apps/personal-website/package.json`
 
@@ -84,6 +88,7 @@ In the `dependencies` block, add (alphabetically, matching the file's existing s
 ```json
 "class-variance-authority": "catalog:",
 ```
+
 right after `"clsx": "^2.1.1",` add nothing (clsx already present, keep as-is), and insert these new lines in alphabetical position among the existing dependency list:
 
 ```json
@@ -97,9 +102,11 @@ right after `"clsx": "^2.1.1",` add nothing (clsx already present, keep as-is), 
 - [ ] **Step 1.3: Remove `@material/web` from `apps/personal-website/package.json`**
 
 Delete the line:
+
 ```json
 "@material/web": "^2.4.1",
 ```
+
 Leave it in place for now — it gets removed in Task 18 once every `md-*` usage is actually gone (removing it now would break `pnpm nx build` on every subsequent task until the migration is complete). **Skip this step until Task 18.**
 
 - [ ] **Step 1.4: Install**
@@ -122,6 +129,7 @@ git commit -m "chore(personal-website): add shadcn-vue dependencies (reka-ui, cv
 ## Task 2: Token engine — new `shadcn.ts` Tailwind plugin in rainforest-ui
 
 **Files:**
+
 - Create: `libs/rainforest-ui/src/tailwindcss/shadcn.ts`
 - Modify: `libs/rainforest-ui/vite.config.ts:34-42`
 
@@ -135,7 +143,7 @@ git commit -m "chore(personal-website): add shadcn-vue dependencies (reka-ui, cv
 
 Create `libs/rainforest-ui/src/tailwindcss/shadcn.ts`:
 
-**Important:** Tailwind's `addBase` expects each selector's value to be a nested `Record<string, string>` of declarations — NOT a raw CSS-text string. Passing a raw string (e.g. `':root': someMultilineCssString`) type-checks (because the `CssInJs` type also accepts a plain string as a *declaration value*) but compiles to garbage like `:root: --seed: ...;` instead of a real `:root { }` block. This was caught by code review after an earlier draft of this plan got it wrong — verify by actually compiling the plugin through Tailwind and inspecting generated CSS (Step 2.3 below), not just by running the build.
+**Important:** Tailwind's `addBase` expects each selector's value to be a nested `Record<string, string>` of declarations — NOT a raw CSS-text string. Passing a raw string (e.g. `':root': someMultilineCssString`) type-checks (because the `CssInJs` type also accepts a plain string as a _declaration value_) but compiles to garbage like `:root: --seed: ...;` instead of a real `:root { }` block. This was caught by code review after an earlier draft of this plan got it wrong — verify by actually compiling the plugin through Tailwind and inspecting generated CSS (Step 2.3 below), not just by running the build.
 
 ```typescript
 import plugin from 'tailwindcss/plugin';
@@ -367,6 +375,7 @@ git commit -m "feat(rainforest-ui): add shadcn OKLCH seed-color Tailwind plugin"
 ## Task 3: Wire personal-website to the new token engine
 
 **Files:**
+
 - Modify: `apps/personal-website/src/app.css:1-20`
 - Modify: `apps/personal-website/src/components/theme-provider.astro`
 
@@ -400,7 +409,7 @@ Open `apps/personal-website/src/app.css`. Replace line 4 and extend the `@theme`
 @layer base {
   html,
   body {
-    @apply p-0 m-0 size-full font-serif bg-background text-foreground;
+    @apply bg-background text-foreground m-0 size-full p-0 font-serif;
   }
 
   .astro-code,
@@ -438,7 +447,7 @@ Open `apps/personal-website/src/app.css`. Replace line 4 and extend the `@theme`
   background-color: --value(--color-*);
   background-color: --value(color);
   background-color: --value([color]);
-  @apply animate-pulse rounded-lh;
+  @apply rounded-lh animate-pulse;
 }
 ```
 
@@ -468,10 +477,10 @@ const sourceColor =
 // Tailwind plugin's CSS relative-color-syntax derivation of `--seed`.
 const theme = themeFromSourceColor(argbFromHex(sourceColor));
 const themeColorLight = hexFromArgb(
-  getSchemeProperties(theme.schemes.light)['--md-sys-color-surface']
+  getSchemeProperties(theme.schemes.light)['--md-sys-color-surface'],
 );
 const themeColorDark = hexFromArgb(
-  getSchemeProperties(theme.schemes.dark)['--md-sys-color-surface']
+  getSchemeProperties(theme.schemes.dark)['--md-sys-color-surface'],
 );
 
 const styleRaw = `
@@ -533,6 +542,7 @@ git commit -m "feat(personal-website): switch theming to the OKLCH shadcn token 
 ## Task 4: shadcn-vue foundation — `components.json`, `cn.ts`, Button
 
 **Files:**
+
 - Create: `apps/personal-website/components.json`
 - Create: `apps/personal-website/src/utils/cn.ts`
 - Create: `apps/personal-website/src/components/ui/button/Button.vue`
@@ -700,6 +710,7 @@ git commit -m "feat(personal-website): add shadcn-vue foundation (components.jso
 ## Task 5: DropdownMenu component
 
 **Files:**
+
 - Create: `apps/personal-website/src/components/ui/dropdown-menu/DropdownMenu.vue`
 - Create: `apps/personal-website/src/components/ui/dropdown-menu/DropdownMenuTrigger.vue`
 - Create: `apps/personal-website/src/components/ui/dropdown-menu/DropdownMenuContent.vue`
@@ -760,8 +771,15 @@ Create `apps/personal-website/src/components/ui/dropdown-menu/DropdownMenuConten
 
 ```vue
 <script setup lang="ts">
-import type { DropdownMenuContentEmits, DropdownMenuContentProps } from 'reka-ui';
-import { DropdownMenuContent, DropdownMenuPortal, useForwardPropsEmits } from 'reka-ui';
+import type {
+  DropdownMenuContentEmits,
+  DropdownMenuContentProps,
+} from 'reka-ui';
+import {
+  DropdownMenuContent,
+  DropdownMenuPortal,
+  useForwardPropsEmits,
+} from 'reka-ui';
 import { cn } from '@/utils/cn';
 
 const props = defineProps<DropdownMenuContentProps & { class?: string }>();
@@ -776,8 +794,8 @@ const forwarded = useForwardPropsEmits(props, emits);
       :side-offset="props.sideOffset ?? 6"
       :class="
         cn(
-          'z-50 min-w-32 overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md',
-          props.class
+          'border-border bg-popover text-popover-foreground z-50 min-w-32 overflow-hidden rounded-md border p-1 shadow-md',
+          props.class,
         )
       "
     >
@@ -805,8 +823,8 @@ const forwarded = useForwardPropsEmits(props, emits);
     v-bind="forwarded"
     :class="
       cn(
-        'relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-        props.class
+        'data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        props.class,
       )
     "
   >
@@ -831,7 +849,7 @@ const props = defineProps<DropdownMenuSeparatorProps & { class?: string }>();
 <template>
   <DropdownMenuSeparator
     v-bind="props"
-    :class="cn('-mx-1 my-1 h-px bg-border', props.class)"
+    :class="cn('bg-border -mx-1 my-1 h-px', props.class)"
   />
 </template>
 ```
@@ -861,6 +879,7 @@ git commit -m "feat(personal-website): add shadcn-vue DropdownMenu component"
 ## Task 6: Input and Textarea components
 
 **Files:**
+
 - Create: `apps/personal-website/src/components/ui/input/Input.vue`, `index.ts`
 - Create: `apps/personal-website/src/components/ui/textarea/Textarea.vue`, `index.ts`
 
@@ -892,8 +911,8 @@ const model = defineModel<string>();
       :name="name"
       :class="
         cn(
-          'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          $props.class
+          'border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2',
+          $props.class,
         )
       "
     />
@@ -934,8 +953,8 @@ const model = defineModel<string>();
       rows="4"
       :class="
         cn(
-          'flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          $props.class
+          'border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2',
+          $props.class,
         )
       "
     />
@@ -962,6 +981,7 @@ git commit -m "feat(personal-website): add shadcn-vue Input and Textarea compone
 ## Task 7: Badge component
 
 **Files:**
+
 - Create: `apps/personal-website/src/components/ui/badge/Badge.vue`, `index.ts`
 
 - [ ] **Step 7.1: Write it**
@@ -985,7 +1005,7 @@ export const badgeVariants = cva(
     defaultVariants: {
       variant: 'default',
     },
-  }
+  },
 );
 
 export type BadgeVariant = VariantProps<typeof badgeVariants>['variant'];
@@ -1029,6 +1049,7 @@ git commit -m "feat(personal-website): add shadcn-vue Badge component"
 ## Task 8: Tabs component
 
 **Files:**
+
 - Create: `apps/personal-website/src/components/ui/tabs/{Tabs,TabsList,TabsTrigger,TabsContent}.vue`, `index.ts`
 
 Used only by `color-system.vue` (the `/settings` page's Colors/Typography switcher). Built on `reka-ui`'s `TabsRoot`/`TabsList`/`TabsTrigger`/`TabsContent`.
@@ -1070,8 +1091,8 @@ const props = defineProps<TabsListProps & { class?: string }>();
     v-bind="props"
     :class="
       cn(
-        'inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground',
-        props.class
+        'bg-muted text-muted-foreground inline-flex h-10 items-center justify-center rounded-md p-1',
+        props.class,
       )
     "
   >
@@ -1096,8 +1117,8 @@ const props = defineProps<TabsTriggerProps & { class?: string }>();
     v-bind="props"
     :class="
       cn(
-        'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm',
-        props.class
+        'data-[state=active]:bg-background data-[state=active]:text-foreground inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm',
+        props.class,
       )
     "
   >
@@ -1118,7 +1139,10 @@ const props = defineProps<TabsContentProps & { class?: string }>();
 </script>
 
 <template>
-  <TabsContent v-bind="props" :class="cn('mt-4 focus-visible:outline-none', props.class)">
+  <TabsContent
+    v-bind="props"
+    :class="cn('mt-4 focus-visible:outline-none', props.class)"
+  >
     <slot />
   </TabsContent>
 </template>
@@ -1146,6 +1170,7 @@ git commit -m "feat(personal-website): add shadcn-vue Tabs component"
 ## Task 9: Migrate `nav.vue` and `language-picker.vue`
 
 **Files:**
+
 - Modify: `apps/personal-website/src/components/home/nav.vue`
 - Modify: `apps/personal-website/src/components/home/language-picker.vue`
 
@@ -1162,14 +1187,18 @@ Replace the full contents of `apps/personal-website/src/components/home/language
           :class="
             clsx(
               'text-muted-foreground xl:text-foreground',
-              !isAtTop ? 'md:text-foreground' : 'md:text-background'
+              !isAtTop ? 'md:text-foreground' : 'md:text-background',
             )
           "
         />
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent>
-      <DropdownMenuItem v-for="{ label, href, key } in langs" :key="key" as-child>
+      <DropdownMenuItem
+        v-for="{ label, href, key } in langs"
+        :key="key"
+        as-child
+      >
         <a :href="href" @click="cacheLocale(key)">{{ label }}</a>
       </DropdownMenuItem>
     </DropdownMenuContent>
@@ -1226,13 +1255,13 @@ Replace the full contents of `apps/personal-website/src/components/home/nav.vue`
   <nav
     :class="
       clsx(
-        'fixed top-0 inset-x-0 xl:text-foreground h-16 px-10 flex-row-center justify-between z-20',
-        !isAtTop ? 'text-foreground' : 'text-background'
+        'xl:text-foreground flex-row-center fixed inset-x-0 top-0 z-20 h-16 justify-between px-10',
+        !isAtTop ? 'text-foreground' : 'text-background',
       )
     "
   >
     <div></div>
-    <div class="hidden md:flex-row-center gap-10">
+    <div class="md:flex-row-center hidden gap-10">
       <ul class="flex-row-center gap-10">
         <li v-for="{ label, href } in anchors" :key="href">
           <a :href="href" @click="removeUrlHashAfterNavigation">{{ label }}</a>
@@ -1240,11 +1269,11 @@ Replace the full contents of `apps/personal-website/src/components/home/nav.vue`
       </ul>
       <LanguagePicker :langs="langs" />
     </div>
-    <div class="md:hidden block">
+    <div class="block md:hidden">
       <aside
         :class="
           clsx(
-            'fixed inset-0 bg-background text-foreground px-4 py-6 overflow-auto text-center',
+            'bg-background text-foreground fixed inset-0 overflow-auto px-4 py-6 text-center',
             open ? 'flex-center flex-col gap-10' : 'hidden',
           )
         "
@@ -1260,13 +1289,15 @@ Replace the full contents of `apps/personal-website/src/components/home/nav.vue`
         id="menu-trigger"
         aria-label="menu-and-close"
       >
-        <X
-          v-if="open"
-          class="text-foreground"
-        />
+        <X v-if="open" class="text-foreground" />
         <Menu
           v-else
-          :class="clsx('xl:text-foreground', !isAtTop ? 'text-foreground' : 'text-background')"
+          :class="
+            clsx(
+              'xl:text-foreground',
+              !isAtTop ? 'text-foreground' : 'text-background',
+            )
+          "
         />
       </Button>
     </div>
@@ -1326,7 +1357,7 @@ html {
 
 Key change beyond the component swap: `getComputedStyle(document.body).getPropertyValue('--md-sys-color-surface')` → `getComputedStyle(document.body).backgroundColor`. Reading a plain resolved CSS property (not a custom property string) is what makes this work correctly now that `--background` is derived via relative-color syntax rather than being a literal hex value — `getPropertyValue('--custom-prop')` returns the unresolved specified value, while `.backgroundColor` always returns the browser's fully computed color regardless of how it was derived.
 
-Also note the `class="relative z-30"` on the `Button`: the `aside` overlay is `fixed inset-0` with no explicit `z-index`, and per CSS stacking rules a positioned element (even with `z-index: auto`) always paints above a non-positioned sibling regardless of DOM order — so without this, the hamburger button sits *underneath* the open drawer and can't be clicked to close it (verified via `document.elementFromPoint()` returning the `aside`, not the button, at the button's screen position while open). This is a real, pre-existing bug (present before this migration too, in the original `md-icon-button` version) that this task fixes in passing since it's the same file.
+Also note the `class="relative z-30"` on the `Button`: the `aside` overlay is `fixed inset-0` with no explicit `z-index`, and per CSS stacking rules a positioned element (even with `z-index: auto`) always paints above a non-positioned sibling regardless of DOM order — so without this, the hamburger button sits _underneath_ the open drawer and can't be clicked to close it (verified via `document.elementFromPoint()` returning the `aside`, not the button, at the button's screen position while open). This is a real, pre-existing bug (present before this migration too, in the original `md-icon-button` version) that this task fixes in passing since it's the same file.
 
 - [ ] **Step 9.3: Build and manually verify**
 
@@ -1348,6 +1379,7 @@ git commit -m "feat(personal-website): migrate nav and language-picker to shadcn
 ## Task 10: Migrate `fab.vue`
 
 **Files:**
+
 - Modify: `apps/personal-website/src/components/home/fab.vue`
 
 No shadcn/reka-ui primitive matches the Material FAB pattern, so it stays a small custom component (per the spec), just restyled with the new tokens and componentized with Button/DropdownMenu underneath.
@@ -1362,13 +1394,13 @@ Replace the full contents of `apps/personal-website/src/components/home/fab.vue`
     v-if="!isChatBubbleEnabled"
     variant="default"
     size="icon"
-    class="fixed right-10 bottom-10 z-10 size-14 rounded-full shadow-lg"
+    class="fixed bottom-10 right-10 z-10 size-14 rounded-full shadow-lg"
     aria-label="back to top"
     @click="handleClick"
   >
     <ArrowUp />
   </Button>
-  <div v-else class="fixed right-10 bottom-10 z-10">
+  <div v-else class="fixed bottom-10 right-10 z-10">
     <DropdownMenu>
       <DropdownMenuTrigger as-child>
         <Button
@@ -1459,11 +1491,12 @@ git commit -m "feat(personal-website): migrate fab to a custom shadcn-styled com
 ## Task 11: Migrate the hero (`three-columns.astro`, `one-column.astro`, `theme-color-modifier.vue`)
 
 **Files:**
+
 - Modify: `apps/personal-website/src/components/home/hero/three-columns.astro`
 - Modify: `apps/personal-website/src/components/home/hero/one-column.astro`
 - Modify: `apps/personal-website/src/components/home/hero/theme-color-modifier.vue`
 
-**Before you start:** every lucide icon used directly as a top-level tag inside an `.astro` template needs to go through a small wrapper, `@/components/icon.vue` (`<script setup lang="ts">const props = defineProps<{ icon: object }>();</script><template><component :is="props.icon" /></template>`) — create this file first if it doesn't exist yet. `@astrojs/vue`'s SSR renderer only recognizes compiled Vue SFCs (things with `ssrRender`), and `@lucide/vue` icons are bare functional components, so `<ExternalLink />` directly inside an `.astro` file crashes with "Unable to render ExternalLink!" at build time. Icons used *inside* an actual `.vue` SFC (not directly inside `.astro`) don't need this — Vue's own runtime renders bare functional child components fine there. This was discovered while implementing this task; both `.astro` files below already use the `Icon` wrapper.
+**Before you start:** every lucide icon used directly as a top-level tag inside an `.astro` template needs to go through a small wrapper, `@/components/icon.vue` (`<script setup lang="ts">const props = defineProps<{ icon: object }>();</script><template><component :is="props.icon" /></template>`) — create this file first if it doesn't exist yet. `@astrojs/vue`'s SSR renderer only recognizes compiled Vue SFCs (things with `ssrRender`), and `@lucide/vue` icons are bare functional components, so `<ExternalLink />` directly inside an `.astro` file crashes with "Unable to render ExternalLink!" at build time. Icons used _inside_ an actual `.vue` SFC (not directly inside `.astro`) don't need this — Vue's own runtime renders bare functional child components fine there. This was discovered while implementing this task; both `.astro` files below already use the `Icon` wrapper.
 
 - [ ] **Step 11.1: Rewrite `three-columns.astro`**
 
@@ -1490,18 +1523,17 @@ const translatePath = useTranslatedPath(lang);
 ---
 
 <div
-  class="h-3/4 w-full flex-row-center justify-between py-10 px-20 relative z-0 rounded-xl shadow-lg"
+  class="flex-row-center relative z-0 h-3/4 w-full justify-between rounded-xl px-20 py-10 shadow-lg"
 >
-  <div class="absolute -z-10 inset-0 rounded-[inherit] overflow-clip">
+  <div class="absolute inset-0 -z-10 overflow-clip rounded-[inherit]">
     <div
-      class="size-full relative z-0 bg-muted overflow-clip
-                  after:bg-foreground after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
+      class="bg-muted after:bg-foreground after:scale-200 relative z-0 size-full overflow-clip after:absolute after:-right-1/4 after:top-0 after:-z-10 after:h-full after:w-1/2 after:-skew-x-[45deg]"
     >
     </div>
   </div>
   <div class="flex flex-col justify-center">
     <p>{year}</p>
-    <h1 class="text-7xl mt-1 mb-16 text-secondary-foreground">
+    <h1 class="text-secondary-foreground mb-16 mt-1 text-7xl">
       {props.name.fullname}
     </h1>
     <div class="flex-row-center gap-4">
@@ -1512,7 +1544,7 @@ const translatePath = useTranslatedPath(lang);
         variant="outline"
         href={translatePath('/resume')}
         target="_blank"
-        class="px-6 gap-2"
+        class="gap-2 px-6"
         >{t('resume')}
         <Icon icon={ExternalLink} />
       </Button>
@@ -1525,9 +1557,9 @@ const translatePath = useTranslatedPath(lang);
     pictureAttributes={{
       class: 'self-end -mb-10 h-[120%] w-full',
     }}
-    class="object-cover object-center h-full w-max mx-auto"
+    class="mx-auto h-full w-max object-cover object-center"
   />
-  <div class="flex flex-col justify-center text-background gap-6">
+  <div class="text-background flex flex-col justify-center gap-6">
     <ul class="list-disc">
       <li>
         {t('home:hero-brief')}
@@ -1550,7 +1582,7 @@ const translatePath = useTranslatedPath(lang);
   import { removeUrlHashAfterNavigation } from '@utils';
 
   const contactMeButton = document.querySelector(
-    'a[href="#contact-form-footer"]'
+    'a[href="#contact-form-footer"]',
   );
   contactMeButton?.addEventListener('click', removeUrlHashAfterNavigation);
 </script>
@@ -1582,11 +1614,11 @@ const { t } = await useTranslation(lang, 'home');
 const translatePath = useTranslatedPath(lang);
 ---
 
-<div class="flex flex-col size-full">
+<div class="flex size-full flex-col">
   <div class="relative aspect-square">
     <div
       id="hero-dark-panel"
-      class="size-full bg-foreground rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0 z-0"
+      class="bg-foreground absolute top-0 z-0 size-full origin-top-right skew-y-12 overflow-clip rounded-b-3xl"
     >
       <Picture
         src={props.profile}
@@ -1596,20 +1628,20 @@ const translatePath = useTranslatedPath(lang);
           class:
             'h-full z-10 absolute -bottom-10 md:-bottom-20 left-1/2 -translate-x-1/2 ',
         }}
-        class="object-cover object-top -skew-y-12 size-full"
+        class="size-full -skew-y-12 object-cover object-top"
       />
     </div>
     <div
-      class="text-9xl text-background/50 rotate-270 origin-bottom inline-block m-4"
+      class="text-background/50 rotate-270 m-4 inline-block origin-bottom text-9xl"
     >
       {year}
     </div>
   </div>
-  <div class="flex container">
-    <div class="flex flex-col w-full">
-      <div class="flex-row-center justify-between flex-wrap gap-2">
+  <div class="container flex">
+    <div class="flex w-full flex-col">
+      <div class="flex-row-center flex-wrap justify-between gap-2">
         <div>
-          <h1 class="text-4xl text-secondary-foreground">
+          <h1 class="text-secondary-foreground text-4xl">
             {props.name.first}
           </h1>
           <p>{props.jobPosition}</p>
@@ -1618,20 +1650,19 @@ const translatePath = useTranslatedPath(lang);
           <Button
             id="contact-me-button"
             href="#contact-form-footer"
-            class="px-6"
-            >{t('contact-me-title')}</Button
+            class="px-6">{t('contact-me-title')}</Button
           >
           <Button
             variant="outline"
             href={translatePath('/resume')}
             target="_blank"
-            class="px-6 gap-2"
+            class="gap-2 px-6"
             >{t('resume')}
             <Icon icon={ExternalLink} />
           </Button>
         </div>
       </div>
-      <ul class="list-disc list-inside mt-4">
+      <ul class="mt-4 list-inside list-disc">
         {props.summaries.map((summary) => <li>{summary}</li>)}
       </ul>
     </div>
@@ -1643,9 +1674,11 @@ const translatePath = useTranslatedPath(lang);
   import { removeUrlHashAfterNavigation } from '@utils';
 
   const contactMeButton = document.getElementById(
-    'contact-me-button'
+    'contact-me-button',
   ) as HTMLAnchorElement;
-  const menuButton = document.getElementById('menu-trigger') as HTMLButtonElement;
+  const menuButton = document.getElementById(
+    'menu-trigger',
+  ) as HTMLButtonElement;
   const handleOpenContactForm = () => {
     menuButton?.click();
   };
@@ -1677,7 +1710,7 @@ const translatePath = useTranslatedPath(lang);
   };
 
   const breakpointMd = getComputedStyle(
-    document.documentElement
+    document.documentElement,
   ).getPropertyValue('--breakpoint-md');
   handleMatches(window.matchMedia(`(max-width: ${breakpointMd})`).matches);
   window
@@ -1688,7 +1721,7 @@ const translatePath = useTranslatedPath(lang);
 </script>
 ```
 
-Note: the `Button` above is given an initial `href="#contact-form-footer"` so it renders as a real `<a>` from the start. This matters because `Button`'s `:is="href ? 'a' : as"` is resolved once at SSR time — unlike the old Material Web `md-filled-button` (a Lit custom element that reactively re-renders its internal shadow DOM whenever its `.href` property is set, even client-side), a plain `<button>` can't be turned into a link later by a vanilla script calling `setAttribute('href', ...)` on it. The mobile-breakpoint logic still needs to *dynamically* add/remove the href to switch between "scroll link" and "open mobile menu" behavior, so it now works directly against this initially-rendered `<a>` element's `href` attribute (toggling on/off) — and, since removing `href` from an `<a>` also removes it from the tab order and the accessibility tree, the same toggle also adds/removes `role="button"` + `tabindex="0"` + a keydown handler so keyboard and screen-reader users retain equivalent access to mouse/touch users (an a11y regression found and fixed during code review, verified via a direct DOM/keyboard test in a real browser).
+Note: the `Button` above is given an initial `href="#contact-form-footer"` so it renders as a real `<a>` from the start. This matters because `Button`'s `:is="href ? 'a' : as"` is resolved once at SSR time — unlike the old Material Web `md-filled-button` (a Lit custom element that reactively re-renders its internal shadow DOM whenever its `.href` property is set, even client-side), a plain `<button>` can't be turned into a link later by a vanilla script calling `setAttribute('href', ...)` on it. The mobile-breakpoint logic still needs to _dynamically_ add/remove the href to switch between "scroll link" and "open mobile menu" behavior, so it now works directly against this initially-rendered `<a>` element's `href` attribute (toggling on/off) — and, since removing `href` from an `<a>` also removes it from the tab order and the accessibility tree, the same toggle also adds/removes `role="button"` + `tabindex="0"` + a keydown handler so keyboard and screen-reader users retain equivalent access to mouse/touch users (an a11y regression found and fixed during code review, verified via a direct DOM/keyboard test in a real browser).
 
 - [ ] **Step 11.3: Rewrite `theme-color-modifier.vue`**
 
@@ -1711,7 +1744,7 @@ const isAtTop = computed(() => {
 
 const mediaQueryList = computed(() => {
   const breakpointXl = getComputedStyle(
-    document.documentElement
+    document.documentElement,
   ).getPropertyValue('--breakpoint-xl');
   return window.matchMedia(`(min-width: ${breakpointXl})`);
 });
@@ -1778,6 +1811,7 @@ git commit -m "feat(personal-website): migrate hero components to shadcn-vue tok
 ## Task 12: Migrate `contact-form.astro` and clean up `footer.astro`
 
 **Files:**
+
 - Modify: `apps/personal-website/src/components/home/contact-form.astro`
 - Modify: `apps/personal-website/src/components/home/footer.astro`
 
@@ -1815,7 +1849,7 @@ const { t } = await useTranslation(lang);
   <Button
     as="a"
     data-contact-submit
-    class="mt-4 px-6 w-1/2 self-end"
+    class="mt-4 w-1/2 self-end px-6"
     href={`mailto:${info.email}`}>{t('contact-me-submit')}</Button
   >
 </contact-form>
@@ -1826,19 +1860,19 @@ const { t } = await useTranslation(lang);
   class ContactForm extends HTMLElement {
     connectedCallback() {
       const nameField = this.querySelector(
-        'input[name="name"]'
+        'input[name="name"]',
       ) as HTMLInputElement;
       const companyField = this.querySelector(
-        'input[name="company"]'
+        'input[name="company"]',
       ) as HTMLInputElement;
       const subjectField = this.querySelector(
-        'input[name="subject"]'
+        'input[name="subject"]',
       ) as HTMLInputElement;
       const messageField = this.querySelector(
-        'textarea[name="message"]'
+        'textarea[name="message"]',
       ) as HTMLTextAreaElement;
       const submitButton = this.querySelector(
-        '[data-contact-submit]'
+        '[data-contact-submit]',
       ) as HTMLAnchorElement;
 
       const handleFormChange = () => {
@@ -1881,7 +1915,7 @@ import Links from './links.astro';
 ---
 
 <footer
-  class="container md:flex flex-wrap gap-10 hidden justify-between pt-10 pb-20"
+  class="container hidden flex-wrap justify-between gap-10 pb-20 pt-10 md:flex"
 >
   <Links />
   <ContactForm id="contact-form-footer" />
@@ -1908,6 +1942,7 @@ git commit -m "feat(personal-website): migrate contact form to shadcn-vue Input/
 ## Task 13: Migrate `links.astro`
 
 **Files:**
+
 - Modify: `apps/personal-website/src/components/home/links.astro`
 
 - [ ] **Step 13.1: Rewrite**
@@ -1989,6 +2024,7 @@ git commit -m "feat(personal-website): swap open_in_new glyph to @lucide/vue in 
 ## Task 14: Migrate blog post, blog index, and blog layout
 
 **Files:**
+
 - Modify: `apps/personal-website/src/components/blog/post.astro`
 - Modify: `apps/personal-website/src/pages/blog/index.astro`
 - Modify: `apps/personal-website/src/layouts/blog.astro`
@@ -2016,14 +2052,18 @@ const { Content } = await render(Astro.props);
 const tags = _tags.filter((e) => !e.includes(':'));
 ---
 
-<div
-  class="w-full p-10 bg-card rounded-lg prose dark:bg-card max-w-none"
->
+<div class="bg-card prose dark:bg-card w-full max-w-none rounded-lg p-10">
   <h1>{title}</h1>
   <p>{format(pubDate, 'd MMM, yyyy')}<br />By {author.name}</p>
   <Content />
-  <div class="flex flex-wrap gap-2 mt-10">
-    {tags.map((tag) => <Badge variant="secondary" class="capitalize">{tag}</Badge>)}
+  <div class="mt-10 flex flex-wrap gap-2">
+    {
+      tags.map((tag) => (
+        <Badge variant="secondary" class="capitalize">
+          {tag}
+        </Badge>
+      ))
+    }
   </div>
 </div>
 ```
@@ -2055,7 +2095,7 @@ import { Navigation } from '@/components/blog';
 const posts = (
   await getCollection(
     'blog',
-    (entry) => !entry.data.tags.includes('type:quick-post')
+    (entry) => !entry.data.tags.includes('type:quick-post'),
   )
 ).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 const { t } = await useTranslation('en', 'blog');
@@ -2067,7 +2107,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
   description={t('metadata-description')}
   viewTransition={{ enabled: true }}
 >
-  <nav class="flex-row-center justify-between container">
+  <nav class="flex-row-center container justify-between">
     <div>
       <Button variant="ghost" size="icon" href="/">
         <Icon icon={Home} />
@@ -2095,25 +2135,22 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
     </div>
   </nav>
   <main class="container py-10">
-    <h1 class="text-5xl md:text-9xl text-center mb-10">Rainforest Cheng</h1>
+    <h1 class="mb-10 text-center text-5xl md:text-9xl">Rainforest Cheng</h1>
     <div
-      class="grid grid-flow-row grid-cols-1 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-5 auto-rows-max"
+      class="grid grid-flow-row auto-rows-max grid-cols-1 gap-5 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5"
     >
       {
         posts.map(({ data: post, id }) => (
           <a
             href={translatePath(`/blog/${id}`)}
-            class="
-              md:first:col-span-full lg:first:h-[30dvh] md:first:h-[20dvh] bg-card rounded-lg overflow-hidden hover:shadow 
-              @container prose-sm max-w-none
-              flex gap-4 flex-col md:first:flex-row-center"
+            class="bg-card @container prose-sm md:first:flex-row-center flex max-w-none flex-col gap-4 overflow-hidden rounded-lg hover:shadow md:first:col-span-full md:first:h-[20dvh] lg:first:h-[30dvh]"
           >
-            <div class="md:@2xl:h-full @2xl:w-auto w-full aspect-square flex-center">
+            <div class="md:@2xl:h-full @2xl:w-auto flex-center aspect-square w-full">
               {post.image?.src ? (
                 <Image
                   width={128}
                   height={128}
-                  class="size-full object-cover m-0!"
+                  class="m-0! size-full object-cover"
                   src={post.image.src}
                   alt={post.image.alt}
                   transition:name={`blog-${id}`}
@@ -2133,7 +2170,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
     <div class="fixed bottom-10 left-1/2 -translate-x-1/2">
       <Navigation />
     </div>
-    <div class="fixed right-10 bottom-10 z-10">
+    <div class="fixed bottom-10 right-10 z-10">
       <SourceColor client:only="vue" />
     </div>
   </main>
@@ -2184,7 +2221,7 @@ const {
         width={512}
         height={512}
         alt={image?.alt}
-        class="w-full max-h-75 md:max-h-1/2 object-cover"
+        class="max-h-75 md:max-h-1/2 w-full object-cover"
         transition:name={`blog-${id}`}
       />
     )
@@ -2193,14 +2230,14 @@ const {
     variant="secondary"
     size="icon"
     onclick="history.back()"
-    class="fixed top-10 left-10 rounded-full text-primary"
+    class="text-primary fixed left-10 top-10 rounded-full"
   >
     <Icon icon={ArrowLeft} />
   </Button>
   <article
     class={clsx(
       'container prose md:prose-xl lg:prose-2xl py-4',
-      image?.src && '-mt-0 md:-mt-75'
+      image?.src && '-mt-0 md:-mt-75',
     )}
   >
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>
@@ -2234,6 +2271,7 @@ git commit -m "feat(personal-website): migrate blog post/index/layout to shadcn-
 ## Task 15: Migrate the settings page (`color-system.vue`, `source-color.vue`)
 
 **Files:**
+
 - Modify: `apps/personal-website/src/components/color-system.vue`
 - Modify: `apps/personal-website/src/components/source-color.vue`
 
@@ -2277,7 +2315,7 @@ Replace the full contents of `apps/personal-website/src/components/source-color.
     <DropdownMenuTrigger as-child>
       <button
         id="source-color"
-        class="size-10 block rounded-full ring-4 ring-accent/80 ring-offset-3 duration-300 cursor-pointer"
+        class="ring-accent/80 ring-offset-3 block size-10 cursor-pointer rounded-full ring-4 duration-300"
         :style="{
           backgroundColor: $sourceColor.value,
         }"
@@ -2292,7 +2330,7 @@ Replace the full contents of `apps/personal-website/src/components/source-color.
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuContent>
-      <div class="px-4 py-2 space-y-2">
+      <div class="space-y-2 px-4 py-2">
         <div class="relative">
           <label
             for="source-color-image"
@@ -2300,13 +2338,13 @@ Replace the full contents of `apps/personal-website/src/components/source-color.
               borderColor: $sourceColor.value,
               color: $sourceColor.value,
             }"
-            class="w-full aspect-square cursor-pointer border rounded flex-center"
+            class="flex-center aspect-square w-full cursor-pointer rounded border"
             title="Source Image"
           >
             <img
               :src="sourceImage"
               alt="source image"
-              class="object-cover size-full peer"
+              class="peer size-full object-cover"
               v-if="sourceImage"
             />
             <ImageIcon v-else class="size-12" />
@@ -2317,13 +2355,13 @@ Replace the full contents of `apps/personal-website/src/components/source-color.
             id="source-color-image"
             accept="image/*"
             @change="handleImageChange"
-            class="sr-only size-auto inset-4"
+            class="sr-only inset-4 size-auto"
           />
         </div>
         <div class="relative">
           <label
             for="source-color-picker"
-            class="w-full h-6 block cursor-pointer rounded"
+            class="block h-6 w-full cursor-pointer rounded"
             :style="{ backgroundColor: $sourceColor.value }"
             title="Source Color"
           ></label>
@@ -2333,7 +2371,7 @@ Replace the full contents of `apps/personal-website/src/components/source-color.
             id="source-color-picker"
             v-model="sourceColor"
             @change="handleColorChange"
-            class="sr-only size-auto inset-0"
+            class="sr-only inset-0 size-auto"
           />
         </div>
       </div>
@@ -2348,7 +2386,11 @@ import { $sourceColor } from '@stores';
 import { useLocalStorage } from '@vueuse/core';
 import { ImageIcon } from '@lucide/vue';
 
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const sourceColor = useVModel($sourceColor);
 const sourceImage = useLocalStorage('source-image', '');
@@ -2412,6 +2454,7 @@ git commit -m "feat(personal-website): migrate settings page (Tabs, source-color
 ## Task 16: Clean up dead Material Web imports and remove the Material Symbols icon font
 
 **Files:**
+
 - Modify: `apps/personal-website/src/components/home/experiences/index.astro`
 - Modify: `apps/personal-website/src/layouts/head.astro`
 
@@ -2565,6 +2608,7 @@ Expected: no matches.
 ## Task 18: Delete dead code and remove `@material/web`
 
 **Files:**
+
 - Delete: `apps/personal-website/src/components/md3.ts`
 - Delete: `apps/personal-website/src/components/ai-button.ts`
 - Delete: `libs/rainforest-ui/src/tailwindcss/md3.ts`
@@ -2621,6 +2665,7 @@ In `libs/rainforest-ui/vite.config.ts`, remove the now-dangling entry (the plugi
 - [ ] **Step 18.5: Remove `@material/web` from `apps/personal-website/package.json`**
 
 Delete the line:
+
 ```json
 "@material/web": "^2.4.1",
 ```
@@ -2662,7 +2707,7 @@ Check: post grid goes from `grid-cols-1` (mobile) → `sm:grid-cols-3` → `lg:g
 
 - [ ] **Step 19.3: Blog post page**
 
-Check: the back button (top-left) doesn't overlap the hero image on mobile; code blocks and KaTeX-rendered math scroll horizontally *within their own container* at narrow widths — never causing the page itself to scroll horizontally. If a code block or math expression does overflow the page, add `overflow-x-auto` to its containing element in `apps/personal-website/src/components/blog/post.astro`'s wrapping `<div>` (currently `class="w-full p-10 bg-card rounded-lg prose ..."` — Tailwind's `prose` class from `@tailwindcss/typography` already scopes `pre`/code blocks to scroll internally by default, so this should already hold; only patch if the check finds otherwise).
+Check: the back button (top-left) doesn't overlap the hero image on mobile; code blocks and KaTeX-rendered math scroll horizontally _within their own container_ at narrow widths — never causing the page itself to scroll horizontally. If a code block or math expression does overflow the page, add `overflow-x-auto` to its containing element in `apps/personal-website/src/components/blog/post.astro`'s wrapping `<div>` (currently `class="w-full p-10 bg-card rounded-lg prose ..."` — Tailwind's `prose` class from `@tailwindcss/typography` already scopes `pre`/code blocks to scroll internally by default, so this should already hold; only patch if the check finds otherwise).
 
 - [ ] **Step 19.4: Resume (`/resume`)**
 

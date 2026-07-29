@@ -14,6 +14,7 @@ Personal LIFF (LINE Front-end Framework) is a mini-application that runs inside 
 ## ✨ Features
 
 ### 🚀 Core Features
+
 - **🔗 LINE Integration** - Full LIFF SDK integration for LINE platform features
 - **📱 Mobile-First** - Optimized for mobile devices and LINE's webview
 - **🎨 Modern UI** - Beautiful interface with Mantine components
@@ -22,6 +23,7 @@ Personal LIFF (LINE Front-end Framework) is a mini-application that runs inside 
 - **📊 Data Fetching** - SWR for efficient data management
 
 ### 📱 LINE Platform Features
+
 - **👤 User Profile** - Access LINE user information
 - **💬 Message API** - Send messages to LINE chats
 - **📷 Camera Integration** - Access device camera through LINE
@@ -32,19 +34,23 @@ Personal LIFF (LINE Front-end Framework) is a mini-application that runs inside 
 ## 🏗️ Technology Stack
 
 ### Core Framework
+
 - **Next.js 15.3** - React framework with App Router
 - **React 19** - Latest React with concurrent features
 - **TypeScript** - Type-safe development
 
-### UI & Styling  
+### UI & Styling
+
 - **Mantine 8.0** - Modern React components library
 - **@mantine/hooks** - Useful React hooks collection
 - **CSS Modules** - Component-scoped styling
 
 ### LINE Integration
+
 - **@line/liff 2.26** - Official LINE Front-end Framework SDK
 
 ### Data Management
+
 - **SWR 2.3** - Data fetching with caching and revalidation
 
 ## 🚀 Getting Started
@@ -63,6 +69,7 @@ Personal LIFF (LINE Front-end Framework) is a mini-application that runs inside 
    - Create a new provider and channel
 
 2. **Configure LIFF App**
+
    ```
    App Type: Web app
    Endpoint URL: https://yourdomain.com/liff
@@ -88,6 +95,7 @@ nx dev personal-liff --experimental-https
 ```
 
 The development server will be available at:
+
 - HTTP: `http://localhost:9000`
 - HTTPS: `https://localhost:9000` (recommended for LIFF testing)
 
@@ -141,17 +149,18 @@ apps/personal-liff/
 
 ### Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `nx dev personal-liff` | Start development server (port 9000) |
-| `nx build personal-liff` | Build for production |
-| `nx start personal-liff` | Start production server |
-| `nx lint personal-liff` | Lint code |
-| `nx type-check personal-liff` | TypeScript type checking |
+| Command                       | Description                          |
+| ----------------------------- | ------------------------------------ |
+| `nx dev personal-liff`        | Start development server (port 9000) |
+| `nx build personal-liff`      | Build for production                 |
+| `nx start personal-liff`      | Start production server              |
+| `nx lint personal-liff`       | Lint code                            |
+| `nx type-check personal-liff` | TypeScript type checking             |
 
 ### LIFF Development Workflow
 
 1. **Initialize LIFF**
+
    ```typescript
    // hooks/useLiff.ts
    import { useEffect, useState } from 'react';
@@ -179,6 +188,7 @@ apps/personal-liff/
    ```
 
 2. **Get User Profile**
+
    ```typescript
    // hooks/useLineProfile.ts
    import { useEffect, useState } from 'react';
@@ -199,6 +209,7 @@ apps/personal-liff/
    ```
 
 3. **Send Messages**
+
    ```typescript
    // lib/lineMessage.ts
    import liff from '@line/liff';
@@ -208,10 +219,12 @@ apps/personal-liff/
        throw new Error('Not in LINE client');
      }
 
-     await liff.sendMessages([{
-       type: 'text',
-       text: text
-     }]);
+     await liff.sendMessages([
+       {
+         type: 'text',
+         text: text,
+       },
+     ]);
    };
    ```
 
@@ -270,7 +283,7 @@ export function ShareButton({ message }: ShareButtonProps) {
   };
 
   return (
-    <Button 
+    <Button
       leftIcon={<IconShare size="1rem" />}
       onClick={handleShare}
       variant="filled"
@@ -292,7 +305,7 @@ const nextConfig = {
   experimental: {
     esmExternals: true,
   },
-  
+
   async headers() {
     return [
       {
@@ -342,6 +355,7 @@ export default function App({ Component, pageProps }: AppProps) {
 ### LIFF Testing
 
 1. **Desktop Testing**
+
    ```bash
    # Start with HTTPS for LIFF compatibility
    nx dev personal-liff --experimental-https
@@ -374,6 +388,7 @@ nx build personal-liff
 ### Vercel Deployment
 
 1. **Environment Variables**
+
    ```bash
    # Production environment variables
    NEXT_PUBLIC_LIFF_ID=prod_liff_id
@@ -397,6 +412,7 @@ nx build personal-liff
 ### LIFF URL Configuration
 
 Update LIFF endpoint URL in LINE Developers Console:
+
 ```
 Production URL: https://your-domain.vercel.app
 ```
@@ -404,12 +420,14 @@ Production URL: https://your-domain.vercel.app
 ## 🔒 Security & Privacy
 
 ### Data Protection
+
 - **No sensitive data storage** - Use LINE's secure platform
 - **HTTPS only** - All communication encrypted
 - **Minimal permissions** - Request only necessary scopes
 - **User consent** - Clear permission requests
 
 ### Privacy Compliance
+
 - **Data minimization** - Collect only required data
 - **User control** - Allow users to manage their data
 - **Transparency** - Clear privacy policy
@@ -418,12 +436,14 @@ Production URL: https://your-domain.vercel.app
 ## 📱 LINE Platform Guidelines
 
 ### Design Guidelines
+
 - **Mobile-first** - Optimize for mobile screens
 - **LINE design** - Follow LINE's UI patterns
 - **Loading states** - Handle network delays gracefully
 - **Error handling** - Provide clear error messages
 
 ### Performance Guidelines
+
 - **Fast loading** - Optimize initial page load
 - **Smooth interactions** - 60fps animations
 - **Efficient API calls** - Use SWR for caching
@@ -444,16 +464,19 @@ See the main [Contributing Guide](../../CONTRIBUTING.md) for general guidelines.
 ## 📚 Resources
 
 ### LINE Documentation
+
 - [LIFF Documentation](https://developers.line.biz/en/docs/liff/)
 - [LIFF SDK Reference](https://developers.line.biz/en/reference/liff/)
 - [LINE Design Guidelines](https://designsystem.line.me/)
 
-### Framework Documentation  
+### Framework Documentation
+
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Mantine Documentation](https://mantine.dev/)
 - [SWR Documentation](https://swr.vercel.app/)
 
 ### Tools
+
 - [LIFF Inspector](https://developers.line.biz/console/)
 - [LINE Bot Designer](https://developers.line.biz/en/services/bot-designer/)
 

@@ -1,11 +1,11 @@
-import { IExperience } from '@types';
+import type { IExperience } from '@types';
 
 export const getTopTechnologies = (
   experience: {
     technologies?: string[];
     projects?: { technologies: string[] }[];
   },
-  top = 10
+  top = 10,
 ) => {
   if (experience.technologies?.length) {
     return experience.technologies.slice(0, top);
@@ -27,7 +27,7 @@ export const getTopTechnologies = (
 
 export const getExperience = (
   experience: IExperience[],
-  type?: IExperience['type']
+  type?: IExperience['type'],
 ) => {
   const sorted = [...experience].sort((a, b) => {
     if (a.startAt < b.startAt) return 1;

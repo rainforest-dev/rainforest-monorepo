@@ -88,21 +88,19 @@ export function DeliveryTracker({
   }
 
   return (
-    <section className="space-y-3 rounded-lg border border-border p-3">
+    <section className="border-border space-y-3 rounded-lg border p-3">
       <div>
         <h2 className="text-sm font-semibold">Delivery tracking</h2>
         <p className="text-muted-foreground text-xs">
           Track when this book was added to external platforms.
         </p>
-        {recentSummary && (
-          <p className="mt-1 text-xs">{recentSummary}</p>
-        )}
+        {recentSummary && <p className="mt-1 text-xs">{recentSummary}</p>}
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <select
           aria-label="Delivery platform"
-          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+          className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm"
           value={selectedPlatformKey}
           onChange={(event) => setSelectedPlatformKey(event.target.value)}
           disabled={!hasPlatforms || isSubmitting}
@@ -135,12 +133,14 @@ export function DeliveryTracker({
 
       <ul className="space-y-2">
         {events.length === 0 && (
-          <li className="text-muted-foreground text-xs">No delivery events yet.</li>
+          <li className="text-muted-foreground text-xs">
+            No delivery events yet.
+          </li>
         )}
         {events.map((event) => (
           <li
             key={event.id}
-            className="flex flex-col gap-1 rounded-md border border-border/60 p-2 text-xs"
+            className="border-border/60 flex flex-col gap-1 rounded-md border p-2 text-xs"
           >
             <div className="flex items-center justify-between gap-2">
               <span>
@@ -165,7 +165,9 @@ export function DeliveryTracker({
                 {event.externalRef}
               </a>
             )}
-            {event.note && <p className="text-muted-foreground">{event.note}</p>}
+            {event.note && (
+              <p className="text-muted-foreground">{event.note}</p>
+            )}
           </li>
         ))}
       </ul>

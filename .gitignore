@@ -87,3 +87,5 @@ deploy/.env.dev
 
 # superpowers git worktrees
 .worktrees/
+
+libs/portfolio/.reference/

@@ -6,6 +6,7 @@ import {
   getWorkExperience,
   type ResolvedExperience,
 } from '@rainforest-dev/personal-data';
+import { listCaseStudies } from '@rainforest-dev/personal-portfolio/content';
 import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
@@ -17,7 +18,9 @@ const formatMonth = (d: Date) => d.toISOString().slice(0, 7);
 
 function formatExperience(e: ResolvedExperience): string {
   const range = `${formatMonth(e.startAt)} – ${e.endAt ? formatMonth(e.endAt) : 'present'}`;
-  const tech = e.technologies.length ? `\nTechnologies: ${e.technologies.join(', ')}` : '';
+  const tech = e.technologies.length
+    ? `\nTechnologies: ${e.technologies.join(', ')}`
+    : '';
   return `### ${e.position} — ${e.organization.name}\n${range}${tech}\n\n${e.content}`;
 }
 
@@ -31,22 +34,37 @@ function formatExperience(e: ResolvedExperience): string {
 export const GET: APIRoute = async ({ site, request }) => {
   await trackAiResourceFetch('llms-full.txt', request);
   const base = site!.origin;
-  const [summary, experiences, education, projects, skills, blog] = await Promise.all([
-    getProfileSummary({ lang: 'en' }),
-    getWorkExperience({ lang: 'en' }),
-    getEducation({ lang: 'en' }),
-    getProjects({ lang: 'en' }),
-    getSkills({ lang: 'en' }),
-    getCollection('blog'),
-  ]);
+  const [summary, experiences, education, projects, skills, blog] =
+    await Promise.all([
+      getProfileSummary({ lang: 'en' }),
+      getWorkExperience({ lang: 'en' }),
+      getEducation({ lang: 'en' }),
+      getProjects({ lang: 'en' }),
+      getSkills({ lang: 'en' }),
+      getCollection('blog'),
+    ]);
 
-  const experienceText = experiences.map(formatExperience).join('\n\n');
-  const educationText = education.map(formatExperience).join('\n\n');
+  // Same reason as projects below: the site renders these newest-first, so this file must not
+  // disagree. Blog was already sorted; experiences and education were the remaining exceptions.
+  const byNewest = (a: ResolvedExperience, b: ResolvedExperience) =>
+    b.startAt.getTime() - a.startAt.getTime();
+  const experienceText = [...experiences]
+    .sort(byNewest)
+    .map(formatExperience)
+    .join('\n\n');
+  const educationText = [...education]
+    .sort(byNewest)
+    .map(formatExperience)
+    .join('\n\n');
 
-  const projectsText = projects
+  // Newest-first, matching what the portfolio index renders — this file exists to give agents an
+  // accurate picture, so it shouldn't disagree with the human-facing page about which work is
+  // recent. The year is included for the same reason: order alone doesn't survive summarisation.
+  const projectsText = [...projects]
+    .sort((a, b) => b.startAt.getTime() - a.startAt.getTime())
     .map(
       (p) =>
-        `### ${p.name} — ${p.organization.name}\nTechnologies: ${p.technologies.join(', ')}\n\n${p.content}`,
+        `### ${p.name} — ${p.organization.name} (${p.startAt.getFullYear()})\nTechnologies: ${p.technologies.join(', ')}\n\n${p.content}`,
     )
     .join('\n\n');
 
@@ -59,7 +77,14 @@ export const GET: APIRoute = async ({ site, request }) => {
 
   const blogLinks = blog
     .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-    .map((post) => `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`)
+    .map(
+      (post) =>
+        `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`,
+    )
+    .join('\n');
+
+  const caseStudyLinks = listCaseStudies()
+    .map((cs) => `- [${cs.title}](${base}/portfolio/${cs.slug}): ${cs.tagline}`)
     .join('\n');
 
   const body = `# Rainforest Cheng — Full Profile
@@ -81,6 +106,10 @@ ${projectsText}
 ## Skills
 
 ${skillsText}
+
+## Case studies
+
+${caseStudyLinks}
 
 ## Blog
 

@@ -103,15 +103,20 @@ export default plugin.withOptions(
       addBase({
         ':root': light,
         "[data-scheme='light']": light,
+        // Gate the OS-preference rule on `:not([data-scheme])` so an explicit
+        // `[data-scheme='light'|'dark']` always wins. Without it the media
+        // query and `[data-scheme='light']` tie on specificity and the later
+        // media rule overrides — making "force light" silently fail on an
+        // OS-dark device (a manual light/dark toggle can't work otherwise).
         '@media (prefers-color-scheme: dark)': {
-          ':root': darkVars,
+          ':root:not([data-scheme])': darkVars,
         },
         "[data-scheme='dark']": darkVars,
         '@supports not (color: oklch(from red l c h))': {
           ':root': fallbackLight,
           "[data-scheme='light']": fallbackLight,
           '@media (prefers-color-scheme: dark)': {
-            ':root': fallbackDark,
+            ':root:not([data-scheme])': fallbackDark,
           },
           "[data-scheme='dark']": fallbackDark,
         },

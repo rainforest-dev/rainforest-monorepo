@@ -17,7 +17,9 @@ interface Props {
   searchParams: Promise<{ from?: string }>;
 }
 
-export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: Pick<Props, 'params'>): Promise<Metadata> {
   const { id } = await params;
   const book = await getBook(Number(id));
   if (!book) return { title: 'Book Not Found — Personal Calibre Library' };
@@ -51,7 +53,10 @@ async function BookDetailContent({ params, searchParams }: Props) {
   const safeDescription = book.description
     ? sanitizeHtml(book.description, {
         allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
-        allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, '*': ['class'] },
+        allowedAttributes: {
+          ...sanitizeHtml.defaults.allowedAttributes,
+          '*': ['class'],
+        },
       })
     : null;
 
@@ -60,7 +65,10 @@ async function BookDetailContent({ params, searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      <Link href={backHref} className="text-muted-foreground hover:text-foreground text-sm">
+      <Link
+        href={backHref}
+        className="text-muted-foreground hover:text-foreground text-sm"
+      >
         ← Back to library
       </Link>
 
@@ -78,9 +86,13 @@ async function BookDetailContent({ params, searchParams }: Props) {
 
         <div className="flex-1 space-y-4">
           <div>
-            <h1 className="text-2xl font-semibold leading-tight">{book.title}</h1>
+            <h1 className="text-2xl font-semibold leading-tight">
+              {book.title}
+            </h1>
             {book.authors.length > 0 && (
-              <p className="text-muted-foreground mt-1">{book.authors.join(', ')}</p>
+              <p className="text-muted-foreground mt-1">
+                {book.authors.join(', ')}
+              </p>
             )}
             {book.series && (
               <p className="text-muted-foreground text-sm">
@@ -91,8 +103,14 @@ async function BookDetailContent({ params, searchParams }: Props) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Tags</p>
-            <TagEditor bookId={book.id} tagIds={book.tagIds} allTags={filterOptions.tags} />
+            <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+              Tags
+            </p>
+            <TagEditor
+              bookId={book.id}
+              tagIds={book.tagIds}
+              allTags={filterOptions.tags}
+            />
           </div>
 
           <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-2 sm:gap-x-4">
@@ -128,7 +146,9 @@ async function BookDetailContent({ params, searchParams }: Props) {
                 key={format}
                 href={staticDownloadUrl(book.path, name, format)}
                 download={`${name}.${format.toLowerCase()}`}
-                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                className={cn(
+                  buttonVariants({ variant: 'outline', size: 'sm' }),
+                )}
               >
                 Download {format}
               </a>

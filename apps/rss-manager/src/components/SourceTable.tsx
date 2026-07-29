@@ -10,7 +10,9 @@ type Source = {
 };
 
 function daysAgo(dateStr: string): string {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+  const diff = Math.floor(
+    (Date.now() - new Date(dateStr).getTime()) / 86_400_000,
+  );
   if (diff === 0) return 'today';
   if (diff === 1) return '1d ago';
   return `${diff}d ago`;
@@ -37,8 +39,14 @@ export default function SourceTable() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data: Source[]) => { setSources(data); setLoading(false); })
-      .catch(() => { setError('Failed to load sources.'); setLoading(false); });
+      .then((data: Source[]) => {
+        setSources(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Failed to load sources.');
+        setLoading(false);
+      });
   }, []);
 
   async function doAction(name: string, action: 'activate' | 'retire') {
@@ -62,7 +70,11 @@ export default function SourceTable() {
     } catch (e) {
       alert(`Action failed: ${e}`);
     } finally {
-      setPending((p) => { const n = new Set(p); n.delete(name); return n; });
+      setPending((p) => {
+        const n = new Set(p);
+        n.delete(name);
+        return n;
+      });
     }
   }
 
@@ -81,8 +93,9 @@ export default function SourceTable() {
     {} as Record<string, number>,
   );
 
-  if (error) return <p className="text-red-400 py-8 text-center">{error}</p>;
-  if (loading) return <p className="text-gray-400 py-8 text-center">Loading sources…</p>;
+  if (error) return <p className="py-8 text-center text-red-400">{error}</p>;
+  if (loading)
+    return <p className="py-8 text-center text-gray-400">Loading sources…</p>;
 
   return (
     <div className="space-y-4">
@@ -92,13 +105,15 @@ export default function SourceTable() {
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+            className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
               statusFilter === s
                 ? 'bg-violet-600 text-white'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
             }`}
           >
-            {s === 'all' ? `All (${sources.length})` : `${s} (${counts[s] ?? 0})`}
+            {s === 'all'
+              ? `All (${sources.length})`
+              : `${s} (${counts[s] ?? 0})`}
           </button>
         ))}
       </div>
@@ -109,14 +124,14 @@ export default function SourceTable() {
         placeholder="Filter by name, tag, or category…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-violet-500"
+        className="w-full rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
       />
 
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500 border-b border-gray-800">
+            <tr className="border-b border-gray-800 text-left text-gray-500">
               <th className="py-2 pr-4 font-medium">Source</th>
               <th className="py-2 pr-4 font-medium">Category</th>
               <th className="py-2 pr-4 font-medium">Tags</th>
@@ -126,7 +141,10 @@ export default function SourceTable() {
           </thead>
           <tbody>
             {filtered.map((s) => (
-              <tr key={s.url || s.name} className="border-b border-gray-800 hover:bg-gray-800/50">
+              <tr
+                key={s.url || s.name}
+                className="border-b border-gray-800 hover:bg-gray-800/50"
+              >
                 <td className="py-2 pr-4">
                   {s.url ? (
                     <a
@@ -145,27 +163,34 @@ export default function SourceTable() {
                 <td className="py-2 pr-4">
                   <div className="flex flex-wrap gap-1">
                     {s.tags.map((t) => (
-                      <span key={t} className="px-1.5 py-0.5 bg-gray-800 text-gray-400 rounded text-xs">
+                      <span
+                        key={t}
+                        className="rounded bg-gray-800 px-1.5 py-0.5 text-xs text-gray-400"
+                      >
                         #{t}
                       </span>
                     ))}
                   </div>
                 </td>
                 <td className="py-2 pr-4">
-                  <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLORS[s.status]}`}>
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs ${STATUS_COLORS[s.status]}`}
+                  >
                     {s.status}
                   </span>
                 </td>
                 <td className="py-2 text-right">
                   <div className="flex items-center justify-end gap-2">
                     {s.proposedDate && s.status === 'proposed' && (
-                      <span className="text-xs text-gray-500">{daysAgo(s.proposedDate)}</span>
+                      <span className="text-xs text-gray-500">
+                        {daysAgo(s.proposedDate)}
+                      </span>
                     )}
                     {s.status === 'proposed' && (
                       <button
                         onClick={() => doAction(s.name, 'activate')}
                         disabled={pending.has(s.name)}
-                        className="px-3 py-1 text-xs rounded bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
+                        className="rounded bg-violet-600 px-3 py-1 text-xs text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
                       >
                         {pending.has(s.name) ? '…' : 'Activate'}
                       </button>
@@ -174,7 +199,7 @@ export default function SourceTable() {
                       <button
                         onClick={() => doAction(s.name, 'retire')}
                         disabled={pending.has(s.name)}
-                        className="px-3 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                        className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
                       >
                         {pending.has(s.name) ? '…' : 'Retire'}
                       </button>
@@ -186,7 +211,9 @@ export default function SourceTable() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <p className="text-gray-500 text-center py-8">No sources match the current filter.</p>
+          <p className="py-8 text-center text-gray-500">
+            No sources match the current filter.
+          </p>
         )}
       </div>
     </div>

@@ -16,7 +16,12 @@ import {
   type GroupBy,
   listUndeliveredBooks,
 } from '@/lib/queries';
-import { addTagToBook, getOrCreateTag, removeTagFromBook, revalidateBookTagCache } from '@/lib/tags';
+import {
+  addTagToBook,
+  getOrCreateTag,
+  removeTagFromBook,
+  revalidateBookTagCache,
+} from '@/lib/tags';
 
 export async function POST(request: Request): Promise<Response> {
   const server = new McpServer({ name: 'calibre-mcp', version: '0.1.0' });
@@ -31,10 +36,18 @@ export async function POST(request: Request): Promise<Response> {
         authorId: z.number().int().optional(),
         tagId: z.number().int().optional(),
         seriesId: z.number().int().optional(),
-        platformKey: z.string().optional().describe('Platform key, e.g. "readwise-reader"'),
-        delivered: z.boolean().optional().describe('true=delivered only, false=undelivered only'),
+        platformKey: z
+          .string()
+          .optional()
+          .describe('Platform key, e.g. "readwise-reader"'),
+        delivered: z
+          .boolean()
+          .optional()
+          .describe('true=delivered only, false=undelivered only'),
         groupBy: z.enum(['series', 'tag', 'author']).optional(),
-        sortBy: z.enum(['title', 'author', 'pubdate', 'added', 'rating']).optional(),
+        sortBy: z
+          .enum(['title', 'author', 'pubdate', 'added', 'rating'])
+          .optional(),
         sortDir: z.enum(['asc', 'desc']).optional(),
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(100).default(30),
@@ -79,7 +92,11 @@ export async function POST(request: Request): Promise<Response> {
     },
     async (input) => {
       const book = await getBook(input.bookId);
-      if (!book) return { content: [{ type: 'text', text: `Book ${input.bookId} not found` }], isError: true };
+      if (!book)
+        return {
+          content: [{ type: 'text', text: `Book ${input.bookId} not found` }],
+          isError: true,
+        };
       return { content: [{ type: 'text', text: JSON.stringify(book) }] };
     },
   );
@@ -134,7 +151,16 @@ export async function POST(request: Request): Promise<Response> {
         note: input.note,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify({ ok: true, bookId: input.bookId, platformKey: input.platformKey }) }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              ok: true,
+              bookId: input.bookId,
+              platformKey: input.platformKey,
+            }),
+          },
+        ],
       };
     },
   );
@@ -155,7 +181,16 @@ export async function POST(request: Request): Promise<Response> {
         note: input.note,
       });
       return {
-        content: [{ type: 'text', text: JSON.stringify({ ok: true, count: result.count, platformKey: input.platformKey }) }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              ok: true,
+              count: result.count,
+              platformKey: input.platformKey,
+            }),
+          },
+        ],
       };
     },
   );
@@ -168,14 +203,17 @@ export async function POST(request: Request): Promise<Response> {
     },
     async (input) => {
       await deleteBookDeliveryEvent(input.bookId, input.deliveryId);
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true }) }] };
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
+      };
     },
   );
 
   server.registerTool(
     'list_tags',
     {
-      description: 'List all tags. Use to resolve tag names to IDs before calling remove_tag.',
+      description:
+        'List all tags. Use to resolve tag names to IDs before calling remove_tag.',
       inputSchema: {},
     },
     async () => {
@@ -187,7 +225,8 @@ export async function POST(request: Request): Promise<Response> {
   server.registerTool(
     'add_tag',
     {
-      description: 'Add a tag to a book. Creates the tag if it does not exist. Idempotent.',
+      description:
+        'Add a tag to a book. Creates the tag if it does not exist. Idempotent.',
       inputSchema: { bookId: z.number().int(), tagName: z.string().min(1) },
     },
     async (input) => {
@@ -195,7 +234,17 @@ export async function POST(request: Request): Promise<Response> {
       addTagToBook(input.bookId, tagId);
       revalidateBookTagCache(input.bookId);
       return {
-        content: [{ type: 'text', text: JSON.stringify({ ok: true, bookId: input.bookId, tagId, tagName: input.tagName }) }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              ok: true,
+              bookId: input.bookId,
+              tagId,
+              tagName: input.tagName,
+            }),
+          },
+        ],
       };
     },
   );
@@ -203,13 +252,16 @@ export async function POST(request: Request): Promise<Response> {
   server.registerTool(
     'remove_tag',
     {
-      description: 'Remove a tag from a book. Call list_tags first to get tag IDs.',
+      description:
+        'Remove a tag from a book. Call list_tags first to get tag IDs.',
       inputSchema: { bookId: z.number().int(), tagId: z.number().int() },
     },
     async (input) => {
       removeTagFromBook(input.bookId, input.tagId);
       revalidateBookTagCache(input.bookId);
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true }) }] };
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
+      };
     },
   );
 

@@ -18,18 +18,17 @@ const translatePath = useTranslatedPath(lang);
 ---
 
 <div
-  class="h-3/4 w-full flex-row-center justify-between py-10 px-20 relative z-0 rounded-xl shadow-lg"
+  class="flex-row-center relative z-0 h-3/4 w-full justify-between rounded-xl px-20 py-10 shadow-lg"
 >
-  <div class="absolute -z-10 inset-0 rounded-[inherit] overflow-clip">
+  <div class="absolute inset-0 -z-10 overflow-clip rounded-[inherit]">
     <div
-      class="size-full relative z-0 bg-muted overflow-clip
-                  after:bg-foreground after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
+      class="bg-muted after:bg-foreground after:scale-200 relative z-0 size-full overflow-clip after:absolute after:-right-1/4 after:top-0 after:-z-10 after:h-full after:w-1/2 after:-skew-x-[45deg]"
     >
     </div>
   </div>
   <div class="flex flex-col justify-center">
     <p>{year}</p>
-    <h1 class="text-7xl mt-1 mb-16 text-secondary-foreground">
+    <h1 class="text-secondary-foreground mb-16 mt-1 text-7xl">
       {props.name.fullname}
     </h1>
     <div class="flex-row-center gap-4">
@@ -40,7 +39,7 @@ const translatePath = useTranslatedPath(lang);
         variant="outline"
         href={translatePath('/resume')}
         target="_blank"
-        class="px-6 gap-2"
+        class="gap-2 px-6"
         >{t('resume')}
         <Icon icon={ExternalLink} />
       </Button>
@@ -48,14 +47,15 @@ const translatePath = useTranslatedPath(lang);
   </div>
   <Picture
     src={props.profile}
-    alt="profile"
+    alt="Rainforest Cheng"
+    quality={72}
     loading="eager"
     pictureAttributes={{
       class: 'self-end -mb-10 h-[120%] w-full',
     }}
-    class="object-cover object-center h-full w-max mx-auto"
+    class="mx-auto h-full w-max object-cover object-center"
   />
-  <div class="flex flex-col justify-center text-background gap-6">
+  <div class="text-background flex flex-col justify-center gap-6">
     <ul class="list-disc">
       <li>
         {t('home:hero-brief')}
@@ -78,7 +78,7 @@ const translatePath = useTranslatedPath(lang);
   import { removeUrlHashAfterNavigation } from '@utils';
 
   const contactMeButton = document.querySelector(
-    'a[href="#contact-form-footer"]'
+    'a[href="#contact-form-footer"]',
   );
   contactMeButton?.addEventListener('click', removeUrlHashAfterNavigation);
 </script>

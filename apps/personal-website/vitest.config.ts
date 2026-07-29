@@ -2,7 +2,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    environment: 'node',
+    // jsdom rather than node: the on-device AI capability core (src/utils/ai/) caches a
+    // failed capability probe in sessionStorage, which node's environment doesn't provide.
+    environment: 'jsdom',
     include: ['src/**/*.test.ts'],
     // Task 8 (2026-07-07 personal-data-library plan) deleted this app's only local test
     // files (mcp/smoke.test.ts, mcp/profile-data.test.ts) — their replacements now live

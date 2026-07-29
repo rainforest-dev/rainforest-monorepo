@@ -11,24 +11,29 @@ catalog:
   '@types/react': 19.2.9
   '@types/react-dom': 19.2.3
   lit: 3.3.2
-  next: 16.2.6
+  next: 16.2.11
   react: 19.2.3
   react-dom: 19.2.3
   tailwindcss: 4.2.2
-  typescript: 5.9.3
+  typescript: 6.0.3
   class-variance-authority: ^0.7.1
   tailwind-merge: ^3.5.0
 
 # pnpm 11 settings (moved from package.json pnpm field)
 peerDependencyRules:
   allowedVersions:
-    '@vite-pwa/astro>astro': '6'
+    # @vite-pwa/astro's published peer range lags Astro's releases; it works
+    # with Astro 6/7 in practice, so allow both explicitly.
+    '@vite-pwa/astro>astro': '6 || 7'
     '@nanostores/lit>nanostores': '1'
 
 minimumReleaseAge: 1440
 
 allowBuilds:
   '@parcel/watcher': true
+  # Only used for source-map upload, which we keep disabled (personal-website's
+  # astro.config.mjs) — skip its binary-downloading postinstall.
+  '@sentry/cli': false
   '@swc/core': true
   better-sqlite3: true
   core-js: true

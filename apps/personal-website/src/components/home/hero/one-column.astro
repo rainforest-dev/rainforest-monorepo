@@ -17,34 +17,35 @@ const { t } = await useTranslation(lang, 'home');
 const translatePath = useTranslatedPath(lang);
 ---
 
-<div class="flex flex-col size-full">
+<div class="flex size-full flex-col">
   <div class="relative aspect-square max-h-[600px]">
     <div
       id="hero-dark-panel"
-      class="size-full bg-foreground rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0 z-0"
+      class="bg-foreground absolute top-0 z-0 size-full origin-top-right skew-y-12 overflow-clip rounded-b-3xl"
     >
       <Picture
         src={props.profile}
-        alt="profile"
+        alt="Rainforest Cheng"
+        quality={72}
         loading="eager"
         pictureAttributes={{
           class:
             'h-full z-10 absolute -bottom-10 md:-bottom-20 left-1/2 -translate-x-1/2 ',
         }}
-        class="object-cover object-top -skew-y-12 size-full"
+        class="size-full -skew-y-12 object-cover object-top"
       />
     </div>
     <div
-      class="text-9xl text-background/50 rotate-270 origin-bottom inline-block m-4"
+      class="text-background/50 rotate-270 m-4 inline-block origin-bottom text-9xl"
     >
       {year}
     </div>
   </div>
-  <div class="flex container">
-    <div class="flex flex-col w-full">
-      <div class="flex-row-center justify-between flex-wrap gap-2">
+  <div class="container flex">
+    <div class="flex w-full flex-col">
+      <div class="flex-row-center flex-wrap justify-between gap-2">
         <div>
-          <h1 class="text-4xl text-secondary-foreground">
+          <h1 class="text-secondary-foreground text-4xl">
             {props.name.first}
           </h1>
           <p>{props.jobPosition}</p>
@@ -53,20 +54,19 @@ const translatePath = useTranslatedPath(lang);
           <Button
             id="contact-me-button"
             href="#contact-form-footer"
-            class="px-6"
-            >{t('contact-me-title')}</Button
+            class="px-6">{t('contact-me-title')}</Button
           >
           <Button
             variant="outline"
             href={translatePath('/resume')}
             target="_blank"
-            class="px-6 gap-2"
+            class="gap-2 px-6"
             >{t('resume')}
             <Icon icon={ExternalLink} />
           </Button>
         </div>
       </div>
-      <ul class="list-disc list-inside mt-4">
+      <ul class="mt-4 list-inside list-disc">
         {props.summaries.map((summary) => <li>{summary}</li>)}
       </ul>
     </div>
@@ -78,9 +78,11 @@ const translatePath = useTranslatedPath(lang);
   import { removeUrlHashAfterNavigation } from '@utils';
 
   const contactMeButton = document.getElementById(
-    'contact-me-button'
+    'contact-me-button',
   ) as HTMLAnchorElement;
-  const menuButton = document.getElementById('menu-trigger') as HTMLButtonElement;
+  const menuButton = document.getElementById(
+    'menu-trigger',
+  ) as HTMLButtonElement;
   const handleOpenContactForm = () => {
     menuButton?.click();
   };
@@ -112,7 +114,7 @@ const translatePath = useTranslatedPath(lang);
   };
 
   const breakpointMd = getComputedStyle(
-    document.documentElement
+    document.documentElement,
   ).getPropertyValue('--breakpoint-md');
   handleMatches(window.matchMedia(`(max-width: ${breakpointMd})`).matches);
   window

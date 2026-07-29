@@ -55,7 +55,10 @@ export async function GET(request: NextRequest) {
 
   // Phase 1: FTS5 trigram substring match — handles mixed CJK/ASCII.
   // Trigram requires each token to be ≥3 chars; skip FTS for short inputs.
-  const tokens = q.split(/\s+/).map(sanitizeToken).filter((t) => t.length >= 3);
+  const tokens = q
+    .split(/\s+/)
+    .map(sanitizeToken)
+    .filter((t) => t.length >= 3);
   if (tokens.length > 0) {
     try {
       const rows = appSqlite
@@ -63,7 +66,8 @@ export async function GET(request: NextRequest) {
           'SELECT id, title, authors, series FROM books_fts WHERE books_fts MATCH ? ORDER BY rank LIMIT 20',
         )
         .all(tokens.join(' ')) as FtsRow[];
-      if (rows.length > 0) return NextResponse.json({ results: normalize(rows) });
+      if (rows.length > 0)
+        return NextResponse.json({ results: normalize(rows) });
     } catch {
       // Malformed MATCH query or table not ready — fall through.
     }

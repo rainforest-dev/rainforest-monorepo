@@ -7,6 +7,7 @@
 **Architecture:** A `deploy/` directory in the monorepo root contains `docker-compose.yml`, Traefik static config, and a dynamic config file for the shared `homelab-auth` ForwardAuth middleware. All services share a `traefik` Docker network. `auth-service` is the only service WITHOUT the middleware — it IS the gate.
 
 **Prerequisites:**
+
 - Plan 1 (auth-service) complete — Docker image must build
 - Plan 2 (rss-manager) complete — Docker image must build
 - Cloudflare API token with `Zone.DNS` edit permission (for Let's Encrypt DNS challenge)
@@ -33,6 +34,7 @@ deploy/
 ### Task 1: Directory structure + Traefik static config
 
 **Files:**
+
 - Create: `deploy/traefik/traefik.yml`
 - Create: `deploy/traefik/dynamic/.gitkeep`
 
@@ -53,7 +55,7 @@ api:
 
 entryPoints:
   web:
-    address: ":80"
+    address: ':80'
     http:
       redirections:
         entryPoint:
@@ -61,7 +63,7 @@ entryPoints:
           scheme: https
           permanent: true
   websecure:
-    address: ":443"
+    address: ':443'
 
 # Let's Encrypt via Cloudflare DNS challenge — gets a wildcard cert for *.rainforest.tools
 certificatesResolvers:
@@ -72,8 +74,8 @@ certificatesResolvers:
       dnsChallenge:
         provider: cloudflare
         resolvers:
-          - "1.1.1.1:53"
-          - "8.8.8.8:53"
+          - '1.1.1.1:53'
+          - '8.8.8.8:53'
 
 providers:
   docker:
@@ -110,6 +112,7 @@ git commit -m "feat(deploy): add deploy directory and Traefik static config"
 ### Task 2: Traefik dynamic config — ForwardAuth middleware
 
 **Files:**
+
 - Create: `deploy/traefik/dynamic/middlewares.yml`
 
 The ForwardAuth middleware is defined once here and referenced by all protected services via Docker labels (`traefik.http.routers.<name>.middlewares=homelab-auth`). `auth-service` itself is NOT listed here — it has no middleware.
@@ -121,11 +124,11 @@ http:
   middlewares:
     homelab-auth:
       forwardAuth:
-        address: "http://auth-service:3001/api/verify"
+        address: 'http://auth-service:3001/api/verify'
         # Pass original host/uri headers so /api/verify can build the redirect URL
         trustForwardHeader: true
         authResponseHeaders:
-          - "X-Forwarded-User"
+          - 'X-Forwarded-User'
 ```
 
 - [ ] **Step 2: Verify it's valid YAML**
@@ -148,9 +151,11 @@ git commit -m "feat(deploy): add homelab-auth ForwardAuth middleware"
 ### Task 3: docker-compose.yml
 
 **Files:**
+
 - Create: `deploy/docker-compose.yml`
 
 Key rules:
+
 - `auth-service` router has NO `middlewares=homelab-auth` label — it receives unauthenticated requests
 - Every other service that should be protected MUST have `middlewares=homelab-auth`
 - All services join the `traefik` network so Traefik can reach the ForwardAuth endpoint
@@ -172,8 +177,8 @@ services:
     image: traefik:v3
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     volumes:
@@ -184,11 +189,11 @@ services:
     networks:
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik-api.rule=Host(`traefik.rainforest.tools`)"
-      - "traefik.http.routers.traefik-api.service=api@internal"
-      - "traefik.http.routers.traefik-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.traefik-api.middlewares=homelab-auth"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.traefik-api.rule=Host(`traefik.rainforest.tools`)'
+      - 'traefik.http.routers.traefik-api.service=api@internal'
+      - 'traefik.http.routers.traefik-api.tls.certresolver=letsencrypt'
+      - 'traefik.http.routers.traefik-api.middlewares=homelab-auth'
 
   auth-service:
     build:
@@ -206,9 +211,9 @@ services:
     networks:
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.auth.rule=Host(`auth.rainforest.tools`)"
-      - "traefik.http.routers.auth.tls.certresolver=letsencrypt"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.auth.rule=Host(`auth.rainforest.tools`)'
+      - 'traefik.http.routers.auth.tls.certresolver=letsencrypt'
       # intentionally NO homelab-auth middleware — auth-service is the auth gate itself
 
   personal-calibre:
@@ -224,10 +229,10 @@ services:
     networks:
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.calibre.rule=Host(`calibre.rainforest.tools`)"
-      - "traefik.http.routers.calibre.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.calibre.middlewares=homelab-auth"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.calibre.rule=Host(`calibre.rainforest.tools`)'
+      - 'traefik.http.routers.calibre.tls.certresolver=letsencrypt'
+      - 'traefik.http.routers.calibre.middlewares=homelab-auth'
 
   rss-manager:
     build:
@@ -241,10 +246,10 @@ services:
     networks:
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.rss.rule=Host(`rss.rainforest.tools`)"
-      - "traefik.http.routers.rss.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.rss.middlewares=homelab-auth"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.rss.rule=Host(`rss.rainforest.tools`)'
+      - 'traefik.http.routers.rss.tls.certresolver=letsencrypt'
+      - 'traefik.http.routers.rss.middlewares=homelab-auth'
 ```
 
 - [ ] **Step 2: Verify it's valid YAML**
@@ -281,6 +286,7 @@ git commit -m "feat(deploy): add docker-compose.yml with Traefik + all homelab s
 ### Task 4: .env.example
 
 **Files:**
+
 - Create: `deploy/.env.example`
 
 - [ ] **Step 1: Create `deploy/.env.example`**
@@ -333,6 +339,7 @@ git commit -m "feat(deploy): add .env.example for homelab deployment"
 This task documents the exact sequence for first-time deployment. It is not a code task — write it as a comment in `.env.example` or a separate `deploy/RUNBOOK.md`.
 
 **Files:**
+
 - Create: `deploy/RUNBOOK.md`
 
 - [ ] **Step 1: Create `deploy/RUNBOOK.md`**
@@ -429,6 +436,7 @@ git commit -m "docs(deploy): add first-deploy and day-2 operations runbook"
 This task runs the full stack locally with self-signed TLS (skipping Let's Encrypt) to verify the wiring before deploying to the homelab. It uses `--override` to swap the cert resolver for a self-signed one.
 
 **Files:**
+
 - Create: `deploy/docker-compose.dev.yml` (override for local testing)
 
 - [ ] **Step 1: Create `deploy/docker-compose.dev.yml`**
@@ -439,34 +447,34 @@ This task runs the full stack locally with self-signed TLS (skipping Let's Encry
 services:
   traefik:
     ports:
-      - "8080:8080"     # expose dashboard on plain HTTP
+      - '8080:8080' # expose dashboard on plain HTTP
     command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedByDefault=false"
-      - "--providers.docker.network=traefik"
-      - "--providers.file.directory=/config/dynamic"
-      - "--entrypoints.web.address=:80"
+      - '--api.insecure=true'
+      - '--providers.docker=true'
+      - '--providers.docker.exposedByDefault=false'
+      - '--providers.docker.network=traefik'
+      - '--providers.file.directory=/config/dynamic'
+      - '--entrypoints.web.address=:80'
     labels:
-      - "traefik.enable=false"  # disable the routed dashboard in dev
+      - 'traefik.enable=false' # disable the routed dashboard in dev
 
   auth-service:
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.auth.rule=Host(`auth.localhost`)"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.auth.rule=Host(`auth.localhost`)'
       # no TLS in dev
 
   personal-calibre:
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.calibre.rule=Host(`calibre.localhost`)"
-      - "traefik.http.routers.calibre.middlewares=homelab-auth"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.calibre.rule=Host(`calibre.localhost`)'
+      - 'traefik.http.routers.calibre.middlewares=homelab-auth'
 
   rss-manager:
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.rss.rule=Host(`rss.localhost`)"
-      - "traefik.http.routers.rss.middlewares=homelab-auth"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.rss.rule=Host(`rss.localhost`)'
+      - 'traefik.http.routers.rss.middlewares=homelab-auth'
 ```
 
 - [ ] **Step 2: Add `*.localhost` entries to `/etc/hosts` for local testing**
@@ -493,13 +501,13 @@ Also update `WEBAUTHN_ORIGIN` and `WEBAUTHN_RP_ID` for local testing by extendin
 
 ```yaml
 # Add to docker-compose.dev.yml under auth-service:
-  auth-service:
-    environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - REGISTRATION_TOKEN=${REGISTRATION_TOKEN}
-      - WEBAUTHN_RP_ID=auth.localhost
-      - WEBAUTHN_ORIGIN=http://auth.localhost
-      - COOKIE_DOMAIN=.localhost
+auth-service:
+  environment:
+    - JWT_SECRET=${JWT_SECRET}
+    - REGISTRATION_TOKEN=${REGISTRATION_TOKEN}
+    - WEBAUTHN_RP_ID=auth.localhost
+    - WEBAUTHN_ORIGIN=http://auth.localhost
+    - COOKIE_DOMAIN=.localhost
 ```
 
 Update `deploy/docker-compose.dev.yml` to add this under `auth-service`.

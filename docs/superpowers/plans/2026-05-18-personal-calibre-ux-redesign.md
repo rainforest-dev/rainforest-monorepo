@@ -13,6 +13,7 @@
 ## File Map
 
 **New files**
+
 - `apps/personal-calibre-e2e/package.json`
 - `apps/personal-calibre-e2e/playwright.config.ts`
 - `apps/personal-calibre-e2e/tsconfig.json`
@@ -34,6 +35,7 @@
 - `apps/personal-calibre/src/components/ui/sonner.tsx` (via shadcn)
 
 **Modified files**
+
 - `apps/personal-calibre/src/types/calibre.ts` — add `deliveredTo`, `BookGroup`
 - `apps/personal-calibre/src/lib/queries.ts` — `hydrateBooks`, extended `getBookList`, new `getGroupedBookList`
 - `apps/personal-calibre/src/lib/delivery.ts` — add `revalidateTag('books')` to `bulkCreateDeliveryEvents`
@@ -46,6 +48,7 @@
 - `apps/personal-calibre/package.json` — add sonner
 
 **Deleted files**
+
 - `apps/personal-calibre/src/components/FilterPanel.tsx`
 
 ---
@@ -53,6 +56,7 @@
 ## Task 1: E2e project scaffold
 
 **Files:**
+
 - Create: `apps/personal-calibre-e2e/package.json`
 - Create: `apps/personal-calibre-e2e/playwright.config.ts`
 - Create: `apps/personal-calibre-e2e/tsconfig.json`
@@ -73,7 +77,9 @@
     "targets": {
       "e2e": {
         "executor": "@nx/playwright:playwright",
-        "outputs": ["{workspaceRoot}/dist/.playwright/apps/personal-calibre-e2e"],
+        "outputs": [
+          "{workspaceRoot}/dist/.playwright/apps/personal-calibre-e2e"
+        ],
         "options": {
           "config": "apps/personal-calibre-e2e/playwright.config.ts"
         }
@@ -178,43 +184,87 @@ export default async function globalSetup() {
   const db = new Database(metaPath);
 
   // Schema — minimal Calibre tables required by the app
-  db.prepare(`CREATE TABLE books (
+  db.prepare(
+    `CREATE TABLE books (
     id INTEGER PRIMARY KEY, title TEXT NOT NULL, sort TEXT,
     timestamp TEXT, pubdate TEXT, series_index REAL, author_sort TEXT,
     path TEXT NOT NULL DEFAULT '', has_cover INTEGER DEFAULT 0,
     uuid TEXT, last_modified TEXT DEFAULT '2024-01-01T00:00:00+00:00'
-  )`).run();
-  db.prepare(`CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT, sort TEXT, link TEXT DEFAULT '')`).run();
-  db.prepare(`CREATE TABLE books_authors_link (id INTEGER PRIMARY KEY, book INTEGER, author INTEGER)`).run();
+  )`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT, sort TEXT, link TEXT DEFAULT '')`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE books_authors_link (id INTEGER PRIMARY KEY, book INTEGER, author INTEGER)`,
+  ).run();
   db.prepare(`CREATE TABLE tags (id INTEGER PRIMARY KEY, name TEXT)`).run();
-  db.prepare(`CREATE TABLE books_tags_link (id INTEGER PRIMARY KEY, book INTEGER, tag INTEGER)`).run();
-  db.prepare(`CREATE TABLE series (id INTEGER PRIMARY KEY, name TEXT, sort TEXT)`).run();
-  db.prepare(`CREATE TABLE books_series_link (id INTEGER PRIMARY KEY, book INTEGER, series INTEGER)`).run();
-  db.prepare(`CREATE TABLE data (id INTEGER PRIMARY KEY, book INTEGER, format TEXT, uncompressed_size INTEGER DEFAULT 0, name TEXT)`).run();
-  db.prepare(`CREATE TABLE ratings (id INTEGER PRIMARY KEY, rating INTEGER)`).run();
-  db.prepare(`CREATE TABLE books_ratings_link (id INTEGER PRIMARY KEY, book INTEGER, rating INTEGER)`).run();
-  db.prepare(`CREATE TABLE publishers (id INTEGER PRIMARY KEY, name TEXT, sort TEXT)`).run();
-  db.prepare(`CREATE TABLE books_publishers_link (id INTEGER PRIMARY KEY, book INTEGER, publisher INTEGER)`).run();
-  db.prepare(`CREATE TABLE languages (id INTEGER PRIMARY KEY, lang_code TEXT)`).run();
-  db.prepare(`CREATE TABLE books_languages_link (id INTEGER PRIMARY KEY, book INTEGER, lang_code INTEGER, item_order INTEGER DEFAULT 0)`).run();
-  db.prepare(`CREATE TABLE comments (id INTEGER PRIMARY KEY, book INTEGER, text TEXT)`).run();
+  db.prepare(
+    `CREATE TABLE books_tags_link (id INTEGER PRIMARY KEY, book INTEGER, tag INTEGER)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE series (id INTEGER PRIMARY KEY, name TEXT, sort TEXT)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE books_series_link (id INTEGER PRIMARY KEY, book INTEGER, series INTEGER)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE data (id INTEGER PRIMARY KEY, book INTEGER, format TEXT, uncompressed_size INTEGER DEFAULT 0, name TEXT)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE ratings (id INTEGER PRIMARY KEY, rating INTEGER)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE books_ratings_link (id INTEGER PRIMARY KEY, book INTEGER, rating INTEGER)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE publishers (id INTEGER PRIMARY KEY, name TEXT, sort TEXT)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE books_publishers_link (id INTEGER PRIMARY KEY, book INTEGER, publisher INTEGER)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE languages (id INTEGER PRIMARY KEY, lang_code TEXT)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE books_languages_link (id INTEGER PRIMARY KEY, book INTEGER, lang_code INTEGER, item_order INTEGER DEFAULT 0)`,
+  ).run();
+  db.prepare(
+    `CREATE TABLE comments (id INTEGER PRIMARY KEY, book INTEGER, text TEXT)`,
+  ).run();
 
   // Seed books (8 total for good coverage of filter/group/series scenarios)
-  const insBook = db.prepare(`INSERT INTO books (id, title, sort, series_index, author_sort) VALUES (?, ?, ?, ?, ?)`);
+  const insBook = db.prepare(
+    `INSERT INTO books (id, title, sort, series_index, author_sort) VALUES (?, ?, ?, ?, ?)`,
+  );
   const bookData: [number, string, string, number | null, string][] = [
     [1, 'Dune', 'Dune', 1.0, 'Herbert, Frank'],
     [2, 'Dune Messiah', 'Dune Messiah', 2.0, 'Herbert, Frank'],
     [3, 'Foundation', 'Foundation', 1.0, 'Asimov, Isaac'],
     [4, 'Foundation and Empire', 'Foundation and Empire', 2.0, 'Asimov, Isaac'],
     [5, 'The Hobbit', 'Hobbit, The', null, 'Tolkien, J.R.R.'],
-    [6, 'The Fellowship of the Ring', 'Fellowship of the Ring, The', 1.0, 'Tolkien, J.R.R.'],
-    [7, 'Thinking, Fast and Slow', 'Thinking Fast and Slow', null, 'Kahneman, Daniel'],
+    [
+      6,
+      'The Fellowship of the Ring',
+      'Fellowship of the Ring, The',
+      1.0,
+      'Tolkien, J.R.R.',
+    ],
+    [
+      7,
+      'Thinking, Fast and Slow',
+      'Thinking Fast and Slow',
+      null,
+      'Kahneman, Daniel',
+    ],
     [8, 'Atomic Habits', 'Atomic Habits', null, 'Clear, James'],
   ];
   for (const row of bookData) insBook.run(...row);
 
   // Authors
-  const insAuthor = db.prepare(`INSERT INTO authors (id, name, sort) VALUES (?, ?, ?)`);
+  const insAuthor = db.prepare(
+    `INSERT INTO authors (id, name, sort) VALUES (?, ?, ?)`,
+  );
   const authorData: [number, string, string][] = [
     [1, 'Frank Herbert', 'Herbert, Frank'],
     [2, 'Isaac Asimov', 'Asimov, Isaac'],
@@ -225,40 +275,94 @@ export default async function globalSetup() {
   for (const row of authorData) insAuthor.run(...row);
 
   // Books-Authors links
-  const insBA = db.prepare(`INSERT INTO books_authors_link (book, author) VALUES (?, ?)`);
-  for (const [b, a] of [[1,1],[2,1],[3,2],[4,2],[5,3],[6,3],[7,4],[8,5]] as [number,number][]) insBA.run(b, a);
+  const insBA = db.prepare(
+    `INSERT INTO books_authors_link (book, author) VALUES (?, ?)`,
+  );
+  for (const [b, a] of [
+    [1, 1],
+    [2, 1],
+    [3, 2],
+    [4, 2],
+    [5, 3],
+    [6, 3],
+    [7, 4],
+    [8, 5],
+  ] as [number, number][])
+    insBA.run(b, a);
 
   // Series
-  const insSeries = db.prepare(`INSERT INTO series (id, name, sort) VALUES (?, ?, ?)`);
+  const insSeries = db.prepare(
+    `INSERT INTO series (id, name, sort) VALUES (?, ?, ?)`,
+  );
   insSeries.run(1, 'Dune Chronicles', 'Dune Chronicles');
   insSeries.run(2, 'Foundation Series', 'Foundation Series');
   insSeries.run(3, 'The Lord of the Rings', 'Lord of the Rings, The');
 
   // Books-Series links
-  const insBS = db.prepare(`INSERT INTO books_series_link (book, series) VALUES (?, ?)`);
-  for (const [b, s] of [[1,1],[2,1],[3,2],[4,2],[6,3]] as [number,number][]) insBS.run(b, s);
+  const insBS = db.prepare(
+    `INSERT INTO books_series_link (book, series) VALUES (?, ?)`,
+  );
+  for (const [b, s] of [
+    [1, 1],
+    [2, 1],
+    [3, 2],
+    [4, 2],
+    [6, 3],
+  ] as [number, number][])
+    insBS.run(b, s);
 
   // Tags: 1=sci-fi, 2=fantasy, 3=classic, 4=nonfiction, 5=self-help
   const insTag = db.prepare(`INSERT INTO tags (id, name) VALUES (?, ?)`);
-  for (const [id, name] of [[1,'sci-fi'],[2,'fantasy'],[3,'classic'],[4,'nonfiction'],[5,'self-help']] as [number,string][]) insTag.run(id, name);
+  for (const [id, name] of [
+    [1, 'sci-fi'],
+    [2, 'fantasy'],
+    [3, 'classic'],
+    [4, 'nonfiction'],
+    [5, 'self-help'],
+  ] as [number, string][])
+    insTag.run(id, name);
 
   // Books-Tags: Dune→[sci-fi,classic], DuneMessiah→[sci-fi], Foundation→[sci-fi,classic],
   //             FoundationEmpire→[sci-fi], Hobbit→[fantasy], FotR→[fantasy,classic],
   //             ThinkFast→[nonfiction], AtomicHabits→[nonfiction,self-help]
-  const insBT = db.prepare(`INSERT INTO books_tags_link (book, tag) VALUES (?, ?)`);
-  for (const [b, t] of [[1,1],[1,3],[2,1],[3,1],[3,3],[4,1],[5,2],[6,2],[6,3],[7,4],[8,4],[8,5]] as [number,number][]) insBT.run(b, t);
+  const insBT = db.prepare(
+    `INSERT INTO books_tags_link (book, tag) VALUES (?, ?)`,
+  );
+  for (const [b, t] of [
+    [1, 1],
+    [1, 3],
+    [2, 1],
+    [3, 1],
+    [3, 3],
+    [4, 1],
+    [5, 2],
+    [6, 2],
+    [6, 3],
+    [7, 4],
+    [8, 4],
+    [8, 5],
+  ] as [number, number][])
+    insBT.run(b, t);
 
   // Formats (EPUB for all books, needed for download routes)
-  const insData = db.prepare(`INSERT INTO data (book, format, name) VALUES (?, 'EPUB', ?)`);
+  const insData = db.prepare(
+    `INSERT INTO data (book, format, name) VALUES (?, 'EPUB', ?)`,
+  );
   for (const [id] of bookData) insData.run(id, `book${id}`);
 
   // Ratings: Dune→10 (5★), Foundation→10 (5★), Hobbit→8 (4★)
   db.prepare(`INSERT INTO ratings (id, rating) VALUES (1, 10)`).run();
   db.prepare(`INSERT INTO ratings (id, rating) VALUES (2, 10)`).run();
   db.prepare(`INSERT INTO ratings (id, rating) VALUES (3, 8)`).run();
-  db.prepare(`INSERT INTO books_ratings_link (book, rating) VALUES (1, 1)`).run();
-  db.prepare(`INSERT INTO books_ratings_link (book, rating) VALUES (3, 2)`).run();
-  db.prepare(`INSERT INTO books_ratings_link (book, rating) VALUES (5, 3)`).run();
+  db.prepare(
+    `INSERT INTO books_ratings_link (book, rating) VALUES (1, 1)`,
+  ).run();
+  db.prepare(
+    `INSERT INTO books_ratings_link (book, rating) VALUES (3, 2)`,
+  ).run();
+  db.prepare(
+    `INSERT INTO books_ratings_link (book, rating) VALUES (5, 3)`,
+  ).run();
 
   db.close();
   console.log('[e2e] Fixture DB created at', FIXTURES_DIR);
@@ -312,6 +416,7 @@ git -c commit.gpgsign=false commit -m "feat(personal-calibre-e2e): scaffold Play
 ## Task 2: Install shadcn components + Sonner
 
 **Files:**
+
 - Create: `apps/personal-calibre/src/components/ui/command.tsx`
 - Create: `apps/personal-calibre/src/components/ui/popover.tsx`
 - Create: `apps/personal-calibre/src/components/ui/sonner.tsx`
@@ -347,6 +452,7 @@ git -c commit.gpgsign=false commit -m "feat(personal-calibre): add shadcn Comman
 ## Task 3: Types + queries refactor
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/types/calibre.ts`
 - Modify: `apps/personal-calibre/src/lib/queries.ts`
 
@@ -362,14 +468,14 @@ export interface BookSummary {
   authors: string[];
   series: string | null;
   formats: string[];
-  deliveredTo: string[];  // platform keys, e.g. ['readwise-reader']
+  deliveredTo: string[]; // platform keys, e.g. ['readwise-reader']
 }
 
 export interface BookGroup {
-  key: string;    // group entity id as string, or 'ungrouped'
+  key: string; // group entity id as string, or 'ungrouped'
   label: string;
-  total: number;  // total books in this group (for "See all N →")
-  books: BookSummary[];  // first 6 only
+  total: number; // total books in this group (for "See all N →")
+  books: BookSummary[]; // first 6 only
 }
 
 export interface BookDetail extends BookSummary {
@@ -378,7 +484,7 @@ export interface BookDetail extends BookSummary {
   description: string | null;
   rating: number | null;
   tags: string[];
-  tagIds: Array<{ id: number; name: string }>;  // for TagEditor DELETE calls
+  tagIds: Array<{ id: number; name: string }>; // for TagEditor DELETE calls
   publisher: string | null;
   language: string | null;
   files: Array<{ format: string; name: string; size: number }>;
@@ -396,17 +502,44 @@ export interface FilterOptions {
 Full file — extracts `hydrateBooks` helper, adds `buildBookConditions`, `buildOrderExpr`, `getGroupedBookList`, extends `getBookList` and `getBook`.
 
 ```typescript
-import { and, asc, desc, eq, inArray, like, notInArray, or, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  like,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { appDb, db, sqlite } from '@/db/client';
 import {
-  authors, books, booksAuthorsLink, booksLanguagesLink, booksPublishersLink,
-  booksRatingsLink, booksSeriesLink, booksTagsLink, comments, data,
-  languages, publishers, ratings, series, tags,
+  authors,
+  books,
+  booksAuthorsLink,
+  booksLanguagesLink,
+  booksPublishersLink,
+  booksRatingsLink,
+  booksSeriesLink,
+  booksTagsLink,
+  comments,
+  data,
+  languages,
+  publishers,
+  ratings,
+  series,
+  tags,
 } from '@/db/schema';
 import { bookDeliveries, deliveryPlatforms } from '@/db/schema-app';
-import type { BookDetail, BookGroup, BookSummary, FilterOptions } from '@/types/calibre';
+import type {
+  BookDetail,
+  BookGroup,
+  BookSummary,
+  FilterOptions,
+} from '@/types/calibre';
 
 export interface BookListParams {
   page?: number;
@@ -426,24 +559,41 @@ export interface BookListParams {
 async function hydrateBooks(bookIds: number[]): Promise<BookSummary[]> {
   if (bookIds.length === 0) return [];
 
-  const [bookRows, authorLinks, seriesLinks, formatRows, deliveryRows] = await Promise.all([
-    db
-      .select({ id: books.id, title: books.title, authorSort: books.authorSort, hasCover: books.hasCover, seriesIndex: books.seriesIndex })
-      .from(books).where(inArray(books.id, bookIds)),
-    db.select({ book: booksAuthorsLink.book, name: authors.name })
-      .from(booksAuthorsLink).innerJoin(authors, eq(authors.id, booksAuthorsLink.author))
-      .where(inArray(booksAuthorsLink.book, bookIds)),
-    db.select({ book: booksSeriesLink.book, name: series.name })
-      .from(booksSeriesLink).innerJoin(series, eq(series.id, booksSeriesLink.series))
-      .where(inArray(booksSeriesLink.book, bookIds)),
-    db.select({ book: data.book, format: data.format })
-      .from(data).where(inArray(data.book, bookIds)),
-    appDb
-      .select({ bookId: bookDeliveries.bookId, key: deliveryPlatforms.key })
-      .from(bookDeliveries)
-      .innerJoin(deliveryPlatforms, eq(deliveryPlatforms.id, bookDeliveries.platformId))
-      .where(inArray(bookDeliveries.bookId, bookIds)),
-  ]);
+  const [bookRows, authorLinks, seriesLinks, formatRows, deliveryRows] =
+    await Promise.all([
+      db
+        .select({
+          id: books.id,
+          title: books.title,
+          authorSort: books.authorSort,
+          hasCover: books.hasCover,
+          seriesIndex: books.seriesIndex,
+        })
+        .from(books)
+        .where(inArray(books.id, bookIds)),
+      db
+        .select({ book: booksAuthorsLink.book, name: authors.name })
+        .from(booksAuthorsLink)
+        .innerJoin(authors, eq(authors.id, booksAuthorsLink.author))
+        .where(inArray(booksAuthorsLink.book, bookIds)),
+      db
+        .select({ book: booksSeriesLink.book, name: series.name })
+        .from(booksSeriesLink)
+        .innerJoin(series, eq(series.id, booksSeriesLink.series))
+        .where(inArray(booksSeriesLink.book, bookIds)),
+      db
+        .select({ book: data.book, format: data.format })
+        .from(data)
+        .where(inArray(data.book, bookIds)),
+      appDb
+        .select({ bookId: bookDeliveries.bookId, key: deliveryPlatforms.key })
+        .from(bookDeliveries)
+        .innerJoin(
+          deliveryPlatforms,
+          eq(deliveryPlatforms.id, bookDeliveries.platformId),
+        )
+        .where(inArray(bookDeliveries.bookId, bookIds)),
+    ]);
 
   const authorsByBook = new Map<number, string[]>();
   for (const { book, name } of authorLinks) {
@@ -489,7 +639,10 @@ async function hydrateBooks(bookIds: number[]): Promise<BookSummary[]> {
 
 // Returns null to signal "empty result" when delivered:true and nothing delivered.
 async function buildBookConditions(
-  params: Pick<BookListParams, 'q' | 'authorId' | 'tagId' | 'seriesId' | 'platformKey' | 'delivered'>,
+  params: Pick<
+    BookListParams,
+    'q' | 'authorId' | 'tagId' | 'seriesId' | 'platformKey' | 'delivered'
+  >,
 ) {
   const { q, authorId, tagId, seriesId, platformKey, delivered } = params;
   const conditions = [];
@@ -501,19 +654,32 @@ async function buildBookConditions(
       .innerJoin(authors, eq(authors.id, booksAuthorsLink.author))
       .where(like(authors.name, `%${q}%`));
     conditions.push(
-      or(like(books.title, `%${q}%`), like(books.authorSort, `%${q}%`), inArray(books.id, authorBookIds)),
+      or(
+        like(books.title, `%${q}%`),
+        like(books.authorSort, `%${q}%`),
+        inArray(books.id, authorBookIds),
+      ),
     );
   }
   if (authorId) {
-    const ids = db.select({ id: booksAuthorsLink.book }).from(booksAuthorsLink).where(eq(booksAuthorsLink.author, authorId));
+    const ids = db
+      .select({ id: booksAuthorsLink.book })
+      .from(booksAuthorsLink)
+      .where(eq(booksAuthorsLink.author, authorId));
     conditions.push(inArray(books.id, ids));
   }
   if (tagId) {
-    const ids = db.select({ id: booksTagsLink.book }).from(booksTagsLink).where(eq(booksTagsLink.tag, tagId));
+    const ids = db
+      .select({ id: booksTagsLink.book })
+      .from(booksTagsLink)
+      .where(eq(booksTagsLink.tag, tagId));
     conditions.push(inArray(books.id, ids));
   }
   if (seriesId) {
-    const ids = db.select({ id: booksSeriesLink.book }).from(booksSeriesLink).where(eq(booksSeriesLink.series, seriesId));
+    const ids = db
+      .select({ id: booksSeriesLink.book })
+      .from(booksSeriesLink)
+      .where(eq(booksSeriesLink.series, seriesId));
     conditions.push(inArray(books.id, ids));
   }
 
@@ -521,12 +687,16 @@ async function buildBookConditions(
     const deliveredRows = await appDb
       .select({ bookId: bookDeliveries.bookId })
       .from(bookDeliveries)
-      .innerJoin(deliveryPlatforms, eq(deliveryPlatforms.id, bookDeliveries.platformId))
+      .innerJoin(
+        deliveryPlatforms,
+        eq(deliveryPlatforms.id, bookDeliveries.platformId),
+      )
       .where(eq(deliveryPlatforms.key, platformKey));
     const deliveredIds = deliveredRows.map((r) => r.bookId);
 
     if (delivered === false) {
-      if (deliveredIds.length > 0) conditions.push(notInArray(books.id, deliveredIds));
+      if (deliveredIds.length > 0)
+        conditions.push(notInArray(books.id, deliveredIds));
     } else if (delivered === true) {
       if (deliveredIds.length === 0) return null;
       conditions.push(inArray(books.id, deliveredIds));
@@ -536,21 +706,30 @@ async function buildBookConditions(
   return conditions;
 }
 
-function buildOrderExpr(sortBy: BookListParams['sortBy'], sortDir: BookListParams['sortDir']) {
+function buildOrderExpr(
+  sortBy: BookListParams['sortBy'],
+  sortDir: BookListParams['sortDir'],
+) {
   const dir = sortDir === 'desc' ? 'DESC' : 'ASC';
   if (sortBy === 'rating') {
     return sql.raw(
       `(SELECT COALESCE(r.rating, 0) FROM books_ratings_link brl LEFT JOIN ratings r ON r.id = brl.rating WHERE brl.book = books.id LIMIT 1) ${dir}`,
     );
   }
-  const col = sortBy === 'author' ? books.authorSort
-    : sortBy === 'pubdate' ? books.pubdate
-    : sortBy === 'added' ? books.timestamp
-    : books.sort;
+  const col =
+    sortBy === 'author'
+      ? books.authorSort
+      : sortBy === 'pubdate'
+        ? books.pubdate
+        : sortBy === 'added'
+          ? books.timestamp
+          : books.sort;
   return sortDir === 'desc' ? desc(col) : asc(col);
 }
 
-export async function getBookList(params: BookListParams = {}): Promise<{ books: BookSummary[]; total: number }> {
+export async function getBookList(
+  params: BookListParams = {},
+): Promise<{ books: BookSummary[]; total: number }> {
   'use cache';
   cacheLife('minutes');
   cacheTag('books');
@@ -565,8 +744,17 @@ export async function getBookList(params: BookListParams = {}): Promise<{ books:
   const orderExpr = buildOrderExpr(sortBy, sortDir);
 
   const [pageRows, countResult] = await Promise.all([
-    db.select({ id: books.id }).from(books).where(where).orderBy(orderExpr).limit(limit).offset(offset),
-    db.select({ count: sql<number>`count(*)` }).from(books).where(where),
+    db
+      .select({ id: books.id })
+      .from(books)
+      .where(where)
+      .orderBy(orderExpr)
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(books)
+      .where(where),
   ]);
 
   return {
@@ -577,9 +765,27 @@ export async function getBookList(params: BookListParams = {}): Promise<{ books:
 
 // Group configuration. Table/column names are controlled values — no injection risk.
 const GROUP_CONFIG = {
-  series: { joinTable: 'books_series_link', joinCol: 'series', groupTable: 'series', groupNameCol: 'name', groupSortCol: 'sort' },
-  tag:    { joinTable: 'books_tags_link',   joinCol: 'tag',    groupTable: 'tags',   groupNameCol: 'name', groupSortCol: 'name' },
-  author: { joinTable: 'books_authors_link',joinCol: 'author', groupTable: 'authors',groupNameCol: 'name', groupSortCol: 'sort' },
+  series: {
+    joinTable: 'books_series_link',
+    joinCol: 'series',
+    groupTable: 'series',
+    groupNameCol: 'name',
+    groupSortCol: 'sort',
+  },
+  tag: {
+    joinTable: 'books_tags_link',
+    joinCol: 'tag',
+    groupTable: 'tags',
+    groupNameCol: 'name',
+    groupSortCol: 'name',
+  },
+  author: {
+    joinTable: 'books_authors_link',
+    joinCol: 'author',
+    groupTable: 'authors',
+    groupNameCol: 'name',
+    groupSortCol: 'sort',
+  },
 } as const;
 
 export type GroupBy = keyof typeof GROUP_CONFIG;
@@ -596,28 +802,44 @@ export async function getGroupedBookList(
   if (conditions === null) return { groups: [] };
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const matchingRows = await db.select({ id: books.id }).from(books).where(where);
+  const matchingRows = await db
+    .select({ id: books.id })
+    .from(books)
+    .where(where);
   const idList = matchingRows.map((r) => r.id);
   if (idList.length === 0) return { groups: [] };
 
   const cfg = GROUP_CONFIG[groupBy];
   const inClause = idList.map(() => '?').join(',');
   const sortDir_ = sortDir === 'desc' ? 'DESC' : 'ASC';
-  const bookSortCol = sortBy === 'author' ? 'b.author_sort'
-    : sortBy === 'pubdate' ? 'b.pubdate'
-    : sortBy === 'added' ? 'b.timestamp'
-    : groupBy === 'series' ? 'b.series_index'
-    : 'b.sort';
+  const bookSortCol =
+    sortBy === 'author'
+      ? 'b.author_sort'
+      : sortBy === 'pubdate'
+        ? 'b.pubdate'
+        : sortBy === 'added'
+          ? 'b.timestamp'
+          : groupBy === 'series'
+            ? 'b.series_index'
+            : 'b.sort';
 
   type RankedRow = {
-    groupKey: number; groupLabel: string; groupSort: string | null;
-    total: number; rn: number;
-    id: number; title: string; author_sort: string | null; has_cover: number; series_index: number | null;
+    groupKey: number;
+    groupLabel: string;
+    groupSort: string | null;
+    total: number;
+    rn: number;
+    id: number;
+    title: string;
+    author_sort: string | null;
+    has_cover: number;
+    series_index: number | null;
   };
 
   // Single window-function query: first 6 books per group + per-group counts.
-  const rankedRows = sqlite.prepare(
-    `SELECT * FROM (
+  const rankedRows = sqlite
+    .prepare(
+      `SELECT * FROM (
       SELECT
         g.id AS groupKey,
         g.${cfg.groupNameCol} AS groupLabel,
@@ -632,32 +854,53 @@ export async function getGroupedBookList(
     ) ranked
     WHERE rn <= 6
     ORDER BY groupSort, rn`,
-  ).all(...idList) as RankedRow[];
+    )
+    .all(...idList) as RankedRow[];
 
   // Find book IDs that belong to at least one group
   type BookRow = { book: number };
   const inGroupSet = new Set(
-    (sqlite.prepare(`SELECT DISTINCT book FROM ${cfg.joinTable} WHERE book IN (${inClause})`).all(...idList) as BookRow[])
-      .map((r) => r.book),
+    (
+      sqlite
+        .prepare(
+          `SELECT DISTINCT book FROM ${cfg.joinTable} WHERE book IN (${inClause})`,
+        )
+        .all(...idList) as BookRow[]
+    ).map((r) => r.book),
   );
   const ungroupedIds = idList.filter((id) => !inGroupSet.has(id));
 
   // Hydrate all preview books in one batch
   const previewIds = rankedRows.map((r) => r.id);
-  const allHydrateIds = [...new Set([...previewIds, ...ungroupedIds.slice(0, 6)])];
+  const allHydrateIds = [
+    ...new Set([...previewIds, ...ungroupedIds.slice(0, 6)]),
+  ];
   const hydratedMap = new Map<number, BookSummary>();
   for (const b of await hydrateBooks(allHydrateIds)) hydratedMap.set(b.id, b);
 
   // Build group map
-  const groupMap = new Map<number, { label: string; total: number; bookIds: number[] }>();
+  const groupMap = new Map<
+    number,
+    { label: string; total: number; bookIds: number[] }
+  >();
   for (const row of rankedRows) {
-    if (!groupMap.has(row.groupKey)) groupMap.set(row.groupKey, { label: row.groupLabel, total: row.total, bookIds: [] });
+    if (!groupMap.has(row.groupKey))
+      groupMap.set(row.groupKey, {
+        label: row.groupLabel,
+        total: row.total,
+        bookIds: [],
+      });
     groupMap.get(row.groupKey)!.bookIds.push(row.id);
   }
 
   const groups: BookGroup[] = [];
   for (const [groupKey, { label, total, bookIds }] of groupMap) {
-    groups.push({ key: String(groupKey), label, total, books: bookIds.map((id) => hydratedMap.get(id)!).filter(Boolean) });
+    groups.push({
+      key: String(groupKey),
+      label,
+      total,
+      books: bookIds.map((id) => hydratedMap.get(id)!).filter(Boolean),
+    });
   }
 
   if (ungroupedIds.length > 0) {
@@ -665,7 +908,10 @@ export async function getGroupedBookList(
       key: 'ungrouped',
       label: 'Ungrouped',
       total: ungroupedIds.length,
-      books: ungroupedIds.slice(0, 6).map((id) => hydratedMap.get(id)!).filter(Boolean),
+      books: ungroupedIds
+        .slice(0, 6)
+        .map((id) => hydratedMap.get(id)!)
+        .filter(Boolean),
     });
   }
 
@@ -680,28 +926,72 @@ export async function getBook(id: number): Promise<BookDetail | null> {
   const bookRow = await db.select().from(books).where(eq(books.id, id)).get();
   if (!bookRow) return null;
 
-  const [authorRows, tagRows, seriesRow, publisherRow, commentRow, ratingRow, formatRows, langRow] =
-    await Promise.all([
-      db.select({ name: authors.name }).from(booksAuthorsLink)
-        .innerJoin(authors, eq(authors.id, booksAuthorsLink.author)).where(eq(booksAuthorsLink.book, id)),
-      db.select({ id: tags.id, name: tags.name }).from(booksTagsLink)
-        .innerJoin(tags, eq(tags.id, booksTagsLink.tag)).where(eq(booksTagsLink.book, id)),
-      db.select({ name: series.name }).from(booksSeriesLink)
-        .innerJoin(series, eq(series.id, booksSeriesLink.series)).where(eq(booksSeriesLink.book, id)).get(),
-      db.select({ name: publishers.name }).from(booksPublishersLink)
-        .innerJoin(publishers, eq(publishers.id, booksPublishersLink.publisher)).where(eq(booksPublishersLink.book, id)).get(),
-      db.select({ text: comments.text }).from(comments).where(eq(comments.book, id)).get(),
-      db.select({ rating: ratings.rating }).from(booksRatingsLink)
-        .innerJoin(ratings, eq(ratings.id, booksRatingsLink.rating)).where(eq(booksRatingsLink.book, id)).get(),
-      db.select({ format: data.format, name: data.name, size: data.uncompressedSize }).from(data).where(eq(data.book, id)),
-      db.select({ langCode: languages.langCode }).from(booksLanguagesLink)
-        .innerJoin(languages, eq(languages.id, booksLanguagesLink.langCode)).where(eq(booksLanguagesLink.book, id)).get(),
-    ]);
+  const [
+    authorRows,
+    tagRows,
+    seriesRow,
+    publisherRow,
+    commentRow,
+    ratingRow,
+    formatRows,
+    langRow,
+  ] = await Promise.all([
+    db
+      .select({ name: authors.name })
+      .from(booksAuthorsLink)
+      .innerJoin(authors, eq(authors.id, booksAuthorsLink.author))
+      .where(eq(booksAuthorsLink.book, id)),
+    db
+      .select({ id: tags.id, name: tags.name })
+      .from(booksTagsLink)
+      .innerJoin(tags, eq(tags.id, booksTagsLink.tag))
+      .where(eq(booksTagsLink.book, id)),
+    db
+      .select({ name: series.name })
+      .from(booksSeriesLink)
+      .innerJoin(series, eq(series.id, booksSeriesLink.series))
+      .where(eq(booksSeriesLink.book, id))
+      .get(),
+    db
+      .select({ name: publishers.name })
+      .from(booksPublishersLink)
+      .innerJoin(publishers, eq(publishers.id, booksPublishersLink.publisher))
+      .where(eq(booksPublishersLink.book, id))
+      .get(),
+    db
+      .select({ text: comments.text })
+      .from(comments)
+      .where(eq(comments.book, id))
+      .get(),
+    db
+      .select({ rating: ratings.rating })
+      .from(booksRatingsLink)
+      .innerJoin(ratings, eq(ratings.id, booksRatingsLink.rating))
+      .where(eq(booksRatingsLink.book, id))
+      .get(),
+    db
+      .select({
+        format: data.format,
+        name: data.name,
+        size: data.uncompressedSize,
+      })
+      .from(data)
+      .where(eq(data.book, id)),
+    db
+      .select({ langCode: languages.langCode })
+      .from(booksLanguagesLink)
+      .innerJoin(languages, eq(languages.id, booksLanguagesLink.langCode))
+      .where(eq(booksLanguagesLink.book, id))
+      .get(),
+  ]);
 
   const deliveryRows = await appDb
     .select({ key: deliveryPlatforms.key })
     .from(bookDeliveries)
-    .innerJoin(deliveryPlatforms, eq(deliveryPlatforms.id, bookDeliveries.platformId))
+    .innerJoin(
+      deliveryPlatforms,
+      eq(deliveryPlatforms.id, bookDeliveries.platformId),
+    )
     .where(eq(bookDeliveries.bookId, id));
 
   return {
@@ -717,12 +1007,20 @@ export async function getBook(id: number): Promise<BookDetail | null> {
     authors: authorRows.map((r) => r.name ?? '').filter(Boolean),
     series: seriesRow?.name ?? null,
     tags: tagRows.map((r) => r.name ?? '').filter(Boolean),
-    tagIds: tagRows.filter((r): r is { id: number; name: string } => r.id !== null && r.name !== null).map((r) => ({ id: r.id, name: r.name })),
+    tagIds: tagRows
+      .filter(
+        (r): r is { id: number; name: string } =>
+          r.id !== null && r.name !== null,
+      )
+      .map((r) => ({ id: r.id, name: r.name })),
     publisher: publisherRow?.name ?? null,
     language: langRow?.langCode ?? null,
     formats: formatRows.map((r) => r.format ?? '').filter(Boolean),
     files: formatRows
-      .filter((r): r is typeof r & { format: string; name: string } => !!(r.format && r.name))
+      .filter(
+        (r): r is typeof r & { format: string; name: string } =>
+          !!(r.format && r.name),
+      )
       .map((r) => ({ format: r.format, name: r.name, size: r.size ?? 0 })),
     deliveredTo: deliveryRows.map((r) => r.key),
   };
@@ -734,9 +1032,15 @@ export async function getFilterOptions(): Promise<FilterOptions> {
   cacheTag('filters');
 
   const [authorRows, tagRows, seriesRows] = await Promise.all([
-    db.select({ id: authors.id, name: authors.name, sort: authors.sort }).from(authors).orderBy(authors.sort),
+    db
+      .select({ id: authors.id, name: authors.name, sort: authors.sort })
+      .from(authors)
+      .orderBy(authors.sort),
     db.select({ id: tags.id, name: tags.name }).from(tags).orderBy(tags.name),
-    db.select({ id: series.id, name: series.name }).from(series).orderBy(series.sort),
+    db
+      .select({ id: series.id, name: series.name })
+      .from(series)
+      .orderBy(series.sort),
   ]);
 
   return { authors: authorRows, tags: tagRows, series: seriesRows };
@@ -749,7 +1053,12 @@ export async function listUndeliveredBooks(params: {
   page?: number;
   limit?: number;
 }): Promise<{ books: BookSummary[]; total: number }> {
-  return getBookList({ platformKey: params.platformKey, delivered: false, page: params.page, limit: params.limit });
+  return getBookList({
+    platformKey: params.platformKey,
+    delivered: false,
+    page: params.page,
+    limit: params.limit,
+  });
 }
 ```
 
@@ -772,11 +1081,15 @@ test.describe('search', () => {
   test('FTS returns results for partial title match', async ({ page }) => {
     await page.goto('/');
     await page.fill('input[placeholder="Search books..."]', 'Dune');
-    await expect(page.locator('.absolute.border').or(page.locator('[role="listbox"]'))).toBeVisible({ timeout: 2000 });
+    await expect(
+      page.locator('.absolute.border').or(page.locator('[role="listbox"]')),
+    ).toBeVisible({ timeout: 2000 });
     await expect(page.locator('text=Dune').first()).toBeVisible();
   });
 
-  test('selecting autocomplete suggestion navigates to book detail', async ({ page }) => {
+  test('selecting autocomplete suggestion navigates to book detail', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.fill('input[placeholder="Search books..."]', 'Dune');
     // Wait for suggestion panel
@@ -786,12 +1099,16 @@ test.describe('search', () => {
     await expect(page).toHaveURL(/\/books\/\d+/);
   });
 
-  test('pressing Enter commits search to URL and shows results', async ({ page }) => {
+  test('pressing Enter commits search to URL and shows results', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.fill('input[placeholder="Search books..."]', 'Foundation');
     await page.press('input[placeholder="Search books..."]', 'Enter');
     await expect(page).toHaveURL(/q=Foundation/);
-    await expect(page.locator('[data-testid="book-card"]').first()).toBeVisible();
+    await expect(
+      page.locator('[data-testid="book-card"]').first(),
+    ).toBeVisible();
   });
 
   test('clear button removes search from URL', async ({ page }) => {
@@ -814,6 +1131,7 @@ git -c commit.gpgsign=false commit -m "feat(personal-calibre): types + queries �
 ## Task 4: Tag write lib + API routes
 
 **Files:**
+
 - Create: `apps/personal-calibre/src/lib/tags.ts`
 - Create: `apps/personal-calibre/src/app/api/books/[id]/tags/route.ts`
 - Create: `apps/personal-calibre/src/app/api/books/[id]/tags/[tagId]/route.ts`
@@ -831,21 +1149,29 @@ export function getOrCreateTag(name: string): number {
   const trimmed = name.trim();
   if (!trimmed) throw new Error('Tag name is required');
 
-  const existing = sqlite.prepare('SELECT id FROM tags WHERE name = ?').get(trimmed) as { id: number } | undefined;
+  const existing = sqlite
+    .prepare('SELECT id FROM tags WHERE name = ?')
+    .get(trimmed) as { id: number } | undefined;
   if (existing) return existing.id;
 
-  const result = sqlite.prepare('INSERT INTO tags (name) VALUES (?)').run(trimmed);
+  const result = sqlite
+    .prepare('INSERT INTO tags (name) VALUES (?)')
+    .run(trimmed);
   return result.lastInsertRowid as number;
 }
 
 // Link tag to book — idempotent via INSERT OR IGNORE.
 export function addTagToBook(bookId: number, tagId: number): void {
-  sqlite.prepare('INSERT OR IGNORE INTO books_tags_link (book, tag) VALUES (?, ?)').run(bookId, tagId);
+  sqlite
+    .prepare('INSERT OR IGNORE INTO books_tags_link (book, tag) VALUES (?, ?)')
+    .run(bookId, tagId);
 }
 
 // Remove tag link from book.
 export function removeTagFromBook(bookId: number, tagId: number): void {
-  sqlite.prepare('DELETE FROM books_tags_link WHERE book = ? AND tag = ?').run(bookId, tagId);
+  sqlite
+    .prepare('DELETE FROM books_tags_link WHERE book = ? AND tag = ?')
+    .run(bookId, tagId);
 }
 
 // Invalidate all relevant Next.js cache entries after any tag mutation.
@@ -864,7 +1190,11 @@ File path: `apps/personal-calibre/src/app/api/books/[id]/tags/route.ts`
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { addTagToBook, getOrCreateTag, revalidateBookTagCache } from '@/lib/tags';
+import {
+  addTagToBook,
+  getOrCreateTag,
+  revalidateBookTagCache,
+} from '@/lib/tags';
 
 const bodySchema = z.object({ name: z.string().min(1) });
 
@@ -874,10 +1204,12 @@ export async function POST(
 ) {
   const { id } = await params;
   const bookId = Number(id);
-  if (!Number.isFinite(bookId)) return NextResponse.json({ error: 'Invalid book id' }, { status: 400 });
+  if (!Number.isFinite(bookId))
+    return NextResponse.json({ error: 'Invalid book id' }, { status: 400 });
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'name is required' }, { status: 400 });
+  if (!parsed.success)
+    return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
   try {
     const tagId = getOrCreateTag(parsed.data.name);
@@ -885,7 +1217,10 @@ export async function POST(
     revalidateBookTagCache(bookId);
     return NextResponse.json({ ok: true, tagId });
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Failed' },
+      { status: 500 },
+    );
   }
 }
 ```
@@ -914,7 +1249,10 @@ export async function DELETE(
     revalidateBookTagCache(bookId);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Failed' },
+      { status: 500 },
+    );
   }
 }
 ```
@@ -939,6 +1277,7 @@ git -c commit.gpgsign=false commit -m "feat(personal-calibre): tag write lib + P
 ## Task 5: FilterBar component + page.tsx update
 
 **Files:**
+
 - Create: `apps/personal-calibre/src/components/FilterBar.tsx`
 - Delete: `apps/personal-calibre/src/components/FilterPanel.tsx`
 - Modify: `apps/personal-calibre/src/app/(library)/page.tsx`
@@ -946,6 +1285,7 @@ git -c commit.gpgsign=false commit -m "feat(personal-calibre): tag write lib + P
 - [ ] **Step 1: Create `FilterBar.tsx`**
 
 Key design points:
+
 - No `useState` for filter values (author, tag, series, platform, delivered, groupBy, sortBy, sortDir) — all read from `useSearchParams()`
 - Only `localQ` and `suggestions` use `useState` (for debounced search input)
 - `useEffect` syncs `localQ` from URL on back-nav
@@ -1381,11 +1721,21 @@ test.describe('filters', () => {
 
   test('platform filter shows undelivered books', async ({ page }) => {
     await page.goto('/');
-    await page.selectOption('[aria-label="Filter by platform"]', 'readwise-reader');
-    await expect(page.locator('[aria-label="Filter by delivery status"]')).toBeVisible();
-    await page.selectOption('[aria-label="Filter by delivery status"]', 'false');
+    await page.selectOption(
+      '[aria-label="Filter by platform"]',
+      'readwise-reader',
+    );
+    await expect(
+      page.locator('[aria-label="Filter by delivery status"]'),
+    ).toBeVisible();
+    await page.selectOption(
+      '[aria-label="Filter by delivery status"]',
+      'false',
+    );
     await expect(page).toHaveURL(/platform=readwise-reader/);
-    await expect(page.locator('[data-testid="book-card"]').first()).toBeVisible();
+    await expect(
+      page.locator('[data-testid="book-card"]').first(),
+    ).toBeVisible();
   });
 
   test('sort direction toggle changes URL', async ({ page }) => {
@@ -1424,12 +1774,14 @@ git -c commit.gpgsign=false commit -m "feat(personal-calibre): FilterBar with co
 ## Task 6: BookCard platform badges + delivery revalidation fix
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/components/BookCard.tsx`
 - Modify: `apps/personal-calibre/src/lib/delivery.ts`
 
 - [ ] **Step 1: Update BookCard.tsx**
 
 Replace the full file content with the version below. Changes:
+
 - Add `data-testid="book-card"` to the Card element
 - Add `platformAbbr` helper function
 - Add delivery badge row below format badges
@@ -1533,6 +1885,7 @@ for (const bookId of bookIds) {
 ```
 
 Also add to `createBookDeliveryEvent` for single-book consistency:
+
 ```typescript
 // Replace in createBookDeliveryEvent:
 revalidateTag('books');
@@ -1559,6 +1912,7 @@ git -c commit.gpgsign=false commit -m "feat(personal-calibre): platform delivery
 ## Task 7: Grouped grid e2e spec
 
 **Files:**
+
 - Create: `apps/personal-calibre-e2e/src/group-by.spec.ts`
 
 The grouped grid is fully rendered by `GroupedView` in `page.tsx` (Task 5). This task adds the e2e spec.
@@ -1575,8 +1929,12 @@ test.describe('group-by', () => {
   test('group by series shows series section headers', async ({ page }) => {
     await page.goto('/?groupBy=series');
     await expect(page.locator('h2:has-text("Dune Chronicles")')).toBeVisible();
-    await expect(page.locator('h2:has-text("Foundation Series")')).toBeVisible();
-    await expect(page.locator('h2:has-text("The Lord of the Rings")')).toBeVisible();
+    await expect(
+      page.locator('h2:has-text("Foundation Series")'),
+    ).toBeVisible();
+    await expect(
+      page.locator('h2:has-text("The Lord of the Rings")'),
+    ).toBeVisible();
   });
 
   test('group by tag shows tag section headers', async ({ page }) => {
@@ -1592,22 +1950,30 @@ test.describe('group-by', () => {
     await expect(page.locator('h2:has-text("Isaac Asimov")')).toBeVisible();
   });
 
-  test('ungrouped section appears for books without a series', async ({ page }) => {
+  test('ungrouped section appears for books without a series', async ({
+    page,
+  }) => {
     await page.goto('/?groupBy=series');
     await expect(page.locator('h2:has-text("Ungrouped")')).toBeVisible();
   });
 
-  test('See all link not shown when group has 6 or fewer books', async ({ page }) => {
+  test('See all link not shown when group has 6 or fewer books', async ({
+    page,
+  }) => {
     await page.goto('/?groupBy=series');
     // All series in fixture have <=6 books — no "See all" links
     await expect(page.locator('text=See all')).not.toBeVisible();
   });
 
-  test('filter + group-by compose: nonfiction books grouped by author', async ({ page }) => {
+  test('filter + group-by compose: nonfiction books grouped by author', async ({
+    page,
+  }) => {
     await page.goto('/?tag=4&groupBy=author');
     await expect(page.locator('h2:has-text("Daniel Kahneman")')).toBeVisible();
     await expect(page.locator('h2:has-text("James Clear")')).toBeVisible();
-    await expect(page.locator('h2:has-text("Frank Herbert")')).not.toBeVisible();
+    await expect(
+      page.locator('h2:has-text("Frank Herbert")'),
+    ).not.toBeVisible();
   });
 });
 ```
@@ -1624,6 +1990,7 @@ git -c commit.gpgsign=false commit -m "test(personal-calibre-e2e): group-by e2e 
 ## Task 8: Tag editor UI
 
 **Files:**
+
 - Create: `apps/personal-calibre/src/components/TagEditor.tsx`
 - Modify: `apps/personal-calibre/src/app/(library)/books/[id]/page.tsx`
 - Create: `apps/personal-calibre-e2e/src/tag-editing.spec.ts`
@@ -1741,12 +2108,14 @@ export function TagEditor({ bookId, tagIds, allTags }: Props) {
 In `apps/personal-calibre/src/app/(library)/books/[id]/page.tsx`:
 
 Add imports:
+
 ```typescript
 import { TagEditor } from '@/components/TagEditor';
 import { getFilterOptions } from '@/lib/queries';
 ```
 
 Add `getFilterOptions()` to the `Promise.all` in `BookDetailContent`:
+
 ```typescript
 const [book, platforms, deliveryEvents, filterOptions] = await Promise.all([
   getBook(bookId),
@@ -1757,6 +2126,7 @@ const [book, platforms, deliveryEvents, filterOptions] = await Promise.all([
 ```
 
 Replace the existing tags section (the `<div className="flex flex-wrap gap-2">` block with `Badge` elements):
+
 ```typescript
 <div className="flex flex-col gap-1.5">
   <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Tags</p>
@@ -1811,7 +2181,9 @@ test.describe('tag editing', () => {
   test('removing a tag unlinks it from the book', async ({ page }) => {
     await page.goto('/books/1'); // Dune has classic
     await page.click('button[aria-label="Remove tag classic"]');
-    await expect(page.locator('text=classic')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=classic')).not.toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('new tag appears in filter combobox', async ({ page }) => {
@@ -1837,6 +2209,7 @@ git -c commit.gpgsign=false commit -m "feat(personal-calibre): TagEditor UI on b
 ## Task 9: MCP extensions
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/app/api/mcp/route.ts`
 
 - [ ] **Step 1: Replace mcp/route.ts with extended version**
@@ -1849,139 +2222,273 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { z } from 'zod';
 
 import {
-  bulkCreateDeliveryEvents, createBookDeliveryEvent, deleteBookDeliveryEvent, listBookDeliveryEvents,
+  bulkCreateDeliveryEvents,
+  createBookDeliveryEvent,
+  deleteBookDeliveryEvent,
+  listBookDeliveryEvents,
 } from '@/lib/delivery';
 import {
-  type GroupBy, getBook, getBookList, getFilterOptions, getGroupedBookList, listUndeliveredBooks,
+  type GroupBy,
+  getBook,
+  getBookList,
+  getFilterOptions,
+  getGroupedBookList,
+  listUndeliveredBooks,
 } from '@/lib/queries';
-import { addTagToBook, getOrCreateTag, revalidateBookTagCache, removeTagFromBook } from '@/lib/tags';
+import {
+  addTagToBook,
+  getOrCreateTag,
+  revalidateBookTagCache,
+  removeTagFromBook,
+} from '@/lib/tags';
 
 export async function POST(request: Request): Promise<Response> {
   const server = new McpServer({ name: 'calibre-mcp', version: '0.1.0' });
 
-  server.registerTool('list_books', {
-    description: 'Search and list books. When groupBy is set, returns { groups } with 6 preview books each; otherwise returns { books, total }.',
-    inputSchema: {
-      query: z.string().optional().describe('Full-text search'),
-      authorId: z.number().int().optional(),
-      tagId: z.number().int().optional(),
-      seriesId: z.number().int().optional(),
-      platformKey: z.string().optional().describe('Platform key, e.g. "readwise-reader"'),
-      delivered: z.boolean().optional().describe('true=delivered only, false=undelivered only'),
-      groupBy: z.enum(['series', 'tag', 'author']).optional(),
-      sortBy: z.enum(['title', 'author', 'pubdate', 'added', 'rating']).optional(),
-      sortDir: z.enum(['asc', 'desc']).optional(),
-      page: z.number().int().min(1).default(1),
-      limit: z.number().int().min(1).max(100).default(30),
+  server.registerTool(
+    'list_books',
+    {
+      description:
+        'Search and list books. When groupBy is set, returns { groups } with 6 preview books each; otherwise returns { books, total }.',
+      inputSchema: {
+        query: z.string().optional().describe('Full-text search'),
+        authorId: z.number().int().optional(),
+        tagId: z.number().int().optional(),
+        seriesId: z.number().int().optional(),
+        platformKey: z
+          .string()
+          .optional()
+          .describe('Platform key, e.g. "readwise-reader"'),
+        delivered: z
+          .boolean()
+          .optional()
+          .describe('true=delivered only, false=undelivered only'),
+        groupBy: z.enum(['series', 'tag', 'author']).optional(),
+        sortBy: z
+          .enum(['title', 'author', 'pubdate', 'added', 'rating'])
+          .optional(),
+        sortDir: z.enum(['asc', 'desc']).optional(),
+        page: z.number().int().min(1).default(1),
+        limit: z.number().int().min(1).max(100).default(30),
+      },
     },
-  }, async (input) => {
-    if (input.groupBy) {
-      const result = await getGroupedBookList({
-        q: input.query, authorId: input.authorId, tagId: input.tagId, seriesId: input.seriesId,
-        platformKey: input.platformKey, delivered: input.delivered,
-        groupBy: input.groupBy as GroupBy, sortBy: input.sortBy, sortDir: input.sortDir,
+    async (input) => {
+      if (input.groupBy) {
+        const result = await getGroupedBookList({
+          q: input.query,
+          authorId: input.authorId,
+          tagId: input.tagId,
+          seriesId: input.seriesId,
+          platformKey: input.platformKey,
+          delivered: input.delivered,
+          groupBy: input.groupBy as GroupBy,
+          sortBy: input.sortBy,
+          sortDir: input.sortDir,
+        });
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      }
+      const result = await getBookList({
+        q: input.query,
+        authorId: input.authorId,
+        tagId: input.tagId,
+        seriesId: input.seriesId,
+        platformKey: input.platformKey,
+        delivered: input.delivered,
+        sortBy: input.sortBy,
+        sortDir: input.sortDir,
+        page: input.page,
+        limit: input.limit,
       });
       return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-    }
-    const result = await getBookList({
-      q: input.query, authorId: input.authorId, tagId: input.tagId, seriesId: input.seriesId,
-      platformKey: input.platformKey, delivered: input.delivered,
-      sortBy: input.sortBy, sortDir: input.sortDir, page: input.page, limit: input.limit,
-    });
-    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-  });
-
-  server.registerTool('get_book', {
-    description: 'Get full details for a single book',
-    inputSchema: { bookId: z.number().int() },
-  }, async (input) => {
-    const book = await getBook(input.bookId);
-    if (!book) return { content: [{ type: 'text', text: `Book ${input.bookId} not found` }], isError: true };
-    return { content: [{ type: 'text', text: JSON.stringify(book) }] };
-  });
-
-  server.registerTool('list_undelivered_books', {
-    description: 'List books not yet delivered to a platform',
-    inputSchema: {
-      platformKey: z.string(),
-      format: z.string().optional(),
-      page: z.number().int().min(1).default(1),
-      limit: z.number().int().min(1).max(100).default(30),
     },
-  }, async (input) => {
-    const result = await listUndeliveredBooks({ platformKey: input.platformKey, format: input.format, page: input.page, limit: input.limit });
-    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-  });
+  );
 
-  server.registerTool('list_deliveries', {
-    description: 'Get delivery history for a book',
-    inputSchema: { bookId: z.number().int() },
-  }, async (input) => {
-    const events = await listBookDeliveryEvents(input.bookId);
-    return { content: [{ type: 'text', text: JSON.stringify(events) }] };
-  });
-
-  server.registerTool('add_delivery', {
-    description: 'Record a book as delivered to a platform',
-    inputSchema: {
-      bookId: z.number().int(),
-      platformKey: z.string(),
-      externalRef: z.string().optional(),
-      note: z.string().optional(),
+  server.registerTool(
+    'get_book',
+    {
+      description: 'Get full details for a single book',
+      inputSchema: { bookId: z.number().int() },
     },
-  }, async (input) => {
-    await createBookDeliveryEvent(input.bookId, { platformKey: input.platformKey, externalRef: input.externalRef, note: input.note });
-    return { content: [{ type: 'text', text: JSON.stringify({ ok: true, bookId: input.bookId, platformKey: input.platformKey }) }] };
-  });
-
-  server.registerTool('bulk_add_delivery', {
-    description: 'Record multiple books as delivered to a platform',
-    inputSchema: {
-      bookIds: z.array(z.number().int()),
-      platformKey: z.string(),
-      note: z.string().optional(),
+    async (input) => {
+      const book = await getBook(input.bookId);
+      if (!book)
+        return {
+          content: [{ type: 'text', text: `Book ${input.bookId} not found` }],
+          isError: true,
+        };
+      return { content: [{ type: 'text', text: JSON.stringify(book) }] };
     },
-  }, async (input) => {
-    const result = await bulkCreateDeliveryEvents(input.bookIds, { platformKey: input.platformKey, note: input.note });
-    return { content: [{ type: 'text', text: JSON.stringify({ ok: true, count: result.count, platformKey: input.platformKey }) }] };
-  });
+  );
 
-  server.registerTool('remove_delivery', {
-    description: 'Remove a delivery record',
-    inputSchema: { bookId: z.number().int(), deliveryId: z.number().int() },
-  }, async (input) => {
-    await deleteBookDeliveryEvent(input.bookId, input.deliveryId);
-    return { content: [{ type: 'text', text: JSON.stringify({ ok: true }) }] };
-  });
+  server.registerTool(
+    'list_undelivered_books',
+    {
+      description: 'List books not yet delivered to a platform',
+      inputSchema: {
+        platformKey: z.string(),
+        format: z.string().optional(),
+        page: z.number().int().min(1).default(1),
+        limit: z.number().int().min(1).max(100).default(30),
+      },
+    },
+    async (input) => {
+      const result = await listUndeliveredBooks({
+        platformKey: input.platformKey,
+        format: input.format,
+        page: input.page,
+        limit: input.limit,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+    },
+  );
 
-  server.registerTool('list_tags', {
-    description: 'List all tags. Use to resolve tag names to IDs before calling remove_tag.',
-    inputSchema: {},
-  }, async () => {
-    const { tags } = await getFilterOptions();
-    return { content: [{ type: 'text', text: JSON.stringify(tags) }] };
-  });
+  server.registerTool(
+    'list_deliveries',
+    {
+      description: 'Get delivery history for a book',
+      inputSchema: { bookId: z.number().int() },
+    },
+    async (input) => {
+      const events = await listBookDeliveryEvents(input.bookId);
+      return { content: [{ type: 'text', text: JSON.stringify(events) }] };
+    },
+  );
 
-  server.registerTool('add_tag', {
-    description: 'Add a tag to a book. Creates the tag if it does not exist. Idempotent.',
-    inputSchema: { bookId: z.number().int(), tagName: z.string().min(1) },
-  }, async (input) => {
-    const tagId = getOrCreateTag(input.tagName);
-    addTagToBook(input.bookId, tagId);
-    revalidateBookTagCache(input.bookId);
-    return { content: [{ type: 'text', text: JSON.stringify({ ok: true, bookId: input.bookId, tagId, tagName: input.tagName }) }] };
-  });
+  server.registerTool(
+    'add_delivery',
+    {
+      description: 'Record a book as delivered to a platform',
+      inputSchema: {
+        bookId: z.number().int(),
+        platformKey: z.string(),
+        externalRef: z.string().optional(),
+        note: z.string().optional(),
+      },
+    },
+    async (input) => {
+      await createBookDeliveryEvent(input.bookId, {
+        platformKey: input.platformKey,
+        externalRef: input.externalRef,
+        note: input.note,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              ok: true,
+              bookId: input.bookId,
+              platformKey: input.platformKey,
+            }),
+          },
+        ],
+      };
+    },
+  );
 
-  server.registerTool('remove_tag', {
-    description: 'Remove a tag from a book. Call list_tags first to get tag IDs.',
-    inputSchema: { bookId: z.number().int(), tagId: z.number().int() },
-  }, async (input) => {
-    removeTagFromBook(input.bookId, input.tagId);
-    revalidateBookTagCache(input.bookId);
-    return { content: [{ type: 'text', text: JSON.stringify({ ok: true }) }] };
-  });
+  server.registerTool(
+    'bulk_add_delivery',
+    {
+      description: 'Record multiple books as delivered to a platform',
+      inputSchema: {
+        bookIds: z.array(z.number().int()),
+        platformKey: z.string(),
+        note: z.string().optional(),
+      },
+    },
+    async (input) => {
+      const result = await bulkCreateDeliveryEvents(input.bookIds, {
+        platformKey: input.platformKey,
+        note: input.note,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              ok: true,
+              count: result.count,
+              platformKey: input.platformKey,
+            }),
+          },
+        ],
+      };
+    },
+  );
 
-  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  server.registerTool(
+    'remove_delivery',
+    {
+      description: 'Remove a delivery record',
+      inputSchema: { bookId: z.number().int(), deliveryId: z.number().int() },
+    },
+    async (input) => {
+      await deleteBookDeliveryEvent(input.bookId, input.deliveryId);
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'list_tags',
+    {
+      description:
+        'List all tags. Use to resolve tag names to IDs before calling remove_tag.',
+      inputSchema: {},
+    },
+    async () => {
+      const { tags } = await getFilterOptions();
+      return { content: [{ type: 'text', text: JSON.stringify(tags) }] };
+    },
+  );
+
+  server.registerTool(
+    'add_tag',
+    {
+      description:
+        'Add a tag to a book. Creates the tag if it does not exist. Idempotent.',
+      inputSchema: { bookId: z.number().int(), tagName: z.string().min(1) },
+    },
+    async (input) => {
+      const tagId = getOrCreateTag(input.tagName);
+      addTagToBook(input.bookId, tagId);
+      revalidateBookTagCache(input.bookId);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              ok: true,
+              bookId: input.bookId,
+              tagId,
+              tagName: input.tagName,
+            }),
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    'remove_tag',
+    {
+      description:
+        'Remove a tag from a book. Call list_tags first to get tag IDs.',
+      inputSchema: { bookId: z.number().int(), tagId: z.number().int() },
+    },
+    async (input) => {
+      removeTagFromBook(input.bookId, input.tagId);
+      revalidateBookTagCache(input.bookId);
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
+      };
+    },
+  );
+
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
   await server.connect(transport);
   return transport.handleRequest(request);
 }
@@ -2007,6 +2514,7 @@ git -c commit.gpgsign=false commit -m "feat(personal-calibre): MCP add_tag/remov
 ## Task 10: Bulk feedback + Toaster + remaining e2e specs
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/app/layout.tsx`
 - Modify: `apps/personal-calibre/src/components/BulkSelectionWrapper.tsx`
 - Create: `apps/personal-calibre-e2e/src/bulk-delivery.spec.ts`
@@ -2186,14 +2694,18 @@ import { resetAppDb } from './support/reset-db';
 test.beforeEach(() => resetAppDb());
 
 test.describe('bulk delivery', () => {
-  test('select books, deliver, toast shown, badges update', async ({ page }) => {
+  test('select books, deliver, toast shown, badges update', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.click('button:has-text("Select")');
     await page.click('[data-testid="book-card"] >> nth=0');
     await page.click('[data-testid="book-card"] >> nth=1');
     await expect(page.locator('text=2 selected')).toBeVisible();
     await page.click('button:has-text("Add to platform")');
-    await expect(page.locator('text=marked as delivered')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=marked as delivered')).toBeVisible({
+      timeout: 5000,
+    });
     // Select mode should be cleared
     await expect(page.locator('text=2 selected')).not.toBeVisible();
     // After reload, RW badge should appear on delivered books
@@ -2201,13 +2713,17 @@ test.describe('bulk delivery', () => {
     await expect(page.locator('text=RW').first()).toBeVisible();
   });
 
-  test('delivered=false filter shows zero results after delivering all books', async ({ page }) => {
+  test('delivered=false filter shows zero results after delivering all books', async ({
+    page,
+  }) => {
     // Deliver all 8 books
     await page.goto('/');
     await page.click('button:has-text("Select")');
     await page.click('text=Select all (8)');
     await page.click('button:has-text("Add to platform")');
-    await expect(page.locator('text=marked as delivered')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=marked as delivered')).toBeVisible({
+      timeout: 5000,
+    });
 
     // Filter for undelivered
     await page.goto('/?platform=readwise-reader&delivered=false');
@@ -2238,7 +2754,9 @@ test.describe('book detail', () => {
     await expect(page.locator('button:has-text("+ Add tag")')).toBeVisible();
   });
 
-  test('back link with from param returns to filtered library', async ({ page }) => {
+  test('back link with from param returns to filtered library', async ({
+    page,
+  }) => {
     await page.goto('/?author=1');
     await page.click('[data-testid="book-card"] >> nth=0');
     await expect(page).toHaveURL(/\/books\/\d+\?from=/);

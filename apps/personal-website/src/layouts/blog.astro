@@ -1,13 +1,10 @@
 ---
 import { Comments } from '@components/blog';
-import { ArrowLeft } from '@lucide/vue';
+import { info } from '@utils/constants';
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import clsx from 'clsx';
 import { format } from 'date-fns';
-
-import Icon from '@/components/icon.vue';
-import { Button } from '@/components/ui/button';
 
 import BaseLayout from './index.astro';
 
@@ -20,6 +17,23 @@ const {
   author: _author,
   image,
 } = Astro.props.data;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
+const postSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: title,
+  description,
+  datePublished: new Date(pubDate).toISOString(),
+  author: {
+    '@type': 'Person',
+    name: 'Rainforest Cheng',
+    url: info.links.website,
+  },
+  url: canonicalUrl,
+  mainEntityOfPage: canonicalUrl,
+  ...(image?.src && { image: new URL(image.src, Astro.site).href }),
+};
 ---
 
 <BaseLayout
@@ -27,7 +41,9 @@ const {
   description={description}
   imageUrl={image?.src}
   viewTransition={{ enabled: true }}
+  shell
 >
+  <script type="application/ld+json" set:html={JSON.stringify(postSchema)} />
   {
     image?.src && (
       <Image
@@ -35,23 +51,15 @@ const {
         width={512}
         height={512}
         alt={image?.alt}
-        class="w-full max-h-75 md:max-h-1/2 object-cover"
+        class="max-h-75 md:max-h-1/2 w-full object-cover"
         transition:name={`blog-${id}`}
       />
     )
   }
-  <Button
-    variant="secondary"
-    size="icon"
-    onclick="history.back()"
-    class="fixed top-10 left-10 rounded-full text-primary"
-  >
-    <Icon icon={ArrowLeft} />
-  </Button>
   <article
     class={clsx(
       'container prose md:prose-xl lg:prose-2xl py-4',
-      image?.src && '-mt-0 md:-mt-75'
+      image?.src && '-mt-0 md:-mt-75',
     )}
   >
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>

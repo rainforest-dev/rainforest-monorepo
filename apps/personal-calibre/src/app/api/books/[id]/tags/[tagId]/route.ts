@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { removeTagFromBook,revalidateBookTagCache } from '@/lib/tags';
+import { removeTagFromBook, revalidateBookTagCache } from '@/lib/tags';
 
 export async function DELETE(
   _request: Request,
@@ -17,6 +17,9 @@ export async function DELETE(
     revalidateBookTagCache(bookId);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Failed' },
+      { status: 500 },
+    );
   }
 }

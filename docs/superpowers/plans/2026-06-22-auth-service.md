@@ -61,6 +61,7 @@ COOKIE_DOMAIN=.rainforest.tools             # optional, default: .rainforest.too
 ### Task 1: Scaffold the Astro SSR app
 
 **Files:**
+
 - Create: `apps/auth-service/package.json`
 - Create: `apps/auth-service/astro.config.mjs`
 - Create: `apps/auth-service/tsconfig.json`
@@ -179,6 +180,7 @@ git commit -m "feat(auth-service): scaffold Astro SSR app"
 ### Task 2: DB layer — SQLite credential store
 
 **Files:**
+
 - Create: `apps/auth-service/src/lib/db.ts`
 - Create: `apps/auth-service/src/lib/db.test.ts`
 - Create: `apps/auth-service/vitest.config.ts`
@@ -220,7 +222,10 @@ describe('db', () => {
   it('saves and retrieves a credential', () => {
     saveCredential(cred);
     const result = getCredential('cred-id-1');
-    expect(result).toMatchObject({ id: 'cred-id-1', publicKey: 'base64pubkey==' });
+    expect(result).toMatchObject({
+      id: 'cred-id-1',
+      publicKey: 'base64pubkey==',
+    });
   });
 
   it('lists all credentials', () => {
@@ -263,7 +268,9 @@ function getDb(): ReturnType<typeof Database> {
   if (_db) return _db;
   const path = process.env.AUTH_DB_PATH ?? '/app/db/auth.db';
   _db = new Database(path);
-  _db.prepare(`
+  _db
+    .prepare(
+      `
     CREATE TABLE IF NOT EXISTS credentials (
       id          TEXT PRIMARY KEY,
       public_key  TEXT NOT NULL,
@@ -271,7 +278,9 @@ function getDb(): ReturnType<typeof Database> {
       transports  TEXT NOT NULL DEFAULT '[]',
       created_at  INTEGER NOT NULL DEFAULT (unixepoch())
     )
-  `).run();
+  `,
+    )
+    .run();
   return _db;
 }
 
@@ -281,7 +290,12 @@ export function saveCredential(cred: StoredCredential): void {
       `INSERT OR REPLACE INTO credentials (id, public_key, counter, transports)
        VALUES (?, ?, ?, ?)`,
     )
-    .run(cred.id, cred.publicKey, cred.counter, JSON.stringify(cred.transports));
+    .run(
+      cred.id,
+      cred.publicKey,
+      cred.counter,
+      JSON.stringify(cred.transports),
+    );
 }
 
 export function getCredential(id: string): StoredCredential | null {
@@ -302,7 +316,12 @@ export function getCredential(id: string): StoredCredential | null {
 export function listCredentials(): StoredCredential[] {
   const rows = getDb()
     .prepare('SELECT * FROM credentials ORDER BY created_at ASC')
-    .all() as { id: string; public_key: string; counter: number; transports: string }[];
+    .all() as {
+    id: string;
+    public_key: string;
+    counter: number;
+    transports: string;
+  }[];
   return rows.map((r) => ({
     id: r.id,
     publicKey: r.public_key,
@@ -312,7 +331,9 @@ export function listCredentials(): StoredCredential[] {
 }
 
 export function updateCounter(id: string, counter: number): void {
-  getDb().prepare('UPDATE credentials SET counter = ? WHERE id = ?').run(counter, id);
+  getDb()
+    .prepare('UPDATE credentials SET counter = ? WHERE id = ?')
+    .run(counter, id);
 }
 ```
 
@@ -336,6 +357,7 @@ git commit -m "feat(auth-service): add SQLite credential store"
 ### Task 3: Session layer — JWT sign/verify
 
 **Files:**
+
 - Create: `apps/auth-service/src/lib/session.ts`
 - Create: `apps/auth-service/src/lib/session.test.ts`
 
@@ -427,6 +449,7 @@ git commit -m "feat(auth-service): add JWT session sign/verify"
 ### Task 4: WebAuthn helpers + challenge store
 
 **Files:**
+
 - Create: `apps/auth-service/src/lib/webauthn.ts`
 - Create: `apps/auth-service/src/lib/webauthn.test.ts`
 
@@ -437,7 +460,9 @@ Create `apps/auth-service/src/lib/webauthn.test.ts`:
 ```typescript
 import { describe, it, expect } from 'vitest';
 
-const { storeChallenge, consumeChallenge, getRpConfig } = await import('./webauthn.js');
+const { storeChallenge, consumeChallenge, getRpConfig } = await import(
+  './webauthn.js'
+);
 
 describe('challenge store', () => {
   it('stores and consumes a challenge once', () => {
@@ -490,7 +515,10 @@ const challenges = new Map<string, { value: string; expiresAt: number }>();
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 export function storeChallenge(key: string, challenge: string): void {
-  challenges.set(key, { value: challenge, expiresAt: Date.now() + CHALLENGE_TTL_MS });
+  challenges.set(key, {
+    value: challenge,
+    expiresAt: Date.now() + CHALLENGE_TTL_MS,
+  });
 }
 
 export function consumeChallenge(key: string): string | null {
@@ -503,7 +531,11 @@ export function consumeChallenge(key: string): string | null {
   return entry.value;
 }
 
-export function getRpConfig(): { rpID: string; rpName: string; origin: string } {
+export function getRpConfig(): {
+  rpID: string;
+  rpName: string;
+  origin: string;
+} {
   return {
     rpID: process.env.WEBAUTHN_RP_ID ?? 'rainforest.tools',
     rpName: 'Rainforest Tools',
@@ -524,7 +556,10 @@ export async function createRegistrationOptions(): Promise<PublicKeyCredentialCr
     userName: 'rainforest',
     attestationType: 'none',
     excludeCredentials: existingCredentials,
-    authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
+    authenticatorSelection: {
+      residentKey: 'required',
+      userVerification: 'required',
+    },
   });
   storeChallenge('registration', options.challenge);
   return options;
@@ -565,7 +600,8 @@ export async function verifyAuthentication(
 ): Promise<VerifiedAuthenticationResponse> {
   const { rpID, origin } = getRpConfig();
   const expectedChallenge = consumeChallenge('authentication');
-  if (!expectedChallenge) throw new Error('No pending authentication challenge');
+  if (!expectedChallenge)
+    throw new Error('No pending authentication challenge');
   const credential = getCredential(response.id);
   if (!credential) throw new Error('Credential not found');
   return verifyAuthenticationResponse({
@@ -604,6 +640,7 @@ git commit -m "feat(auth-service): add WebAuthn helpers and challenge store"
 ### Task 5: Registration API routes
 
 **Files:**
+
 - Create: `apps/auth-service/src/pages/api/register/begin.ts`
 - Create: `apps/auth-service/src/pages/api/register/finish.ts`
 
@@ -673,6 +710,7 @@ git commit -m "feat(auth-service): add registration API routes"
 ### Task 6: Registration page + PasskeyRegister component
 
 **Files:**
+
 - Create: `apps/auth-service/src/components/PasskeyRegister.tsx`
 - Create: `apps/auth-service/src/pages/register.astro`
 
@@ -683,7 +721,9 @@ import { startRegistration } from '@simplewebauthn/browser';
 import { useState } from 'react';
 
 export default function PasskeyRegister() {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle');
   const [message, setMessage] = useState('');
 
   async function handleRegister() {
@@ -717,12 +757,14 @@ export default function PasskeyRegister() {
       <button
         onClick={handleRegister}
         disabled={status === 'loading' || status === 'success'}
-        className="px-6 py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+        className="rounded-lg bg-violet-600 px-6 py-3 font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
       >
         {status === 'loading' ? 'Registering…' : 'Register Passkey'}
       </button>
       {message && (
-        <p className={status === 'error' ? 'text-red-400' : 'text-green-400'}>{message}</p>
+        <p className={status === 'error' ? 'text-red-400' : 'text-green-400'}>
+          {message}
+        </p>
       )}
     </div>
   );
@@ -742,6 +784,7 @@ if (!registrationToken || token !== registrationToken) {
   return Astro.redirect('/login');
 }
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -749,13 +792,19 @@ if (!registrationToken || token !== registrationToken) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Register Passkey — Rainforest Tools</title>
     <style>
-      body { background: #0f1117; color: #e2e4ed; font-family: system-ui, sans-serif; }
+      body {
+        background: #0f1117;
+        color: #e2e4ed;
+        font-family: system-ui, sans-serif;
+      }
     </style>
   </head>
-  <body class="min-h-screen flex items-center justify-center">
-    <div class="text-center space-y-6">
+  <body class="flex min-h-screen items-center justify-center">
+    <div class="space-y-6 text-center">
       <h1 class="text-2xl font-semibold">Register Passkey</h1>
-      <p class="text-gray-400 text-sm">One-time setup. Use your device's biometric or PIN.</p>
+      <p class="text-sm text-gray-400">
+        One-time setup. Use your device's biometric or PIN.
+      </p>
       <PasskeyRegister client:load />
     </div>
   </body>
@@ -787,6 +836,7 @@ git commit -m "feat(auth-service): add registration page and PasskeyRegister com
 ### Task 7: Login API routes
 
 **Files:**
+
 - Create: `apps/auth-service/src/pages/api/login/begin.ts`
 - Create: `apps/auth-service/src/pages/api/login/finish.ts`
 
@@ -817,7 +867,9 @@ import { signSession } from '../../../lib/session.js';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const body = (await request.json()) as AuthenticationResponseJSON & { redirect?: string };
+    const body = (await request.json()) as AuthenticationResponseJSON & {
+      redirect?: string;
+    };
     const { redirect, ...authResponse } = body;
 
     const verification = await verifyAuthentication(authResponse);
@@ -858,6 +910,7 @@ git commit -m "feat(auth-service): add login API routes"
 ### Task 8: Login page + PasskeyLogin component
 
 **Files:**
+
 - Create: `apps/auth-service/src/components/PasskeyLogin.tsx`
 - Create: `apps/auth-service/src/pages/login.astro`
 
@@ -901,11 +954,11 @@ export default function PasskeyLogin({ redirect }: { redirect: string }) {
       <button
         onClick={handleLogin}
         disabled={status === 'loading'}
-        className="px-6 py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+        className="rounded-lg bg-violet-600 px-6 py-3 font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
       >
         {status === 'loading' ? 'Authenticating…' : 'Sign in with Passkey'}
       </button>
-      {message && <p className="text-red-400 text-sm">{message}</p>}
+      {message && <p className="text-sm text-red-400">{message}</p>}
     </div>
   );
 }
@@ -919,6 +972,7 @@ import PasskeyLogin from '../components/PasskeyLogin.tsx';
 
 const redirect = Astro.url.searchParams.get('redirect') ?? '/';
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -926,13 +980,17 @@ const redirect = Astro.url.searchParams.get('redirect') ?? '/';
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign In — Rainforest Tools</title>
     <style>
-      body { background: #0f1117; color: #e2e4ed; font-family: system-ui, sans-serif; }
+      body {
+        background: #0f1117;
+        color: #e2e4ed;
+        font-family: system-ui, sans-serif;
+      }
     </style>
   </head>
-  <body class="min-h-screen flex items-center justify-center">
-    <div class="text-center space-y-6">
+  <body class="flex min-h-screen items-center justify-center">
+    <div class="space-y-6 text-center">
       <h1 class="text-2xl font-semibold">Rainforest Tools</h1>
-      <p class="text-gray-400 text-sm">Use your passkey to sign in.</p>
+      <p class="text-sm text-gray-400">Use your passkey to sign in.</p>
       <PasskeyLogin redirect={redirect} client:load />
     </div>
   </body>
@@ -951,6 +1009,7 @@ git commit -m "feat(auth-service): add login page and PasskeyLogin component"
 ### Task 9: /api/verify endpoint (Traefik ForwardAuth)
 
 **Files:**
+
 - Create: `apps/auth-service/src/pages/api/verify.ts`
 
 The `/verify` endpoint is what Traefik calls on every upstream request. It returns 200 to allow, or a 302 redirect to the login page to block. Traefik passes the original request details via `X-Forwarded-*` headers so the auth service can build the post-login redirect URL.
@@ -973,7 +1032,8 @@ export const GET: APIRoute = async ({ request, cookies }) => {
   const proto = request.headers.get('X-Forwarded-Proto') ?? 'https';
   const uri = request.headers.get('X-Forwarded-Uri') ?? '/';
 
-  const loginBase = process.env.WEBAUTHN_ORIGIN ?? 'https://auth.rainforest.tools';
+  const loginBase =
+    process.env.WEBAUTHN_ORIGIN ?? 'https://auth.rainforest.tools';
   const loginUrl = new URL(`${loginBase}/login`);
   if (host) {
     loginUrl.searchParams.set('redirect', `${proto}://${host}${uri}`);
@@ -1015,6 +1075,7 @@ git commit -m "feat(auth-service): add ForwardAuth /verify endpoint"
 ### Task 10: /api/logout endpoint
 
 **Files:**
+
 - Create: `apps/auth-service/src/pages/api/logout.ts`
 
 - [ ] **Step 1: Create `apps/auth-service/src/pages/api/logout.ts`**
@@ -1027,7 +1088,8 @@ export const POST: APIRoute = ({ cookies }) => {
     domain: process.env.COOKIE_DOMAIN ?? '.rainforest.tools',
     path: '/',
   });
-  const loginBase = process.env.WEBAUTHN_ORIGIN ?? 'https://auth.rainforest.tools';
+  const loginBase =
+    process.env.WEBAUTHN_ORIGIN ?? 'https://auth.rainforest.tools';
   return Response.redirect(`${loginBase}/login`, 302);
 };
 ```
@@ -1044,6 +1106,7 @@ git commit -m "feat(auth-service): add logout endpoint"
 ### Task 11: Dockerfile
 
 **Files:**
+
 - Create: `apps/auth-service/Dockerfile`
 
 - [ ] **Step 1: Create `apps/auth-service/Dockerfile`**

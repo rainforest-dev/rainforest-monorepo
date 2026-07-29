@@ -7,18 +7,12 @@
     "nx-mcp": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "nx",
-        "mcp"
-      ]
+      "args": ["nx", "mcp"]
     },
     "next-devtools": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "-y",
-        "next-devtools-mcp@latest"
-      ]
+      "args": ["-y", "next-devtools-mcp@latest"]
     },
     "Astro docs": {
       "type": "http",
@@ -26,10 +20,7 @@
     },
     "shadcn": {
       "command": "npx",
-      "args": [
-        "shadcn@latest",
-        "mcp"
-      ]
+      "args": ["shadcn@latest", "mcp"]
     }
   }
 }

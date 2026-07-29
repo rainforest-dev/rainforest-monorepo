@@ -1,0 +1,14 @@
+---
+import PortfolioIndexPage from '@components/pages/PortfolioIndexPage.astro';
+import { fallbackLng, supportedLngs } from '@utils/i18n';
+
+export const prerender = true;
+export function getStaticPaths() {
+  return supportedLngs
+    .filter((lng) => lng !== fallbackLng)
+    .map((lang) => ({ params: { lang } }));
+}
+const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
+---
+
+<PortfolioIndexPage lang={lang} />

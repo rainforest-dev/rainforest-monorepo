@@ -28,7 +28,13 @@
       "path": "./apps/rss-manager"
     },
     {
+      "path": "./libs/personal-portfolio"
+    },
+    {
       "path": "./apps/loop-observatory"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  }
 }

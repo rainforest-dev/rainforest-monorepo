@@ -1,0 +1,17 @@
+---
+import CaseStudyPage from '@components/pages/CaseStudyPage.astro';
+import { listCaseStudies } from '@rainforest-dev/personal-portfolio/content';
+import { fallbackLng, supportedLngs } from '@utils/i18n';
+
+export const prerender = true;
+export function getStaticPaths() {
+  return supportedLngs
+    .filter((lng) => lng !== fallbackLng)
+    .flatMap((lang) =>
+      listCaseStudies().map((cs) => ({ params: { lang, slug: cs.slug } })),
+    );
+}
+const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
+---
+
+<CaseStudyPage lang={lang} slug={Astro.params.slug!} />

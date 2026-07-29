@@ -12,5 +12,8 @@
     {
       "path": "./tsconfig.storybook.json"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  }
 }

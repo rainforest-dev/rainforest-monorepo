@@ -1,4 +1,8 @@
-import { experienceTypes, skillTags } from '@rainforest-dev/personal-data/vocab';
+import {
+  employmentTypes,
+  experienceTypes,
+  skillTags,
+} from '@rainforest-dev/personal-data/vocab';
 import type { ILink, SkillTag } from '@types';
 import { getGitHubUrl, getLinkedInUrl } from '@utils';
 
@@ -9,6 +13,7 @@ export const resumeDateFormat = 'MMM yyyy' as const;
 export const tags = {
   skills: skillTags,
   experience: experienceTypes,
+  employment: employmentTypes,
 } as const;
 
 export const info = {
@@ -42,8 +47,8 @@ export const links: {
     },
     {
       label: 'portfolio',
-      href: 'https://www.cake.me/rainforest-cheng-bbc4f2/portfolios',
-      external: true,
+      href: '/portfolio',
+      i18n: true,
     },
   ],
   external: [

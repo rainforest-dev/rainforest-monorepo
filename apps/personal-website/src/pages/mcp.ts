@@ -1,7 +1,7 @@
 import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 
-import { createProfileMcpHandler } from '../mcp/handler';
+import { createProfileMcpHandler, mcpUsageResponse } from '../mcp/handler';
 
 // Same MCP tool surface as /api/mcp, mounted at the site root instead — added so the
 // server is reachable at rainforest.tools/mcp directly, without depending on
@@ -13,3 +13,7 @@ export const POST: APIRoute = async ({ request }) => {
   await trackAiResourceFetch('mcp', request);
   return handler(request);
 };
+
+// See mcpUsageResponse — this is the URL llms.txt links to, so it must not 404 on GET.
+export const GET: APIRoute = ({ site }) =>
+  mcpUsageResponse(new URL('/mcp', site ?? 'https://rainforest.tools').href);

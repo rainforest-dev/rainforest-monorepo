@@ -14,6 +14,7 @@ Rainforest UI is a comprehensive component library that provides modern, accessi
 ## 🌟 Features
 
 ### 🚀 Core Features
+
 - **⚡ Lit Web Components** - Fast, lightweight, and framework-agnostic
 - **🎨 Tailwind CSS** - Utility-first styling with full customization
 - **♿ Accessibility First** - WCAG compliant with semantic HTML
@@ -23,6 +24,7 @@ Rainforest UI is a comprehensive component library that provides modern, accessi
 - **🔧 TypeScript** - Full type safety and IntelliSense support
 
 ### 🎯 Advanced Capabilities
+
 - **Material Design 3** - Google's latest design system integration
 - **Dynamic Theming** - Runtime theme switching with CSS custom properties
 - **Tree Shaking** - Optimized bundles with unused code elimination
@@ -35,17 +37,20 @@ Rainforest UI is a comprehensive component library that provides modern, accessi
 ### Technology Stack
 
 **Core Framework**
+
 - **Lit 3.3** - Web components with reactive properties
 - **TypeScript 5.8** - Type-safe component development
 - **Vite** - Fast build tooling and development
 
 **Styling & Design**
+
 - **Tailwind CSS 4.1** - Utility-first CSS framework
 - **Material Design 3** - Google's design system
 - **@tailwindcss/typography** - Beautiful typographic defaults
 - **CSS Custom Properties** - Dynamic theming support
 
 **Development Tools**
+
 - **Storybook 8.6** - Component documentation and testing
 - **Vitest** - Unit testing framework
 - **ESLint** - Code linting with Lit-specific rules
@@ -101,7 +106,11 @@ nx storybook rainforest-ui
 
 ```tsx
 // Install React wrapper
-import { RfButton, RfCard, RfTypography } from '@rainforest-dev/rainforest-ui/react';
+import {
+  RfButton,
+  RfCard,
+  RfTypography,
+} from '@rainforest-dev/rainforest-ui/react';
 
 function App() {
   return (
@@ -123,9 +132,7 @@ function App() {
 ```vue
 <template>
   <div>
-    <rf-button variant="primary" @click="handleClick">
-      Click me
-    </rf-button>
+    <rf-button variant="primary" @click="handleClick"> Click me </rf-button>
     <rf-card elevation="2">
       <rf-typography variant="h2">Card Title</rf-typography>
       <rf-typography>Card content goes here</rf-typography>
@@ -151,17 +158,15 @@ const handleClick = () => {
 module.exports = {
   content: [
     './src/**/*.{html,js,ts,jsx,tsx,vue}',
-    './node_modules/@rainforest-dev/rainforest-ui/**/*.js'
+    './node_modules/@rainforest-dev/rainforest-ui/**/*.js',
   ],
   theme: {
     extend: {
       // Customize your theme
-    }
+    },
   },
-  plugins: [
-    require('@rainforest-dev/rainforest-ui/tailwindcss/plugin')
-  ]
-}
+  plugins: [require('@rainforest-dev/rainforest-ui/tailwindcss/plugin')],
+};
 ```
 
 #### Custom CSS Variables
@@ -178,7 +183,7 @@ module.exports = {
 }
 
 /* Dark theme */
-[data-theme="dark"] {
+[data-theme='dark'] {
   --rf-surface: #1f2937;
   --rf-on-surface: #f9fafb;
 }
@@ -225,10 +230,9 @@ libs/rainforest-ui/
 ### Core Components
 
 #### Button
+
 ```html
-<rf-button variant="primary" size="medium" disabled>
-  Primary Button
-</rf-button>
+<rf-button variant="primary" size="medium" disabled> Primary Button </rf-button>
 
 <!-- Available variants -->
 <rf-button variant="primary">Primary</rf-button>
@@ -239,6 +243,7 @@ libs/rainforest-ui/
 ```
 
 #### Card
+
 ```html
 <rf-card elevation="2" padding="large">
   <rf-typography slot="header" variant="h3">Card Header</rf-typography>
@@ -248,6 +253,7 @@ libs/rainforest-ui/
 ```
 
 #### Typography
+
 ```html
 <!-- Headings -->
 <rf-typography variant="h1">Heading 1</rf-typography>
@@ -261,9 +267,10 @@ libs/rainforest-ui/
 ```
 
 #### Form Components
+
 ```html
 <!-- Input Field -->
-<rf-input 
+<rf-input
   label="Email Address"
   type="email"
   placeholder="Enter your email"
@@ -283,6 +290,7 @@ libs/rainforest-ui/
 ```
 
 #### Layout Components
+
 ```html
 <!-- Grid System -->
 <rf-grid container spacing="4">
@@ -305,24 +313,26 @@ libs/rainforest-ui/
 
 ### Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `nx build rainforest-ui` | Build library for production |
-| `nx dev rainforest-ui` | Start development server |
-| `nx storybook rainforest-ui` | Start Storybook development |
-| `nx test rainforest-ui` | Run unit tests |
-| `nx lint rainforest-ui` | Lint code |
+| Command                            | Description                    |
+| ---------------------------------- | ------------------------------ |
+| `nx build rainforest-ui`           | Build library for production   |
+| `nx dev rainforest-ui`             | Start development server       |
+| `nx storybook rainforest-ui`       | Start Storybook development    |
+| `nx test rainforest-ui`            | Run unit tests                 |
+| `nx lint rainforest-ui`            | Lint code                      |
 | `nx build-storybook rainforest-ui` | Build Storybook for production |
 
 ### Creating New Components
 
 1. **Create Component Directory**
+
    ```bash
    mkdir src/components/my-component
    cd src/components/my-component
    ```
 
 2. **Component Implementation**
+
    ```typescript
    // my-component.ts
    import { LitElement, html, css } from 'lit';
@@ -337,15 +347,15 @@ libs/rainforest-ui/
        :host {
          display: inline-block;
        }
-       
+
        .component {
-         @apply px-4 py-2 rounded-md;
+         @apply rounded-md px-4 py-2;
        }
-       
+
        .primary {
          @apply bg-blue-500 text-white;
        }
-       
+
        .secondary {
          @apply bg-gray-200 text-gray-800;
        }
@@ -368,6 +378,7 @@ libs/rainforest-ui/
    ```
 
 3. **Storybook Story**
+
    ```typescript
    // my-component.stories.ts
    import type { Meta, StoryObj } from '@storybook/web-components';
@@ -380,16 +391,16 @@ libs/rainforest-ui/
      parameters: {
        docs: {
          description: {
-           component: 'A customizable component for...'
-         }
-       }
+           component: 'A customizable component for...',
+         },
+       },
      },
      argTypes: {
        variant: {
          control: { type: 'select' },
-         options: ['primary', 'secondary']
-       }
-     }
+         options: ['primary', 'secondary'],
+       },
+     },
    };
 
    export default meta;
@@ -397,13 +408,13 @@ libs/rainforest-ui/
 
    export const Primary: Story = {
      args: {
-       variant: 'primary'
+       variant: 'primary',
      },
      render: (args) => html`
        <rf-my-component variant=${args.variant}>
          Component content
        </rf-my-component>
-     `
+     `,
    };
    ```
 
@@ -424,15 +435,17 @@ import './my-component';
 test('renders with default props', () => {
   const { container } = render('<rf-my-component>Test</rf-my-component>');
   const component = container.querySelector('rf-my-component');
-  
+
   expect(component).toBeInTheDocument();
   expect(component).toHaveAttribute('variant', 'primary');
 });
 
 test('accepts custom variant', () => {
-  const { container } = render('<rf-my-component variant="secondary">Test</rf-my-component>');
+  const { container } = render(
+    '<rf-my-component variant="secondary">Test</rf-my-component>',
+  );
   const component = container.querySelector('rf-my-component');
-  
+
   expect(component).toHaveAttribute('variant', 'secondary');
 });
 ```
@@ -452,25 +465,25 @@ The library uses CSS custom properties for theming:
   --rf-success: #10b981;
   --rf-warning: #f59e0b;
   --rf-error: #ef4444;
-  
+
   /* Typography */
   --rf-font-family: 'Inter', system-ui, sans-serif;
   --rf-font-size-sm: 0.875rem;
   --rf-font-size-base: 1rem;
   --rf-font-size-lg: 1.125rem;
-  
+
   /* Spacing */
   --rf-spacing-xs: 0.25rem;
   --rf-spacing-sm: 0.5rem;
   --rf-spacing-md: 1rem;
   --rf-spacing-lg: 1.5rem;
   --rf-spacing-xl: 2rem;
-  
+
   /* Border radius */
   --rf-radius-sm: 0.25rem;
   --rf-radius-md: 0.5rem;
   --rf-radius-lg: 0.75rem;
-  
+
   /* Shadows */
   --rf-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --rf-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
@@ -485,13 +498,12 @@ The library includes a Tailwind plugin for seamless integration:
 ```javascript
 // tailwind.config.js
 module.exports = {
-  plugins: [
-    require('@rainforest-dev/rainforest-ui/tailwindcss/plugin')
-  ]
-}
+  plugins: [require('@rainforest-dev/rainforest-ui/tailwindcss/plugin')],
+};
 ```
 
 This plugin adds:
+
 - Component-specific utility classes
 - Design token classes
 - Responsive variants
@@ -524,6 +536,7 @@ nx build-storybook rainforest-ui
 ```
 
 Storybook includes:
+
 - **Interactive Examples** - Play with component props in real-time
 - **Documentation** - Comprehensive usage guides and examples
 - **Accessibility Testing** - Built-in a11y checks and reports
@@ -578,6 +591,7 @@ nx bundle-analyzer rainforest-ui
 ```
 
 The build process generates:
+
 - **ESM build** (`dist/index.js`) - Modern ES modules
 - **CJS build** (`dist/index.cjs`) - CommonJS for Node.js
 - **Type definitions** (`dist/index.d.ts`) - TypeScript support
@@ -591,7 +605,7 @@ The build process generates:
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js", 
+      "import": "./dist/index.js",
       "default": "./dist/index.cjs"
     },
     "./lit/*": {
@@ -600,7 +614,7 @@ The build process generates:
       "default": "./dist/lit/*.cjs"
     },
     "./tailwindcss/*": {
-      "types": "./dist/tailwindcss/*.d.ts", 
+      "types": "./dist/tailwindcss/*.d.ts",
       "import": "./dist/tailwindcss/*.js",
       "default": "./dist/tailwindcss/*.cjs"
     }
@@ -631,12 +645,14 @@ See the main [Contributing Guide](../../CONTRIBUTING.md) for general guidelines.
 ## 📚 Resources
 
 ### Documentation
+
 - [Lit Documentation](https://lit.dev)
 - [Tailwind CSS](https://tailwindcss.com)
 - [Material Design 3](https://m3.material.io)
 - [Web Components](https://developer.mozilla.org/en-US/docs/Web/Web_Components)
 
 ### Tools
+
 - [Storybook](https://storybook.js.org)
 - [Web Accessibility](https://www.w3.org/WAI/WCAG21/quickref/)
 - [Lit Analyzer](https://github.com/runem/lit-analyzer)

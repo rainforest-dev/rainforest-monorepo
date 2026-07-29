@@ -62,30 +62,36 @@ VAULT_PATH=/vault                # container env (set explicitly in compose)
 The parser must handle this exact format from `_system/RSS-Source-Registry.md`:
 
 ```markdown
-## Active Sources            ← status section (## heading)
-### Frontend & Web           ← category subsection (### heading)
+## Active Sources ← status section (## heading)
+
+### Frontend & Web ← category subsection (### heading)
+
 - [x] **Astro** #domain/frontend #tech/astro
-  https://astro.build/rss.xml
+      https://astro.build/rss.xml
 
 ## Needs Verification
+
 - [ ] **TkDodo's Blog** #tech/tanstack #tech/react
-  https://tkdodo.eu/blog/rss.xml · for topic: TanStack ecosystem
-  **What**: ...
+      https://tkdodo.eu/blog/rss.xml · for topic: TanStack ecosystem
+      **What**: ...
 
 ## Proposed Sources
+
 - [ ] **The GitHub Blog** #devops #domain/frontend
-  https://github.blog/feed/ · for topic: Build tooling · _2026-06-17_ · proposed by rss-discover
-  Evidence: ...
+      https://github.blog/feed/ · for topic: Build tooling · _2026-06-17_ · proposed by rss-discover
+      Evidence: ...
 ```
 
 And `_system/RSS-Topic-Registry.md`:
 
 ```markdown
 ## Active
+
 - [x] **AI agents & tools** #domain/ai #tech/claude-code
-  Agents, LLMs, MCP ecosystem, Claude Code
+      Agents, LLMs, MCP ecosystem, Claude Code
 
 ## Proposed
+
 ## Declined
 ```
 
@@ -94,6 +100,7 @@ And `_system/RSS-Topic-Registry.md`:
 ### Task 1: Scaffold the Astro SSR app
 
 **Files:**
+
 - Create: `apps/rss-manager/package.json`
 - Create: `apps/rss-manager/astro.config.mjs`
 - Create: `apps/rss-manager/tsconfig.json`
@@ -213,6 +220,7 @@ git commit -m "feat(rss-manager): scaffold Astro SSR app"
 ### Task 2: Registry parser
 
 **Files:**
+
 - Create: `apps/rss-manager/src/lib/registry.ts`
 - Create: `apps/rss-manager/src/lib/registry.test.ts`
 
@@ -340,7 +348,9 @@ describe('parseTopics', () => {
     expect(active).toHaveLength(2);
     expect(active[0].name).toBe('AI agents & tools');
     expect(active[0].tags).toContain('domain/ai');
-    expect(active[0].description).toBe('Agents, LLMs, MCP ecosystem, Claude Code');
+    expect(active[0].description).toBe(
+      'Agents, LLMs, MCP ecosystem, Claude Code',
+    );
   });
 
   it('parses proposed topics correctly', () => {
@@ -544,6 +554,7 @@ git commit -m "feat(rss-manager): add registry markdown parser"
 ### Task 3: Feed URL checker
 
 **Files:**
+
 - Create: `apps/rss-manager/src/lib/feedCheck.ts`
 - Create: `apps/rss-manager/src/lib/feedCheck.test.ts`
 
@@ -577,7 +588,8 @@ const HTML_FIXTURE = `<!DOCTYPE html><html><head><title>Not a feed</title></head
 describe('detectFeedFormat', () => {
   it('detects RSS', () => expect(detectFeedFormat(RSS_FIXTURE)).toBe('rss'));
   it('detects Atom', () => expect(detectFeedFormat(ATOM_FIXTURE)).toBe('atom'));
-  it('returns null for HTML', () => expect(detectFeedFormat(HTML_FIXTURE)).toBeNull());
+  it('returns null for HTML', () =>
+    expect(detectFeedFormat(HTML_FIXTURE)).toBeNull());
 });
 
 describe('extractFeedMeta', () => {
@@ -685,6 +697,7 @@ git commit -m "feat(rss-manager): add feed URL checker"
 ### Task 4: API routes
 
 **Files:**
+
 - Create: `apps/rss-manager/src/pages/api/sources.ts`
 - Create: `apps/rss-manager/src/pages/api/topics.ts`
 - Create: `apps/rss-manager/src/pages/api/validate.ts`
@@ -731,7 +744,10 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const { url } = (await request.json()) as { url: string };
     if (!url || !url.startsWith('http')) {
-      return Response.json({ valid: false, error: 'Invalid URL' }, { status: 400 });
+      return Response.json(
+        { valid: false, error: 'Invalid URL' },
+        { status: 400 },
+      );
     }
     const result = await checkFeedUrl(url);
     return Response.json(result);
@@ -773,6 +789,7 @@ git commit -m "feat(rss-manager): add sources, topics, and validate API routes"
 ### Task 5: React islands
 
 **Files:**
+
 - Create: `apps/rss-manager/src/components/SourceTable.tsx`
 - Create: `apps/rss-manager/src/components/TopicList.tsx`
 - Create: `apps/rss-manager/src/components/FeedValidator.tsx`
@@ -807,7 +824,10 @@ export default function SourceTable() {
   useEffect(() => {
     fetch('/api/sources')
       .then((r) => r.json())
-      .then((data) => { setSources(data); setLoading(false); });
+      .then((data) => {
+        setSources(data);
+        setLoading(false);
+      });
   }, []);
 
   const filtered = sources.filter((s) => {
@@ -825,25 +845,30 @@ export default function SourceTable() {
     {} as Record<string, number>,
   );
 
-  if (loading) return <p className="text-gray-400 py-8 text-center">Loading sources…</p>;
+  if (loading)
+    return <p className="py-8 text-center text-gray-400">Loading sources…</p>;
 
   return (
     <div className="space-y-4">
       {/* Summary chips */}
       <div className="flex flex-wrap gap-2">
-        {(['all', 'active', 'pending', 'proposed', 'no-rss'] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-              statusFilter === s
-                ? 'bg-violet-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-            }`}
-          >
-            {s === 'all' ? `All (${sources.length})` : `${s} (${counts[s] ?? 0})`}
-          </button>
-        ))}
+        {(['all', 'active', 'pending', 'proposed', 'no-rss'] as const).map(
+          (s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+                statusFilter === s
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}
+            >
+              {s === 'all'
+                ? `All (${sources.length})`
+                : `${s} (${counts[s] ?? 0})`}
+            </button>
+          ),
+        )}
       </div>
 
       {/* Search */}
@@ -852,14 +877,14 @@ export default function SourceTable() {
         placeholder="Filter by name, tag, or category…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-violet-500"
+        className="w-full rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
       />
 
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500 border-b border-gray-800">
+            <tr className="border-b border-gray-800 text-left text-gray-500">
               <th className="py-2 pr-4 font-medium">Source</th>
               <th className="py-2 pr-4 font-medium">Category</th>
               <th className="py-2 pr-4 font-medium">Tags</th>
@@ -868,7 +893,10 @@ export default function SourceTable() {
           </thead>
           <tbody>
             {filtered.map((s) => (
-              <tr key={s.name} className="border-b border-gray-800 hover:bg-gray-800/50">
+              <tr
+                key={s.name}
+                className="border-b border-gray-800 hover:bg-gray-800/50"
+              >
                 <td className="py-2 pr-4">
                   {s.url ? (
                     <a
@@ -887,14 +915,19 @@ export default function SourceTable() {
                 <td className="py-2 pr-4">
                   <div className="flex flex-wrap gap-1">
                     {s.tags.map((t) => (
-                      <span key={t} className="px-1.5 py-0.5 bg-gray-800 text-gray-400 rounded text-xs">
+                      <span
+                        key={t}
+                        className="rounded bg-gray-800 px-1.5 py-0.5 text-xs text-gray-400"
+                      >
                         #{t}
                       </span>
                     ))}
                   </div>
                 </td>
                 <td className="py-2">
-                  <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLORS[s.status]}`}>
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs ${STATUS_COLORS[s.status]}`}
+                  >
                     {s.status}
                   </span>
                 </td>
@@ -903,7 +936,9 @@ export default function SourceTable() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <p className="text-gray-500 text-center py-8">No sources match the current filter.</p>
+          <p className="py-8 text-center text-gray-500">
+            No sources match the current filter.
+          </p>
         )}
       </div>
     </div>
@@ -936,12 +971,17 @@ export default function TopicList() {
   useEffect(() => {
     fetch('/api/topics')
       .then((r) => r.json())
-      .then((data) => { setTopics(data); setLoading(false); });
+      .then((data) => {
+        setTopics(data);
+        setLoading(false);
+      });
   }, []);
 
-  if (loading) return <p className="text-gray-400 py-8 text-center">Loading topics…</p>;
+  if (loading)
+    return <p className="py-8 text-center text-gray-400">Loading topics…</p>;
 
-  const byStatus = (status: Topic['status']) => topics.filter((t) => t.status === status);
+  const byStatus = (status: Topic['status']) =>
+    topics.filter((t) => t.status === status);
 
   return (
     <div className="space-y-6">
@@ -950,21 +990,30 @@ export default function TopicList() {
         if (group.length === 0) return null;
         return (
           <div key={status}>
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">
               {status} ({group.length})
             </h3>
             <div className="space-y-2">
               {group.map((t) => (
-                <div key={t.name} className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg">
-                  <span className={`mt-0.5 px-2 py-0.5 rounded text-xs shrink-0 ${STATUS_COLORS[status]}`}>
+                <div
+                  key={t.name}
+                  className="flex items-start gap-3 rounded-lg bg-gray-800/50 p-3"
+                >
+                  <span
+                    className={`mt-0.5 shrink-0 rounded px-2 py-0.5 text-xs ${STATUS_COLORS[status]}`}
+                  >
                     {status}
                   </span>
                   <div>
-                    <p className="text-gray-200 font-medium">{t.name}</p>
-                    {t.description && <p className="text-gray-400 text-sm">{t.description}</p>}
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <p className="font-medium text-gray-200">{t.name}</p>
+                    {t.description && (
+                      <p className="text-sm text-gray-400">{t.description}</p>
+                    )}
+                    <div className="mt-1 flex flex-wrap gap-1">
                       {t.tags.map((tag) => (
-                        <span key={tag} className="text-xs text-gray-500">#{tag}</span>
+                        <span key={tag} className="text-xs text-gray-500">
+                          #{tag}
+                        </span>
                       ))}
                     </div>
                   </div>
@@ -1014,7 +1063,7 @@ export default function FeedValidator() {
   }
 
   return (
-    <div className="space-y-4 max-w-xl">
+    <div className="max-w-xl space-y-4">
       <div className="flex gap-2">
         <input
           type="url"
@@ -1022,29 +1071,38 @@ export default function FeedValidator() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && validate()}
-          className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-violet-500"
+          className="flex-1 rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
         />
         <button
           onClick={validate}
           disabled={!url || loading}
-          className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded text-sm font-medium transition-colors"
+          className="rounded bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
         >
           {loading ? 'Checking…' : 'Validate'}
         </button>
       </div>
 
       {result && (
-        <div className={`p-4 rounded-lg ${result.valid ? 'bg-green-900/30 border border-green-800' : 'bg-red-900/30 border border-red-800'}`}>
+        <div
+          className={`rounded-lg p-4 ${result.valid ? 'border border-green-800 bg-green-900/30' : 'border border-red-800 bg-red-900/30'}`}
+        >
           {result.valid ? (
             <div className="space-y-1 text-sm">
-              <p className="text-green-300 font-medium">✓ Valid {result.format?.toUpperCase()} feed</p>
-              {result.title && <p className="text-gray-300">Title: {result.title}</p>}
+              <p className="font-medium text-green-300">
+                ✓ Valid {result.format?.toUpperCase()} feed
+              </p>
+              {result.title && (
+                <p className="text-gray-300">Title: {result.title}</p>
+              )}
               {result.itemCount !== undefined && (
-                <p className="text-gray-400">{result.itemCount} item{result.itemCount !== 1 ? 's' : ''} found</p>
+                <p className="text-gray-400">
+                  {result.itemCount} item{result.itemCount !== 1 ? 's' : ''}{' '}
+                  found
+                </p>
               )}
             </div>
           ) : (
-            <p className="text-red-300 text-sm">✗ {result.error}</p>
+            <p className="text-sm text-red-300">✗ {result.error}</p>
           )}
         </div>
       )}
@@ -1065,6 +1123,7 @@ git commit -m "feat(rss-manager): add SourceTable, TopicList, and FeedValidator 
 ### Task 6: Main page shell
 
 **Files:**
+
 - Create: `apps/rss-manager/src/pages/index.astro`
 
 - [ ] **Step 1: Create `apps/rss-manager/src/pages/index.astro`**
@@ -1075,8 +1134,12 @@ import SourceTable from '../components/SourceTable.tsx';
 import TopicList from '../components/TopicList.tsx';
 import FeedValidator from '../components/FeedValidator.tsx';
 
-const tab = (Astro.url.searchParams.get('tab') ?? 'sources') as 'sources' | 'topics' | 'validate';
+const tab = (Astro.url.searchParams.get('tab') ?? 'sources') as
+  | 'sources'
+  | 'topics'
+  | 'validate';
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -1084,30 +1147,38 @@ const tab = (Astro.url.searchParams.get('tab') ?? 'sources') as 'sources' | 'top
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RSS Manager — Rainforest Tools</title>
     <style>
-      body { background: #0f1117; color: #e2e4ed; font-family: system-ui, sans-serif; }
+      body {
+        background: #0f1117;
+        color: #e2e4ed;
+        font-family: system-ui, sans-serif;
+      }
     </style>
   </head>
   <body class="min-h-screen">
-    <div class="max-w-5xl mx-auto px-6 py-8">
+    <div class="mx-auto max-w-5xl px-6 py-8">
       <header class="mb-8">
         <h1 class="text-2xl font-semibold text-gray-100">RSS Manager</h1>
-        <p class="text-gray-500 text-sm mt-1">Browse and validate your Readwise RSS feeds.</p>
+        <p class="mt-1 text-sm text-gray-500">
+          Browse and validate your Readwise RSS feeds.
+        </p>
       </header>
 
       <!-- Tabs -->
-      <nav class="flex gap-1 mb-6 border-b border-gray-800">
-        {(['sources', 'topics', 'validate'] as const).map((t) => (
-          <a
-            href={`?tab=${t}`}
-            class={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t
-                ? 'border-violet-500 text-violet-400'
-                : 'border-transparent text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </a>
-        ))}
+      <nav class="mb-6 flex gap-1 border-b border-gray-800">
+        {
+          (['sources', 'topics', 'validate'] as const).map((t) => (
+            <a
+              href={`?tab=${t}`}
+              class={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+                tab === t
+                  ? 'border-violet-500 text-violet-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </a>
+          ))
+        }
       </nav>
 
       <!-- Tab content -->
@@ -1146,6 +1217,7 @@ git commit -m "feat(rss-manager): add main page shell with tabbed navigation"
 ### Task 7: Dockerfile
 
 **Files:**
+
 - Create: `apps/rss-manager/Dockerfile`
 
 - [ ] **Step 1: Create `apps/rss-manager/Dockerfile`**

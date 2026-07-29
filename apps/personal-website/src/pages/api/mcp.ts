@@ -1,7 +1,7 @@
 import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 
-import { createProfileMcpHandler } from '../../mcp/handler';
+import { createProfileMcpHandler, mcpUsageResponse } from '../../mcp/handler';
 
 const handler = createProfileMcpHandler('/api');
 
@@ -10,3 +10,9 @@ export const POST: APIRoute = async ({ request }) => {
   await trackAiResourceFetch('mcp', request);
   return handler(request);
 };
+
+// llms.txt names this path as the alternate endpoint, so it needs the same GET note as /mcp.
+export const GET: APIRoute = ({ site }) =>
+  mcpUsageResponse(
+    new URL('/api/mcp', site ?? 'https://rainforest.tools').href,
+  );

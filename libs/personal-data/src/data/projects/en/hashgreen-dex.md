@@ -4,6 +4,8 @@ language: 'en'
 technologies: ['nextjs', 'tailwindcss']
 organization: 'en/codegreen'
 experience: 'en/6'
+startAt: '2022'
+featured: true
 ---
 
 - Led the frontend development team in building the industry-first decentralized exchange (DEX) on the Chia blockchain.

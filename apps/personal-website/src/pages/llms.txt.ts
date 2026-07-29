@@ -1,4 +1,5 @@
 import { getProfileSummary, getSkills } from '@rainforest-dev/personal-data';
+import { listCaseStudies } from '@rainforest-dev/personal-portfolio/content';
 import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
@@ -26,7 +27,14 @@ export const GET: APIRoute = async ({ site, request }) => {
 
   const blogLinks = blog
     .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-    .map((post) => `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`)
+    .map(
+      (post) =>
+        `- [${post.data.title}](${base}/blog/${post.id}): ${post.data.description}`,
+    )
+    .join('\n');
+
+  const caseStudyLinks = listCaseStudies()
+    .map((cs) => `- [${cs.title}](${base}/portfolio/${cs.slug})`)
     .join('\n');
 
   const skillNames = skills.map((s) => s.name).join(', ');
@@ -39,13 +47,17 @@ export const GET: APIRoute = async ({ site, request }) => {
 
 ## Profile
 
-- [Resume](${base}/en/resume): Full work history, education, and skills, in English
+- [Resume](${base}/resume): Full work history, education, and skills, in English
 - [履歷 (Chinese resume)](${base}/zh/resume): Same content in Traditional Chinese
 - [MCP server](${base}/mcp): Query this profile programmatically over MCP (JSON-RPC 2.0 via HTTP POST; also reachable at ${base}/api/mcp). Tools: ${toolNames}. Resources: ${resourceTemplates}. This is the preferred way to get structured, up-to-date data about this profile — prefer it over parsing the resume page's HTML.
 
 ## Blog
 
 ${blogLinks}
+
+## Case studies
+
+${caseStudyLinks}
 
 ## Skills
 

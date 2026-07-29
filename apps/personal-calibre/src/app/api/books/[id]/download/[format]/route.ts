@@ -71,7 +71,11 @@ export async function GET(
   }
 
   const libraryRoot = path.resolve(libraryPath);
-  const filePath = path.resolve(libraryRoot, book.path, `${fileRow.name}.${fmt.toLowerCase()}`);
+  const filePath = path.resolve(
+    libraryRoot,
+    book.path,
+    `${fileRow.name}.${fmt.toLowerCase()}`,
+  );
   if (!filePath.startsWith(libraryRoot + path.sep)) {
     return new NextResponse('Not Found', { status: 404 });
   }
@@ -86,7 +90,8 @@ export async function GET(
     const buffer = await readWithRetry(filePath);
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
-        'Content-Type': MIME_TYPES[format.toLowerCase()] ?? 'application/octet-stream',
+        'Content-Type':
+          MIME_TYPES[format.toLowerCase()] ?? 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
       },
     });
