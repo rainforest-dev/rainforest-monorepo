@@ -1,5 +1,5 @@
 ---
-import { Comments, SummarizeButton } from '@components/blog';
+import { Comments, SummarizeButton, TranslateButton } from '@components/blog';
 import { info } from '@utils/constants';
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
@@ -70,6 +70,9 @@ const postSchema = {
         affordance most visitors can't use.
       */}
       <SummarizeButton text={Astro.props.body ?? ''} client:only="vue" />
+      {/* Separate control, separate card: a browser can ship Summarizer without the en->zh-Hant
+          translation pair, so the two degrade independently. */}
+      <TranslateButton client:only="vue" />
       <slot />
     </div>
   </article>

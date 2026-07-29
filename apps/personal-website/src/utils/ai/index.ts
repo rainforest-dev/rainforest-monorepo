@@ -13,6 +13,14 @@ export {
   SUMMARIZE_TIMEOUT_MS,
   SummarizeError,
 } from './summarizer';
+export type { LanguagePair, TranslateFailure } from './translator';
+export {
+  destroyTranslator,
+  detectTranslatorCapability,
+  TRANSLATE_TIMEOUT_MS,
+  translateChunks,
+  TranslateError,
+} from './translator';
 export type { AiState, ToolDescriptor } from './types';
 export { useLanguageModel } from './use-language-model';
 export { useSummarizer } from './use-summarizer';
