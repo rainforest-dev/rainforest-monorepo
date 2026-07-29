@@ -4,6 +4,7 @@ import {
   __resetForTests,
   destroySummarizer,
   detectSummarizerCapability,
+  DOWNLOAD_TIMEOUT_MS,
   summarize,
   SUMMARIZE_TIMEOUT_MS,
   SummarizeError,
@@ -198,6 +199,63 @@ describe('summarize', () => {
       reason: 'timeout',
     });
     await vi.advanceTimersByTimeAsync(SUMMARIZE_TIMEOUT_MS);
+    await assertion;
+  });
+
+  // Regression, from Edge 150 with an empty model cache: the download was still at 74% when a
+  // single shared 60s timer fired, so a run that was working reported "took too long". Opening
+  // the session gets its own, far larger budget.
+  it('does not kill a slow download with the inference budget', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(globalThis, 'Summarizer', {
+      configurable: true,
+      writable: true,
+      value: {
+        availability: vi.fn(async () => 'downloadable'),
+        // A download that takes well over the inference budget but finishes fine.
+        create: vi.fn(
+          () =>
+            new Promise((resolve) => {
+              setTimeout(
+                () =>
+                  resolve({
+                    summarize: async () => 'a summary',
+                    destroy: vi.fn(),
+                  }),
+                SUMMARIZE_TIMEOUT_MS * 3,
+              );
+            }),
+        ),
+      },
+    });
+
+    const pending = summarize('text');
+    await vi.advanceTimersByTimeAsync(SUMMARIZE_TIMEOUT_MS * 3 + 10);
+    await expect(pending).resolves.toBe('a summary');
+  });
+
+  it('still bounds a download that never finishes, at DOWNLOAD_TIMEOUT_MS', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(globalThis, 'Summarizer', {
+      configurable: true,
+      writable: true,
+      value: {
+        availability: vi.fn(async () => 'downloadable'),
+        // Never settles and ignores the controller — create() takes no signal, which is
+        // exactly the case rejectOnAbort exists to bound.
+        create: vi.fn(
+          () =>
+            new Promise<never>(() => {
+              /* intentionally never settles */
+            }),
+        ),
+      },
+    });
+    const pending = summarize('text');
+    const assertion = expect(pending).rejects.toMatchObject({
+      reason: 'timeout',
+    });
+    await vi.advanceTimersByTimeAsync(DOWNLOAD_TIMEOUT_MS + 10);
     await assertion;
   });
 

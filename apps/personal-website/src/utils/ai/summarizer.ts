@@ -100,10 +100,40 @@ async function ensureSession(
 }
 
 /**
- * Wall-clock ceiling for one summarization, generous because the input is a whole article rather
- * than a sentence. As with the Prompt API wrapper this bounds a hung call; it is not a target.
+ * Rejects when `signal` aborts, so a phase that cannot take a signal can still be bounded.
+ *
+ * `create()` accepts no AbortSignal: a download that never progresses ignores the controller
+ * entirely, and awaiting it directly would hang past every timeout with the UI stuck busy. Racing
+ * the creation against this turns the timer into something that actually fires. The losing
+ * creation promise is left to settle on its own — it may still cache a session, which a later
+ * call is free to reuse.
+ */
+function rejectOnAbort(signal: AbortSignal): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    const fail = () => reject(new DOMException('aborted', 'AbortError'));
+    if (signal.aborted) fail();
+    else signal.addEventListener('abort', fail, { once: true });
+  });
+}
+
+/**
+ * Ceiling for the inference itself, once a session exists. Generous because the input is a whole
+ * article rather than a sentence, but it bounds a hung call — it is not a latency target.
  */
 export const SUMMARIZE_TIMEOUT_MS = 60_000;
+
+/**
+ * Separate, far larger ceiling for opening the session, because a first run downloads a model of
+ * a few hundred megabytes over the user's connection.
+ *
+ * These were one timer until Edge 150 proved it wrong: with nothing cached, the download was still
+ * at 74% when the 60s inference budget expired, so a run that was working reported "took too long".
+ * The original reasoning — that the download is the part most likely to hang, so it should be
+ * inside the bound — had it backwards. The download is the part most likely to be slow and fine.
+ * Chrome could never surface this, since its model was already on disk and session creation was
+ * instant.
+ */
+export const DOWNLOAD_TIMEOUT_MS = 600_000;
 
 /**
  * Distinguishes what the reader should be told. `unsupported` never reaches here — the UI hides.
@@ -144,16 +174,21 @@ export async function summarize(
   hooks: { signal?: AbortSignal; onProgress?: (progress: number) => void } = {},
 ): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SUMMARIZE_TIMEOUT_MS);
+  // Two phases, two budgets: the download gets DOWNLOAD_TIMEOUT_MS, then the timer is re-armed at
+  // the tighter SUMMARIZE_TIMEOUT_MS for the inference. A caller abort still applies throughout.
+  let timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
   const onCallerAbort = () => controller.abort();
 
-  // Wired before opening the session, and the timeout covers session creation too: a first run
-  // includes a model download, which is the part most likely to hang.
   if (hooks.signal?.aborted) controller.abort();
   else hooks.signal?.addEventListener('abort', onCallerAbort, { once: true });
 
   try {
-    const active = await ensureSession(options, hooks.onProgress);
+    const active = await Promise.race([
+      ensureSession(options, hooks.onProgress),
+      rejectOnAbort(controller.signal),
+    ]);
+    clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(), SUMMARIZE_TIMEOUT_MS);
     // Opening the session is awaitable, so the caller may have aborted meanwhile. Throw rather
     // than hand `summarize()` a spent signal — its `abort` event has already fired and fires only
     // once, so an implementation that merely subscribes would hang until the timeout.

@@ -84,10 +84,30 @@ async function ensureSession(
 }
 
 /**
- * Ceiling for one batch. Higher than the summarizer's because a page's worth of paragraphs is
- * translated through a single session, and the first call also pays for the model download.
+ * Rejects when `signal` aborts, so a phase that cannot take a signal can still be bounded.
+ *
+ * `create()` accepts no AbortSignal: a download that never progresses ignores the controller
+ * entirely, and awaiting it directly would hang past every timeout with the UI stuck busy. Racing
+ * the creation against this turns the timer into something that actually fires. The losing
+ * creation promise is left to settle on its own — it may still cache a session, which a later
+ * call is free to reuse.
+ */
+function rejectOnAbort(signal: AbortSignal): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    const fail = () => reject(new DOMException('aborted', 'AbortError'));
+    if (signal.aborted) fail();
+    else signal.addEventListener('abort', fail, { once: true });
+  });
+}
+
+/**
+ * Ceiling for the batch itself, once a session exists. Higher than the summarizer's because a
+ * page's worth of paragraphs goes through one session.
  */
 export const TRANSLATE_TIMEOUT_MS = 120_000;
+
+/** Separate ceiling for opening the session — see DOWNLOAD_TIMEOUT_MS in ./summarizer. */
+export const DOWNLOAD_TIMEOUT_MS = 600_000;
 
 /** Same vocabulary as the summarizer, so the two features can share failure copy. */
 export type TranslateFailure =
@@ -137,14 +157,21 @@ export async function translateChunks(
   } = {},
 ): Promise<string[]> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TRANSLATE_TIMEOUT_MS);
+  // Download budget first, then re-armed at the batch budget — see ./summarizer for why these are
+  // separate. Edge 150 with an empty cache is what proved one shared timer wrong.
+  let timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
   const onCallerAbort = () => controller.abort();
 
   if (hooks.signal?.aborted) controller.abort();
   else hooks.signal?.addEventListener('abort', onCallerAbort, { once: true });
 
   try {
-    const active = await ensureSession(pair, hooks.onProgress);
+    const active = await Promise.race([
+      ensureSession(pair, hooks.onProgress),
+      rejectOnAbort(controller.signal),
+    ]);
+    clearTimeout(timer);
+    timer = setTimeout(() => controller.abort(), TRANSLATE_TIMEOUT_MS);
     if (controller.signal.aborted) {
       throw new DOMException('aborted', 'AbortError');
     }
