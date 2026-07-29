@@ -1,12 +1,10 @@
 ---
-
+// The same bundled KaTeX stylesheet ./blog.astro imports — see the note there for what it fixes.
+//
+// This used to be a jsdelivr <link>, which meant the two layouts that render post content loaded
+// the same stylesheet by two different mechanisms. blog.astro simply never got one, so equations
+// double-rendered there while /posts looked fine. One shared import is what stops that recurring.
+import 'katex/dist/katex.min.css';
 ---
-
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css"
-  integrity="sha384-zh0CIslj+VczCZtlzBcjt5ppRcsAmDnRem7ESsYwWwg3m/OaJ2l4x7YBZl9Kxxib"
-  crossorigin="anonymous"
-/>
 
 <slot />
