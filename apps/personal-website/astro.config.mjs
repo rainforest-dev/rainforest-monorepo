@@ -92,6 +92,17 @@ export default defineConfig({
         config: () => ({ oxc: { jsx: { refresh: false } } }),
       },
     ],
+    resolve: {
+      // `layouts/blog.astro` and `layouts/quick-post.astro` import `katex/dist/katex.min.css`.
+      // Under SSR, Astro externalises bare-specifier imports and hands them to Node, which has no
+      // loader for `.css` and dies with `ERR_UNKNOWN_FILE_EXTENSION` on every page. Keeping katex
+      // internal lets Vite process the stylesheet, which is what it does in the client build.
+      //
+      // Dev-only in effect, and that is the trap: `astro build` succeeded and shipped a correct
+      // fingerprinted stylesheet the whole time `astro dev` was unusable — the same asymmetry the
+      // React Fast Refresh plugin above exists to work around.
+      noExternal: ['katex'],
+    },
   },
   integrations: [
     {
