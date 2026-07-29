@@ -1,7 +1,9 @@
 # loop
 
-The engine behind [Loop Observatory](../../apps/loop-observatory). Observatory is
-the window; this is the machinery it watches.
+The engine behind Loop Observatory. Observatory is the window; this is the
+machinery it watches. The app itself arrives in `apps/loop-observatory` with
+PR #262 — this directory does not depend on it at build time, but the two are
+meant to be read together.
 
 Both halves live in this repo on purpose. They share invariants that are enforced
 in two languages — `SAFE_ID` exists in both `engine/lib/loopctl/greenlight.py` and
