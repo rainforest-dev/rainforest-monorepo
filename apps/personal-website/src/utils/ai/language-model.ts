@@ -121,8 +121,16 @@ export async function selectTool<T>(
   schema: Record<string, unknown>,
   opts: { signal?: AbortSignal } = {},
 ): Promise<T> {
-  if (!session)
-    throw new Error('enableModel() must be called before selectTool()');
+  // Open a session on demand rather than requiring enableModel() first. `ready` is reached only
+  // when availability is already `available` (detectCapability), which means the weights are on
+  // disk and `create()` neither downloads nor needs a user gesture — the constraint enableModel's
+  // doc comment describes applies to the `downloadable` path, not this one.
+  //
+  // Without this, the AI path was dead on exactly the machines it was built for: a visitor whose
+  // model is already downloaded gets `ready`, so the palette offers the Ask row, but the Enable
+  // control that used to be the only caller of enableModel() renders solely for `downloadable`.
+  // Asking threw here, ask()'s catch swallowed it, and the strip stayed blank forever.
+  if (!session) await enableModel();
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);

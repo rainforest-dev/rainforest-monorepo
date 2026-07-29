@@ -10,6 +10,7 @@ import {
   registerAgentTools,
   useLanguageModel,
 } from '@utils/ai';
+import { tags } from '@utils/constants';
 import { searchRecords, type Searchable } from '@utils/search';
 
 // `lang` is unused by search, but a later task gates the AI path on locale. Accepting it now
@@ -72,7 +73,12 @@ const SELECTION_SCHEMA = {
   additionalProperties: false,
   properties: {
     tool: { type: 'string', enum: PROFILE_TOOLS.map((tool) => tool.name) },
-    technology: { type: 'string' },
+    // The same enum the tools' own params use, not a free string. Constrained decoding can only
+    // emit a member, so the model cannot answer "Vue" where the data says "vue" — it did exactly
+    // that when this was `{ type: 'string' }`, and `execute` then (correctly) rejected the near
+    // miss, leaving the strip blank. Making the wrong value unrepresentable beats validating it
+    // after the fact.
+    technology: { type: 'string', enum: tags.skills },
     query: { type: 'string' },
   },
 };
