@@ -1,0 +1,311 @@
+#!/usr/bin/env bash
+# Sweep-aware, budget-limited background runner for the global loop framework.
+set -uo pipefail
+
+LOOP_HOME=${LOOP_HOME:-"$HOME/.claude/loop"}
+LOOPCTL=${LOOPCTL:-"$LOOP_HOME/loopctl"}
+CONTRACT=${LOOP_CONTRACT:-"$LOOP_HOME/contract.md"}
+CLAUDE_BIN=${CLAUDE_BIN:-$(command -v claude 2>/dev/null || echo "$HOME/.local/bin/claude")}
+CODEX_BIN=${CODEX_BIN:-$(command -v codex 2>/dev/null || echo "$HOME/.local/bin/codex")}
+AGY_BIN=${AGY_BIN:-$(command -v agy 2>/dev/null || echo "$HOME/.local/bin/agy")}
+PYTHON_BIN=${LOOP_PYTHON:-"$LOOP_HOME/.venv/bin/python"}
+MACHINE=${LOOP_MACHINE:-${USAGE_MACHINE:-$(hostname -s)}}
+EXECUTORS=${LOOP_EXECUTORS:-claude,codex,agy}
+AGENT_CONFIG=${LOOP_AGENT_CONFIG:-}
+MAX_ITER=${1:-15}
+BUDGET_USD=${2:-10}
+BACKOFF=${RALPH_BACKOFF_SECS:-1800}
+MAX_WAITS=${RALPH_MAX_WAITS:-48}
+# A runaway guard, not a cost control -- cost is bounded by BUDGET_USD and the
+# quota gate below, both of which stop the loop on real spend. 40 was too tight
+# to be only a guard: on 2026-07-29 a single bug fix (read the ticket, locate
+# the code, fix, test, commit, open the PR, record the state) hit the limit on
+# the last step, after the PR was already open.
+MAX_TURNS=${RALPH_MAX_TURNS:-100}
+SPENT=0
+waits=0
+iter=0
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] ralph: $*"; }
+
+rate_limited() {
+  printf '%s' "$1" |
+    grep -qiE 'rate.?limit|too many requests|(usage|weekly|5-?hour|daily)[ -]?limit|quota (exceeded|reached|limit)'
+}
+
+[ -x "$LOOPCTL" ] || { log "loopctl missing at $LOOPCTL; run obsidian-setup"; exit 1; }
+[ -f "$CONTRACT" ] || { log "contract missing at $CONTRACT; run obsidian-setup"; exit 1; }
+[ -x "$PYTHON_BIN" ] || PYTHON_BIN=$(command -v python3)
+
+# Contract §2 gates are denominated in quota percent, not dollars. BUDGET_USD
+# stays as a secondary cap, but on a seat plan the percentages are the real
+# limit, so they are checked first and can stop the run on their own.
+QUOTA_FILE=${LOOP_QUOTA_FILE:-"$HOME/.local/share/loop-usage-runtime/_system/usage/quota.$MACHINE.json"}
+PCT_5H_STOP=${LOOP_PCT_5H_STOP:-80}
+PCT_WEEK_STOP=${LOOP_PCT_WEEK_STOP:-90}
+PCT_5H_DRAIN=${LOOP_PCT_5H_DRAIN:-60}
+PCT_WEEK_DRAIN=${LOOP_PCT_WEEK_DRAIN:-85}
+
+# Emits "<verdict>\t<five_hour_pct>\t<weekly_pct>". Verdict is one of
+# stop / drain / ok / unknown; unknown keeps the contract's conservative path.
+quota_state() {
+  "$PYTHON_BIN" - "$QUOTA_FILE" "$PCT_5H_STOP" "$PCT_WEEK_STOP" "$PCT_5H_DRAIN" "$PCT_WEEK_DRAIN" <<'PY'
+import json
+import sys
+
+try:
+    claude = json.load(open(sys.argv[1])).get("claude") or {}
+except (OSError, ValueError, AttributeError):
+    print("unknown\t\t")
+    raise SystemExit
+five = (claude.get("five_hour") or {}).get("used_pct")
+week = (claude.get("weekly_all") or {}).get("used_pct")
+stop5, stopw, drain5, drainw = (float(value) for value in sys.argv[2:6])
+if five is None and week is None:
+    verdict = "unknown"
+elif (five is not None and five > stop5) or (week is not None and week > stopw):
+    verdict = "stop"
+elif (five is not None and five > drain5) or (week is not None and week > drainw):
+    verdict = "drain"
+else:
+    verdict = "ok"
+print("{}\t{}\t{}".format(verdict, "" if five is None else five, "" if week is None else week))
+PY
+}
+
+# Percentage-point delta between two quota readings, for the per-iteration
+# estimate. The snapshot refreshes on its own schedule, so this trails reality
+# by up to one refresh interval and is reported as an approximation.
+pct_delta() {
+  [ -n "$1" ] && [ -n "$2" ] || { printf '?'; return; }
+  "$PYTHON_BIN" -c \
+    'from decimal import Decimal; import sys; print(Decimal(sys.argv[2]) - Decimal(sys.argv[1]))' \
+    "$1" "$2"
+}
+
+# One log-safe line describing how an executor ended: its stop reason and what
+# it said. Needed on the failure path most of all -- on 2026-07-29 an executor
+# hit the turn limit one step after opening a PR, and the log said only
+# "failed (exit=1)", which reads identically to never having started.
+executor_verdict() {
+  printf '%s' "$1" | "$PYTHON_BIN" -c \
+    'import json, sys
+data = sys.stdin.read()
+try:
+    payload = json.loads(data)
+except Exception:
+    payload = {}
+subtype = str(payload.get("subtype") or "")
+text = payload.get("result") or ""
+line = " ".join(str(text).split())[:180]
+prefix = f"[{subtype}] " if subtype and subtype != "success" else ""
+print((prefix + line).strip() or "(executor returned no result text)")' \
+    2>/dev/null || echo "(unreadable executor output)"
+}
+
+# Two separate gates, both of which stopped this executor dead before 2026-07-29:
+# --permission-mode, because a non-interactive session has nobody to approve a
+# prompt and every Bash call was auto-denied; and --add-dir, because the sandbox
+# confines tools to project_path while the contract and loopctl live in
+# LOOP_HOME -- the executor could not read its own instructions.
+run_claude() {
+  local slug="$1" project_path="$2" prompt="$3" sid="$4"
+  [ -x "$CLAUDE_BIN" ] || return 127
+  (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=claude \
+    LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CLAUDE_BIN" -p \
+    --permission-mode "${LOOP_CLAUDE_PERMISSION_MODE:-auto}" --add-dir "$LOOP_HOME" \
+    --session-id "$sid" --output-format json --max-turns "$MAX_TURNS")
+}
+
+run_codex() {
+  local slug="$1" project_path="$2" prompt="$3"
+  [ -x "$CODEX_BIN" ] || return 127
+  (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=codex \
+    LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CODEX_BIN" exec \
+    --json --ephemeral --sandbox workspace-write -C "$project_path" -)
+}
+
+run_agy() {
+  local slug="$1" project_path="$2" prompt="$3"
+  [ -x "$AGY_BIN" ] || return 127
+  (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=agy \
+    LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$AGY_BIN" --print \
+    --dangerously-skip-permissions)
+}
+
+run_executor() {
+  case "$1" in
+    claude) run_claude "$2" "$3" "$4" "$5" ;;
+    codex) run_codex "$2" "$3" "$4" ;;
+    agy) run_agy "$2" "$3" "$4" ;;
+    *) log "unknown executor '$1'"; return 127 ;;
+  esac
+}
+
+IFS=',' read -r -a executor_list <<< "$EXECUTORS"
+[ "${#executor_list[@]}" -gt 0 ] || { log "no executors configured"; exit 1; }
+
+preferred_executor() {
+  local task_id="$1"
+  [ -n "$AGENT_CONFIG" ] && [ -f "$AGENT_CONFIG" ] || return 0
+  "$PYTHON_BIN" - "$AGENT_CONFIG" "$task_id" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+try:
+    document = json.loads(Path(sys.argv[1]).read_text())
+    task = (document.get("tasks") or {}).get(str(sys.argv[2])) or {}
+    agent = task.get("agent") or document.get("default_agent") or "claude"
+    if agent in {"claude", "codex", "agy"}:
+        print(agent)
+except (OSError, ValueError, TypeError):
+    pass
+PY
+}
+
+log "start · machine=$MACHINE max_iter=$MAX_ITER budget=\$$BUDGET_USD"
+while [ "$iter" -lt "$MAX_ITER" ]; do
+  IFS=$'\t' read -r QUOTA_MODE pct5_before pctw_before <<< "$(quota_state)"
+  log "quota · 5h=${pct5_before:-?}% weekly=${pctw_before:-?}% · gate=$QUOTA_MODE"
+  case "$QUOTA_MODE" in
+    stop)
+      log "quota gate: 5h>${PCT_5H_STOP}% or weekly>${PCT_WEEK_STOP}%; checkpointing without starting work"
+      break
+      ;;
+    drain)
+      log "quota gate: 5h>${PCT_5H_DRAIN}% or weekly>${PCT_WEEK_DRAIN}%; in-flight work only"
+      ;;
+    unknown)
+      log "quota snapshot unavailable at $QUOTA_FILE; proceeding conservatively"
+      ;;
+  esac
+
+  sweep=$("$LOOPCTL" sweep --machine "$MACHINE") || {
+    log "sweep failed; stopping without changing a project"
+    exit 1
+  }
+  selection=$(printf '%s' "$sweep" | "$PYTHON_BIN" -c \
+    'import json, sys; rows=json.load(sys.stdin); row=rows[0] if rows else {}; print("{}\t{}".format(row.get("slug", ""), row.get("path", "")))')
+  IFS=$'\t' read -r slug project_path <<< "$selection"
+  if [ -z "$slug" ] || [ -z "$project_path" ]; then
+    log "queue empty for $MACHINE"
+    break
+  fi
+
+  next_json=$("$LOOPCTL" next "$slug" 2>/dev/null || printf '[]')
+  task_id=$(printf '%s' "$next_json" | "$PYTHON_BIN" -c \
+    'import json, sys; rows=json.load(sys.stdin); print(rows[0].get("id", "") if rows else "")' 2>/dev/null || printf '')
+  preferred=$(preferred_executor "$task_id")
+  ordered_executors=()
+  if [ -n "$preferred" ]; then
+    ordered_executors+=("$preferred")
+  fi
+  for candidate in "${executor_list[@]}"; do
+    if [ "$candidate" != "$preferred" ]; then
+      ordered_executors+=("$candidate")
+    fi
+  done
+  if [ -n "$preferred" ]; then
+    log "task=$task_id preferred_executor=$preferred"
+  fi
+
+  prompt=$(printf 'LOOP_PROJECT=%s\n\n' "$slug"; cat "$CONTRACT")
+  head_before=$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)
+  out=""
+  provider=""
+  status=1
+  provider_rate_limited=0
+  for candidate in "${ordered_executors[@]}"; do
+    sid=$(uuidgen)
+    candidate_out=$(run_executor "$candidate" "$slug" "$project_path" "$prompt" "$sid" 2>&1) || candidate_status=$?
+    candidate_status=${candidate_status:-0}
+    if [ "$candidate_status" -eq 127 ]; then
+      log "executor=$candidate unavailable; trying next executor"
+      unset candidate_status
+      continue
+    fi
+    if rate_limited "$candidate_out"; then
+      log "executor=$candidate rate limited; trying next executor"
+      provider_rate_limited=1
+      out="$candidate_out"
+      unset candidate_status
+      continue
+    fi
+    if [ "$candidate_status" -ne 0 ]; then
+      log "executor=$candidate failed (exit=$candidate_status) · $(executor_verdict "$candidate_out")"
+      # A non-zero exit does not mean nothing happened. Hitting the turn limit
+      # exits 1, and on 2026-07-29 it did so one step after the executor had
+      # committed and opened a PR. Handing that task to the next executor would
+      # have it redo committed work and open a second PR for the same fix.
+      if [ "$head_before" != "$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)" ]; then
+        log "  the repo moved before this failure; not passing the task on -- inspect the branch, then resume"
+        exit "$candidate_status"
+      fi
+      status="$candidate_status"
+      unset candidate_status
+      continue
+    fi
+    out="$candidate_out"
+    provider="$candidate"
+    status="$candidate_status"
+    unset candidate_status
+    break
+  done
+
+  if [ -z "$provider" ] && [ "$provider_rate_limited" -eq 1 ]; then
+    waits=$((waits + 1))
+    if [ "$waits" -gt "$MAX_WAITS" ]; then
+      log "rate-limited $waits times; stopping for a later resume"
+      exit 2
+    fi
+    log "rate limited ($waits/$MAX_WAITS); sleeping ${BACKOFF}s"
+    sleep "$BACKOFF"
+    continue
+  fi
+  if [ -z "$provider" ]; then
+    log "all configured executors failed; stopping without changing the project"
+    exit "${status:-1}"
+  fi
+  waits=0
+  iter=$((iter + 1))
+  cost=$(printf '%s' "$out" | "$PYTHON_BIN" -c \
+    'import json, sys; data=sys.stdin.read(); print(json.loads(data).get("total_cost_usd", 0) if data.strip() else 0)' \
+    2>/dev/null || echo 0)
+  SPENT=$("$PYTHON_BIN" -c \
+    'from decimal import Decimal; import sys; print(Decimal(sys.argv[1]) + Decimal(sys.argv[2]))' \
+    "$SPENT" "$cost")
+  IFS=$'\t' read -r _ pct5_after pctw_after <<< "$(quota_state)"
+  d5=$(pct_delta "$pct5_before" "$pct5_after")
+  dw=$(pct_delta "$pctw_before" "$pctw_after")
+  log "iter $iter/$MAX_ITER · project=$slug · executor=$provider · cost=\$$cost · spent=\$$SPENT"
+  log "  quota · 5h ${pct5_before:-?}%→${pct5_after:-?}% (~${d5}pp) · weekly ${pctw_before:-?}%→${pctw_after:-?}% (~${dw}pp)"
+  # An executor that stops at step 0 exits 0 and bills normally, so cost alone
+  # cannot tell "did the work" from "could not start". Say what it concluded and
+  # whether the repo moved -- on 2026-07-29 a run logged `done` having produced
+  # nothing, and the only way to find out was reading the session transcript.
+  head_after=$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)
+  verdict=$(executor_verdict "$out")
+  if [ "$head_before" = "$head_after" ]; then
+    log "  no commit · $verdict"
+  else
+    log "  $(git -C "$project_path" rev-list --count "$head_before..$head_after" 2>/dev/null || echo '?') commit(s) · $verdict"
+  fi
+  # Observatory/retro mirror is append-only and best-effort. The executor's
+  # loopctl set remains the authoritative task-state transition.
+  "$LOOPCTL" record-run \
+    --project "$slug" \
+    --task "$task_id" \
+    --executor "$provider" \
+    --machine "$MACHINE" \
+    --cost "$cost" \
+    --note "iteration $iter/$MAX_ITER; exit=$status; quota 5h ${pct5_before:-?}%→${pct5_after:-?}% (~${d5}pp), weekly ${pctw_before:-?}%→${pctw_after:-?}% (~${dw}pp)" >/dev/null 2>&1 || \
+    log "run ledger unavailable; continuing"
+  over_budget=$("$PYTHON_BIN" -c "from decimal import Decimal; import sys; print(int(Decimal(sys.argv[1]) > Decimal(sys.argv[2])))" \
+    "${SPENT:-0}" "$BUDGET_USD")
+  if [ "$over_budget" -eq 1 ]; then
+    log "budget exhausted"
+    break
+  fi
+done
+log "done · $iter iteration(s), spent \$$SPENT"
