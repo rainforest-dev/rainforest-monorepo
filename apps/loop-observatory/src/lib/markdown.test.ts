@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { renderMarkdown } from './markdown.js';
+import { renderMarkdown, stripHtmlComments } from './markdown.js';
 
 describe('renderMarkdown', () => {
   it('renders headings by level', () => {
@@ -43,5 +43,42 @@ describe('renderMarkdown', () => {
 
   it('renders blockquotes', () => {
     expect(renderMarkdown('> quoted')).toBe('<blockquote>quoted</blockquote>');
+  });
+});
+
+describe('stripHtmlComments', () => {
+  it('removes a plain comment', () => {
+    expect(stripHtmlComments('a<!--x-->b')).toBe('ab');
+  });
+
+  it('removes a comment spanning lines', () => {
+    // The old `.` never matched across a newline, so multi-line sync markers
+    // survived into the rendered output.
+    expect(stripHtmlComments('a<!--\nx\n-->b')).toBe('ab');
+  });
+
+  it('leaves nothing that could still open a comment', () => {
+    // One pass consumed `<!--a-->` and left the second opener behind, with no
+    // terminator for it to match.
+    expect(stripHtmlComments('a<!--x--><!--')).toBe('a');
+    expect(stripHtmlComments('<!--')).toBe('');
+  });
+
+  it('settles when comments nest', () => {
+    expect(stripHtmlComments('<!--<!--x-->-->')).not.toContain('<!--');
+  });
+
+  it('drops everything after an unterminated opener, as a parser would', () => {
+    expect(stripHtmlComments('keep<!--then all of this')).toBe('keep');
+  });
+
+  it('leaves text with no comments untouched', () => {
+    expect(stripHtmlComments('a > b && c < d')).toBe('a > b && c < d');
+  });
+
+  it('is what renderMarkdown uses, so markers never reach the output', () => {
+    expect(renderMarkdown('before <!--marker--> after')).toBe(
+      '<p>before  after</p>',
+    );
   });
 });

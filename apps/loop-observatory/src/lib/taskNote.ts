@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, normalize, resolve, sep } from 'node:path';
 
-import { renderMarkdown } from './markdown.js';
+import { renderMarkdown, stripHtmlComments } from './markdown.js';
 import type { ExecutionPlan } from './taskPlan.js';
 import { readTasks, type SprintTask, type TaskScope } from './tasks.js';
 
@@ -163,7 +163,7 @@ export function stripSection(body: string, heading: RegExp): string {
 /** The user-facing feedback text: Notes body with scaffold comments stripped. */
 function feedbackText(notesRaw: string | null): string {
   if (notesRaw === null) return '';
-  return notesRaw.replace(/<!--[\s\S]*?-->/g, '').trim();
+  return stripHtmlComments(notesRaw).trim();
 }
 
 function decisionRecord(raw: string | null): TaskDecisionRecord | null {

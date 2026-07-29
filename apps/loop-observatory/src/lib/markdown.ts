@@ -9,6 +9,33 @@
  * the text renders as inert text rather than executing).
  */
 
+/** Remove HTML comments, leaving nothing a comment parser could still open.
+ *
+ * Three things a single `replace(/<!--[\s\S]*?-->/g, '')` gets wrong:
+ *
+ * - `<!--a--><!--` leaves the bare opener behind, because the pass consumed the
+ *   one complete comment and the leftover has no terminator to match. Browsers
+ *   treat an unterminated opener as commenting out everything after it, so the
+ *   remainder is dropped here to match what would actually be hidden.
+ * - `<!--<!--a-->-->` needs more than one pass to settle.
+ * - `.` does not match a newline, so a comment spanning lines was not matched at
+ *   all -- which is the one of these that was a live bug rather than a
+ *   theoretical one.
+ *
+ * Every caller escapes its output before it reaches the DOM, so a leftover
+ * opener was displayed rather than parsed. Displayed is still wrong: the point
+ * of stripping these is that the reader should never see the sync markers.
+ */
+export function stripHtmlComments(source: string): string {
+  let text = source;
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(/<!--[\s\S]*?-->/g, '');
+  } while (text !== previous);
+  return text.replace(/<!--[\s\S]*$/, '');
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -50,7 +77,7 @@ function renderInline(raw: string): string {
 /** Render a Markdown body (frontmatter already stripped) to an HTML string. */
 export function renderMarkdown(md: string): string {
   // Drop HTML comments (e.g. the managed-sync markers) — hidden in Obsidian.
-  const src = md.replace(/<!--[\s\S]*?-->/g, '');
+  const src = stripHtmlComments(md);
   const lines = src.split('\n');
 
   const html: string[] = [];
