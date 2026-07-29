@@ -4,7 +4,11 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { deliveryModeFor, greenlitFor, REMOTE_EXECUTORS } from './taskDecision.js';
+import {
+  deliveryModeFor,
+  greenlitFor,
+  REMOTE_EXECUTORS,
+} from './taskDecision.js';
 
 let savedConfig: string | undefined;
 let savedEscape: string | undefined;
@@ -23,14 +27,19 @@ beforeEach(() => {
 afterEach(() => {
   if (savedConfig === undefined) delete process.env.LOOP_CONFIG_PATH;
   else process.env.LOOP_CONFIG_PATH = savedConfig;
-  if (savedEscape === undefined) delete process.env.LOOP_ALLOW_COMPANY_GREENLIGHT;
+  if (savedEscape === undefined)
+    delete process.env.LOOP_ALLOW_COMPANY_GREENLIGHT;
   else process.env.LOOP_ALLOW_COMPANY_GREENLIGHT = savedEscape;
   rmSync(dir, { recursive: true, force: true });
 });
 
 function configWith(slug: string): string {
   const path = join(dir, 'config.yaml');
-  writeFileSync(path, `projects:\n  - slug: ${slug}\n    path: /somewhere\n`, 'utf-8');
+  writeFileSync(
+    path,
+    `projects:\n  - slug: ${slug}\n    path: /somewhere\n`,
+    'utf-8',
+  );
   return path;
 }
 
@@ -49,8 +58,12 @@ describe('deliveryModeFor', () => {
   });
 
   it('names Air as the remote executor for both company projects', () => {
-    expect(REMOTE_EXECUTORS['service-dashboard-frontend']).toBe('Angibles-MacBook-Air');
-    expect(REMOTE_EXECUTORS['service-cloud-backend']).toBe('Angibles-MacBook-Air');
+    expect(REMOTE_EXECUTORS['service-dashboard-frontend']).toBe(
+      'Angibles-MacBook-Air',
+    );
+    expect(REMOTE_EXECUTORS['service-cloud-backend']).toBe(
+      'Angibles-MacBook-Air',
+    );
   });
 
   // C2: the escape hatch used to be consulted first, so setting it made a
@@ -104,7 +117,13 @@ describe('greenlitFor', () => {
       reads += 1;
       return true;
     };
-    for (const state of ['none', 'pending', 'applied', 'duplicate', 'failed'] as const) {
+    for (const state of [
+      'none',
+      'pending',
+      'applied',
+      'duplicate',
+      'failed',
+    ] as const) {
       greenlitFor('remote-queue', state, count);
     }
     expect(reads).toBe(0);

@@ -143,7 +143,10 @@ function round(n: number, dp = 2): number {
 
 /** Title-case a model id for display: `fable` → `Fable`. */
 function titleCase(s: string): string {
-  return s.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  return s.replace(
+    /\w\S*/g,
+    (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+  );
 }
 
 /** Parse a `{ used_pct, resets_at }` bucket; `null` when unusable. */
@@ -160,16 +163,23 @@ function bar(label: string, b: Bucket): QuotaBar {
 }
 
 function parseClaude(o: Record<string, unknown>): MachineClaude | null {
-  if (!o.claude || typeof o.claude !== 'object' || Array.isArray(o.claude)) return null;
+  if (!o.claude || typeof o.claude !== 'object' || Array.isArray(o.claude))
+    return null;
   const c = o.claude as Record<string, unknown>;
 
   const five_hour = parseBucket(c.five_hour);
   const weekly_all = parseBucket(c.weekly_all);
 
   let weekly_by_model: Record<string, Bucket> | null = null;
-  if (c.weekly_by_model && typeof c.weekly_by_model === 'object' && !Array.isArray(c.weekly_by_model)) {
+  if (
+    c.weekly_by_model &&
+    typeof c.weekly_by_model === 'object' &&
+    !Array.isArray(c.weekly_by_model)
+  ) {
     const wbm: Record<string, Bucket> = {};
-    for (const [model, val] of Object.entries(c.weekly_by_model as Record<string, unknown>)) {
+    for (const [model, val] of Object.entries(
+      c.weekly_by_model as Record<string, unknown>,
+    )) {
       const b = parseBucket(val);
       if (b) wbm[model] = b;
     }
@@ -190,11 +200,19 @@ function parseClaude(o: Record<string, unknown>): MachineClaude | null {
     }
   }
 
-  return { plan, source_ts: num(c.source_ts), five_hour, weekly_all, weekly_by_model, bars };
+  return {
+    plan,
+    source_ts: num(c.source_ts),
+    five_hour,
+    weekly_all,
+    weekly_by_model,
+    bars,
+  };
 }
 
 function parseCodex(o: Record<string, unknown>): MachineCodex | null {
-  if (!o.codex || typeof o.codex !== 'object' || Array.isArray(o.codex)) return null;
+  if (!o.codex || typeof o.codex !== 'object' || Array.isArray(o.codex))
+    return null;
   const x = o.codex as Record<string, unknown>;
 
   const weekly = parseBucket(x.weekly);
@@ -256,7 +274,8 @@ export function parseMachineBudget(
   } catch {
     return null;
   }
-  if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return null;
+  if (typeof obj !== 'object' || obj === null || Array.isArray(obj))
+    return null;
   const o = obj as Record<string, unknown>;
 
   const written_at = num(o.written_at);
@@ -294,7 +313,9 @@ export function quotaPartitionPaths(): { path: string; machine: string }[] {
  * Read every `quota.<machine>.json` snapshot into a per-machine map. Missing
  * dir or unreadable/malformed files are skipped rather than failing the request.
  */
-export function readMachineBudgets(nowMs: number = Date.now()): MachineBudgetMap {
+export function readMachineBudgets(
+  nowMs: number = Date.now(),
+): MachineBudgetMap {
   const map: MachineBudgetMap = {};
   for (const { path, machine } of quotaPartitionPaths()) {
     let content: string;

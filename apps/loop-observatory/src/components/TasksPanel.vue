@@ -56,9 +56,15 @@ const activeView = ref<TaskView>('board');
 // Board column sort — Board-only, board's own `order` by default.
 const sortMode = ref<SortMode>(DEFAULT_SORT_MODE);
 
-const scopeOptions = computed<{ key: ScopeFilter; label: string; count: number }[]>(() => [
+const scopeOptions = computed<
+  { key: ScopeFilter; label: string; count: number }[]
+>(() => [
   { key: 'all', label: 'All', count: allTasks.value.length },
-  { key: 'work', label: 'Work', count: allTasks.value.filter((t) => t.scope === 'work').length },
+  {
+    key: 'work',
+    label: 'Work',
+    count: allTasks.value.filter((t) => t.scope === 'work').length,
+  },
   {
     key: 'personal',
     label: 'Personal',
@@ -97,7 +103,9 @@ function openTask(task: SprintTask) {
   <section>
     <div class="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
       <KanbanSquare class="text-muted-foreground size-4" />
-      <h2 class="text-foreground text-lg font-semibold tracking-tight">Sprint tasks</h2>
+      <h2 class="text-foreground text-lg font-semibold tracking-tight">
+        Sprint tasks
+      </h2>
       <span v-if="data?.sprint" class="text-muted-foreground text-sm">
         {{ data.sprint.name }}
       </span>
@@ -152,7 +160,9 @@ function openTask(task: SprintTask) {
                   @click="scopeFilter = opt.key"
                 >
                   {{ opt.label }}
-                  <span class="text-muted-foreground text-xs tabular-nums">{{ opt.count }}</span>
+                  <span class="text-muted-foreground text-xs tabular-nums">{{
+                    opt.count
+                  }}</span>
                 </button>
               </div>
               <!-- Sort segmented control: Board only — Graph has no order to apply it to. -->
@@ -201,7 +211,11 @@ function openTask(task: SprintTask) {
             />
           </TabsContent>
           <TabsContent value="graph">
-            <TasksGraph :tasks="filteredTasks" :statuses="data!.statuses" @select="openTask" />
+            <TasksGraph
+              :tasks="filteredTasks"
+              :statuses="data!.statuses"
+              @select="openTask"
+            />
           </TabsContent>
         </Tabs>
       </CardContent>

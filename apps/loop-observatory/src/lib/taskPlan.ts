@@ -37,10 +37,34 @@ const PROVIDERS: {
   effort: AgentEffort;
   quotaWindow: string;
 }[] = [
-  { provider: 'claude', label: 'Claude', model: 'claude-opus-4-8', effort: 'high', quotaWindow: '5-hour + weekly' },
-  { provider: 'codex', label: 'Codex · Sol', model: 'gpt-5.6-sol', effort: 'high', quotaWindow: '5-hour + weekly' },
-  { provider: 'codex', label: 'Codex · Terra', model: 'gpt-5.6-terra', effort: 'high', quotaWindow: '5-hour + weekly' },
-  { provider: 'agy', label: 'Agy', model: 'default', effort: 'medium', quotaWindow: 'activity estimate' },
+  {
+    provider: 'claude',
+    label: 'Claude',
+    model: 'claude-opus-4-8',
+    effort: 'high',
+    quotaWindow: '5-hour + weekly',
+  },
+  {
+    provider: 'codex',
+    label: 'Codex · Sol',
+    model: 'gpt-5.6-sol',
+    effort: 'high',
+    quotaWindow: '5-hour + weekly',
+  },
+  {
+    provider: 'codex',
+    label: 'Codex · Terra',
+    model: 'gpt-5.6-terra',
+    effort: 'high',
+    quotaWindow: '5-hour + weekly',
+  },
+  {
+    provider: 'agy',
+    label: 'Agy',
+    model: 'default',
+    effort: 'medium',
+    quotaWindow: 'activity estimate',
+  },
 ];
 
 /**
@@ -74,28 +98,53 @@ function usageFor(
       if (provider === 'claude') {
         const block = machine.claude;
         if (!block) return null;
-        const pct = block.weekly_all?.used_pct ?? block.five_hour?.used_pct ?? null;
-        return { machine: machine.machine, pct, stale: machine.stale_minutes !== null && machine.stale_minutes > 10 };
+        const pct =
+          block.weekly_all?.used_pct ?? block.five_hour?.used_pct ?? null;
+        return {
+          machine: machine.machine,
+          pct,
+          stale: machine.stale_minutes !== null && machine.stale_minutes > 10,
+        };
       }
       if (provider === 'codex') {
         const block = machine.codex;
         if (!block) return null;
         const pct = block.weekly?.used_pct ?? block.five_hour?.used_pct ?? null;
-        return { machine: machine.machine, pct, stale: machine.stale_minutes !== null && machine.stale_minutes > 10 };
+        return {
+          machine: machine.machine,
+          pct,
+          stale: machine.stale_minutes !== null && machine.stale_minutes > 10,
+        };
       }
       const block = machine.agy;
       if (!block) return null;
-      return { machine: machine.machine, pct: null, stale: machine.stale_minutes !== null && machine.stale_minutes > 10 };
+      return {
+        machine: machine.machine,
+        pct: null,
+        stale: machine.stale_minutes !== null && machine.stale_minutes > 10,
+      };
     })
-    .filter((row): row is { machine: string; pct: number | null; stale: boolean } => row !== null)
+    .filter(
+      (row): row is { machine: string; pct: number | null; stale: boolean } =>
+        row !== null,
+    )
     .sort((a, b) => (a.pct ?? 0) - (b.pct ?? 0));
 
   const row = rows[0];
-  if (!row) return { availability: 'unknown', usedPct: null, sourceMachine: null };
-  return { availability: row.stale ? 'stale' : 'fresh', usedPct: row.pct, sourceMachine: row.machine };
+  if (!row)
+    return { availability: 'unknown', usedPct: null, sourceMachine: null };
+  return {
+    availability: row.stale ? 'stale' : 'fresh',
+    usedPct: row.pct,
+    sourceMachine: row.machine,
+  };
 }
 
-function recommendation(task: SprintTask, provider: AgentProvider, model: string): boolean {
+function recommendation(
+  task: SprintTask,
+  provider: AgentProvider,
+  model: string,
+): boolean {
   const text = `${task.id} ${task.name}`.toLowerCase();
   if (task.scope === 'personal') return provider === 'agy';
   if (/abac|authorization|architecture|migration|rbac|policy/.test(text)) {
@@ -108,7 +157,10 @@ function recommendation(task: SprintTask, provider: AgentProvider, model: string
 }
 
 /** Build comparable provider plans without pretending subscription usage is a bill. */
-export function suggestTaskPlans(task: SprintTask, budgets: MachineBudgetMap): TaskPlanResponse {
+export function suggestTaskPlans(
+  task: SprintTask,
+  budgets: MachineBudgetMap,
+): TaskPlanResponse {
   const points = Math.max(1, task.points ?? 2);
   const inputTokens = 40_000 + points * 15_000;
   const outputTokens = 8_000 + points * 4_000;
@@ -126,7 +178,11 @@ export function suggestTaskPlans(task: SprintTask, budgets: MachineBudgetMap): T
       outputTokens,
       maxMinutes,
       quotaWindow: profile.quotaWindow,
-      fallback: recommended ? (profile.provider === 'agy' ? null : 'agy/default/medium') : null,
+      fallback: recommended
+        ? profile.provider === 'agy'
+          ? null
+          : 'agy/default/medium'
+        : null,
       rationale: recommended
         ? 'Best fit for this task shape and the current bounded-loop policy.'
         : 'Available alternative; compare quota freshness and executor ownership before selecting.',

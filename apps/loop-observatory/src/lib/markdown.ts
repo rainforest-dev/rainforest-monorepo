@@ -94,7 +94,10 @@ export function renderMarkdown(md: string): string {
         quote.push(lines[i].replace(/^\s*>\s?/, ''));
         i += 1;
       }
-      const inner = quote.filter((l) => l.trim() !== '').map(renderInline).join('<br>');
+      const inner = quote
+        .filter((l) => l.trim() !== '')
+        .map(renderInline)
+        .join('<br>');
       html.push(`<blockquote>${inner}</blockquote>`);
       continue;
     }

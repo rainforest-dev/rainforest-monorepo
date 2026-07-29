@@ -51,10 +51,15 @@ const barPct = (cost: number) =>
               <ExternalLink class="size-3 shrink-0" />
             </a>
             <span v-else class="flex items-center gap-2">
-              <span class="text-foreground truncate font-mono text-xs" :title="row.task">
+              <span
+                class="text-foreground truncate font-mono text-xs"
+                :title="row.task"
+              >
                 {{ row.task }}
               </span>
-              <Badge variant="outline" class="shrink-0 text-[10px]">provisional</Badge>
+              <Badge variant="outline" class="shrink-0 text-[10px]"
+                >provisional</Badge
+              >
             </span>
           </td>
           <td class="py-2.5 pr-4">
@@ -67,24 +72,29 @@ const barPct = (cost: number) =>
               >
                 {{ tool }}
               </Badge>
-              <span v-if="row.tools.length === 0" class="text-muted-foreground">—</span>
+              <span v-if="row.tools.length === 0" class="text-muted-foreground"
+                >—</span
+              >
             </div>
           </td>
           <td class="text-foreground py-2.5 pr-4 text-right tabular-nums">
             {{ formatInt(row.count) }}
           </td>
           <td class="text-muted-foreground py-2.5 pr-4 text-right tabular-nums">
-            {{ formatTokens(row.tokens_in) }} / {{ formatTokens(row.tokens_out) }}
+            {{ formatTokens(row.tokens_in) }} /
+            {{ formatTokens(row.tokens_out) }}
           </td>
           <td class="py-2.5 text-right">
             <div class="flex items-center justify-end gap-2">
-              <div class="bg-muted hidden h-1.5 w-16 overflow-hidden rounded-full sm:block">
+              <div
+                class="bg-muted hidden h-1.5 w-16 overflow-hidden rounded-full sm:block"
+              >
                 <div
                   class="bg-primary h-full rounded-full"
                   :style="{ width: barPct(row.cost) }"
                 />
               </div>
-              <span class="text-foreground tabular-nums font-medium">
+              <span class="text-foreground font-medium tabular-nums">
                 {{ formatUsd(row.cost) }}
               </span>
             </div>

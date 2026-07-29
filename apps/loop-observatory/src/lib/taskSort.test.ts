@@ -24,7 +24,7 @@ function task(overrides: Partial<SprintTask> & { order: number }): SprintTask {
 }
 
 describe('board mode', () => {
-  it('sorts by order ascending — today\'s behaviour', () => {
+  it("sorts by order ascending — today's behaviour", () => {
     const tasks = [task({ order: 3 }), task({ order: 1 }), task({ order: 2 })];
     const sorted = tasks.slice().sort(SORT_COMPARATORS.board);
     expect(sorted.map((t) => t.order)).toEqual([1, 2, 3]);
@@ -87,7 +87,9 @@ describe('relay mode', () => {
     const pending = task({ order: 3, outboxState: 'pending' });
     const applied = task({ order: 4, outboxState: 'applied' });
     const duplicate = task({ order: 5, outboxState: 'duplicate' });
-    const sorted = [none, failed, pending, applied, duplicate].sort(SORT_COMPARATORS.relay);
+    const sorted = [none, failed, pending, applied, duplicate].sort(
+      SORT_COMPARATORS.relay,
+    );
     expect(sorted.map((t) => t.outboxState)).toEqual([
       'applied',
       'duplicate',
@@ -101,7 +103,9 @@ describe('relay mode', () => {
     const nullState = task({ order: 1, outboxState: null });
     const undefinedState = task({ order: 2, outboxState: undefined });
     const pending = task({ order: 3, outboxState: 'pending' });
-    const sorted = [nullState, undefinedState, pending].sort(SORT_COMPARATORS.relay);
+    const sorted = [nullState, undefinedState, pending].sort(
+      SORT_COMPARATORS.relay,
+    );
     expect(sorted.map((t) => t.order)).toEqual([3, 1, 2]);
   });
 

@@ -36,7 +36,9 @@ describe('renderMarkdown', () => {
 
   it('strips HTML comments and escapes raw HTML', () => {
     expect(renderMarkdown('a <!-- hidden --> b')).not.toContain('hidden');
-    expect(renderMarkdown('<script>alert(1)</script>')).toContain('&lt;script&gt;');
+    expect(renderMarkdown('<script>alert(1)</script>')).toContain(
+      '&lt;script&gt;',
+    );
   });
 
   it('renders blockquotes', () => {

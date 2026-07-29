@@ -47,11 +47,7 @@ const open = ref(props.defaultOpen);
       </span>
     </button>
 
-    <div
-      v-show="open"
-      class="overflow-y-auto px-6 pb-6"
-      :style="{ maxHeight }"
-    >
+    <div v-show="open" class="overflow-y-auto px-6 pb-6" :style="{ maxHeight }">
       <slot />
     </div>
   </Card>

@@ -5,7 +5,11 @@ import { computed } from 'vue';
 // Type-only: keep the client bundle free of tasks.ts's node:fs/node:path deps
 // (mirrors MachinesPanel's type-only import of budget.ts).
 import type { SprintTask } from '@/lib/tasks';
-import { DEFAULT_SORT_MODE, SORT_COMPARATORS, type SortMode } from '@/lib/taskSort';
+import {
+  DEFAULT_SORT_MODE,
+  SORT_COMPARATORS,
+  type SortMode,
+} from '@/lib/taskSort';
 import {
   ALWAYS_SHOWN_COLUMNS,
   BOARD_COLUMNS,
@@ -23,7 +27,11 @@ import {
 } from '@/lib/taskStatus';
 
 const props = withDefaults(
-  defineProps<{ tasks: SprintTask[]; statuses: string[]; sortMode?: SortMode }>(),
+  defineProps<{
+    tasks: SprintTask[];
+    statuses: string[];
+    sortMode?: SortMode;
+  }>(),
   { sortMode: DEFAULT_SORT_MODE },
 );
 // Clicking a card opens the in-app note drawer (not the external Notion link).
@@ -53,7 +61,9 @@ const columns = computed<Column[]>(() => {
   const extra = [...byColumn.keys()].filter((c) => !BOARD_COLUMNS.includes(c));
   const out: Column[] = [];
   for (const status of [...BOARD_COLUMNS, ...extra]) {
-    const cards = (byColumn.get(status) ?? []).slice().sort(SORT_COMPARATORS[props.sortMode]);
+    const cards = (byColumn.get(status) ?? [])
+      .slice()
+      .sort(SORT_COMPARATORS[props.sortMode]);
     if (cards.length === 0 && !ALWAYS_SHOWN_COLUMNS.includes(status)) continue;
     out.push({
       status,
@@ -90,9 +100,14 @@ const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
           :style="{ backgroundColor: col.color }"
           aria-hidden="true"
         />
-        <h3 class="text-foreground truncate text-sm font-semibold">{{ col.status }}</h3>
-        <span class="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">
-          {{ col.cards.length }}<template v-if="col.points > 0"> · {{ col.points }} pts</template>
+        <h3 class="text-foreground truncate text-sm font-semibold">
+          {{ col.status }}
+        </h3>
+        <span
+          class="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums"
+        >
+          {{ col.cards.length
+          }}<template v-if="col.points > 0"> · {{ col.points }} pts</template>
         </span>
       </div>
 
@@ -103,13 +118,18 @@ const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
           role="button"
           tabindex="0"
           class="bg-card border-border hover:border-foreground/30 focus-visible:ring-ring block w-full cursor-pointer rounded-lg border border-l-4 p-3 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2"
-          :style="{ borderLeftColor: ownerMeta(taskOwner(card.status, card.loopStatus)).color }"
+          :style="{
+            borderLeftColor: ownerMeta(taskOwner(card.status, card.loopStatus))
+              .color,
+          }"
           @click="emit('select', card)"
           @keydown.enter="emit('select', card)"
           @keydown.space.prevent="emit('select', card)"
         >
           <div class="mb-1.5 flex items-center gap-2">
-            <span class="text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums">
+            <span
+              class="text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums"
+            >
               #{{ card.id ?? '—' }}
             </span>
             <span
@@ -120,7 +140,11 @@ const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
               }"
               :title="`Owner: ${ownerMeta(taskOwner(card.status, card.loopStatus)).label}`"
             >
-              <component :is="OWNER_ICON[taskOwner(card.status, card.loopStatus)]" class="size-2.5" aria-hidden="true" />
+              <component
+                :is="OWNER_ICON[taskOwner(card.status, card.loopStatus)]"
+                class="size-2.5"
+                aria-hidden="true"
+              />
               {{ ownerMeta(taskOwner(card.status, card.loopStatus)).label }}
             </span>
             <span
@@ -169,7 +193,9 @@ const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
             />
           </div>
 
-          <p class="text-foreground line-clamp-2 text-sm font-medium leading-snug">
+          <p
+            class="text-foreground line-clamp-2 text-sm font-medium leading-snug"
+          >
             {{ card.name }}
           </p>
 

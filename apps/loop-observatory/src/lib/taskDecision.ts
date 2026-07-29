@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type OutboxState,requestState } from './greenlightOutbox.js';
+import { type OutboxState, requestState } from './greenlightOutbox.js';
 import {
   readTaskDecision,
   readTaskPlan,
@@ -32,8 +32,14 @@ interface GreenlightTarget {
 }
 
 export const GREENLIGHT_TARGETS: Record<string, GreenlightTarget> = {
-  'cloud-frontend': { slug: 'service-dashboard-frontend', component: 'cloud-frontend' },
-  'cloud-backend': { slug: 'service-cloud-backend', component: 'cloud-backend' },
+  'cloud-frontend': {
+    slug: 'service-dashboard-frontend',
+    component: 'cloud-frontend',
+  },
+  'cloud-backend': {
+    slug: 'service-cloud-backend',
+    component: 'cloud-backend',
+  },
 };
 
 /**
@@ -100,7 +106,10 @@ const TERMINAL_OR_ACTIVE = new Set([
 ]);
 
 function greenlightDir(): string {
-  return process.env.LOOP_GREENLIGHT_DIR ?? join(process.env.HOME ?? '', '.claude', 'loop', 'greenlight');
+  return (
+    process.env.LOOP_GREENLIGHT_DIR ??
+    join(process.env.HOME ?? '', '.claude', 'loop', 'greenlight')
+  );
 }
 
 /**
@@ -118,10 +127,15 @@ function escapeRegExp(value: string): string {
 
 function executorReady(slug: string): boolean {
   if (process.env.LOOP_ALLOW_COMPANY_GREENLIGHT === '1') return true;
-  const configPath = process.env.LOOP_CONFIG_PATH ?? join(process.env.HOME ?? '', '.claude', 'loop', 'config.yaml');
+  const configPath =
+    process.env.LOOP_CONFIG_PATH ??
+    join(process.env.HOME ?? '', '.claude', 'loop', 'config.yaml');
   try {
     const config = readFileSync(configPath, 'utf-8');
-    return new RegExp(`^\\s*-\\s*slug:\\s*${escapeRegExp(slug)}\\s*$`, 'm').test(config);
+    return new RegExp(
+      `^\\s*-\\s*slug:\\s*${escapeRegExp(slug)}\\s*$`,
+      'm',
+    ).test(config);
   } catch {
     return false;
   }
@@ -139,20 +153,29 @@ function greenlightText(slug: string): string {
   }
 }
 
-function lineFor(task: SprintTask, slug: string, plan: ExecutionPlan | null): string {
+function lineFor(
+  task: SprintTask,
+  slug: string,
+  plan: ExecutionPlan | null,
+): string {
   const id = String(task.id);
-  const agent = plan ? ` · agent: ${plan.provider}/${plan.model} · effort: ${plan.effort} · cap: ${plan.maxMinutes}m` : '';
+  const agent = plan
+    ? ` · agent: ${plan.provider}/${plan.model} · effort: ${plan.effort} · cap: ${plan.maxMinutes}m`
+    : '';
   return `- ${id} — ${task.name.replace(/[\r\n]+/g, ' ')} · repo: ${slug}${agent}`;
 }
 
 function hasGreenlight(task: SprintTask, slug: string): boolean {
   const id = escapeRegExp(String(task.id));
-  return new RegExp(`^\\s*-\\s*${id}(?:\\s|—|$)`, 'm').test(greenlightText(slug));
+  return new RegExp(`^\\s*-\\s*${id}(?:\\s|—|$)`, 'm').test(
+    greenlightText(slug),
+  );
 }
 
 function projectFor(task: SprintTask): GreenlightTarget | null {
-  if (task.scope !== 'work' || !/^(?:[A-Za-z]+-)?\d+$/.test(String(task.id))) return null;
-  return task.component ? GREENLIGHT_TARGETS[task.component] ?? null : null;
+  if (task.scope !== 'work' || !/^(?:[A-Za-z]+-)?\d+$/.test(String(task.id)))
+    return null;
+  return task.component ? (GREENLIGHT_TARGETS[task.component] ?? null) : null;
 }
 
 function taskFor(id: string): SprintTask | null {
@@ -160,10 +183,15 @@ function taskFor(id: string): SprintTask | null {
 }
 
 function normalizedStatus(task: SprintTask): string {
-  return String(task.loopStatus ?? task.status).trim().toLowerCase();
+  return String(task.loopStatus ?? task.status)
+    .trim()
+    .toLowerCase();
 }
 
-function readiness(task: SprintTask, project: GreenlightTarget | null): {
+function readiness(
+  task: SprintTask,
+  project: GreenlightTarget | null,
+): {
   recommendation: TaskDecision;
   reasons: string[];
   executorReady: boolean;
@@ -172,10 +200,14 @@ function readiness(task: SprintTask, project: GreenlightTarget | null): {
   const mode = deliveryModeFor(project?.slug ?? null);
   const ready = mode !== 'none';
   if (task.scope === 'personal') {
-    reasons.push('Personal work follows the mini’s autonomous queue; greenlight is reserved for company allowlists.');
+    reasons.push(
+      'Personal work follows the mini’s autonomous queue; greenlight is reserved for company allowlists.',
+    );
   }
   if (!project && task.scope === 'work') {
-    reasons.push('No enrolled company project can be resolved from this task’s component.');
+    reasons.push(
+      'No enrolled company project can be resolved from this task’s component.',
+    );
   }
   if (project && mode === 'remote-queue') {
     reasons.push(
@@ -183,16 +215,24 @@ function readiness(task: SprintTask, project: GreenlightTarget | null): {
     );
   }
   if (project && mode === 'none') {
-    reasons.push(`No executor is configured for ${project.slug} on this host or any known remote.`);
+    reasons.push(
+      `No executor is configured for ${project.slug} on this host or any known remote.`,
+    );
   }
   if (TERMINAL_OR_ACTIVE.has(normalizedStatus(task))) {
-    reasons.push(`The current loop/board state is “${task.loopStatus ?? task.status}”, so it is not a fresh execution candidate.`);
+    reasons.push(
+      `The current loop/board state is “${task.loopStatus ?? task.status}”, so it is not a fresh execution candidate.`,
+    );
   }
   if (task.points == null || task.points <= 0) {
-    reasons.push('Story points are missing or zero; estimate the work before starting execution.');
+    reasons.push(
+      'Story points are missing or zero; estimate the work before starting execution.',
+    );
   }
   if (task.priority == null) {
-    reasons.push('Priority is not set; confirm sprint ordering before spending executor time.');
+    reasons.push(
+      'Priority is not set; confirm sprint ordering before spending executor time.',
+    );
   }
   return {
     recommendation:
@@ -215,23 +255,43 @@ export function getTaskDecision(id: string): DecisionGuidance | null {
   const project = projectFor(task);
   const existing = readTaskDecision(id);
   const executionPlan = readTaskPlan(id);
-  const { recommendation, reasons, executorReady: ready } = readiness(task, project);
+  const {
+    recommendation,
+    reasons,
+    executorReady: ready,
+  } = readiness(task, project);
   const mode = deliveryModeFor(project?.slug ?? null);
-  const outboxState: OutboxState = project ? requestState(project.slug, String(task.id)) : 'none';
+  const outboxState: OutboxState = project
+    ? requestState(project.slug, String(task.id))
+    : 'none';
   const greenlit = project
     ? greenlitFor(mode, outboxState, () => hasGreenlight(task, project.slug))
     : false;
-  if (greenlit && !reasons.some((reason) => reason.includes('current loop/board state'))) {
-    reasons.unshift('This task is already on the project’s owner-maintained greenlight list.');
+  if (
+    greenlit &&
+    !reasons.some((reason) => reason.includes('current loop/board state'))
+  ) {
+    reasons.unshift(
+      'This task is already on the project’s owner-maintained greenlight list.',
+    );
   }
   if (!executionPlan && project) {
-    reasons.push('Choose and save a provider/model/effort plan before greenlighting.');
+    reasons.push(
+      'Choose and save a provider/model/effort plan before greenlighting.',
+    );
   }
 
-  const gatedRecommendation = executionPlan || !project ? recommendation : 'plan-first';
+  const gatedRecommendation =
+    executionPlan || !project ? recommendation : 'plan-first';
 
-  const finalRecommendation = greenlit && gatedRecommendation === 'greenlight' ? 'greenlight' : gatedRecommendation;
-  const title = finalRecommendation === 'greenlight' ? 'Ready for greenlight' : 'Plan first';
+  const finalRecommendation =
+    greenlit && gatedRecommendation === 'greenlight'
+      ? 'greenlight'
+      : gatedRecommendation;
+  const title =
+    finalRecommendation === 'greenlight'
+      ? 'Ready for greenlight'
+      : 'Plan first';
   const summary =
     finalRecommendation === 'greenlight'
       ? 'The task has enough metadata for one bounded loop iteration. Greenlighting only queues it; it does not start the loop or open a PR.'
@@ -239,7 +299,9 @@ export function getTaskDecision(id: string): DecisionGuidance | null {
   const suggestedComment =
     finalRecommendation === 'greenlight'
       ? `Greenlight ${String(task.id)} for one bounded iteration. Scope: ${task.name}. ${
-          reasons.length ? `Review notes: ${reasons.join(' ')}` : 'The task has a component, priority, and story-point estimate.'
+          reasons.length
+            ? `Review notes: ${reasons.join(' ')}`
+            : 'The task has a component, priority, and story-point estimate.'
         }`
       : `Plan first for ${String(task.id)}. ${reasons.join(' ') || 'Confirm acceptance criteria, owner, and verification before execution.'}`;
 
@@ -269,13 +331,19 @@ export function addGreenlight(
   const current = greenlightText(slug);
   if (hasGreenlight(task, slug)) return { path, already: true };
 
-  const lines = current ? current.split(/\r?\n/) : [`# ${slug} greenlight`, '', '## Cleared', ''];
-  let cleared = lines.findIndex((line) => /^##\s+Cleared\s*$/.test(line.trim()));
+  const lines = current
+    ? current.split(/\r?\n/)
+    : [`# ${slug} greenlight`, '', '## Cleared', ''];
+  let cleared = lines.findIndex((line) =>
+    /^##\s+Cleared\s*$/.test(line.trim()),
+  );
   if (cleared === -1) {
     lines.push('', '## Cleared', '');
     cleared = lines.length - 2;
   }
-  const placeholder = lines.findIndex((line, index) => index > cleared && /^\s*_\(none\)/i.test(line));
+  const placeholder = lines.findIndex(
+    (line, index) => index > cleared && /^\s*_\(none\)/i.test(line),
+  );
   if (placeholder !== -1) lines.splice(placeholder, 1);
   lines.splice(cleared + 1, 0, lineFor(task, slug, plan));
 
@@ -285,7 +353,14 @@ export function addGreenlight(
     // create arbitrary paths from task input.
     mkdirSync(dir, { recursive: true });
   }
-  writeFileSync(path, `${lines.join('\n').replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '')}\n`, 'utf-8');
+  writeFileSync(
+    path,
+    `${lines
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/\s+$/, '')}\n`,
+    'utf-8',
+  );
   return { path, already: false };
 }
 
@@ -298,16 +373,29 @@ export function addGreenlight(
  * the real authorisation stood untouched on Air. `api/task-decision.ts` holds
  * that guard.
  */
-export function removeGreenlight(task: SprintTask, slug: string): { path: string; removed: boolean; claimed: boolean } {
+export function removeGreenlight(
+  task: SprintTask,
+  slug: string,
+): { path: string; removed: boolean; claimed: boolean } {
   const path = greenlightPath(slug);
   const current = greenlightText(slug);
   const id = escapeRegExp(String(task.id));
   const lines = current.split(/\r?\n/);
-  const index = lines.findIndex((line) => new RegExp(`^\\s*-\\s*${id}(?:\\s|—|$)`, 'i').test(line));
+  const index = lines.findIndex((line) =>
+    new RegExp(`^\\s*-\\s*${id}(?:\\s|—|$)`, 'i').test(line),
+  );
   if (index === -1) return { path, removed: false, claimed: false };
-  if (/\[(?:claimed|PR ready):/i.test(lines[index])) return { path, removed: false, claimed: true };
+  if (/\[(?:claimed|PR ready):/i.test(lines[index]))
+    return { path, removed: false, claimed: true };
   lines.splice(index, 1);
-  writeFileSync(path, `${lines.join('\n').replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '')}\n`, 'utf-8');
+  writeFileSync(
+    path,
+    `${lines
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/\s+$/, '')}\n`,
+    'utf-8',
+  );
   return { path, removed: true, claimed: false };
 }
 

@@ -5,21 +5,12 @@ import { formatDistanceToNowStrict } from 'date-fns';
 import { computed } from 'vue';
 
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 // Type-only imports: this is a client-hydrated island, so importing runtime
 // values from budget.ts would drag its node:fs/node:path deps into the browser
 // bundle. The staleness threshold + lag math are inlined below (mirroring the
 // server-tested `providerStale` / `sourceLagMinutes` in budget.ts).
-import type {
-  MachineBudget,
-  MachineBudgetMap,
-  QuotaBar,
-} from '@/lib/budget';
+import type { MachineBudget, MachineBudgetMap, QuotaBar } from '@/lib/budget';
 import type { MachineBreakdown } from '@/lib/ledger';
 import type { BudgetMode } from '@/lib/loop';
 import { formatInt, formatPct, formatUsd } from '@/utils/format';
@@ -43,7 +34,8 @@ const MODE_META: Record<BudgetMode, { color: string; label: string }> = {
 
 const STALE_TAG_STYLE = {
   color: 'var(--status-warning)',
-  backgroundColor: 'color-mix(in oklab, var(--status-warning) 16%, transparent)',
+  backgroundColor:
+    'color-mix(in oklab, var(--status-warning) 16%, transparent)',
 };
 
 // A provider window is stale when its captured source lags the machine's
@@ -55,7 +47,8 @@ function sourceLag(
   writtenAt: number | null,
   sourceTs: number | null | undefined,
 ): number | null {
-  if (writtenAt === null || sourceTs === null || sourceTs === undefined) return null;
+  if (writtenAt === null || sourceTs === null || sourceTs === undefined)
+    return null;
   return (writtenAt - sourceTs) / 60;
 }
 
@@ -240,7 +233,11 @@ const cards = computed<Card[]>(() => {
     const mode = props.modes[name] ?? 'dark';
     const ms = lastSeenMs(budget, ledger);
     const modeLabel =
-      mode !== 'dark' ? MODE_META[mode].label : budget?.claude ? 'stale' : 'no quota';
+      mode !== 'dark'
+        ? MODE_META[mode].label
+        : budget?.claude
+          ? 'stale'
+          : 'no quota';
 
     return {
       name,
@@ -259,8 +256,12 @@ const cards = computed<Card[]>(() => {
   <section>
     <div class="mb-3 flex items-center gap-2">
       <MonitorSmartphone class="text-muted-foreground size-4" />
-      <h2 class="text-foreground text-lg font-semibold tracking-tight">Machines</h2>
-      <span class="text-muted-foreground text-sm">{{ cards.length }} reporting</span>
+      <h2 class="text-foreground text-lg font-semibold tracking-tight">
+        Machines
+      </h2>
+      <span class="text-muted-foreground text-sm"
+        >{{ cards.length }} reporting</span
+      >
     </div>
 
     <div
@@ -269,7 +270,9 @@ const cards = computed<Card[]>(() => {
     >
       <CalendarClock class="size-4" />
       No machines reporting yet — run the quota reader to populate
-      <code class="text-foreground">_system/usage/quota.&lt;machine&gt;.json</code>.
+      <code class="text-foreground"
+        >_system/usage/quota.&lt;machine&gt;.json</code
+      >.
     </div>
 
     <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -290,7 +293,9 @@ const cards = computed<Card[]>(() => {
                 Last seen {{ card.lastSeen ?? '—' }}
               </p>
             </div>
-            <div class="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+            <div
+              class="flex shrink-0 flex-wrap items-center justify-end gap-1.5"
+            >
               <Badge
                 v-for="p in card.planBadges"
                 :key="p"
@@ -334,9 +339,17 @@ const cards = computed<Card[]>(() => {
 
               <!-- Quota bars -->
               <div v-if="section.kind === 'quota'" class="space-y-2.5">
-                <div v-for="bar in section.bars" :key="bar.label" class="space-y-1">
-                  <div class="flex items-baseline justify-between gap-2 text-xs">
-                    <span class="text-foreground truncate">{{ bar.label }}</span>
+                <div
+                  v-for="bar in section.bars"
+                  :key="bar.label"
+                  class="space-y-1"
+                >
+                  <div
+                    class="flex items-baseline justify-between gap-2 text-xs"
+                  >
+                    <span class="text-foreground truncate">{{
+                      bar.label
+                    }}</span>
                     <span
                       v-if="bar.unknown"
                       class="text-muted-foreground/70 shrink-0 italic"
@@ -344,9 +357,12 @@ const cards = computed<Card[]>(() => {
                     >
                       stale · unknown
                     </span>
-                    <span v-else class="text-muted-foreground shrink-0 tabular-nums">
-                      {{ formatPct(bar.pct) }}<template v-if="bar.reset">
-                        · {{ bar.reset }}</template>
+                    <span
+                      v-else
+                      class="text-muted-foreground shrink-0 tabular-nums"
+                    >
+                      {{ formatPct(bar.pct)
+                      }}<template v-if="bar.reset"> · {{ bar.reset }}</template>
                     </span>
                   </div>
                   <div
@@ -373,7 +389,9 @@ const cards = computed<Card[]>(() => {
               <!-- agy estimated block (no quota bar) -->
               <div v-else>
                 <div class="flex items-baseline justify-between gap-2">
-                  <span class="text-foreground text-lg font-semibold tabular-nums">
+                  <span
+                    class="text-foreground text-lg font-semibold tabular-nums"
+                  >
                     {{ section.cost ?? '—' }}
                   </span>
                   <span class="text-muted-foreground text-xs">
@@ -399,8 +417,12 @@ const cards = computed<Card[]>(() => {
             v-if="card.ledgerCost"
             class="border-border mt-4 flex items-center justify-between border-t pt-3 text-sm"
           >
-            <p class="text-muted-foreground text-xs">Est. cost (this machine)</p>
-            <p class="text-foreground font-semibold tabular-nums">{{ card.ledgerCost }}</p>
+            <p class="text-muted-foreground text-xs">
+              Est. cost (this machine)
+            </p>
+            <p class="text-foreground font-semibold tabular-nums">
+              {{ card.ledgerCost }}
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -167,7 +167,12 @@ export function aggregate(records: LedgerRecord[]): UsageAggregates {
     if (r.session_id) sessions.add(r.session_id);
 
     const date = r.ts.slice(0, 10);
-    const dp = daily.get(date) ?? { date, cost: 0, tokens_in: 0, tokens_out: 0 };
+    const dp = daily.get(date) ?? {
+      date,
+      cost: 0,
+      tokens_in: 0,
+      tokens_out: 0,
+    };
     dp.cost += r.cost_est_usd;
     dp.tokens_in += r.tokens_in;
     dp.tokens_out += r.tokens_out;

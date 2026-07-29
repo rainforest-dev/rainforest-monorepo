@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 
 import { readMachineBudgets } from '../../lib/budget.js';
 import { readTaskPlan, writeTaskPlan } from '../../lib/taskNote.js';
-import { type ExecutionPlan,suggestTaskPlans } from '../../lib/taskPlan.js';
+import { type ExecutionPlan, suggestTaskPlans } from '../../lib/taskPlan.js';
 import { readTasks } from '../../lib/tasks.js';
 
 function findTask(id: string) {
@@ -43,7 +43,12 @@ export const GET: APIRoute = ({ url }) => {
   const task = findTask(id);
   if (!task) return Response.json({ found: false, id }, { status: 404 });
   const suggested = suggestTaskPlans(task, readMachineBudgets());
-  return Response.json({ found: true, id, ...suggested, saved: readTaskPlan(id) });
+  return Response.json({
+    found: true,
+    id,
+    ...suggested,
+    saved: readTaskPlan(id),
+  });
 };
 
 export const POST: APIRoute = async ({ url, request }) => {
@@ -58,8 +63,13 @@ export const POST: APIRoute = async ({ url, request }) => {
   } catch {
     body = null;
   }
-  const plan = bodyPlan(body && typeof body === 'object' ? (body as Record<string, unknown>).plan : null);
-  if (!plan) return Response.json({ error: 'invalid execution plan' }, { status: 400 });
+  const plan = bodyPlan(
+    body && typeof body === 'object'
+      ? (body as Record<string, unknown>).plan
+      : null,
+  );
+  if (!plan)
+    return Response.json({ error: 'invalid execution plan' }, { status: 400 });
 
   const suggestions = suggestTaskPlans(task, readMachineBudgets()).candidates;
   const accepted = suggestions.find(
@@ -68,10 +78,17 @@ export const POST: APIRoute = async ({ url, request }) => {
       candidate.model === plan.model &&
       candidate.effort === plan.effort,
   );
-  if (!accepted) return Response.json({ error: 'plan is not one of the current provider options' }, { status: 409 });
+  if (!accepted)
+    return Response.json(
+      { error: 'plan is not one of the current provider options' },
+      { status: 409 },
+    );
 
   const saved = writeTaskPlan(id, accepted);
-  if (!saved) return Response.json({ error: 'task note is unavailable' }, { status: 409 });
+  if (!saved)
+    return Response.json(
+      { error: 'task note is unavailable' },
+      { status: 409 },
+    );
   return Response.json({ ok: true, id, plan: accepted });
 };
-

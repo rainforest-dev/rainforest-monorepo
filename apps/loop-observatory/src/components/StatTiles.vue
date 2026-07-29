@@ -56,7 +56,10 @@ const tiles = computed(() => [
           {{ tile.value }}
         </p>
         <p class="text-muted-foreground mt-1 text-xs">{{ tile.sub }}</p>
-        <p v-if="tile.note" class="text-muted-foreground/80 mt-1 text-[11px] italic">
+        <p
+          v-if="tile.note"
+          class="text-muted-foreground/80 mt-1 text-[11px] italic"
+        >
           {{ tile.note }}
         </p>
       </CardContent>

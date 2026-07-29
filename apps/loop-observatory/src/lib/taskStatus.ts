@@ -293,7 +293,11 @@ export function scopeBadge(scope: string): ScopeBadge {
       bg: 'color-mix(in oklab, var(--scope-personal) 14%, transparent)',
     };
   }
-  return { label: 'work', color: 'var(--muted-foreground)', bg: 'var(--muted)' };
+  return {
+    label: 'work',
+    color: 'var(--muted-foreground)',
+    bg: 'var(--muted)',
+  };
 }
 
 /**
@@ -309,7 +313,8 @@ export function outboxChip(
       return {
         label: '⇢ Air',
         color: 'var(--status-warning)',
-        title: 'Greenlight queued to Air — applies on its next pull (up to ~5 minutes)',
+        title:
+          'Greenlight queued to Air — applies on its next pull (up to ~5 minutes)',
       };
     case 'applied':
     case 'duplicate':
@@ -322,10 +327,10 @@ export function outboxChip(
       return {
         label: '⚠ Air',
         color: 'var(--status-critical)',
-        title: 'Air rejected this greenlight request — open the task for the reason',
+        title:
+          'Air rejected this greenlight request — open the task for the reason',
       };
     default:
       return null;
   }
 }
-

@@ -10,7 +10,13 @@ import StatTiles from '@/components/StatTiles.vue';
 import TaskTable from '@/components/TaskTable.vue';
 import UsageTimeChart from '@/components/UsageTimeChart.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MachineBudgetMap } from '@/lib/budget';
 import type { UsageAggregates } from '@/lib/ledger';

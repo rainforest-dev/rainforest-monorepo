@@ -83,7 +83,10 @@ export function compareByRelay(a: SprintTask, b: SprintTask): number {
  * the pair's existing array order — which is exactly what `board`'s
  * `order`-ascending tie-break needs when two cards share an `order` value.
  */
-export const SORT_COMPARATORS: Record<SortMode, (a: SprintTask, b: SprintTask) => number> = {
+export const SORT_COMPARATORS: Record<
+  SortMode,
+  (a: SprintTask, b: SprintTask) => number
+> = {
   board: byOrder,
   priority: compareByPriority,
   points: compareByPoints,

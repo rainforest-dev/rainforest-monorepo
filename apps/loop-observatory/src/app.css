@@ -11,7 +11,12 @@
   body {
     @apply bg-background text-foreground m-0 size-full p-0;
     font-family:
-      ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      sans-serif;
   }
 }
 

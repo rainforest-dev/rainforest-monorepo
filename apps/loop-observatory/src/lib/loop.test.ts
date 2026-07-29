@@ -34,7 +34,10 @@ describe('parseTaskQueue', () => {
 
   it('extracts blocked tasks with their reason', () => {
     expect(blocked).toEqual([
-      { task: 'Migrate legacy vault schema', reason: 'waiting on owner decision' },
+      {
+        task: 'Migrate legacy vault schema',
+        reason: 'waiting on owner decision',
+      },
     ]);
   });
 
@@ -136,7 +139,14 @@ function mb(
   c: MachineBudget['claude'],
   stale_minutes: number | null,
 ): MachineBudget {
-  return { machine: 'm', claude: c, codex: null, agy: null, written_at: 0, stale_minutes };
+  return {
+    machine: 'm',
+    claude: c,
+    codex: null,
+    agy: null,
+    written_at: 0,
+    stale_minutes,
+  };
 }
 
 describe('budgetMode', () => {

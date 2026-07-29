@@ -89,7 +89,9 @@ export function parseFrontmatter(content: string): {
  * Returns an absolute path, or `null` when it can't be safely resolved (unknown
  * scope, unsafe work id, or a path that escapes the vault root).
  */
-function resolveNotePath(task: SprintTask): { abs: string; rel: string } | null {
+function resolveNotePath(
+  task: SprintTask,
+): { abs: string; rel: string } | null {
   let rel: string;
   if (task.scope === 'personal') {
     if (!task.task_ref || /^https?:/.test(task.task_ref)) return null;
@@ -166,9 +168,9 @@ function feedbackText(notesRaw: string | null): string {
 
 function decisionRecord(raw: string | null): TaskDecisionRecord | null {
   if (raw === null) return null;
-  const decision = /^Decision:\s*(greenlight|plan-first)\s*$/im.exec(raw)?.[1] as
-    | TaskDecision
-    | undefined;
+  const decision = /^Decision:\s*(greenlight|plan-first)\s*$/im.exec(
+    raw,
+  )?.[1] as TaskDecision | undefined;
   if (!decision) return null;
   const updatedAt = /^Updated:\s*(.+)$/im.exec(raw)?.[1]?.trim() ?? null;
   const comment = /^Comment:\s*\n([\s\S]*)$/im.exec(raw)?.[1]?.trim() ?? '';
@@ -216,14 +218,22 @@ export function replaceSection(
 
 function planRecord(raw: string | null): ExecutionPlan | null {
   if (raw === null) return null;
-  const value = (label: string) => new RegExp(`^${label}:\\s*(.+)$`, 'im').exec(raw)?.[1]?.trim() ?? '';
+  const value = (label: string) =>
+    new RegExp(`^${label}:\\s*(.+)$`, 'im').exec(raw)?.[1]?.trim() ?? '';
   const provider = value('Provider');
   const model = value('Model');
   const effort = value('Effort');
   const inputTokens = Number(value('Input tokens'));
   const outputTokens = Number(value('Output tokens'));
   const maxMinutes = Number(value('Max minutes'));
-  if (!provider || !model || !effort || !Number.isFinite(inputTokens) || !Number.isFinite(outputTokens) || !Number.isFinite(maxMinutes)) {
+  if (
+    !provider ||
+    !model ||
+    !effort ||
+    !Number.isFinite(inputTokens) ||
+    !Number.isFinite(outputTokens) ||
+    !Number.isFinite(maxMinutes)
+  ) {
     return null;
   }
   return {
@@ -306,7 +316,10 @@ export function noteHasFeedback(task: SprintTask): boolean {
  * preserving the rest of the file — including the loop's `## Notes` outcome.
  * Returns the freshly re-read note, or `null` when unresolvable/absent.
  */
-export function writeTaskFeedback(id: string, feedback: string): TaskNote | null {
+export function writeTaskFeedback(
+  id: string,
+  feedback: string,
+): TaskNote | null {
   const task = findTask(id);
   if (!task) return null;
   const resolved = resolveNotePath(task);
@@ -319,7 +332,12 @@ export function writeTaskFeedback(id: string, feedback: string): TaskNote | null
     return null;
   }
 
-  const next = replaceSection(content, FEEDBACK_HEADING, '## Feedback', feedback);
+  const next = replaceSection(
+    content,
+    FEEDBACK_HEADING,
+    '## Feedback',
+    feedback,
+  );
   writeFileSync(resolved.abs, next, 'utf-8');
   return buildNote(id, task, resolved.rel, next);
 }
@@ -353,7 +371,10 @@ export function readTaskPlan(id: string): ExecutionPlan | null {
   }
 }
 
-export function writeTaskPlan(id: string, plan: ExecutionPlan): TaskNote | null {
+export function writeTaskPlan(
+  id: string,
+  plan: ExecutionPlan,
+): TaskNote | null {
   const task = findTask(id);
   if (!task) return null;
   const resolved = resolveNotePath(task);
@@ -375,7 +396,12 @@ export function writeTaskPlan(id: string, plan: ExecutionPlan): TaskNote | null 
     `Fallback: ${plan.fallback ?? ''}`,
     `Rationale: ${plan.rationale}`,
   ].join('\n');
-  const next = replaceSection(content, PLAN_HEADING, '## Execution Plan', value);
+  const next = replaceSection(
+    content,
+    PLAN_HEADING,
+    '## Execution Plan',
+    value,
+  );
   writeFileSync(resolved.abs, next, 'utf-8');
   return buildNote(id, task, resolved.rel, next);
 }
@@ -405,7 +431,12 @@ export function writeTaskDecision(
     'Comment:',
     cleanComment,
   ].join('\n');
-  const next = replaceSection(content, DECISION_HEADING, '## Loop Decision', value);
+  const next = replaceSection(
+    content,
+    DECISION_HEADING,
+    '## Loop Decision',
+    value,
+  );
   writeFileSync(resolved.abs, next, 'utf-8');
   return buildNote(id, task, resolved.rel, next);
 }

@@ -14,7 +14,10 @@ const pct = (cost: number) => `${Math.max(1.5, (cost / maxCost.value) * 100)}%`;
 </script>
 
 <template>
-  <div v-if="rows.length === 0" class="text-muted-foreground py-8 text-center text-sm">
+  <div
+    v-if="rows.length === 0"
+    class="text-muted-foreground py-8 text-center text-sm"
+  >
     No data.
   </div>
   <ul v-else class="space-y-3.5">
@@ -23,7 +26,7 @@ const pct = (cost: number) => `${Math.max(1.5, (cost / maxCost.value) * 100)}%`;
         <span class="text-foreground truncate font-medium" :title="row.key">
           {{ row.key }}
         </span>
-        <span class="text-foreground shrink-0 tabular-nums font-medium">
+        <span class="text-foreground shrink-0 font-medium tabular-nums">
           {{ formatUsd(row.cost) }}
         </span>
       </div>

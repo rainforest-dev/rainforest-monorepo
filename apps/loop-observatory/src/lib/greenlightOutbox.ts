@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 import type { ExecutionPlan } from './taskPlan.js';
@@ -114,7 +121,11 @@ export function readAck(slug: string, id: string): OutboxAck | null {
  * set of acks prunePairs refuses to delete.
  */
 function isFailedAck(ack: OutboxAck | null): boolean {
-  return !ack || ack.version !== OUTBOX_VERSION || (ack.result !== 'applied' && ack.result !== 'duplicate');
+  return (
+    !ack ||
+    ack.version !== OUTBOX_VERSION ||
+    (ack.result !== 'applied' && ack.result !== 'duplicate')
+  );
 }
 
 export function requestState(slug: string, id: string): OutboxState {
@@ -147,7 +158,9 @@ export function scanStates(slug: string): Record<string, OutboxState> {
     if (!SAFE_ID.test(id)) continue;
     // The filename is the id, verbatim: callers look these up by the same
     // board id writeRequest filed them under.
-    states[id] = entries.has(`${id}.ack.json`) ? requestState(slug, id) : 'pending';
+    states[id] = entries.has(`${id}.ack.json`)
+      ? requestState(slug, id)
+      : 'pending';
   }
   return states;
 }
@@ -216,7 +229,11 @@ export function writeRequest(
   };
 
   mkdirSync(slugDir(slug), { recursive: true });
-  writeFileSync(requestPath(slug, id), `${JSON.stringify(request, null, 2)}\n`, 'utf-8');
+  writeFileSync(
+    requestPath(slug, id),
+    `${JSON.stringify(request, null, 2)}\n`,
+    'utf-8',
+  );
   // Drop any ack left over from a previous attempt. The pull job's only
   // outstanding-signal is "no ack beside the request", so a stale ack makes a
   // fresh request invisible to it forever -- and prunePairs deliberately never

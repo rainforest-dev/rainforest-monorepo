@@ -19,14 +19,18 @@ export const GET: APIRoute = () => {
     // One directory read per company slug, not one fs check per card.
     const slugs = new Set(
       data.tasks
-        .map((t) => (t.component ? GREENLIGHT_TARGETS[t.component]?.slug : undefined))
+        .map((t) =>
+          t.component ? GREENLIGHT_TARGETS[t.component]?.slug : undefined,
+        )
         .filter((slug): slug is string => Boolean(slug)),
     );
     const outboxStates = statesForSlugs(slugs);
 
     data.tasks = data.tasks.map((t) => {
       const p = progress?.[String(t.id)];
-      const slug = t.component ? GREENLIGHT_TARGETS[t.component]?.slug : undefined;
+      const slug = t.component
+        ? GREENLIGHT_TARGETS[t.component]?.slug
+        : undefined;
       return {
         ...t,
         hasFeedback: noteHasFeedback(t),
@@ -34,7 +38,9 @@ export const GET: APIRoute = () => {
         pr: p?.pr ?? null,
         loopNote: p?.note ?? null,
         // Keyed by the board id exactly as writeRequest filed it.
-        outboxState: slug ? (outboxStates.get(slug)?.[String(t.id)] ?? null) : null,
+        outboxState: slug
+          ? (outboxStates.get(slug)?.[String(t.id)] ?? null)
+          : null,
       };
     });
     return Response.json(data);

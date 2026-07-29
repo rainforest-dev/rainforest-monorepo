@@ -171,7 +171,8 @@ export function parseTasks(content: string): TasksData | null {
   } catch {
     return null;
   }
-  if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return null;
+  if (typeof obj !== 'object' || obj === null || Array.isArray(obj))
+    return null;
   const o = obj as Record<string, unknown>;
 
   const statuses = strArray(o.statuses);
@@ -235,16 +236,23 @@ export function tasksProgressPath(): string {
  * content is not a usable object (so a missing/garbled overlay is simply absent);
  * individual malformed entries are skipped.
  */
-export function parseTasksProgress(content: string): Record<string, TaskProgress> | null {
+export function parseTasksProgress(
+  content: string,
+): Record<string, TaskProgress> | null {
   let obj: unknown;
   try {
     obj = JSON.parse(content);
   } catch {
     return null;
   }
-  if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return null;
+  if (typeof obj !== 'object' || obj === null || Array.isArray(obj))
+    return null;
   const tasksObj = (obj as Record<string, unknown>).tasks;
-  if (typeof tasksObj !== 'object' || tasksObj === null || Array.isArray(tasksObj)) {
+  if (
+    typeof tasksObj !== 'object' ||
+    tasksObj === null ||
+    Array.isArray(tasksObj)
+  ) {
     return null;
   }
 

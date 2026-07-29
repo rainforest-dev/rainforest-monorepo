@@ -28,19 +28,27 @@ import {
   taskOwner,
 } from '@/lib/taskStatus';
 
-const props = defineProps<{ task: SprintTask | null; open: boolean; statuses: string[] }>();
+const props = defineProps<{
+  task: SprintTask | null;
+  open: boolean;
+  statuses: string[];
+}>();
 const emit = defineEmits<{ close: [] }>();
 
 // The column the loop moved the task to (or the Notion status when untouched).
 // The Status row leads with this so it never contradicts the ◆ Loop row below;
 // the raw Notion status is shown as a muted secondary when the loop is ahead.
 const effStatus = computed(() =>
-  props.task ? effectiveStatus(props.task.status, props.task.loopStatus, props.statuses) : '',
+  props.task
+    ? effectiveStatus(props.task.status, props.task.loopStatus, props.statuses)
+    : '',
 );
 
 // Whose turn this task is on — the small owner marker in the Status row.
 const owner = computed(() =>
-  props.task ? ownerMeta(taskOwner(props.task.status, props.task.loopStatus)) : null,
+  props.task
+    ? ownerMeta(taskOwner(props.task.status, props.task.loopStatus))
+    : null,
 );
 const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
 
@@ -81,7 +89,11 @@ interface DecisionResponse {
   deliveryMode: 'local' | 'remote-queue' | 'none';
   outboxState: 'none' | 'pending' | 'applied' | 'duplicate' | 'failed';
   greenlit: boolean;
-  existing: { decision: 'greenlight' | 'plan-first'; comment: string; updatedAt: string | null } | null;
+  existing: {
+    decision: 'greenlight' | 'plan-first';
+    comment: string;
+    updatedAt: string | null;
+  } | null;
   executionPlan: ExecutionPlan | null;
 }
 
@@ -98,7 +110,9 @@ const decisionSaved = ref(false);
 const revocationNote = ref<string | null>(null);
 
 const greenlightLabel = computed(() =>
-  decision.value?.deliveryMode === 'remote-queue' ? 'Greenlight → Air' : 'Greenlight',
+  decision.value?.deliveryMode === 'remote-queue'
+    ? 'Greenlight → Air'
+    : 'Greenlight',
 );
 
 const outboxMessage = computed(() => {
@@ -131,13 +145,19 @@ const planError = ref<string | null>(null);
 const planSaved = ref(false);
 const selectedPlanId = ref('');
 
-function planId(value: Pick<ExecutionPlan, 'provider' | 'model' | 'effort'>): string {
+function planId(
+  value: Pick<ExecutionPlan, 'provider' | 'model' | 'effort'>,
+): string {
   return `${value.provider}:${value.model}:${value.effort}`;
 }
 
 const selectedPlan = computed<PlanCandidate | null>(() => {
   if (!plan.value) return null;
-  return plan.value.candidates.find((candidate) => candidate.id === selectedPlanId.value) ?? null;
+  return (
+    plan.value.candidates.find(
+      (candidate) => candidate.id === selectedPlanId.value,
+    ) ?? null
+  );
 });
 
 function formatTokens(value: number): string {
@@ -217,7 +237,9 @@ async function fetchPlan(id: string) {
     plan.value = data;
     selectedPlanId.value = data.saved
       ? planId(data.saved)
-      : data.candidates.find((candidate) => candidate.recommended)?.id ?? data.candidates[0]?.id ?? '';
+      : (data.candidates.find((candidate) => candidate.recommended)?.id ??
+        data.candidates[0]?.id ??
+        '');
   } catch (e) {
     planError.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -233,13 +255,17 @@ async function savePlan() {
   planError.value = null;
   planSaved.value = false;
   try {
-    const res = await fetch(`/api/task-plan?id=${encodeURIComponent(String(id))}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ plan: candidate }),
-    });
+    const res = await fetch(
+      `/api/task-plan?id=${encodeURIComponent(String(id))}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ plan: candidate }),
+      },
+    );
     const data = await readJson<{ plan?: ExecutionPlan; error?: string }>(res);
-    if (!res.ok || !data?.plan) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    if (!res.ok || !data?.plan)
+      throw new Error(data?.error ?? `HTTP ${res.status}`);
     if (plan.value) plan.value.saved = data.plan;
     selectedPlanId.value = planId(data.plan);
     planSaved.value = true;
@@ -258,11 +284,14 @@ async function saveFeedback() {
   saveError.value = null;
   saved.value = false;
   try {
-    const res = await fetch(`/api/task-feedback?id=${encodeURIComponent(String(id))}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ feedback: feedbackDraft.value }),
-    });
+    const res = await fetch(
+      `/api/task-feedback?id=${encodeURIComponent(String(id))}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ feedback: feedbackDraft.value }),
+      },
+    );
     const data = await readJson<NoteResponse>(res);
     if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
     if (!data) throw new Error(`HTTP ${res.status}: empty response`);
@@ -286,19 +315,24 @@ async function saveDecision(kind: 'greenlight' | 'plan-first') {
   decisionSaved.value = false;
   revocationNote.value = null;
   try {
-    const res = await fetch(`/api/task-decision?id=${encodeURIComponent(String(id))}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ decision: kind, comment: decisionDraft.value }),
-    });
+    const res = await fetch(
+      `/api/task-decision?id=${encodeURIComponent(String(id))}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ decision: kind, comment: decisionDraft.value }),
+      },
+    );
     const data = await readJson<{
       guidance?: DecisionResponse;
       revocationNote?: string | null;
       error?: string;
     }>(res);
-    if (!res.ok || !data?.guidance) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    if (!res.ok || !data?.guidance)
+      throw new Error(data?.error ?? `HTTP ${res.status}`);
     decision.value = data.guidance;
-    decisionDraft.value = data.guidance.existing?.comment || data.guidance.suggestedComment;
+    decisionDraft.value =
+      data.guidance.existing?.comment || data.guidance.suggestedComment;
     decisionSaved.value = true;
     revocationNote.value = data.revocationNote ?? null;
     // The greenlight file and note are server-side state; refresh the board so
@@ -370,7 +404,9 @@ onMounted(() => {
           aria-modal="true"
           :aria-label="task.name"
         >
-          <header class="border-border flex items-start gap-3 border-b px-5 py-4">
+          <header
+            class="border-border flex items-start gap-3 border-b px-5 py-4"
+          >
             <FileText class="text-muted-foreground mt-0.5 size-4 shrink-0" />
             <div class="min-w-0 flex-1">
               <p class="text-muted-foreground font-mono text-xs">
@@ -418,7 +454,11 @@ onMounted(() => {
                   :style="{ color: owner.color }"
                   :title="`Owner: ${owner.label}`"
                 >
-                  <component :is="OWNER_ICON[owner.key]" class="size-3" aria-hidden="true" />
+                  <component
+                    :is="OWNER_ICON[owner.key]"
+                    class="size-3"
+                    aria-hidden="true"
+                  />
                   {{ owner.key === 'you' ? 'Your action' : owner.label }}
                 </span>
               </dd>
@@ -448,7 +488,9 @@ onMounted(() => {
             </div>
             <div class="flex items-center gap-2">
               <dt class="text-muted-foreground text-xs">Points</dt>
-              <dd class="text-foreground tabular-nums">{{ task.points ?? '—' }}</dd>
+              <dd class="text-foreground tabular-nums">
+                {{ task.points ?? '—' }}
+              </dd>
             </div>
             <div v-if="task.component" class="flex items-center gap-2">
               <dt class="text-muted-foreground text-xs">Component</dt>
@@ -518,15 +560,22 @@ onMounted(() => {
               <div class="flex items-start gap-2">
                 <Cpu class="text-primary mt-0.5 size-4 shrink-0" />
                 <div class="min-w-0">
-                  <h3 class="text-foreground text-sm font-semibold">Choose an execution plan</h3>
+                  <h3 class="text-foreground text-sm font-semibold">
+                    Choose an execution plan
+                  </h3>
                   <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
-                    Compare all supported providers before deciding who should run this task.
-                    Estimates are token/time caps; subscription quota is not a bill.
+                    Compare all supported providers before deciding who should
+                    run this task. Estimates are token/time caps; subscription
+                    quota is not a bill.
                   </p>
                 </div>
               </div>
-              <div v-if="planLoading" class="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
-                <Loader2 class="size-3.5 animate-spin" /> Reading provider budgets…
+              <div
+                v-if="planLoading"
+                class="text-muted-foreground mt-3 flex items-center gap-2 text-sm"
+              >
+                <Loader2 class="size-3.5 animate-spin" /> Reading provider
+                budgets…
               </div>
               <p v-else-if="planError" class="text-destructive mt-3 text-xs">
                 Unable to prepare provider plans: {{ planError }}
@@ -537,40 +586,71 @@ onMounted(() => {
                   :key="candidate.id"
                   type="button"
                   class="border-border bg-background hover:border-primary/60 w-full rounded-md border p-2.5 text-left transition-colors"
-                  :class="selectedPlanId === candidate.id ? 'border-primary ring-primary/30 ring-2' : ''"
+                  :class="
+                    selectedPlanId === candidate.id
+                      ? 'border-primary ring-primary/30 ring-2'
+                      : ''
+                  "
                   :aria-pressed="selectedPlanId === candidate.id"
                   @click="selectedPlanId = candidate.id"
                 >
                   <div class="flex items-center justify-between gap-2">
-                    <span class="text-foreground text-xs font-semibold">{{ candidate.label }}</span>
+                    <span class="text-foreground text-xs font-semibold">{{
+                      candidate.label
+                    }}</span>
                     <span
                       v-if="candidate.recommended"
-                      class="text-primary rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium"
+                      class="text-primary bg-primary/10 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
                     >
                       Recommended
                     </span>
                   </div>
-                  <div class="text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px]">
+                  <div
+                    class="text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px]"
+                  >
                     <span>{{ candidate.model }}</span>
                     <span>· {{ candidate.effort }}</span>
-                    <span>· {{ formatTokens(candidate.inputTokens) }} in / {{ formatTokens(candidate.outputTokens) }} out</span>
+                    <span
+                      >· {{ formatTokens(candidate.inputTokens) }} in /
+                      {{ formatTokens(candidate.outputTokens) }} out</span
+                    >
                     <span>· {{ candidate.maxMinutes }} min cap</span>
                   </div>
-                  <div class="text-muted-foreground mt-1 flex flex-wrap gap-x-2 text-[10px]">
+                  <div
+                    class="text-muted-foreground mt-1 flex flex-wrap gap-x-2 text-[10px]"
+                  >
                     <span>{{ candidate.quotaWindow }}</span>
-                    <span>· {{ candidate.sourceMachine ?? 'no snapshot' }}</span>
-                    <span v-if="candidate.usedPct !== null">· {{ candidate.usedPct }}% used</span>
+                    <span
+                      >· {{ candidate.sourceMachine ?? 'no snapshot' }}</span
+                    >
+                    <span v-if="candidate.usedPct !== null"
+                      >· {{ candidate.usedPct }}% used</span
+                    >
                     <span v-else>· estimate only</span>
-                    <span v-if="candidate.availability === 'stale'" class="text-status-warning">· stale</span>
+                    <span
+                      v-if="candidate.availability === 'stale'"
+                      class="text-status-warning"
+                      >· stale</span
+                    >
                   </div>
                 </button>
-                <p class="text-muted-foreground text-[11px]">{{ selectedPlan?.rationale }}</p>
+                <p class="text-muted-foreground text-[11px]">
+                  {{ selectedPlan?.rationale }}
+                </p>
                 <div class="flex items-center justify-between gap-2 pt-1">
-                  <p v-if="planSaved || plan.saved" class="text-[11px]" :style="{ color: 'var(--status-good)' }">
+                  <p
+                    v-if="planSaved || plan.saved"
+                    class="text-[11px]"
+                    :style="{ color: 'var(--status-good)' }"
+                  >
                     Plan saved. You can still change it before greenlighting.
                   </p>
                   <span v-else />
-                  <Button size="sm" :disabled="planSaving || !selectedPlan" @click="savePlan">
+                  <Button
+                    size="sm"
+                    :disabled="planSaving || !selectedPlan"
+                    @click="savePlan"
+                  >
                     <Loader2 v-if="planSaving" class="size-3.5 animate-spin" />
                     <Cpu v-else class="size-3.5" />
                     {{ planSaving ? 'Saving…' : 'Save plan' }}
@@ -586,8 +666,12 @@ onMounted(() => {
               class="border-border bg-muted/25 mb-5 rounded-lg border p-3.5"
               aria-label="Loop decision"
             >
-              <div v-if="decisionLoading" class="text-muted-foreground flex items-center gap-2 text-sm">
-                <Loader2 class="size-3.5 animate-spin" /> Preparing decision guidance…
+              <div
+                v-if="decisionLoading"
+                class="text-muted-foreground flex items-center gap-2 text-sm"
+              >
+                <Loader2 class="size-3.5 animate-spin" /> Preparing decision
+                guidance…
               </div>
               <p v-else-if="decisionError" class="text-destructive text-sm">
                 Unable to load decision guidance: {{ decisionError }}
@@ -604,16 +688,28 @@ onMounted(() => {
                     class="text-status-warning mt-0.5 size-4 shrink-0"
                   />
                   <div class="min-w-0">
-                    <h3 class="text-foreground text-sm font-semibold">{{ decision.title }}</h3>
-                    <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    <h3 class="text-foreground text-sm font-semibold">
+                      {{ decision.title }}
+                    </h3>
+                    <p
+                      class="text-muted-foreground mt-1 text-xs leading-relaxed"
+                    >
                       {{ decision.summary }}
                     </p>
                   </div>
                 </div>
-                <ul v-if="decision.reasons.length" class="text-muted-foreground mt-2.5 space-y-1 pl-5 text-xs">
-                  <li v-for="reason in decision.reasons" :key="reason">{{ reason }}</li>
+                <ul
+                  v-if="decision.reasons.length"
+                  class="text-muted-foreground mt-2.5 space-y-1 pl-5 text-xs"
+                >
+                  <li v-for="reason in decision.reasons" :key="reason">
+                    {{ reason }}
+                  </li>
                 </ul>
-                <label class="text-muted-foreground mt-3 block text-xs font-medium" for="decision-comment">
+                <label
+                  class="text-muted-foreground mt-3 block text-xs font-medium"
+                  for="decision-comment"
+                >
                   Owner comment
                 </label>
                 <textarea
@@ -626,8 +722,13 @@ onMounted(() => {
                 <p v-if="decisionError" class="text-destructive mt-1.5 text-xs">
                   {{ decisionError }}
                 </p>
-                <p v-if="decisionSaved" class="mt-1.5 text-xs" :style="{ color: 'var(--status-good)' }">
-                  Decision saved. The loop remains stopped until its normal scheduler/command runs.
+                <p
+                  v-if="decisionSaved"
+                  class="mt-1.5 text-xs"
+                  :style="{ color: 'var(--status-good)' }"
+                >
+                  Decision saved. The loop remains stopped until its normal
+                  scheduler/command runs.
                 </p>
                 <p
                   v-if="revocationNote"
@@ -643,14 +744,21 @@ onMounted(() => {
                     :disabled="decisionSaving"
                     @click="saveDecision('plan-first')"
                   >
-                    <Loader2 v-if="decisionSaving" class="size-3.5 animate-spin" />
+                    <Loader2
+                      v-if="decisionSaving"
+                      class="size-3.5 animate-spin"
+                    />
                     <AlertTriangle v-else class="size-3.5" />
                     Plan first
                   </Button>
                   <Button
                     v-if="decision.project"
                     size="sm"
-                    :disabled="decisionSaving || decision.recommendation !== 'greenlight' || decision.greenlit"
+                    :disabled="
+                      decisionSaving ||
+                      decision.recommendation !== 'greenlight' ||
+                      decision.greenlit
+                    "
                     :title="
                       decision.greenlit
                         ? 'Already on the owner-maintained greenlight list'
@@ -660,18 +768,32 @@ onMounted(() => {
                     "
                     @click="saveDecision('greenlight')"
                   >
-                    <Loader2 v-if="decisionSaving" class="size-3.5 animate-spin" />
+                    <Loader2
+                      v-if="decisionSaving"
+                      class="size-3.5 animate-spin"
+                    />
                     <ShieldCheck v-else class="size-3.5" />
                     {{ decision.greenlit ? 'Greenlit' : greenlightLabel }}
                   </Button>
                 </div>
-                <p v-if="outboxMessage" class="text-muted-foreground mt-2 text-xs">{{ outboxMessage }}</p>
+                <p
+                  v-if="outboxMessage"
+                  class="text-muted-foreground mt-2 text-xs"
+                >
+                  {{ outboxMessage }}
+                </p>
               </template>
             </section>
-            <p v-if="loading" class="text-muted-foreground py-8 text-center text-sm">
+            <p
+              v-if="loading"
+              class="text-muted-foreground py-8 text-center text-sm"
+            >
               Loading note…
             </p>
-            <p v-else-if="error" class="text-destructive py-8 text-center text-sm">
+            <p
+              v-else-if="error"
+              class="text-destructive py-8 text-center text-sm"
+            >
               Failed to load note: {{ error }}
             </p>
             <div
@@ -684,12 +806,18 @@ onMounted(() => {
 
             <template v-else-if="note && note.found">
               <!-- Rendered note (read-only context) -->
-              <div v-if="note.html" class="note-body text-sm" v-html="note.html" />
+              <div
+                v-if="note.html"
+                class="note-body text-sm"
+                v-html="note.html"
+              />
 
               <!-- Editable feedback → written back into the note's ## Feedback -->
               <section class="border-border mt-5 border-t pt-4">
                 <div class="mb-1.5 flex items-center justify-between gap-2">
-                  <h3 class="text-foreground text-sm font-semibold">Feedback</h3>
+                  <h3 class="text-foreground text-sm font-semibold">
+                    Feedback
+                  </h3>
                   <span
                     v-if="saved"
                     class="inline-flex items-center gap-1 text-[11px]"
@@ -700,8 +828,8 @@ onMounted(() => {
                 </div>
                 <p class="text-muted-foreground mb-2 text-xs">
                   Your tuning directives — saved to this note's
-                  <code class="text-foreground">## Feedback</code> section (the loop's
-                  outcome above stays untouched).
+                  <code class="text-foreground">## Feedback</code> section (the
+                  loop's outcome above stays untouched).
                 </p>
                 <textarea
                   v-model="feedbackDraft"
@@ -715,10 +843,15 @@ onMounted(() => {
                 </p>
                 <div class="mt-2 flex items-center justify-between gap-3">
                   <p class="text-muted-foreground text-[11px]">
-                    Run the <code class="text-foreground">tune</code> skill to apply this
-                    feedback to Notion.
+                    Run the <code class="text-foreground">tune</code> skill to
+                    apply this feedback to Notion.
                   </p>
-                  <Button size="sm" class="shrink-0" :disabled="saving || !dirty" @click="saveFeedback">
+                  <Button
+                    size="sm"
+                    class="shrink-0"
+                    :disabled="saving || !dirty"
+                    @click="saveFeedback"
+                  >
                     <Loader2 v-if="saving" class="size-3.5 animate-spin" />
                     <Save v-else class="size-3.5" />
                     {{ saving ? 'Saving…' : 'Save' }}
@@ -746,7 +879,9 @@ onMounted(() => {
             v-else-if="note && note.path"
             class="border-border border-t px-5 py-3"
           >
-            <span class="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
+            <span
+              class="text-muted-foreground inline-flex items-center gap-1.5 text-xs"
+            >
               <Badge variant="outline" class="text-[10px]">local</Badge>
               <code class="truncate">{{ note.path }}</code>
             </span>

@@ -26,7 +26,9 @@ const GAP = 2; // surface gap between adjacent bars / stacked segments
 const W = computed(() => Math.max(width.value || 0, 320));
 const plotW = computed(() => W.value - PAD_L - PAD_R);
 const n = computed(() => props.series.length);
-const bandW = computed(() => (n.value > 0 ? plotW.value / n.value : plotW.value));
+const bandW = computed(() =>
+  n.value > 0 ? plotW.value / n.value : plotW.value,
+);
 const center = (i: number) => PAD_L + (i + 0.5) * bandW.value;
 
 const maxCost = computed(() =>
@@ -48,7 +50,10 @@ const costArea = computed(() => {
 
 const costLine = computed(() => {
   if (n.value === 0) return '';
-  return 'M ' + props.series.map((d, i) => `${center(i)},${costY(d.cost)}`).join(' L ');
+  return (
+    'M ' +
+    props.series.map((d, i) => `${center(i)},${costY(d.cost)}`).join(' L ')
+  );
 });
 
 const barInnerW = computed(() => Math.max(1, bandW.value - GAP));
@@ -83,7 +88,10 @@ const ticks = computed(() => {
     const i = Math.round(k * step);
     if (seen.has(i)) continue;
     seen.add(i);
-    out.push({ x: center(i), label: format(parseISO(props.series[i].date), 'MMM d') });
+    out.push({
+      x: center(i),
+      label: format(parseISO(props.series[i].date), 'MMM d'),
+    });
   }
   return out;
 });
@@ -108,7 +116,10 @@ const hoverX = computed(() =>
 );
 const tooltipStyle = computed(() => {
   const cx = hoverX.value;
-  const side = cx > W.value / 2 ? { right: `${W.value - cx + 8}px` } : { left: `${cx + 8}px` };
+  const side =
+    cx > W.value / 2
+      ? { right: `${W.value - cx + 8}px` }
+      : { left: `${cx + 8}px` };
   return { top: '8px', ...side };
 });
 </script>

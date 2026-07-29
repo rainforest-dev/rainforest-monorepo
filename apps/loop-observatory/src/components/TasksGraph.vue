@@ -1,12 +1,28 @@
 <script setup lang="ts">
-import { Bot, Check, Circle, ExternalLink, Hand, Minus, Plus, RotateCcw } from '@lucide/vue';
+import {
+  Bot,
+  Check,
+  Circle,
+  ExternalLink,
+  Hand,
+  Minus,
+  Plus,
+  RotateCcw,
+} from '@lucide/vue';
 import {
   useDocumentVisibility,
   useIntersectionObserver,
   useMediaQuery,
   useRafFn,
 } from '@vueuse/core';
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
 
 // Type-only: keep the client bundle free of tasks.ts's node:fs/node:path deps
 // (mirrors TaskDetail/TasksBoard's type-only import of tasks.ts).
@@ -55,11 +71,51 @@ interface Station {
 // Ring stations, in pipeline order. `rail` seats chips along the station's
 // in-trace, stepping (dx,dy) per slot; directions chosen to clear the core + peers.
 const STATIONS: Station[] = [
-  { key: 'notstarted', label: 'Not started', cx: 200, cy: 165, labelX: 200, labelY: 132, rail: { x: 200, y: 272, dx: 0, dy: 60 } },
-  { key: 'inprogress', label: 'In progress', cx: 690, cy: 165, labelX: 690, labelY: 132, rail: { x: 560, y: 165, dx: -150, dy: 0 } },
-  { key: 'inreview', label: 'In review', cx: 800, cy: 365, labelX: 800, labelY: 398, rail: { x: 850, y: 276, dx: 0, dy: 44 } },
-  { key: 'inqa', label: 'In QA', cx: 600, cy: 545, labelX: 600, labelY: 578, rail: { x: 600, y: 588, dx: 0, dy: 54 } },
-  { key: 'done', label: 'Done', cx: 200, cy: 545, labelX: 200, labelY: 578, rail: { x: 300, y: 545, dx: 120, dy: 0 } },
+  {
+    key: 'notstarted',
+    label: 'Not started',
+    cx: 200,
+    cy: 165,
+    labelX: 200,
+    labelY: 132,
+    rail: { x: 200, y: 272, dx: 0, dy: 60 },
+  },
+  {
+    key: 'inprogress',
+    label: 'In progress',
+    cx: 690,
+    cy: 165,
+    labelX: 690,
+    labelY: 132,
+    rail: { x: 560, y: 165, dx: -150, dy: 0 },
+  },
+  {
+    key: 'inreview',
+    label: 'In review',
+    cx: 800,
+    cy: 365,
+    labelX: 800,
+    labelY: 398,
+    rail: { x: 850, y: 276, dx: 0, dy: 44 },
+  },
+  {
+    key: 'inqa',
+    label: 'In QA',
+    cx: 600,
+    cy: 545,
+    labelX: 600,
+    labelY: 578,
+    rail: { x: 600, y: 588, dx: 0, dy: 54 },
+  },
+  {
+    key: 'done',
+    label: 'Done',
+    cx: 200,
+    cy: 545,
+    labelX: 200,
+    labelY: 578,
+    rail: { x: 300, y: 545, dx: 120, dy: 0 },
+  },
 ];
 // Blocked side-station (off the ring, grounded).
 const BLOCKED: Station = {
@@ -72,7 +128,9 @@ const BLOCKED: Station = {
   rail: { x: 678, y: 246, dx: 0, dy: 44 },
 };
 const ALL_STATIONS = [...STATIONS, BLOCKED];
-const RAIL_OF: Record<string, Rail> = Object.fromEntries(ALL_STATIONS.map((s) => [s.key, s.rail]));
+const RAIL_OF: Record<string, Rail> = Object.fromEntries(
+  ALL_STATIONS.map((s) => [s.key, s.rail]),
+);
 const STATION_LABEL: Record<string, string> = Object.fromEntries(
   ALL_STATIONS.map((s) => [s.key, s.label]),
 );
@@ -174,7 +232,10 @@ function toggleOverflow(key: string) {
   expanded[key] = !expanded[key];
 }
 function railStyle(rail: Rail, i: number): Record<string, string> {
-  return { left: `${rail.x + rail.dx * i}px`, top: `${rail.y + rail.dy * i}px` };
+  return {
+    left: `${rail.x + rail.dx * i}px`,
+    top: `${rail.y + rail.dy * i}px`,
+  };
 }
 
 interface PlacedChip {
@@ -195,7 +256,9 @@ const placed = computed(() => {
     if (!rail) continue;
     const isExp = expanded[key];
     const shown = isExp ? list : list.slice(0, CAP);
-    shown.forEach((t, i) => chips.push({ id: chipId(t), task: t, style: railStyle(rail, i) }));
+    shown.forEach((t, i) =>
+      chips.push({ id: chipId(t), task: t, style: railStyle(rail, i) }),
+    );
     const extra = list.length - CAP;
     if (extra > 0) {
       overflow.push({
@@ -211,13 +274,17 @@ const placed = computed(() => {
 // ── Live current: which traces flow, the loop core, the beat cadence ─────────
 // t1 (→ In progress) flows blue when the AI is executing there; t2 (→ In review)
 // flows a calmer amber when PRs are waiting on you.
-const inProgressActive = computed(() => binned.value.inprogress?.some((t) => ownerOf(t) === 'ai'));
+const inProgressActive = computed(() =>
+  binned.value.inprogress?.some((t) => ownerOf(t) === 'ai'),
+);
 const inReviewActive = computed(() =>
   binned.value.inreview?.some((t) => isPrReady(t) || ownerOf(t) === 'you'),
 );
 const anyFlow = computed(() => inProgressActive.value || inReviewActive.value);
 
-const aiActiveCount = computed(() => props.tasks.filter((t) => ownerOf(t) === 'ai').length);
+const aiActiveCount = computed(
+  () => props.tasks.filter((t) => ownerOf(t) === 'ai').length,
+);
 const liveTask = computed<SprintTask | null>(() => {
   const ai = props.tasks.filter((t) => ownerOf(t) === 'ai');
   return ai.find((t) => stationOf(t) === 'inprogress') ?? ai[0] ?? null;
@@ -229,7 +296,8 @@ const beatStyle = computed(() => ({
 const coreStageLabel = computed(() => {
   const t = liveTask.value;
   if (!t) return '';
-  const stage = loopStageLabel(t.loopStatus, props.statuses) ?? t.loopStatus ?? 'executing';
+  const stage =
+    loopStageLabel(t.loopStatus, props.statuses) ?? t.loopStatus ?? 'executing';
   const n = aiActiveCount.value;
   return `Executing · ${stage} · ${n} AI ${n === 1 ? 'task' : 'tasks'} live`;
 });
@@ -300,7 +368,8 @@ function onMove(e: PointerEvent) {
   if (!dragging) return;
   view.x = ox + (e.clientX - sx);
   view.y = oy + (e.clientY - sy);
-  if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 3) moved.value = true;
+  if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 3)
+    moved.value = true;
 }
 function onUp(e: PointerEvent) {
   dragging = false;
@@ -348,7 +417,11 @@ let elapsed = 0;
 // The trace `d` attributes are static, so total length never changes — cache it
 // once per path instead of recomputing (a layout-forcing call) every rAF tick.
 const pathLenCache = new WeakMap<SVGPathElement, number>();
-function movePacket(path: SVGPathElement | null, packet: SVGCircleElement | null, f: number) {
+function movePacket(
+  path: SVGPathElement | null,
+  packet: SVGCircleElement | null,
+  f: number,
+) {
   if (!path || !packet) return;
   let len = pathLenCache.get(path);
   if (len === undefined) {
@@ -395,10 +468,27 @@ onBeforeUnmount(() => {
   <div class="border-border relative overflow-hidden rounded-lg border">
     <!-- Legend (color is never the sole signal — icons + textures back it) -->
     <div class="legend" role="group" aria-label="Graph legend">
-      <span class="item"><Bot class="ico" :style="{ color: ownerMeta('ai').color }" />AI</span>
-      <span class="item"><Hand class="ico" :style="{ color: ownerMeta('you').color }" />You</span>
-      <span class="item"><Check class="ico" :style="{ color: ownerMeta('done').color }" />Done</span>
-      <span class="item"><Circle class="ico" :style="{ color: ownerMeta('parked').color }" />Parked</span>
+      <span class="item"
+        ><Bot class="ico" :style="{ color: ownerMeta('ai').color }" />AI</span
+      >
+      <span class="item"
+        ><Hand
+          class="ico"
+          :style="{ color: ownerMeta('you').color }"
+        />You</span
+      >
+      <span class="item"
+        ><Check
+          class="ico"
+          :style="{ color: ownerMeta('done').color }"
+        />Done</span
+      >
+      <span class="item"
+        ><Circle
+          class="ico"
+          :style="{ color: ownerMeta('parked').color }"
+        />Parked</span
+      >
       <span class="sep" />
       <span class="item"><span class="flowkey" />AI current (live)</span>
       <span class="item"><span class="flowkey you" />Your turn (PR ready)</span>
@@ -409,7 +499,8 @@ onBeforeUnmount(() => {
     <!-- Screen-reader pipeline summary (the SVG board is aria-hidden). -->
     <ul class="sr-only" aria-label="Pipeline station counts">
       <li v-for="s in ALL_STATIONS" :key="`sr-${s.key}`">
-        {{ s.label }}: {{ stationCount(s.key) }} {{ stationCount(s.key) === 1 ? 'task' : 'tasks' }}
+        {{ s.label }}: {{ stationCount(s.key) }}
+        {{ stationCount(s.key) === 1 ? 'task' : 'tasks' }}
       </li>
     </ul>
 
@@ -429,7 +520,11 @@ onBeforeUnmount(() => {
         <svg :viewBox="`0 0 ${BOARD_W} ${BOARD_H}`" aria-hidden="true">
           <!-- Return trace (Done → Not started): copper + one slow lone pulse -->
           <path class="trace-return" d="M 200 513 L 200 197" />
-          <path class="trace-return-pulse" :class="{ flowing: anyFlow }" d="M 200 513 L 200 197" />
+          <path
+            class="trace-return-pulse"
+            :class="{ flowing: anyFlow }"
+            d="M 200 513 L 200 197"
+          />
 
           <!-- In QA → Done : static copper -->
           <path class="trace-base" d="M 568 545 L 232 545" />
@@ -446,7 +541,11 @@ onBeforeUnmount(() => {
           />
 
           <!-- In progress → In review : your-turn (amber), flows when PRs wait on you -->
-          <path ref="pathYouEl" class="trace-base" d="M 704 190 Q 820 250 800 323" />
+          <path
+            ref="pathYouEl"
+            class="trace-base"
+            d="M 704 190 Q 820 250 800 323"
+          />
           <path
             class="trace-overlay you"
             :class="{ flowing: inReviewActive }"
@@ -461,21 +560,36 @@ onBeforeUnmount(() => {
           <line class="spur-ground" x1="681" y1="416" x2="699" y2="416" />
 
           <!-- Moving glow packets on the live traces -->
-          <circle v-if="inProgressActive && !reduced" ref="packetAiEl" class="packet ai" r="4.5" />
-          <circle v-if="inReviewActive && !reduced" ref="packetYouEl" class="packet you" r="4.5" />
+          <circle
+            v-if="inProgressActive && !reduced"
+            ref="packetAiEl"
+            class="packet ai"
+            r="4.5"
+          />
+          <circle
+            v-if="inReviewActive && !reduced"
+            ref="packetYouEl"
+            class="packet you"
+            r="4.5"
+          />
 
           <!-- Ring stations -->
           <g
             v-for="s in STATIONS"
             :key="s.key"
             class="station"
-            :class="{ glow: (s.key === 'inprogress' && inProgressActive) || (s.key === 'inreview' && inReviewActive) }"
+            :class="{
+              glow:
+                (s.key === 'inprogress' && inProgressActive) ||
+                (s.key === 'inreview' && inReviewActive),
+            }"
           >
             <title>{{ stationTip(s) }}</title>
             <circle class="ring" :cx="s.cx" :cy="s.cy" r="20" />
             <circle class="pad" :cx="s.cx" :cy="s.cy" r="12" />
             <text :x="s.labelX" :y="s.labelY" text-anchor="middle">
-              {{ s.label }} <tspan class="count">·{{ stationCount(s.key) }}</tspan>
+              {{ s.label }}
+              <tspan class="count">·{{ stationCount(s.key) }}</tspan>
             </text>
           </g>
 
@@ -498,7 +612,11 @@ onBeforeUnmount(() => {
             :style="beatStyle"
             role="button"
             :tabindex="aiActiveCount > 0 ? 0 : -1"
-            :aria-label="liveTask ? `Live iteration: ${shortName(liveTask.name)}` : 'Loop at rest'"
+            :aria-label="
+              liveTask
+                ? `Live iteration: ${shortName(liveTask.name)}`
+                : 'Loop at rest'
+            "
             @click="selectTask(liveTask)"
             @keydown.enter.prevent="selectTask(liveTask)"
             @keydown.space.prevent="selectTask(liveTask)"
@@ -509,11 +627,16 @@ onBeforeUnmount(() => {
               <div class="meta">
                 <span
                   class="ownerchip"
-                  :style="{ borderColor: ownerMeta('ai').color, color: ownerMeta('ai').color }"
+                  :style="{
+                    borderColor: ownerMeta('ai').color,
+                    color: ownerMeta('ai').color,
+                  }"
                 >
                   <Bot class="ico" />AI
                 </span>
-                <span v-if="liveTask.points != null" class="pts">{{ liveTask.points }} pts</span>
+                <span v-if="liveTask.points != null" class="pts"
+                  >{{ liveTask.points }} pts</span
+                >
                 <span
                   v-if="liveTask.epic"
                   class="edot"
@@ -524,7 +647,9 @@ onBeforeUnmount(() => {
               <div class="stage-label">{{ coreStageLabel }}</div>
             </template>
             <div v-else class="rest">
-              Loop at rest<br /><span class="rest-sub">no AI task executing</span>
+              Loop at rest<br /><span class="rest-sub"
+                >no AI task executing</span
+              >
             </div>
           </div>
         </div>
@@ -587,14 +712,25 @@ onBeforeUnmount(() => {
               >
                 <ExternalLink class="oico" />
               </a>
-              <span v-if="c.task.hasFeedback" class="fb" title="Feedback awaiting tuning">◆</span>
+              <span
+                v-if="c.task.hasFeedback"
+                class="fb"
+                title="Feedback awaiting tuning"
+                >◆</span
+              >
             </span>
           </div>
           <span class="badge">
             <span class="ref">#{{ c.task.id ?? '—' }}</span>
-            <template v-if="c.task.component"> · {{ c.task.component }}</template>
-            <template v-if="c.task.points != null"> · {{ c.task.points }} pts</template>
-            <template v-if="c.task.scope === 'personal'"> · {{ scopeBadge('personal').label }}</template>
+            <template v-if="c.task.component">
+              · {{ c.task.component }}</template
+            >
+            <template v-if="c.task.points != null">
+              · {{ c.task.points }} pts</template
+            >
+            <template v-if="c.task.scope === 'personal'">
+              · {{ scopeBadge('personal').label }}</template
+            >
           </span>
           <span
             v-if="loopStageLabel(c.task.loopStatus, statuses)"
@@ -622,16 +758,32 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Reduced-motion LIVE badges (CSS-shown only under reduce) -->
-        <span v-if="inProgressActive" class="livebadge" style="left: 445px; top: 148px">● LIVE</span>
-        <span v-if="inReviewActive" class="livebadge" style="left: 792px; top: 250px">● LIVE</span>
+        <span
+          v-if="inProgressActive"
+          class="livebadge"
+          style="left: 445px; top: 148px"
+          >● LIVE</span
+        >
+        <span
+          v-if="inReviewActive"
+          class="livebadge"
+          style="left: 792px; top: 250px"
+          >● LIVE</span
+        >
       </div>
 
       <!-- Zoom toolbar (reuses the pan/zoom shell) -->
       <div class="toolbar">
-        <button type="button" aria-label="Zoom in" @click="zoomIn"><Plus class="oico" /></button>
+        <button type="button" aria-label="Zoom in" @click="zoomIn">
+          <Plus class="oico" />
+        </button>
         <div class="z">{{ Math.round(view.scale * 100) }}%</div>
-        <button type="button" aria-label="Zoom out" @click="zoomOut"><Minus class="oico" /></button>
-        <button type="button" aria-label="Reset view" @click="reset"><RotateCcw class="oico" /></button>
+        <button type="button" aria-label="Zoom out" @click="zoomOut">
+          <Minus class="oico" />
+        </button>
+        <button type="button" aria-label="Reset view" @click="reset">
+          <RotateCcw class="oico" />
+        </button>
       </div>
     </div>
   </div>
@@ -739,7 +891,11 @@ onBeforeUnmount(() => {
   touch-action: none;
   cursor: grab;
   background:
-    radial-gradient(1200px 600px at 60% -10%, color-mix(in oklab, var(--chart-2) 6%, transparent), transparent 60%),
+    radial-gradient(
+      1200px 600px at 60% -10%,
+      color-mix(in oklab, var(--chart-2) 6%, transparent),
+      transparent 60%
+    ),
     var(--muted, transparent);
 }
 .stage:active {
@@ -843,7 +999,9 @@ onBeforeUnmount(() => {
 }
 .station.glow .pad {
   stroke: var(--status-good);
-  filter: drop-shadow(0 0 8px color-mix(in oklab, var(--status-good) 60%, transparent));
+  filter: drop-shadow(
+    0 0 8px color-mix(in oklab, var(--status-good) 60%, transparent)
+  );
 }
 .station .ring {
   fill: none;
@@ -890,7 +1048,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   padding: 12px 13px;
   cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.2s ease;
+  transition:
+    transform 0.12s ease,
+    border-color 0.2s ease;
 }
 .core:hover {
   transform: scale(1.02);
@@ -1006,7 +1166,11 @@ onBeforeUnmount(() => {
   padding: 6px 8px 7px;
   box-shadow: var(--shadow, 0 1px 2px rgb(0 0 0 / 0.08));
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    filter 0.18s ease,
+    opacity 0.18s ease;
   z-index: 5;
 }
 .chip:hover,

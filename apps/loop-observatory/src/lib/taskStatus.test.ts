@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_STATUSES, effectiveStatus, loopStageLabel } from './taskStatus.js';
+import {
+  DEFAULT_STATUSES,
+  effectiveStatus,
+  loopStageLabel,
+} from './taskStatus.js';
 import {
   BOARD_COLUMNS,
   boardColumn,
@@ -24,19 +28,31 @@ describe('effectiveStatus', () => {
 
   it('maps a finer loop sub-state onto its board column', () => {
     // #22: Notion "Not started", loop "PR ready" → lives in the "In progress / PR" lane.
-    expect(effectiveStatus('Not started', 'PR ready', STATUSES)).toBe('In progress / PR');
-    expect(effectiveStatus('Not started', 'In progress', STATUSES)).toBe('In progress / PR');
-    expect(effectiveStatus('Not started', 'Queued', STATUSES)).toBe('Not started');
+    expect(effectiveStatus('Not started', 'PR ready', STATUSES)).toBe(
+      'In progress / PR',
+    );
+    expect(effectiveStatus('Not started', 'In progress', STATUSES)).toBe(
+      'In progress / PR',
+    );
+    expect(effectiveStatus('Not started', 'Queued', STATUSES)).toBe(
+      'Not started',
+    );
     // Draft states hold in the "Not started" lane.
-    expect(effectiveStatus('Not started', 'Spec drafted', STATUSES)).toBe('Not started');
-    expect(effectiveStatus('Not started', 'Split drafted', STATUSES)).toBe('Not started');
+    expect(effectiveStatus('Not started', 'Spec drafted', STATUSES)).toBe(
+      'Not started',
+    );
+    expect(effectiveStatus('Not started', 'Split drafted', STATUSES)).toBe(
+      'Not started',
+    );
     // Pipeline tail: a merged PR sits in QA (not Done); prod deploy = Released.
     expect(effectiveStatus('Not started', 'Merged', STATUSES)).toBe('In QA');
     expect(effectiveStatus('In QA', 'Released', STATUSES)).toBe('Released');
   });
 
   it('keeps the Notion status for an unknown loop-only label', () => {
-    expect(effectiveStatus('Not started', 'Something odd', STATUSES)).toBe('Not started');
+    expect(effectiveStatus('Not started', 'Something odd', STATUSES)).toBe(
+      'Not started',
+    );
   });
 
   it('falls back to Notion status when there is no loop status', () => {
@@ -127,8 +143,15 @@ describe('ownerMeta', () => {
 
 describe('boardColumn invariant', () => {
   const LOOP_VOCAB = [
-    'Queued', 'Needs tuning', 'Spec drafted', 'Split drafted',
-    'In progress', 'PR ready', 'Merged', 'Released', 'Blocked',
+    'Queued',
+    'Needs tuning',
+    'Spec drafted',
+    'Split drafted',
+    'In progress',
+    'PR ready',
+    'Merged',
+    'Released',
+    'Blocked',
   ];
 
   it('every Notion status resolves into a real board column', () => {

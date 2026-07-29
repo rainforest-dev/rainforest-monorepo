@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { extractSection, parseFrontmatter, replaceSection, stripSection } from './taskNote.js';
+import {
+  extractSection,
+  parseFrontmatter,
+  replaceSection,
+  stripSection,
+} from './taskNote.js';
 
 const NOTES = /^##\s+Notes\s*$/;
 const FEEDBACK = /^##\s+Feedback\s*$/;
@@ -60,7 +65,9 @@ scope: "work"
 describe('extractSection', () => {
   it('returns the text under the requested heading', () => {
     const { body } = parseFrontmatter(MANAGED_NOTE);
-    expect(extractSection(body, NOTES)).toContain('loop outcome: shipped PR #123');
+    expect(extractSection(body, NOTES)).toContain(
+      'loop outcome: shipped PR #123',
+    );
     expect(extractSection(body, FEEDBACK)).toContain('tuning scaffold');
   });
 
@@ -87,7 +94,12 @@ describe('stripSection', () => {
 
 describe('replaceSection (Feedback channel)', () => {
   it('replaces only the Feedback body, preserving frontmatter, title, managed line, and the Notes outcome', () => {
-    const out = replaceSection(MANAGED_NOTE, FEEDBACK, '## Feedback', 'split: A / B; points: 2');
+    const out = replaceSection(
+      MANAGED_NOTE,
+      FEEDBACK,
+      '## Feedback',
+      'split: A / B; points: 2',
+    );
 
     expect(out).toContain('task_id: 105');
     expect(out).toContain('# [SLA Dashboard] Cloud BE task');

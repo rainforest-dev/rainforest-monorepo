@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { ArrowLeftRight, Ban, CircleDot, History, ListChecks } from '@lucide/vue';
+import {
+  ArrowLeftRight,
+  Ban,
+  CircleDot,
+  History,
+  ListChecks,
+} from '@lucide/vue';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -22,14 +28,12 @@ defineProps<{ loop: LoopState | null }>();
         Loop status
       </CardTitle>
       <CardDescription>
-        Autonomous task-loop state from the vault queue, progress log and handoffs.
+        Autonomous task-loop state from the vault queue, progress log and
+        handoffs.
       </CardDescription>
     </CardHeader>
     <CardContent>
-      <div
-        v-if="!loop"
-        class="text-muted-foreground py-8 text-center text-sm"
-      >
+      <div v-if="!loop" class="text-muted-foreground py-8 text-center text-sm">
         No loop state available.
       </div>
 
@@ -105,13 +109,18 @@ defineProps<{ loop: LoopState | null }>();
                 :key="i"
                 class="flex items-baseline gap-2 text-sm"
               >
-                <Badge variant="outline" class="shrink-0 tabular-nums text-[10px]">
+                <Badge
+                  variant="outline"
+                  class="shrink-0 text-[10px] tabular-nums"
+                >
                   {{ r.date }}
                 </Badge>
                 <span class="text-muted-foreground">{{ r.note }}</span>
               </li>
             </ul>
-            <p v-else class="text-muted-foreground text-sm">No rounds recorded.</p>
+            <p v-else class="text-muted-foreground text-sm">
+              No rounds recorded.
+            </p>
           </div>
 
           <div v-if="loop.recent_progress.length">
@@ -126,7 +135,9 @@ defineProps<{ loop: LoopState | null }>();
                 :key="i"
                 class="flex items-baseline gap-2 text-sm"
               >
-                <span class="text-muted-foreground shrink-0 tabular-nums text-xs">
+                <span
+                  class="text-muted-foreground shrink-0 text-xs tabular-nums"
+                >
                   {{ p.date }}
                 </span>
                 <span class="text-foreground">{{ p.title }}</span>
@@ -140,13 +151,12 @@ defineProps<{ loop: LoopState | null }>();
             >
               <ArrowLeftRight class="size-3.5" /> Last handoff
             </p>
-            <p
-              v-if="loop.last_handoff"
-              class="text-foreground text-sm"
-            >
+            <p v-if="loop.last_handoff" class="text-foreground text-sm">
               {{ loop.last_handoff }}
             </p>
-            <p v-else class="text-muted-foreground text-sm">No handoffs recorded.</p>
+            <p v-else class="text-muted-foreground text-sm">
+              No handoffs recorded.
+            </p>
           </div>
         </div>
       </div>

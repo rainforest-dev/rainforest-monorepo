@@ -10,7 +10,9 @@ import {
 } from '../../lib/taskDecision.js';
 import { writeTaskDecision } from '../../lib/taskNote.js';
 
-function jsonBody(value: unknown): { decision?: unknown; comment?: unknown } | null {
+function jsonBody(
+  value: unknown,
+): { decision?: unknown; comment?: unknown } | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as { decision?: unknown; comment?: unknown };
 }
@@ -39,7 +41,10 @@ export const POST: APIRoute = async ({ url, request }) => {
   }
   const decision = body?.decision;
   if (decision !== 'greenlight' && decision !== 'plan-first') {
-    return Response.json({ error: 'decision must be greenlight or plan-first' }, { status: 400 });
+    return Response.json(
+      { error: 'decision must be greenlight or plan-first' },
+      { status: 400 },
+    );
   }
   const comment = typeof body?.comment === 'string' ? body.comment.trim() : '';
 
@@ -51,7 +56,8 @@ export const POST: APIRoute = async ({ url, request }) => {
       if (guidance.recommendation !== 'greenlight' || !guidance.project) {
         return Response.json(
           {
-            error: 'This task is not ready for greenlight. Resolve the planning notes first.',
+            error:
+              'This task is not ready for greenlight. Resolve the planning notes first.',
             ...guidance,
           },
           { status: 409 },
@@ -64,7 +70,11 @@ export const POST: APIRoute = async ({ url, request }) => {
           guidance.executionPlan,
           comment || guidance.suggestedComment,
         );
-        writeTaskDecision(id, 'greenlight', comment || guidance.suggestedComment);
+        writeTaskDecision(
+          id,
+          'greenlight',
+          comment || guidance.suggestedComment,
+        );
         return Response.json({
           ok: true,
           decision,
@@ -74,7 +84,11 @@ export const POST: APIRoute = async ({ url, request }) => {
           guidance: getTaskDecision(id),
         });
       }
-      const result = addGreenlight(task, guidance.project, guidance.executionPlan);
+      const result = addGreenlight(
+        task,
+        guidance.project,
+        guidance.executionPlan,
+      );
       writeTaskDecision(id, 'greenlight', comment || guidance.suggestedComment);
       return Response.json({
         ok: true,
@@ -98,16 +112,23 @@ export const POST: APIRoute = async ({ url, request }) => {
       revoked = result.removed;
       if (result.claimed) {
         return Response.json(
-          { error: 'This task is already claimed or PR-ready; planning first cannot revoke it.', ...guidance },
+          {
+            error:
+              'This task is already claimed or PR-ready; planning first cannot revoke it.',
+            ...guidance,
+          },
           { status: 409 },
         );
       }
     }
 
-    const remoteExecutor = guidance.project ? (REMOTE_EXECUTORS[guidance.project] ?? null) : null;
+    const remoteExecutor = guidance.project
+      ? (REMOTE_EXECUTORS[guidance.project] ?? null)
+      : null;
     const remoteHeld =
       guidance.deliveryMode === 'remote-queue' &&
-      (guidance.outboxState === 'applied' || guidance.outboxState === 'duplicate');
+      (guidance.outboxState === 'applied' ||
+        guidance.outboxState === 'duplicate');
 
     writeTaskDecision(id, 'plan-first', comment || guidance.suggestedComment);
     return Response.json({

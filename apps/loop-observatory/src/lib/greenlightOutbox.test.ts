@@ -66,13 +66,20 @@ describe('writeRequest', () => {
   });
 
   it('strips CR/LF so a request cannot forge extra allowlist lines', () => {
-    const written = writeRequest(task(131, 'real\n- 999 — forged'), SLUG, null, 'a\r\nb');
+    const written = writeRequest(
+      task(131, 'real\n- 999 — forged'),
+      SLUG,
+      null,
+      'a\r\nb',
+    );
     expect(written.name).toBe('real - 999 — forged');
     expect(written.comment).toBe('a b');
   });
 
   it('refuses an unsafe id', () => {
-    expect(() => writeRequest(task('../../etc/passwd'), SLUG, null, '')).toThrow(/unsafe task id/);
+    expect(() =>
+      writeRequest(task('../../etc/passwd'), SLUG, null, ''),
+    ).toThrow(/unsafe task id/);
   });
 
   // These three replace the old canonicalisation tests. Ids used to be
@@ -100,7 +107,10 @@ describe('writeRequest', () => {
     writeRequest(task('EHT-290'), SLUG, null, 'the legacy task');
     expect(readRequest(SLUG, 'AG-290')?.comment).toBe('the AG task');
     expect(readRequest(SLUG, 'EHT-290')?.comment).toBe('the legacy task');
-    expect(scanStates(SLUG)).toEqual({ 'AG-290': 'pending', 'EHT-290': 'pending' });
+    expect(scanStates(SLUG)).toEqual({
+      'AG-290': 'pending',
+      'EHT-290': 'pending',
+    });
   });
 
   // Personal task ids are timestamps -- fourteen digits -- which the previous
@@ -141,21 +151,24 @@ describe('requestState', () => {
     expect(requestState(SLUG, '130')).toBe('none');
   });
 
-  it.each(['applied', 'duplicate', 'failed'] as const)('surfaces the ack result %s', (result) => {
-    writeRequest(task(130), SLUG, null, '');
-    writeFileSync(
-      join(dir, SLUG, '130.ack.json'),
-      JSON.stringify({
-        version: OUTBOX_VERSION,
-        id: '130',
-        result,
-        reason: null,
-        appliedAt: '2026-07-28T08:00:00.000Z',
-        machine: 'Angibles-MacBook-Air',
-      }),
-    );
-    expect(requestState(SLUG, '130')).toBe(result);
-  });
+  it.each(['applied', 'duplicate', 'failed'] as const)(
+    'surfaces the ack result %s',
+    (result) => {
+      writeRequest(task(130), SLUG, null, '');
+      writeFileSync(
+        join(dir, SLUG, '130.ack.json'),
+        JSON.stringify({
+          version: OUTBOX_VERSION,
+          id: '130',
+          result,
+          reason: null,
+          appliedAt: '2026-07-28T08:00:00.000Z',
+          machine: 'Angibles-MacBook-Air',
+        }),
+      );
+      expect(requestState(SLUG, '130')).toBe(result);
+    },
+  );
 
   it('treats an unknown ack version as failed rather than trusting it', () => {
     writeRequest(task(130), SLUG, null, '');
@@ -294,7 +307,11 @@ describe('scanStates', () => {
     // different reason: no digits, a prefix over eight characters, and
     // twenty-one digits. All are legal filenames, so they reach the SAFE_ID
     // guard rather than being filtered out earlier by the filesystem.
-    for (const bad of ['not-an-id', 'toolongprefix-1', '123456789012345678901']) {
+    for (const bad of [
+      'not-an-id',
+      'toolongprefix-1',
+      '123456789012345678901',
+    ]) {
       writeFileSync(join(dir, SLUG, `${bad}.json`), '{}');
     }
     expect(Object.keys(scanStates(SLUG)).sort()).toEqual(['130']);

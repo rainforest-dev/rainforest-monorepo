@@ -11,30 +11,63 @@ const SAMPLE = JSON.stringify({
   source: 'notion',
   board: 'Work Items (new)',
   board_url: 'https://app.notion.com/p/board',
-  sprint: { id: 1, name: 'Sprint 1', status: 'Next', start: '2026-07-13', url: 'https://n/s' },
+  sprint: {
+    id: 1,
+    name: 'Sprint 1',
+    status: 'Next',
+    start: '2026-07-13',
+    url: 'https://n/s',
+  },
   assignee: 'Rainforest',
   statuses: ['Backlog', 'Not started', 'In progress / PR', 'In QA', 'Done'],
   tasks: [
     {
-      id: 22, order: 3, name: 'bare task', task_ref: 'https://n/22', task_source: 'obsidian',
+      id: 22,
+      order: 3,
+      name: 'bare task',
+      task_ref: 'https://n/22',
+      task_source: 'obsidian',
       scope: 'personal',
-      status: 'Not started', work_type: 'Task', priority: 'P2', points: null,
-      component: null, platform: [], epic: null, parent: null,
+      status: 'Not started',
+      work_type: 'Task',
+      priority: 'P2',
+      points: null,
+      component: null,
+      platform: [],
+      epic: null,
+      parent: null,
     },
     {
-      id: 105, order: 1, name: 'sub-task under story', task_ref: 'https://n/105', task_source: 'notion',
+      id: 105,
+      order: 1,
+      name: 'sub-task under story',
+      task_ref: 'https://n/105',
+      task_source: 'notion',
       scope: 'work',
-      status: 'Not started', work_type: 'Sub-task', priority: 'P1', points: 5,
-      component: 'cloud-backend', platform: ['Cloud'],
+      status: 'Not started',
+      work_type: 'Sub-task',
+      priority: 'P1',
+      points: 5,
+      component: 'cloud-backend',
+      platform: ['Cloud'],
       epic: { id: 3, name: 'SLA epic', url: 'https://n/e3' },
       parent: { id: 33, name: 'SLA story', url: 'https://n/p33' },
     },
     {
       // scope intentionally omitted → must default to 'work'
-      id: 59, order: 2, name: 'epic-only task', task_ref: 'https://n/59', task_source: 'notion',
-      status: 'Not started', work_type: 'Task', priority: 'P1', points: 2,
-      component: null, platform: [],
-      epic: { id: 20, name: 'Dashboard epic', url: 'https://n/e20' }, parent: null,
+      id: 59,
+      order: 2,
+      name: 'epic-only task',
+      task_ref: 'https://n/59',
+      task_source: 'notion',
+      status: 'Not started',
+      work_type: 'Task',
+      priority: 'P1',
+      points: 2,
+      component: null,
+      platform: [],
+      epic: { id: 20, name: 'Dashboard epic', url: 'https://n/e20' },
+      parent: null,
     },
   ],
 });
@@ -69,7 +102,9 @@ describe('parseTasks', () => {
     expect(data.tasks.find((t) => t.id === 59)!.scope).toBe('work');
     // An unrecognized scope value also degrades to 'work'.
     const weird = parseTasks(
-      JSON.stringify({ tasks: [{ id: 7, name: 'x', order: 0, scope: 'nope' }] }),
+      JSON.stringify({
+        tasks: [{ id: 7, name: 'x', order: 0, scope: 'nope' }],
+      }),
     )!;
     expect(weird.tasks[0].scope).toBe('work');
   });
@@ -83,7 +118,9 @@ describe('parseTasks', () => {
 
   it('skips malformed tasks rather than failing the file', () => {
     const data = parseTasks(
-      JSON.stringify({ tasks: [{ id: 1 }, 'nope', null, { id: 2, name: 'ok', order: 0 }] }),
+      JSON.stringify({
+        tasks: [{ id: 1 }, 'nope', null, { id: 2, name: 'ok', order: 0 }],
+      }),
     )!;
     expect(data.tasks.map((t) => t.name)).toEqual(['ok']);
   });
@@ -100,7 +137,11 @@ describe('parseTasksProgress', () => {
     updated_at: '2026-07-14T05:00:00Z',
     source: 'loop',
     tasks: {
-      '22': { loop_status: 'In progress / PR', pr: 'https://gh/pull/2404', note: 'opened PR' },
+      '22': {
+        loop_status: 'In progress / PR',
+        pr: 'https://gh/pull/2404',
+        note: 'opened PR',
+      },
       '31': { loop_status: 'In progress / PR', pr: null, note: null },
       '68': { loop_status: 'Needs tuning', pr: null, note: 'flaky' },
     },
@@ -120,7 +161,9 @@ describe('parseTasksProgress', () => {
 
   it('skips malformed entries and returns null for a bad shape', () => {
     const map = parseTasksProgress(
-      JSON.stringify({ tasks: { '1': { loop_status: 'Done' }, '2': 'nope', '3': null } }),
+      JSON.stringify({
+        tasks: { '1': { loop_status: 'Done' }, '2': 'nope', '3': null },
+      }),
     )!;
     expect(Object.keys(map)).toEqual(['1']);
     expect(map['1']).toEqual({ loop_status: 'Done', pr: null, note: null });
