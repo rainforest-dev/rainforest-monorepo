@@ -5,12 +5,12 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  canonicalId,
   OUTBOX_VERSION,
   prunePairs,
   readAck,
   readRequest,
   requestState,
+  SAFE_ID,
   scanStates,
   statesForSlugs,
   writeRequest,
@@ -75,31 +75,41 @@ describe('writeRequest', () => {
     expect(() => writeRequest(task('../../etc/passwd'), SLUG, null, '')).toThrow(/unsafe task id/);
   });
 
-  // I2: one Notion sync emits both `290` and `AG-290` for the same task. If
-  // they resolved to different outbox keys, a re-synced task would look
-  // unqueued, the button would re-enable, and Air would be asked to authorise
-  // it a second time.
-  it('files an AG- task under its bare numeric id, keeping the prefix as sourceId', () => {
+  // These three replace the old canonicalisation tests. Ids used to be
+  // prefix-stripped so `290` and `AG-290` were one outbox key, bridging a
+  // half-finished Notion sync. That sync is migrated -- every id is `AG-<n>` --
+  // and the stripping also collapsed `EHT-290` onto `AG-290`, so two different
+  // tasks could satisfy each other's authorisation. Matching is exact now, and
+  // that is what these assert.
+  it('files a task under its id exactly as the board spelled it', () => {
     const written = writeRequest(task('AG-290'), SLUG, null, '');
-    expect(written.id).toBe('290');
+    expect(written.id).toBe('AG-290');
     expect(written.sourceId).toBe('AG-290');
-    expect(readRequest(SLUG, '290')?.sourceId).toBe('AG-290');
+    expect(readRequest(SLUG, 'AG-290')?.comment).toBe('');
+    expect(scanStates(SLUG)).toEqual({ 'AG-290': 'pending' });
   });
 
-  it('resolves an AG- task and a bare task to the same outbox key', () => {
-    writeRequest(task(290), SLUG, null, 'first');
-    // The same task, re-synced with its sprint prefix, must find the request
-    // that is already on disk rather than looking unqueued.
-    expect(requestState(SLUG, 'AG-290')).toBe('pending');
-    expect(readRequest(SLUG, 'AG-290')?.comment).toBe('first');
-    expect(scanStates(SLUG)).toEqual({ '290': 'pending' });
+  it('does not let a bare id find a prefixed request, or the reverse', () => {
+    writeRequest(task('AG-290'), SLUG, null, 'first');
+    expect(requestState(SLUG, '290')).toBe('none');
+    expect(readRequest(SLUG, '290')).toBeNull();
   });
 
-  it('normalises every prefix form to the same key', () => {
-    expect(canonicalId('AG-290')).toBe('290');
-    expect(canonicalId('290')).toBe('290');
-    expect(canonicalId('EHT-1234')).toBe('1234');
-    expect(canonicalId(290)).toBe('290');
+  it('keeps two prefixes over the same number apart', () => {
+    writeRequest(task('AG-290'), SLUG, null, 'the AG task');
+    writeRequest(task('EHT-290'), SLUG, null, 'the legacy task');
+    expect(readRequest(SLUG, 'AG-290')?.comment).toBe('the AG task');
+    expect(readRequest(SLUG, 'EHT-290')?.comment).toBe('the legacy task');
+    expect(scanStates(SLUG)).toEqual({ 'AG-290': 'pending', 'EHT-290': 'pending' });
+  });
+
+  // Personal task ids are timestamps -- fourteen digits -- which the previous
+  // `\d{1,9}` bound could not represent at all.
+  it('accepts a personal timestamp id', () => {
+    expect(SAFE_ID.test('T-20260720151941')).toBe(true);
+    const written = writeRequest(task('T-20260720151941'), SLUG, null, '');
+    expect(written.id).toBe('T-20260720151941');
+    expect(requestState(SLUG, 'T-20260720151941')).toBe('pending');
   });
 
   // C1: prunePairs never deletes a failed pair and the pull job's only
@@ -280,11 +290,11 @@ describe('scanStates', () => {
 
   it('skips an entry whose id is not a safe id', () => {
     writeRequest(task(130), SLUG, null, '');
-    // `SAFE_ID` is /^[A-Za-z]{0,8}-?\d{1,9}$/ — each of these fails it for a
-    // different reason: no digits, a prefix over eight characters, and ten
-    // digits. All are legal filenames, so they reach the SAFE_ID guard rather
-    // than being filtered out earlier by the filesystem.
-    for (const bad of ['not-an-id', 'toolongprefix-1', '1234567890']) {
+    // `SAFE_ID` is /^[A-Za-z]{0,8}-?\d{1,20}$/ — each of these fails it for a
+    // different reason: no digits, a prefix over eight characters, and
+    // twenty-one digits. All are legal filenames, so they reach the SAFE_ID
+    // guard rather than being filtered out earlier by the filesystem.
+    for (const bad of ['not-an-id', 'toolongprefix-1', '123456789012345678901']) {
       writeFileSync(join(dir, SLUG, `${bad}.json`), '{}');
     }
     expect(Object.keys(scanStates(SLUG)).sort()).toEqual(['130']);

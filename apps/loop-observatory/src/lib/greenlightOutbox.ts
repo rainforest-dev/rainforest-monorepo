@@ -13,27 +13,12 @@ export const OUTBOX_VERSION = 1;
  * boundary and must never be the looser of the two. Note that Python's `$`
  * also matches before a trailing newline where JavaScript's does not, so that
  * side spells the anchors `\A`/`\Z`.
- */
-export const SAFE_ID = /^[A-Za-z]{0,8}-?\d{1,9}$/;
-
-/**
- * Strip a leading sprint prefix so `AG-290` and `290` are one key.
  *
- * One Notion sync emits both spellings for the same task, and nothing used to
- * normalise between them: a task that re-synced as `AG-290` made
- * `requestState` return 'none', the chip vanished, the button re-enabled, and
- * a second request was queued for a task Air had already authorised. The
- * outbox filename and the allowlist bullet are therefore always the bare
- * number. Air strips the same prefix in greenlight.py — see `canonical_id`
- * there; the two must stay in step.
- *
- * The `AG-` form is not lost: it rides along as `sourceId` and Air prints it on
- * the allowlist continuation line, which no scanner reads, so the owner can
- * still map an entry back to the sprint board.
+ * The digit run is up to 20 because a personal task id is a timestamp —
+ * `T-20260720151941`, fourteen digits — and the old `\d{1,9}` could not
+ * represent one at all.
  */
-export function canonicalId(id: string | number | null | undefined): string {
-  return String(id).replace(/^[A-Za-z]+-/, '');
-}
+export const SAFE_ID = /^[A-Za-z]{0,8}-?\d{1,20}$/;
 
 /** Acked pairs older than this are pruned on the next write. */
 const PRUNE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
@@ -55,11 +40,11 @@ export interface OutboxRequest {
   version: number;
   id: string;
   /**
-   * The id as the board spelled it (`AG-290`); `id` is its canonical form.
-   *
-   * Optional because requests written before this field existed are still on
-   * disk and still valid. Air falls back to `id` when it is absent — see
-   * `_line_for` in greenlight.py.
+   * The id as the board spelled it. Now always equal to `id` — it existed to
+   * carry the `AG-` prefix that canonicalisation stripped off `id`, and there
+   * is no longer any stripping. Kept because Air prints it on the allowlist
+   * continuation line the owner reads, and requests written before it existed
+   * are still on disk; Air falls back to `id` when it is absent.
    */
   sourceId?: string;
   slug: string;
@@ -113,12 +98,12 @@ function readJson<T>(path: string): T | null {
 
 export function readRequest(slug: string, id: string): OutboxRequest | null {
   if (!SAFE_ID.test(id)) return null;
-  return readJson<OutboxRequest>(requestPath(slug, canonicalId(id)));
+  return readJson<OutboxRequest>(requestPath(slug, id));
 }
 
 export function readAck(slug: string, id: string): OutboxAck | null {
   if (!SAFE_ID.test(id)) return null;
-  return readJson<OutboxAck>(ackPath(slug, canonicalId(id)));
+  return readJson<OutboxAck>(ackPath(slug, id));
 }
 
 /**
@@ -138,7 +123,7 @@ export function requestState(slug: string, id: string): OutboxState {
   // corrupt/unparseable" (failed) -- an absent and an unreadable ack must
   // never be conflated, or a write that silently failed could read as if
   // Air simply had not answered yet.
-  if (!existsSync(ackPath(slug, canonicalId(id)))) return 'pending';
+  if (!existsSync(ackPath(slug, id))) return 'pending';
   const ack = readAck(slug, id);
   if (!ack || isFailedAck(ack)) return 'failed';
   return ack.result;
@@ -160,10 +145,9 @@ export function scanStates(slug: string): Record<string, OutboxState> {
     if (!entry.endsWith('.json') || entry.endsWith('.ack.json')) continue;
     const id = entry.slice(0, -'.json'.length);
     if (!SAFE_ID.test(id)) continue;
-    // Keyed canonically, because callers look these up by a board id that may
-    // still carry its `AG-` prefix. writeRequest only ever creates canonical
-    // filenames, so this is the identity in practice.
-    states[canonicalId(id)] = entries.has(`${id}.ack.json`) ? requestState(slug, id) : 'pending';
+    // The filename is the id, verbatim: callers look these up by the same
+    // board id writeRequest filed them under.
+    states[id] = entries.has(`${id}.ack.json`) ? requestState(slug, id) : 'pending';
   }
   return states;
 }
@@ -216,14 +200,13 @@ export function writeRequest(
   comment: string,
   now: Date = new Date(),
 ): OutboxRequest {
-  const sourceId = String(task.id);
-  if (!SAFE_ID.test(sourceId)) throw new Error(`unsafe task id: ${sourceId}`);
-  const id = canonicalId(sourceId);
+  const id = String(task.id);
+  if (!SAFE_ID.test(id)) throw new Error(`unsafe task id: ${id}`);
 
   const request: OutboxRequest = {
     version: OUTBOX_VERSION,
     id,
-    sourceId,
+    sourceId: id,
     slug,
     name: oneLine(task.name),
     comment: oneLine(comment),

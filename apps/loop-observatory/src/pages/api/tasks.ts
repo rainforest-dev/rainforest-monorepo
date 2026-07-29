@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 
-import { canonicalId, statesForSlugs } from '../../lib/greenlightOutbox.js';
+import { statesForSlugs } from '../../lib/greenlightOutbox.js';
 import { GREENLIGHT_TARGETS } from '../../lib/taskDecision.js';
 import { noteHasFeedback } from '../../lib/taskNote.js';
 import { readTasks, readTasksProgress } from '../../lib/tasks.js';
@@ -33,10 +33,8 @@ export const GET: APIRoute = () => {
         loopStatus: p?.loop_status ?? null,
         pr: p?.pr ?? null,
         loopNote: p?.note ?? null,
-        // canonicalId, so a card that re-synced as `AG-290` still finds the
-        // request filed under `290`. Without it the chip vanishes and the
-        // Greenlight button re-enables for a task Air already authorised.
-        outboxState: slug ? (outboxStates.get(slug)?.[canonicalId(t.id)] ?? null) : null,
+        // Keyed by the board id exactly as writeRequest filed it.
+        outboxState: slug ? (outboxStates.get(slug)?.[String(t.id)] ?? null) : null,
       };
     });
     return Response.json(data);
