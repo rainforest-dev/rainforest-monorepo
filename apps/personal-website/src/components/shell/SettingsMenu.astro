@@ -25,9 +25,11 @@ const themes = [
 ];
 ---
 
-{/* One combined preferences menu: theme + language. Uses <details> so it opens
+{
+  /* One combined preferences menu: theme + language. Uses <details> so it opens
     without JS (language links still work); the theme options and outside-click /
-    Escape close are wired by the inline head script via the data-* hooks. */}
+    Escape close are wired by the inline head script via the data-* hooks. */
+}
 <details class="settings-menu relative" data-menu>
   <summary
     aria-label={t('settings')}
@@ -68,24 +70,64 @@ const themes = [
           class="theme-opt text-foreground/80 hover:bg-muted flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors"
         >
           {th.key === 'system' && (
-            <svg class="size-4 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              class="size-4 opacity-70"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <rect width="20" height="14" x="2" y="3" rx="2" />
               <path d="M8 21h8M12 17v4" />
             </svg>
           )}
           {th.key === 'light' && (
-            <svg class="size-4 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              class="size-4 opacity-70"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
             </svg>
           )}
           {th.key === 'dark' && (
-            <svg class="size-4 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              class="size-4 opacity-70"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
             </svg>
           )}
           <span>{th.label}</span>
-          <svg class="opt-check text-primary ml-auto size-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            class="opt-check text-primary ml-auto size-4"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <path d="M20 6 9 17l-5-5" />
           </svg>
         </button>
@@ -113,7 +155,17 @@ const themes = [
         >
           <span>{l.label}</span>
           {l.active && (
-            <svg class="text-primary ml-auto size-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              class="text-primary ml-auto size-4"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <path d="M20 6 9 17l-5-5" />
             </svg>
           )}
@@ -130,17 +182,37 @@ const themes = [
   .settings-menu .theme-opt .opt-check {
     opacity: 0;
   }
-  :root:not([data-theme-pref]) .settings-menu .theme-opt[data-theme-set='system'],
-  :root[data-theme-pref='system'] .settings-menu .theme-opt[data-theme-set='system'],
-  :root[data-theme-pref='light'] .settings-menu .theme-opt[data-theme-set='light'],
-  :root[data-theme-pref='dark'] .settings-menu .theme-opt[data-theme-set='dark'] {
+  :root:not([data-theme-pref])
+    .settings-menu
+    .theme-opt[data-theme-set='system'],
+  :root[data-theme-pref='system']
+    .settings-menu
+    .theme-opt[data-theme-set='system'],
+  :root[data-theme-pref='light']
+    .settings-menu
+    .theme-opt[data-theme-set='light'],
+  :root[data-theme-pref='dark']
+    .settings-menu
+    .theme-opt[data-theme-set='dark'] {
     color: var(--primary);
     font-weight: 500;
   }
-  :root:not([data-theme-pref]) .settings-menu .theme-opt[data-theme-set='system'] .opt-check,
-  :root[data-theme-pref='system'] .settings-menu .theme-opt[data-theme-set='system'] .opt-check,
-  :root[data-theme-pref='light'] .settings-menu .theme-opt[data-theme-set='light'] .opt-check,
-  :root[data-theme-pref='dark'] .settings-menu .theme-opt[data-theme-set='dark'] .opt-check {
+  :root:not([data-theme-pref])
+    .settings-menu
+    .theme-opt[data-theme-set='system']
+    .opt-check,
+  :root[data-theme-pref='system']
+    .settings-menu
+    .theme-opt[data-theme-set='system']
+    .opt-check,
+  :root[data-theme-pref='light']
+    .settings-menu
+    .theme-opt[data-theme-set='light']
+    .opt-check,
+  :root[data-theme-pref='dark']
+    .settings-menu
+    .theme-opt[data-theme-set='dark']
+    .opt-check {
     opacity: 1;
   }
 </style>

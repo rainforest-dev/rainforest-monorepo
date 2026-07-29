@@ -701,23 +701,34 @@ Expected: PASS.
 import type { Section } from '../content/types';
 import { islandFor } from './island-registry';
 
-interface Props { section: Section }
+interface Props {
+  section: Section;
+}
 const { section } = Astro.props;
 const Island = islandFor(section.interaction);
 ---
+
 <section class="py-16" aria-labelledby={`sec-${section.id}`}>
-  <p class="text-xs tracking-widest uppercase text-primary/70">{section.title}</p>
-  <h3 id={`sec-${section.id}`} class="text-2xl mt-2">{section.feature}</h3>
-  <p class="italic mt-4 border-l-2 border-primary/50 pl-4">{section.contribution}</p>
-  <p class="mt-4 text-foreground/80" set:html={section.tech} />
-  {Island && (
-    <div class="mt-8">
-      <Island client:visible />
-    </div>
-  )}
-  {section.sourceRef && (
-    <p class="mt-4 text-xs text-foreground/50">Mirrors {section.sourceRef}</p>
-  )}
+  <p class="text-primary/70 text-xs uppercase tracking-widest">
+    {section.title}
+  </p>
+  <h3 id={`sec-${section.id}`} class="mt-2 text-2xl">{section.feature}</h3>
+  <p class="border-primary/50 mt-4 border-l-2 pl-4 italic">
+    {section.contribution}
+  </p>
+  <p class="text-foreground/80 mt-4" set:html={section.tech} />
+  {
+    Island && (
+      <div class="mt-8">
+        <Island client:visible />
+      </div>
+    )
+  }
+  {
+    section.sourceRef && (
+      <p class="text-foreground/50 mt-4 text-xs">Mirrors {section.sourceRef}</p>
+    )
+  }
 </section>
 ```
 
@@ -836,7 +847,10 @@ pnpm nx sync
 ---
 import '@rainforest-dev/portfolio/theme.css';
 import CaseStudySection from '@rainforest-dev/portfolio/sections/CaseStudySection.astro';
-import { getCaseStudy, listCaseStudies } from '@rainforest-dev/portfolio/content';
+import {
+  getCaseStudy,
+  listCaseStudies,
+} from '@rainforest-dev/portfolio/content';
 import Layout from '@layouts/index.astro';
 import { supportedLngs } from '@utils/i18n';
 
@@ -851,14 +865,21 @@ const { slug } = Astro.params;
 const study = getCaseStudy(slug!);
 if (!study) return Astro.redirect('/404');
 ---
+
 <Layout title={`${study.title} — Case study`} description={study.tagline}>
   <article data-project={study.slug} class="container py-20">
-    <p class="text-xs tracking-widest uppercase text-primary/70">Case study</p>
-    <h1 class="text-5xl mt-2">{study.title}</h1>
+    <p class="text-primary/70 text-xs uppercase tracking-widest">Case study</p>
+    <h1 class="mt-2 text-5xl">{study.title}</h1>
     <p class="text-foreground/70 mt-2">{study.role} · {study.period}</p>
     <p class="mt-6 max-w-2xl">{study.tagline}</p>
-    <ul class="flex flex-wrap gap-2 mt-6">
-      {study.stack.map((t) => <li class="px-3 py-1 rounded bg-primary/10 text-primary text-sm">{t}</li>)}
+    <ul class="mt-6 flex flex-wrap gap-2">
+      {
+        study.stack.map((t) => (
+          <li class="bg-primary/10 text-primary rounded px-3 py-1 text-sm">
+            {t}
+          </li>
+        ))
+      }
     </ul>
     {study.sections.map((section) => <CaseStudySection section={section} />)}
   </article>
@@ -883,23 +904,41 @@ export function getStaticPaths() {
 }
 const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
 const projects = (await getProjects({ lang })).sort(
-  (a, b) => Number(b.featured) - Number(a.featured) || (a.order ?? 99) - (b.order ?? 99),
+  (a, b) =>
+    Number(b.featured) - Number(a.featured) ||
+    (a.order ?? 99) - (b.order ?? 99),
 );
 ---
-<Layout title="Portfolio" description="Selected work — interactive case studies.">
+
+<Layout
+  title="Portfolio"
+  description="Selected work — interactive case studies."
+>
   <main class="container py-20">
-    <h1 class="text-4xl mb-10">Portfolio</h1>
+    <h1 class="mb-10 text-4xl">Portfolio</h1>
     <ul class="grid gap-8 md:grid-cols-2">
-      {projects.map((p) => {
-        const href = hasCaseStudy(p.slug) ? getRelativeLocaleUrl(lang, `/portfolio/${p.slug}`) : undefined;
-        return (
-          <li class="rounded-lg border p-6" data-project={hasCaseStudy(p.slug) ? p.slug : undefined}>
-            <h2 class="text-2xl">{p.name}</h2>
-            {href ? <a class="text-primary underline mt-4 inline-block" href={href}>View case study →</a>
-                  : <p class="text-foreground/60 mt-4 text-sm">Summary</p>}
-          </li>
-        );
-      })}
+      {
+        projects.map((p) => {
+          const href = hasCaseStudy(p.slug)
+            ? getRelativeLocaleUrl(lang, `/portfolio/${p.slug}`)
+            : undefined;
+          return (
+            <li
+              class="rounded-lg border p-6"
+              data-project={hasCaseStudy(p.slug) ? p.slug : undefined}
+            >
+              <h2 class="text-2xl">{p.name}</h2>
+              {href ? (
+                <a class="text-primary mt-4 inline-block underline" href={href}>
+                  View case study →
+                </a>
+              ) : (
+                <p class="text-foreground/60 mt-4 text-sm">Summary</p>
+              )}
+            </li>
+          );
+        })
+      }
     </ul>
   </main>
 </Layout>
