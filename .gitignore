@@ -89,3 +89,6 @@ deploy/.env.dev
 .worktrees/
 
 libs/portfolio/.reference/
+
+# superpowers brainstorming mockups
+.superpowers/

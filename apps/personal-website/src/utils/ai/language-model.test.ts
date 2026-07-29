@@ -188,9 +188,14 @@ describe('selectTool', () => {
     expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBeNull();
   });
 
-  it('throws when called before enableModel', async () => {
-    stubLanguageModel('available');
-    await expect(selectTool('q', SCHEMA)).rejects.toThrow(/enableModel/);
+  // Replaces a test that asserted the opposite ("throws when called before enableModel"). That
+  // contract was the defect, not a guarantee: `ready` is reached whenever the weights are already
+  // on disk, but the Enable control — enableModel()'s only caller — renders solely for
+  // `downloadable`. So every visitor who already had the model got an Ask row that threw here,
+  // was swallowed by the caller's catch, and left the answer strip blank with no error anywhere.
+  it('opens a session on demand when none exists', async () => {
+    stubSession(async () => '{"tool":"get_skills"}');
+    expect(await selectTool('q', SCHEMA)).toEqual({ tool: 'get_skills' });
   });
 
   it('does not degrade when the caller aborts mid-flight', async () => {
@@ -341,8 +346,15 @@ describe('selectTool with an already-aborted signal', () => {
       selectTool('q', SCHEMA, { signal: controller.signal }),
     ).rejects.toThrow();
 
-    // Subscribing alone would miss this: the abort event already fired.
-    expect(promptStarted).toBe(true);
+    // The contract this pins is "reject promptly, without waiting out RUN_TIMEOUT_MS", and the
+    // rejection above is that contract. `prompt` is deliberately NOT started: an already-aborted
+    // caller has given up, so there is no inference worth beginning, and not starting it is the
+    // one behaviour that does not depend on the platform rejecting a pre-aborted signal.
+    //
+    // This assertion previously read `toBe(true)` — it documented an implementation that handed
+    // the aborted signal to `prompt` and relied on it to reject. Opening the session became
+    // awaitable, which made that route hang against any implementation that only subscribes.
+    expect(promptStarted).toBe(false);
     expect(sessionStorage.getItem('rf:ai:constraint-probe:v1')).toBeNull();
   });
 });

@@ -2,9 +2,17 @@
 import '../app.css';
 
 import { SourceColor, ThemeProvider } from '@components';
+import CommandPalette from '@components/shell/CommandPalette.vue';
 import SiteFooter from '@components/shell/SiteFooter.astro';
 import SiteHeader from '@components/shell/SiteHeader.astro';
+import {
+  getProjects,
+  getSkills,
+  getWorkExperience,
+} from '@rainforest-dev/personal-data';
+import type { Searchable } from '@utils/search';
 import SpeedInsights from '@vercel/speed-insights/astro';
+import { getCollection } from 'astro:content';
 import { ClientRouter } from 'astro:transitions';
 import { dir as _dir } from 'i18next';
 
@@ -19,8 +27,49 @@ const {
   ...rest
 } = Astro.props;
 
-const lang = Astro.currentLocale;
+const lang = Astro.currentLocale === 'zh' ? 'zh' : 'en';
 const dir = _dir(lang);
+
+// Records for the ⌘K command palette. Fetched on every layout render (not cached) — the
+// underlying content-collection reads are already memoized by Astro, and this is a handful of
+// arrays, not a database query.
+const [experiences, projects, skills, posts] = await Promise.all([
+  getWorkExperience({ lang }),
+  getProjects({ lang }),
+  getSkills({ lang }),
+  getCollection('blog'),
+]);
+
+const paletteRecords: Searchable[] = [
+  ...experiences.map((experience) => ({
+    id: `experience/${experience.id}`,
+    kind: 'experience' as const,
+    title: `${experience.position} · ${experience.organization.name}`,
+    keywords: experience.technologies,
+    href: '/resume',
+  })),
+  ...projects.map((project) => ({
+    id: `project/${project.id}`,
+    kind: 'project' as const,
+    title: project.name,
+    keywords: project.technologies,
+    href: `/portfolio/${project.id.split('/').pop()}`,
+  })),
+  ...skills.map((skill) => ({
+    id: `skill/${skill.id}`,
+    kind: 'skill' as const,
+    title: skill.name,
+    keywords: skill.tags,
+    href: '/#skills',
+  })),
+  ...posts.map((post) => ({
+    id: `post/${post.id}`,
+    kind: 'post' as const,
+    title: post.data.title,
+    keywords: post.data.tags,
+    href: `/blog/${post.id}`,
+  })),
+];
 ---
 
 <!doctype html>
@@ -46,5 +95,7 @@ const dir = _dir(lang);
       // case-study views) → /api/event → GA4. No cookies, no consent banner.
       import '../scripts/conversion-tracking';
     </script>
+    <!-- client:idle: keyboard-triggered (⌘K), so it needn't hydrate before the page is interactive. -->
+    <CommandPalette records={paletteRecords} lang={lang} client:idle />
   </body>
 </html>

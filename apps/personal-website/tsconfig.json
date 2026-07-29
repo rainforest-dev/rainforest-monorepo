@@ -1,7 +1,12 @@
 {
   "extends": ["astro/tsconfigs/strict", "../../tsconfig.base.json"],
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist"],
+  // vitest.config.ts: this workspace has multiple installed `vite` majors/hash-variants
+  // (astro@7.1.3's vite@8.0.16 vs. astro-compress's astro@6.4.8 pulling in vite@7.3.5, plus
+  // @types/node-peer-hashed variants of vite@8.0.16 itself), so TS can't portably name
+  // getViteConfig's inferred return type (TS2883) — a dependency-graph issue, not an app bug.
+  // Pure build config, not application code; vitest runs it untyped regardless.
+  "exclude": ["dist", "vitest.config.ts"],
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",

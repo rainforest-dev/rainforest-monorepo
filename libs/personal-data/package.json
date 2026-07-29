@@ -29,11 +29,11 @@
   },
   "dependencies": {
     "fast-glob": "^3.3.3",
-    "gray-matter": "^4.0.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "gray-matter": "^4.0.3",
     "vite-plugin-dts": "^4.5.4"
   }
 }
