@@ -69,6 +69,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vite-pwa/astro": "^1.2.0",
+    "@vue/test-utils": "^2.4.11",
     "@webgpu/types": "^0.1.69",
     "astro-compress": "^2.4.1",
     "eslint-plugin-astro": "^1.7.0",
