@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 
+import { writeRequest } from '../../lib/greenlightOutbox.js';
 import {
   addGreenlight,
   getTaskDecision,
@@ -7,7 +8,6 @@ import {
   removeGreenlight,
   resolveTaskDecision,
 } from '../../lib/taskDecision.js';
-import { writeRequest } from '../../lib/greenlightOutbox.js';
 import { writeTaskDecision } from '../../lib/taskNote.js';
 
 function jsonBody(value: unknown): { decision?: unknown; comment?: unknown } | null {

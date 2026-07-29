@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 
 import { readMachineBudgets } from '../../lib/budget.js';
 import { readTaskPlan, writeTaskPlan } from '../../lib/taskNote.js';
-import { suggestTaskPlans, type ExecutionPlan } from '../../lib/taskPlan.js';
+import { type ExecutionPlan,suggestTaskPlans } from '../../lib/taskPlan.js';
 import { readTasks } from '../../lib/tasks.js';
 
 function findTask(id: string) {

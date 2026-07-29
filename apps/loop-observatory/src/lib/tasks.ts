@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { usageDir } from './ledger.js';
 import type { OutboxState } from './greenlightOutbox.js';
+import { usageDir } from './ledger.js';
 import { DEFAULT_STATUSES } from './taskStatus.js';
 
 /** A linked Notion record (epic or parent story) referenced by a task. */

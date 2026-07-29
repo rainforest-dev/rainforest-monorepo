@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   combinedBudget,
+  type MachineBudgetMap,
   parseMachineBudget,
   providerStale,
   sourceLagMinutes,
-  type MachineBudgetMap,
 } from './budget.js';
 
 // A fixed "now" so stale_minutes is deterministic. FRESH.written_at below is

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { readMachineBudgets, type MachineBudget, type MachineBudgetMap } from './budget.js';
+import { type MachineBudget, type MachineBudgetMap,readMachineBudgets } from './budget.js';
 
 /** Loop budget mode per the autonomous-task-loop §0 thresholds. */
 export type BudgetMode = 'green' | 'yellow' | 'red' | 'dark';

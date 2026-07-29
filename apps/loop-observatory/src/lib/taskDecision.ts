@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { requestState, type OutboxState } from './greenlightOutbox.js';
+import { type OutboxState,requestState } from './greenlightOutbox.js';
 import {
   readTaskDecision,
   readTaskPlan,
