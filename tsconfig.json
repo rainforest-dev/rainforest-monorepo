@@ -29,6 +29,9 @@
     },
     {
       "path": "./libs/personal-portfolio"
+    },
+    {
+      "path": "./apps/loop-observatory"
     }
   ],
   "compilerOptions": {
