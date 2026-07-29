@@ -49,3 +49,30 @@ export const MIN_PROSE_CHARS = 600;
 export function isSummarizable(body: string): boolean {
   return toProse(body).length >= MIN_PROSE_CHARS;
 }
+
+/**
+ * Splits a markdown key-points summary into plain-text bullets.
+ *
+ * The model is asked for markdown and returns `* item` lines with `**bold**` and `` `code` ``
+ * inside. Rendering that string raw shows the punctuation to the reader; rendering it as HTML
+ * would hand an unreviewed generator a path into the page. So the structure is parsed here and
+ * each bullet is interpolated as text — the list is ours, only the words are the model's.
+ *
+ * Anything that is not a bullet list survives as a single entry, so a `tldr`-style paragraph
+ * still renders.
+ */
+export function toBullets(summary: string): string[] {
+  const clean = (line: string) =>
+    line
+      .replace(/^\s*[*-]\s+/, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/`([^`]*)`/g, '$1')
+      .trim();
+
+  const lines = summary
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const bullets = lines.filter((line) => /^\s*[*-]\s+/.test(line));
+  return (bullets.length ? bullets : lines).map(clean).filter(Boolean);
+}

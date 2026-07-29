@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue';
 
 import { Button } from '@/components/ui/button';
 import { useSummarizer } from '@utils/ai';
-import { isSummarizable, toProse } from '@utils/article-text';
+import { isSummarizable, toBullets, toProse } from '@utils/article-text';
 
 // `text` is the post's MDX body, passed from the layout rather than scraped from the DOM.
 // Scraping would pick up the nav, the comment widget and the footer; the collection body is
@@ -21,6 +21,7 @@ const { state, summary, failure, busy, progress, refresh, run, reset } =
 onMounted(refresh);
 
 const prose = computed(() => toProse(props.text));
+const bullets = computed(() => (summary.value ? toBullets(summary.value) : []));
 
 /**
  * Posts that are mostly imports, headings and live island tags have nothing to summarize. Asking
@@ -97,9 +98,12 @@ const FAILURE_COPY: Record<string, string> = {
         <p class="text-muted-foreground mb-2 text-xs uppercase">
           On-device summary
         </p>
-        <!-- Rendered as text, not markdown: this is model output, and injecting it as HTML would
-             hand an unreviewed generator a path into the page. -->
-        <p class="whitespace-pre-line text-sm">{{ summary }}</p>
+        <!-- The list markup is ours; only the words are the model's. Each bullet is
+             interpolated as text — never v-html — so an unreviewed generator has no path
+             into the page. -->
+        <ul class="list-inside list-disc space-y-1 text-sm">
+          <li v-for="(point, i) in bullets" :key="i">{{ point }}</li>
+        </ul>
       </div>
 
       <p

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSummarizable, MIN_PROSE_CHARS, toProse } from './article-text';
+import {
+  isSummarizable,
+  MIN_PROSE_CHARS,
+  toBullets,
+  toProse,
+} from './article-text';
 
 // The motivating case, verbatim in shape: web-ai.mdx is imports, headings and island tags with
 // almost no prose. Fed raw to the real Summarizer it echoed the source back — imports included —
@@ -75,5 +80,41 @@ describe('isSummarizable', () => {
     const codeHeavy = '```ts\n' + 'const x = 1;\n'.repeat(200) + '```';
     expect(codeHeavy.length).toBeGreaterThan(MIN_PROSE_CHARS);
     expect(isSummarizable(codeHeavy)).toBe(false);
+  });
+});
+
+describe('toBullets', () => {
+  // Real Chrome output, verbatim, for the weather-forecast post.
+  const REAL = [
+    '* The left and right positions of the indicator are calculated based on the percentage of temperature values.',
+    '* The formulas are: `left = (tempMin - lowerBound) / (upperBound - lowerBound)`.',
+    '* A **color-mix** function in CSS is used to visualize temperature ranges.',
+  ].join('\n');
+
+  it('splits markdown bullets and drops the punctuation the reader should not see', () => {
+    const bullets = toBullets(REAL);
+    expect(bullets).toHaveLength(3);
+    expect(bullets[0]).toMatch(/^The left and right positions/);
+    expect(bullets.join(' ')).not.toMatch(/[*`]/);
+  });
+
+  it('keeps the words inside code spans and bold, only removing the markers', () => {
+    expect(toBullets('* A **color-mix** function')).toEqual([
+      'A color-mix function',
+    ]);
+    expect(toBullets('* uses `color-mix` in CSS')).toEqual([
+      'uses color-mix in CSS',
+    ]);
+  });
+
+  // A tldr-shaped answer is a paragraph, not a list; it must still render.
+  it('passes a non-list summary through as a single entry', () => {
+    expect(toBullets('A single paragraph summary.')).toEqual([
+      'A single paragraph summary.',
+    ]);
+  });
+
+  it('ignores blank lines', () => {
+    expect(toBullets('* one\n\n* two')).toEqual(['one', 'two']);
   });
 });
