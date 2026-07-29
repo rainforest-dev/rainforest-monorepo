@@ -265,7 +265,20 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
           'from decimal import Decimal; import sys; print(Decimal(sys.argv[1]) + Decimal(sys.argv[2]))' \
           "$SPENT" "$turn_cost")
         log "  turn limit ($MAX_TURNS) reached — not a provider failure, so the task is NOT passed on"
-        log "  spent \$$turn_cost this attempt; ralph does not resume — inspect the branch, then re-run"
+        log "  spent \$$turn_cost this attempt"
+        # The session survives with its full context -- what it understood, what it
+        # tried, what it had just done. Print the exact command to pick it up:
+        # reconstructing it later means knowing transcripts are keyed by cwd and
+        # that the session id appears nowhere but this log.
+        resume_hint="cd '$project_path' && claude --resume $sid"
+        log "  ralph does not resume, but this session can be continued by hand:"
+        log "    $resume_hint"
+        # Onto the task card too, so the hint is reachable from Observatory and not
+        # only by whoever reads this log. task-note rather than set: the run's
+        # outcome is unknown, and any state passed would be a guess.
+        "$LOOPCTL" task-note "$slug" "$task_id" \
+          --note "Turn limit ($MAX_TURNS) reached, unfinished. Continue: $resume_hint" \
+          >/dev/null 2>&1 || log "  (task note not written; the hint above is the only copy)"
         # The spend happened whether or not the task finished; a ledger that omits
         # it understates what the task has cost so far.
         "$LOOPCTL" record-run \

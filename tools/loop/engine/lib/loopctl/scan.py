@@ -338,6 +338,44 @@ def set_task_state(
     return task
 
 
+def set_task_note(slug: str, task_id: str, note: str, *, now_ts: int | None = None) -> dict:
+    """Record an observation against a task without claiming its state changed.
+
+    `set_task_state` cannot be reused for this: it requires a state, and every
+    state it would accept is an assertion. A run that exhausted its turn budget
+    may have committed, opened a PR, or produced nothing at all -- asserting any
+    of those would be a guess, and asserting the state it already had would still
+    risk tripping the stop_at path that retires the greenlight.
+
+    The note reaches Observatory through the same overlay `set_task_state`
+    publishes, so it renders on the task card (TaskDetail's `loopNote`).
+    """
+    document = registry.read_project_state(slug)
+    if not document:
+        raise ValueError(f"project '{slug}' has no scanned registry state")
+    matches = [item for item in document.get("tasks") or [] if _answers_to(item, str(task_id))]
+    if not matches:
+        raise ValueError(f"task '{task_id}' is not present in project '{slug}'")
+    if len(matches) > 1:
+        raise ValueError(
+            f"task '{task_id}' matches {len(matches)} tasks in project '{slug}'; "
+            "use the Notion URL to disambiguate"
+        )
+    task = matches[0]
+    overlay = dict(task.get("overlay") or {})
+    overlay["note"] = note
+    overlay["updated_ts"] = now_ts or _now()
+    task["overlay"] = overlay
+    registry.write_project_state(slug, document)
+    # Best-effort, exactly as in set_task_state: an unavailable vault must not
+    # fail the caller that was only leaving a note.
+    try:
+        publish_task_state(slug, task)
+    except OSError:
+        pass
+    return task
+
+
 def _retire_greenlight_if_terminal(slug: str, task: dict) -> dict | None:
     """Withdraw the task's greenlight once the loop has reached the project's stop_at.
 
@@ -503,6 +541,12 @@ def _build_parser() -> argparse.ArgumentParser:
     set_parser.add_argument("--note")
     set_parser.add_argument("--blocked-reason")
 
+    # Separate from `set` on purpose: this asserts nothing about the task's state.
+    note_parser = sub.add_parser("task-note")
+    note_parser.add_argument("slug")
+    note_parser.add_argument("task")
+    note_parser.add_argument("--note", required=True)
+
     run_parser = sub.add_parser("record-run")
     run_parser.add_argument("--project", required=True)
     run_parser.add_argument("--task", required=True)
@@ -562,6 +606,12 @@ def main(argv=None) -> int:
                 retired = _retire_greenlight_if_terminal(args.slug, task)
             if retired is not None:
                 task["greenlight"] = retired
+            _print_json(task)
+            return 0
+
+        if args.cmd == "task-note":
+            with registry.ProjectLock(args.slug):
+                task = set_task_note(args.slug, args.task, args.note)
             _print_json(task)
             return 0
 

@@ -60,6 +60,31 @@ A label can be _explicitly disabled_, which is distinct from _not loaded_ — a
 disabled job stays disabled across a bootstrap, so a job that appears installed
 and silent is usually this rather than a broken plist.
 
+## When a run runs out of turns
+
+ralph does **not** resume. A turn-limited run stops without passing the task to
+the next executor — exhausting turns means unfinished, not unable, and handing it
+on would restart the same task on a budget that just proved insufficient, or open
+a second PR for work the first executor had already committed.
+
+The session survives with its full context, so it can be picked up by hand. Both
+the log and the task card carry the exact command:
+
+    cd '<project path>' && claude --resume <session id>
+
+Verified against a real turn-limited session: it came back knowing the ticket,
+the fix it had written, the PR it had opened, and that its next call had failed.
+
+The note is written with `loopctl task-note`, not `loopctl set`. `set` requires a
+state, and every state it accepts is an assertion — a run that exhausted its
+turns may have committed, opened a PR, or produced nothing, so any state passed
+would be a guess. `task-note` records the observation and asserts nothing.
+
+Automatic resume is deliberately not implemented. It would need a guard for when
+continuing is unsafe: the branch may have moved under the session, the task
+definition may have changed, or the session may simply be stale — and continuing
+with an outdated understanding can be worse than starting over.
+
 ## Tests
 
     tools/loop/tests/max-turns-no-fallback.sh

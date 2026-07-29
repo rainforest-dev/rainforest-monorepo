@@ -179,6 +179,38 @@ PY
 )
 check "ledger 有一筆 incomplete 且帶成本" "$ledger_row" "incomplete|1.23|claude"
 
+# The whole point of the turn-limit branch is that the session can be picked up.
+# Assert the command is printed and reaches the task card, not just that we logged
+# something.
+check "log 印出可直接跑的 resume 指令" "$(grep -c "claude --resume" "$ROOT/ralph.out" | tr -d ' ')" "1"
+# Only what ralph owns: a complete, runnable command. Where the CLI keeps the
+# transcript is its own business, and `cd <path> && claude --resume <id>` does not
+# depend on that encoding -- so asserting the file's location would test the CLI,
+# not this branch. That resume restores context was verified separately against a
+# real session.
+check "resume 指令完整（cd + 36 字元 session id）" \
+  "$(grep -cE "cd '.*' && claude --resume [A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}" "$ROOT/ralph.out" | tr -d ' ')" "1"
+# Matched by content, not by key. How the overlay is keyed is the code's business
+# -- for an obsidian-base task it is the note path, for a Notion one the AG- id --
+# and duplicating that rule here would just test the test.
+progress_note=$("$VENV/bin/python" - "$VAULT/_system/usage/tasks-progress.json" <<'PYNOTE'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+if not p.exists():
+    print("NO_FILE"); raise SystemExit
+entries = (json.loads(p.read_text()).get("tasks") or {})
+hits = [k for k, v in entries.items() if "claude --resume" in ((v or {}).get("note") or "")]
+if len(hits) == 1:
+    print("HAS_RESUME")
+elif not entries:
+    print("NO_ENTRIES")
+else:
+    print(f"NO_RESUME(keys={list(entries)[:2]})")
+PYNOTE
+)
+check "task note 帶著 resume 指令（Observatory 讀得到）" "$progress_note" "HAS_RESUME"
+
 echo
 echo "  $pass/$((pass+fail))"
 [ "$fail" -eq 0 ] && rm -rf "$ROOT" || echo "  保留現場: $ROOT"
