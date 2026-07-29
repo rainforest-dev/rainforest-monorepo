@@ -97,10 +97,27 @@ except Exception:
     payload = {}
 subtype = str(payload.get("subtype") or "")
 text = payload.get("result") or ""
-line = " ".join(str(text).split())[:180]
+# The fallback belongs to the text, not to the whole line: a stop reason with no
+# result -- exactly what the turn limit produces -- would otherwise print as a
+# bare "[error_max_turns]" and hide the fact that the executor said nothing.
+line = " ".join(str(text).split())[:180] or "(executor returned no result text)"
 prefix = f"[{subtype}] " if subtype and subtype != "success" else ""
-print((prefix + line).strip() or "(executor returned no result text)")' \
+print((prefix + line).strip())' \
     2>/dev/null || echo "(unreadable executor output)"
+}
+
+# The executor's own reason for stopping, as the CLI reports it. Measured
+# 2026-07-29: exhausting --max-turns exits 1 with subtype "error_max_turns",
+# is_error true, and result null -- indistinguishable from a real failure by exit
+# code alone, which is the whole reason this is read separately.
+executor_subtype() {
+  printf '%s' "$1" | "$PYTHON_BIN" -c \
+    'import json, sys
+try:
+    print(json.loads(sys.stdin.read()).get("subtype") or "")
+except Exception:
+    print("")' \
+    2>/dev/null || printf ''
 }
 
 # Two separate gates, both of which stopped this executor dead before 2026-07-29:
@@ -234,10 +251,37 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
     fi
     if [ "$candidate_status" -ne 0 ]; then
       log "executor=$candidate failed (exit=$candidate_status) · $(executor_verdict "$candidate_out")"
-      # A non-zero exit does not mean nothing happened. Hitting the turn limit
-      # exits 1, and on 2026-07-29 it did so one step after the executor had
-      # committed and opened a PR. Handing that task to the next executor would
-      # have it redo committed work and open a second PR for the same fix.
+      # Exhausting the turn budget means unfinished, not unable, so the fallback
+      # chain is the wrong response: the next executor starts the same task from
+      # zero with a budget that just proved insufficient, and if the first one had
+      # already committed it opens a second PR for the same fix. Checked before
+      # the repo-moved guard below, because a run can exhaust its turns without
+      # having committed anything yet and still must not be handed on.
+      if [ "$(executor_subtype "$candidate_out")" = "error_max_turns" ]; then
+        turn_cost=$(printf '%s' "$candidate_out" | "$PYTHON_BIN" -c \
+          'import json, sys; data=sys.stdin.read(); print(json.loads(data).get("total_cost_usd", 0) if data.strip() else 0)' \
+          2>/dev/null || echo 0)
+        SPENT=$("$PYTHON_BIN" -c \
+          'from decimal import Decimal; import sys; print(Decimal(sys.argv[1]) + Decimal(sys.argv[2]))' \
+          "$SPENT" "$turn_cost")
+        log "  turn limit ($MAX_TURNS) reached — not a provider failure, so the task is NOT passed on"
+        log "  spent \$$turn_cost this attempt; ralph does not resume — inspect the branch, then re-run"
+        # The spend happened whether or not the task finished; a ledger that omits
+        # it understates what the task has cost so far.
+        "$LOOPCTL" record-run \
+          --project "$slug" \
+          --task "$task_id" \
+          --executor "$candidate" \
+          --machine "$MACHINE" \
+          --cost "$turn_cost" \
+          --status incomplete \
+          --note "hit the $MAX_TURNS-turn limit; no fallback attempted" >/dev/null 2>&1 || \
+          log "  run ledger unavailable; the spend above is only in this log"
+        exit "$candidate_status"
+      fi
+      # A non-zero exit does not mean nothing happened. On 2026-07-29 an executor
+      # exited 1 one step after committing and opening a PR. Handing that task on
+      # would have it redo committed work and open a second PR for the same fix.
       if [ "$head_before" != "$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)" ]; then
         log "  the repo moved before this failure; not passing the task on -- inspect the branch, then resume"
         exit "$candidate_status"

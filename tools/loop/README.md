@@ -60,6 +60,24 @@ A label can be _explicitly disabled_, which is distinct from _not loaded_ — a
 disabled job stays disabled across a bootstrap, so a job that appears installed
 and silent is usually this rather than a broken plist.
 
+## Tests
+
+    tools/loop/tests/max-turns-no-fallback.sh
+
+Runs the engine **in this tree** — not whatever is installed — against a
+throwaway `LOOP_HOME`, vault, git repo and fake executors. The real install, its
+registry and its allowlists are never read or written, and the allowlist the test
+creates names a task that exists only inside its sandbox, so it authorises
+nothing. Needs a loopctl venv, borrowed from an install: the venv is a build
+artifact and is not in the repo.
+
+It guards one behaviour that is expensive to get wrong: an executor that
+exhausts its turn budget must **not** be handed on to the next executor.
+Exhausting turns means unfinished, not unable — the next executor would start the
+same task from zero on a budget that just proved insufficient, and if the first
+one had already committed, it would open a second PR for the same fix. Verified
+to fail when that guard is removed.
+
 ## Not in this repo
 
 Four kinds of file live in the install directory but are deliberately absent
