@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join, normalize, resolve, sep } from 'node:path';
 
 import { renderMarkdown } from './markdown.js';
+import type { ExecutionPlan } from './taskPlan.js';
 import { readTasks, type SprintTask, type TaskScope } from './tasks.js';
 
 /** A task's local note, resolved from the vault and rendered for the drawer. */
@@ -26,6 +27,16 @@ export interface TaskNote {
   /** Secondary link — only for work tasks (their `task_ref` is a Notion URL). */
   notionUrl: string | null;
 }
+
+export type TaskDecision = 'greenlight' | 'plan-first';
+
+export interface TaskDecisionRecord {
+  decision: TaskDecision;
+  comment: string;
+  updatedAt: string | null;
+}
+
+const PLAN_HEADING = /^##\s+Execution Plan\s*$/;
 
 function vaultBase(): string {
   return process.env.VAULT_PATH ?? '/vault';
@@ -74,9 +85,9 @@ export function parseFrontmatter(content: string): {
 /**
  * Resolve a task's note path from tasks.json (never from client input):
  *   • personal → the vault-relative path in the task's `task_ref`;
- *   • work     → `_system/tasks/<numeric-id>.md`.
+ *   • work     → `_system/tasks/<board-id>.md` (for example `AG-297.md`).
  * Returns an absolute path, or `null` when it can't be safely resolved (unknown
- * scope, non-numeric work id, or a path that escapes the vault root).
+ * scope, unsafe work id, or a path that escapes the vault root).
  */
 function resolveNotePath(task: SprintTask): { abs: string; rel: string } | null {
   let rel: string;
@@ -84,7 +95,7 @@ function resolveNotePath(task: SprintTask): { abs: string; rel: string } | null 
     if (!task.task_ref || /^https?:/.test(task.task_ref)) return null;
     rel = task.task_ref;
   } else {
-    if (!/^\d+$/.test(String(task.id))) return null;
+    if (!/^[A-Za-z0-9_-]+$/.test(String(task.id))) return null;
     rel = join('_system', 'tasks', `${task.id}.md`);
   }
 
@@ -107,6 +118,7 @@ function findTask(id: string): SprintTask | null {
 // textarea binds to and the `tune` skill reads. Keeping them separate stops the
 // loop's outcome from pre-filling the Feedback box.
 const FEEDBACK_HEADING = /^##\s+Feedback\s*$/;
+const DECISION_HEADING = /^##\s+Loop Decision\s*$/;
 
 /**
  * The raw text under a `## <heading>` section (heading excluded), up to the next
@@ -152,6 +164,17 @@ function feedbackText(notesRaw: string | null): string {
   return notesRaw.replace(/<!--[\s\S]*?-->/g, '').trim();
 }
 
+function decisionRecord(raw: string | null): TaskDecisionRecord | null {
+  if (raw === null) return null;
+  const decision = /^Decision:\s*(greenlight|plan-first)\s*$/im.exec(raw)?.[1] as
+    | TaskDecision
+    | undefined;
+  if (!decision) return null;
+  const updatedAt = /^Updated:\s*(.+)$/im.exec(raw)?.[1]?.trim() ?? null;
+  const comment = /^Comment:\s*\n([\s\S]*)$/im.exec(raw)?.[1]?.trim() ?? '';
+  return { decision, comment, updatedAt };
+}
+
 /**
  * Replace the body under a note's `## <heading>` section with `value`, preserving
  * everything else verbatim — frontmatter, the `# title`, the
@@ -189,6 +212,31 @@ export function replaceSection(
   let out = `${head}\n\n${bodyPart}`;
   if (tail.trim() !== '') out += `\n${tail}`;
   return out;
+}
+
+function planRecord(raw: string | null): ExecutionPlan | null {
+  if (raw === null) return null;
+  const value = (label: string) => new RegExp(`^${label}:\\s*(.+)$`, 'im').exec(raw)?.[1]?.trim() ?? '';
+  const provider = value('Provider');
+  const model = value('Model');
+  const effort = value('Effort');
+  const inputTokens = Number(value('Input tokens'));
+  const outputTokens = Number(value('Output tokens'));
+  const maxMinutes = Number(value('Max minutes'));
+  if (!provider || !model || !effort || !Number.isFinite(inputTokens) || !Number.isFinite(outputTokens) || !Number.isFinite(maxMinutes)) {
+    return null;
+  }
+  return {
+    provider: provider as ExecutionPlan['provider'],
+    model,
+    effort: effort as ExecutionPlan['effort'],
+    inputTokens,
+    outputTokens,
+    maxMinutes,
+    quotaWindow: value('Quota window'),
+    fallback: value('Fallback') || null,
+    rationale: value('Rationale'),
+  };
 }
 
 function buildNote(
@@ -272,6 +320,92 @@ export function writeTaskFeedback(id: string, feedback: string): TaskNote | null
   }
 
   const next = replaceSection(content, FEEDBACK_HEADING, '## Feedback', feedback);
+  writeFileSync(resolved.abs, next, 'utf-8');
+  return buildNote(id, task, resolved.rel, next);
+}
+
+/** Read the owner's latest greenlight/planning decision from the task note. */
+export function readTaskDecision(id: string): TaskDecisionRecord | null {
+  const task = findTask(id);
+  if (!task) return null;
+  const resolved = resolveNotePath(task);
+  if (!resolved) return null;
+  try {
+    const content = readFileSync(resolved.abs, 'utf-8');
+    const { body } = parseFrontmatter(content);
+    return decisionRecord(extractSection(body, DECISION_HEADING));
+  } catch {
+    return null;
+  }
+}
+
+export function readTaskPlan(id: string): ExecutionPlan | null {
+  const task = findTask(id);
+  if (!task) return null;
+  const resolved = resolveNotePath(task);
+  if (!resolved) return null;
+  try {
+    const content = readFileSync(resolved.abs, 'utf-8');
+    const { body } = parseFrontmatter(content);
+    return planRecord(extractSection(body, PLAN_HEADING));
+  } catch {
+    return null;
+  }
+}
+
+export function writeTaskPlan(id: string, plan: ExecutionPlan): TaskNote | null {
+  const task = findTask(id);
+  if (!task) return null;
+  const resolved = resolveNotePath(task);
+  if (!resolved) return null;
+  let content: string;
+  try {
+    content = readFileSync(resolved.abs, 'utf-8');
+  } catch {
+    return null;
+  }
+  const value = [
+    `Provider: ${plan.provider}`,
+    `Model: ${plan.model}`,
+    `Effort: ${plan.effort}`,
+    `Input tokens: ${plan.inputTokens}`,
+    `Output tokens: ${plan.outputTokens}`,
+    `Max minutes: ${plan.maxMinutes}`,
+    `Quota window: ${plan.quotaWindow}`,
+    `Fallback: ${plan.fallback ?? ''}`,
+    `Rationale: ${plan.rationale}`,
+  ].join('\n');
+  const next = replaceSection(content, PLAN_HEADING, '## Execution Plan', value);
+  writeFileSync(resolved.abs, next, 'utf-8');
+  return buildNote(id, task, resolved.rel, next);
+}
+
+/** Persist an owner decision without mixing it into the loop's outcome or tune feedback. */
+export function writeTaskDecision(
+  id: string,
+  decision: TaskDecision,
+  comment: string,
+): TaskNote | null {
+  const task = findTask(id);
+  if (!task) return null;
+  const resolved = resolveNotePath(task);
+  if (!resolved) return null;
+
+  let content: string;
+  try {
+    content = readFileSync(resolved.abs, 'utf-8');
+  } catch {
+    return null;
+  }
+
+  const cleanComment = comment.replace(/\r\n/g, '\n').trim();
+  const value = [
+    `Decision: ${decision}`,
+    `Updated: ${new Date().toISOString()}`,
+    'Comment:',
+    cleanComment,
+  ].join('\n');
+  const next = replaceSection(content, DECISION_HEADING, '## Loop Decision', value);
   writeFileSync(resolved.abs, next, 'utf-8');
   return buildNote(id, task, resolved.rel, next);
 }
