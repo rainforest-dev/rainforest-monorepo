@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  canonicalId,
   OUTBOX_VERSION,
   prunePairs,
   readAck,
@@ -73,6 +74,56 @@ describe('writeRequest', () => {
   it('refuses an unsafe id', () => {
     expect(() => writeRequest(task('../../etc/passwd'), SLUG, null, '')).toThrow(/unsafe task id/);
   });
+
+  // I2: one Notion sync emits both `290` and `AG-290` for the same task. If
+  // they resolved to different outbox keys, a re-synced task would look
+  // unqueued, the button would re-enable, and Air would be asked to authorise
+  // it a second time.
+  it('files an AG- task under its bare numeric id, keeping the prefix as sourceId', () => {
+    const written = writeRequest(task('AG-290'), SLUG, null, '');
+    expect(written.id).toBe('290');
+    expect(written.sourceId).toBe('AG-290');
+    expect(readRequest(SLUG, '290')?.sourceId).toBe('AG-290');
+  });
+
+  it('resolves an AG- task and a bare task to the same outbox key', () => {
+    writeRequest(task(290), SLUG, null, 'first');
+    // The same task, re-synced with its sprint prefix, must find the request
+    // that is already on disk rather than looking unqueued.
+    expect(requestState(SLUG, 'AG-290')).toBe('pending');
+    expect(readRequest(SLUG, 'AG-290')?.comment).toBe('first');
+    expect(scanStates(SLUG)).toEqual({ '290': 'pending' });
+  });
+
+  it('normalises every prefix form to the same key', () => {
+    expect(canonicalId('AG-290')).toBe('290');
+    expect(canonicalId('290')).toBe('290');
+    expect(canonicalId('EHT-1234')).toBe('1234');
+    expect(canonicalId(290)).toBe('290');
+  });
+
+  // C1: prunePairs never deletes a failed pair and the pull job's only
+  // outstanding-signal is "no ack beside the request", so a stale terminal ack
+  // made re-pressing Greenlight a permanent no-op.
+  it('clears a stale ack so re-requesting is a real re-request', () => {
+    writeRequest(task(130), SLUG, null, 'first');
+    writeFileSync(
+      join(dir, SLUG, '130.ack.json'),
+      JSON.stringify({
+        version: OUTBOX_VERSION,
+        id: '130',
+        result: 'failed',
+        reason: 'project lock is busy; a sweep is running',
+        appliedAt: '2026-07-28T08:00:00.000Z',
+        machine: 'Angibles-MacBook-Air',
+      }),
+    );
+    expect(requestState(SLUG, '130')).toBe('failed');
+
+    writeRequest(task(130), SLUG, null, 'second');
+    expect(readAck(SLUG, '130')).toBeNull();
+    expect(requestState(SLUG, '130')).toBe('pending');
+  });
 });
 
 describe('requestState', () => {
@@ -108,6 +159,25 @@ describe('requestState', () => {
   it('treats a malformed ack as failed', () => {
     writeRequest(task(130), SLUG, null, '');
     writeFileSync(join(dir, SLUG, '130.ack.json'), 'not json');
+    expect(requestState(SLUG, '130')).toBe('failed');
+  });
+
+  // C1: `busy` is a loopctl verdict that pull.sh deliberately never acks, so it
+  // should not be reachable here at all. If one ever did land, it must collapse
+  // to failed rather than crash or -- far worse -- read as an authorisation.
+  it('collapses a verdict unknown to mini, such as busy, to failed', () => {
+    writeRequest(task(130), SLUG, null, '');
+    writeFileSync(
+      join(dir, SLUG, '130.ack.json'),
+      JSON.stringify({
+        version: OUTBOX_VERSION,
+        id: '130',
+        result: 'busy',
+        reason: 'project lock is busy; a sweep is running',
+        appliedAt: '2026-07-28T08:00:00.000Z',
+        machine: 'Angibles-MacBook-Air',
+      }),
+    );
     expect(requestState(SLUG, '130')).toBe('failed');
   });
 });
