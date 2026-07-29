@@ -17,7 +17,12 @@ interface NavItem {
 }
 
 const nav: NavItem[] = [
-  { key: 'home', label: t('home'), href: getRelativeLocaleUrl(lang, '/'), isActive: (p) => p === '/' },
+  {
+    key: 'home',
+    label: t('home'),
+    href: getRelativeLocaleUrl(lang, '/'),
+    isActive: (p) => p === '/',
+  },
   {
     key: 'portfolio',
     label: t('portfolio'),
@@ -49,7 +54,9 @@ const langs = [
   { key: 'zh', label: '中' },
 ] as const;
 const langHref = (l: string) =>
-  localeAgnostic ? getRelativeLocaleUrl(l, '/') : getRelativeLocaleUrl(l, stripped);
+  localeAgnostic
+    ? getRelativeLocaleUrl(l, '/')
+    : getRelativeLocaleUrl(l, stripped);
 const langItems = langs.map((l) => ({
   key: l.key,
   label: t(l.key),
@@ -97,7 +104,7 @@ const home = getRelativeLocaleUrl(lang, '/');
 
       <details class="relative md:hidden" data-menu>
         <summary
-          class="flex-center hover:bg-muted list-none cursor-pointer rounded-md p-2 [&::-webkit-details-marker]:hidden"
+          class="flex-center hover:bg-muted cursor-pointer list-none rounded-md p-2 [&::-webkit-details-marker]:hidden"
           aria-label="Menu"
         >
           <svg

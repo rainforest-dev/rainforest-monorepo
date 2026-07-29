@@ -67,17 +67,23 @@ const hasIsland = HYDRATED_KINDS.includes(section.interaction);
 
 <section class="py-14" aria-labelledby={`sec-${section.id}`}>
   <div class="max-w-prose">
-    <p class="text-xs tracking-widest uppercase text-primary/70">{section.title}</p>
-    <h3 id={`sec-${section.id}`} class="mt-2 text-2xl leading-snug">{section.feature}</h3>
-    <p class="mt-4 border-l-2 border-primary/50 pl-4 italic">{section.contribution}</p>
-    <p class="mt-4 leading-relaxed text-foreground/80">
+    <p class="text-primary/70 text-xs uppercase tracking-widest">
+      {section.title}
+    </p>
+    <h3 id={`sec-${section.id}`} class="mt-2 text-2xl leading-snug">
+      {section.feature}
+    </h3>
+    <p class="border-primary/50 mt-4 border-l-2 pl-4 italic">
+      {section.contribution}
+    </p>
+    <p class="text-foreground/80 mt-4 leading-relaxed">
       {
         techSegments.map((seg) =>
           seg.code ? (
-            <code class="rounded bg-muted px-1 py-0.5 text-sm">{seg.text}</code>
+            <code class="bg-muted rounded px-1 py-0.5 text-sm">{seg.text}</code>
           ) : (
             <span>{seg.text}</span>
-          )
+          ),
         )
       }
     </p>
@@ -90,23 +96,41 @@ const hasIsland = HYDRATED_KINDS.includes(section.interaction);
         {section.interaction === 'live-ledger' && <LiveLedger client:load />}
         {section.interaction === 'idle-lock' && <IdleLock client:load />}
         {section.interaction === 'relay-gate' && <RelayGate client:load />}
-        {section.interaction === 'virtualized-search' && <VirtualizedSearch client:load />}
+        {section.interaction === 'virtualized-search' && (
+          <VirtualizedSearch client:load />
+        )}
         {section.interaction === 'order-book' && <OrderBook client:load />}
-        {section.interaction === 'fetch-then-stream' && <FetchThenStream client:load />}
-        {section.interaction === 'wallet-state-machine' && <WalletStateMachine client:load />}
-        {section.interaction === 'patch-vs-refetch' && <PatchVsRefetch client:load />}
+        {section.interaction === 'fetch-then-stream' && (
+          <FetchThenStream client:load />
+        )}
+        {section.interaction === 'wallet-state-machine' && (
+          <WalletStateMachine client:load />
+        )}
+        {section.interaction === 'patch-vs-refetch' && (
+          <PatchVsRefetch client:load />
+        )}
         {section.interaction === 'amm-quote' && <AmmQuote client:load />}
         {section.interaction === 'offer-state' && <OfferState client:load />}
-        {section.interaction === 'zap-liquidity' && <ZapLiquidity client:load />}
+        {section.interaction === 'zap-liquidity' && (
+          <ZapLiquidity client:load />
+        )}
         {section.interaction === 'env-deploy' && <EnvDeploy client:load />}
         {section.interaction === 'i18n-card' && <I18nCard client:load />}
         {section.interaction === 'jwt-decode' && <JwtDecode client:load />}
         {section.interaction === 'role-shell' && <RoleShell client:load />}
-        {section.interaction === 'casbin-playground' && <CasbinPlayground client:load />}
+        {section.interaction === 'casbin-playground' && (
+          <CasbinPlayground client:load />
+        )}
         {section.interaction === 'phi-encrypt' && <PhiEncrypt client:load />}
-        {section.interaction === 'affected-pipeline' && <AffectedPipeline client:load />}
+        {section.interaction === 'affected-pipeline' && (
+          <AffectedPipeline client:load />
+        )}
       </div>
     )
   }
-  {section.sourceRef && <p class="mt-4 text-xs text-foreground/50">Mirrors {section.sourceRef}</p>}
+  {
+    section.sourceRef && (
+      <p class="text-foreground/50 mt-4 text-xs">Mirrors {section.sourceRef}</p>
+    )
+  }
 </section>

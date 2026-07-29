@@ -84,7 +84,7 @@ const paletteRecords: Searchable[] = [
     {shell && <SiteFooter />}
     {
       !hideSourceColorPicker && (
-        <div class="fixed right-10 bottom-10 z-10 print:hidden">
+        <div class="fixed bottom-10 right-10 z-10 print:hidden">
           <SourceColor client:only="vue" showTheme={!shell} />
         </div>
       )

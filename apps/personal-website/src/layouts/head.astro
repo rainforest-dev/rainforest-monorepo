@@ -40,13 +40,15 @@ const xDefaultHref = isLocalized
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width" />
 
-  {/* Resolve the colour scheme before first paint (no FOUC). Precedence:
+  {
+    /* Resolve the colour scheme before first paint (no FOUC). Precedence:
       a page's product-locked `data-force-scheme` (case studies) always wins;
       otherwise the visitor's stored light/dark preference; otherwise `system`
       (unset → the shadcn plugin follows the OS via prefers-color-scheme).
       `data-theme-pref` mirrors the raw preference so the header toggle shows
       the right icon with no flash. Re-applied on the *incoming* document during
-      view-transition swaps so client-side navigation never flashes either. */}
+      view-transition swaps so client-side navigation never flashes either. */
+  }
   <script is:inline>
     (function () {
       const ORDER = ['system', 'light', 'dark'];
@@ -88,7 +90,9 @@ const xDefaultHref = isLocalized
               const commit = () => applyTo(document.documentElement);
               // Cross-fade the scheme change via the View Transitions API,
               // respecting reduced-motion; instant swap where unsupported.
-              const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+              const reduce = matchMedia(
+                '(prefers-reduced-motion: reduce)',
+              ).matches;
               if (document.startViewTransition && !reduce) {
                 document.startViewTransition(commit);
               } else {
@@ -104,11 +108,9 @@ const xDefaultHref = isLocalized
         });
         document.addEventListener('keydown', (e) => {
           if (e.key !== 'Escape') return;
-          document
-            .querySelectorAll('details[data-menu][open]')
-            .forEach((d) => {
-              d.open = false;
-            });
+          document.querySelectorAll('details[data-menu][open]').forEach((d) => {
+            d.open = false;
+          });
         });
       }
     })();
@@ -126,8 +128,16 @@ const xDefaultHref = isLocalized
   <link rel="sitemap" href="/sitemap-index.xml" />
 
   <link rel="canonical" href={canonical} />
-  {alternates.map((a) => <link rel="alternate" hreflang={a.hreflang} href={a.href} />)}
-  {xDefaultHref && <link rel="alternate" hreflang="x-default" href={xDefaultHref} />}
+  {
+    alternates.map((a) => (
+      <link rel="alternate" hreflang={a.hreflang} href={a.href} />
+    ))
+  }
+  {
+    xDefaultHref && (
+      <link rel="alternate" hreflang="x-default" href={xDefaultHref} />
+    )
+  }
 
   <!-- Open Graph and Twitter Card Metadata  -->
   <title>{title}</title>
