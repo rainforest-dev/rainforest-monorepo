@@ -60,7 +60,9 @@ const [skills, workExperience, education] = await Promise.all([
   getWorkExperience({ lang }),
   getEducation({ lang }),
 ]);
-const mostRecentJob = workExperience.toSorted((a, b) => b.startAt.valueOf() - a.startAt.valueOf())[0];
+const mostRecentJob = workExperience.toSorted(
+  (a, b) => b.startAt.valueOf() - a.startAt.valueOf(),
+)[0];
 const caseStudies = listCaseStudies();
 const personSchema = {
   '@context': 'https://schema.org',
@@ -72,12 +74,21 @@ const personSchema = {
   jobTitle: resumeProps.jobPosition,
   url: info.links.website,
   email: `mailto:${info.email}`,
-  sameAs: [getLinkedInUrl(info.links.linkedin), getGitHubUrl(info.links.github)],
+  sameAs: [
+    getLinkedInUrl(info.links.linkedin),
+    getGitHubUrl(info.links.github),
+  ],
   knowsAbout: skills.map((s) => s.name),
   ...(mostRecentJob && {
-    worksFor: { '@type': 'Organization', name: mostRecentJob.organization.name },
+    worksFor: {
+      '@type': 'Organization',
+      name: mostRecentJob.organization.name,
+    },
   }),
-  alumniOf: education.map((e) => ({ '@type': 'EducationalOrganization', name: e.organization.name })),
+  alumniOf: education.map((e) => ({
+    '@type': 'EducationalOrganization',
+    name: e.organization.name,
+  })),
   // Interactive case studies for shipped work — the same registry backing the portfolio
   // routes, so this list can't name a project without a live page to back it. Locale-correct
   // canonical: /portfolio/<slug> for the default locale, /<lang>/portfolio/<slug> otherwise.
@@ -97,12 +108,10 @@ const personSchema = {
 >
   <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
   <main
-    class="w-screen h-screen flex-col-center p-10 bg-foreground overflow-scroll
-            print:justify-start print:items-start print:p-0 print:overflow-visible"
+    class="flex-col-center bg-foreground h-screen w-screen overflow-scroll p-10 print:items-start print:justify-start print:overflow-visible print:p-0"
   >
     <div
-      class="w-[75rem] h-[105rem] origin-top scale-30 sm:scale-50 md:scale-75 lg:scale-100
-              print:scale-100 print:origin-top-left"
+      class="scale-30 h-[105rem] w-[75rem] origin-top sm:scale-50 md:scale-75 lg:scale-100 print:origin-top-left print:scale-100"
     >
       <ATSFriendly {...resumeProps} />
     </div>

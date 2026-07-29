@@ -9,12 +9,12 @@ import QuickPostLayout from '@/layouts/quick-post.astro';
 export const prerender = true;
 
 const posts = await getCollection('blog', ({ data }) =>
-  data.tags.includes('type:quick-post')
+  data.tags.includes('type:quick-post'),
 );
 ---
 
 <Layout title="Quick Posts" viewTransition={{ enabled: true }} shell>
-  <main class="container py-10 space-y-8">
+  <main class="container space-y-8 py-10">
     {
       posts
         .sort((a, b) => {

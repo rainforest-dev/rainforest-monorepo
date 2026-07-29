@@ -27,7 +27,7 @@ const { t } = await useTranslation(lang);
   <Button
     as="a"
     data-contact-submit
-    class="mt-4 px-6 w-1/2 self-end"
+    class="mt-4 w-1/2 self-end px-6"
     href={`mailto:${info.email}`}>{t('contact-me-submit')}</Button
   >
 </contact-form>
@@ -38,19 +38,19 @@ const { t } = await useTranslation(lang);
   class ContactForm extends HTMLElement {
     connectedCallback() {
       const nameField = this.querySelector(
-        'input[name="name"]'
+        'input[name="name"]',
       ) as HTMLInputElement;
       const companyField = this.querySelector(
-        'input[name="company"]'
+        'input[name="company"]',
       ) as HTMLInputElement;
       const subjectField = this.querySelector(
-        'input[name="subject"]'
+        'input[name="subject"]',
       ) as HTMLInputElement;
       const messageField = this.querySelector(
-        'textarea[name="message"]'
+        'textarea[name="message"]',
       ) as HTMLTextAreaElement;
       const submitButton = this.querySelector(
-        '[data-contact-submit]'
+        '[data-contact-submit]',
       ) as HTMLAnchorElement;
 
       const handleFormChange = () => {

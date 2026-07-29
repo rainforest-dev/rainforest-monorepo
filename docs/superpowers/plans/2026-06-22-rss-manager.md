@@ -1134,8 +1134,12 @@ import SourceTable from '../components/SourceTable.tsx';
 import TopicList from '../components/TopicList.tsx';
 import FeedValidator from '../components/FeedValidator.tsx';
 
-const tab = (Astro.url.searchParams.get('tab') ?? 'sources') as 'sources' | 'topics' | 'validate';
+const tab = (Astro.url.searchParams.get('tab') ?? 'sources') as
+  | 'sources'
+  | 'topics'
+  | 'validate';
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -1143,30 +1147,38 @@ const tab = (Astro.url.searchParams.get('tab') ?? 'sources') as 'sources' | 'top
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RSS Manager — Rainforest Tools</title>
     <style>
-      body { background: #0f1117; color: #e2e4ed; font-family: system-ui, sans-serif; }
+      body {
+        background: #0f1117;
+        color: #e2e4ed;
+        font-family: system-ui, sans-serif;
+      }
     </style>
   </head>
   <body class="min-h-screen">
-    <div class="max-w-5xl mx-auto px-6 py-8">
+    <div class="mx-auto max-w-5xl px-6 py-8">
       <header class="mb-8">
         <h1 class="text-2xl font-semibold text-gray-100">RSS Manager</h1>
-        <p class="text-gray-500 text-sm mt-1">Browse and validate your Readwise RSS feeds.</p>
+        <p class="mt-1 text-sm text-gray-500">
+          Browse and validate your Readwise RSS feeds.
+        </p>
       </header>
 
       <!-- Tabs -->
-      <nav class="flex gap-1 mb-6 border-b border-gray-800">
-        {(['sources', 'topics', 'validate'] as const).map((t) => (
-          <a
-            href={`?tab=${t}`}
-            class={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t
-                ? 'border-violet-500 text-violet-400'
-                : 'border-transparent text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </a>
-        ))}
+      <nav class="mb-6 flex gap-1 border-b border-gray-800">
+        {
+          (['sources', 'topics', 'validate'] as const).map((t) => (
+            <a
+              href={`?tab=${t}`}
+              class={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+                tab === t
+                  ? 'border-violet-500 text-violet-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </a>
+          ))
+        }
       </nav>
 
       <!-- Tab content -->

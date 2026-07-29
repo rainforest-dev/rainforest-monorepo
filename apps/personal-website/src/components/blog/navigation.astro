@@ -22,19 +22,19 @@ const {
 const pathname = new URL(Astro.request.url).pathname;
 ---
 
-<div class="h-10 bg-card rounded-full shadow-lg">
+<div class="bg-card h-10 rounded-full shadow-lg">
   {
     links.map((link) => (
       <a
         href={link.path}
         class={clsx(
-          'px-4 py-2 rounded-full flex-center inline-flex relative z-0',
-          pathname === link.path && 'text-primary-foreground'
+          'flex-center relative z-0 inline-flex rounded-full px-4 py-2',
+          pathname === link.path && 'text-primary-foreground',
         )}
       >
         {pathname === link.path && (
           <span
-            class="absolute inset-0 rounded-full bg-primary"
+            class="bg-primary absolute inset-0 rounded-full"
             transition:name="active-link"
           />
         )}

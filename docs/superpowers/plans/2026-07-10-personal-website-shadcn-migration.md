@@ -477,10 +477,10 @@ const sourceColor =
 // Tailwind plugin's CSS relative-color-syntax derivation of `--seed`.
 const theme = themeFromSourceColor(argbFromHex(sourceColor));
 const themeColorLight = hexFromArgb(
-  getSchemeProperties(theme.schemes.light)['--md-sys-color-surface']
+  getSchemeProperties(theme.schemes.light)['--md-sys-color-surface'],
 );
 const themeColorDark = hexFromArgb(
-  getSchemeProperties(theme.schemes.dark)['--md-sys-color-surface']
+  getSchemeProperties(theme.schemes.dark)['--md-sys-color-surface'],
 );
 
 const styleRaw = `
@@ -1523,18 +1523,17 @@ const translatePath = useTranslatedPath(lang);
 ---
 
 <div
-  class="h-3/4 w-full flex-row-center justify-between py-10 px-20 relative z-0 rounded-xl shadow-lg"
+  class="flex-row-center relative z-0 h-3/4 w-full justify-between rounded-xl px-20 py-10 shadow-lg"
 >
-  <div class="absolute -z-10 inset-0 rounded-[inherit] overflow-clip">
+  <div class="absolute inset-0 -z-10 overflow-clip rounded-[inherit]">
     <div
-      class="size-full relative z-0 bg-muted overflow-clip
-                  after:bg-foreground after:h-full after:w-1/2 after:absolute after:-skew-x-[45deg] after:scale-200 after:-z-10 after:-right-1/4 after:top-0"
+      class="bg-muted after:bg-foreground after:scale-200 relative z-0 size-full overflow-clip after:absolute after:-right-1/4 after:top-0 after:-z-10 after:h-full after:w-1/2 after:-skew-x-[45deg]"
     >
     </div>
   </div>
   <div class="flex flex-col justify-center">
     <p>{year}</p>
-    <h1 class="text-7xl mt-1 mb-16 text-secondary-foreground">
+    <h1 class="text-secondary-foreground mb-16 mt-1 text-7xl">
       {props.name.fullname}
     </h1>
     <div class="flex-row-center gap-4">
@@ -1545,7 +1544,7 @@ const translatePath = useTranslatedPath(lang);
         variant="outline"
         href={translatePath('/resume')}
         target="_blank"
-        class="px-6 gap-2"
+        class="gap-2 px-6"
         >{t('resume')}
         <Icon icon={ExternalLink} />
       </Button>
@@ -1558,9 +1557,9 @@ const translatePath = useTranslatedPath(lang);
     pictureAttributes={{
       class: 'self-end -mb-10 h-[120%] w-full',
     }}
-    class="object-cover object-center h-full w-max mx-auto"
+    class="mx-auto h-full w-max object-cover object-center"
   />
-  <div class="flex flex-col justify-center text-background gap-6">
+  <div class="text-background flex flex-col justify-center gap-6">
     <ul class="list-disc">
       <li>
         {t('home:hero-brief')}
@@ -1583,7 +1582,7 @@ const translatePath = useTranslatedPath(lang);
   import { removeUrlHashAfterNavigation } from '@utils';
 
   const contactMeButton = document.querySelector(
-    'a[href="#contact-form-footer"]'
+    'a[href="#contact-form-footer"]',
   );
   contactMeButton?.addEventListener('click', removeUrlHashAfterNavigation);
 </script>
@@ -1615,11 +1614,11 @@ const { t } = await useTranslation(lang, 'home');
 const translatePath = useTranslatedPath(lang);
 ---
 
-<div class="flex flex-col size-full">
+<div class="flex size-full flex-col">
   <div class="relative aspect-square">
     <div
       id="hero-dark-panel"
-      class="size-full bg-foreground rounded-b-3xl origin-top-right skew-y-12 overflow-clip absolute top-0 z-0"
+      class="bg-foreground absolute top-0 z-0 size-full origin-top-right skew-y-12 overflow-clip rounded-b-3xl"
     >
       <Picture
         src={props.profile}
@@ -1629,20 +1628,20 @@ const translatePath = useTranslatedPath(lang);
           class:
             'h-full z-10 absolute -bottom-10 md:-bottom-20 left-1/2 -translate-x-1/2 ',
         }}
-        class="object-cover object-top -skew-y-12 size-full"
+        class="size-full -skew-y-12 object-cover object-top"
       />
     </div>
     <div
-      class="text-9xl text-background/50 rotate-270 origin-bottom inline-block m-4"
+      class="text-background/50 rotate-270 m-4 inline-block origin-bottom text-9xl"
     >
       {year}
     </div>
   </div>
-  <div class="flex container">
-    <div class="flex flex-col w-full">
-      <div class="flex-row-center justify-between flex-wrap gap-2">
+  <div class="container flex">
+    <div class="flex w-full flex-col">
+      <div class="flex-row-center flex-wrap justify-between gap-2">
         <div>
-          <h1 class="text-4xl text-secondary-foreground">
+          <h1 class="text-secondary-foreground text-4xl">
             {props.name.first}
           </h1>
           <p>{props.jobPosition}</p>
@@ -1651,20 +1650,19 @@ const translatePath = useTranslatedPath(lang);
           <Button
             id="contact-me-button"
             href="#contact-form-footer"
-            class="px-6"
-            >{t('contact-me-title')}</Button
+            class="px-6">{t('contact-me-title')}</Button
           >
           <Button
             variant="outline"
             href={translatePath('/resume')}
             target="_blank"
-            class="px-6 gap-2"
+            class="gap-2 px-6"
             >{t('resume')}
             <Icon icon={ExternalLink} />
           </Button>
         </div>
       </div>
-      <ul class="list-disc list-inside mt-4">
+      <ul class="mt-4 list-inside list-disc">
         {props.summaries.map((summary) => <li>{summary}</li>)}
       </ul>
     </div>
@@ -1676,9 +1674,11 @@ const translatePath = useTranslatedPath(lang);
   import { removeUrlHashAfterNavigation } from '@utils';
 
   const contactMeButton = document.getElementById(
-    'contact-me-button'
+    'contact-me-button',
   ) as HTMLAnchorElement;
-  const menuButton = document.getElementById('menu-trigger') as HTMLButtonElement;
+  const menuButton = document.getElementById(
+    'menu-trigger',
+  ) as HTMLButtonElement;
   const handleOpenContactForm = () => {
     menuButton?.click();
   };
@@ -1710,7 +1710,7 @@ const translatePath = useTranslatedPath(lang);
   };
 
   const breakpointMd = getComputedStyle(
-    document.documentElement
+    document.documentElement,
   ).getPropertyValue('--breakpoint-md');
   handleMatches(window.matchMedia(`(max-width: ${breakpointMd})`).matches);
   window
@@ -1849,7 +1849,7 @@ const { t } = await useTranslation(lang);
   <Button
     as="a"
     data-contact-submit
-    class="mt-4 px-6 w-1/2 self-end"
+    class="mt-4 w-1/2 self-end px-6"
     href={`mailto:${info.email}`}>{t('contact-me-submit')}</Button
   >
 </contact-form>
@@ -1860,19 +1860,19 @@ const { t } = await useTranslation(lang);
   class ContactForm extends HTMLElement {
     connectedCallback() {
       const nameField = this.querySelector(
-        'input[name="name"]'
+        'input[name="name"]',
       ) as HTMLInputElement;
       const companyField = this.querySelector(
-        'input[name="company"]'
+        'input[name="company"]',
       ) as HTMLInputElement;
       const subjectField = this.querySelector(
-        'input[name="subject"]'
+        'input[name="subject"]',
       ) as HTMLInputElement;
       const messageField = this.querySelector(
-        'textarea[name="message"]'
+        'textarea[name="message"]',
       ) as HTMLTextAreaElement;
       const submitButton = this.querySelector(
-        '[data-contact-submit]'
+        '[data-contact-submit]',
       ) as HTMLAnchorElement;
 
       const handleFormChange = () => {
@@ -1915,7 +1915,7 @@ import Links from './links.astro';
 ---
 
 <footer
-  class="container md:flex flex-wrap gap-10 hidden justify-between pt-10 pb-20"
+  class="container hidden flex-wrap justify-between gap-10 pb-20 pt-10 md:flex"
 >
   <Links />
   <ContactForm id="contact-form-footer" />
@@ -2052,14 +2052,18 @@ const { Content } = await render(Astro.props);
 const tags = _tags.filter((e) => !e.includes(':'));
 ---
 
-<div
-  class="w-full p-10 bg-card rounded-lg prose dark:bg-card max-w-none"
->
+<div class="bg-card prose dark:bg-card w-full max-w-none rounded-lg p-10">
   <h1>{title}</h1>
   <p>{format(pubDate, 'd MMM, yyyy')}<br />By {author.name}</p>
   <Content />
-  <div class="flex flex-wrap gap-2 mt-10">
-    {tags.map((tag) => <Badge variant="secondary" class="capitalize">{tag}</Badge>)}
+  <div class="mt-10 flex flex-wrap gap-2">
+    {
+      tags.map((tag) => (
+        <Badge variant="secondary" class="capitalize">
+          {tag}
+        </Badge>
+      ))
+    }
   </div>
 </div>
 ```
@@ -2091,7 +2095,7 @@ import { Navigation } from '@/components/blog';
 const posts = (
   await getCollection(
     'blog',
-    (entry) => !entry.data.tags.includes('type:quick-post')
+    (entry) => !entry.data.tags.includes('type:quick-post'),
   )
 ).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 const { t } = await useTranslation('en', 'blog');
@@ -2103,7 +2107,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
   description={t('metadata-description')}
   viewTransition={{ enabled: true }}
 >
-  <nav class="flex-row-center justify-between container">
+  <nav class="flex-row-center container justify-between">
     <div>
       <Button variant="ghost" size="icon" href="/">
         <Icon icon={Home} />
@@ -2131,25 +2135,22 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
     </div>
   </nav>
   <main class="container py-10">
-    <h1 class="text-5xl md:text-9xl text-center mb-10">Rainforest Cheng</h1>
+    <h1 class="mb-10 text-center text-5xl md:text-9xl">Rainforest Cheng</h1>
     <div
-      class="grid grid-flow-row grid-cols-1 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-5 auto-rows-max"
+      class="grid grid-flow-row auto-rows-max grid-cols-1 gap-5 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5"
     >
       {
         posts.map(({ data: post, id }) => (
           <a
             href={translatePath(`/blog/${id}`)}
-            class="
-              md:first:col-span-full lg:first:h-[30dvh] md:first:h-[20dvh] bg-card rounded-lg overflow-hidden hover:shadow
-              @container prose-sm max-w-none
-              flex gap-4 flex-col md:first:flex-row-center"
+            class="bg-card @container prose-sm md:first:flex-row-center flex max-w-none flex-col gap-4 overflow-hidden rounded-lg hover:shadow md:first:col-span-full md:first:h-[20dvh] lg:first:h-[30dvh]"
           >
-            <div class="md:@2xl:h-full @2xl:w-auto w-full aspect-square flex-center">
+            <div class="md:@2xl:h-full @2xl:w-auto flex-center aspect-square w-full">
               {post.image?.src ? (
                 <Image
                   width={128}
                   height={128}
-                  class="size-full object-cover m-0!"
+                  class="m-0! size-full object-cover"
                   src={post.image.src}
                   alt={post.image.alt}
                   transition:name={`blog-${id}`}
@@ -2169,7 +2170,7 @@ const translatePath = useTranslatedPath(Astro.currentLocale);
     <div class="fixed bottom-10 left-1/2 -translate-x-1/2">
       <Navigation />
     </div>
-    <div class="fixed right-10 bottom-10 z-10">
+    <div class="fixed bottom-10 right-10 z-10">
       <SourceColor client:only="vue" />
     </div>
   </main>
@@ -2220,7 +2221,7 @@ const {
         width={512}
         height={512}
         alt={image?.alt}
-        class="w-full max-h-75 md:max-h-1/2 object-cover"
+        class="max-h-75 md:max-h-1/2 w-full object-cover"
         transition:name={`blog-${id}`}
       />
     )
@@ -2229,14 +2230,14 @@ const {
     variant="secondary"
     size="icon"
     onclick="history.back()"
-    class="fixed top-10 left-10 rounded-full text-primary"
+    class="text-primary fixed left-10 top-10 rounded-full"
   >
     <Icon icon={ArrowLeft} />
   </Button>
   <article
     class={clsx(
       'container prose md:prose-xl lg:prose-2xl py-4',
-      image?.src && '-mt-0 md:-mt-75'
+      image?.src && '-mt-0 md:-mt-75',
     )}
   >
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>

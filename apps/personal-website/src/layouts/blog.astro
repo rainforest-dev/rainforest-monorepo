@@ -25,7 +25,11 @@ const postSchema = {
   headline: title,
   description,
   datePublished: new Date(pubDate).toISOString(),
-  author: { '@type': 'Person', name: 'Rainforest Cheng', url: info.links.website },
+  author: {
+    '@type': 'Person',
+    name: 'Rainforest Cheng',
+    url: info.links.website,
+  },
   url: canonicalUrl,
   mainEntityOfPage: canonicalUrl,
   ...(image?.src && { image: new URL(image.src, Astro.site).href }),
@@ -47,7 +51,7 @@ const postSchema = {
         width={512}
         height={512}
         alt={image?.alt}
-        class="w-full max-h-75 md:max-h-1/2 object-cover"
+        class="max-h-75 md:max-h-1/2 w-full object-cover"
         transition:name={`blog-${id}`}
       />
     )
@@ -55,7 +59,7 @@ const postSchema = {
   <article
     class={clsx(
       'container prose md:prose-xl lg:prose-2xl py-4',
-      image?.src && '-mt-0 md:-mt-75'
+      image?.src && '-mt-0 md:-mt-75',
     )}
   >
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>

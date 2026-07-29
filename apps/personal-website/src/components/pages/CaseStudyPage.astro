@@ -38,14 +38,19 @@ const forceScheme =
       <article data-project={study.slug} class="mx-auto max-w-4xl px-6 py-20">
         <a
           href={portfolioHref}
-          class="group text-foreground/60 hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+          class="text-foreground/60 hover:text-foreground group inline-flex items-center gap-1.5 text-sm transition-colors"
         >
-          <span aria-hidden="true" class="transition-transform group-hover:-translate-x-0.5">
+          <span
+            aria-hidden="true"
+            class="transition-transform group-hover:-translate-x-0.5"
+          >
             ←
           </span>{' '}
           {t('back')}
         </a>
-        <p class="text-primary/70 mt-8 text-xs uppercase tracking-widest">{t('case-study')}</p>
+        <p class="text-primary/70 mt-8 text-xs uppercase tracking-widest">
+          {t('case-study')}
+        </p>
         <h1 transition:name={`case-study-${study.slug}`} class="mt-2 text-5xl">
           {study.title}
         </h1>
@@ -55,7 +60,9 @@ const forceScheme =
         <p class="mt-6 max-w-2xl">{study.tagline}</p>
         <ul class="mt-6 flex flex-wrap gap-2">
           {study.stack.map((tech) => (
-            <li class="bg-primary/10 text-primary rounded px-3 py-1 text-sm">{tech}</li>
+            <li class="bg-primary/10 text-primary rounded px-3 py-1 text-sm">
+              {tech}
+            </li>
           ))}
         </ul>
         <CaseStudyGallery images={getProjectGallery(study.slug)} />

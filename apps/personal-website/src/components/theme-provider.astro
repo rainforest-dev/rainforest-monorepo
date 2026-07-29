@@ -15,10 +15,10 @@ const sourceColor =
 // Tailwind plugin's CSS relative-color-syntax derivation of `--seed`.
 const theme = themeFromSourceColor(argbFromHex(sourceColor));
 const themeColorLight = hexFromArgb(
-  getSchemeProperties(theme.schemes.light)['--md-sys-color-surface']
+  getSchemeProperties(theme.schemes.light)['--md-sys-color-surface'],
 );
 const themeColorDark = hexFromArgb(
-  getSchemeProperties(theme.schemes.dark)['--md-sys-color-surface']
+  getSchemeProperties(theme.schemes.dark)['--md-sys-color-surface'],
 );
 
 const styleRaw = `
