@@ -5,6 +5,7 @@ import { computed } from 'vue';
 // Type-only: keep the client bundle free of tasks.ts's node:fs/node:path deps
 // (mirrors MachinesPanel's type-only import of budget.ts).
 import type { SprintTask } from '@/lib/tasks';
+import { DEFAULT_SORT_MODE, SORT_COMPARATORS, type SortMode } from '@/lib/taskSort';
 import {
   ALWAYS_SHOWN_COLUMNS,
   BOARD_COLUMNS,
@@ -21,7 +22,10 @@ import {
   taskOwner,
 } from '@/lib/taskStatus';
 
-const props = defineProps<{ tasks: SprintTask[]; statuses: string[] }>();
+const props = withDefaults(
+  defineProps<{ tasks: SprintTask[]; statuses: string[]; sortMode?: SortMode }>(),
+  { sortMode: DEFAULT_SORT_MODE },
+);
 // Clicking a card opens the in-app note drawer (not the external Notion link).
 const emit = defineEmits<{ select: [task: SprintTask] }>();
 
@@ -49,7 +53,7 @@ const columns = computed<Column[]>(() => {
   const extra = [...byColumn.keys()].filter((c) => !BOARD_COLUMNS.includes(c));
   const out: Column[] = [];
   for (const status of [...BOARD_COLUMNS, ...extra]) {
-    const cards = (byColumn.get(status) ?? []).slice().sort((a, b) => a.order - b.order);
+    const cards = (byColumn.get(status) ?? []).slice().sort(SORT_COMPARATORS[props.sortMode]);
     if (cards.length === 0 && !ALWAYS_SHOWN_COLUMNS.includes(status)) continue;
     out.push({
       status,

@@ -10,6 +10,7 @@ import TasksGraph from '@/components/TasksGraph.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DEFAULT_SORT_MODE, SORT_MODES, type SortMode } from '@/lib/taskSort';
 import type { SprintTask, TasksData } from '@/lib/tasks';
 
 // Self-fetching page island (mounted directly on /tasks).
@@ -46,6 +47,14 @@ const hasTasks = computed(() => (data.value?.tasks.length ?? 0) > 0);
 type ScopeFilter = 'all' | 'work' | 'personal';
 const scopeFilter = ref<ScopeFilter>('all');
 const allTasks = computed<SprintTask[]>(() => data.value?.tasks ?? []);
+
+// Which tab is active — tracked so the sort control can hide itself on Graph
+// (sorting a graph is meaningless there).
+type TaskView = 'board' | 'graph';
+const activeView = ref<TaskView>('board');
+
+// Board column sort — Board-only, board's own `order` by default.
+const sortMode = ref<SortMode>(DEFAULT_SORT_MODE);
 
 const scopeOptions = computed<{ key: ScopeFilter; label: string; count: number }[]>(() => [
   { key: 'all', label: 'All', count: allTasks.value.length },
@@ -120,7 +129,7 @@ function openTask(task: SprintTask) {
           from the Notion board.
         </div>
 
-        <Tabs v-else default-value="board">
+        <Tabs v-else v-model="activeView">
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-3">
               <!-- Scope segmented control: filters both views. -->
@@ -146,6 +155,29 @@ function openTask(task: SprintTask) {
                   <span class="text-muted-foreground text-xs tabular-nums">{{ opt.count }}</span>
                 </button>
               </div>
+              <!-- Sort segmented control: Board only — Graph has no order to apply it to. -->
+              <div
+                v-if="activeView === 'board'"
+                class="bg-muted inline-flex items-center gap-0.5 rounded-md p-1"
+                role="group"
+                aria-label="Sort board columns"
+              >
+                <button
+                  v-for="opt in SORT_MODES"
+                  :key="opt.id"
+                  type="button"
+                  :aria-pressed="sortMode === opt.id"
+                  class="inline-flex items-center gap-1.5 rounded-sm px-3 py-1 text-sm font-medium transition-colors"
+                  :class="
+                    sortMode === opt.id
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  "
+                  @click="sortMode = opt.id"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
               <p class="text-muted-foreground text-sm tabular-nums">
                 {{ filteredTasks.length }} tasks · {{ filteredPoints }} pts
               </p>
@@ -164,6 +196,7 @@ function openTask(task: SprintTask) {
             <TasksBoard
               :tasks="filteredTasks"
               :statuses="data!.statuses"
+              :sort-mode="sortMode"
               @select="openTask"
             />
           </TabsContent>
