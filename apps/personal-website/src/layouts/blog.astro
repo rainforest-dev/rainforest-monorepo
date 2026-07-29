@@ -1,5 +1,5 @@
 ---
-import { Comments } from '@components/blog';
+import { Comments, SummarizeButton } from '@components/blog';
 import { info } from '@utils/constants';
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
@@ -60,6 +60,16 @@ const postSchema = {
   >
     <p class="text-center">{format(pubDate, 'd MMM, yyyy')}</p>
     <div class={clsx(image?.src && 'bg-background/25 px-4 backdrop-blur-sm')}>
+      {/*
+        Inside the blurred wrapper, not above it. On a post with a hero image the article is pulled
+        up over the photo (`md:-mt-75`), and only this wrapper's backdrop makes text on top of it
+        legible — placed above, the control sat directly on the photograph.
+
+        client:only="vue" rather than client:idle: the component renders nothing at all in a browser
+        without the Summarizer API, and server-rendering a shell we then remove would flash an
+        affordance most visitors can't use.
+      */}
+      <SummarizeButton text={Astro.props.body ?? ''} client:only="vue" />
       <slot />
     </div>
   </article>
