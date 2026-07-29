@@ -3,6 +3,7 @@ import type { APIRoute } from 'astro';
 import {
   addGreenlight,
   getTaskDecision,
+  REMOTE_EXECUTORS,
   removeGreenlight,
   resolveTaskDecision,
 } from '../../lib/taskDecision.js';
@@ -86,25 +87,40 @@ export const POST: APIRoute = async ({ url, request }) => {
       });
     }
 
+    // Revocation only exists for local delivery. removeGreenlight writes this
+    // host's allowlist; on the remote path that file is mini's own empty one,
+    // so calling it would find nothing, return removed:false, and let the
+    // drawer report "Decision saved." while Air's authorisation stood. Rather
+    // than invent a revocation protocol, say plainly where the entry lives.
     let revoked = false;
-    let held = false;
-    if (guidance.project) {
+    if (guidance.project && guidance.deliveryMode === 'local') {
       const result = removeGreenlight(task, guidance.project);
       revoked = result.removed;
-      held = result.claimed;
-      if (held) {
+      if (result.claimed) {
         return Response.json(
           { error: 'This task is already claimed or PR-ready; planning first cannot revoke it.', ...guidance },
           { status: 409 },
         );
       }
     }
+
+    const remoteExecutor = guidance.project ? (REMOTE_EXECUTORS[guidance.project] ?? null) : null;
+    const remoteHeld =
+      guidance.deliveryMode === 'remote-queue' &&
+      (guidance.outboxState === 'applied' || guidance.outboxState === 'duplicate');
+
     writeTaskDecision(id, 'plan-first', comment || guidance.suggestedComment);
     return Response.json({
       ok: true,
       decision,
       queued: false,
       revoked,
+      remoteHeld,
+      revocationNote: remoteHeld
+        ? `“Plan first” is recorded here, but it does not withdraw the authorisation: ${
+            remoteExecutor ?? 'the remote executor'
+          } has already applied this task to its own allowlist, and only that machine can write it. Remove the entry there to actually revoke it.`
+        : null,
       guidance: getTaskDecision(id),
     });
   } catch (err) {

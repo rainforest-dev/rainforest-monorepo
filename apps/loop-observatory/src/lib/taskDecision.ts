@@ -49,11 +49,22 @@ export const REMOTE_EXECUTORS: Record<string, string> = {
 
 export type DeliveryMode = 'local' | 'remote-queue' | 'none';
 
-/** Local execution wins when available; otherwise queue to the known remote. */
+/**
+ * Where a greenlight for `slug` is delivered.
+ *
+ * A slug with a declared remote executor is queued to it *unconditionally*, and
+ * the ordering here is the invariant, not a preference. `executorReady` honours
+ * the `LOOP_ALLOW_COMPANY_GREENLIGHT=1` escape hatch, so consulting it first
+ * would let that variable re-route a company slug to 'local' — mini would then
+ * write `~/.claude/loop/greenlight/<slug>.md`, a file nothing on mini reads and
+ * Air never sees, and the owner would believe the task was authorised. Checking
+ * REMOTE_EXECUTORS first confines the escape hatch to slugs that have no
+ * declared remote executor.
+ */
 export function deliveryModeFor(slug: string | null): DeliveryMode {
   if (!slug) return 'none';
-  if (executorReady(slug)) return 'local';
   if (slug in REMOTE_EXECUTORS) return 'remote-queue';
+  if (executorReady(slug)) return 'local';
   return 'none';
 }
 
@@ -92,12 +103,25 @@ function greenlightDir(): string {
   return process.env.LOOP_GREENLIGHT_DIR ?? join(process.env.HOME ?? '', '.claude', 'loop', 'greenlight');
 }
 
+/**
+ * Escape a value for literal use inside a `new RegExp` source.
+ *
+ * One definition, because there were three hand-written copies and one of them
+ * had drifted: `/[.*+?^${}()|[\\]\\]/g` parses as "a metacharacter, then a
+ * backslash, then a literal `]`", which matches almost nothing, and its
+ * replacement `'\\\\$&'` inserted two backslashes rather than one. That broken
+ * copy sat inside `executorReady`, a security check.
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function executorReady(slug: string): boolean {
   if (process.env.LOOP_ALLOW_COMPANY_GREENLIGHT === '1') return true;
   const configPath = process.env.LOOP_CONFIG_PATH ?? join(process.env.HOME ?? '', '.claude', 'loop', 'config.yaml');
   try {
     const config = readFileSync(configPath, 'utf-8');
-    return new RegExp(`^\\s*-\\s*slug:\\s*${slug.replace(/[.*+?^${}()|[\\]\\]/g, '\\\\$&')}\\s*$`, 'm').test(config);
+    return new RegExp(`^\\s*-\\s*slug:\\s*${escapeRegExp(slug)}\\s*$`, 'm').test(config);
   } catch {
     return false;
   }
@@ -122,7 +146,7 @@ function lineFor(task: SprintTask, slug: string, plan: ExecutionPlan | null): st
 }
 
 function hasGreenlight(task: SprintTask, slug: string): boolean {
-  const id = String(task.id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const id = escapeRegExp(String(task.id));
   return new RegExp(`^\\s*-\\s*${id}(?:\\s|—|$)`, 'm').test(greenlightText(slug));
 }
 
@@ -265,11 +289,19 @@ export function addGreenlight(
   return { path, already: false };
 }
 
-/** Remove only an unclaimed entry when the owner changes their mind. */
+/**
+ * Remove only an unclaimed entry when the owner changes their mind.
+ *
+ * Local delivery only. This writes *this host's* allowlist, so callers must
+ * check `deliveryModeFor(slug) === 'local'` first: on the remote path the file
+ * it reads is mini's own empty one, and it would return `removed: false` while
+ * the real authorisation stood untouched on Air. `api/task-decision.ts` holds
+ * that guard.
+ */
 export function removeGreenlight(task: SprintTask, slug: string): { path: string; removed: boolean; claimed: boolean } {
   const path = greenlightPath(slug);
   const current = greenlightText(slug);
-  const id = String(task.id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const id = escapeRegExp(String(task.id));
   const lines = current.split(/\r?\n/);
   const index = lines.findIndex((line) => new RegExp(`^\\s*-\\s*${id}(?:\\s|—|$)`, 'i').test(line));
   if (index === -1) return { path, removed: false, claimed: false };

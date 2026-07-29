@@ -91,6 +91,11 @@ const decisionLoading = ref(false);
 const decisionSaving = ref(false);
 const decisionError = ref<string | null>(null);
 const decisionSaved = ref(false);
+// Set when "Plan first" was recorded but the authorisation is already live on
+// the remote executor. Recording the decision here cannot withdraw it — only
+// that machine writes its own allowlist — so the drawer must not let "Decision
+// saved." read as "revoked".
+const revocationNote = ref<string | null>(null);
 
 const greenlightLabel = computed(() =>
   decision.value?.deliveryMode === 'remote-queue' ? 'Greenlight → Air' : 'Greenlight',
@@ -183,6 +188,7 @@ async function fetchDecision(id: string) {
   decisionLoading.value = true;
   decisionError.value = null;
   decisionSaved.value = false;
+  revocationNote.value = null;
   decision.value = null;
   decisionDraft.value = '';
   try {
@@ -278,6 +284,7 @@ async function saveDecision(kind: 'greenlight' | 'plan-first') {
   decisionSaving.value = true;
   decisionError.value = null;
   decisionSaved.value = false;
+  revocationNote.value = null;
   try {
     const res = await fetch(`/api/task-decision?id=${encodeURIComponent(String(id))}`, {
       method: 'POST',
@@ -286,12 +293,14 @@ async function saveDecision(kind: 'greenlight' | 'plan-first') {
     });
     const data = await readJson<{
       guidance?: DecisionResponse;
+      revocationNote?: string | null;
       error?: string;
     }>(res);
     if (!res.ok || !data?.guidance) throw new Error(data?.error ?? `HTTP ${res.status}`);
     decision.value = data.guidance;
     decisionDraft.value = data.guidance.existing?.comment || data.guidance.suggestedComment;
     decisionSaved.value = true;
+    revocationNote.value = data.revocationNote ?? null;
     // The greenlight file and note are server-side state; refresh the board so
     // the pending/owner indicators are not stale after the drawer action.
     window.dispatchEvent(new CustomEvent('lo:refresh'));
@@ -619,6 +628,13 @@ onMounted(() => {
                 </p>
                 <p v-if="decisionSaved" class="mt-1.5 text-xs" :style="{ color: 'var(--status-good)' }">
                   Decision saved. The loop remains stopped until its normal scheduler/command runs.
+                </p>
+                <p
+                  v-if="revocationNote"
+                  class="text-status-warning mt-1.5 text-xs leading-relaxed"
+                  role="status"
+                >
+                  {{ revocationNote }}
                 </p>
                 <div class="mt-3 flex flex-wrap items-center justify-end gap-2">
                   <Button
