@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.rainforest.greenlight-pull</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/bash</string>
+    <string>/Users/rainforest/.local/share/loop-greenlight-pull/pull.sh</string>
+  </array>
+  <key>EnvironmentVariables</key><dict>
+    <key>LOOP_MACHINE</key><string>Angibles-MacBook-Air</string>
+    <key>PATH</key><string>/Users/rainforest/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>300</integer>
+  <key>ThrottleInterval</key><integer>60</integer>
+  <key>StandardOutPath</key><string>/tmp/greenlight-pull.log</string>
+  <key>StandardErrorPath</key><string>/tmp/greenlight-pull.log</string>
+</dict>
+</plist>

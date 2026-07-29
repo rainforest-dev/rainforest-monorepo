@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Mirror generated company task/usage data from the mini's iCloud vault into
+  its local vault clone. Replace /Users/rainforest/Repositories/rainforest-obsidian and /Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian, then
+  install as ~/Library/LaunchAgents/com.rainforest.icloud-mirror.plist.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.rainforest.icloud-mirror</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/bin/osascript</string>
+		<string>/Users/rainforest/Repositories/rainforest-obsidian/scripts/usage/run-icloud-mirror.applescript</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/Users/rainforest/Repositories/rainforest-obsidian</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>VAULT_PATH</key>
+		<string>/Users/rainforest/Repositories/rainforest-obsidian</string>
+		<key>ICLOUD_VAULT_PATH</key>
+		<string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian</string>
+		<key>USAGE_MACHINE</key>
+		<string>rainforest-mini</string>
+	</dict>
+	<key>StartInterval</key>
+	<integer>300</integer>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/tmp/icloud-mirror.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/icloud-mirror.log</string>
+</dict>
+</plist>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>LOOP_AGENT_CONFIG</key>
+		<string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/_system/usage/loop-agents.json</string>
+		<key>LOOP_EXECUTORS</key>
+		<string>claude,codex,agy</string>
+		<key>LOOP_MACHINE</key>
+		<string>Angibles-MacBook-Air</string>
+		<key>LOOP_VAULT_PATH</key>
+		<string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian</string>
+		<key>PATH</key>
+		<string>/Users/rainforest/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>Label</key>
+	<string>tools.rainforest.loop-ralph</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/rainforest/.claude/loop/ralph.sh</string>
+		<string>1</string>
+		<string>10</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>/Users/rainforest/.claude/loop/ralph.err.log</string>
+	<key>StandardOutPath</key>
+	<string>/Users/rainforest/.claude/loop/ralph.log</string>
+	<key>StartInterval</key>
+	<integer>1800</integer>
+	<key>ThrottleInterval</key>
+	<integer>60</integer>
+</dict>
+</plist>
