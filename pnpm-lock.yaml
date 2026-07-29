@@ -433,6 +433,9 @@ importers:
       js-cookie:
         specifier: ^3.0.7
         version: 3.0.8
+      katex:
+        specifier: 0.16.21
+        version: 0.16.21
       lit:
         specifier: 'catalog:'
         version: 3.3.2
