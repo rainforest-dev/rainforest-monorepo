@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { SORT_COMPARATORS } from './taskSort.js';
 import type { SprintTask } from './tasks.js';
+import { SORT_COMPARATORS } from './taskSort.js';
 
 /** Minimal-but-complete SprintTask; each test only overrides what it checks. */
 function task(overrides: Partial<SprintTask> & { order: number }): SprintTask {
