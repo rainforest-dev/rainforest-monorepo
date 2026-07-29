@@ -240,6 +240,24 @@ pnpm nx sync               # Fix TypeScript project references
 pnpm nx reset              # Clear Nx cache
 ```
 
+### A green `astro build` says nothing about `astro dev`
+
+For `personal-website`, the two pipelines diverge enough that each has shipped a break the other
+could not see. Both times the build was verified and correct, and dev was unusable:
+
+- **React Fast Refresh leaking into Vue SFCs** — every page died with `$RefreshSig$ is not defined`
+  in dev; production strips Fast Refresh, so the build never noticed.
+- **`import 'katex/dist/katex.min.css'` in a layout** — SSR externalises bare specifiers to Node,
+  which has no `.css` loader, so dev threw `ERR_UNKNOWN_FILE_EXTENSION` on every page while the
+  build emitted a correct fingerprinted stylesheet.
+
+Both fixes live in `apps/personal-website/astro.config.mjs` (`vite.plugins` and
+`vite.resolve.noExternal`) with the full reasoning inline.
+
+**So: after changing `astro.config.mjs`, a layout, or anything imported by one, load a page from a
+running `pnpm nx dev personal-website` before calling it verified.** Checking the built output —
+however carefully — cannot catch this class of bug.
+
 ## Package Manager
 
 **MUST use pnpm@11.7.0** - specified in package.json `packageManager` field. Commands:
