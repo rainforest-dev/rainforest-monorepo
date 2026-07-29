@@ -1,4 +1,14 @@
 ---
+// KaTeX ships its markup in two layers: a visual `.katex-html` one and a `.katex-mathml` layer for
+// assistive tech. This stylesheet is what visually hides the second — without it the MathML text
+// renders underneath every equation as a garbled duplicate. rehype-katex (astro.config.mjs) emits
+// the markup but pulls in no CSS, so importing it is on us.
+//
+// Bundled rather than fetched from a CDN, which is how ./quick-post.astro used to do it: one less
+// third-party request on a site whose selling point is that things run locally, and it cannot
+// break when a CDN does.
+import 'katex/dist/katex.min.css';
+
 import { Comments, SummarizeButton, TranslateButton } from '@components/blog';
 import { info } from '@utils/constants';
 import { Image } from 'astro:assets';

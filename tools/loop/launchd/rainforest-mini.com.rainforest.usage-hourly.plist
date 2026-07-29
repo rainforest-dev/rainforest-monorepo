@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent TEMPLATE for the AI-usage tracker's hourly heartbeat.
+
+  Before installing, replace the /Users/rainforest/Repositories/rainforest-obsidian placeholder below with the
+  absolute path to THIS machine's vault checkout (see scripts/usage/README.md
+  for the install steps), then copy the result to
+  ~/Library/LaunchAgents/com.rainforest.usage-hourly.plist and
+  `launchctl load` it.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.rainforest.usage-hourly</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>/Users/rainforest/Repositories/rainforest-obsidian/scripts/usage/run-hourly.sh</string>
+	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PYTHON_BIN</key>
+		<string>/opt/homebrew/bin/python3</string>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/bin:/bin</string>
+	</dict>
+	<key>StartInterval</key>
+	<integer>3600</integer>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/tmp/usage-hourly.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/usage-hourly.log</string>
+</dict>
+</plist>

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# loopctl — deterministic loop state engine (shim).
+# Installed to ~/.claude/loop/ by obsidian-setup; run: loopctl scan <slug> [--dry-run]
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULE_ROOT="$HERE"
+if [ -d "$HERE/lib/loopctl" ]; then
+  MODULE_ROOT="$HERE/lib"
+fi
+cd "$MODULE_ROOT"
+if [ -x "$HERE/.venv/bin/python" ]; then
+  exec "$HERE/.venv/bin/python" -m loopctl "$@"
+fi
+exec python3 -m loopctl "$@"
