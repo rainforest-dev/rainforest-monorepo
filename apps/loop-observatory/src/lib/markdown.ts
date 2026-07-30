@@ -74,6 +74,41 @@ function renderInline(raw: string): string {
   return out;
 }
 
+/** Cells of one `| a | b |` row, without the outer pipes. */
+function splitRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((c) => c.trim());
+}
+
+/** `:---` / `---:` / `:---:` → the CSS text-align it asks for, else null. */
+function alignOf(spec: string): string | null {
+  const left = spec.startsWith(':');
+  const right = spec.endsWith(':');
+  if (left && right) return 'center';
+  if (right) return 'right';
+  if (left) return 'left';
+  return null;
+}
+
+/** A header row at `i` whose next line is a `|---|---|` delimiter. */
+function isTableStart(lines: string[], i: number): boolean {
+  const header = lines[i];
+  const delim = lines[i + 1];
+  if (header === undefined || delim === undefined) return false;
+  if (!/\|/.test(header) || header.trim() === '') return false;
+  if (!/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/.test(delim)) {
+    return false;
+  }
+  // A delimiter that describes a different number of columns is not a table --
+  // GFM requires the counts to match, and treating it as one would silently
+  // drop or invent cells.
+  return splitRow(header).length === splitRow(delim).length;
+}
+
 /** Render a Markdown body (frontmatter already stripped) to an HTML string. */
 export function renderMarkdown(md: string): string {
   // Drop HTML comments (e.g. the managed-sync markers) — hidden in Obsidian.
@@ -144,6 +179,42 @@ export function renderMarkdown(md: string): string {
       continue;
     }
 
+    // Table: a header row followed by a `|---|---|` delimiter. Without this the
+    // rows fall through to the paragraph branch below, which joins them with a
+    // space — so a table renders as one line of stray pipes.
+    if (isTableStart(lines, i)) {
+      const header = splitRow(lines[i]);
+      const aligns = splitRow(lines[i + 1]).map(alignOf);
+      i += 2;
+      const body: string[][] = [];
+      while (
+        i < lines.length &&
+        lines[i].trim() !== '' &&
+        /\|/.test(lines[i])
+      ) {
+        body.push(splitRow(lines[i]));
+        i += 1;
+      }
+      const cell = (tag: string, text: string, col: number) => {
+        const align = aligns[col];
+        const attr = align ? ` style="text-align:${align}"` : '';
+        return `<${tag}${attr}>${renderInline(text)}</${tag}>`;
+      };
+      const head = header.map((h, c) => cell('th', h, c)).join('');
+      // Index by the header's column count so a short or over-long body row
+      // cannot shift the table sideways; a missing cell renders empty.
+      const rows = body
+        .map(
+          (r) =>
+            `<tr>${header.map((_, c) => cell('td', r[c] ?? '', c)).join('')}</tr>`,
+        )
+        .join('');
+      html.push(
+        `<table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`,
+      );
+      continue;
+    }
+
     // Paragraph: gather until a blank line or a block starter.
     const para: string[] = [];
     while (
@@ -152,7 +223,8 @@ export function renderMarkdown(md: string): string {
       !/^(#{1,6})\s/.test(lines[i]) &&
       !/^\s*>/.test(lines[i]) &&
       !/^\s*([-*+]|\d+\.)\s+/.test(lines[i]) &&
-      !/^```/.test(lines[i].trim())
+      !/^```/.test(lines[i].trim()) &&
+      !isTableStart(lines, i)
     ) {
       para.push(lines[i]);
       i += 1;

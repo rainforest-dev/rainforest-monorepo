@@ -17,6 +17,74 @@ describe('renderMarkdown', () => {
     expect(renderMarkdown('1. a\n2. b')).toBe('<ol><li>a</li><li>b</li></ol>');
   });
 
+  it('renders a table instead of flattening it into a paragraph', () => {
+    // The regression: with no table branch these lines fell through to the
+    // paragraph gatherer, which joins with a space — so the execution-plan
+    // block in a task note rendered as one run of stray pipes.
+    const html = renderMarkdown(
+      ['| a | b |', '|---|---|', '| 1 | 2 |'].join('\n'),
+    );
+    expect(html).toBe(
+      '<table><thead><tr><th>a</th><th>b</th></tr></thead>' +
+        '<tbody><tr><td>1</td><td>2</td></tr></tbody></table>',
+    );
+    expect(html).not.toContain('<p>');
+  });
+
+  it('renders inline spans inside cells', () => {
+    const html = renderMarkdown(
+      ['| model | pool |', '|---|---|', '| `opus-5` | **claude** |'].join('\n'),
+    );
+    expect(html).toContain('<td><code>opus-5</code></td>');
+    expect(html).toContain('<td><strong>claude</strong></td>');
+  });
+
+  it('honours column alignment markers', () => {
+    const html = renderMarkdown(
+      ['| l | c | r |', '|:---|:---:|---:|', '| 1 | 2 | 3 |'].join('\n'),
+    );
+    expect(html).toContain('<th style="text-align:left">l</th>');
+    expect(html).toContain('<th style="text-align:center">c</th>');
+    expect(html).toContain('<th style="text-align:right">r</th>');
+  });
+
+  it('pads a short row rather than shifting the table sideways', () => {
+    const html = renderMarkdown(
+      ['| a | b | c |', '|---|---|---|', '| 1 |'].join('\n'),
+    );
+    expect(html).toContain('<tr><td>1</td><td></td><td></td></tr>');
+  });
+
+  it('ends the table at a blank line and keeps later blocks separate', () => {
+    const html = renderMarkdown(
+      ['| a |', '|---|', '| 1 |', '', 'after'].join('\n'),
+    );
+    expect(html).toContain('</table>');
+    expect(html).toContain('<p>after</p>');
+  });
+
+  it('ends a paragraph when a table starts on the next line', () => {
+    expect(
+      renderMarkdown(['intro', '| a |', '|---|', '| 1 |'].join('\n')),
+    ).toBe(
+      '<p>intro</p>\n<table><thead><tr><th>a</th></tr></thead>' +
+        '<tbody><tr><td>1</td></tr></tbody></table>',
+    );
+  });
+
+  it('leaves pipe text alone when the delimiter does not match', () => {
+    // Pipes with no delimiter row are prose, not a table.
+    expect(renderMarkdown('a | b\nc | d')).toBe('<p>a | b c | d</p>');
+    // Disagreeing column counts are not a GFM table either.
+    expect(renderMarkdown('| a | b |\n|---|\n| 1 | 2 |')).toContain('<p>');
+  });
+
+  it('escapes cell content', () => {
+    expect(renderMarkdown('| x |\n|---|\n| <img src=q> |')).toContain(
+      '<td>&lt;img src=q&gt;</td>',
+    );
+  });
+
   it('renders inline code, bold, and links (external → new tab)', () => {
     expect(renderMarkdown('run `obsidian-setup` now')).toContain(
       '<code>obsidian-setup</code>',
