@@ -275,6 +275,10 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
   # task's model.
   preferred=""; PLAN_MODEL=""; PLAN_EFFORT=""
   IFS=$'\t' read -r preferred PLAN_MODEL PLAN_EFFORT <<< "$(preferred_plan "$task_id" "${task_item_id:-}")"
+  # Kept aside because the executor loop clears PLAN_* for any non-preferred
+  # candidate and needs the originals back if it comes round to the preferred one.
+  plan_model_for_preferred="$PLAN_MODEL"
+  plan_effort_for_preferred="$PLAN_EFFORT"
   ordered_executors=()
   if [ -n "$preferred" ]; then
     ordered_executors+=("$preferred")
@@ -295,6 +299,16 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
   status=1
   provider_rate_limited=0
   for candidate in "${ordered_executors[@]}"; do
+    # A model name belongs to one provider. The preset resolved a model for the
+    # PREFERRED executor, so a fallback to a different provider must drop it --
+    # on 2026-07-30 a codex-routed task fell back to claude still carrying
+    # `--model gpt-5.6-terra`, and claude rejected the model instead of running.
+    # Fallback is a degraded path by definition; it takes the provider's default.
+    if [ "$candidate" = "$preferred" ]; then
+      PLAN_MODEL="$plan_model_for_preferred"; PLAN_EFFORT="$plan_effort_for_preferred"
+    else
+      PLAN_MODEL=""; PLAN_EFFORT=""
+    fi
     sid=$(uuidgen)
     candidate_out=$(run_executor "$candidate" "$slug" "$project_path" "$prompt" "$sid" 2>&1) || candidate_status=$?
     candidate_status=${candidate_status:-0}
