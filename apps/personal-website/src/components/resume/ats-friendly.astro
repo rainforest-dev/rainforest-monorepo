@@ -47,7 +47,6 @@ const skills = groupBy(
     <h1>{info.name.fullname}</h1>
     <h2>{info.jobPosition}</h2>
     <ul class="mb-5 mt-4 list-none pl-0">
-      <li><a href={`tel:${info.phone}`}>{info.phone}</a></li>
       <li><a href={`mailto:${info.email}`}>{info.email}</a></li>
       <li>{info.location.city}, {info.location.country}</li>
       <li>
