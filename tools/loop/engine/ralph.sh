@@ -12,6 +12,15 @@ PYTHON_BIN=${LOOP_PYTHON:-"$LOOP_HOME/.venv/bin/python"}
 MACHINE=${LOOP_MACHINE:-${USAGE_MACHINE:-$(hostname -s)}}
 EXECUTORS=${LOOP_EXECUTORS:-claude,codex,agy}
 AGENT_CONFIG=${LOOP_AGENT_CONFIG:-}
+# Resolved per iteration from the agent config's preset for this task. Empty
+# means "say nothing", so each executor falls back to its own default -- the
+# behaviour that existed before presets.
+PLAN_MODEL=""
+PLAN_EFFORT=""
+# The usage tracker lives outside LOOP_HOME and runs on the system interpreter;
+# the loop venv does not carry its dependencies.
+USAGE_RUNTIME=${LOOP_USAGE_RUNTIME:-"$HOME/.local/share/loop-usage-runtime"}
+USAGE_PYTHON=${LOOP_USAGE_PYTHON:-$(command -v python3 2>/dev/null || echo python3)}
 MAX_ITER=${1:-15}
 BUDGET_USD=${2:-10}
 BACKOFF=${RALPH_BACKOFF_SECS:-1800}
@@ -73,9 +82,19 @@ print("{}\t{}\t{}".format(verdict, "" if five is None else five, "" if week is N
 PY
 }
 
+# Force a fresh provider read before sampling. Without this the before/after
+# pair both come from the file the hourly job rewrites, so a run lasting minutes
+# reads the same snapshot twice -- which is why every delta recorded up to
+# 2026-07-30 was ~0pp. Best-effort: an unavailable tracker must not stop a run,
+# it just leaves the delta as approximate as it was before.
+refresh_quota() {
+  [ -d "$USAGE_RUNTIME" ] || return 0
+  (cd "$USAGE_RUNTIME" && "$USAGE_PYTHON" -m scripts.usage.export_quota) \
+    >/dev/null 2>&1 || true
+}
+
 # Percentage-point delta between two quota readings, for the per-iteration
-# estimate. The snapshot refreshes on its own schedule, so this trails reality
-# by up to one refresh interval and is reported as an approximation.
+# estimate.
 pct_delta() {
   [ -n "$1" ] && [ -n "$2" ] || { printf '?'; return; }
   "$PYTHON_BIN" -c \
@@ -128,8 +147,14 @@ except Exception:
 run_claude() {
   local slug="$1" project_path="$2" prompt="$3" sid="$4"
   [ -x "$CLAUDE_BIN" ] || return 127
+  # `${opts[@]+...}` because an empty array under `set -u` is an unbound
+  # expansion on the bash 3.2 that ships with macOS.
+  local opts=()
+  [ -n "$PLAN_MODEL" ] && opts+=(--model "$PLAN_MODEL")
+  [ -n "$PLAN_EFFORT" ] && opts+=(--effort "$PLAN_EFFORT")
   (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=claude \
     LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CLAUDE_BIN" -p \
+    ${opts[@]+"${opts[@]}"} \
     --permission-mode "${LOOP_CLAUDE_PERMISSION_MODE:-auto}" --add-dir "$LOOP_HOME" \
     --session-id "$sid" --output-format json --max-turns "$MAX_TURNS")
 }
@@ -137,8 +162,14 @@ run_claude() {
 run_codex() {
   local slug="$1" project_path="$2" prompt="$3"
   [ -x "$CODEX_BIN" ] || return 127
+  # Codex has no dedicated effort flag; `-c` sets it and the server validates it
+  # (a bogus level is a 400, so a typo fails loudly rather than being ignored).
+  local opts=()
+  [ -n "$PLAN_MODEL" ] && opts+=(-m "$PLAN_MODEL")
+  [ -n "$PLAN_EFFORT" ] && opts+=(-c "model_reasoning_effort=$PLAN_EFFORT")
   (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=codex \
     LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CODEX_BIN" exec \
+    ${opts[@]+"${opts[@]}"} \
     --json --ephemeral --sandbox workspace-write -C "$project_path" -)
 }
 
@@ -162,7 +193,17 @@ run_executor() {
 IFS=',' read -r -a executor_list <<< "$EXECUTORS"
 [ "${#executor_list[@]}" -gt 0 ] || { log "no executors configured"; exit 1; }
 
-preferred_executor() {
+# Emits "<provider>\t<model>\t<effort>" for a task, or nothing at all.
+#
+# A task stores only a preset id; the model and effort behind it are resolved
+# here, at run time. That is the point of the indirection -- renaming a model in
+# the config carries every task forward on its next run, and no task note ever
+# pins a model that has since been superseded.
+#
+# Silence is a valid answer, and the safe one: an unreadable config, an unknown
+# preset, or a preset naming an unknown provider all fall through to the
+# executor's own defaults, which is exactly how the loop behaved before presets.
+preferred_plan() {
   local task_id="$1"
   [ -n "$AGENT_CONFIG" ] && [ -f "$AGENT_CONFIG" ] || return 0
   "$PYTHON_BIN" - "$AGENT_CONFIG" "$task_id" <<'PY'
@@ -170,19 +211,25 @@ import json
 import sys
 from pathlib import Path
 
+PROVIDERS = {"claude", "codex", "agy"}
+
 try:
     document = json.loads(Path(sys.argv[1]).read_text())
     task = (document.get("tasks") or {}).get(str(sys.argv[2])) or {}
-    agent = task.get("agent") or document.get("default_agent") or "claude"
-    if agent in {"claude", "codex", "agy"}:
-        print(agent)
-except (OSError, ValueError, TypeError):
+    presets = document.get("presets") or {}
+    name = task.get("preset") or document.get("default_preset")
+    preset = presets.get(name) or {} if name else {}
+    provider = preset.get("provider") or task.get("agent") or document.get("default_agent") or "claude"
+    if provider in PROVIDERS:
+        print("{}\t{}\t{}".format(provider, preset.get("model") or "", preset.get("effort") or ""))
+except (OSError, ValueError, TypeError, AttributeError):
     pass
 PY
 }
 
 log "start · machine=$MACHINE max_iter=$MAX_ITER budget=\$$BUDGET_USD"
 while [ "$iter" -lt "$MAX_ITER" ]; do
+  refresh_quota
   IFS=$'\t' read -r QUOTA_MODE pct5_before pctw_before <<< "$(quota_state)"
   log "quota · 5h=${pct5_before:-?}% weekly=${pctw_before:-?}% · gate=$QUOTA_MODE"
   case "$QUOTA_MODE" in
@@ -213,7 +260,10 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
   next_json=$("$LOOPCTL" next "$slug" 2>/dev/null || printf '[]')
   task_id=$(printf '%s' "$next_json" | "$PYTHON_BIN" -c \
     'import json, sys; rows=json.load(sys.stdin); print(rows[0].get("id", "") if rows else "")' 2>/dev/null || printf '')
-  preferred=$(preferred_executor "$task_id")
+  # Reset every iteration: a task with no preset must not inherit the previous
+  # task's model.
+  preferred=""; PLAN_MODEL=""; PLAN_EFFORT=""
+  IFS=$'\t' read -r preferred PLAN_MODEL PLAN_EFFORT <<< "$(preferred_plan "$task_id")"
   ordered_executors=()
   if [ -n "$preferred" ]; then
     ordered_executors+=("$preferred")
@@ -224,7 +274,7 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
     fi
   done
   if [ -n "$preferred" ]; then
-    log "task=$task_id preferred_executor=$preferred"
+    log "task=$task_id executor=$preferred model=${PLAN_MODEL:-default} effort=${PLAN_EFFORT:-default}"
   fi
 
   prompt=$(printf 'LOOP_PROJECT=%s\n\n' "$slug"; cat "$CONTRACT")
@@ -281,6 +331,9 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
           >/dev/null 2>&1 || log "  (task note not written; the hint above is the only copy)"
         # The spend happened whether or not the task finished; a ledger that omits
         # it understates what the task has cost so far.
+        turn_fields=()
+        [ -n "$PLAN_MODEL" ] && turn_fields+=(--model "$PLAN_MODEL")
+        [ -n "$PLAN_EFFORT" ] && turn_fields+=(--effort "$PLAN_EFFORT")
         "$LOOPCTL" record-run \
           --project "$slug" \
           --task "$task_id" \
@@ -288,6 +341,7 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
           --machine "$MACHINE" \
           --cost "$turn_cost" \
           --status incomplete \
+          ${turn_fields[@]+"${turn_fields[@]}"} \
           --note "hit the $MAX_TURNS-turn limit; no fallback attempted" >/dev/null 2>&1 || \
           log "  run ledger unavailable; the spend above is only in this log"
         exit "$candidate_status"
@@ -332,6 +386,10 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
   SPENT=$("$PYTHON_BIN" -c \
     'from decimal import Decimal; import sys; print(Decimal(sys.argv[1]) + Decimal(sys.argv[2]))' \
     "$SPENT" "$cost")
+  tokens_out=$(printf '%s' "$out" | "$PYTHON_BIN" -c \
+    'import json, sys; data=sys.stdin.read(); print((json.loads(data).get("usage") or {}).get("output_tokens", "") if data.strip() else "")' \
+    2>/dev/null || printf '')
+  refresh_quota
   IFS=$'\t' read -r _ pct5_after pctw_after <<< "$(quota_state)"
   d5=$(pct_delta "$pct5_before" "$pct5_after")
   dw=$(pct_delta "$pctw_before" "$pctw_after")
@@ -350,13 +408,22 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
   fi
   # Observatory/retro mirror is append-only and best-effort. The executor's
   # loopctl set remains the authoritative task-state transition.
+  run_fields=()
+  [ -n "$PLAN_MODEL" ] && run_fields+=(--model "$PLAN_MODEL")
+  [ -n "$PLAN_EFFORT" ] && run_fields+=(--effort "$PLAN_EFFORT")
+  [ -n "$tokens_out" ] && run_fields+=(--tokens-out "$tokens_out")
+  [ -n "$pct5_before" ] && run_fields+=(--quota-5h-before "$pct5_before")
+  [ -n "$pct5_after" ] && run_fields+=(--quota-5h-after "$pct5_after")
+  [ -n "$pctw_before" ] && run_fields+=(--quota-week-before "$pctw_before")
+  [ -n "$pctw_after" ] && run_fields+=(--quota-week-after "$pctw_after")
   "$LOOPCTL" record-run \
     --project "$slug" \
     --task "$task_id" \
     --executor "$provider" \
     --machine "$MACHINE" \
     --cost "$cost" \
-    --note "iteration $iter/$MAX_ITER; exit=$status; quota 5h ${pct5_before:-?}%→${pct5_after:-?}% (~${d5}pp), weekly ${pctw_before:-?}%→${pctw_after:-?}% (~${dw}pp)" >/dev/null 2>&1 || \
+    ${run_fields[@]+"${run_fields[@]}"} \
+    --note "iteration $iter/$MAX_ITER; exit=$status" >/dev/null 2>&1 || \
     log "run ledger unavailable; continuing"
   over_budget=$("$PYTHON_BIN" -c "from decimal import Decimal; import sys; print(int(Decimal(sys.argv[1]) > Decimal(sys.argv[2])))" \
     "${SPENT:-0}" "$BUDGET_USD")

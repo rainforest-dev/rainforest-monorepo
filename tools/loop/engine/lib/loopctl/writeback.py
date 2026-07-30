@@ -188,6 +188,39 @@ def publish_task_state(
     return entry
 
 
+def _pct(value: str | float | None) -> float | None:
+    """A quota percentage, or None for the '?' the sampler emits when unread."""
+    if value is None or value == "" or value == "?":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _quota_block(before_5h, after_5h, before_week, after_week) -> dict | None:
+    """Structured quota movement for one run, or None when nothing was sampled.
+
+    The percentage-point deltas were previously only ever written into the free-text
+    `note`, which made them unusable for anything but reading. They are the only
+    measurement that answers "what did this run actually cost me", so they belong
+    in fields.
+    """
+    five_before, five_after = _pct(before_5h), _pct(after_5h)
+    week_before, week_after = _pct(before_week), _pct(after_week)
+    if all(v is None for v in (five_before, five_after, week_before, week_after)):
+        return None
+    delta = lambda a, b: None if a is None or b is None else round(b - a, 4)
+    return {
+        "five_hour_before": five_before,
+        "five_hour_after": five_after,
+        "five_hour_delta_pp": delta(five_before, five_after),
+        "weekly_before": week_before,
+        "weekly_after": week_after,
+        "weekly_delta_pp": delta(week_before, week_after),
+    }
+
+
 def append_run(
     *,
     project: str,
@@ -199,6 +232,13 @@ def append_run(
     note: str | None = None,
     started_ts: int | None = None,
     ended_ts: int | None = None,
+    model: str | None = None,
+    effort: str | None = None,
+    tokens_out: int | None = None,
+    quota_5h_before: str | float | None = None,
+    quota_5h_after: str | float | None = None,
+    quota_week_before: str | float | None = None,
+    quota_week_after: str | float | None = None,
 ) -> dict:
     """Append one structured iteration/retro record to a machine partition."""
     ended = ended_ts or int(time.time())
@@ -213,6 +253,14 @@ def append_run(
         "cost_usd": float(cost_usd or 0),
         "status": status,
         "note": note,
+        # Which model and effort actually ran. Neither was recorded anywhere
+        # before, so "was xhigh worth it" could not be answered from own data.
+        "model": model,
+        "effort": effort,
+        "tokens_out": tokens_out,
+        "quota": _quota_block(
+            quota_5h_before, quota_5h_after, quota_week_before, quota_week_after
+        ),
     }
     path = usage_path(f"loop-runs.{machine}.jsonl")
     path.parent.mkdir(parents=True, exist_ok=True)
