@@ -229,6 +229,43 @@ calls=$(cat "$RALPH_TEST_CALLS")
 contains "claude still runs on an unknown preset" "$calls" "claude "
 excludes "an unknown preset invents no model" "$calls" "--model"
 
+# --- 5b. a fallback to another provider must not carry the model with it ------
+# Measured failure, 2026-07-30: a codex-routed task fell back to claude still
+# carrying `--model gpt-5.6-terra`, and claude refused the model rather than
+# running. A model name belongs to one provider.
+echo "  fallback drops the model:"
+cat > "$ROOT/agents.json" <<JSON
+{
+  "default_agent": "claude",
+  "presets": {"trial-terra": {"provider": "codex", "model": "gpt-5.6-terra", "effort": "medium"}},
+  "tasks": {"$TASK_KEY": {"preset": "trial-terra"}}
+}
+JSON
+export LOOP_AGENT_CONFIG="$ROOT/agents.json"
+# codex reports a rate limit, so ralph moves on to claude.
+cat > "$ROOT/fake-codex" <<'FAKE'
+#!/usr/bin/env bash
+printf 'codex %s\n' "$*" >> "$RALPH_TEST_CALLS"
+echo '{"type":"error","message":"rate limit reached"}'
+exit 1
+FAKE
+chmod +x "$ROOT/fake-codex"
+run_ralph
+calls=$(cat "$RALPH_TEST_CALLS")
+contains "codex was tried first, with its model" "$calls" "-m gpt-5.6-terra"
+claude_line=$(printf '%s\n' "$calls" | grep '^claude ' || true)
+check "claude was reached as the fallback" "$([ -n "$claude_line" ] && echo yes || echo no)" "yes"
+excludes "the fallback carries no foreign model" "$claude_line" "gpt-5.6-terra"
+excludes "the fallback carries no effort either" "$claude_line" "--effort"
+# Restore the success-shaped codex for anything after this.
+cat > "$ROOT/fake-codex" <<'FAKE'
+#!/usr/bin/env bash
+printf 'codex %s\n' "$*" >> "$RALPH_TEST_CALLS"
+echo '{"type":"result","subtype":"success","result":"done"}'
+exit 0
+FAKE
+chmod +x "$ROOT/fake-codex"
+
 # --- 6. a Notion-shaped task: id is a URL, the config is keyed by item_id -----
 # The near-miss this exists for. A Notion task's `id` is its page URL, while the
 # key a person writes in the config -- and the one the greenlight file and the
