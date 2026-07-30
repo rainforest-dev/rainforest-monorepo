@@ -973,6 +973,33 @@ onMounted(() => {
   background: none;
   padding: 0;
 }
+/* Tables. The drawer is narrow, so the table scrolls inside its own wrapper
+   rather than widening the drawer — same reasoning as `pre` above. */
+.note-body :deep(table) {
+  display: block;
+  overflow-x: auto;
+  width: max-content;
+  max-width: 100%;
+  border-collapse: collapse;
+  margin: 0.7em 0;
+  font-size: 0.9em;
+}
+.note-body :deep(th),
+.note-body :deep(td) {
+  border: 1px solid var(--border);
+  padding: 0.35em 0.6em;
+  text-align: left;
+  vertical-align: top;
+}
+.note-body :deep(th) {
+  background: var(--muted);
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+.note-body :deep(td) {
+  color: var(--foreground);
+}
 .note-body :deep(blockquote) {
   border-left: 3px solid var(--border);
   padding-left: 0.8em;
