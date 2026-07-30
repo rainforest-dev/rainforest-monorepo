@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 import type { APIRoute } from 'astro';
 
@@ -27,6 +28,24 @@ interface StepResult {
 let inFlight: Promise<StepResult[]> | null = null;
 
 const STEP_TIMEOUT_MS = 120_000;
+
+function syncServiceUrl(): string | null {
+  const value = process.env.LOOP_SYNC_URL?.trim();
+  return value || null;
+}
+
+function syncServiceToken(): string | null {
+  const value = process.env.LOOP_SYNC_TOKEN?.trim();
+  if (value) return value;
+  const path = process.env.LOOP_SYNC_TOKEN_FILE?.trim();
+  if (!path) return null;
+  try {
+    const token = readFileSync(path, 'utf8').trim();
+    return token || null;
+  } catch {
+    return null;
+  }
+}
 
 function vaultBase(): string {
   return process.env.VAULT_PATH ?? '/vault';
@@ -70,7 +89,54 @@ function runStep(step: string, args: string[] = []): Promise<StepResult> {
   });
 }
 
+/** Ask the mini host's Python sync service when the app runs in a Node-only
+ * container. The service owns provider credentials and the writable vault;
+ * this process only reads the refreshed files afterward. */
+async function runRemoteRefresh(): Promise<StepResult[]> {
+  const url = syncServiceUrl();
+  if (!url) return [];
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+  };
+  const token = syncServiceToken();
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), STEP_TIMEOUT_MS * 3);
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      signal: controller.signal,
+    });
+    const payload = (await response.json()) as {
+      steps?: StepResult[];
+      error?: string;
+    };
+    if (!Array.isArray(payload.steps)) {
+      return [
+        {
+          step: 'sync_service',
+          ok: false,
+          code: response.status,
+          error: payload.error ?? 'invalid response',
+        },
+      ];
+    }
+    return payload.steps;
+  } catch (err) {
+    return [
+      { step: 'sync_service', ok: false, code: null, error: String(err) },
+    ];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function runRefresh(): Promise<StepResult[]> {
+  if (syncServiceUrl()) return runRemoteRefresh();
+
   const results: StepResult[] = [];
 
   // 1. Budget first — awaited before anything else.

@@ -92,6 +92,11 @@ const navLinks = [
         </nav>
 
         <div class="ml-auto flex items-center gap-1">
+          <span
+            id="refresh-status"
+            class="text-muted-foreground hidden text-xs sm:inline"
+            role="status"
+            aria-live="polite"></span>
           <button
             id="refresh-btn"
             type="button"
@@ -187,15 +192,42 @@ const navLinks = [
         var rbtn = document.getElementById('refresh-btn');
         if (rbtn) {
           var busy = false;
+          var status = document.getElementById('refresh-status');
+          var setStatus = function (message, failed) {
+            if (status) {
+              status.textContent = message;
+              status.style.color = failed ? 'var(--status-critical)' : '';
+            }
+            rbtn.title = failed
+              ? 'Refresh failed — open the server logs'
+              : message;
+          };
           rbtn.addEventListener('click', async function () {
             if (busy) return;
             busy = true;
             rbtn.dataset.busy = '1';
             rbtn.disabled = true;
+            setStatus('Syncing…', false);
             try {
-              await fetch('/api/refresh', { method: 'POST' });
+              var response = await fetch('/api/refresh', { method: 'POST' });
+              var payload = await response.json().catch(function () {
+                return null;
+              });
+              if (!response.ok || !payload || payload.ok !== true) {
+                var failedStep =
+                  payload &&
+                  payload.steps &&
+                  payload.steps.find(function (step) {
+                    return step.ok === false;
+                  });
+                throw new Error(
+                  (failedStep && (failedStep.error || failedStep.step)) ||
+                    'refresh failed',
+                );
+              }
+              setStatus('Synced just now', false);
             } catch (e) {
-              /* even on failure we re-fetch what's on disk */
+              setStatus('Sync failed', true);
             } finally {
               busy = false;
               delete rbtn.dataset.busy;
