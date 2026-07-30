@@ -8,7 +8,11 @@ set -uo pipefail
 REMOTE=${GREENLIGHT_REMOTE:-rainforest-mini}
 REMOTE_DIR=${GREENLIGHT_REMOTE_DIR:-/Users/rainforest/.claude/loop/greenlight-outbox}
 LOOPCTL=${LOOPCTL:-$HOME/.claude/loop/loopctl}
-MACHINE=${LOOP_MACHINE:-$(hostname -s)}
+# LocalHostName, not `hostname -s`: the latter follows DHCP and moved
+# mid-session on 2026-07-30. Kept identical to ralph.sh and
+# loopctl.host_machine -- these must all agree or per-machine files split.
+MACHINE=${LOOP_MACHINE:-$(scutil --get LocalHostName 2>/dev/null || hostname -s 2>/dev/null)}
+MACHINE=${MACHINE%%.*}
 SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=10 -o ConnectionAttempts=1)
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] greenlight-pull: $*"; }

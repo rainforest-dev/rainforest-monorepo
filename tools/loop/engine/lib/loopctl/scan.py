@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yaml
 
-from loopctl import AGENT_STATES, PIPELINE_STATES, registry, signals
+from loopctl import AGENT_STATES, PIPELINE_STATES, host_machine, registry, signals
 from loopctl import greenlight as greenlight_mod
 from loopctl.adapters import github, notion, obsidian_base, vault
 from loopctl.config import (
@@ -161,31 +161,8 @@ def _now() -> int:
 
 
 def _host_machine() -> str:
-    """The one name this host's telemetry is filed under.
-
-    The short form, because that is what every existing partition is named, and
-    derived in the same order ralph derives it -- the two disagreeing is what
-    splits the files. `os.uname().nodename` can carry a `.local` suffix, and it
-    also follows DHCP: measured 2026-07-30 the short name was Angibles-MacBook-Air
-    for one run and Angibles-Air for the next, on one laptop, which opened a third
-    partition and left the quota gate reading a file that did not exist.
-    LocalHostName is the stable macOS name and does not move with the network.
-    """
-    override = os.environ.get("LOOP_MACHINE")
-    if override:
-        return override
-    try:
-        proc = subprocess.run(
-            ["scutil", "--get", "LocalHostName"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if proc.returncode == 0 and proc.stdout.strip():
-            return proc.stdout.strip().split(".")[0]
-    except (OSError, subprocess.SubprocessError):
-        pass  # not macOS, or scutil is unavailable
-    return os.uname().nodename.split(".")[0]
+    """The one name this host's telemetry is filed under. See loopctl.host_machine."""
+    return host_machine()
 
 
 def _load(path: Path):
@@ -729,7 +706,7 @@ def main(argv=None) -> int:
 
         cfg_path = Path(args.config).expanduser()
         if args.cmd == "enroll":
-            machines = args.machines or [os.environ.get("LOOP_MACHINE") or os.uname().nodename]
+            machines = args.machines or [host_machine()]
             if args.dry_run:
                 inferred_source, inferred_policy = _infer_enrollment(Path(args.path).expanduser())
                 _print_json(
