@@ -55,6 +55,22 @@ plan I started with.
 It also rules out version sniffing. `navigator.userAgent` cannot answer this question. Only feature
 detection can, and it has to be per-feature — three separate probes, three separate answers.
 
+### Present is not the same as working, so I checked
+
+"Present" is a weak claim, so both features were driven end to end in each browser against the live
+site. Both work in both — and Edge is markedly slower:
+
+|                          | Chrome 150 | Edge 150                         |
+| ------------------------ | ---------- | -------------------------------- |
+| Summarize a post         | 5–13s      | **24.8s**                        |
+| Translate a post to 中文 | 3.9s       | **36.5s** (incl. first download) |
+
+The outputs differ in wording, not just timing. Asked for the same three key points, Chrome returned
+"The left and right positions of the indicator are calculated based on…" where Edge returned
+"Calculate indicator left and right positions using…". Different models behind the same API — which
+is itself the useful signal that something real is running, and the reason the stub in the next
+section was so hard to spot.
+
 ## Three failures that do not look like failures
 
 This is the part worth your attention. Each of these cost real debugging time, and none of them
