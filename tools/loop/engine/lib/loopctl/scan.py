@@ -163,17 +163,28 @@ def _now() -> int:
 def _host_machine() -> str:
     """The one name this host's telemetry is filed under.
 
-    The short form, because that is what ralph derives with `hostname -s` and
-    what every existing partition is named. `os.uname().nodename` can carry a
-    `.local` suffix -- the same host under another spelling, and filing those
-    apart is precisely the split this is here to prevent. Using the long form as
-    the default sent a bare `record-run` to its own third partition, and once the
-    guard below existed it rejected ralph's own writes outright: measured
-    2026-07-30, one run logged "run ledger unavailable" and left no row at all.
+    The short form, because that is what every existing partition is named, and
+    derived in the same order ralph derives it -- the two disagreeing is what
+    splits the files. `os.uname().nodename` can carry a `.local` suffix, and it
+    also follows DHCP: measured 2026-07-30 the short name was Angibles-MacBook-Air
+    for one run and Angibles-Air for the next, on one laptop, which opened a third
+    partition and left the quota gate reading a file that did not exist.
+    LocalHostName is the stable macOS name and does not move with the network.
     """
     override = os.environ.get("LOOP_MACHINE")
     if override:
         return override
+    try:
+        proc = subprocess.run(
+            ["scutil", "--get", "LocalHostName"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            return proc.stdout.strip().split(".")[0]
+    except (OSError, subprocess.SubprocessError):
+        pass  # not macOS, or scutil is unavailable
     return os.uname().nodename.split(".")[0]
 
 

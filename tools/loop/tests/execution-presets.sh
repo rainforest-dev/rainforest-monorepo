@@ -368,6 +368,17 @@ check "this host's own name still records" "$?" "0"
 check "a .local spelling of this host is accepted" "$?" "0"
 partitions=$(ls "$VAULT/_system/usage/" | grep -c '^loop-runs\.' || true)
 check "both spellings share one partition" "$partitions" "1"
+# The invariant that actually broke: ralph and loopctl each derive the machine name
+# independently, and on 2026-07-30 they disagreed -- ralph used `hostname -s`,
+# loopctl used os.uname().nodename. DHCP then moved the short name mid-session and
+# opened a third partition, while the quota gate read a file that did not exist.
+# With nothing pinned, both must land on the same string.
+ralph_derived=$(env -u LOOP_MACHINE -u USAGE_MACHINE bash -c \
+  'm=${LOOP_MACHINE:-${USAGE_MACHINE:-$(scutil --get LocalHostName 2>/dev/null || hostname -s 2>/dev/null)}}; printf "%s" "${m%%.*}"')
+loopctl_derived=$(env -u LOOP_MACHINE PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  'from loopctl.scan import _host_machine; print(_host_machine())')
+check "ralph and loopctl derive one machine name" "$ralph_derived" "$loopctl_derived"
+check "the derived name carries no domain suffix" "${loopctl_derived##*.}" "$loopctl_derived"
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
