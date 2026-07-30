@@ -217,6 +217,11 @@ contains "codex effort goes through -c" "$calls" "-c model_reasoning_effort=medi
 # exits 2 on a lock it cannot create in LOOP_HOME, and the executor correctly
 # refuses to start work. claude has had the same grant since 2026-07-29.
 contains "codex can reach LOOP_HOME" "$calls" "--add-dir $HOME_DIR"
+# Measured 2026-07-30, three AG-132 runs: workspace-write denies the network, so
+# `loopctl scan` could not resolve the task's PR with `gh pr list`, the registry
+# read stale, and the contract stopped the run. Pushing the branch needs it too.
+contains "codex can reach the network" "$calls" \
+  "-c sandbox_workspace_write.network_access=true"
 
 # --- 4. no config at all: unchanged behaviour --------------------------------
 # The regression that matters most. A task with no preset must invoke the CLI

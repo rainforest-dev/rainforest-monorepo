@@ -260,9 +260,22 @@ run_codex() {
   # LOOP_HOME and `loopctl scan` needs to take a lock there. Without it codex
   # cannot scan its own queue -- measured 2026-07-30, `scan` exited 2 on a lock
   # it could not create, and the executor correctly refused to start work.
+  #
+  # The network grant, because workspace-write denies the network and every signal
+  # the loop turns on crosses it: `loopctl scan` resolves a task's PR with
+  # `gh pr list`, which fails inside the sandbox, marking the registry stale -- and
+  # a stale registry is a full stop under the contract. Measured 2026-07-30: three
+  # AG-132 runs ended exactly there, the executor refusing correctly each time.
+  # Pushing a branch and opening the PR need the network too, so without this no
+  # codex task could ever finish, while claude -- which runs under no OS sandbox at
+  # all -- was unaffected. Scoped to loop runs rather than config.toml, and narrower
+  # than danger-full-access: probed with `codex sandbox`, a write outside
+  # project_path is still "Operation not permitted" with the grant applied. Inert
+  # unless the mode is workspace-write, which --sandbox sets below.
   (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=codex \
     LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CODEX_BIN" exec \
     ${opts[@]+"${opts[@]}"} --add-dir "$LOOP_HOME" \
+    -c sandbox_workspace_write.network_access=true \
     --json --ephemeral --sandbox workspace-write -C "$project_path" -)
 }
 
