@@ -213,6 +213,10 @@ calls=$(cat "$RALPH_TEST_CALLS")
 contains "codex ran, not claude" "$calls" "codex "
 contains "codex is told the model" "$calls" "-m gpt-5.6-terra"
 contains "codex effort goes through -c" "$calls" "-c model_reasoning_effort=medium"
+# Measured 2026-07-30: without this, `loopctl scan` inside the codex sandbox
+# exits 2 on a lock it cannot create in LOOP_HOME, and the executor correctly
+# refuses to start work. claude has had the same grant since 2026-07-29.
+contains "codex can reach LOOP_HOME" "$calls" "--add-dir $HOME_DIR"
 
 # --- 4. no config at all: unchanged behaviour --------------------------------
 # The regression that matters most. A task with no preset must invoke the CLI
