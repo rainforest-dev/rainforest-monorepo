@@ -130,6 +130,55 @@ rate_limited() {
     grep -qiE 'rate.?limit|too many requests|(usage|weekly|5-?hour|daily)[ -]?limit|quota (exceeded|reached|limit)'
 }
 
+# Output tokens for one run, or nothing when the output does not say.
+#
+# Same two-reading shape as executor_error_text, and for the same reason: reading
+# the blob as one JSON object is claude's envelope, and codex's newline-delimited
+# events make that parse fail, so every codex run recorded tokens_out as null --
+# the 3,208 output tokens of the 2026-07-30 AG-132 run existed only in its
+# transcript. Codex can report several turns, so they are summed. Its
+# `reasoning_output_tokens` is left out: whether it is already inside
+# `output_tokens` is not documented, and double-counting would be worse than
+# under-reporting a field used for cost-per-run comparisons.
+executor_tokens_out() {
+  printf '%s' "$1" | "$PYTHON_BIN" -c '
+import json, sys
+
+raw = sys.stdin.read()
+total = 0
+found = False
+
+# Claude: one result object carrying one usage block.
+try:
+    doc = json.loads(raw)
+except ValueError:
+    doc = None
+if isinstance(doc, dict):
+    value = (doc.get("usage") or {}).get("output_tokens")
+    if isinstance(value, int):
+        total += value
+        found = True
+
+# Codex: one usage block per completed turn.
+for line in raw.splitlines():
+    line = line.strip()
+    if not line.startswith("{"):
+        continue
+    try:
+        event = json.loads(line)
+    except ValueError:
+        continue
+    if str(event.get("type") or "") != "turn.completed":
+        continue
+    value = (event.get("usage") or {}).get("output_tokens")
+    if isinstance(value, int):
+        total += value
+        found = True
+
+print(total if found else "")
+' 2>/dev/null || printf ''
+}
+
 [ -x "$LOOPCTL" ] || { log "loopctl missing at $LOOPCTL; run obsidian-setup"; exit 1; }
 [ -f "$CONTRACT" ] || { log "contract missing at $CONTRACT; run obsidian-setup"; exit 1; }
 [ -x "$PYTHON_BIN" ] || PYTHON_BIN=$(command -v python3)
@@ -519,9 +568,7 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
   SPENT=$("$PYTHON_BIN" -c \
     'from decimal import Decimal; import sys; print(Decimal(sys.argv[1]) + Decimal(sys.argv[2]))' \
     "$SPENT" "$cost")
-  tokens_out=$(printf '%s' "$out" | "$PYTHON_BIN" -c \
-    'import json, sys; data=sys.stdin.read(); print((json.loads(data).get("usage") or {}).get("output_tokens", "") if data.strip() else "")' \
-    2>/dev/null || printf '')
+  tokens_out=$(executor_tokens_out "$out")
   refresh_quota
   IFS=$'\t' read -r _ pct5_after pctw_after <<< "$(quota_state)"
   d5=$(pct_delta "$pct5_before" "$pct5_after")
