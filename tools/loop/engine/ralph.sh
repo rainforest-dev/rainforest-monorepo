@@ -9,7 +9,15 @@ CLAUDE_BIN=${CLAUDE_BIN:-$(command -v claude 2>/dev/null || echo "$HOME/.local/b
 CODEX_BIN=${CODEX_BIN:-$(command -v codex 2>/dev/null || echo "$HOME/.local/bin/codex")}
 AGY_BIN=${AGY_BIN:-$(command -v agy 2>/dev/null || echo "$HOME/.local/bin/agy")}
 PYTHON_BIN=${LOOP_PYTHON:-"$LOOP_HOME/.venv/bin/python"}
-MACHINE=${LOOP_MACHINE:-${USAGE_MACHINE:-$(hostname -s)}}
+# `hostname -s` is not an identity: it follows DHCP. Measured 2026-07-30, it
+# returned Angibles-MacBook-Air for one run and Angibles-Air for the next on the
+# same laptop, which forked the run ledger into a third partition and left the
+# quota gate reading a quota.<machine>.json that did not exist -- so the gate
+# silently degraded to "unknown" and the run proceeded ungated. LocalHostName is
+# the stable macOS name and does not move with the network; loopctl derives it the
+# same way, and the two must agree or every per-machine file splits.
+MACHINE=${LOOP_MACHINE:-${USAGE_MACHINE:-$(scutil --get LocalHostName 2>/dev/null || hostname -s 2>/dev/null)}}
+MACHINE=${MACHINE%%.*}
 EXECUTORS=${LOOP_EXECUTORS:-claude,codex,agy}
 AGENT_CONFIG=${LOOP_AGENT_CONFIG:-}
 # Resolved per iteration from the agent config's preset for this task. Empty
