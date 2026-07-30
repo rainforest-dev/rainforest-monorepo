@@ -556,6 +556,13 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--status", default="completed")
     run_parser.add_argument("--note")
     run_parser.add_argument("--started-ts", type=int)
+    run_parser.add_argument("--model")
+    run_parser.add_argument("--effort")
+    run_parser.add_argument("--tokens-out", type=int)
+    run_parser.add_argument("--quota-5h-before")
+    run_parser.add_argument("--quota-5h-after")
+    run_parser.add_argument("--quota-week-before")
+    run_parser.add_argument("--quota-week-after")
 
     sweep_parser = sub.add_parser("sweep")
     sweep_parser.add_argument("--machine", required=True)
@@ -626,6 +633,13 @@ def main(argv=None) -> int:
                     status=args.status,
                     note=args.note,
                     started_ts=args.started_ts,
+                    model=args.model,
+                    effort=args.effort,
+                    tokens_out=args.tokens_out,
+                    quota_5h_before=args.quota_5h_before,
+                    quota_5h_after=args.quota_5h_after,
+                    quota_week_before=args.quota_week_before,
+                    quota_week_after=args.quota_week_after,
                 )
             )
             return 0
