@@ -37,8 +37,96 @@ iter=0
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] ralph: $*"; }
 
+# Executor output was read for a cost figure and a verdict line, then dropped. So
+# when the first preset run died on 2026-07-30 there was no way to see what the
+# executor had actually said -- and for codex there is no session either, since
+# `--ephemeral` persists nothing. The log said "rate limited" and that was the
+# entire evidence trail. Keep the output.
+TRANSCRIPTS=${LOOP_TRANSCRIPTS:-"$LOOP_HOME/transcripts"}
+TRANSCRIPT_KEEP=${LOOP_TRANSCRIPT_KEEP:-200}
+
+# Writes one executor's output and echoes the path, or nothing if it cannot.
+# Best-effort throughout: losing a transcript must never fail a run.
+save_transcript() {
+  local executor="$1" body="$2" label="$3"
+  mkdir -p "$TRANSCRIPTS" 2>/dev/null || return 0
+  local safe
+  safe=$(printf '%s' "${label:-task}" | tr -c 'A-Za-z0-9._-' '-' | cut -c1-48)
+  local path="$TRANSCRIPTS/$(date '+%Y%m%dT%H%M%S')-$MACHINE-$executor-$safe.log"
+  printf '%s' "$body" > "$path" 2>/dev/null || return 0
+  # Bounded so an unattended loop cannot fill the disk with transcripts.
+  ls -1t "$TRANSCRIPTS"/*.log 2>/dev/null | tail -n +"$((TRANSCRIPT_KEEP + 1))" |
+    while IFS= read -r stale; do rm -f "$stale"; done
+  printf '%s' "$path"
+}
+
+# The harness's own error text from an executor's output — never the model's prose.
+#
+# Grepping the whole blob was a live bug: this contract instructs the executor to
+# "rely on the outer runner's rate-limit handling", so an executor that reported
+# following its instructions was read as the provider rate-limiting us. On
+# 2026-07-30 that killed the first preset run and sent a codex task to claude
+# carrying codex's model name. What the model *says* is not provider state.
+#
+# Codex emits newline-delimited events; only `item.type == "error"` messages and
+# failed-turn payloads are the harness speaking. Claude emits one result object;
+# only its `subtype`/`result` when `is_error`. Anything that is not JSON at all
+# (agy prints plain text) falls back to the whole output, since there is no
+# envelope to read and a real message would be in there.
+executor_error_text() {
+  printf '%s' "$1" | "$PYTHON_BIN" -c '
+import json, sys
+
+raw = sys.stdin.read()
+parts = []
+saw_json = False
+
+# Both readings run over the same bytes and the results are unioned, rather than
+# choosing one by shape. A single-line codex event parses as one JSON object, so
+# "parses as a dict" cannot mean "this is claude" -- deciding that way silently
+# dropped genuine codex rate-limit errors. Each reading finds nothing in the
+# other format, so the union is safe.
+
+# Claude: one result object, and only when it says it failed.
+try:
+    doc = json.loads(raw)
+except ValueError:
+    doc = None
+if isinstance(doc, dict):
+    saw_json = True
+    if doc.get("is_error") or str(doc.get("subtype") or "").startswith("error"):
+        for key in ("subtype", "result", "error", "message"):
+            value = doc.get(key)
+            if isinstance(value, str):
+                parts.append(value)
+
+# Codex: newline-delimited events; the harness speaks through error items and
+# failed turns. `agent_message` items are the model talking and are never read.
+for line in raw.splitlines():
+    line = line.strip()
+    if not line.startswith("{"):
+        continue
+    try:
+        event = json.loads(line)
+    except ValueError:
+        continue
+    saw_json = True
+    kind = str(event.get("type") or "")
+    item = event.get("item") if isinstance(event.get("item"), dict) else {}
+    if str(item.get("type") or "") == "error":
+        parts.append(str(item.get("message") or ""))
+    if "failed" in kind or kind.endswith("error"):
+        for key in ("message", "error", "reason"):
+            value = event.get(key)
+            if isinstance(value, str):
+                parts.append(value)
+
+print("\n".join(parts) if saw_json else raw)
+' 2>/dev/null || printf '%s' "$1"
+}
+
 rate_limited() {
-  printf '%s' "$1" |
+  executor_error_text "$1" |
     grep -qiE 'rate.?limit|too many requests|(usage|weekly|5-?hour|daily)[ -]?limit|quota (exceeded|reached|limit)'
 }
 
@@ -312,6 +400,8 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
     sid=$(uuidgen)
     candidate_out=$(run_executor "$candidate" "$slug" "$project_path" "$prompt" "$sid" 2>&1) || candidate_status=$?
     candidate_status=${candidate_status:-0}
+    transcript=$(save_transcript "$candidate" "$candidate_out" "${task_item_id:-$slug}")
+    [ -n "$transcript" ] && log "  transcript · $transcript"
     if [ "$candidate_status" -eq 127 ]; then
       log "executor=$candidate unavailable; trying next executor"
       unset candidate_status
