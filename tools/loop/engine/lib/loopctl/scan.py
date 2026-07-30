@@ -161,8 +161,20 @@ def _now() -> int:
 
 
 def _host_machine() -> str:
-    """The one name this host's telemetry is filed under."""
-    return os.environ.get("LOOP_MACHINE") or os.uname().nodename
+    """The one name this host's telemetry is filed under.
+
+    The short form, because that is what ralph derives with `hostname -s` and
+    what every existing partition is named. `os.uname().nodename` can carry a
+    `.local` suffix -- the same host under another spelling, and filing those
+    apart is precisely the split this is here to prevent. Using the long form as
+    the default sent a bare `record-run` to its own third partition, and once the
+    guard below existed it rejected ralph's own writes outright: measured
+    2026-07-30, one run logged "run ledger unavailable" and left no row at all.
+    """
+    override = os.environ.get("LOOP_MACHINE")
+    if override:
+        return override
+    return os.uname().nodename.split(".")[0]
 
 
 def _load(path: Path):
@@ -635,12 +647,16 @@ def main(argv=None) -> int:
             # beside the real one -- same run, same host, two files, neither
             # complete. A host records under one name only; wanting another
             # means setting LOOP_MACHINE, not passing a string.
-            if args.machine != _host_machine():
+            # Compared on the first dot-segment, so `air` and `air.local` are one
+            # host, then normalised to the canonical name so both spellings land
+            # in the same file. A genuinely different name still fails.
+            host = _host_machine()
+            if args.machine.split(".")[0].casefold() != host.split(".")[0].casefold():
                 raise ValueError(
                     f"record-run --machine {args.machine!r} is not this host; "
-                    f"it records as {_host_machine()!r} "
-                    "(set LOOP_MACHINE to change that)"
+                    f"it records as {host!r} (set LOOP_MACHINE to change that)"
                 )
+            args.machine = host
             _print_json(
                 append_run(
                     project=args.project,
