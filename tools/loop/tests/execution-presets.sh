@@ -109,10 +109,17 @@ printf 'claude %s\n' "$*" >> "$RALPH_TEST_CALLS"
 echo '{"type":"result","subtype":"success","total_cost_usd":0.5,"usage":{"output_tokens":4242},"result":"done"}'
 exit 0
 FAKE
+# Codex speaks newline-delimited events, not claude's single result object. The
+# fake used to emit claude's shape, which is why nothing caught that ralph read
+# output tokens with one `json.loads` of the whole blob -- a parse that fails on
+# every real codex run.
 cat > "$ROOT/fake-codex" <<'FAKE'
 #!/usr/bin/env bash
 printf 'codex %s\n' "$*" >> "$RALPH_TEST_CALLS"
-echo '{"type":"result","subtype":"success","result":"done"}'
+echo '{"type":"thread.started","thread_id":"t-1"}'
+echo '{"type":"turn.started"}'
+echo '{"type":"item.completed","item":{"id":"i-1","type":"agent_message","text":"done"}}'
+echo '{"type":"turn.completed","usage":{"input_tokens":1000,"cached_input_tokens":800,"output_tokens":777,"reasoning_output_tokens":123}}'
 exit 0
 FAKE
 chmod +x "$ROOT/fake-claude" "$ROOT/fake-codex"
@@ -222,6 +229,10 @@ contains "codex can reach LOOP_HOME" "$calls" "--add-dir $HOME_DIR"
 # read stale, and the contract stopped the run. Pushing the branch needs it too.
 contains "codex can reach the network" "$calls" \
   "-c sandbox_workspace_write.network_access=true"
+# Measured 2026-07-30: every codex run recorded tokens_out as null, because the
+# reader parsed the whole blob as claude's single result object. `reasoning` is
+# deliberately not added in -- see executor_tokens_out.
+check "the run record keeps codex output tokens" "$(last_run_field tokens_out)" "777"
 
 # --- 4. no config at all: unchanged behaviour --------------------------------
 # The regression that matters most. A task with no preset must invoke the CLI
@@ -282,7 +293,7 @@ excludes "the fallback carries no effort either" "$claude_line" "--effort"
 cat > "$ROOT/fake-codex" <<'FAKE'
 #!/usr/bin/env bash
 printf 'codex %s\n' "$*" >> "$RALPH_TEST_CALLS"
-echo '{"type":"result","subtype":"success","result":"done"}'
+echo '{"type":"turn.completed","usage":{"output_tokens":777}}'
 exit 0
 FAKE
 chmod +x "$ROOT/fake-codex"
@@ -323,6 +334,25 @@ cat > "$ROOT/agents.json" <<'JSON'
 }
 JSON
 check "id still resolves when there is no item_id" "$(resolve _ "_system/tasks/T-1.md" "")" "claude claude-opus-5 xhigh"
+
+# --- 7. one host, one telemetry partition ------------------------------------
+# On 2026-07-30 an executor recorded its own iteration row with
+# `--machine "Angible's MacBook Air"` -- the macOS display name, not the host
+# name -- and the row landed in a second .jsonl beside the real one. Same run,
+# same host, two files, neither complete. The name picks the file, so a
+# free-form value has to fail rather than fork the data.
+echo "  one machine, one partition:"
+before=$(ls "$VAULT/_system/usage/" | wc -l | tr -d ' ')
+bogus_out=$("$LOOPCTL" record-run --project sandbox --task "$TASK_KEY" \
+  --executor codex --machine "Some Laptop’s Display Name" 2>&1)
+check "a foreign machine name is refused" "$?" "2"
+contains "the error names this host" "$bogus_out" "$MACHINE"
+after=$(ls "$VAULT/_system/usage/" | wc -l | tr -d ' ')
+check "no second partition was created" "$after" "$before"
+# The host's own name still works, or the guard would have broken recording.
+"$LOOPCTL" record-run --project sandbox --task "$TASK_KEY" \
+  --executor codex --machine "$MACHINE" >/dev/null 2>&1
+check "this host's own name still records" "$?" "0"
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

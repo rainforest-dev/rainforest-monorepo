@@ -160,6 +160,11 @@ def _now() -> int:
     return int(time.time())
 
 
+def _host_machine() -> str:
+    """The one name this host's telemetry is filed under."""
+    return os.environ.get("LOOP_MACHINE") or os.uname().nodename
+
+
 def _load(path: Path):
     return load_config(path)
 
@@ -551,7 +556,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--project", required=True)
     run_parser.add_argument("--task", required=True)
     run_parser.add_argument("--executor", required=True)
-    run_parser.add_argument("--machine", default=os.environ.get("LOOP_MACHINE") or os.uname().nodename)
+    run_parser.add_argument("--machine", default=_host_machine())
     run_parser.add_argument("--cost", default="0")
     run_parser.add_argument("--status", default="completed")
     run_parser.add_argument("--note")
@@ -623,6 +628,19 @@ def main(argv=None) -> int:
             return 0
 
         if args.cmd == "record-run":
+            # The machine name picks the file the row lands in, so a free-form
+            # value silently forks the telemetry rather than failing. On
+            # 2026-07-30 an executor passed the macOS display name, "Angible's
+            # MacBook Air", and its iteration row went to a second partition
+            # beside the real one -- same run, same host, two files, neither
+            # complete. A host records under one name only; wanting another
+            # means setting LOOP_MACHINE, not passing a string.
+            if args.machine != _host_machine():
+                raise ValueError(
+                    f"record-run --machine {args.machine!r} is not this host; "
+                    f"it records as {_host_machine()!r} "
+                    "(set LOOP_MACHINE to change that)"
+                )
             _print_json(
                 append_run(
                     project=args.project,
