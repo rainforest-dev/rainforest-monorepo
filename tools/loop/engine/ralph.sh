@@ -39,9 +39,10 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] ralph: $*"; }
 
 # Executor output was read for a cost figure and a verdict line, then dropped. So
 # when the first preset run died on 2026-07-30 there was no way to see what the
-# executor had actually said -- and for codex there is no session either, since
-# `--ephemeral` persists nothing. The log said "rate limited" and that was the
-# entire evidence trail. Keep the output.
+# executor had actually said -- and codex kept no session either, because it still
+# ran with `--ephemeral` then. The log said "rate limited" and that was the entire
+# evidence trail. Keep the output. Transcripts stay the primary record even now
+# that codex sessions persist: they cover every executor, and they are pruned.
 TRANSCRIPTS=${LOOP_TRANSCRIPTS:-"$LOOP_HOME/transcripts"}
 TRANSCRIPT_KEEP=${LOOP_TRANSCRIPT_KEEP:-200}
 
@@ -304,6 +305,13 @@ run_codex() {
   local opts=()
   [ -n "$PLAN_MODEL" ] && opts+=(-m "$PLAN_MODEL")
   [ -n "$PLAN_EFFORT" ] && opts+=(-c "model_reasoning_effort=$PLAN_EFFORT")
+  # No --ephemeral: it kept nothing on disk, which cost a reviewable session for
+  # no gain once transcripts were being saved. Dropped 2026-07-30 so a loop run
+  # can be reopened with `codex resume` and read in the ChatGPT app, where the
+  # reasoning is legible in a way a JSON event stream is not. The cost is one
+  # session file per run under ~/.codex/sessions -- unbounded, unlike transcripts,
+  # which prune to TRANSCRIPT_KEEP.
+  #
   # --add-dir for the same reason claude has had it since 2026-07-29: the sandbox
   # confines writes to project_path, but the contract and loopctl live in
   # LOOP_HOME and `loopctl scan` needs to take a lock there. Without it codex
@@ -325,7 +333,7 @@ run_codex() {
     LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CODEX_BIN" exec \
     ${opts[@]+"${opts[@]}"} --add-dir "$LOOP_HOME" \
     -c sandbox_workspace_write.network_access=true \
-    --json --ephemeral --sandbox workspace-write -C "$project_path" -)
+    --json --sandbox workspace-write -C "$project_path" -)
 }
 
 run_agy() {
