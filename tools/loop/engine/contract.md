@@ -59,6 +59,19 @@ design-bearing work, write and commit a plan first; routine work may follow its
 existing procedure. Implement one coherent task fully, with bounded repair and
 small commits. Never weaken tests to force green.
 
+A generated artefact missing from the working tree is not a blocker until you have
+regenerated it. When a task's contract is absent from generated API types, run the
+repository's own sync procedure first — for `service-dashboard-frontend` that is
+the `openapi-sync` skill, which fetches the backend dev spec. `blocked` is legitimate
+only when the sync ran and the contract is still absent, and the reason must say so.
+Never hand-edit generated types and never infer an API shape to get past this.
+
+Measured 2026-07-30 on AG-132: an executor read the `openapi-sync` skill, saw the
+contract missing from the checked-in `api.gen.ts`, and recorded `blocked` claiming
+the backend PR was unmerged — while that PR had merged six days earlier and the dev
+spec was serving the contract. One sync would have unblocked it. A stale generated
+file reports the last sync, never the backend's current state.
+
 Company invariants are absolute: use the company identity only for company work,
 never persist PRD/TDD bodies into the personal vault, never change a host without
 explicit approval, never merge, and never bypass review.
@@ -81,7 +94,10 @@ Every `loopctl set` also publishes an atomic mirror to
 `$LOOP_VAULT_PATH/_system/usage/tasks-progress.json` for Loop Observatory. If a
 Notion token is available, the entry is marked for authenticated source
 writeback; otherwise it is explicitly marked unavailable rather than claiming
-that Notion changed. The runner records one append-only iteration/retro row in
+that Notion changed. Report it the same way: in headless mode say the source write
+is pending, never that Notion was updated. Measured 2026-07-30, an executor closed
+its summary with "已在 Notion 與 Loop registry 設為 Blocked" having written only the
+local overlay. The runner records one append-only iteration/retro row in
 `_system/usage/loop-runs.<machine>.jsonl`.
 
 For `greenlit-only`, opening the PR and recording PR-ready is the terminal action:
