@@ -229,6 +229,43 @@ calls=$(cat "$RALPH_TEST_CALLS")
 contains "claude still runs on an unknown preset" "$calls" "claude "
 excludes "an unknown preset invents no model" "$calls" "--model"
 
+# --- 6. a Notion-shaped task: id is a URL, the config is keyed by item_id -----
+# The near-miss this exists for. A Notion task's `id` is its page URL, while the
+# key a person writes in the config -- and the one the greenlight file and the
+# contract already use -- is `metadata.item_id` (`AG-132`). Looking up by `id`
+# alone matched nothing, so every task silently fell through to default_preset
+# and the whole routing experiment would have run on one model.
+echo "  notion-shaped id:"
+cat > "$ROOT/agents.json" <<'JSON'
+{
+  "default_agent": "claude",
+  "default_preset": "slice",
+  "presets": {
+    "slice": {"provider": "claude", "model": "claude-opus-5", "effort": "high"},
+    "trial-terra": {"provider": "codex", "model": "gpt-5.6-terra", "effort": "medium"}
+  },
+  "tasks": {"AG-132": {"preset": "trial-terra"}}
+}
+JSON
+resolver="$ROOT/resolver.sh"
+awk '/^preferred_plan\(\) \{/,/^\}/' "$HOME_DIR/ralph.sh" > "$resolver"
+resolve() {
+  AGENT_CONFIG="$ROOT/agents.json" PYTHON_BIN="$VENV/bin/python" \
+    bash -c '. "$1"; preferred_plan "$2" "$3"' _ "$resolver" "$2" "$3" | tr '\t' ' '
+}
+url="https://app.notion.com/p/39f0f67c1d0c81aaba20dd126c204cc8"
+check "item_id wins over the url id" "$(resolve _ "$url" AG-132)" "codex gpt-5.6-terra medium"
+check "an unmapped item_id takes the default preset" "$(resolve _ "$url" AG-999)" "claude claude-opus-5 high"
+# A source with no item_id at all (obsidian-base) must still resolve by id.
+cat > "$ROOT/agents.json" <<'JSON'
+{
+  "default_agent": "claude",
+  "presets": {"deep": {"provider": "claude", "model": "claude-opus-5", "effort": "xhigh"}},
+  "tasks": {"_system/tasks/T-1.md": {"preset": "deep"}}
+}
+JSON
+check "id still resolves when there is no item_id" "$(resolve _ "_system/tasks/T-1.md" "")" "claude claude-opus-5 xhigh"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
