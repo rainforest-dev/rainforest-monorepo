@@ -358,6 +358,16 @@ check "no second partition was created" "$after" "$before"
 "$LOOPCTL" record-run --project sandbox --task "$TASK_KEY" \
   --executor codex --machine "$MACHINE" >/dev/null 2>&1
 check "this host's own name still records" "$?" "0"
+# The regression the first guard shipped with: ralph derives the machine name
+# with `hostname -s` while loopctl defaulted to os.uname().nodename, which on
+# macOS carries `.local`. The guard then rejected ralph's own record-run and a
+# 2026-07-30 run logged "run ledger unavailable" with no row written. Same host,
+# two spellings -- accepted, and filed under one name.
+"$LOOPCTL" record-run --project sandbox --task "$TASK_KEY" \
+  --executor codex --machine "$MACHINE.local" >/dev/null 2>&1
+check "a .local spelling of this host is accepted" "$?" "0"
+partitions=$(ls "$VAULT/_system/usage/" | grep -c '^loop-runs\.' || true)
+check "both spellings share one partition" "$partitions" "1"
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
