@@ -204,9 +204,9 @@ IFS=',' read -r -a executor_list <<< "$EXECUTORS"
 # preset, or a preset naming an unknown provider all fall through to the
 # executor's own defaults, which is exactly how the loop behaved before presets.
 preferred_plan() {
-  local task_id="$1"
+  local task_id="$1" item_id="${2:-}"
   [ -n "$AGENT_CONFIG" ] && [ -f "$AGENT_CONFIG" ] || return 0
-  "$PYTHON_BIN" - "$AGENT_CONFIG" "$task_id" <<'PY'
+  "$PYTHON_BIN" - "$AGENT_CONFIG" "$task_id" "$item_id" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -215,7 +215,16 @@ PROVIDERS = {"claude", "codex", "agy"}
 
 try:
     document = json.loads(Path(sys.argv[1]).read_text())
-    task = (document.get("tasks") or {}).get(str(sys.argv[2])) or {}
+    tasks = document.get("tasks") or {}
+    # A Notion-sourced task's `id` is its page URL; the human key the greenlight
+    # file and the contract both use is `metadata.item_id` (`AG-132`). Try that
+    # first so the config stays keyed by something a person can read, and fall
+    # back to the raw id for sources that have no item_id (obsidian-base).
+    task = {}
+    for key in (str(sys.argv[3]), str(sys.argv[2])):
+        if key and key in tasks:
+            task = tasks[key] or {}
+            break
     presets = document.get("presets") or {}
     name = task.get("preset") or document.get("default_preset")
     preset = presets.get(name) or {} if name else {}
@@ -258,12 +267,14 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
   fi
 
   next_json=$("$LOOPCTL" next "$slug" 2>/dev/null || printf '[]')
-  task_id=$(printf '%s' "$next_json" | "$PYTHON_BIN" -c \
-    'import json, sys; rows=json.load(sys.stdin); print(rows[0].get("id", "") if rows else "")' 2>/dev/null || printf '')
+  task_pair=$(printf '%s' "$next_json" | "$PYTHON_BIN" -c \
+    'import json, sys; rows=json.load(sys.stdin); row=rows[0] if rows else {}; print("{}\t{}".format(row.get("id") or "", (row.get("metadata") or {}).get("item_id") or ""))' \
+    2>/dev/null || printf '\t')
+  IFS=$'\t' read -r task_id task_item_id <<< "$task_pair"
   # Reset every iteration: a task with no preset must not inherit the previous
   # task's model.
   preferred=""; PLAN_MODEL=""; PLAN_EFFORT=""
-  IFS=$'\t' read -r preferred PLAN_MODEL PLAN_EFFORT <<< "$(preferred_plan "$task_id")"
+  IFS=$'\t' read -r preferred PLAN_MODEL PLAN_EFFORT <<< "$(preferred_plan "$task_id" "${task_item_id:-}")"
   ordered_executors=()
   if [ -n "$preferred" ]; then
     ordered_executors+=("$preferred")
