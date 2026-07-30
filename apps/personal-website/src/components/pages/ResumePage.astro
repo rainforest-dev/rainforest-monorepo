@@ -110,16 +110,152 @@ const personSchema = {
   <main
     class="flex-col-center bg-foreground h-screen w-screen overflow-scroll p-10 print:items-start print:justify-start print:overflow-visible print:p-0"
   >
-    <div
-      class="scale-30 h-[105rem] w-[75rem] origin-top sm:scale-50 md:scale-75 lg:scale-100 print:origin-top-left print:scale-100"
-    >
-      <ATSFriendly {...resumeProps} />
+    {
+      /*
+        A true A4 sheet: 210mm x 297mm, so the on-screen page and the printed one are the same
+        object. The previous 75rem x 105rem box was ratio 1.400 where A4 is 1.4143 — close enough
+        to look right and wrong enough that print scaled it.
+
+        Three boxes because two scales apply independently, and collapsing them would couple
+        "fit the sheet to this screen" to "fit the contents to the sheet": #resume-zoom reserves
+        the on-screen size, #resume-sheet is the page itself, #resume-fit holds the contents.
+        Both scales are defined in the <style> block below, next to the reasoning for each.
+      */
+    }
+    <div id="resume-zoom">
+      <div id="resume-sheet">
+        <div id="resume-fit">
+          <ATSFriendly {...resumeProps} />
+        </div>
+      </div>
     </div>
   </main>
-  <style media="print">
-    @page {
-      size: A4;
-      margin: 0;
+  {
+    /*
+      Shrink-to-fit, measured rather than guessed.
+
+      Density work in ats-friendly.astro got the contents to ~0.95 of a page, so this normally has
+      almost nothing to do. It exists for the case that follows: every role added to the content
+      files pushes the page out again, and the failure is silent — #resume-fit is `overflow: hidden`,
+      so an overflowing resume quietly loses its last lines instead of complaining. Measuring the
+      real height and scaling only on overflow turns that into a few percent of extra compression.
+
+      Both measurements are layout values, unaffected by the two enclosing transforms, so the ratio
+      is correct at any --zoom.
+
+      Runs on load and before print (Safari and Firefox honour `beforeprint`; Chrome fires it too),
+      because the print layout resolves at a different width than the scaled screen preview.
+    */
+  }
+  <script is:inline>
+    (() => {
+      const fit = () => {
+        const box = document.getElementById('resume-fit');
+        const sheet = document.getElementById('resume-sheet');
+        const article = box?.firstElementChild;
+        if (!box || !sheet || !article) return;
+
+        // Measure unscaled, or each run would compound the previous run's scale.
+        box.style.setProperty('--fit', '1');
+
+        // Only an overflowing element reports its true content extent: scrollHeight is clamped to
+        // clientHeight otherwise, so a short resume would look like a full page and get shrunk
+        // for no reason.
+        if (article.scrollHeight <= article.clientHeight) return;
+
+        // scrollHeight covers the top padding but NOT the bottom padding of overflowing content,
+        // so it under-reports the space actually needed by exactly one bottom padding (10mm here).
+        // Left uncorrected the scale lands the last line flush on the paper's edge, and the line
+        // after that is silently clipped — which is what this page did before the correction.
+        const padBottom =
+          parseFloat(getComputedStyle(article).paddingBottom) || 0;
+        const needed = article.scrollHeight + padBottom;
+        const available = sheet.clientHeight;
+        if (needed > available) {
+          box.style.setProperty('--fit', String(available / needed));
+        }
+      };
+
+      // Fonts change metrics enough to matter; re-measure once they land.
+      if (document.fonts?.ready) void document.fonts.ready.then(fit);
+      window.addEventListener('load', fit);
+      window.addEventListener('beforeprint', fit);
+      // Content height is width-dependent, and the width changes with the --zoom breakpoints.
+      let queued = 0;
+      window.addEventListener('resize', () => {
+        cancelAnimationFrame(queued);
+        queued = requestAnimationFrame(fit);
+      });
+      fit();
+    })();
+  </script>
+  {
+    /*
+      Plain CSS rather than Tailwind utilities, for two reasons this page ran into directly:
+
+      1. `[--zoom:0.32] sm:[--zoom:0.5] …` generated the three variant rules but not the base one,
+         leaving `var(--zoom)` unresolved below 640px.
+      2. A `print:[--zoom:1]` utility, and an override in a `<style media="print">` block, both
+         failed to reach the document — the media attribute does not survive Astro's style
+         bundling, so `@media print` has to be written inside the stylesheet itself.
+
+      Explicit media queries also make the cascade order visible, which matters when two nested
+      transforms read these variables.
+    */
+  }
+  <style>
+    /* Fits the whole sheet to the viewport. On the wrapper, not the sheet: `transform: scale`
+       shrinks what an element paints but not the layout box it reserves, so scaling the sheet in
+       place left ~760px of dead scroll space below the resume and overflowed horizontally. The
+       wrapper takes the scaled size; the sheet scales from its top-left corner to fill it. */
+    #resume-zoom {
+      --zoom: 0.32;
+      width: calc(210mm * var(--zoom));
+      height: calc(297mm * var(--zoom));
+    }
+    @media (min-width: 40rem) {
+      #resume-zoom {
+        --zoom: 0.5;
+      }
+    }
+    @media (min-width: 48rem) {
+      #resume-zoom {
+        --zoom: 0.75;
+      }
+    }
+    @media (min-width: 64rem) {
+      #resume-zoom {
+        --zoom: 1;
+      }
+    }
+
+    #resume-sheet {
+      width: 210mm;
+      height: 297mm;
+      transform: scale(var(--zoom));
+      transform-origin: top left;
+    }
+
+    /* Shrinks only the contents, and only when they exceed one page. Defaults to 1 so the layout
+       is correct with JavaScript off or before the script below runs. Centred horizontally so the
+       width the scale gives back becomes even margin rather than a right-hand gutter. */
+    #resume-fit {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      transform: scale(var(--fit, 1));
+      transform-origin: top center;
+    }
+
+    @media print {
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      /* 1:1 on paper, whichever viewport bucket the screen happened to be in. */
+      #resume-zoom {
+        --zoom: 1;
+      }
     }
   </style>
 </Layout>
