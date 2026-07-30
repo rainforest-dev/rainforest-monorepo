@@ -189,8 +189,9 @@ check "the run record keeps the effort" "$(last_run_field effort)" "xhigh"
 check "the run record keeps output tokens" "$(last_run_field tokens_out)" "4242"
 
 # The executor's output used to be read for a cost figure and then dropped, so a
-# failed run left no evidence at all — and codex keeps no session either, since
-# ralph runs it with --ephemeral.
+# failed run left no evidence at all — and codex kept no session either, because
+# it still ran with --ephemeral then. Transcripts remain the primary record: they
+# cover every executor, and unlike codex sessions they are pruned.
 transcripts=$(ls -1 "$HOME_DIR/transcripts"/*.log 2>/dev/null | wc -l | tr -d ' ')
 check "the executor output is kept" "$([ "${transcripts:-0}" -ge 1 ] && echo yes || echo no)" "yes"
 newest=$(ls -1t "$HOME_DIR/transcripts"/*.log 2>/dev/null | head -1)
@@ -233,6 +234,10 @@ contains "codex can reach the network" "$calls" \
 # reader parsed the whole blob as claude's single result object. `reasoning` is
 # deliberately not added in -- see executor_tokens_out.
 check "the run record keeps codex output tokens" "$(last_run_field tokens_out)" "777"
+# Dropped 2026-07-30 so a loop run is reopenable with `codex resume` and visible
+# in the ChatGPT app. It is one word, easy to reinstate by reflex, and doing so
+# would silently take that back.
+excludes "codex sessions are not thrown away" "$calls" "--ephemeral"
 
 # --- 4. no config at all: unchanged behaviour --------------------------------
 # The regression that matters most. A task with no preset must invoke the CLI
