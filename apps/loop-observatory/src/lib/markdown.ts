@@ -187,7 +187,11 @@ export function renderMarkdown(md: string): string {
       const aligns = splitRow(lines[i + 1]).map(alignOf);
       i += 2;
       const body: string[][] = [];
-      while (i < lines.length && lines[i].trim() !== '' && /\|/.test(lines[i])) {
+      while (
+        i < lines.length &&
+        lines[i].trim() !== '' &&
+        /\|/.test(lines[i])
+      ) {
         body.push(splitRow(lines[i]));
         i += 1;
       }
