@@ -181,6 +181,18 @@ check "the run record keeps the model" "$(last_run_field model)" "claude-opus-5"
 check "the run record keeps the effort" "$(last_run_field effort)" "xhigh"
 check "the run record keeps output tokens" "$(last_run_field tokens_out)" "4242"
 
+# The executor's output used to be read for a cost figure and then dropped, so a
+# failed run left no evidence at all — and codex keeps no session either, since
+# ralph runs it with --ephemeral.
+transcripts=$(ls -1 "$HOME_DIR/transcripts"/*.log 2>/dev/null | wc -l | tr -d ' ')
+check "the executor output is kept" "$([ "${transcripts:-0}" -ge 1 ] && echo yes || echo no)" "yes"
+newest=$(ls -1t "$HOME_DIR/transcripts"/*.log 2>/dev/null | head -1)
+contains "the transcript holds what the executor said" "$(cat "$newest" 2>/dev/null)" "4242"
+case "$(basename "${newest:-}")" in
+  *-claude-*) check "the transcript names the executor" yes yes ;;
+  *) check "the transcript names the executor" "$(basename "${newest:-none}")" "…-claude-…" ;;
+esac
+
 # --- 2. quota is recorded as fields, with the delta computed -----------------
 echo "  quota fields:"
 check "5h before is a number" "$(last_run_field quota.five_hour_before)" "10.0"
