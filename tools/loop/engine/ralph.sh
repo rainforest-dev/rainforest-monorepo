@@ -255,9 +255,14 @@ run_codex() {
   local opts=()
   [ -n "$PLAN_MODEL" ] && opts+=(-m "$PLAN_MODEL")
   [ -n "$PLAN_EFFORT" ] && opts+=(-c "model_reasoning_effort=$PLAN_EFFORT")
+  # --add-dir for the same reason claude has had it since 2026-07-29: the sandbox
+  # confines writes to project_path, but the contract and loopctl live in
+  # LOOP_HOME and `loopctl scan` needs to take a lock there. Without it codex
+  # cannot scan its own queue -- measured 2026-07-30, `scan` exited 2 on a lock
+  # it could not create, and the executor correctly refused to start work.
   (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=codex \
     LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CODEX_BIN" exec \
-    ${opts[@]+"${opts[@]}"} \
+    ${opts[@]+"${opts[@]}"} --add-dir "$LOOP_HOME" \
     --json --ephemeral --sandbox workspace-write -C "$project_path" -)
 }
 
