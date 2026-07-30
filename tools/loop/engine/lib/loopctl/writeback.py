@@ -11,6 +11,8 @@ import json
 import os
 import tempfile
 import time
+
+from loopctl import host_machine
 import urllib.error
 import urllib.request
 import re
@@ -176,7 +178,7 @@ def publish_task_state(
             "pr": task.get("pr"),
             "note": (task.get("overlay") or {}).get("note"),
             "project": slug,
-            "machine": machine or os.environ.get("LOOP_MACHINE") or os.uname().nodename,
+            "machine": machine or host_machine(),
             "updated_ts": now,
             "updated_at": _iso(now),
             "notion_writeback": notion_state,

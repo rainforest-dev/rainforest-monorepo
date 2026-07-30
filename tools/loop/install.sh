@@ -35,7 +35,11 @@ for arg in "$@"; do
 done
 
 [ -f "$MANIFEST" ] || { echo "manifest missing: $MANIFEST" >&2; exit 1; }
-[ -n "$HOST" ] || HOST=$(hostname -s 2>/dev/null || echo "")
+# LocalHostName, not `hostname -s`: the latter follows DHCP and moved
+# mid-session on 2026-07-30. Kept identical to ralph.sh and
+# loopctl.host_machine -- these must all agree or per-machine files split.
+[ -n "$HOST" ] || HOST=$(scutil --get LocalHostName 2>/dev/null || hostname -s 2>/dev/null)
+HOST=${HOST%%.*}
 
 say() { printf '%s\n' "$*"; }
 run() { if [ "$DRY" -eq 1 ]; then say "  would: $*"; else "$@"; fi; }

@@ -379,6 +379,15 @@ loopctl_derived=$(env -u LOOP_MACHINE PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/pyth
   'from loopctl.scan import _host_machine; print(_host_machine())')
 check "ralph and loopctl derive one machine name" "$ralph_derived" "$loopctl_derived"
 check "the derived name carries no domain suffix" "${loopctl_derived##*.}" "$loopctl_derived"
+# install.sh and relay/pull.sh derive it too, and install.sh failing to find the
+# host in hosts.yaml is how the third site was found -- after the first fix
+# claimed "both sides agree". Compare the literal expression so a fourth site
+# cannot drift silently.
+canon='$(scutil --get LocalHostName 2>/dev/null || hostname -s 2>/dev/null)'
+for f in install.sh relay/pull.sh engine/ralph.sh; do
+  hits=$(grep -c -F "$canon" "$ENGINE/../$f" 2>/dev/null || echo 0)
+  check "$f derives the machine name the one way" "$hits" "1"
+done
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
