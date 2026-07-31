@@ -389,6 +389,56 @@ for f in install.sh relay/pull.sh engine/ralph.sh; do
   check "$f derives the machine name the one way" "$hits" "1"
 done
 
+# --- 8. a failing signal says why -------------------------------------------
+# `gh pr list failed for branch X (exit 1)` reads like a branch problem. On
+# 2026-07-30 it was the wrong gh account, and the answer was in the stderr the
+# runner captured and threw away.
+echo "  signal failures are legible:"
+signal_msg=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" - <<'PYEOF'
+from loopctl import signals
+from loopctl.errors import SourceUnreachable
+try:
+    signals.run_full(["/bin/sh", "-c", "echo boom-from-stderr >&2; exit 1"], ".")
+except SourceUnreachable as exc:
+    print("unexpected:", exc); raise SystemExit
+code, out, err = signals.run_full(["/bin/sh", "-c", "echo boom-from-stderr >&2; exit 1"], ".")
+print(f"{code}|{err}|{signals._why(err)}")
+PYEOF
+)
+contains "run_full keeps stderr" "$signal_msg" "boom-from-stderr"
+contains "the reason is appended, not swallowed" "$signal_msg" ": boom-from-stderr"
+
+# --- 9. gh is pinned to the project's account, not to ambient state ----------
+# `gh auth switch` is global. Merging on the personal repo left gh personal, and
+# the next company iteration read the registry as stale. A project that names an
+# account gets a token minted for it; one that names none is left alone.
+echo "  gh account is per project:"
+mkdir -p "$ROOT/ghbin"
+cat > "$ROOT/ghbin/gh" <<'FAKE'
+#!/usr/bin/env bash
+if [ "$1" = "auth" ] && [ "$2" = "token" ]; then
+  [ "$4" = "known-account" ] && { echo "token-for-$4"; exit 0; }
+  exit 1
+fi
+exit 0
+FAKE
+chmod +x "$ROOT/ghbin/gh"
+gh_probe() {
+  PATH="$ROOT/ghbin:$PATH" PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" - "$1" <<'PYEOF'
+import os, sys, types
+from loopctl.scan import _gh_account
+project = types.SimpleNamespace(account=(sys.argv[1] or None))
+os.environ.pop("GH_TOKEN", None)
+with _gh_account(project):
+    print("inside=" + os.environ.get("GH_TOKEN", "(unset)"))
+print("after=" + os.environ.get("GH_TOKEN", "(unset)"))
+PYEOF
+}
+contains "a named account mints a token" "$(gh_probe known-account)" "inside=token-for-known-account"
+contains "the token does not outlive the scan" "$(gh_probe known-account)" "after=(unset)"
+contains "no account leaves the ambient login alone" "$(gh_probe '')" "inside=(unset)"
+contains "an unmintable account falls through" "$(gh_probe other-account)" "inside=(unset)"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

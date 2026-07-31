@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import subprocess
@@ -71,6 +72,48 @@ def _merge_task(task, sig, derived_state: str, prior_task: dict | None) -> dict:
     return output
 
 
+@contextlib.contextmanager
+def _gh_account(project):
+    """Pin gh to the project's account for the duration of a scan.
+
+    `gh auth switch` is global, so whichever account was last selected anywhere
+    leaks into the loop. Measured 2026-07-30: merging a PR on the personal
+    monorepo left gh on the personal login, and the next company iteration read
+    the registry as stale because `gh pr list` could not see the repo -- the
+    executor then correctly refused to work, and the iteration was wasted.
+
+    A token is minted per project instead of trusting ambient state. A project
+    that names no account, or an account gh cannot mint a token for, falls
+    through to the ambient login unchanged.
+    """
+    account = getattr(project, "account", None)
+    if not account:
+        yield
+        return
+    try:
+        proc = subprocess.run(
+            ["gh", "auth", "token", "-u", account],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        token = proc.stdout.strip() if proc.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError):
+        token = ""
+    if not token:
+        yield
+        return
+    prior = os.environ.get("GH_TOKEN")
+    os.environ["GH_TOKEN"] = token
+    try:
+        yield
+    finally:
+        if prior is None:
+            os.environ.pop("GH_TOKEN", None)
+        else:
+            os.environ["GH_TOKEN"] = prior
+
+
 def scan_project(
     project,
     now_ts: int,
@@ -106,9 +149,10 @@ def scan_project(
     tasks_out = []
     states = []
     try:
-        tasks = adapter.enumerate_tasks(project)
-        for task in tasks:
-            sig = adapter.task_signals(project, task)
+        with _gh_account(project):
+            tasks = adapter.enumerate_tasks(project)
+            signal_rows = [(task, adapter.task_signals(project, task)) for task in tasks]
+        for task, sig in signal_rows:
             prior_task = prior_tasks.get(str(task.id))
             overlay = (prior_task or {}).get("overlay") or {}
             if overlay.get("blocked_reason"):
@@ -146,6 +190,7 @@ def scan_project(
         "source": project.source,
         "policy": project.policy,
         "stop_at": project.stop_at,
+        "account": project.account,
         "machines": project.machines,
         "lifecycle": lifecycle,
         "scanned_ts": now_ts,
