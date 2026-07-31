@@ -200,7 +200,7 @@ def _pct(value: str | float | None) -> float | None:
         return None
 
 
-def _quota_block(before_5h, after_5h, before_week, after_week) -> dict | None:
+def _quota_block(before_5h, after_5h, before_week, after_week, pool=None) -> dict | None:
     """Structured quota movement for one run, or None when nothing was sampled.
 
     The percentage-point deltas were previously only ever written into the free-text
@@ -221,6 +221,10 @@ def _quota_block(before_5h, after_5h, before_week, after_week) -> dict | None:
             return None
         return round(b - a, 4)
     return {
+        # Which provider's allowance these numbers describe. Without it a row
+        # cannot be read: a Codex run moves the Codex weekly pool and leaves
+        # Claude's untouched, and the fields alone do not say which was sampled.
+        "pool": pool,
         "five_hour_before": five_before,
         "five_hour_after": five_after,
         "five_hour_delta_pp": delta(five_before, five_after),
@@ -248,6 +252,7 @@ def append_run(
     quota_5h_after: str | float | None = None,
     quota_week_before: str | float | None = None,
     quota_week_after: str | float | None = None,
+    quota_pool: str | None = None,
 ) -> dict:
     """Append one structured iteration/retro record to a machine partition."""
     ended = ended_ts or int(time.time())
@@ -268,7 +273,7 @@ def append_run(
         "effort": effort,
         "tokens_out": tokens_out,
         "quota": _quota_block(
-            quota_5h_before, quota_5h_after, quota_week_before, quota_week_after
+            quota_5h_before, quota_5h_after, quota_week_before, quota_week_after, quota_pool
         ),
     }
     path = usage_path(f"loop-runs.{machine}.jsonl")

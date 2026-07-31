@@ -616,6 +616,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--quota-5h-after")
     run_parser.add_argument("--quota-week-before")
     run_parser.add_argument("--quota-week-after")
+    run_parser.add_argument("--quota-pool", choices=["claude", "codex"])
 
     sweep_parser = sub.add_parser("sweep")
     sweep_parser.add_argument("--machine", required=True)
@@ -710,6 +711,7 @@ def main(argv=None) -> int:
                     quota_5h_after=args.quota_5h_after,
                     quota_week_before=args.quota_week_before,
                     quota_week_after=args.quota_week_after,
+                    quota_pool=args.quota_pool,
                 )
             )
             return 0
