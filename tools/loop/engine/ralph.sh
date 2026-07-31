@@ -247,10 +247,19 @@ refresh_quota() {
 
 # Percentage-point delta between two quota readings, for the per-iteration
 # estimate.
+#
+# A quota window that rolls over mid-run reads lower afterwards, and subtracting
+# gives a negative "usage" that is arithmetic, not measurement. On 2026-07-31 an
+# AG-130 run logged `5h 44%→8.0% (~-36.0pp)`, which reads as if the iteration
+# handed 36 points back. Usage within a window cannot fall, so a lower "after" is
+# a reset and the iteration's own cost is unmeasurable from these two samples --
+# say that instead of printing a number.
 pct_delta() {
   [ -n "$1" ] && [ -n "$2" ] || { printf '?'; return; }
   "$PYTHON_BIN" -c \
-    'from decimal import Decimal; import sys; print(Decimal(sys.argv[2]) - Decimal(sys.argv[1]))' \
+    'from decimal import Decimal; import sys
+before, after = Decimal(sys.argv[1]), Decimal(sys.argv[2])
+print("window reset" if after < before else "~{}pp".format(after - before))' \
     "$1" "$2"
 }
 
@@ -622,7 +631,7 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
   d5=$(pct_delta "$pct5_before" "$pct5_after")
   dw=$(pct_delta "$pctw_before" "$pctw_after")
   log "iter $iter/$MAX_ITER · project=$slug · executor=$provider · cost=\$$cost · spent=\$$SPENT"
-  log "  quota · 5h ${pct5_before:-?}%→${pct5_after:-?}% (~${d5}pp) · weekly ${pctw_before:-?}%→${pctw_after:-?}% (~${dw}pp)"
+  log "  quota · 5h ${pct5_before:-?}%→${pct5_after:-?}% (${d5}) · weekly ${pctw_before:-?}%→${pctw_after:-?}% (${dw})"
   # An executor that stops at step 0 exits 0 and bills normally, so cost alone
   # cannot tell "did the work" from "could not start". Say what it concluded and
   # whether the repo moved -- on 2026-07-29 a run logged `done` having produced

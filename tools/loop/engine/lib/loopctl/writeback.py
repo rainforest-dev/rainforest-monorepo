@@ -212,7 +212,14 @@ def _quota_block(before_5h, after_5h, before_week, after_week) -> dict | None:
     week_before, week_after = _pct(before_week), _pct(after_week)
     if all(v is None for v in (five_before, five_after, week_before, week_after)):
         return None
-    delta = lambda a, b: None if a is None or b is None else round(b - a, 4)
+    # A window that rolled over mid-run reads lower afterwards. Usage inside a
+    # window cannot fall, so a negative difference measures the reset, not the
+    # run -- null is the honest answer. Measured 2026-07-31: an AG-130 run
+    # recorded five_hour_delta_pp = -36.0.
+    def delta(a, b):
+        if a is None or b is None or b < a:
+            return None
+        return round(b - a, 4)
     return {
         "five_hour_before": five_before,
         "five_hour_after": five_after,

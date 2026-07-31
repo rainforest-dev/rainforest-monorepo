@@ -458,6 +458,26 @@ contains "and says what refused it" "$mirror_out" "Permission denied"
 clean_out=$("$LOOPCTL" set sandbox "$TASK_KEY" queued --note "mirror probe ok" 2>&1)
 excludes "a working mirror reports nothing" "$clean_out" "mirror_error"
 
+# --- 11. a rolled-over quota window is not negative usage ---------------------
+# 2026-07-31: an AG-130 run logged `5h 44%→8.0% (~-36.0pp)` and recorded
+# five_hour_delta_pp = -36.0. Usage inside a window cannot fall; a lower "after"
+# means the window reset, and this run's cost is unmeasurable from those two
+# samples. Both the log line and the run record must say so rather than invent a
+# refund.
+echo "  a window reset is not a refund:"
+delta_lib="$ROOT/pct-delta.sh"
+awk '/^pct_delta\(\) \{/,/^\}/' "$HOME_DIR/ralph.sh" > "$delta_lib"
+delta_probe() {
+  PYTHON_BIN="$VENV/bin/python" bash -c '. "$1"; pct_delta "$2" "$3"' _ "$delta_lib" "$1" "$2"
+}
+check "a reset is named, not subtracted" "$(delta_probe 44 8)" "window reset"
+check "a real rise still reports points"  "$(delta_probe 31 81)" "~50pp"
+check "no movement is zero, not blank"    "$(delta_probe 10 10)" "~0pp"
+block=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  'from loopctl.writeback import _quota_block; import json; print(json.dumps(_quota_block(44, 8, 31, 81)))')
+check "the record nulls the reset delta" "$(printf '%s' "$block" | "$VENV/bin/python" -c 'import json,sys; print(json.load(sys.stdin)["five_hour_delta_pp"])')" "None"
+check "and keeps the measurable one"     "$(printf '%s' "$block" | "$VENV/bin/python" -c 'import json,sys; print(json.load(sys.stdin)["weekly_delta_pp"])')" "50.0"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
