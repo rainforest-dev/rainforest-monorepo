@@ -164,6 +164,29 @@ const personSchema = {
         min-height: 0;
       }
 
+      /*
+        Everything below reaches into the article, which lives in ats-friendly.astro — hence
+        `:global()` on every selector that crosses that boundary.
+
+        This is not stylistic. Astro scopes a component's selectors to that component's elements,
+        so the `p, li { orphans: 3 }` that used to sit here compiled to
+        `p[data-astro-cid-t2mi2g5v]` and matched nothing: only seven elements on the page carry
+        that id, all of them in this file. The rule shipped, appeared in the built CSS, and was
+        inert. `#resume-sheet` itself is declared here, so it needs no escaping.
+      */
+
+      /* White paper, black ink. The theme's mint `bg-background` and its themed foreground carry
+         straight into print otherwise — that is what tinted the printed page. Beyond wasting
+         toner, background tint is the wrong default for a resume: ATS pipelines that OCR a PDF
+         rather than read its text layer depend on maximum contrast. `!important` because a print
+         colour reset has to beat every utility unconditionally, and print rendering is the one
+         path that cannot be verified from a screen emulation. */
+      #resume-sheet,
+      #resume-sheet :global(*) {
+        background: transparent !important;
+        color: #000 !important;
+      }
+
       /* Fragmentation — the difference between a two-page resume that looks deliberate and one
          that looks like it ran out of room. Left alone, a browser breaks wherever the page ends:
          one line into a bullet, or between a heading and what it introduces.
@@ -171,9 +194,10 @@ const personSchema = {
          orphans/widows stop a single line being stranded either side of the boundary. The
          companion `break-inside-avoid` / `break-after-avoid` utilities live in ats-friendly.astro,
          on the elements they protect: each role's heading block, each project write-up, and the
-         Education and Skills sections. */
-      p,
-      li {
+         Education and Skills sections. Those are Tailwind classes on the elements themselves, so
+         they were never subject to the scoping problem above. */
+      #resume-sheet :global(p),
+      #resume-sheet :global(li) {
         orphans: 3;
         widows: 3;
       }
