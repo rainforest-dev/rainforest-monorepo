@@ -141,6 +141,79 @@ print("\n".join(parts) if saw_json else raw)
 ' 2>/dev/null || printf '%s' "$1"
 }
 
+# Weekly points a codex run actually spent, read from the session it just wrote.
+#
+# The exporter samples "the newest session file", which is not this run's: codex
+# exec spawns guardian and subagent sessions alongside it, and the newest one can
+# be a sibling that carries no rate_limits yet. Measured 2026-07-31, both samples
+# of the AG-288 Luna run came back empty and the record stored `quota: null`,
+# while the run's own session held the answer all along.
+#
+# Every `token_count` event carries `rate_limits.primary.used_percent`, so the
+# first and last of them bracket exactly this run and nothing else. That is a
+# cleaner measurement than any before/after file read: a shared pool moves for
+# other reasons between two samples, and a session file cannot.
+codex_weekly_pp() {
+  local transcript="$1"
+  [ -f "$transcript" ] || return 0
+  "$PYTHON_BIN" - "$transcript" "$HOME/.codex/sessions" <<'PY' 2>/dev/null || true
+import glob
+import json
+import os
+import sys
+
+# The thread id codex announces is the session filename's suffix.
+thread = None
+try:
+    with open(sys.argv[1]) as handle:
+        for line in handle:
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if event.get("type") == "thread.started" and event.get("thread_id"):
+                thread = event["thread_id"]
+                break
+except OSError:
+    pass
+if not thread:
+    raise SystemExit
+
+matches = glob.glob(os.path.join(sys.argv[2], "**", f"*{thread}.jsonl"), recursive=True)
+if not matches:
+    raise SystemExit
+
+first = last = None
+try:
+    with open(matches[0]) as handle:
+        for line in handle:
+            line = line.strip()
+            if '"token_count"' not in line:
+                continue
+            try:
+                payload = (json.loads(line).get("payload") or {})
+            except ValueError:
+                continue
+            if payload.get("type") != "token_count":
+                continue
+            primary = ((payload.get("rate_limits") or {}).get("primary") or {})
+            used = primary.get("used_percent")
+            if used is None:
+                continue
+            if first is None:
+                first = used
+            last = used
+except OSError:
+    raise SystemExit
+
+if first is not None and last is not None:
+    print("{}\t{}".format(first, last))
+PY
+}
+
 rate_limited() {
   executor_error_text "$1" |
     grep -qiE 'rate.?limit|too many requests|(usage|weekly|5-?hour|daily)[ -]?limit|quota (exceeded|reached|limit)'
@@ -692,6 +765,12 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
   # Codex has only a weekly one, so its five-hour slot is left out rather than
   # printed as "?" every time.
   if [ "$provider" = "codex" ]; then
+    # The run's own session beats sampling a shared file twice. Fall back to the
+    # file only when the session cannot be located.
+    own=$(codex_weekly_pp "${transcript:-}")
+    if [ -n "$own" ]; then
+      IFS=$'\t' read -r cxw_before cxw_after <<< "$own"
+    fi
     dw=$(pct_delta "${cxw_before:-}" "${cxw_after:-}")
     d5="n/a"
     log "  quota · codex weekly ${cxw_before:-?}%→${cxw_after:-?}% (${dw}) · claude untouched"
