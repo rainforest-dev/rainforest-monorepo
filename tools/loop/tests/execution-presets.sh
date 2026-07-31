@@ -438,6 +438,25 @@ contains "a named account mints a token" "$(gh_probe known-account)" "inside=tok
 contains "the token does not outlive the scan" "$(gh_probe known-account)" "after=(unset)"
 contains "no account leaves the ambient login alone" "$(gh_probe '')" "inside=(unset)"
 contains "an unmintable account falls through" "$(gh_probe other-account)" "inside=(unset)"
+# --- 10. a refused Observatory mirror is reported, not swallowed -------------
+# On 2026-07-30 the executor took AG-132 to pr-ready inside the codex sandbox.
+# The registry recorded it and `loopctl set` reported success, while the mirror
+# write was refused with "Operation not permitted" and Loop Observatory went on
+# showing "Queued". Still non-fatal -- an unavailable vault must not stop a run --
+# but the caller is told.
+echo "  a refused mirror is visible:"
+readonly_vault="$ROOT/readonly-vault"
+mkdir -p "$readonly_vault/_system/usage"
+chmod a-w "$readonly_vault/_system/usage"
+mirror_out=$(LOOP_VAULT_PATH="$readonly_vault" "$LOOPCTL" set sandbox "$TASK_KEY" queued --note "mirror probe" 2>&1)
+mirror_rc=$?
+chmod u+w "$readonly_vault/_system/usage"
+check "the set still succeeds" "$mirror_rc" "0"
+contains "the refused mirror is named" "$mirror_out" "mirror_error"
+contains "and says what refused it" "$mirror_out" "Permission denied"
+# The happy path must stay clean, or every run would look broken.
+clean_out=$("$LOOPCTL" set sandbox "$TASK_KEY" queued --note "mirror probe ok" 2>&1)
+excludes "a working mirror reports nothing" "$clean_out" "mirror_error"
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

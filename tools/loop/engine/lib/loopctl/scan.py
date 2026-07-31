@@ -380,11 +380,15 @@ def set_task_state(
         task["pr"] = pr
     registry.write_project_state(slug, document)
     # Registry writes stay authoritative; this mirror is best-effort so a
-    # temporarily unavailable iCloud/local vault never blocks execution.
+    # temporarily unavailable iCloud/local vault never blocks execution. Not
+    # silent, though: on 2026-07-30 the executor took AG-132 to pr-ready, the
+    # registry recorded it, `loopctl set` reported success -- and Loop
+    # Observatory went on showing "Queued" for an hour, because the sandbox had
+    # denied the mirror write and the failure was swallowed here.
     try:
         publish_task_state(slug, task)
-    except OSError:
-        pass
+    except OSError as exc:
+        task["mirror_error"] = f"{type(exc).__name__}: {exc}"
     return task
 
 
@@ -417,12 +421,11 @@ def set_task_note(slug: str, task_id: str, note: str, *, now_ts: int | None = No
     overlay["updated_ts"] = now_ts or _now()
     task["overlay"] = overlay
     registry.write_project_state(slug, document)
-    # Best-effort, exactly as in set_task_state: an unavailable vault must not
-    # fail the caller that was only leaving a note.
+    # Best-effort and reported, exactly as in set_task_state.
     try:
         publish_task_state(slug, task)
-    except OSError:
-        pass
+    except OSError as exc:
+        task["mirror_error"] = f"{type(exc).__name__}: {exc}"
     return task
 
 
