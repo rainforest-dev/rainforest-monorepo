@@ -389,6 +389,25 @@ for f in install.sh relay/pull.sh engine/ralph.sh; do
   check "$f derives the machine name the one way" "$hits" "1"
 done
 
+# --- 8. a failing signal says why -------------------------------------------
+# `gh pr list failed for branch X (exit 1)` reads like a branch problem. On
+# 2026-07-30 it was the wrong gh account, and the answer was in the stderr the
+# runner captured and threw away.
+echo "  signal failures are legible:"
+signal_msg=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" - <<'PYEOF'
+from loopctl import signals
+from loopctl.errors import SourceUnreachable
+try:
+    signals.run_full(["/bin/sh", "-c", "echo boom-from-stderr >&2; exit 1"], ".")
+except SourceUnreachable as exc:
+    print("unexpected:", exc); raise SystemExit
+code, out, err = signals.run_full(["/bin/sh", "-c", "echo boom-from-stderr >&2; exit 1"], ".")
+print(f"{code}|{err}|{signals._why(err)}")
+PYEOF
+)
+contains "run_full keeps stderr" "$signal_msg" "boom-from-stderr"
+contains "the reason is appended, not swallowed" "$signal_msg" ": boom-from-stderr"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
