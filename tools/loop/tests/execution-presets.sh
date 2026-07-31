@@ -478,6 +478,24 @@ block=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
 check "the record nulls the reset delta" "$(printf '%s' "$block" | "$VENV/bin/python" -c 'import json,sys; print(json.load(sys.stdin)["five_hour_delta_pp"])')" "None"
 check "and keeps the measurable one"     "$(printf '%s' "$block" | "$VENV/bin/python" -c 'import json,sys; print(json.load(sys.stdin)["weekly_delta_pp"])')" "50.0"
 
+# --- 12. the per-run budget is denominated in quota points -------------------
+# BUDGET_USD stopped the 2026-07-31 AG-130 run at $11.25 with the PR already
+# open. A dollar figure says nothing about whether the week can absorb the run;
+# the same run moved weekly usage 31%->81%, which is the number that decides it.
+# Approval is for an estimate, so a small overshoot must not abandon work —
+# the run stops only past OVERRUN_RATIO.
+echo "  budget in quota points:"
+write_quota 10 20
+# max_iter=1 so the loop body runs: the headroom line lives inside it.
+: > "$RALPH_TEST_CALLS"; rm -f "$runs_file"
+budget_log=$(LOOP_BUDGET_WEEKLY_PP=4 LOOP_OVERRUN_RATIO=1.5 "$HOME_DIR/ralph.sh" 1 10 2>&1 || true)
+contains "the start line names the approved points" "$budget_log" "approved 4pp weekly"
+contains "headroom to the stop threshold is stated" "$budget_log" "room: 5h"
+contains "points consumed are reported against the approval" "$budget_log" "of 4pp approved"
+# Unset means nothing changes: the dollar cap stays the only per-run limit.
+excludes "no points budget, no points line" \
+  "$("$HOME_DIR/ralph.sh" 1 10 2>&1)" "approved"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

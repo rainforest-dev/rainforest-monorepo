@@ -46,6 +46,7 @@ MAX_WAITS=${RALPH_MAX_WAITS:-48}
 # the last step, after the PR was already open.
 MAX_TURNS=${RALPH_MAX_TURNS:-100}
 SPENT=0
+WEEK_PP_SPENT=0
 waits=0
 iter=0
 
@@ -206,6 +207,19 @@ PCT_5H_STOP=${LOOP_PCT_5H_STOP:-80}
 PCT_WEEK_STOP=${LOOP_PCT_WEEK_STOP:-90}
 PCT_5H_DRAIN=${LOOP_PCT_5H_DRAIN:-60}
 PCT_WEEK_DRAIN=${LOOP_PCT_WEEK_DRAIN:-85}
+
+# What a run is allowed to cost, in the unit a seat plan is actually measured in.
+# BUDGET_USD stopped the 2026-07-31 AG-130 run at $11.25 having already opened the
+# PR -- a dollar figure that says nothing about whether the week can absorb it.
+# The same run moved weekly usage 31%->81%, which is the number that decides
+# whether the rest of the week is affordable.
+#
+# Unset means unchanged behaviour: the dollar cap stays the only per-run limit.
+# When set, the run stops once observed weekly points exceed the approved figure
+# by more than OVERRUN_RATIO -- approval is for an estimate, and an estimate that
+# lands slightly over is not a reason to abandon work in progress.
+BUDGET_WEEKLY_PP=${LOOP_BUDGET_WEEKLY_PP:-}
+OVERRUN_RATIO=${LOOP_OVERRUN_RATIO:-1.5}
 
 # Emits "<verdict>\t<five_hour_pct>\t<weekly_pct>". Verdict is one of
 # stop / drain / ok / unknown; unknown keeps the contract's conservative path.
@@ -431,11 +445,24 @@ except (OSError, ValueError, TypeError, AttributeError):
 PY
 }
 
-log "start · machine=$MACHINE max_iter=$MAX_ITER budget=\$$BUDGET_USD"
+if [ -n "$BUDGET_WEEKLY_PP" ]; then
+  log "start · machine=$MACHINE max_iter=$MAX_ITER · approved ${BUDGET_WEEKLY_PP}pp weekly (stop past ${OVERRUN_RATIO}x) · \$$BUDGET_USD guard"
+else
+  log "start · machine=$MACHINE max_iter=$MAX_ITER budget=\$$BUDGET_USD"
+fi
 while [ "$iter" -lt "$MAX_ITER" ]; do
   refresh_quota
   IFS=$'\t' read -r QUOTA_MODE pct5_before pctw_before <<< "$(quota_state)"
-  log "quota · 5h=${pct5_before:-?}% weekly=${pctw_before:-?}% · gate=$QUOTA_MODE"
+  headroom=$("$PYTHON_BIN" -c \
+    'import sys
+def room(now, stop):
+    try: return "%g" % (float(stop) - float(now))
+    except (TypeError, ValueError): return "?"
+print("5h {}pp to {}%, weekly {}pp to {}%".format(
+    room(sys.argv[1], sys.argv[3]), sys.argv[3],
+    room(sys.argv[2], sys.argv[4]), sys.argv[4]))' \
+    "${pct5_before:-}" "${pctw_before:-}" "$PCT_5H_STOP" "$PCT_WEEK_STOP" 2>/dev/null || printf '?')
+  log "quota · 5h=${pct5_before:-?}% weekly=${pctw_before:-?}% · room: $headroom · gate=$QUOTA_MODE"
   case "$QUOTA_MODE" in
     stop)
       log "quota gate: 5h>${PCT_5H_STOP}% or weekly>${PCT_WEEK_STOP}%; checkpointing without starting work"
@@ -662,10 +689,37 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
     ${run_fields[@]+"${run_fields[@]}"} \
     --note "iteration $iter/$MAX_ITER; exit=$status" >/dev/null 2>&1 || \
     log "run ledger unavailable; continuing"
+  # Points actually consumed this iteration. `pct_delta` says "window reset" when
+  # the window rolled over, which is not a measurement -- carry nothing rather
+  # than guess, and say so, or the approved figure quietly stops meaning anything.
+  if [ -n "$BUDGET_WEEKLY_PP" ]; then
+    case "$dw" in
+      '~'*pp)
+        WEEK_PP_SPENT=$("$PYTHON_BIN" -c \
+          'from decimal import Decimal; import sys
+print(Decimal(sys.argv[1]) + Decimal(sys.argv[2].strip("~pp")))' \
+          "$WEEK_PP_SPENT" "$dw")
+        ;;
+      *)
+        log "  weekly points unmeasurable this iteration ($dw); approved budget not advanced"
+        ;;
+    esac
+    ceiling=$("$PYTHON_BIN" -c \
+      'from decimal import Decimal; import sys; print(Decimal(sys.argv[1]) * Decimal(sys.argv[2]))' \
+      "$BUDGET_WEEKLY_PP" "$OVERRUN_RATIO")
+    over_pp=$("$PYTHON_BIN" -c \
+      'from decimal import Decimal; import sys; print(int(Decimal(sys.argv[1]) > Decimal(sys.argv[2])))' \
+      "$WEEK_PP_SPENT" "$ceiling")
+    log "  weekly points · ${WEEK_PP_SPENT}pp of ${BUDGET_WEEKLY_PP}pp approved (stop past ${ceiling}pp)"
+    if [ "$over_pp" -eq 1 ]; then
+      log "over the approved weekly points: ${WEEK_PP_SPENT}pp exceeds ${BUDGET_WEEKLY_PP}pp by more than ${OVERRUN_RATIO}x"
+      break
+    fi
+  fi
   over_budget=$("$PYTHON_BIN" -c "from decimal import Decimal; import sys; print(int(Decimal(sys.argv[1]) > Decimal(sys.argv[2])))" \
     "${SPENT:-0}" "$BUDGET_USD")
   if [ "$over_budget" -eq 1 ]; then
-    log "budget exhausted"
+    log "budget exhausted (\$$SPENT over the \$$BUDGET_USD runaway guard)"
     break
   fi
 done
