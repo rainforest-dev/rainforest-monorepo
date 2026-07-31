@@ -437,6 +437,23 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
     break
   fi
 
+  # loopctl pins gh per project for its own scans; the executor shells out to gh
+  # itself -- to open the PR, most of all -- so it needs the same token. Unset
+  # first, or a project with no account inherits the previous project's.
+  unset GH_TOKEN
+  gh_account=$("$LOOPCTL" show "$slug" 2>/dev/null | "$PYTHON_BIN" -c \
+    'import json, sys; print((json.load(sys.stdin) or {}).get("account") or "")' \
+    2>/dev/null || printf '')
+  if [ -n "$gh_account" ]; then
+    if GH_TOKEN=$(gh auth token -u "$gh_account" 2>/dev/null) && [ -n "$GH_TOKEN" ]; then
+      export GH_TOKEN
+      log "  gh · pinned to $gh_account"
+    else
+      unset GH_TOKEN
+      log "  gh · account '$gh_account' has no token; using the ambient login"
+    fi
+  fi
+
   next_json=$("$LOOPCTL" next "$slug" 2>/dev/null || printf '[]')
   task_pair=$(printf '%s' "$next_json" | "$PYTHON_BIN" -c \
     'import json, sys; rows=json.load(sys.stdin); row=rows[0] if rows else {}; print("{}\t{}".format(row.get("id") or "", (row.get("metadata") or {}).get("item_id") or ""))' \
