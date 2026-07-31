@@ -19,6 +19,12 @@ PYTHON_BIN=${LOOP_PYTHON:-"$LOOP_HOME/.venv/bin/python"}
 MACHINE=${LOOP_MACHINE:-${USAGE_MACHINE:-$(scutil --get LocalHostName 2>/dev/null || hostname -s 2>/dev/null)}}
 MACHINE=${MACHINE%%.*}
 EXECUTORS=${LOOP_EXECUTORS:-claude,codex,agy}
+# Where `loopctl set` mirrors task state for Loop Observatory. Resolved through
+# loopctl so this cannot drift from the path writeback actually writes to; empty
+# if that fails, and the grant below is simply skipped.
+VAULT_USAGE=$("$PYTHON_BIN" -c \
+  'import sys; sys.path.insert(0, "'"${LOOP_HOME}"'/lib"); from loopctl.writeback import usage_path; print(usage_path("").parent)' \
+  2>/dev/null || printf '')
 AGENT_CONFIG=${LOOP_AGENT_CONFIG:-}
 # Resolved per iteration from the agent config's preset for this task. Empty
 # means "say nothing", so each executor falls back to its own default -- the
@@ -337,9 +343,18 @@ run_codex() {
   # than danger-full-access: probed with `codex sandbox`, a write outside
   # project_path is still "Operation not permitted" with the grant applied. Inert
   # unless the mode is workspace-write, which --sandbox sets below.
+  # The vault usage dir alongside LOOP_HOME, because `loopctl set` mirrors task
+  # state to tasks-progress.json there and the sandbox denies it otherwise.
+  # Measured 2026-07-30: the executor took AG-132 to pr-ready, the local registry
+  # recorded it, and Loop Observatory kept showing "Queued" -- the mirror write
+  # had been refused with "Operation not permitted" and nothing surfaced it,
+  # because publishing is best-effort by design. claude is unaffected: it runs
+  # under no OS sandbox.
+  local codex_dirs=(--add-dir "$LOOP_HOME")
+  [ -n "$VAULT_USAGE" ] && [ -d "$VAULT_USAGE" ] && codex_dirs+=(--add-dir "$VAULT_USAGE")
   (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=codex \
     LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CODEX_BIN" exec \
-    ${opts[@]+"${opts[@]}"} --add-dir "$LOOP_HOME" \
+    ${opts[@]+"${opts[@]}"} "${codex_dirs[@]}" \
     -c sandbox_workspace_write.network_access=true \
     --json --sandbox workspace-write -C "$project_path" -)
 }
