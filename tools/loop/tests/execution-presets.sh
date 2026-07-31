@@ -529,6 +529,45 @@ contains "the record names the pool" "$pool_row" '"pool": "codex"'
 check "and charges the delta to it" "$(printf '%s' "$pool_row" | "$VENV/bin/python" -c 'import json,sys; print(json.load(sys.stdin)["weekly_delta_pp"])')" "17.0"
 write_quota 10 20
 
+# --- 14. a codex run is charged from its own session -------------------------
+# The exporter samples "the newest session file", which is not necessarily this
+# run's: codex exec writes guardian and subagent sessions alongside it. Measured
+# 2026-07-31, both samples of the AG-288 Luna run came back empty and the record
+# stored `quota: null`, while the run's own session held 53%→57% throughout.
+echo "  codex points from its own session:"
+sessions="$ROOT/codex-sessions/2026/07/31"
+mkdir -p "$sessions"
+mk_session() {  # <thread> <first-pct> <last-pct>
+  local f="$sessions/rollout-2026-07-31T00-00-00-$1.jsonl"
+  printf '{"type":"session_meta","payload":{"source":"exec"}}\n' > "$f"
+  for pct in "$2" "$3"; do
+    printf '{"type":"event_msg","payload":{"type":"token_count","rate_limits":{"primary":{"used_percent":%s,"window_minutes":10080}}}}\n' "$pct" >> "$f"
+  done
+}
+mk_session "thread-real" 53.0 57.0
+# A sibling written later with no rate_limits at all — the exact shape that made
+# "newest file" return nothing.
+printf '{"type":"session_meta","payload":{"source":"exec"}}\n' > "$sessions/rollout-2026-07-31T23-59-59-thread-guardian.jsonl"
+cat > "$ROOT/fake-transcript.log" <<'T'
+{"type":"thread.started","thread_id":"thread-real"}
+{"type":"turn.completed","usage":{"output_tokens":47983}}
+T
+cpp_lib="$ROOT/codex-pp.sh"
+awk '/^codex_weekly_pp\(\) \{/,/^PY$/' "$HOME_DIR/ralph.sh" > "$cpp_lib"; printf '}\n' >> "$cpp_lib"
+cpp() {  # <fake-home> <transcript>
+  PYTHON_BIN="$VENV/bin/python" HOME="$1" \
+    bash -c '. "$1"; type codex_weekly_pp >/dev/null 2>&1 || { echo "HELPER-NOT-LOADED"; exit 0; }; codex_weekly_pp "$2"' \
+    _ "$cpp_lib" "$2"
+}
+# HOME is redirected so the helper looks in the sandbox's .codex/sessions.
+mkdir -p "$ROOT/fakehome/.codex"; ln -sfn "$ROOT/codex-sessions" "$ROOT/fakehome/.codex/sessions"
+check "the run's own session is found and bracketed" \
+  "$(cpp "$ROOT/fakehome" "$ROOT/fake-transcript.log" | tr '\t' '>')" "53.0>57.0"
+# A transcript naming no thread must yield nothing rather than someone else's run.
+printf '{"type":"turn.completed"}\n' > "$ROOT/no-thread.log"
+check "no thread id means no number" "$(cpp "$ROOT/fakehome" "$ROOT/no-thread.log")" ""
+check "a missing transcript is silent" "$(cpp "$ROOT/fakehome" /nonexistent.log)" ""
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
