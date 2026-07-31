@@ -478,6 +478,57 @@ block=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
 check "the record nulls the reset delta" "$(printf '%s' "$block" | "$VENV/bin/python" -c 'import json,sys; print(json.load(sys.stdin)["five_hour_delta_pp"])')" "None"
 check "and keeps the measurable one"     "$(printf '%s' "$block" | "$VENV/bin/python" -c 'import json,sys; print(json.load(sys.stdin)["weekly_delta_pp"])')" "50.0"
 
+# --- 12. the per-run budget is denominated in quota points -------------------
+# BUDGET_USD stopped the 2026-07-31 AG-130 run at $11.25 with the PR already
+# open. A dollar figure says nothing about whether the week can absorb the run;
+# the same run moved weekly usage 31%->81%, which is the number that decides it.
+# Approval is for an estimate, so a small overshoot must not abandon work —
+# the run stops only past OVERRUN_RATIO.
+echo "  budget in quota points:"
+write_quota 10 20
+# max_iter=1 so the loop body runs: the headroom line lives inside it.
+: > "$RALPH_TEST_CALLS"; rm -f "$runs_file"
+budget_log=$(LOOP_BUDGET_WEEKLY_PP=4 LOOP_OVERRUN_RATIO=1.5 "$HOME_DIR/ralph.sh" 1 10 2>&1 || true)
+contains "the start line names the approved points" "$budget_log" "approved 4pp weekly"
+contains "headroom to the stop threshold is stated" "$budget_log" "room: 5h"
+contains "points consumed are reported against the approval" "$budget_log" "of 4pp approved"
+# Unset means nothing changes: the dollar cap stays the only per-run limit.
+excludes "no points budget, no points line" \
+  "$("$HOME_DIR/ralph.sh" 1 10 2>&1)" "approved"
+
+# --- 13. each pool is read, and each run is charged to its own --------------
+# quota_state read `claude` only. Measured 2026-07-31: the AG-297 Sol run
+# recorded `weekly 31%->31% (~0pp)` while spending Codex, and a Claude pool at
+# 82% would have blocked a task that costs Claude nothing.
+echo "  both quota pools:"
+cat > "$ROOT/quota/_system/usage/quota.$MACHINE.json" <<'Q'
+{"claude": {"five_hour": {"used_pct": 12}, "weekly_all": {"used_pct": 22}},
+ "codex":  {"weekly": {"used_pct": 44}, "five_hour": null}}
+Q
+qs_lib="$ROOT/quota-state.sh"
+awk '/^quota_state\(\) \{/,/^PY$/' "$HOME_DIR/ralph.sh" > "$qs_lib"; printf '}\n' >> "$qs_lib"
+qs() {
+  PYTHON_BIN="$VENV/bin/python" QUOTA_FILE="$1" \
+  PCT_5H_STOP=80 PCT_WEEK_STOP=90 PCT_5H_DRAIN=60 PCT_WEEK_DRAIN=85 \
+    bash -c '. "$1"; quota_state | tr "\t" "|"' _ "$qs_lib"
+}
+check "both pools are reported" "$(qs "$ROOT/quota/_system/usage/quota.$MACHINE.json")" "ok|12|22||44"
+# A pool over its stop threshold halts the iteration whichever pool it is: the
+# gate runs before the executor is chosen, so it cannot know who would pay.
+cat > "$ROOT/quota/codex-hot.json" <<'Q'
+{"claude": {"five_hour": {"used_pct": 5}, "weekly_all": {"used_pct": 5}},
+ "codex":  {"weekly": {"used_pct": 95}, "five_hour": null}}
+Q
+check "a hot codex pool stops the run" "$(qs "$ROOT/quota/codex-hot.json" | cut -d'|' -f1)" "stop"
+check "a missing file is still unknown" "$(qs /nonexistent | cut -d'|' -f1)" "unknown"
+# The record must name the pool, or a Codex row is indistinguishable from a
+# free Claude one.
+pool_row=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  'from loopctl.writeback import _quota_block; import json; print(json.dumps(_quota_block(None, None, 30, 47, "codex")))')
+contains "the record names the pool" "$pool_row" '"pool": "codex"'
+check "and charges the delta to it" "$(printf '%s' "$pool_row" | "$VENV/bin/python" -c 'import json,sys; print(json.load(sys.stdin)["weekly_delta_pp"])')" "17.0"
+write_quota 10 20
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

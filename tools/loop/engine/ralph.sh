@@ -46,6 +46,7 @@ MAX_WAITS=${RALPH_MAX_WAITS:-48}
 # the last step, after the PR was already open.
 MAX_TURNS=${RALPH_MAX_TURNS:-100}
 SPENT=0
+WEEK_PP_SPENT=0
 waits=0
 iter=0
 
@@ -207,30 +208,73 @@ PCT_WEEK_STOP=${LOOP_PCT_WEEK_STOP:-90}
 PCT_5H_DRAIN=${LOOP_PCT_5H_DRAIN:-60}
 PCT_WEEK_DRAIN=${LOOP_PCT_WEEK_DRAIN:-85}
 
+# What a run is allowed to cost, in the unit a seat plan is actually measured in.
+# BUDGET_USD stopped the 2026-07-31 AG-130 run at $11.25 having already opened the
+# PR -- a dollar figure that says nothing about whether the week can absorb it.
+# The same run moved weekly usage 31%->81%, which is the number that decides
+# whether the rest of the week is affordable.
+#
+# Unset means unchanged behaviour: the dollar cap stays the only per-run limit.
+# When set, the run stops once observed weekly points exceed the approved figure
+# by more than OVERRUN_RATIO -- approval is for an estimate, and an estimate that
+# lands slightly over is not a reason to abandon work in progress.
+BUDGET_WEEKLY_PP=${LOOP_BUDGET_WEEKLY_PP:-}
+OVERRUN_RATIO=${LOOP_OVERRUN_RATIO:-1.5}
+
 # Emits "<verdict>\t<five_hour_pct>\t<weekly_pct>". Verdict is one of
 # stop / drain / ok / unknown; unknown keeps the contract's conservative path.
+# Emits "<verdict>\t<claude_5h>\t<claude_week>\t<codex_5h>\t<codex_week>".
+# Verdict is stop / drain / ok / unknown; unknown keeps the conservative path.
+#
+# Both pools, because this read only `claude` while the loop routes work to Codex
+# too. Measured 2026-07-31: the AG-297 Sol run recorded `weekly 31%->31% (~0pp)`
+# while spending Codex, and a Claude pool sitting at 82% would have blocked a task
+# that costs Claude nothing. Codex has no five-hour window at all, so its slot
+# stays empty rather than being invented.
+#
+# The gate fires before the executor is chosen -- the preset resolves after the
+# sweep -- so it is deliberately conservative: whichever pool is worst decides.
+# Attribution is a separate question, settled after the run, by provider.
 quota_state() {
   "$PYTHON_BIN" - "$QUOTA_FILE" "$PCT_5H_STOP" "$PCT_WEEK_STOP" "$PCT_5H_DRAIN" "$PCT_WEEK_DRAIN" <<'PY'
 import json
 import sys
 
+def pct(bucket):
+    return (bucket or {}).get("used_pct")
+
 try:
-    claude = json.load(open(sys.argv[1])).get("claude") or {}
-except (OSError, ValueError, AttributeError):
-    print("unknown\t\t")
+    doc = json.load(open(sys.argv[1]))
+except (OSError, ValueError):
+    doc = None
+if not isinstance(doc, dict):
+    print("unknown\t\t\t\t")
     raise SystemExit
-five = (claude.get("five_hour") or {}).get("used_pct")
-week = (claude.get("weekly_all") or {}).get("used_pct")
+
+claude = doc.get("claude") or {}
+codex = doc.get("codex") or {}
+readings = {
+    "claude_5h": pct(claude.get("five_hour")),
+    "claude_week": pct(claude.get("weekly_all")),
+    "codex_5h": pct(codex.get("five_hour")),
+    "codex_week": pct(codex.get("weekly")),
+}
 stop5, stopw, drain5, drainw = (float(value) for value in sys.argv[2:6])
-if five is None and week is None:
+fives = [v for k, v in readings.items() if k.endswith("_5h") and v is not None]
+weeks = [v for k, v in readings.items() if k.endswith("_week") and v is not None]
+
+if not fives and not weeks:
     verdict = "unknown"
-elif (five is not None and five > stop5) or (week is not None and week > stopw):
+elif any(v > stop5 for v in fives) or any(v > stopw for v in weeks):
     verdict = "stop"
-elif (five is not None and five > drain5) or (week is not None and week > drainw):
+elif any(v > drain5 for v in fives) or any(v > drainw for v in weeks):
     verdict = "drain"
 else:
     verdict = "ok"
-print("{}\t{}\t{}".format(verdict, "" if five is None else five, "" if week is None else week))
+print("\t".join([verdict] + [
+    "" if readings[k] is None else str(readings[k])
+    for k in ("claude_5h", "claude_week", "codex_5h", "codex_week")
+]))
 PY
 }
 
@@ -431,11 +475,24 @@ except (OSError, ValueError, TypeError, AttributeError):
 PY
 }
 
-log "start · machine=$MACHINE max_iter=$MAX_ITER budget=\$$BUDGET_USD"
+if [ -n "$BUDGET_WEEKLY_PP" ]; then
+  log "start · machine=$MACHINE max_iter=$MAX_ITER · approved ${BUDGET_WEEKLY_PP}pp weekly (stop past ${OVERRUN_RATIO}x) · \$$BUDGET_USD guard"
+else
+  log "start · machine=$MACHINE max_iter=$MAX_ITER budget=\$$BUDGET_USD"
+fi
 while [ "$iter" -lt "$MAX_ITER" ]; do
   refresh_quota
-  IFS=$'\t' read -r QUOTA_MODE pct5_before pctw_before <<< "$(quota_state)"
-  log "quota · 5h=${pct5_before:-?}% weekly=${pctw_before:-?}% · gate=$QUOTA_MODE"
+  IFS=$'\t' read -r QUOTA_MODE pct5_before pctw_before cx5_before cxw_before <<< "$(quota_state)"
+  headroom=$("$PYTHON_BIN" -c \
+    'import sys
+def room(now, stop):
+    try: return "%g" % (float(stop) - float(now))
+    except (TypeError, ValueError): return "?"
+print("5h {}pp to {}%, weekly {}pp to {}%".format(
+    room(sys.argv[1], sys.argv[3]), sys.argv[3],
+    room(sys.argv[2], sys.argv[4]), sys.argv[4]))' \
+    "${pct5_before:-}" "${pctw_before:-}" "$PCT_5H_STOP" "$PCT_WEEK_STOP" 2>/dev/null || printf '?')
+  log "quota · claude 5h=${pct5_before:-?}% weekly=${pctw_before:-?}% · codex weekly=${cxw_before:-?}% · room: $headroom · gate=$QUOTA_MODE"
   case "$QUOTA_MODE" in
     stop)
       log "quota gate: 5h>${PCT_5H_STOP}% or weekly>${PCT_WEEK_STOP}%; checkpointing without starting work"
@@ -627,11 +684,20 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
     "$SPENT" "$cost")
   tokens_out=$(executor_tokens_out "$out")
   refresh_quota
-  IFS=$'\t' read -r _ pct5_after pctw_after <<< "$(quota_state)"
+  IFS=$'\t' read -r _ pct5_after pctw_after cx5_after cxw_after <<< "$(quota_state)"
   d5=$(pct_delta "$pct5_before" "$pct5_after")
   dw=$(pct_delta "$pctw_before" "$pctw_after")
   log "iter $iter/$MAX_ITER · project=$slug · executor=$provider · cost=\$$cost · spent=\$$SPENT"
-  log "  quota · 5h ${pct5_before:-?}%→${pct5_after:-?}% (${d5}) · weekly ${pctw_before:-?}%→${pctw_after:-?}% (${dw})"
+  # Report the pool the executor actually spent. Claude keeps both windows;
+  # Codex has only a weekly one, so its five-hour slot is left out rather than
+  # printed as "?" every time.
+  if [ "$provider" = "codex" ]; then
+    dw=$(pct_delta "${cxw_before:-}" "${cxw_after:-}")
+    d5="n/a"
+    log "  quota · codex weekly ${cxw_before:-?}%→${cxw_after:-?}% (${dw}) · claude untouched"
+  else
+    log "  quota · claude 5h ${pct5_before:-?}%→${pct5_after:-?}% (${d5}) · weekly ${pctw_before:-?}%→${pctw_after:-?}% (${dw})"
+  fi
   # An executor that stops at step 0 exits 0 and bills normally, so cost alone
   # cannot tell "did the work" from "could not start". Say what it concluded and
   # whether the repo moved -- on 2026-07-29 a run logged `done` having produced
@@ -649,10 +715,20 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
   [ -n "$PLAN_MODEL" ] && run_fields+=(--model "$PLAN_MODEL")
   [ -n "$PLAN_EFFORT" ] && run_fields+=(--effort "$PLAN_EFFORT")
   [ -n "$tokens_out" ] && run_fields+=(--tokens-out "$tokens_out")
-  [ -n "$pct5_before" ] && run_fields+=(--quota-5h-before "$pct5_before")
-  [ -n "$pct5_after" ] && run_fields+=(--quota-5h-after "$pct5_after")
-  [ -n "$pctw_before" ] && run_fields+=(--quota-week-before "$pctw_before")
-  [ -n "$pctw_after" ] && run_fields+=(--quota-week-after "$pctw_after")
+  # Record the allowance the executor actually spent. A Codex run leaves the
+  # Claude pool untouched, so filing Claude's numbers against it says the run was
+  # free -- which is how AG-297 came to be recorded as 0pp while spending Codex.
+  if [ "$provider" = "codex" ]; then
+    run_fields+=(--quota-pool codex)
+    [ -n "$cxw_before" ] && run_fields+=(--quota-week-before "$cxw_before")
+    [ -n "$cxw_after" ] && run_fields+=(--quota-week-after "$cxw_after")
+  else
+    run_fields+=(--quota-pool claude)
+    [ -n "$pct5_before" ] && run_fields+=(--quota-5h-before "$pct5_before")
+    [ -n "$pct5_after" ] && run_fields+=(--quota-5h-after "$pct5_after")
+    [ -n "$pctw_before" ] && run_fields+=(--quota-week-before "$pctw_before")
+    [ -n "$pctw_after" ] && run_fields+=(--quota-week-after "$pctw_after")
+  fi
   "$LOOPCTL" record-run \
     --project "$slug" \
     --task "$task_id" \
@@ -662,10 +738,37 @@ while [ "$iter" -lt "$MAX_ITER" ]; do
     ${run_fields[@]+"${run_fields[@]}"} \
     --note "iteration $iter/$MAX_ITER; exit=$status" >/dev/null 2>&1 || \
     log "run ledger unavailable; continuing"
+  # Points actually consumed this iteration. `pct_delta` says "window reset" when
+  # the window rolled over, which is not a measurement -- carry nothing rather
+  # than guess, and say so, or the approved figure quietly stops meaning anything.
+  if [ -n "$BUDGET_WEEKLY_PP" ]; then
+    case "$dw" in
+      '~'*pp)
+        WEEK_PP_SPENT=$("$PYTHON_BIN" -c \
+          'from decimal import Decimal; import sys
+print(Decimal(sys.argv[1]) + Decimal(sys.argv[2].strip("~pp")))' \
+          "$WEEK_PP_SPENT" "$dw")
+        ;;
+      *)
+        log "  weekly points unmeasurable this iteration ($dw); approved budget not advanced"
+        ;;
+    esac
+    ceiling=$("$PYTHON_BIN" -c \
+      'from decimal import Decimal; import sys; print(Decimal(sys.argv[1]) * Decimal(sys.argv[2]))' \
+      "$BUDGET_WEEKLY_PP" "$OVERRUN_RATIO")
+    over_pp=$("$PYTHON_BIN" -c \
+      'from decimal import Decimal; import sys; print(int(Decimal(sys.argv[1]) > Decimal(sys.argv[2])))' \
+      "$WEEK_PP_SPENT" "$ceiling")
+    log "  weekly points · ${WEEK_PP_SPENT}pp of ${BUDGET_WEEKLY_PP}pp approved (stop past ${ceiling}pp)"
+    if [ "$over_pp" -eq 1 ]; then
+      log "over the approved weekly points: ${WEEK_PP_SPENT}pp exceeds ${BUDGET_WEEKLY_PP}pp by more than ${OVERRUN_RATIO}x"
+      break
+    fi
+  fi
   over_budget=$("$PYTHON_BIN" -c "from decimal import Decimal; import sys; print(int(Decimal(sys.argv[1]) > Decimal(sys.argv[2])))" \
     "${SPENT:-0}" "$BUDGET_USD")
   if [ "$over_budget" -eq 1 ]; then
-    log "budget exhausted"
+    log "budget exhausted (\$$SPENT over the \$$BUDGET_USD runaway guard)"
     break
   fi
 done
