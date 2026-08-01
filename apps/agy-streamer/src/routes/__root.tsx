@@ -1,6 +1,6 @@
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createRootRouteWithContext, HeadContent, Outlet,Scripts } from '@tanstack/react-router'
+import { createRootRouteWithContext, HeadContent, Link, Outlet, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
 import appCss from '../styles.css?url'
@@ -54,9 +54,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="font-sans antialiased bg-background text-foreground h-screen flex flex-col overflow-hidden">
         <header className="h-16 border-b border-border bg-card/40 px-6 flex-none flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
             <span className="text-xl">🪐</span>
             <div className="font-bold font-sans text-sm tracking-tight text-foreground">Antigravity Streamer</div>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link 
+              to="/" 
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-border bg-muted/40 hover:bg-muted text-foreground transition-all flex items-center gap-1.5"
+            >
+              <span>🏠</span> Dashboard
+            </Link>
           </div>
         </header>
         <QueryClientProvider client={queryClient}>
