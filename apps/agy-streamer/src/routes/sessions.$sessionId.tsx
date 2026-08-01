@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Copy,
   FolderOpen,
+  Home,
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
@@ -428,7 +429,16 @@ function SessionComponent() {
         }`}
       >
         <div className="flex justify-between items-center pb-2 border-b border-border/60 shrink-0">
-          <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase font-sans">Sessions</span>
+          <div className="flex items-center gap-1.5">
+            <Link 
+              to="/" 
+              className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer" 
+              title="Back to Dashboard"
+            >
+              <Home className="size-4" />
+            </Link>
+            <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase font-sans">Sessions</span>
+          </div>
           <Button 
             size="sm" 
             variant="outline" 
@@ -488,47 +498,56 @@ function SessionComponent() {
       <main className="flex-1 flex flex-col min-h-0 h-full overflow-hidden bg-background/10">
         {/* Mobile Navigation Header */}
         <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-border bg-background/60">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="text-xs cursor-pointer">
-                📁 Sessions
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-popover border-border text-popover-foreground max-w-xs">
-              <DialogHeader>
-                <DialogTitle className="text-sm font-bold text-foreground">Active Sessions</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-2 mt-4 max-h-[60vh] overflow-y-auto">
-                {sessionList?.sessions?.map((s: any) => {
-                  const isClaude = s.agentType === 'claude';
-                  return (
-                    <Link
-                      key={s.sessionId}
-                      to="/sessions/$sessionId"
-                      params={{ sessionId: s.sessionId }}
-                      className={`block p-3 rounded-lg border text-left text-sm transition-all ${
-                        s.sessionId === sessionId 
-                          ? 'bg-primary/10 border-primary/50 text-primary font-semibold' 
-                          : 'bg-muted/30 border-border hover:border-border text-foreground'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className={`font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${
-                          isClaude 
-                            ? 'bg-amber-950/40 border-amber-800/40 text-amber-700 dark:text-amber-400'
-                            : 'bg-indigo-950/40 border-indigo-800/40 text-indigo-900 dark:text-indigo-400'
-                        }`}>
-                          {isClaude ? 'Claude Code' : 'Antigravity'}
-                        </span>
-                      </div>
-                      <div className="font-semibold text-xs text-foreground truncate">{s.title || 'Untitled Session'}</div>
-                      <div className="font-mono text-[9px] text-muted-foreground truncate mt-0.5">{s.sessionId}</div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-2">
+            <Link 
+              to="/" 
+              className="px-2.5 py-1 rounded-md border border-border bg-muted/40 text-xs font-semibold text-foreground flex items-center gap-1.5 hover:bg-muted transition-colors"
+            >
+              <Home className="size-3.5 text-primary" />
+              <span>Dashboard</span>
+            </Link>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="text-xs cursor-pointer">
+                  📁 Sessions
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-popover border-border text-popover-foreground max-w-xs">
+                <DialogHeader>
+                  <DialogTitle className="text-sm font-bold text-foreground">Active Sessions</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-2 mt-4 max-h-[60vh] overflow-y-auto">
+                  {sessionList?.sessions?.map((s: any) => {
+                    const isClaude = s.agentType === 'claude';
+                    return (
+                      <Link
+                        key={s.sessionId}
+                        to="/sessions/$sessionId"
+                        params={{ sessionId: s.sessionId }}
+                        className={`block p-3 rounded-lg border text-left text-sm transition-all ${
+                          s.sessionId === sessionId 
+                            ? 'bg-primary/10 border-primary/50 text-primary font-semibold' 
+                            : 'bg-muted/30 border-border hover:border-border text-foreground'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-1">
+                          <span className={`font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${
+                            isClaude 
+                              ? 'bg-amber-950/40 border-amber-800/40 text-amber-700 dark:text-amber-400'
+                              : 'bg-indigo-950/40 border-indigo-800/40 text-indigo-900 dark:text-indigo-400'
+                          }`}>
+                            {isClaude ? 'Claude Code' : 'Antigravity'}
+                          </span>
+                        </div>
+                        <div className="font-semibold text-xs text-foreground truncate">{s.title || 'Untitled Session'}</div>
+                        <div className="font-mono text-[9px] text-muted-foreground truncate mt-0.5">{s.sessionId}</div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
 
           <Button 
             size="sm" 
