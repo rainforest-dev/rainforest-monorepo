@@ -423,11 +423,11 @@ function SessionComponent() {
     <div className="flex flex-1 overflow-hidden bg-background">
       {/* Sessions Sidebar - Desktop Only */}
       <aside 
-        className={`hidden md:flex border-r border-border bg-background/40 flex-col gap-4 transition-all duration-300 ${
-          isSidebarCollapsed ? 'w-0 p-0 border-r-0 overflow-hidden' : 'w-80 p-4'
+        className={`hidden md:flex border-r border-border bg-background/40 flex-col gap-4 h-full max-h-full overflow-hidden transition-all duration-300 ${
+          isSidebarCollapsed ? 'w-0 p-0 border-r-0' : 'w-80 p-4'
         }`}
       >
-        <div className="flex justify-between items-center pb-2 border-b border-border/60">
+        <div className="flex justify-between items-center pb-2 border-b border-border/60 shrink-0">
           <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase font-sans">Sessions</span>
           <Button 
             size="sm" 
@@ -442,7 +442,7 @@ function SessionComponent() {
           </Button>
         </div>
         
-        <ScrollArea className="flex-1 pr-2">
+        <ScrollArea className="flex-1 min-h-0 h-full pr-2">
           <div className="space-y-2">
             {sessionList?.sessions?.map((s: any) => {
               const isClaude = s.agentType === 'claude';
@@ -485,7 +485,7 @@ function SessionComponent() {
       </aside>
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-background/10">
+      <main className="flex-1 flex flex-col min-h-0 h-full overflow-hidden bg-background/10">
         {/* Mobile Navigation Header */}
         <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-border bg-background/60">
           <Dialog>
@@ -543,7 +543,7 @@ function SessionComponent() {
           </Button>
         </div>
         {/* Workspace directory Configuration */}
-        <div className="p-3.5 border-b border-border bg-background/20 flex flex-col md:flex-row gap-3 md:items-center justify-between">
+        <div className="p-3.5 border-b border-border bg-background/20 flex flex-col md:flex-row gap-3 md:items-center justify-between shrink-0">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Button
               size="icon"
@@ -606,7 +606,7 @@ function SessionComponent() {
         </div>
 
         {/* Dynamic Chat view */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6">
           {logs.map((log: any, idx: number) => (
             <LogMessage key={idx} log={log} />
           ))}
@@ -652,7 +652,7 @@ function SessionComponent() {
         </div>
 
         {/* Input Bar */}
-        <div className="p-4 border-t border-border bg-background/30 flex gap-4">
+        <div className="p-4 border-t border-border bg-background/30 flex gap-4 shrink-0">
           <Input
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
