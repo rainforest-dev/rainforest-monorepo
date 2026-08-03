@@ -108,18 +108,105 @@ const personSchema = {
 >
   <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
   <main
-    class="flex-col-center bg-foreground h-screen w-screen overflow-scroll p-10 print:items-start print:justify-start print:overflow-visible print:p-0"
+    class="bg-foreground flex min-h-screen w-full justify-center p-4 sm:p-10 print:block print:min-h-0 print:p-0"
   >
-    <div
-      class="scale-30 h-[105rem] w-[75rem] origin-top sm:scale-50 md:scale-75 lg:scale-100 print:origin-top-left print:scale-100"
-    >
+    {
+      /*
+        One box, and no transforms anywhere. Two earlier attempts scaled a fixed 210mm x 297mm
+        sheet — first to fit the viewport, then to fit the contents — and each scale brought its
+        own bug: `transform: scale` reserves the unscaled layout box (~760px of dead scroll space
+        under the resume), and shrinking text to 92% to avoid a second page is the thing every
+        resume guide tells you not to do.
+
+        So the sheet is a document, not a fixed page. It keeps A4's *width*, which is what makes
+        it look like a page and what makes line lengths match the print output, and lets its
+        height follow the content. How that content divides into pages is the printer's job,
+        decided by `@page` and the break rules below — the one mechanism that can put a page
+        boundary in a sensible place instead of clipping whatever crosses it.
+      */
+    }
+    <div id="resume-sheet">
       <ATSFriendly {...resumeProps} />
     </div>
   </main>
-  <style media="print">
-    @page {
-      size: A4;
-      margin: 0;
+  {
+    /*
+      Plain CSS rather than Tailwind utilities: a `media="print"` attribute does not survive
+      Astro's style bundling, so `@media print` has to be written inside the stylesheet itself.
+      An earlier `<style media="print">` block reached no page at all, silently.
+    */
+  }
+  <style>
+    /* A4's width, and only its width — that is what fixes the line length to match the printed
+       page. `max-width` rather than `width` so the sheet goes fluid on a phone instead of
+       rendering 210mm as an unreadable thumbnail, and `min-height` keeps it looking like a sheet
+       of paper when the contents are short. Height otherwise follows the content. */
+    #resume-sheet {
+      width: 100%;
+      max-width: 210mm;
+      min-height: 297mm;
+    }
+
+    @media print {
+      /* The margin belongs to the page box, not to the article. Padding on the article would
+         indent only the first page; every page needs the same frame. 12mm/16mm is a conventional
+         resume margin and matches the article's screen padding, so the preview and the print
+         break lines in the same places. Every millimetre trimmed here is ~3.8px back on *each*
+         page, which is what kept this to two pages rather than two-and-a-stub. */
+      @page {
+        size: A4;
+        margin: 12mm 16mm;
+      }
+
+      /* On paper the page *is* the sheet, so the screen sheet stops constraining anything. */
+      #resume-sheet {
+        max-width: none;
+        min-height: 0;
+      }
+
+      /*
+        Everything below reaches into the article, which lives in ats-friendly.astro — hence
+        `:global()` on every selector that crosses that boundary.
+
+        This is not stylistic. Astro scopes a component's selectors to that component's elements,
+        so the `p, li { orphans: 3 }` that used to sit here compiled to
+        `p[data-astro-cid-t2mi2g5v]` and matched nothing: only seven elements on the page carry
+        that id, all of them in this file. The rule shipped, appeared in the built CSS, and was
+        inert. `#resume-sheet` itself is declared here, so it needs no escaping.
+      */
+
+      /* White paper, black ink. The theme's mint `bg-background` and its themed foreground carry
+         straight into print otherwise — that is what tinted the printed page. Beyond wasting
+         toner, background tint is the wrong default for a resume: ATS pipelines that OCR a PDF
+         rather than read its text layer depend on maximum contrast. `!important` because a print
+         colour reset has to beat every utility unconditionally, and print rendering is the one
+         path that cannot be verified from a screen emulation. */
+      #resume-sheet,
+      #resume-sheet :global(*) {
+        background: transparent !important;
+        color: #000 !important;
+      }
+
+      /* Fragmentation — the difference between a two-page resume that looks deliberate and one
+         that looks like it ran out of room. Left alone, a browser breaks wherever the page ends:
+         one line into a bullet, or between a heading and what it introduces.
+
+         orphans/widows stop a single line being stranded either side of the boundary. The
+         companion `break-inside-avoid` / `break-after-avoid` utilities live in ats-friendly.astro,
+         on the elements they protect: each role's heading block, each project write-up, and the
+         Education and Skills sections. Those are Tailwind classes on the elements themselves, so
+         they were never subject to the scoping problem above. */
+      #resume-sheet :global(p),
+      #resume-sheet :global(li) {
+        orphans: 3;
+        widows: 3;
+      }
+
+      /* The dark backdrop is screen furniture. Browsers usually drop backgrounds when printing,
+         but only usually — "Print backgrounds" is a checkbox a recruiter may well have on. */
+      main {
+        background: none;
+      }
     }
   </style>
 </Layout>
