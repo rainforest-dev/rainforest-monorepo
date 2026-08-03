@@ -90,6 +90,10 @@
         "dependsOn": [
           "^build"
         ],
+        "outputs": [
+          "{projectRoot}/dist",
+          "{projectRoot}/.vercel/output"
+        ],
         "cache": true
       },
       "test": {
