@@ -18,6 +18,24 @@ const locale =
 
 const linkedInUrl = getLinkedInUrl(info.links.linkedin);
 const gitHubUrl = getGitHubUrl(info.links.github);
+// On paper the scheme is noise — nobody types "https://" off a printed page — and dropping it
+// (with any "www.") keeps each entry short enough for the single inline run in the header.
+const bare = (url: string) => url.replace(/^https?:\/\/(www\.)?/, '');
+
+// Built as data so the separator between entries can be a real text node (see the header's
+// comment on why that matters for text extraction) without repeating the conditional five times.
+const contacts: { label: string; href?: string }[] = [
+  { label: info.email, href: `mailto:${info.email}` },
+  { label: `${info.location.city}, ${info.location.country}` },
+  { label: bare(linkedInUrl), href: linkedInUrl },
+  { label: bare(gitHubUrl), href: gitHubUrl },
+  { label: bare(info.links.website), href: info.links.website },
+];
+// Every job, internships included. This resume is two pages by design (see ResumePage.astro), and
+// the failure mode of a two-page resume is a second page holding three lines — that reads as an
+// accident rather than a choice. The student-era roles (2018–2020) are what give page two enough
+// substance to be deliberate. Strict reverse-chronological order keeps them where a reader expects,
+// below the full-time work rather than competing with it.
 const experiences = (
   await getCollection('experiences', (item) => {
     const isLangMatch = item.id.startsWith(lang);
@@ -40,31 +58,61 @@ const skills = groupBy(
 );
 ---
 
+{
+  /*
+    The `prose-*` tail past `max-w-none` trims Typography's article rhythm to resume spacing —
+    zeroed heading and list-item margins, tighter paragraph gaps.
+
+    `leading-snug` is applied to list items only, not to paragraphs. Bullets are the bulk of the
+    text here (roughly thirty lines across the project write-ups), so they are where line-height
+    actually buys page space — ~140px of it, which is the difference between two pages and two
+    pages plus a near-empty third. Prose paragraphs keep their normal leading, because those are
+    the lines a person actually reads end to end.
+
+    No fixed height. The page count is decided by the printer, from `@page` and the break rules
+    in ResumePage.astro, not by clipping this box at one A4's worth of pixels.
+
+    Padding is screen-only, and responsive. In print, `@page`'s margin box does this job on *every*
+    page, where padding here would only ever indent the first. The 16mm the printed page wants is
+    35% of the sheet's width on a 375px phone, so below `sm` it drops to something a narrow screen
+    can afford — matching print exactly only matters at the width that is actually previewing it.
+  */
+}
 <article
-  class="bg-background text-foreground font-resume-serif prose prose-sm prose-headings:text-foreground prose-a:text-foreground prose-li:text-foreground prose-headings:m-0 prose-h2:mb-3 prose-li:m-0 prose-p:mt-0 prose-p:mb-2 size-full max-w-none px-20 py-10"
+  class="bg-background text-foreground font-resume-serif prose prose-sm prose-headings:text-foreground prose-a:text-foreground prose-li:text-foreground prose-headings:m-0 prose-h2:mb-2 prose-h2:break-after-avoid prose-li:m-0 prose-li:leading-snug prose-p:mt-0 prose-p:mb-2 prose-ul:my-2 w-full max-w-none px-6 py-8 sm:px-[16mm] sm:py-[12mm] print:p-0"
 >
   <section>
     <h1>{info.name.fullname}</h1>
     <h2>{info.jobPosition}</h2>
-    <ul class="mb-5 mt-4 list-none pl-0">
-      <li><a href={`tel:${info.phone}`}>{info.phone}</a></li>
-      <li><a href={`mailto:${info.email}`}>{info.email}</a></li>
-      <li>{info.location.city}, {info.location.country}</li>
-      <li>
-        LinkedIn: {info.links.linkedin} (<a href={linkedInUrl} target="_blank"
-          >{linkedInUrl}</a
-        >)
-      </li>
-      <li>
-        GitHub: {info.links.github} (<a href={gitHubUrl} target="_blank"
-          >{gitHubUrl}</a
-        >)
-      </li>
-      <li>
-        {t('website')}: <a href={info.links.website} target="_blank"
-          >{info.links.website}</a
-        >
-      </li>
+    {
+      /*
+        One inline run rather than five stacked lines. The old block printed each handle AND its
+        full URL ("LinkedIn: rainforest-cheng (https://linkedin.com/in/rainforest-cheng)") — the
+        same fact twice, for ~110px of a 297mm page.
+
+        The "·" is a real text node, deliberately not a CSS ::after. A parser reading the HTML
+        gets a line break from each <li> regardless — but a PDF's text layer is built from visual
+        position, and these five render on one visual line, so on that path the separator is the
+        only thing standing between "contact@rainforest.tools" and "Taipei". Generated content
+        reaches neither path. It's aria-hidden because each entry is already an <li> that a
+        screen reader announces separately.
+      */
+    }
+    <ul class="mb-4 mt-2 flex list-none flex-wrap gap-x-1 pl-0">
+      {
+        contacts.map(({ label, href }, i) => (
+          <li>
+            {href ? (
+              <a href={href} target="_blank">
+                {label}
+              </a>
+            ) : (
+              label
+            )}
+            {i < contacts.length - 1 && <span aria-hidden="true"> · </span>}
+          </li>
+        ))
+      }
     </ul>
   </section>
   <section>
@@ -77,17 +125,30 @@ const skills = groupBy(
           const projects = await getEntries(item.data.projects);
           const { Content } = await render(item);
           return (
-            <li>
-              <Fragment>
-                <time>{format(startAt, resumeDateFormat, { locale })}</time> -{' '}
-                {endAt ? (
-                  <time>{format(endAt, resumeDateFormat, { locale })}</time>
-                ) : (
-                  <span>{t('present')}</span>
-                )}
-              </Fragment>
-              <h3>{organization.data.name}</h3>
-              <h5>{position}</h5>
+            <li class="mb-3">
+              {/* Organization and dates share one baseline row — the conventional resume layout,
+                  and it reclaims a line per role over a stacked date/org/position block.
+
+                  The group is break-avoid so a role's heading can never be stranded at the foot
+                  of a page with its content overleaf. The <li> itself stays breakable on purpose:
+                  CodeGreen carries four project write-ups and is taller than one page, so
+                  `break-inside: avoid` there would shove the whole entry onto page two and
+                  overflow it regardless. */}
+              <div class="break-inside-avoid break-after-avoid">
+                <div class="flex items-baseline justify-between gap-2">
+                  <h3>{organization.data.name}</h3>
+                  <span class="whitespace-nowrap">
+                    <time>{format(startAt, resumeDateFormat, { locale })}</time>{' '}
+                    -{' '}
+                    {endAt ? (
+                      <time>{format(endAt, resumeDateFormat, { locale })}</time>
+                    ) : (
+                      <span>{t('present')}</span>
+                    )}
+                  </span>
+                </div>
+                <h5>{position}</h5>
+              </div>
               <Content />
               <ul class="list-none pl-0">
                 {projects &&
@@ -99,13 +160,14 @@ const skills = groupBy(
                         ? `${info.links.website}/portfolio/${slug}`
                         : undefined;
                     return (
-                      <li>
+                      // Short enough to always keep whole, unlike the role that contains them.
+                      <li class="break-inside-avoid">
                         <h4>
                           {project.data.name}
                           {caseStudyUrl && (
                             <Fragment>
                               {' — '}
-                              <a href={caseStudyUrl}>{caseStudyUrl}</a>
+                              <a href={caseStudyUrl}>{bare(caseStudyUrl)}</a>
                             </Fragment>
                           )}
                         </h4>
@@ -120,48 +182,69 @@ const skills = groupBy(
       }
     </ul>
   </section>
-  <section class="grid w-full break-after-auto grid-cols-2">
-    <section>
-      <h2>{t('education')}</h2>
-      <ul>
-        {
-          education.map(async (item) => {
-            const organization = await getEntry(item.data.organization);
-            const period = `${format(item.data.startAt, resumeDateFormat)} - ${format(item.data.endAt!, resumeDateFormat)}`;
-            // const { Content } = await render(item);
-            return (
-              <li>
+  {
+    /*
+      Education above Skills in one column, not side by side. A CSS grid preserves DOM order for
+      anything reading the HTML, so a text-based ATS was never at risk — but a PDF's text layer is
+      built from visual position, so the moment this page is printed or saved to PDF a two-column
+      block can interleave into "National Taiwan University Frontend: Flutter". Single column is
+      the format that survives every path a recruiter might take to the content.
+    */
+  }
+  <section class="break-inside-avoid">
+    <h2>{t('education')}</h2>
+    <ul>
+      {
+        education.map(async (item) => {
+          const organization = await getEntry(item.data.organization);
+          const period = `${format(item.data.startAt, resumeDateFormat)} - ${format(item.data.endAt!, resumeDateFormat)}`;
+          const { Content } = await render(item);
+          return (
+            <li class="mb-2 break-inside-avoid">
+              <div class="flex items-baseline justify-between gap-2">
                 <h3>{organization.data.name}</h3>
-                <h4>{period}</h4>
-                <h5>
-                  {t('education-description', {
-                    degree: item.data.position,
-                    major: organization.data.department,
-                  })}
-                </h5>
-                {/* <Content /> */}
+                <span class="whitespace-nowrap">{period}</span>
+              </div>
+              <h5>
+                {t('education-description', {
+                  degree: item.data.position,
+                  major: organization.data.department,
+                })}
+              </h5>
+              <Content />
+            </li>
+          );
+        })
+      }
+    </ul>
+  </section>
+  <section class="break-inside-avoid">
+    <h2>{t('skills')}</h2>
+    {
+      /*
+          One inline run per category instead of a 3-column grid of stacked lists. Thirteen skills
+          across five categories left most of that grid's cells holding two or three short words
+          while still occupying two full rows (~207px); as inline runs the same words fit in about
+          half the height. Kept as <ul>/<li> for ATS structure, with the comma as a text node so
+          the extracted string stays delimited — the same reason the header's "·" is text.
+        */
+    }
+    {
+      skillSections.map((section) => (
+        <div class="mb-1">
+          <h3 class="inline text-[1em] font-semibold">
+            {t(`skills-${section}`)}:
+          </h3>{' '}
+          <ul class="m-0 inline list-none p-0">
+            {skills[section].map((skill, i) => (
+              <li class="inline capitalize">
+                {skill.data.name}
+                {i < skills[section].length - 1 && ', '}
               </li>
-            );
-          })
-        }
-      </ul>
-    </section>
-    <section>
-      <h2>{t('skills')}</h2>
-      <div class="grid grid-cols-3">
-        {
-          skillSections.map((section) => (
-            <div>
-              <h3>{t(`skills-${section}`)}</h3>
-              <ul>
-                {skills[section].map((skill) => (
-                  <li class="capitalize">{skill.data.name}</li>
-                ))}
-              </ul>
-            </div>
-          ))
-        }
-      </div>
-    </section>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
   </section>
 </article>
