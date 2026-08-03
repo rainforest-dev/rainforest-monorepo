@@ -64,6 +64,7 @@ describe('loader', () => {
           'fastapi',
           'docker',
           'terraform',
+          'github-actions',
         ],
         projects: [],
       });
@@ -77,7 +78,12 @@ describe('loader', () => {
           'end-to-end authentication to a managed identity provider, retiring a large in-house auth layer, and\n' +
           'delivered the role-based permission matrix that governs access across the dashboard. Established the\n' +
           "project's end-to-end test foundation from scratch and moved its container delivery pipeline onto\n" +
-          'managed Kubernetes.',
+          'managed Kubernetes. Own the frontend architecture for a new review-operations\n' +
+          'area \u2014 a shared data-fetching foundation, customer-scoped state boundaries, and an ability model\n' +
+          'that decides which internal roles reach which tools. Cut pull-request feedback from roughly an hour\n' +
+          'to under fifteen minutes by moving the CI gate onto hosted runners, guarding against superseded runs\n' +
+          'finishing after cancellation, and baking a prepared runner image \u2014 after tracing the delay to a\n' +
+          'self-hosted pool that could only serve one job at a time.',
       );
       expect(entry?.body.startsWith('\n')).toBe(false);
       expect(entry?.body.endsWith('\n')).toBe(false);
