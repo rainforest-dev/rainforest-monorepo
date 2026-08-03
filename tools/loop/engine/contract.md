@@ -66,6 +66,16 @@ the `openapi-sync` skill, which fetches the backend dev spec. `blocked` is legit
 only when the sync ran and the contract is still absent, and the reason must say so.
 Never hand-edit generated types and never infer an API shape to get past this.
 
+A connectivity pre-flight that fails inside the sandbox is not a connectivity
+problem. `openapi-sync` opens with `curl -fsSI` against the backend spec; macOS
+curl validates through the keychain, which the sandbox cannot read, so it returns
+exit 60 "unable to get local issuer certificate" while the network is fine.
+Measured 2026-08-03: the same host answered `HTTP 200` to a node fetch from the
+same sandbox in the same second, and the certificate was a valid Amazon-issued
+one. Setting CURL_CA_BUNDLE does not help — the failure is in Secure Transport,
+not the bundle. The sync target itself runs on node and is unaffected. Check the
+sync's own result, never the pre-flight.
+
 Measured 2026-07-30 on AG-132: an executor read the `openapi-sync` skill, saw the
 contract missing from the checked-in `api.gen.ts`, and recorded `blocked` claiming
 the backend PR was unmerged — while that PR had merged six days earlier and the dev
