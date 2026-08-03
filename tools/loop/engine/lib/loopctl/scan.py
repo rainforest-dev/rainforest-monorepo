@@ -617,6 +617,9 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--quota-week-before")
     run_parser.add_argument("--quota-week-after")
     run_parser.add_argument("--quota-pool", choices=["claude", "codex"])
+    run_parser.add_argument("--task-id", help="the human key, e.g. AG-298")
+    run_parser.add_argument("--branch")
+    run_parser.add_argument("--pr")
 
     sweep_parser = sub.add_parser("sweep")
     sweep_parser.add_argument("--machine", required=True)
@@ -712,6 +715,9 @@ def main(argv=None) -> int:
                     quota_week_before=args.quota_week_before,
                     quota_week_after=args.quota_week_after,
                     quota_pool=args.quota_pool,
+                    task_id=args.task_id,
+                    branch=args.branch,
+                    pr=args.pr,
                 )
             )
             return 0

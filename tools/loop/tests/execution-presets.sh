@@ -568,6 +568,38 @@ printf '{"type":"turn.completed"}\n' > "$ROOT/no-thread.log"
 check "no thread id means no number" "$(cpp "$ROOT/fakehome" "$ROOT/no-thread.log")" ""
 check "a missing transcript is silent" "$(cpp "$ROOT/fakehome" /nonexistent.log)" ""
 
+# --- 15. the run row carries edges, not just measurements --------------------
+# The ledger could say what a run cost but not what it worked on, where the work
+# went, or which earlier run it was fixing. "Did the second attempt close what
+# the first missed" is the whole question a fix round exists to answer, and it was
+# unanswerable from own data.
+echo "  run rows carry edges:"
+write_quota 10 20
+cat > "$ROOT/agents.json" <<JSON
+{
+  "default_agent": "claude",
+  "presets": {"deep": {"provider": "claude", "model": "claude-opus-5", "effort": "high"}},
+  "tasks": {"$TASK_KEY": {"preset": "deep"}}
+}
+JSON
+export LOOP_AGENT_CONFIG="$ROOT/agents.json"
+run_ralph
+sandbox_branch=$(git -C "$VAULT" rev-parse --abbrev-ref HEAD)
+check "the row names the branch it worked on" "$(last_run_field branch)" "$sandbox_branch"
+# First run on this task: nothing to be a fix round for.
+check "a first run has no parent" "$(last_run_field parent_run_id)" ""
+first_run=$(last_run_field run_id)
+# Second run on the same task IS the fix round, and the edge is derived from the
+# ledger rather than threaded through every caller.
+: > "$RALPH_TEST_CALLS"
+"$HOME_DIR/ralph.sh" 1 10 >/dev/null 2>&1
+check "the next run points at the previous one" "$(last_run_field parent_run_id)" "$first_run"
+check "and is not its own parent" "$([ "$(last_run_field parent_run_id)" = "$(last_run_field run_id)" ] && echo same || echo distinct)" "distinct"
+# An unrelated task must not inherit a parent from a different one.
+other=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  'from loopctl.writeback import _last_run_id_for; print(_last_run_id_for("'"$MACHINE"'", "no-such-task") or "")')
+check "a different task gets no parent" "$other" ""
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
