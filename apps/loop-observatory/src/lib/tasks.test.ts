@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { parseTasks, parseTasksProgress } from './tasks.js';
+import { must } from './test-support.js';
 
 // A trimmed snapshot mirroring the real tasks.json: one fully-populated task
 // (epic + parent + points + component), one epic-only task (no parent, null
@@ -74,54 +75,84 @@ const SAMPLE = JSON.stringify({
 
 describe('parseTasks', () => {
   it('parses metadata and sorts tasks by order', () => {
-    const data = parseTasks(SAMPLE)!;
+    const data = must(parseTasks(SAMPLE), 'parsed tasks');
     expect(data.sprint?.name).toBe('Sprint 1');
     expect(data.statuses).toHaveLength(5);
     expect(data.tasks.map((t) => t.id)).toEqual([105, 59, 22]);
   });
 
   it('preserves nullable fields and links', () => {
-    const data = parseTasks(SAMPLE)!;
-    const bare = data.tasks.find((t) => t.id === 22)!;
+    const data = must(parseTasks(SAMPLE), 'parsed tasks');
+    const bare = must(
+      data.tasks.find((t) => t.id === 22),
+      'task 22',
+    );
     expect(bare.points).toBeNull();
     expect(bare.component).toBeNull();
     expect(bare.epic).toBeNull();
     expect(bare.parent).toBeNull();
 
-    const sub = data.tasks.find((t) => t.id === 105)!;
+    const sub = must(
+      data.tasks.find((t) => t.id === 105),
+      'task 105',
+    );
     expect(sub.points).toBe(5);
     expect(sub.epic?.name).toBe('SLA epic');
     expect(sub.parent?.id).toBe(33);
   });
 
   it('parses scope and defaults it to work when missing', () => {
-    const data = parseTasks(SAMPLE)!;
-    expect(data.tasks.find((t) => t.id === 22)!.scope).toBe('personal');
-    expect(data.tasks.find((t) => t.id === 105)!.scope).toBe('work');
+    const data = must(parseTasks(SAMPLE), 'parsed tasks');
+    expect(
+      must(
+        data.tasks.find((t) => t.id === 22),
+        'task 22',
+      ).scope,
+    ).toBe('personal');
+    expect(
+      must(
+        data.tasks.find((t) => t.id === 105),
+        'task 105',
+      ).scope,
+    ).toBe('work');
     // id 59 omits `scope` entirely → defaults to 'work' for older snapshots.
-    expect(data.tasks.find((t) => t.id === 59)!.scope).toBe('work');
+    expect(
+      must(
+        data.tasks.find((t) => t.id === 59),
+        'task 59',
+      ).scope,
+    ).toBe('work');
     // An unrecognized scope value also degrades to 'work'.
-    const weird = parseTasks(
-      JSON.stringify({
-        tasks: [{ id: 7, name: 'x', order: 0, scope: 'nope' }],
-      }),
-    )!;
+    const weird = must(
+      parseTasks(
+        JSON.stringify({
+          tasks: [{ id: 7, name: 'x', order: 0, scope: 'nope' }],
+        }),
+      ),
+      'parsed tasks',
+    );
     expect(weird.tasks[0].scope).toBe('work');
   });
 
   it('falls back to canonical statuses when omitted', () => {
-    const data = parseTasks(JSON.stringify({ tasks: [] }))!;
+    const data = must(
+      parseTasks(JSON.stringify({ tasks: [] })),
+      'parsed tasks',
+    );
     expect(data.statuses).toContain('Not started');
     expect(data.statuses).toContain('Blocked');
     expect(data.tasks).toEqual([]);
   });
 
   it('skips malformed tasks rather than failing the file', () => {
-    const data = parseTasks(
-      JSON.stringify({
-        tasks: [{ id: 1 }, 'nope', null, { id: 2, name: 'ok', order: 0 }],
-      }),
-    )!;
+    const data = must(
+      parseTasks(
+        JSON.stringify({
+          tasks: [{ id: 1 }, 'nope', null, { id: 2, name: 'ok', order: 0 }],
+        }),
+      ),
+      'parsed tasks',
+    );
     expect(data.tasks.map((t) => t.name)).toEqual(['ok']);
   });
 
@@ -148,7 +179,7 @@ describe('parseTasksProgress', () => {
   });
 
   it('parses the id → progress map with pr/note nullable', () => {
-    const map = parseTasksProgress(OVERLAY)!;
+    const map = must(parseTasksProgress(OVERLAY), 'parsed progress map');
     expect(Object.keys(map)).toEqual(['22', '31', '68']);
     expect(map['22']).toEqual({
       loop_status: 'In progress / PR',
@@ -160,11 +191,14 @@ describe('parseTasksProgress', () => {
   });
 
   it('skips malformed entries and returns null for a bad shape', () => {
-    const map = parseTasksProgress(
-      JSON.stringify({
-        tasks: { '1': { loop_status: 'Done' }, '2': 'nope', '3': null },
-      }),
-    )!;
+    const map = must(
+      parseTasksProgress(
+        JSON.stringify({
+          tasks: { '1': { loop_status: 'Done' }, '2': 'nope', '3': null },
+        }),
+      ),
+      'parsed progress map',
+    );
     expect(Object.keys(map)).toEqual(['1']);
     expect(map['1']).toEqual({ loop_status: 'Done', pr: null, note: null });
 
