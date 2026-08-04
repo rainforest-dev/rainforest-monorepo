@@ -43,6 +43,12 @@
         "options": {
           "port": 8080
         }
+      },
+      "build": {
+        "outputs": [
+          "{projectRoot}/.next/!(cache)/**/*",
+          "{projectRoot}/.next/!(cache)"
+        ]
       }
     }
   }
