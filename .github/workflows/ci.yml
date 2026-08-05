@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.0.9
 
       # Nx Cloud distributed task execution — opt-in via repository variable.
       # Set NX_CLOUD_ENABLED=true in Settings → Variables → Actions to enable.
