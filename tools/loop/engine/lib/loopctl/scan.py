@@ -11,6 +11,7 @@ from pathlib import Path
 import yaml
 
 from loopctl import AGENT_STATES, PIPELINE_STATES, host_machine, registry, signals
+from loopctl import depends as depends_mod
 from loopctl import greenlight as greenlight_mod
 from loopctl.adapters import github, notion, obsidian_base, vault
 from loopctl.config import (
@@ -270,8 +271,10 @@ def next_candidates(project, state: dict) -> list[dict]:
     if lifecycle in {"dormant", "archived"}:
         return []
     greenlight = _greenlight_text(project) if project.policy == "greenlit-only" else ""
+    edges = depends_mod.load(project.slug)
+    tasks = state.get("tasks", [])
     candidates = []
-    for task in state.get("tasks", []):
+    for task in tasks:
         task_state = task.get("state")
         if task_state in _TERMINAL_GROUND_TRUTH:
             continue
@@ -283,6 +286,14 @@ def next_candidates(project, state: dict) -> list[dict]:
             if greenlight_rank is None:
                 continue
         if task_state not in _IN_FLIGHT | {"queued", "not-started"}:
+            continue
+        # An unmet dependency drops the task from the queue. The board is a DAG
+        # and the edges were invisible to this function until now: on 2026-08-01
+        # a model was routed at a task blocked two levels deep, because the order
+        # lived only in ticket prose. Work already in flight is exempt -- a task
+        # that has a branch open is past the point where ordering helps, and
+        # stopping it mid-way would strand it.
+        if task_state not in _IN_FLIGHT and depends_mod.blockers(task, edges, tasks):
             continue
         candidates.append((task, greenlight_rank))
     state_order = {
@@ -586,6 +597,15 @@ def _build_parser() -> argparse.ArgumentParser:
     next_parser.add_argument("slug", nargs="?")
     next_parser.add_argument("--config", default=default_config)
 
+    deps_parser = sub.add_parser("deps")
+    deps_parser.add_argument("slug", nargs="?")
+    deps_parser.add_argument("--config", default=default_config)
+    deps_parser.add_argument(
+        "--unaudited",
+        action="store_true",
+        help="only tasks with no recorded edges — the review queue",
+    )
+
     set_parser = sub.add_parser("set")
     set_parser.add_argument("slug")
     set_parser.add_argument("task")
@@ -805,6 +825,22 @@ def main(argv=None) -> int:
                 return 1
             state = registry.read_project_state(project.slug)
             _print_json(next_candidates(project, state or {}))
+            return 0
+
+        if args.cmd == "deps":
+            project = _resolve_project(config, args.slug)
+            if not project:
+                print(
+                    "loopctl: current path is not enrolled"
+                    if not args.slug
+                    else f"loopctl: no enrolled project '{args.slug}'"
+                )
+                return 1
+            state = registry.read_project_state(project.slug) or {}
+            rows = depends_mod.audit(project.slug, state.get("tasks") or [])
+            if args.unaudited:
+                rows = [row for row in rows if row["standing"] == "unaudited"]
+            _print_json(rows)
             return 0
 
         if args.cmd == "sweep":

@@ -600,6 +600,60 @@ other=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
   'from loopctl.writeback import _last_run_id_for; print(_last_run_id_for("'"$MACHINE"'", "no-such-task") or "")')
 check "a different task gets no parent" "$other" ""
 
+# --- 16. an unmet dependency keeps a task out of the queue -------------------
+# The board is a DAG and next_candidates could not see it. On 2026-08-01 a model
+# was routed at a task blocked two levels deep, because the order lived only in
+# ticket prose. Edges are resolved by judgement, not parsed -- most of that prose
+# names its dependency by title, and "Order 1 of 3" names nothing at all.
+echo "  dependency edges gate the queue:"
+mkdir -p "$HOME_DIR/depends"
+SECOND=T-88888888888888
+SECOND_KEY="_system/tasks/$SECOND.md"
+sed "s/$TASK_ID/$SECOND/" "$VAULT/$TASK_KEY" > "$VAULT/$SECOND_KEY"
+printf -- '- %s\n' "$SECOND_KEY" >> "$HOME_DIR/greenlight/sandbox.md"
+cat > "$HOME_DIR/depends/sandbox.yaml" <<YAML
+$SECOND_KEY:
+  depends_on: ["$TASK_KEY"]
+  from: "Depends on the sandbox task."
+  resolved: 2026-08-03
+YAML
+"$LOOPCTL" scan sandbox >/dev/null 2>&1
+queued=$("$LOOPCTL" next sandbox 2>/dev/null | "$VENV/bin/python" -c \
+  'import json,sys; print(",".join(r.get("id","") for r in json.load(sys.stdin)))')
+excludes "a blocked task is out of the queue" "$queued" "$SECOND"
+contains "its dependency is still offered" "$queued" "$TASK_ID"
+# Satisfied once the dependency is reviewable — waiting for in-qa would serialise
+# the stacked-branch flow this board actually uses.
+"$LOOPCTL" set sandbox "$TASK_KEY" pr-ready --pr https://example.invalid/1 >/dev/null 2>&1
+"$LOOPCTL" scan sandbox >/dev/null 2>&1
+queued=$("$LOOPCTL" next sandbox 2>/dev/null | "$VENV/bin/python" -c \
+  'import json,sys; print(",".join(r.get("id","") for r in json.load(sys.stdin)))')
+contains "pr-ready satisfies the edge" "$queued" "$SECOND"
+# Satisfied but nobody has confirmed the resolution: enforced anyway, and flagged.
+contains "deps flags an unreviewed resolution" "$("$LOOPCTL" deps sandbox 2>/dev/null)" "unverified"
+# An edge naming something the scan cannot see blocks on purpose: closed, renamed
+# or simply not synced is state the loop cannot confirm, and its standing rule is
+# to stop rather than guess.
+cat > "$HOME_DIR/depends/sandbox.yaml" <<YAML
+$SECOND_KEY:
+  depends_on: ["_system/tasks/T-00000000000000.md"]
+  from: "Depends on something that is not there."
+  resolved: 2026-08-03
+YAML
+"$LOOPCTL" scan sandbox >/dev/null 2>&1
+queued=$("$LOOPCTL" next sandbox 2>/dev/null | "$VENV/bin/python" -c \
+  'import json,sys; print(",".join(r.get("id","") for r in json.load(sys.stdin)))')
+excludes "an edge to an unknown task blocks" "$queued" "$SECOND"
+audit=$("$LOOPCTL" deps sandbox 2>/dev/null)
+contains "deps names why it is blocked" "$audit" "not on the board"
+# A malformed file must not take the loop down with it.
+printf 'this: [is: not: yaml\n' > "$HOME_DIR/depends/sandbox.yaml"
+"$LOOPCTL" scan sandbox >/dev/null 2>&1
+queued=$("$LOOPCTL" next sandbox 2>/dev/null | "$VENV/bin/python" -c \
+  'import json,sys; print(",".join(r.get("id","") for r in json.load(sys.stdin)))')
+contains "a broken edge file means no edges, not no queue" "$queued" "$SECOND"
+rm -f "$HOME_DIR/depends/sandbox.yaml" "$VAULT/$SECOND_KEY"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
