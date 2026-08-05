@@ -791,6 +791,23 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
   # Observatory/retro mirror is append-only and best-effort. The executor's
   # loopctl set remains the authoritative task-state transition.
   run_fields=()
+  # Edges, not measurements. `task_id` is the human key every other surface uses
+  # -- greenlight, notes, config all speak AG-298, so a row that knows only the
+  # source URL cannot be joined against any of them. The branch is read after the
+  # executor ran, because the executor is what creates it. The PR comes from the
+  # task's own overlay, which the executor set when it reached pr-ready.
+  [ -n "${task_item_id:-}" ] && run_fields+=(--task-id "$task_item_id")
+  run_branch=$(git -C "$project_path" rev-parse --abbrev-ref HEAD 2>/dev/null || printf '')
+  [ -n "$run_branch" ] && [ "$run_branch" != "HEAD" ] && run_fields+=(--branch "$run_branch")
+  run_pr=$("$LOOPCTL" show "$slug" 2>/dev/null | "$PYTHON_BIN" -c \
+    'import json, sys
+rows = (json.load(sys.stdin) or {}).get("tasks") or []
+want = sys.argv[1]
+for row in rows:
+    if str((row.get("metadata") or {}).get("item_id") or "") == want:
+        print(row.get("pr") or "")
+        break' "${task_item_id:-}" 2>/dev/null || printf '')
+  [ -n "$run_pr" ] && run_fields+=(--pr "$run_pr")
   [ -n "$PLAN_MODEL" ] && run_fields+=(--model "$PLAN_MODEL")
   [ -n "$PLAN_EFFORT" ] && run_fields+=(--effort "$PLAN_EFFORT")
   [ -n "$tokens_out" ] && run_fields+=(--tokens-out "$tokens_out")

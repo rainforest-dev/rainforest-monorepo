@@ -234,6 +234,36 @@ def _quota_block(before_5h, after_5h, before_week, after_week, pool=None) -> dic
     }
 
 
+def _last_run_id_for(machine: str, task: str) -> str | None:
+    """The most recent run_id already recorded for this task on this machine.
+
+    A fix round is not declared, it is simply the next run on a task that already
+    has one, so the edge can be read off the ledger instead of being threaded
+    through every caller. Reads the partition backwards and stops at the first
+    match: the file is append-only and one line per run, so the last hit is the
+    parent.
+
+    Best-effort by the same rule as the rest of this module -- a missing or
+    unreadable ledger means no parent, never a failed run.
+    """
+    path = usage_path(f"loop-runs.{machine}.jsonl")
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return None
+    for line in reversed(lines):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if row.get("task") == task:
+            return row.get("run_id")
+    return None
+
+
 def append_run(
     *,
     project: str,
@@ -253,11 +283,33 @@ def append_run(
     quota_week_before: str | float | None = None,
     quota_week_after: str | float | None = None,
     quota_pool: str | None = None,
+    task_id: str | None = None,
+    branch: str | None = None,
+    pr: str | None = None,
 ) -> dict:
-    """Append one structured iteration/retro record to a machine partition."""
+    """Append one structured iteration/retro record to a machine partition.
+
+    The row carries edges as well as measurements. Without them the ledger could
+    say what a run cost but not what it was working on, where the work went, or
+    which earlier run it was fixing -- so "did the second attempt close what the
+    first missed" was unanswerable from own data, which is the whole question a
+    fix round exists to answer. These are id fields on an existing row, which is
+    what OpenLineage's parent facet and Pydantic AI's step persistence both
+    reduce to; neither needs a graph store.
+    """
     ended = ended_ts or int(time.time())
     record = {
         "run_id": f"{machine}-{ended}-{task}",
+        # The human key (AG-298), alongside `task` which is the source URL. Every
+        # other surface -- greenlight, notes, config -- speaks the human key, so a
+        # ledger that only knows the URL cannot be joined against any of them.
+        "task_id": task_id,
+        "branch": branch,
+        "pr": pr,
+        # Derived rather than passed: the caller has no reason to know it, and a
+        # fix round is simply the next run on a task that already has one. Reading
+        # it here means every caller gets the edge for free.
+        "parent_run_id": _last_run_id_for(machine, task),
         "project": project,
         "task": task,
         "executor": executor,
