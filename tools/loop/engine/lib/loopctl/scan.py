@@ -637,6 +637,12 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--quota-week-before")
     run_parser.add_argument("--quota-week-after")
     run_parser.add_argument("--quota-pool", choices=["claude", "codex"])
+    # Defaults to the weaker claim: a caller that does not say how it measured
+    # has not shown the delta belongs to this run rather than to whatever else
+    # was spending the same pool.
+    run_parser.add_argument(
+        "--quota-attribution", choices=["exact", "upper-bound"], default="upper-bound"
+    )
     run_parser.add_argument("--task-id", help="the human key, e.g. AG-298")
     run_parser.add_argument("--branch")
     run_parser.add_argument("--pr")
@@ -735,6 +741,7 @@ def main(argv=None) -> int:
                     quota_week_before=args.quota_week_before,
                     quota_week_after=args.quota_week_after,
                     quota_pool=args.quota_pool,
+                    quota_attribution=args.quota_attribution,
                     task_id=args.task_id,
                     branch=args.branch,
                     pr=args.pr,

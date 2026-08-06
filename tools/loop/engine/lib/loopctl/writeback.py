@@ -200,13 +200,27 @@ def _pct(value: str | float | None) -> float | None:
         return None
 
 
-def _quota_block(before_5h, after_5h, before_week, after_week, pool=None) -> dict | None:
+def _quota_block(
+    before_5h, after_5h, before_week, after_week, pool=None, attribution="upper-bound"
+) -> dict | None:
     """Structured quota movement for one run, or None when nothing was sampled.
 
     The percentage-point deltas were previously only ever written into the free-text
     `note`, which made them unusable for anything but reading. They are the only
     measurement that answers "what did this run actually cost me", so they belong
     in fields.
+
+    `attribution` says whether the delta is that answer or merely a bound on it.
+    Two reads of a shared pool measure everything spending it, not this run:
+    measured 2026-08-05, an AG-131 iteration costing $4.51 recorded 36pp, almost
+    all of it the Claude Code session that was operating the loop, while an
+    AG-383 iteration costing $16.34 recorded 1pp because nothing else was awake.
+    The figures were not noisy, they were anti-correlated with spend, and the
+    field carrying them said nothing about that. `exact` is reserved for a delta
+    bracketed inside the run's own session -- what `codex_weekly_pp` does, and
+    what Claude offers no equivalent of, since its quota is only ever published
+    per account. The default is the weaker claim, because a caller that does not
+    say how it measured has not earned the stronger one.
     """
     five_before, five_after = _pct(before_5h), _pct(after_5h)
     week_before, week_after = _pct(before_week), _pct(after_week)
@@ -225,6 +239,10 @@ def _quota_block(before_5h, after_5h, before_week, after_week, pool=None) -> dic
         # cannot be read: a Codex run moves the Codex weekly pool and leaves
         # Claude's untouched, and the fields alone do not say which was sampled.
         "pool": pool,
+        # Whether the deltas below are this run's cost or an upper bound on it.
+        # A reader that ignores this field will read a shared-pool sample as a
+        # cost, which is exactly how a $4.51 run came to be recorded as 36pp.
+        "attribution": attribution,
         "five_hour_before": five_before,
         "five_hour_after": five_after,
         "five_hour_delta_pp": delta(five_before, five_after),
@@ -283,6 +301,7 @@ def append_run(
     quota_week_before: str | float | None = None,
     quota_week_after: str | float | None = None,
     quota_pool: str | None = None,
+    quota_attribution: str = "upper-bound",
     task_id: str | None = None,
     branch: str | None = None,
     pr: str | None = None,
@@ -325,7 +344,12 @@ def append_run(
         "effort": effort,
         "tokens_out": tokens_out,
         "quota": _quota_block(
-            quota_5h_before, quota_5h_after, quota_week_before, quota_week_after, quota_pool
+            quota_5h_before,
+            quota_5h_after,
+            quota_week_before,
+            quota_week_after,
+            quota_pool,
+            quota_attribution,
         ),
     }
     path = usage_path(f"loop-runs.{machine}.jsonl")

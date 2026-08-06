@@ -491,7 +491,12 @@ write_quota 10 20
 budget_log=$(LOOP_BUDGET_WEEKLY_PP=4 LOOP_OVERRUN_RATIO=1.5 "$HOME_DIR/ralph.sh" 1 10 2>&1 || true)
 contains "the start line names the approved points" "$budget_log" "approved 4pp weekly"
 contains "headroom to the stop threshold is stated" "$budget_log" "room: 5h"
-contains "points consumed are reported against the approval" "$budget_log" "of 4pp approved"
+# The executor here is claude, whose delta is a shared-pool sample. There is no
+# "Xpp of 4pp approved" tally to print, because a tally built on that figure
+# would be a number the engine cannot stand behind -- section 17 covers why, and
+# section 14 covers the codex run that does get one.
+contains "an unattributable delta is not tallied against the approval" "$budget_log" \
+  "the 4pp approval cannot be checked against it"
 # Unset means nothing changes: the dollar cap stays the only per-run limit.
 excludes "no points budget, no points line" \
   "$("$HOME_DIR/ralph.sh" 1 10 2>&1)" "approved"
@@ -567,6 +572,44 @@ check "the run's own session is found and bracketed" \
 printf '{"type":"turn.completed"}\n' > "$ROOT/no-thread.log"
 check "no thread id means no number" "$(cpp "$ROOT/fakehome" "$ROOT/no-thread.log")" ""
 check "a missing transcript is silent" "$(cpp "$ROOT/fakehome" /nonexistent.log)" ""
+
+# End to end: a codex run bracketed by its own session is the one delta the
+# engine can attribute, so it is the one that still advances the approval and
+# still stops the loop. Every $HOME in ralph.sh is behind an env override the
+# sandbox already sets, except the codex sessions dir -- which is the one this
+# redirect is for. The fake codex announces thread t-1, so that is the session.
+mk_session "t-1" 30.0 47.0
+# Its own fake: the one section 5b restores announces no thread, and locating the
+# session is the entire mechanism under test here.
+cat > "$ROOT/fake-codex-threaded" <<'FAKE'
+#!/usr/bin/env bash
+printf 'codex %s\n' "$*" >> "$RALPH_TEST_CALLS"
+echo '{"type":"thread.started","thread_id":"t-1"}'
+echo '{"type":"turn.completed","usage":{"output_tokens":777}}'
+exit 0
+FAKE
+chmod +x "$ROOT/fake-codex-threaded"
+# Routed by preset, not by LOOP_EXECUTORS: a preset's provider is tried first
+# whatever the executor list says, so an ambient claude preset would take the run.
+cat > "$ROOT/agents-codex.json" <<JSON
+{
+  "default_agent": "codex",
+  "presets": {"codex-exact": {"provider": "codex"}},
+  "tasks": {"$TASK_KEY": {"preset": "codex-exact"}}
+}
+JSON
+: > "$RALPH_TEST_CALLS"; rm -f "$runs_file"
+exact_log=$(HOME="$ROOT/fakehome" CODEX_BIN="$ROOT/fake-codex-threaded" \
+  LOOP_AGENT_CONFIG="$ROOT/agents-codex.json" \
+  LOOP_BUDGET_WEEKLY_PP=4 LOOP_OVERRUN_RATIO=1.5 "$HOME_DIR/ralph.sh" 1 10 2>&1 || true)
+check "the codex iteration ran at all" "$(last_run_field executor)" "codex"
+check "its delta comes from its own session" "$(last_run_field quota.weekly_delta_pp)" "17.0"
+check "and is recorded as exact" "$(last_run_field quota.attribution)" "exact"
+excludes "an exact delta is printed without a bound" "$exact_log" "upper bound"
+contains "an exact delta is tallied against the approval" "$exact_log" "17.0pp of 4pp approved"
+contains "and still stops the run past the ratio" "$exact_log" \
+  "over the approved weekly points: 17.0pp exceeds 4pp by more than 1.5x"
+write_quota 10 20
 
 # --- 15. the run row carries edges, not just measurements --------------------
 # The ledger could say what a run cost but not what it worked on, where the work
@@ -653,6 +696,149 @@ queued=$("$LOOPCTL" next sandbox 2>/dev/null | "$VENV/bin/python" -c \
   'import json,sys; print(",".join(r.get("id","") for r in json.load(sys.stdin)))')
 contains "a broken edge file means no edges, not no queue" "$queued" "$SECOND"
 rm -f "$HOME_DIR/depends/sandbox.yaml" "$VAULT/$SECOND_KEY"
+
+# --- 17. a shared pool measures everyone, so the row says so -----------------
+# Measured 2026-08-05: the AG-131 iteration cost $4.51 and recorded 36pp, while
+# AG-383 cost $16.34 and recorded 1pp. The delta is the difference between two
+# reads of a file every claude process on the account moves, and the loudest one
+# is usually the session operating the loop -- so the figures were not noisy,
+# they were anti-correlated with spend, and the engine declared an overrun on
+# one of them.
+echo "  a shared pool is an upper bound:"
+# Section 16 drove the sandbox task to pr-ready, which is terminal here and
+# retires its greenlight entry. Without restoring all three -- note, allowlist,
+# derived state -- the queue is empty, no run record is written, and every
+# assertion below compares blank to blank and passes.
+cat > "$VAULT/$TASK_KEY" <<NOTE
+---
+task_id: "$TASK_ID"
+status: Not started
+priority: P2
+points: 1
+scope: personal
+---
+
+# Sandbox task
+
+Exists only inside this test.
+NOTE
+cat > "$HOME_DIR/greenlight/sandbox.md" <<GL
+# sandbox greenlight
+
+## Cleared
+- $TASK_KEY
+GL
+rm -rf "$HOME_DIR/projects"
+"$LOOPCTL" scan sandbox >/dev/null 2>&1
+write_quota 10 20
+
+# A second process spending the same pool while the iteration runs. The fake
+# executor invokes it, so the ordering is deterministic rather than a race, but
+# it is a separate process writing the shared file -- which is exactly what the
+# operating Claude Code session does to a real run.
+cat > "$ROOT/fake-burner" <<'BURN'
+#!/usr/bin/env bash
+cat > "$LOOP_QUOTA_FILE" <<Q
+{"claude": {"five_hour": {"used_pct": 12}, "weekly_all": {"used_pct": 67}}}
+Q
+BURN
+cat > "$ROOT/fake-claude-burned" <<'FAKE'
+#!/usr/bin/env bash
+printf 'claude %s\n' "$*" >> "$RALPH_TEST_CALLS"
+"$RALPH_TEST_BURNER"
+echo '{"type":"result","subtype":"success","total_cost_usd":0.5,"usage":{"output_tokens":10},"result":"done"}'
+exit 0
+FAKE
+chmod +x "$ROOT/fake-burner" "$ROOT/fake-claude-burned"
+: > "$RALPH_TEST_CALLS"; rm -f "$runs_file"
+burn_log=$(CLAUDE_BIN="$ROOT/fake-claude-burned" RALPH_TEST_BURNER="$ROOT/fake-burner" \
+  LOOP_BUDGET_WEEKLY_PP=4 LOOP_OVERRUN_RATIO=1.5 "$HOME_DIR/ralph.sh" 1 10 2>&1 || true)
+# Before anything else: the iteration has to have happened. Assertions in this
+# suite have twice passed because a helper had not loaded and empty compared
+# equal to empty, and an empty queue would do it again here.
+check "the iteration ran at all" "$(last_run_field cost_usd)" "0.5"
+check "the pool movement is still recorded" "$(last_run_field quota.weekly_delta_pp)" "47.0"
+check "but the row does not claim it" "$(last_run_field quota.attribution)" "upper-bound"
+# 47pp of movement beside $0.50 of spend is the AG-131 shape. The exact figure
+# claude does have stays on the row, next to the one it does not.
+check "the exact per-run cost is kept beside it" "$(last_run_field cost_usd)" "0.5"
+contains "the log marks the delta as a bound" "$burn_log" "upper bound — shared pool"
+contains "the approval is not checked against it" "$burn_log" "cannot be checked against it"
+# 47pp against a 4pp approval is 7.8x the 1.5x ceiling. Before this change that
+# printed an overrun and stopped the loop, on a number that was mostly somebody
+# else's spend.
+excludes "no overrun is declared on it" "$burn_log" "over the approved weekly points"
+
+# Codex is unchanged: its delta comes from inside its own session, which no
+# other process can move, so it keeps the exact claim and keeps stopping the run.
+attr_lib="$ROOT/attribution.sh"
+awk '/^quota_attribution\(\) \{/,/^\}/' "$HOME_DIR/ralph.sh" > "$attr_lib"
+attr() {  # <provider> <own-session-bracket>
+  bash -c '. "$1"
+type quota_attribution >/dev/null 2>&1 || { echo "HELPER-NOT-LOADED"; exit 0; }
+quota_attribution "$2" "$3"' _ "$attr_lib" "$1" "${2:-}"
+}
+check "a bracketed codex delta is exact" "$(attr codex "$(printf '53.0\t57.0')")" "exact"
+check "codex falling back to the file is not" "$(attr codex "")" "upper-bound"
+# The point of the whole change: claude has no per-session quota to bracket, so
+# no input makes its delta exact.
+check "claude is never exact, bracket or not" "$(attr claude "$(printf '53.0\t57.0')")" "upper-bound"
+
+mb_lib="$ROOT/mark-bound.sh"
+awk '/^mark_bound\(\) \{/,/^\}/' "$HOME_DIR/ralph.sh" > "$mb_lib"
+mb() {  # <delta> <attribution>
+  bash -c '. "$1"
+type mark_bound >/dev/null 2>&1 || { echo "HELPER-NOT-LOADED"; exit 0; }
+mark_bound "$2" "$3"' _ "$mb_lib" "$1" "$2"
+}
+check "an exact delta is printed plain" "$(mb '~17pp' exact)" "~17pp"
+check "an unattributable one carries its provenance" "$(mb '~36.0pp' upper-bound)" \
+  "~36.0pp, upper bound — shared pool"
+# "window reset" and "?" already say they are not measurements; bounding them
+# would suggest a bound exists where there is no number at all.
+check "a reset is not given a bound" "$(mb 'window reset' upper-bound)" "window reset"
+check "nor is an absent reading" "$(mb '?' upper-bound)" "?"
+
+# --- 18. the dollar guard is checked between iterations, and says so ---------
+# AG-383 was started with a $15 guard and spent $16.34 in a single iteration.
+# SPENT accumulates and is compared only after an iteration returns, so with
+# max_iter=1 the guard cannot fire at all -- and the log still printed "$15
+# guard" as though it had applied.
+echo "  the dollar guard does not cap an iteration:"
+cat > "$ROOT/fake-claude-expensive" <<'FAKE'
+#!/usr/bin/env bash
+printf 'claude %s\n' "$*" >> "$RALPH_TEST_CALLS"
+echo '{"type":"result","subtype":"success","total_cost_usd":16.34,"usage":{"output_tokens":10},"result":"done"}'
+exit 0
+FAKE
+# The AG-383 shape exactly: the turn limit, which exits before the between-
+# iterations check is ever reached.
+cat > "$ROOT/fake-claude-maxturns" <<'FAKE'
+#!/usr/bin/env bash
+printf 'claude %s\n' "$*" >> "$RALPH_TEST_CALLS"
+echo '{"type":"result","subtype":"error_max_turns","total_cost_usd":16.34,"is_error":true,"result":null}'
+exit 1
+FAKE
+chmod +x "$ROOT/fake-claude-expensive" "$ROOT/fake-claude-maxturns"
+write_quota 10 20
+: > "$RALPH_TEST_CALLS"; rm -f "$runs_file"
+spend_log=$(CLAUDE_BIN="$ROOT/fake-claude-expensive" "$HOME_DIR/ralph.sh" 1 15 2>&1 || true)
+check "the iteration ran at all" "$(last_run_field cost_usd)" "16.34"
+excludes "the start line no longer calls it a guard alone" "$spend_log" "\$15 guard·"
+contains "the start line says when it is checked" "$spend_log" \
+  "\$15 checked between iterations (cannot stop one)"
+contains "a single iteration over the guard is named" "$spend_log" \
+  "this iteration alone spent \$16.34, over the \$15 guard by \$1.34"
+contains "and why it was not stopped" "$spend_log" \
+  "the guard is checked between iterations, so it could not stop it"
+
+: > "$RALPH_TEST_CALLS"; rm -f "$runs_file"
+turns_log=$(CLAUDE_BIN="$ROOT/fake-claude-maxturns" "$HOME_DIR/ralph.sh" 1 15 2>&1 || true)
+contains "the turn-limit exit reports the spend" "$turns_log" "spent \$16.34 this attempt"
+# This path exits before the between-iterations check, so until now a run could
+# end $1.34 over its guard having never compared the two.
+contains "the turn-limit exit also names the overrun" "$turns_log" \
+  "over the \$15 guard by \$1.34"
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
