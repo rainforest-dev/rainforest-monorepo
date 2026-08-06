@@ -380,6 +380,52 @@ print("window reset" if after < before else "~{}pp".format(after - before))' \
     "$1" "$2"
 }
 
+# Whether a delta can be claimed as this run's cost, or only as a bound on it.
+#
+# Sampling a shared quota file before and after an iteration measures everything
+# that spent the pool in between, and on this machine the loudest spender is
+# usually the Claude Code session operating the loop. Measured 2026-08-05: the
+# AG-131 iteration cost $4.51 and recorded 36pp, while AG-383 cost $16.34 and
+# recorded 1pp -- it ran overnight with nothing else awake. Three and a half
+# times the spend, one thirty-sixth the points; the numbers are not noisy, they
+# are anti-correlated, and nothing in the row said so.
+#
+# Only a delta read from inside the run's own session is exact, which is what
+# codex_weekly_pp returns when it finds one. Claude publishes quota per account
+# and never per session -- its result envelope carries total_cost_usd and no
+# percentage at all -- so a claude delta is an upper bound, always, and there is
+# no measurement that would make it otherwise.
+quota_attribution() {
+  local provider="$1" own_bracket="${2:-}"
+  if [ "$provider" = "codex" ] && [ -n "$own_bracket" ]; then
+    printf 'exact'
+  else
+    printf 'upper-bound'
+  fi
+}
+
+# A delta string with its provenance attached, so the number is never read alone.
+# Only decorates a real measurement: "window reset" and "?" already say they are
+# not one, and marking them would suggest there is a bound where there is none.
+mark_bound() {
+  case "$2" in
+    exact) printf '%s' "$1" ;;
+    *) case "$1" in
+         '~'*pp) printf '%s, upper bound — shared pool' "$1" ;;
+         *) printf '%s' "$1" ;;
+       esac ;;
+  esac
+}
+
+# Whether one spend exceeded the guard, and by how much: "<0|1>\t<amount over>".
+usd_over() {
+  "$PYTHON_BIN" -c \
+    'from decimal import Decimal; import sys
+spend, guard = Decimal(sys.argv[1] or 0), Decimal(sys.argv[2])
+print("{}\t{}".format(int(spend > guard), max(spend - guard, Decimal(0))))' \
+    "$1" "$2" 2>/dev/null || printf '0\t0'
+}
+
 # One log-safe line describing how an executor ended: its stop reason and what
 # it said. Needed on the failure path most of all -- on 2026-07-29 an executor
 # hit the turn limit one step after opening a PR, and the log said only
@@ -548,10 +594,17 @@ except (OSError, ValueError, TypeError, AttributeError):
 PY
 }
 
+# "$15 guard" read as a cap and was not one. SPENT accumulates and is compared
+# only after an iteration returns, so with max_iter=1 it can never fire at all --
+# the AG-383 run was started with a $15 guard, spent $16.34 in its single
+# iteration, and the log printed the guard as though it had applied. The only
+# bound that operates inside an iteration is RALPH_MAX_TURNS, which counts turns,
+# not money. Say which of the two this is, on the line that introduces it.
+USD_GUARD_NOTE="\$$BUDGET_USD checked between iterations (cannot stop one)"
 if [ -n "$BUDGET_WEEKLY_PP" ]; then
-  log "start · machine=$MACHINE max_iter=$MAX_ITER · approved ${BUDGET_WEEKLY_PP}pp weekly (stop past ${OVERRUN_RATIO}x) · \$$BUDGET_USD guard"
+  log "start · machine=$MACHINE max_iter=$MAX_ITER · approved ${BUDGET_WEEKLY_PP}pp weekly (stop past ${OVERRUN_RATIO}x) · $USD_GUARD_NOTE"
 else
-  log "start · machine=$MACHINE max_iter=$MAX_ITER budget=\$$BUDGET_USD"
+  log "start · machine=$MACHINE max_iter=$MAX_ITER · $USD_GUARD_NOTE"
 fi
 while [ "$iter" -lt "$MAX_ITER" ]; do
   refresh_quota
@@ -685,6 +738,14 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
           "$SPENT" "$turn_cost")
         log "  turn limit ($MAX_TURNS) reached — not a provider failure, so the task is NOT passed on"
         log "  spent \$$turn_cost this attempt"
+        # This is the path AG-383 took: $16.34 against a $15 guard, and the guard
+        # was never consulted, because the between-iterations check lives past the
+        # `exit` below. It still cannot stop the spend -- it has already happened --
+        # but a run that went over must not exit silently as though it had not.
+        IFS=$'\t' read -r turn_over turn_over_by <<< "$(usd_over "$turn_cost" "$BUDGET_USD")"
+        if [ "$turn_over" -eq 1 ]; then
+          log "  over the \$$BUDGET_USD guard by \$$turn_over_by — the guard is checked between iterations, so it could not stop this one"
+        fi
         # The session survives with its full context -- what it understood, what it
         # tried, what it had just done. Print the exact command to pick it up:
         # reconstructing it later means knowing transcripts are keyed by cwd and
@@ -766,16 +827,19 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
   # printed as "?" every time.
   if [ "$provider" = "codex" ]; then
     # The run's own session beats sampling a shared file twice. Fall back to the
-    # file only when the session cannot be located.
+    # file only when the session cannot be located -- and when it cannot, the
+    # delta is a shared-pool sample like any other, so it loses the exact claim.
     own=$(codex_weekly_pp "${transcript:-}")
     if [ -n "$own" ]; then
       IFS=$'\t' read -r cxw_before cxw_after <<< "$own"
     fi
+    attribution=$(quota_attribution codex "$own")
     dw=$(pct_delta "${cxw_before:-}" "${cxw_after:-}")
     d5="n/a"
-    log "  quota · codex weekly ${cxw_before:-?}%→${cxw_after:-?}% (${dw}) · claude untouched"
+    log "  quota · codex weekly ${cxw_before:-?}%→${cxw_after:-?}% ($(mark_bound "$dw" "$attribution")) · claude untouched"
   else
-    log "  quota · claude 5h ${pct5_before:-?}%→${pct5_after:-?}% (${d5}) · weekly ${pctw_before:-?}%→${pctw_after:-?}% (${dw})"
+    attribution=$(quota_attribution "$provider")
+    log "  quota · claude 5h ${pct5_before:-?}%→${pct5_after:-?}% ($(mark_bound "$d5" "$attribution")) · weekly ${pctw_before:-?}%→${pctw_after:-?}% ($(mark_bound "$dw" "$attribution"))"
   fi
   # An executor that stops at step 0 exits 0 and bills normally, so cost alone
   # cannot tell "did the work" from "could not start". Say what it concluded and
@@ -811,6 +875,10 @@ for row in rows:
   [ -n "$PLAN_MODEL" ] && run_fields+=(--model "$PLAN_MODEL")
   [ -n "$PLAN_EFFORT" ] && run_fields+=(--effort "$PLAN_EFFORT")
   [ -n "$tokens_out" ] && run_fields+=(--tokens-out "$tokens_out")
+  # Whether the numbers below are this run's cost or a ceiling on it. Recorded as
+  # a field rather than left to the reader: a shared-pool sample and a
+  # session-bracketed one look identical once they are both a number in a row.
+  run_fields+=(--quota-attribution "$attribution")
   # Record the allowance the executor actually spent. A Codex run leaves the
   # Claude pool untouched, so filing Claude's numbers against it says the run was
   # free -- which is how AG-297 came to be recorded as 0pp while spending Codex.
@@ -837,34 +905,54 @@ for row in rows:
   # Points actually consumed this iteration. `pct_delta` says "window reset" when
   # the window rolled over, which is not a measurement -- carry nothing rather
   # than guess, and say so, or the approved figure quietly stops meaning anything.
+  #
+  # An upper bound is not a verdict. The AG-131 run printed "36.0pp exceeds 10pp
+  # by more than 1.5x" and stopped the loop over a figure that was mostly the
+  # operating session's spend -- a conclusion the engine had no basis to draw.
+  # Only a delta the run can claim advances the approval or ends the run; an
+  # unattributable one is reported and left alone. That is not a hole in the
+  # brakes: the pre-iteration gate above reads absolute pool levels, which no
+  # concurrent process can distort, and still stops the loop past PCT_WEEK_STOP.
   if [ -n "$BUDGET_WEEKLY_PP" ]; then
-    case "$dw" in
-      '~'*pp)
-        WEEK_PP_SPENT=$("$PYTHON_BIN" -c \
-          'from decimal import Decimal; import sys
+    if [ "$attribution" != "exact" ]; then
+      log "  weekly points · ${dw} observed on a shared pool, an upper bound; the ${BUDGET_WEEKLY_PP}pp approval cannot be checked against it"
+    else
+      case "$dw" in
+        '~'*pp)
+          WEEK_PP_SPENT=$("$PYTHON_BIN" -c \
+            'from decimal import Decimal; import sys
 print(Decimal(sys.argv[1]) + Decimal(sys.argv[2].strip("~pp")))' \
-          "$WEEK_PP_SPENT" "$dw")
-        ;;
-      *)
-        log "  weekly points unmeasurable this iteration ($dw); approved budget not advanced"
-        ;;
-    esac
-    ceiling=$("$PYTHON_BIN" -c \
-      'from decimal import Decimal; import sys; print(Decimal(sys.argv[1]) * Decimal(sys.argv[2]))' \
-      "$BUDGET_WEEKLY_PP" "$OVERRUN_RATIO")
-    over_pp=$("$PYTHON_BIN" -c \
-      'from decimal import Decimal; import sys; print(int(Decimal(sys.argv[1]) > Decimal(sys.argv[2])))' \
-      "$WEEK_PP_SPENT" "$ceiling")
-    log "  weekly points · ${WEEK_PP_SPENT}pp of ${BUDGET_WEEKLY_PP}pp approved (stop past ${ceiling}pp)"
-    if [ "$over_pp" -eq 1 ]; then
-      log "over the approved weekly points: ${WEEK_PP_SPENT}pp exceeds ${BUDGET_WEEKLY_PP}pp by more than ${OVERRUN_RATIO}x"
-      break
+            "$WEEK_PP_SPENT" "$dw")
+          ;;
+        *)
+          log "  weekly points unmeasurable this iteration ($dw); approved budget not advanced"
+          ;;
+      esac
+      ceiling=$("$PYTHON_BIN" -c \
+        'from decimal import Decimal; import sys; print(Decimal(sys.argv[1]) * Decimal(sys.argv[2]))' \
+        "$BUDGET_WEEKLY_PP" "$OVERRUN_RATIO")
+      over_pp=$("$PYTHON_BIN" -c \
+        'from decimal import Decimal; import sys; print(int(Decimal(sys.argv[1]) > Decimal(sys.argv[2])))' \
+        "$WEEK_PP_SPENT" "$ceiling")
+      log "  weekly points · ${WEEK_PP_SPENT}pp of ${BUDGET_WEEKLY_PP}pp approved (stop past ${ceiling}pp)"
+      if [ "$over_pp" -eq 1 ]; then
+        log "over the approved weekly points: ${WEEK_PP_SPENT}pp exceeds ${BUDGET_WEEKLY_PP}pp by more than ${OVERRUN_RATIO}x"
+        break
+      fi
     fi
+  fi
+  # What this one iteration cost, against the guard that could not have stopped
+  # it. Reported whether or not the cumulative check below fires: on the last
+  # iteration -- and on every iteration when max_iter=1 -- that check is the only
+  # one there is, and it runs too late to matter.
+  IFS=$'\t' read -r iter_over iter_over_by <<< "$(usd_over "$cost" "$BUDGET_USD")"
+  if [ "$iter_over" -eq 1 ]; then
+    log "  this iteration alone spent \$$cost, over the \$$BUDGET_USD guard by \$$iter_over_by — the guard is checked between iterations, so it could not stop it"
   fi
   over_budget=$("$PYTHON_BIN" -c "from decimal import Decimal; import sys; print(int(Decimal(sys.argv[1]) > Decimal(sys.argv[2])))" \
     "${SPENT:-0}" "$BUDGET_USD")
   if [ "$over_budget" -eq 1 ]; then
-    log "budget exhausted (\$$SPENT over the \$$BUDGET_USD runaway guard)"
+    log "no further iterations (\$$SPENT over the \$$BUDGET_USD guard)"
     break
   fi
 done
