@@ -59,6 +59,18 @@ design-bearing work, write and commit a plan first; routine work may follow its
 existing procedure. Implement one coherent task fully, with bounded repair and
 small commits. Never weaken tests to force green.
 
+Before writing code against a framework or library, list the repository's own
+`.claude/skills/` and read the ones covering what you are about to touch. They carry
+this codebase's conventions and its current API surface, and a task phrased as a bug
+fix will not remind you to look — `service-dashboard-frontend` alone ships 36,
+including per-framework guidance for React, Next.js, TanStack Form/Query/Router and
+Vitest. Measured 2026-08-05 on AG-383: an executor fixed a React render loop with a
+hand-written ref-and-sync-effect pair while `vercel-react-best-practices` sat unread
+in that directory, naming `useEffectEvent` as the cleaner form of exactly that
+pattern — and React 19.2, which this repository runs, exports it. The fix worked; it
+was simply a generation out of date, and the file that would have said so was three
+directories away.
+
 A generated artefact missing from the working tree is not a blocker until you have
 regenerated it. When a task's contract is absent from generated API types, run the
 repository's own sync procedure first — for `service-dashboard-frontend` that is
