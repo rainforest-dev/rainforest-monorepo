@@ -98,6 +98,61 @@ describe('parseSources', () => {
   });
 });
 
+describe('stale flags', () => {
+  const FIXTURE = `# R
+
+## Active Sources
+
+### Web
+
+- [x] **web.dev** #domain/frontend <!-- stale: delivery-gap | live feed active May 2026, Readwise not delivering since 2026-02-17 -->
+  https://web.dev/feed.xml
+
+- [x] **Readwise Docs** #domain/ai <!-- stale: feed-dead | feed URL returns 404 as of 2026-06-28 -->
+  https://docs.readwise.io/rss.xml
+
+- [x] **Legacy Flag** #domain/ai <!-- stale: last seen 2025-08-19; likely a Readwise subscription gap -->
+  https://example.com/rss.xml
+
+- [x] **Healthy** #domain/ai
+  https://example.org/rss.xml
+`;
+
+  function byName(name: string) {
+    const found = parseSources(FIXTURE).find((s) => s.name === name);
+    if (!found) throw new Error(`fixture has no source named "${name}"`);
+    return found;
+  }
+
+  it('parses a typed delivery-gap flag', () => {
+    expect(byName('web.dev').stale).toEqual({
+      type: 'delivery-gap',
+      note: 'live feed active May 2026, Readwise not delivering since 2026-02-17',
+    });
+  });
+
+  it('parses a typed feed-dead flag', () => {
+    expect(byName('Readwise Docs').stale?.type).toBe('feed-dead');
+  });
+
+  it('keeps an untyped legacy flag working as unspecified', () => {
+    const stale = byName('Legacy Flag').stale;
+    expect(stale?.type).toBe('unspecified');
+    expect(stale?.note).toContain('last seen 2025-08-19');
+  });
+
+  it('leaves a healthy source unflagged', () => {
+    expect(byName('Healthy').stale).toBeUndefined();
+  });
+
+  it('does not read a # inside a stale note as a tag', () => {
+    const src = parseSources(
+      '## Active Sources\n\n- [x] **X** #domain/ai <!-- stale: low-value | see #frontend channel -->\n  https://e.com/f\n',
+    )[0];
+    expect(src.tags).toEqual(['domain/ai']);
+  });
+});
+
 describe('parseTopics', () => {
   it('returns all topics', () => {
     const topics = parseTopics(TOPICS_FIXTURE);

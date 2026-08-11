@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 
+// Re-declared locally rather than imported: registry.ts pulls in node:fs, which
+// would land in the client bundle for this island.
+type StaleType = 'feed-dead' | 'delivery-gap' | 'low-value' | 'unspecified';
+
 type Source = {
   name: string;
   url: string;
@@ -7,6 +11,36 @@ type Source = {
   status: 'active' | 'proposed' | 'no-rss' | 'retired';
   category: string;
   proposedDate?: string;
+  stale?: { type: StaleType; note: string };
+};
+
+/** Where Readwise manages feed subscriptions — the fix for a delivery gap. */
+const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';
+
+const STALE_UI: Record<
+  StaleType,
+  { label: string; className: string; retirable: boolean }
+> = {
+  'feed-dead': {
+    label: 'feed dead',
+    className: 'bg-red-900 text-red-300',
+    retirable: true,
+  },
+  'delivery-gap': {
+    label: 'delivery gap',
+    className: 'bg-amber-900 text-amber-300',
+    retirable: false,
+  },
+  'low-value': {
+    label: 'low value',
+    className: 'bg-amber-900 text-amber-300',
+    retirable: true,
+  },
+  unspecified: {
+    label: 'flagged',
+    className: 'bg-gray-700 text-gray-300',
+    retirable: true,
+  },
 };
 
 function daysAgo(dateStr: string): string {
@@ -173,11 +207,21 @@ export default function SourceTable() {
                   </div>
                 </td>
                 <td className="py-2 pr-4">
-                  <span
-                    className={`rounded px-2 py-0.5 text-xs ${STATUS_COLORS[s.status]}`}
-                  >
-                    {s.status}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span
+                      className={`rounded px-2 py-0.5 text-xs ${STATUS_COLORS[s.status]}`}
+                    >
+                      {s.status}
+                    </span>
+                    {s.stale && (
+                      <span
+                        title={s.stale.note}
+                        className={`rounded px-2 py-0.5 text-xs ${STALE_UI[s.stale.type].className}`}
+                      >
+                        {STALE_UI[s.stale.type].label}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="py-2 text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -195,15 +239,28 @@ export default function SourceTable() {
                         {pending.has(s.name) ? '…' : 'Activate'}
                       </button>
                     )}
-                    {s.status === 'active' && (
-                      <button
-                        onClick={() => doAction(s.name, 'retire')}
-                        disabled={pending.has(s.name)}
-                        className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
-                      >
-                        {pending.has(s.name) ? '…' : 'Retire'}
-                      </button>
-                    )}
+                    {s.status === 'active' &&
+                      (s.stale && !STALE_UI[s.stale.type].retirable ? (
+                        // The feed is alive; Readwise stopped delivering. Retiring
+                        // here would destroy a working source to route around
+                        // someone else's bug, so it is not offered at all.
+                        <a
+                          href={READER_FEEDS_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded bg-amber-700 px-3 py-1 text-xs text-amber-100 transition-colors hover:bg-amber-600"
+                        >
+                          Re-subscribe
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => doAction(s.name, 'retire')}
+                          disabled={pending.has(s.name)}
+                          className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
+                        >
+                          {pending.has(s.name) ? '…' : 'Retire'}
+                        </button>
+                      ))}
                   </div>
                 </td>
               </tr>
