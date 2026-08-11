@@ -16,24 +16,27 @@ const TIER_LABELS: Record<number, string> = {
   4: 'Covered interest',
 };
 
-const STALE_LABELS: Record<StaleItem['reason'], string> = {
-  'done-unfiled': 'Read but never archived',
-  'never-opened-stale': 'Never opened, over 12 months old',
-  'deferred-dead': 'Deferred to Later and never opened',
-  abandoned: 'Abandoned part-way',
-  duplicate: 'Duplicate of another saved item',
-  malformed: 'Malformed title',
+/**
+ * Keyed by StaleReason so the compiler rejects a new reason until it has both a
+ * label and a position — a reason missing from the render order would still be
+ * counted in the panel heading but never shown. `order` runs from "safe to
+ * sweep" to "needs a human decision".
+ */
+const STALE_REASONS: Record<
+  StaleItem['reason'],
+  { label: string; order: number }
+> = {
+  'done-unfiled': { label: 'Read but never archived', order: 0 },
+  'never-opened-stale': { label: 'Never opened, over 12 months old', order: 1 },
+  'deferred-dead': { label: 'Deferred to Later and never opened', order: 2 },
+  abandoned: { label: 'Abandoned part-way', order: 3 },
+  duplicate: { label: 'Duplicate of another saved item', order: 4 },
+  malformed: { label: 'Malformed title', order: 5 },
 };
 
-/** Runs from "safe to sweep" to "needs a human decision" — the order the stale panel groups in. */
-const STALE_REASON_ORDER: StaleItem['reason'][] = [
-  'done-unfiled',
-  'never-opened-stale',
-  'deferred-dead',
-  'abandoned',
-  'duplicate',
-  'malformed',
-];
+const STALE_REASON_ORDER = (
+  Object.keys(STALE_REASONS) as StaleItem['reason'][]
+).sort((a, b) => STALE_REASONS[a].order - STALE_REASONS[b].order);
 
 type Payload = ReadingQueueData | { generated: null };
 
@@ -108,10 +111,12 @@ export default function ReadingQueue() {
   if (data.generated === null)
     return (
       <div className="py-12 text-center">
-        <p className="text-gray-400">No reading queue has been generated yet.</p>
+        <p className="text-gray-400">
+          No reading queue has been generated yet.
+        </p>
         <p className="mt-2 text-sm text-gray-500">
-          Run the <code className="text-violet-400">reading-queue</code> skill to
-          build one.
+          Run the <code className="text-violet-400">reading-queue</code> skill
+          to build one.
         </p>
       </div>
     );
@@ -172,8 +177,8 @@ export default function ReadingQueue() {
             Stale ({data.stale.length})
           </h3>
           <p className="mb-3 text-xs text-gray-500">
-            Read-only. Archive these in Readwise yourself — this app never writes
-            to Reader.
+            Read-only. Archive these in Readwise yourself — this app never
+            writes to Reader.
           </p>
           <div className="space-y-4">
             {STALE_REASON_ORDER.map((reason) => {
@@ -182,7 +187,7 @@ export default function ReadingQueue() {
               return (
                 <div key={reason}>
                   <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    {STALE_LABELS[reason]} ({items.length})
+                    {STALE_REASONS[reason].label} ({items.length})
                   </h4>
                   <ul className="space-y-1">
                     {items.map((item) => (
