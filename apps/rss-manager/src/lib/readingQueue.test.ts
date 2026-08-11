@@ -1,8 +1,17 @@
-import { readFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { parseReadingQueue } from './readingQueue.js';
+import { readReadingQueue } from './readingQueueFile.js';
 
 const FIXTURE = readFileSync(
   new URL('./fixtures/reading-queue.sample.json', import.meta.url),
@@ -162,7 +171,9 @@ describe('parseReadingQueue — malformed input', () => {
       queue: [baseQueueItem({ id: 'shared-id' })],
       stale: [baseStaleItem({ id: 'shared-id' })],
     });
-    expect(() => parseReadingQueue(doc)).toThrow(/shared-id/);
+    expect(() => parseReadingQueue(doc)).toThrow(
+      /shared-id.*queue\[0\].*stale\[0\]/s,
+    );
   });
 
   it('rejects an empty title', () => {
@@ -173,5 +184,98 @@ describe('parseReadingQueue — malformed input', () => {
   it('includes the received value in the error message', () => {
     const doc = baseDocument({ queue: [baseQueueItem({ rank: 'first' })] });
     expect(() => parseReadingQueue(doc)).toThrow(/got string "first"/);
+  });
+
+  it('rejects a negative wikiSources value, naming the offending path', () => {
+    const doc = baseDocument({
+      queue: [
+        baseQueueItem({
+          sort: {
+            profileRank: 0,
+            wikiSources: -1,
+            readingMinutes: 1,
+            savedDaysAgo: 1,
+            progress: 0,
+          },
+        }),
+      ],
+    });
+    expect(() => parseReadingQueue(doc)).toThrow(
+      /queue\[0\]\.sort\.wikiSources/,
+    );
+  });
+
+  it('rejects a negative progress value', () => {
+    const doc = baseDocument({
+      queue: [
+        baseQueueItem({
+          sort: {
+            profileRank: 0,
+            wikiSources: 1,
+            readingMinutes: 1,
+            savedDaysAgo: 1,
+            progress: -0.1,
+          },
+        }),
+      ],
+    });
+    expect(() => parseReadingQueue(doc)).toThrow(/queue\[0\]\.sort\.progress/);
+  });
+
+  it('rejects Infinity in a numeric field', () => {
+    const doc = baseDocument({
+      queue: [
+        baseQueueItem({
+          sort: {
+            profileRank: 0,
+            wikiSources: 1,
+            readingMinutes: Infinity,
+            savedDaysAgo: 1,
+            progress: 0,
+          },
+        }),
+      ],
+    });
+    expect(() => parseReadingQueue(doc)).toThrow(
+      /queue\[0\]\.sort\.readingMinutes/,
+    );
+  });
+});
+
+describe('readReadingQueue', () => {
+  const originalVaultPath = process.env.VAULT_PATH;
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'reading-queue-test-'));
+  });
+
+  afterEach(() => {
+    if (originalVaultPath === undefined) delete process.env.VAULT_PATH;
+    else process.env.VAULT_PATH = originalVaultPath;
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns null when the file is absent', () => {
+    process.env.VAULT_PATH = join(tmpDir, 'does-not-exist');
+    expect(readReadingQueue()).toBeNull();
+  });
+
+  it('reads and parses a real file', () => {
+    process.env.VAULT_PATH = tmpDir;
+    writeFileSync(join(tmpDir, 'reading-queue.json'), FIXTURE, 'utf-8');
+
+    const result = readReadingQueue();
+    expect(result?.generated).toBe('2026-01-15');
+    expect(result?.queue).toHaveLength(4);
+  });
+
+  it('propagates a non-ENOENT error (EISDIR) instead of returning null', () => {
+    process.env.VAULT_PATH = tmpDir;
+    mkdirSync(join(tmpDir, 'reading-queue.json'));
+
+    expect(() => readReadingQueue()).toThrow(
+      expect.objectContaining({ code: 'EISDIR' }),
+    );
   });
 });
