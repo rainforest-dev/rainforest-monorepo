@@ -1,0 +1,102 @@
+{
+  "generated": "2026-01-15",
+  "cutoffMonths": 12,
+  "counts": { "scanned": 9, "queued": 4, "stale": 3 },
+  "queue": [
+    {
+      "rank": 1,
+      "tier": 1,
+      "id": "fixture-0001",
+      "title": "Half-Read Guide to Widget Testing",
+      "readerUrl": "https://read.readwise.io/read/fixture-0001",
+      "sourceUrl": "https://example.com/widget-testing",
+      "siteName": "example.com",
+      "tags": ["tech/widget"],
+      "why": "35% read, opened recently — cheap finish",
+      "sort": {
+        "profileRank": 1,
+        "wikiSources": 8,
+        "readingMinutes": 20,
+        "savedDaysAgo": 5,
+        "progress": 0.35
+      }
+    },
+    {
+      "rank": 2,
+      "tier": 2,
+      "id": "fixture-0002",
+      "title": "Widget Framework 4.2 Release Notes",
+      "readerUrl": "https://read.readwise.io/read/fixture-0002",
+      "sourceUrl": "https://example.com/widget-4-2",
+      "siteName": "example.com",
+      "tags": ["tech/widget"],
+      "why": "profile-prioritized · mature wiki page · no active topic feeding it",
+      "sort": {
+        "profileRank": 0,
+        "wikiSources": 12,
+        "readingMinutes": 9,
+        "savedDaysAgo": 30,
+        "progress": 0
+      }
+    },
+    {
+      "rank": 3,
+      "tier": 3,
+      "id": "fixture-0003",
+      "title": "An Introduction to Sprocket Design",
+      "readerUrl": "https://read.readwise.io/read/fixture-0003",
+      "sourceUrl": "https://example.org/sprocket-intro",
+      "siteName": "example.org",
+      "tags": ["design-system"],
+      "why": "stub wiki page — one source from being useful",
+      "sort": {
+        "profileRank": 2,
+        "wikiSources": 1,
+        "readingMinutes": 4,
+        "savedDaysAgo": 120,
+        "progress": 0
+      }
+    },
+    {
+      "rank": 4,
+      "tier": 4,
+      "id": "fixture-0004",
+      "title": "Quarterly Gadget Industry Roundup",
+      "readerUrl": "https://read.readwise.io/read/fixture-0004",
+      "sourceUrl": "https://example.net/gadget-roundup",
+      "siteName": "example.net",
+      "tags": ["domain/gadget"],
+      "why": "active topic already covered by a mature page",
+      "sort": {
+        "profileRank": 2,
+        "wikiSources": 30,
+        "readingMinutes": 45,
+        "savedDaysAgo": 2,
+        "progress": 0
+      }
+    }
+  ],
+  "stale": [
+    {
+      "id": "fixture-0005",
+      "title": "Finished but Never Filed",
+      "reason": "done-unfiled",
+      "savedAt": "2025-11-02",
+      "readerUrl": "https://read.readwise.io/read/fixture-0005"
+    },
+    {
+      "id": "fixture-0006",
+      "title": "Saved in 2023 and Never Opened",
+      "reason": "never-opened-stale",
+      "savedAt": "2023-04-18",
+      "readerUrl": "https://read.readwise.io/read/fixture-0006"
+    },
+    {
+      "id": "fixture-0007",
+      "title": "Deferred to Later and Forgotten",
+      "reason": "deferred-dead",
+      "savedAt": "2025-06-01",
+      "readerUrl": "https://read.readwise.io/read/fixture-0007"
+    }
+  ]
+}
