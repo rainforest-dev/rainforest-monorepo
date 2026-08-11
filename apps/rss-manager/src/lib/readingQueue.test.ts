@@ -10,7 +10,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { parseReadingQueue } from './readingQueue.js';
+import { parseReadingQueue, sortQueue } from './readingQueue.js';
 import { readReadingQueue } from './readingQueueFile.js';
 
 const FIXTURE = readFileSync(
@@ -277,5 +277,61 @@ describe('readReadingQueue', () => {
     expect(() => readReadingQueue()).toThrow(
       expect.objectContaining({ code: 'EISDIR' }),
     );
+  });
+});
+
+describe('sortQueue', () => {
+  const queue = parseReadingQueue(FIXTURE).queue;
+  const ids = (mode: Parameters<typeof sortQueue>[1]) =>
+    sortQueue(queue, mode).map((i) => i.id);
+
+  it('defaults to the rank the skill assigned', () => {
+    expect(ids('default')).toEqual([
+      'fixture-0001',
+      'fixture-0002',
+      'fixture-0003',
+      'fixture-0004',
+    ]);
+  });
+
+  it('sorts shortest first by reading minutes', () => {
+    expect(ids('shortest')).toEqual([
+      'fixture-0003',
+      'fixture-0002',
+      'fixture-0001',
+      'fixture-0004',
+    ]);
+  });
+
+  it('sorts newest first by days since saved', () => {
+    expect(ids('newest')).toEqual([
+      'fixture-0004',
+      'fixture-0001',
+      'fixture-0002',
+      'fixture-0003',
+    ]);
+  });
+
+  it('sorts thinnest wiki page first', () => {
+    expect(ids('thinnest')).toEqual([
+      'fixture-0003',
+      'fixture-0001',
+      'fixture-0002',
+      'fixture-0004',
+    ]);
+  });
+
+  it('does not mutate the input array', () => {
+    const before = queue.map((i) => i.id);
+    sortQueue(queue, 'shortest');
+    expect(queue.map((i) => i.id)).toEqual(before);
+  });
+
+  it('breaks ties by rank so ordering is deterministic', () => {
+    const tied = [
+      { ...queue[1], id: 'b', rank: 9 },
+      { ...queue[1], id: 'a', rank: 2 },
+    ];
+    expect(sortQueue(tied, 'shortest').map((i) => i.id)).toEqual(['a', 'b']);
   });
 });

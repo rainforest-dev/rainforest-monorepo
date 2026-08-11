@@ -192,6 +192,32 @@ function checkUniqueIds(queue: QueueItem[], stale: StaleItem[]): void {
   stale.forEach((item, i) => check(item.id, `stale[${i}]`));
 }
 
+export type SortMode = 'default' | 'shortest' | 'newest' | 'thinnest';
+
+export const SORT_MODES: { mode: SortMode; label: string }[] = [
+  { mode: 'default', label: 'Default' },
+  { mode: 'shortest', label: 'Shortest first' },
+  { mode: 'newest', label: 'Newest first' },
+  { mode: 'thinnest', label: 'Thinnest wiki page' },
+];
+
+const SORT_KEYS: Record<
+  Exclude<SortMode, 'default'>,
+  (item: QueueItem) => number
+> = {
+  shortest: (item) => item.sort.readingMinutes,
+  newest: (item) => item.sort.savedDaysAgo,
+  thinnest: (item) => item.sort.wikiSources,
+};
+
+/** Returns a new array; ties break by rank so the order is always stable. */
+export function sortQueue(items: QueueItem[], mode: SortMode): QueueItem[] {
+  const sorted = [...items];
+  if (mode === 'default') return sorted.sort((a, b) => a.rank - b.rank);
+  const key = SORT_KEYS[mode];
+  return sorted.sort((a, b) => key(a) - key(b) || a.rank - b.rank);
+}
+
 export function parseReadingQueue(content: string): ReadingQueue {
   let parsed: unknown;
   try {
