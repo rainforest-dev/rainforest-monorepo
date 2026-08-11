@@ -166,6 +166,29 @@ describe('parseReadingQueue — malformed input', () => {
     expect(() => parseReadingQueue(doc)).toThrow(/queue\[0\]\.sort\.progress/);
   });
 
+  // Reader returns reading_time: null for videos and podcasts, so null — not a wrong
+  // type, not a missing key — is the shape real upstream data actually produces. The
+  // skill is responsible for coalescing it; this asserts the app refuses to render a
+  // queue where it slipped through, and says which item to look at.
+  it('rejects a null where a number is required', () => {
+    const doc = baseDocument({
+      queue: [
+        baseQueueItem({
+          sort: {
+            profileRank: 0,
+            wikiSources: 1,
+            readingMinutes: null,
+            savedDaysAgo: 1,
+            progress: 0,
+          },
+        }),
+      ],
+    });
+    expect(() => parseReadingQueue(doc)).toThrow(
+      /queue\[0\]\.sort\.readingMinutes.*got null/s,
+    );
+  });
+
   it('rejects a duplicate id shared between a queue item and a stale item', () => {
     const doc = baseDocument({
       queue: [baseQueueItem({ id: 'shared-id' })],
