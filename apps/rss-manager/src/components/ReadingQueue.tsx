@@ -25,20 +25,43 @@ const STALE_LABELS: Record<StaleItem['reason'], string> = {
   malformed: 'Malformed title',
 };
 
+/** Runs from "safe to sweep" to "needs a human decision" — the order the stale panel groups in. */
+const STALE_REASON_ORDER: StaleItem['reason'][] = [
+  'done-unfiled',
+  'never-opened-stale',
+  'deferred-dead',
+  'abandoned',
+  'duplicate',
+  'malformed',
+];
+
 type Payload = ReadingQueueData | { generated: null };
 
-function QueueRow({ item }: { item: QueueItem }) {
+function QueueRow({
+  item,
+  showTier = false,
+}: {
+  item: QueueItem;
+  showTier?: boolean;
+}) {
   return (
     <li className="border-b border-gray-800 py-3 last:border-b-0">
       <div className="flex items-baseline justify-between gap-4">
-        <a
-          href={item.readerUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium text-violet-400 hover:underline"
-        >
-          {item.title}
-        </a>
+        <div className="flex items-baseline gap-2">
+          {showTier && (
+            <span className="shrink-0 rounded bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
+              {TIER_LABELS[item.tier] ?? `Tier ${item.tier}`}
+            </span>
+          )}
+          <a
+            href={item.readerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-violet-400 hover:underline"
+          >
+            {item.title}
+          </a>
+        </div>
         <span className="shrink-0 text-xs text-gray-500">
           {item.siteName} · {item.sort.readingMinutes} min
         </span>
@@ -94,6 +117,7 @@ export default function ReadingQueue() {
     );
 
   const tiers = [...new Set(sorted.map((i) => i.tier))].sort((a, b) => a - b);
+  const showTier = mode !== 'default';
 
   return (
     <div className="space-y-6">
@@ -137,7 +161,7 @@ export default function ReadingQueue() {
       ) : (
         <ul>
           {sorted.map((item) => (
-            <QueueRow key={item.id} item={item} />
+            <QueueRow key={item.id} item={item} showTier={showTier} />
           ))}
         </ul>
       )}
@@ -147,30 +171,43 @@ export default function ReadingQueue() {
           <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
             Stale ({data.stale.length})
           </h3>
-          <p className="mb-3 text-xs text-gray-600">
+          <p className="mb-3 text-xs text-gray-500">
             Read-only. Archive these in Readwise yourself — this app never writes
             to Reader.
           </p>
-          <ul className="space-y-1">
-            {data.stale.map((item) => (
-              <li key={item.id} className="flex items-baseline gap-3 text-sm">
-                <span className="shrink-0 rounded bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
-                  {STALE_LABELS[item.reason]}
-                </span>
-                <a
-                  href={item.readerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-300 hover:text-violet-400 hover:underline"
-                >
-                  {item.title}
-                </a>
-                <span className="ml-auto shrink-0 text-xs text-gray-600">
-                  {item.savedAt}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-4">
+            {STALE_REASON_ORDER.map((reason) => {
+              const items = data.stale.filter((item) => item.reason === reason);
+              if (items.length === 0) return null;
+              return (
+                <div key={reason}>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    {STALE_LABELS[reason]} ({items.length})
+                  </h4>
+                  <ul className="space-y-1">
+                    {items.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex items-baseline gap-3 text-sm"
+                      >
+                        <a
+                          href={item.readerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-300 hover:text-violet-400 hover:underline"
+                        >
+                          {item.title}
+                        </a>
+                        <span className="ml-auto shrink-0 text-xs text-gray-500">
+                          {item.savedAt}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
     </div>
