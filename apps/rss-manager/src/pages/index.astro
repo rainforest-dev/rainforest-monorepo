@@ -2,9 +2,10 @@
 import SourceTable from '../components/SourceTable.tsx';
 import TopicList from '../components/TopicList.tsx';
 import FeedValidator from '../components/FeedValidator.tsx';
+import ReadingQueue from '../components/ReadingQueue.tsx';
 import '../styles/global.css';
 
-const VALID_TABS = ['sources', 'topics', 'validate'] as const;
+const VALID_TABS = ['sources', 'topics', 'validate', 'queue'] as const;
 type Tab = (typeof VALID_TABS)[number];
 const rawTab = Astro.url.searchParams.get('tab') ?? 'sources';
 const tab: Tab = (VALID_TABS as readonly string[]).includes(rawTab)
@@ -31,7 +32,7 @@ const tab: Tab = (VALID_TABS as readonly string[]).includes(rawTab)
       <!-- Tabs -->
       <nav class="mb-6 flex gap-1 border-b border-gray-800">
         {
-          (['sources', 'topics', 'validate'] as const).map((t) => (
+          VALID_TABS.map((t) => (
             <a
               href={`?tab=${t}`}
               class={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
@@ -50,6 +51,7 @@ const tab: Tab = (VALID_TABS as readonly string[]).includes(rawTab)
       {tab === 'sources' && <SourceTable client:load />}
       {tab === 'topics' && <TopicList client:load />}
       {tab === 'validate' && <FeedValidator client:load />}
+      {tab === 'queue' && <ReadingQueue client:load />}
     </div>
   </body>
 </html>
