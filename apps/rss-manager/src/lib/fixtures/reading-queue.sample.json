@@ -1,7 +1,12 @@
 {
   "generated": "2026-01-15",
   "cutoffMonths": 12,
-  "counts": { "scanned": 9, "queued": 4, "stale": 3 },
+  "counts": {
+    "scanned": 9,
+    "queued": 4,
+    "stale": 3,
+    "backlog": 2
+  },
   "queue": [
     {
       "rank": 1,
@@ -19,7 +24,8 @@
         "readingMinutes": 20,
         "savedDaysAgo": 5,
         "progress": 0.35
-      }
+      },
+      "decay": "evergreen"
     },
     {
       "rank": 2,
@@ -37,7 +43,8 @@
         "readingMinutes": 9,
         "savedDaysAgo": 30,
         "progress": 0
-      }
+      },
+      "decay": "time-sensitive"
     },
     {
       "rank": 3,
@@ -55,7 +62,8 @@
         "readingMinutes": 4,
         "savedDaysAgo": 120,
         "progress": 0
-      }
+      },
+      "decay": "evergreen"
     },
     {
       "rank": 4,
@@ -73,7 +81,8 @@
         "readingMinutes": 45,
         "savedDaysAgo": 2,
         "progress": 0
-      }
+      },
+      "decay": "time-sensitive"
     }
   ],
   "stale": [
@@ -82,21 +91,27 @@
       "title": "Finished but Never Filed",
       "reason": "done-unfiled",
       "savedAt": "2025-11-02",
-      "readerUrl": "https://read.readwise.io/read/fixture-0005"
+      "readerUrl": "https://read.readwise.io/read/fixture-0005",
+      "decay": "evergreen",
+      "why": "Read to 91% — finished in practice, never archived."
     },
     {
       "id": "fixture-0006",
       "title": "Saved in 2023 and Never Opened",
-      "reason": "never-opened-stale",
+      "reason": "off-stack",
       "savedAt": "2023-04-18",
-      "readerUrl": "https://read.readwise.io/read/fixture-0006"
+      "readerUrl": "https://read.readwise.io/read/fixture-0006",
+      "decay": "evergreen",
+      "why": "A 2023 fundamentals piece, never opened. Still sound, but off your current stack."
     },
     {
       "id": "fixture-0007",
       "title": "Deferred to Later and Forgotten",
       "reason": "deferred-dead",
       "savedAt": "2025-06-01",
-      "readerUrl": "https://read.readwise.io/read/fixture-0007"
+      "readerUrl": "https://read.readwise.io/read/fixture-0007",
+      "decay": "time-sensitive",
+      "why": "A release note deferred to Later and never opened; the version it describes has shipped twice since."
     }
   ]
 }

@@ -1,13 +1,22 @@
 const STALE_REASONS = [
   'done-unfiled',
-  'never-opened-stale',
+  'expired',
+  'off-stack',
   'deferred-dead',
   'abandoned',
   'duplicate',
   'malformed',
 ] as const;
 
+/**
+ * Whether the content decays. Age only condemns what actually rots: a release
+ * note is worthless after months, a book on design patterns is not. Judged from
+ * the content by the skill, not inferred from dates.
+ */
+const DECAYS = ['time-sensitive', 'evergreen', 'unknown'] as const;
+
 export type StaleReason = (typeof STALE_REASONS)[number];
+export type Decay = (typeof DECAYS)[number];
 
 export type QueueSort = {
   profileRank: number;
@@ -27,6 +36,7 @@ export type QueueItem = {
   siteName: string;
   tags: string[];
   why: string;
+  decay: Decay;
   sort: QueueSort;
 };
 
@@ -34,6 +44,9 @@ export type StaleItem = {
   id: string;
   title: string;
   reason: StaleReason;
+  /** Why this specific item was set aside, in content terms — not the rule name. */
+  why: string;
+  decay: Decay;
   savedAt: string;
   readerUrl: string;
 };
@@ -41,7 +54,13 @@ export type StaleItem = {
 export type ReadingQueue = {
   generated: string;
   cutoffMonths: number;
-  counts: { scanned: number; queued: number; stale: number };
+  counts: {
+    scanned: number;
+    queued: number;
+    stale: number;
+    /** Candidates that did not make the cut this run — hidden, never silently. */
+    backlog: number;
+  };
   queue: QueueItem[];
   stale: StaleItem[];
 };
@@ -132,6 +151,13 @@ function asStaleReason(value: unknown, path: string): StaleReason {
   return text as StaleReason;
 }
 
+function asDecay(value: unknown, path: string): Decay {
+  const text = asString(value, path);
+  if (!(DECAYS as readonly string[]).includes(text))
+    fail(path, `one of ${DECAYS.join(' | ')}`, value);
+  return text as Decay;
+}
+
 function parseSort(value: unknown, path: string): QueueSort {
   const raw = asObject(value, path);
   return {
@@ -159,6 +185,7 @@ function parseQueueItem(value: unknown, path: string): QueueItem {
     siteName: asString(raw.siteName, `${path}.siteName`),
     tags: asStringArray(raw.tags, `${path}.tags`),
     why: asString(raw.why, `${path}.why`),
+    decay: asDecay(raw.decay, `${path}.decay`),
     sort: parseSort(raw.sort, `${path}.sort`),
   };
 }
@@ -169,6 +196,8 @@ function parseStaleItem(value: unknown, path: string): StaleItem {
     id: asNonEmptyString(raw.id, `${path}.id`),
     title: asNonEmptyString(raw.title, `${path}.title`),
     reason: asStaleReason(raw.reason, `${path}.reason`),
+    why: asNonEmptyString(raw.why, `${path}.why`),
+    decay: asDecay(raw.decay, `${path}.decay`),
     savedAt: asString(raw.savedAt, `${path}.savedAt`),
     readerUrl: asNonEmptyString(raw.readerUrl, `${path}.readerUrl`),
   };
@@ -245,6 +274,7 @@ export function parseReadingQueue(content: string): ReadingQueue {
       scanned: asInteger(counts.scanned, 'counts.scanned', { min: 0 }),
       queued: asInteger(counts.queued, 'counts.queued', { min: 0 }),
       stale: asInteger(counts.stale, 'counts.stale', { min: 0 }),
+      backlog: asInteger(counts.backlog, 'counts.backlog', { min: 0 }),
     },
     queue,
     stale,

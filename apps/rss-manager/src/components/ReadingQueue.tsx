@@ -27,11 +27,18 @@ const STALE_REASONS: Record<
   { label: string; order: number }
 > = {
   'done-unfiled': { label: 'Read but never archived', order: 0 },
-  'never-opened-stale': { label: 'Never opened, over 12 months old', order: 1 },
-  'deferred-dead': { label: 'Deferred to Later and never opened', order: 2 },
-  abandoned: { label: 'Abandoned part-way', order: 3 },
-  duplicate: { label: 'Duplicate of another saved item', order: 4 },
-  malformed: { label: 'Malformed title', order: 5 },
+  expired: { label: 'Time-sensitive and past its window', order: 1 },
+  'off-stack': { label: 'Evergreen, but off your current stack', order: 2 },
+  'deferred-dead': { label: 'Deferred to Later and never opened', order: 3 },
+  abandoned: { label: 'Abandoned part-way', order: 4 },
+  duplicate: { label: 'Duplicate of another saved item', order: 5 },
+  malformed: { label: 'Malformed title', order: 6 },
+};
+
+const DECAY_LABEL: Record<QueueItem['decay'], string | null> = {
+  'time-sensitive': 'time-sensitive',
+  evergreen: 'evergreen',
+  unknown: null,
 };
 
 const STALE_REASON_ORDER = (
@@ -76,6 +83,11 @@ function QueueRow({
             #{tag}
           </span>
         ))}
+        {DECAY_LABEL[item.decay] && (
+          <span className="text-xs text-gray-500">
+            {DECAY_LABEL[item.decay]}
+          </span>
+        )}
         {item.sort.progress > 0 && (
           <span className="text-xs text-gray-500">
             {Math.round(item.sort.progress * 100)}% read
@@ -128,8 +140,9 @@ export default function ReadingQueue() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-gray-500">
-          {data.counts.queued} queued · {data.counts.stale} stale ·{' '}
-          {data.counts.scanned} scanned · generated {data.generated}
+          {data.counts.queued} queued · {data.counts.backlog} in backlog ·{' '}
+          {data.counts.stale} stale · {data.counts.scanned} scanned · generated{' '}
+          {data.generated}
         </p>
         <div className="flex flex-wrap gap-1">
           {SORT_MODES.map(({ mode: m, label }) => (
@@ -186,26 +199,36 @@ export default function ReadingQueue() {
               if (items.length === 0) return null;
               return (
                 <div key={reason}>
-                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    {STALE_REASONS[reason].label} ({items.length})
+                  {/* Sticky so the group you are reading stays named while you
+                      scroll a list this long. */}
+                  <h4 className="sticky top-0 z-10 -mx-2 mb-2 border-b border-gray-800 bg-[#0f1117] px-2 py-2 text-xs font-semibold uppercase tracking-wider text-violet-400">
+                    {STALE_REASONS[reason].label}{' '}
+                    <span className="text-gray-500">({items.length})</span>
                   </h4>
-                  <ul className="space-y-1">
+                  <ul className="space-y-2">
                     {items.map((item) => (
-                      <li
-                        key={item.id}
-                        className="flex items-baseline gap-3 text-sm"
-                      >
-                        <a
-                          href={item.readerUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-300 hover:text-violet-400 hover:underline"
-                        >
-                          {item.title}
-                        </a>
-                        <span className="ml-auto shrink-0 text-xs text-gray-500">
-                          {item.savedAt}
-                        </span>
+                      <li key={item.id} className="text-sm">
+                        <div className="flex items-baseline gap-3">
+                          <a
+                            href={item.readerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-300 hover:text-violet-400 hover:underline"
+                          >
+                            {item.title}
+                          </a>
+                          {DECAY_LABEL[item.decay] && (
+                            <span className="shrink-0 rounded bg-gray-800 px-1.5 py-0.5 text-xs text-gray-500">
+                              {DECAY_LABEL[item.decay]}
+                            </span>
+                          )}
+                          <span className="ml-auto shrink-0 text-xs text-gray-500">
+                            {item.savedAt}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          {item.why}
+                        </p>
                       </li>
                     ))}
                   </ul>

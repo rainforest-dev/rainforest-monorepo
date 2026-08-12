@@ -23,7 +23,12 @@ describe('parseReadingQueue', () => {
     const result = parseReadingQueue(FIXTURE);
     expect(result.generated).toBe('2026-01-15');
     expect(result.cutoffMonths).toBe(12);
-    expect(result.counts).toEqual({ scanned: 9, queued: 4, stale: 3 });
+    expect(result.counts).toEqual({
+      scanned: 9,
+      queued: 4,
+      stale: 3,
+      backlog: 2,
+    });
     expect(result.queue).toHaveLength(4);
     expect(result.stale).toHaveLength(3);
   });
@@ -40,11 +45,7 @@ describe('parseReadingQueue', () => {
 
   it('preserves stale item reasons', () => {
     const reasons = parseReadingQueue(FIXTURE).stale.map((s) => s.reason);
-    expect(reasons).toEqual([
-      'done-unfiled',
-      'never-opened-stale',
-      'deferred-dead',
-    ]);
+    expect(reasons).toEqual(['done-unfiled', 'off-stack', 'deferred-dead']);
   });
 });
 
@@ -61,6 +62,7 @@ function baseQueueItem(
     siteName: 'example.com',
     tags: ['tech/widget'],
     why: 'because',
+    decay: 'evergreen',
     sort: {
       profileRank: 0,
       wikiSources: 1,
@@ -79,6 +81,8 @@ function baseStaleItem(
     id: 's-1',
     title: 'Valid Stale Item Title',
     reason: 'done-unfiled',
+    why: 'read to the end, never archived',
+    decay: 'evergreen',
     savedAt: '2025-01-01',
     readerUrl: 'https://read.readwise.io/read/s-1',
     ...overrides,
@@ -95,7 +99,7 @@ function baseDocument(
   return JSON.stringify({
     generated: '2026-01-01',
     cutoffMonths: 12,
-    counts: overrides.counts ?? { scanned: 1, queued: 1, stale: 1 },
+    counts: overrides.counts ?? { scanned: 1, queued: 1, stale: 1, backlog: 0 },
     queue: overrides.queue ?? [baseQueueItem()],
     stale: overrides.stale ?? [baseStaleItem()],
   });
@@ -144,7 +148,7 @@ describe('parseReadingQueue — malformed input', () => {
 
   it('rejects a fractional count', () => {
     const doc = baseDocument({
-      counts: { scanned: 9, queued: 4.5, stale: 3 },
+      counts: { scanned: 9, queued: 4.5, stale: 3, backlog: 0 },
     });
     expect(() => parseReadingQueue(doc)).toThrow(/counts\.queued/);
   });
