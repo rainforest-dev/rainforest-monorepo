@@ -101,12 +101,12 @@ edits. Obsidian legibility carries no weight because the rss-manager tab is the 
     {
       "rank": 1,
       "tier": 2,
-      "id": "01kz4ta3gw97hjdv7pc279rty3",
-      "title": "Next.js 16.3",
-      "readerUrl": "https://read.readwise.io/read/01kz4ta3gw97hjdv7pc279rty3",
-      "sourceUrl": "https://nextjs.org/blog/next-16-3",
-      "siteName": "nextjs.org",
-      "tags": ["tech/nextjs"],
+      "id": "example-doc-id",
+      "title": "Widget Framework 4.2 Release Notes",
+      "readerUrl": "https://read.readwise.io/read/example-doc-id",
+      "sourceUrl": "https://example.com/widget-4-2",
+      "siteName": "example.com",
+      "tags": ["tech/widget"],
       "why": "profile-prioritized · mature wiki page · no active topic feeding it",
       "sort": {
         "profileRank": 0,
