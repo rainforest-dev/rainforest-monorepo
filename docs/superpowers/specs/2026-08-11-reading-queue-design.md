@@ -1,6 +1,6 @@
 # Reading Queue — Design
 
-**Date:** 2026-08-11
+**Date:** 2026-08-11 · revised 2026-08-12 after the first real run
 **Status:** approved
 **Scope:** a `reading-queue` skill in the Obsidian vault that ranks unread Readwise
 documents against personal context, plus a Reading Queue tab in `apps/rss-manager`
@@ -96,7 +96,7 @@ edits. Obsidian legibility carries no weight because the rss-manager tab is the 
 {
   "generated": "2026-08-11",
   "cutoffMonths": 12,
-  "counts": { "scanned": 324, "queued": 20, "stale": 128 },
+  "counts": { "scanned": 325, "queued": 25, "stale": 174, "backlog": 102 },
   "queue": [
     {
       "rank": 1,
@@ -108,6 +108,7 @@ edits. Obsidian legibility carries no weight because the rss-manager tab is the 
       "siteName": "example.com",
       "tags": ["tech/widget"],
       "why": "profile-prioritized · mature wiki page · no active topic feeding it",
+      "decay": "evergreen",
       "sort": {
         "profileRank": 0,
         "wikiSources": 13,
@@ -121,7 +122,9 @@ edits. Obsidian legibility carries no weight because the rss-manager tab is the 
     {
       "id": "01kv…",
       "title": "…",
-      "reason": "never-opened-stale",
+      "reason": "off-stack",
+      "why": "Still sound, but about something outside your current stack, saved 2.9y ago.",
+      "decay": "evergreen",
       "savedAt": "2024-01-02",
       "readerUrl": "https://read.readwise.io/read/01kv…"
     }
@@ -144,14 +147,48 @@ its `source_url`.
 Different staleness reasons have opposite remedies, so they must not collapse into one
 flag. Stale items and queue candidates are disjoint sets.
 
-| Type                 | Rule                                                  | Remedy                                                          |
-| -------------------- | ----------------------------------------------------- | --------------------------------------------------------------- |
-| `done-unfiled`       | `progress ≥ 0.65`, still in new/later                 | Archive as finished — you read it, the system never recorded it |
-| `never-opened-stale` | `first_opened_at` null AND `saved_at` > **12 months** | Archive — 12 months of not opening it is the decision           |
-| `deferred-dead`      | `location: later` AND never opened AND > 3 months     | Archive — earned by the 79/79 measurement                       |
-| `abandoned`          | `0.05 ≤ progress < 0.65`, opened > 6 months ago       | **Decide** — never sweep; starting it was an active choice      |
-| `duplicate`          | Same `source_url` as another unread item              | Keep highest progress, flag the rest                            |
-| `malformed`          | Empty title, or title > 200 chars                     | Fix or drop                                                     |
+**Age alone does not make something stale.** Not reading an article usually means there
+was no time, not that the article was worthless. What decides is whether the _content_
+decays, so every document carries a `decay` judgement made by the skill from its title,
+summary and category:
+
+| `decay`          | What it looks like                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------ |
+| `time-sensitive` | Release notes, version announcements, news, launches, conference recaps — value tied to a moment |
+| `evergreen`      | Fundamentals, patterns, books, stable reference — as true in three years as today                |
+| `unknown`        | Cannot tell. Treated as evergreen; a false archive costs more than a stale row                   |
+
+Combined with whether the document is _on-stack_ (matches a profile technology or an
+Active topic), that gives four quadrants — and only three of them decay:
+
+|                    | on-stack                         | off-stack           |
+| ------------------ | -------------------------------- | ------------------- |
+| **time-sensitive** | `expired` at 6mo                 | `expired` at 6mo    |
+| **evergreen**      | **never stale — a backlog item** | `off-stack` at 12mo |
+
+| Type            | Rule                                                                      | Remedy                                                          |
+| --------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `done-unfiled`  | `progress ≥ 0.65`, still in new/later                                     | Archive as finished — you read it, the system never recorded it |
+| `expired`       | `decay == time-sensitive` AND `saved_at` > **6 months**                   | Archive — whatever it announced has been superseded             |
+| `off-stack`     | `decay != time-sensitive` AND NOT on-stack AND `saved_at` > **12 months** | Archive — still sound, no longer yours                          |
+| `deferred-dead` | `location: later` AND never opened AND `time-sensitive` AND > 3 months    | Archive — the window closed                                     |
+| `abandoned`     | `0.05 ≤ progress < 0.65`, opened > 6 months ago                           | **Decide** — never sweep; starting it was an active choice      |
+| `duplicate`     | Same `source_url` as another unread item                                  | Keep highest progress, flag the rest                            |
+| `malformed`     | Empty title, or title > 200 chars                                         | Fix or drop                                                     |
+
+Every stale item also carries a `why` sentence written per document rather than a rule
+name. `off-stack` says _which rule fired_; "still sound, but about something outside your
+current stack, saved 2.9y ago" says _what about this document_ made it the right call.
+The reader has to be able to disagree with it, which means it has to say something
+disagreeable.
+
+**Versioned framework documentation is time-sensitive however timeless it reads.** A page
+from the Next.js 13 App Router docs has the grammar of reference material and the shelf
+life of a release. Ask which version the page documents, not what genre it belongs to.
+
+**The queue is a shortlist, not everything-not-stale.** Capped at 25, with
+`counts.backlog` reporting what was held back — a silent truncation reads as "this is all
+there is".
 
 `duplicate` matches on `source_url`, not title: the inbox holds "Next.js 16.3" and Later
 holds "Next.js 16.3: Instant Navigations". Title matching misses that pair; a prefix
