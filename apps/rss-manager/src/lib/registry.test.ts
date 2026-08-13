@@ -145,6 +145,13 @@ describe('stale flags', () => {
     expect(byName('Healthy').stale).toBeUndefined();
   });
 
+  it('leaves no comment marker behind on unterminated input', () => {
+    const src = parseSources(
+      '## Active Sources\n\n- [x] **X** #domain/ai <!-- stale: low-value | see <!-- nested -->\n  https://e.com/f\n',
+    )[0];
+    expect(src.tags).toEqual(['domain/ai']);
+  });
+
   it('does not read a # inside a stale note as a tag', () => {
     const src = parseSources(
       '## Active Sources\n\n- [x] **X** #domain/ai <!-- stale: low-value | see #frontend channel -->\n  https://e.com/f\n',

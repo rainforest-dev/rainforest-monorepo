@@ -41,13 +41,19 @@ function stripFrontmatter(content: string): string {
 
 const STALE_TYPES: StaleType[] = ['feed-dead', 'delivery-gap', 'low-value'];
 
-/** Strips HTML comments so a `#` inside a stale note is never read as a tag. */
-function withoutComments(text: string): string {
-  return text.replace(/<!--[\s\S]*?-->/g, '');
+/**
+ * Tags are whatever precedes a trailing comment. Truncating at the first `<!--`
+ * rather than stripping comment pairs avoids leaving a bare `<!--` behind on
+ * nested or unterminated input, and matches the registry format, where the
+ * stale comment is always last on the line.
+ */
+function beforeComment(text: string): string {
+  const start = text.indexOf('<!--');
+  return start === -1 ? text : text.slice(0, start);
 }
 
 function extractTags(text: string): string[] {
-  return [...withoutComments(text).matchAll(/#([\w/.-]+)/g)].map((m) => m[1]);
+  return [...beforeComment(text).matchAll(/#([\w/.-]+)/g)].map((m) => m[1]);
 }
 
 /**
