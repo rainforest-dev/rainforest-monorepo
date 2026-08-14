@@ -19,6 +19,32 @@ function classifyUserAgent(userAgent: string | null): string {
   return match ? match[0] : 'other';
 }
 
+// Own-usage marker. The site owner's `rainforest-profile` connector points at
+// `/api/mcp?src=self`, so its traffic lands in its own bucket instead of inflating the
+// discovery numbers — it arrives with a ClaudeBot user-agent and is otherwise
+// indistinguishable from a stranger's agent finding the endpoint.
+const SELF_TRAFFIC_PARAM = 'src';
+const SELF_TRAFFIC_VALUE = 'self';
+
+/**
+ * Which bucket a request belongs to. The self marker deliberately takes precedence over
+ * the user-agent: own traffic *is* ClaudeBot, so classifying by UA first would make the
+ * marker unreachable.
+ *
+ * Self traffic is tagged rather than dropped — the event still tells you the endpoint
+ * works, and a tag can be filtered out in a report whereas a dropped event is gone. It
+ * reuses the existing `bot` param (and so the existing `AI Bot` custom dimension) because
+ * GA4 custom dimensions are not retroactive: a new param would report `(not set)` for
+ * everything already collected.
+ */
+export function classifyRequest(request: Request): string {
+  const { searchParams } = new URL(request.url);
+  if (searchParams.get(SELF_TRAFFIC_PARAM) === SELF_TRAFFIC_VALUE) {
+    return SELF_TRAFFIC_VALUE;
+  }
+  return classifyUserAgent(request.headers.get('user-agent'));
+}
+
 /**
  * Fires a GA4 Measurement Protocol event for a hit on one of the AI-facing resources
  * (llms.txt, llms-full.txt, the MCP server) — these are the endpoints this whole feature
@@ -38,6 +64,6 @@ export async function trackAiResourceFetch(
 ): Promise<void> {
   await sendGa4Event('ai_resource_fetch', {
     resource,
-    bot: classifyUserAgent(request.headers.get('user-agent')),
+    bot: classifyRequest(request),
   });
 }

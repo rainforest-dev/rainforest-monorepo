@@ -75,6 +75,21 @@ page-level metrics still work**, while **session recordings and funnels are
 limited**. That is why the site ships no consent banner — full features apply
 outside those regions, and EU visitors are handled compliantly by Clarity itself.
 
+**Clarity's Source breakdown is the only human-traffic attribution that exists
+here** — GA4 records no `page_view` at all (see §4), so it cannot answer "where did
+this visitor come from". Clarity reports a bare share link as `Direct`, which is
+indistinguishable from own traffic, so **every link posted anywhere off-site needs
+UTM params** or the review has nothing to read:
+
+```
+https://rainforest.tools/resume?utm_source=linkedin&utm_medium=social&utm_campaign=<what-you-posted>
+```
+
+Keep `utm_source` to the platform (`linkedin`, `github`, `ithome`, `medium`) and
+`utm_campaign` to the specific post, so one channel's contribution is separable
+from one post's. Nothing consumes these server-side — they exist purely so
+Clarity can attribute the session.
+
 ### 4. GA4 — AI-crawler tracking + cookieless conversions
 
 Both GA4 paths are **server-side Measurement Protocol** through one shared sender,
@@ -89,6 +104,19 @@ are the signal**, which is all these questions need.
 fires `ai_resource_fetch { resource, bot }` when an AI crawler (GPTBot, ClaudeBot,
 PerplexityBot, Google-Extended, CCBot…) fetches a machine endpoint (llms.txt,
 llms-full.txt, the MCP routes).
+
+**Own usage is bucketed as `bot: self`.** The owner's `rainforest-profile`
+connector hits `/api/mcp` constantly and arrives with a ClaudeBot user-agent, so
+without a marker it is indistinguishable from a stranger's agent discovering the
+endpoint — in one 30-day window that was 569 of 722 fetches, i.e. the headline
+number was mostly self-inflicted. Any request carrying `?src=self` is classified
+`self`, and **the marker deliberately outranks the user-agent** (own traffic *is*
+ClaudeBot, so a UA-first check would never reach it). Configure the connector URL
+as `https://rainforest.tools/api/mcp?src=self`; an unmarked URL stays the
+documented public one. Self traffic is tagged rather than dropped — a tag can be
+filtered in a report, a dropped event is gone — and it reuses the existing `bot`
+param because GA4 custom dimensions are not retroactive, so a new param would
+report `(not set)` for everything collected so far.
 
 **b) Recruiter conversions** — the browser posts to
 [`src/pages/api/event.ts`](../apps/personal-website/src/pages/api/event.ts) (an
