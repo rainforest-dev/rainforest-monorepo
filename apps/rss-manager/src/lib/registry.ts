@@ -1,6 +1,20 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+/**
+ * `feed-dead` and `delivery-gap` have opposite remedies. A dead feed should be
+ * retired; a delivery gap means the feed is alive and Readwise stopped
+ * delivering, so retiring it destroys a working source to route around someone
+ * else's bug. `unspecified` is a legacy flag written before the type existed.
+ */
+export type StaleType =
+  | 'feed-dead'
+  | 'delivery-gap'
+  | 'low-value'
+  | 'unspecified';
+
+export type Stale = { type: StaleType; note: string };
+
 export type Source = {
   name: string;
   url: string;
@@ -8,6 +22,7 @@ export type Source = {
   status: 'active' | 'proposed' | 'no-rss' | 'retired';
   category: string;
   proposedDate?: string;
+  stale?: Stale;
 };
 
 export type Topic = {
@@ -16,6 +31,7 @@ export type Topic = {
   description: string;
   status: 'active' | 'proposed' | 'declined';
   proposedDate?: string;
+  stale?: Stale;
 };
 
 function stripFrontmatter(content: string): string {
@@ -23,8 +39,43 @@ function stripFrontmatter(content: string): string {
   return match ? match[1] : content;
 }
 
+const STALE_TYPES: StaleType[] = ['feed-dead', 'delivery-gap', 'low-value'];
+
+/**
+ * Tags are whatever precedes a trailing comment. Truncating at the first `<!--`
+ * rather than stripping comment pairs avoids leaving a bare `<!--` behind on
+ * nested or unterminated input, and matches the registry format, where the
+ * stale comment is always last on the line.
+ */
+function beforeComment(text: string): string {
+  const start = text.indexOf('<!--');
+  return start === -1 ? text : text.slice(0, start);
+}
+
 function extractTags(text: string): string[] {
-  return [...text.matchAll(/#([\w/.-]+)/g)].map((m) => m[1]);
+  return [...beforeComment(text).matchAll(/#([\w/.-]+)/g)].map((m) => m[1]);
+}
+
+/**
+ * Parses `<!-- stale: <type> | <note> -->`. An untyped legacy comment keeps
+ * working and reports `unspecified`, so rss-discover output written before the
+ * type existed still renders.
+ */
+function extractStale(text: string): Stale | undefined {
+  const match = text.match(/<!--\s*stale:\s*([\s\S]*?)-->/);
+  if (!match) return undefined;
+
+  const body = match[1].trim();
+  const divider = body.indexOf('|');
+  if (divider !== -1) {
+    const candidate = body.slice(0, divider).trim();
+    if ((STALE_TYPES as string[]).includes(candidate))
+      return {
+        type: candidate as StaleType,
+        note: body.slice(divider + 1).trim(),
+      };
+  }
+  return { type: 'unspecified', note: body };
 }
 
 function extractUrl(line: string): string {
@@ -89,7 +140,15 @@ export function parseSources(content: string): Source[] {
     else if (section === 'No RSS Found') status = 'no-rss';
     else if (section === 'Retired') status = 'retired';
 
-    sources.push({ name, url, tags, status, category, proposedDate });
+    sources.push({
+      name,
+      url,
+      tags,
+      status,
+      category,
+      proposedDate,
+      stale: extractStale(tagsText),
+    });
   }
 
   return sources;
@@ -138,7 +197,14 @@ export function parseTopics(content: string): Topic[] {
     else if (section === 'Proposed') status = 'proposed';
     else if (section === 'Declined') status = 'declined';
 
-    topics.push({ name, tags, description, status, proposedDate });
+    topics.push({
+      name,
+      tags,
+      description,
+      status,
+      proposedDate,
+      stale: extractStale(tagsText),
+    });
   }
 
   return topics;
