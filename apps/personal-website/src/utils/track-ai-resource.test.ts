@@ -45,13 +45,17 @@ describe('classifyRequest', () => {
 
   it('names other known agents', () => {
     expect(
-      classifyRequest(request('https://rainforest.tools/llms.txt', 'GPTBot/1.2')),
+      classifyRequest(
+        request('https://rainforest.tools/llms.txt', 'GPTBot/1.2'),
+      ),
     ).toBe('GPTBot');
   });
 
   it('falls back to other for an unrecognised agent', () => {
     expect(
-      classifyRequest(request('https://rainforest.tools/llms.txt', 'curl/8.4.0')),
+      classifyRequest(
+        request('https://rainforest.tools/llms.txt', 'curl/8.4.0'),
+      ),
     ).toBe('other');
   });
 
@@ -83,12 +87,12 @@ describe('trackMcpFetch', () => {
   // notifications/initialized → tools/list before it asks anything, so a single
   // connection lands as ~4 events. Undifferentiated, that reads as 4x the reach.
   it('tells a handshake step apart from a real query', async () => {
-    expect((await paramsFor(mcpRequest({ method: 'initialize' })))?.mcp_method).toBe(
-      'initialize',
-    );
-    expect((await paramsFor(mcpRequest({ method: 'tools/call' })))?.mcp_method).toBe(
-      'tools/call',
-    );
+    expect(
+      (await paramsFor(mcpRequest({ method: 'initialize' })))?.mcp_method,
+    ).toBe('initialize');
+    expect(
+      (await paramsFor(mcpRequest({ method: 'tools/call' })))?.mcp_method,
+    ).toBe('tools/call');
   });
 
   it('collapses an unlisted method to other', async () => {
@@ -104,7 +108,9 @@ describe('trackMcpFetch', () => {
   });
 
   it('falls back to unknown on a malformed body', async () => {
-    expect((await paramsFor(mcpRequest('not json')))?.mcp_method).toBe('unknown');
+    expect((await paramsFor(mcpRequest('not json')))?.mcp_method).toBe(
+      'unknown',
+    );
   });
 
   it('still classifies the caller', async () => {

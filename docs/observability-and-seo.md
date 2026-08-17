@@ -110,7 +110,7 @@ connector hits `/api/mcp` constantly and arrives with a ClaudeBot user-agent, so
 without a marker it is indistinguishable from a stranger's agent discovering the
 endpoint — in one 30-day window that was 569 of 722 fetches, i.e. the headline
 number was mostly self-inflicted. Any request carrying `?src=self` is classified
-`self`, and **the marker deliberately outranks the user-agent** (own traffic *is*
+`self`, and **the marker deliberately outranks the user-agent** (own traffic _is_
 ClaudeBot, so a UA-first check would never reach it). Configure the connector URL
 as `https://rainforest.tools/api/mcp?src=self`; an unmarked URL stays the
 documented public one. Self traffic is tagged rather than dropped — a tag can be
