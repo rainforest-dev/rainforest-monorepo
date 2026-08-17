@@ -1,4 +1,4 @@
-import { trackAiResourceFetch } from '@utils/track-ai-resource';
+import { trackMcpFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 
 import { createProfileMcpHandler, mcpUsageResponse } from '../mcp/handler';
@@ -10,7 +10,7 @@ import { createProfileMcpHandler, mcpUsageResponse } from '../mcp/handler';
 const handler = createProfileMcpHandler();
 
 export const POST: APIRoute = async ({ request }) => {
-  await trackAiResourceFetch('mcp', request);
+  await trackMcpFetch(request);
   return handler(request);
 };
 
