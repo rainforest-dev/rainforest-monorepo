@@ -262,6 +262,18 @@ conversions aren't, the problem is the page, not the reach — and vice versa.
    and improve their title/description.
 3. **`/rss.xml`** — regressed to 404 once (the `[lang]` route only emitted prefixed
    URLs); the auto-check above guards it.
+4. **A local content blocker silently swallows GA4 in dev.** AdGuard for Mac (a
+   root network extension, so `curl` is affected too, not just the browser)
+   DNS-blocks `www.google-analytics.com` — the exact host `sendGa4Event` posts
+   to. Its `catch` is empty by design (analytics must never break a response),
+   so `pnpm nx dev` shows a perfectly working endpoint while GA4 receives
+   nothing, and the natural conclusion is that the tracking code is broken.
+   Production is unaffected — that code runs on Vercel, not your machine.
+   `analytics.google.com` is blocked too, which locks you out of the GA4 UI
+   itself; `analyticsdata.googleapis.com` is not, which is why MCP-based
+   reporting keeps working and makes the blocking easy to misread.
+   **Check first:** `dig +short www.google-analytics.com` — no answer means the
+   blocker, not the code. Allowlist both hosts to work on this locally.
 
 ---
 
