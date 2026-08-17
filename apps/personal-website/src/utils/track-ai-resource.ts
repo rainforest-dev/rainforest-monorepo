@@ -67,3 +67,49 @@ export async function trackAiResourceFetch(
     bot: classifyRequest(request),
   });
 }
+
+// JSON-RPC methods reported as themselves. Anything else collapses to `other`, so a
+// caller can't inflate GA4's dimension cardinality with arbitrary strings — the same
+// allowlist posture as api/event.ts.
+const MCP_METHODS = new Set([
+  'initialize',
+  'notifications/initialized',
+  'tools/list',
+  'tools/call',
+  'prompts/list',
+  'resources/list',
+  'ping',
+]);
+
+async function readMcpMethod(request: Request): Promise<string> {
+  try {
+    // clone() first: a Request body is a single-use stream, and the MCP handler still
+    // has to read it. Reading it here directly would hand the handler an empty body.
+    const body: unknown = await request.clone().json();
+    // JSON-RPC permits a batch as an array, which has no single method.
+    if (Array.isArray(body)) return 'batch';
+    const method = (body as { method?: unknown } | null)?.method;
+    if (typeof method !== 'string') return 'unknown';
+    return MCP_METHODS.has(method) ? method : 'other';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
+ * The MCP-route flavour of {@link trackAiResourceFetch}, additionally recording which
+ * JSON-RPC method was called.
+ *
+ * Without it the event count badly overstates reach: one client connecting runs
+ * `initialize` → `notifications/initialized` → `tools/list` before it has asked a single
+ * question, so a single connection lands as ~4 fetches. Splitting by method separates
+ * "someone connected" from "someone actually queried the profile", which is the only one
+ * of the two that means anything for exposure.
+ */
+export async function trackMcpFetch(request: Request): Promise<void> {
+  await sendGa4Event('ai_resource_fetch', {
+    resource: 'mcp',
+    bot: classifyRequest(request),
+    mcp_method: await readMcpMethod(request),
+  });
+}

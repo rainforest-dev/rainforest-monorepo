@@ -118,6 +118,27 @@ filtered in a report, a dropped event is gone — and it reuses the existing `bo
 param because GA4 custom dimensions are not retroactive, so a new param would
 report `(not set)` for everything collected so far.
 
+**MCP routes additionally record `mcp_method`.** Raw fetch counts overstate reach
+by roughly 4x on their own: one client connecting runs `initialize` →
+`notifications/initialized` → `tools/list` before it has asked anything, so a
+single connection lands as ~4 events — visible in Vercel's runtime log as a
+four-request burst at one timestamp. `initialize` counts connections,
+`tools/call` counts actual profile queries, and only the second means anything
+for exposure. Values are allowlisted (`MCP_METHODS`), with a JSON-RPC array
+reported as `batch` and anything unlisted collapsed to `other`, so a caller
+cannot inflate GA4's dimension cardinality.
+
+The method is read from a **`request.clone()`** — a `Request` body is a
+single-use stream and the MCP handler still has to read it, so reading it
+directly leaves the handler with nothing. That failure is invisible in GA4 (the
+event still fires, correctly) while breaking the MCP server outright, which is
+why `track-ai-resource.test.ts` guards it explicitly.
+
+> **Note:** Vercel runtime logs retain roughly **one hour** on this plan — a
+> `since=24h` query returns the same rows as `since=1h` rather than erroring.
+> They work as a live probe (trigger a call, inspect it within the hour), never
+> as a retrospective traffic source. Use GA4 for anything historical.
+
 **b) Recruiter conversions** — the browser posts to
 [`src/pages/api/event.ts`](../apps/personal-website/src/pages/api/event.ts) (an
 allowlisted, sanitised, same-origin-guarded sink that keeps `GA_API_SECRET`
