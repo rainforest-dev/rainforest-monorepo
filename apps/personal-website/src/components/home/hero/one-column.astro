@@ -17,8 +17,15 @@ const { t } = await useTranslation(lang, 'home');
 const translatePath = useTranslatedPath(lang);
 ---
 
-<div class="flex size-full flex-col">
-  <div class="relative aspect-square max-h-[600px]">
+<!-- `w-full`, deliberately not `size-full`: the section sets only `min-height`, so a
+     `height: 100%` here resolves to `auto` *and* suppresses the flex `stretch` that would
+     otherwise fill it — leaving the box at content height with dead space beneath. -->
+<div class="flex w-full flex-col">
+  <!-- Height is viewport-relative, not an aspect-ratio: this panel stretches to the full
+       width of the hero, so `aspect-square` would drive the height off the width and
+       `max-h` would clamp only the height — leaving a band that grows ever wider than it
+       is tall. `vh` (not `svh`) to stay in step with the section's `min-h-screen`. -->
+  <div class="relative h-[52vh] max-h-[600px] shrink-0">
     <div
       id="hero-dark-panel"
       class="bg-foreground absolute top-0 z-0 size-full origin-top-right skew-y-12 overflow-clip rounded-b-3xl"
@@ -41,8 +48,12 @@ const translatePath = useTranslatedPath(lang);
       {year}
     </div>
   </div>
-  <div class="container flex">
-    <div class="flex w-full flex-col">
+  <div class="container flex flex-1 items-center">
+    <!-- `container` drops its gutter at `sm` and leans on its own max-width for the
+         inset, which collapses to zero wherever the viewport equals that max-width
+         (768, 1024, …). Restoring the gutter on the inner box keeps it off the edge at
+         every width without fighting the shared utility's `sm:px-0`. -->
+    <div class="flex w-full flex-col sm:px-8">
       <div class="flex-row-center flex-wrap justify-between gap-2">
         <div>
           <h1 class="text-secondary-foreground text-4xl">
