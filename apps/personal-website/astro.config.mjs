@@ -141,7 +141,15 @@ export default defineConfig({
       },
     }),
     sitemap(),
-    (await import('astro-compress')).default(),
+    // `CSS: false` — astro-compress minifies with csso, which cannot parse Media Queries
+    // Level 4 range syntax and drops those at-rules outright. Tailwind v4 emits every
+    // breakpoint that way (`@media (width >= 80rem)`), so the built stylesheet lost all six
+    // responsive breakpoints while non-width queries (prefers-color-scheme, hover, print)
+    // survived: `hidden xl:flex` collapsed to `hidden` and `flex xl:hidden` to `flex`, so the
+    // desktop hero never rendered and the skills grid stayed one column at any width. Dev was
+    // unaffected — the same build/dev asymmetry as the two Vite workarounds above, in the
+    // opposite direction. Vite already minifies CSS, so this pass only cost us 16KB of rules.
+    (await import('astro-compress')).default({ CSS: false }),
     mdx(),
     pwa({
       mode: 'development',
