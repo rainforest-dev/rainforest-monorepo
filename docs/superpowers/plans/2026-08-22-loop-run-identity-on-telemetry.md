@@ -12,7 +12,7 @@ verified; nothing here touches it, and nothing here touches the Observatory or t
 
 `run_id` is derived at **write** time today — `append_run()` builds
 `f"{machine}-{ended}-{task}"` from a timestamp it takes when the row is appended,
-which is after the executor has exited. Attribution needs the id to exist *before*
+which is after the executor has exited. Attribution needs the id to exist _before_
 the process starts, because the whole point of `OTEL_RESOURCE_ATTRIBUTES` is that it
 is stamped once at launch and cannot be half-applied. So the id moves upstream into
 `ralph.sh` and is passed down, rather than being invented at the bottom.

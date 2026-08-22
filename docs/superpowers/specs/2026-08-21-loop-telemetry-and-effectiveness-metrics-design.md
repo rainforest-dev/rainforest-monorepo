@@ -56,14 +56,14 @@ Serve exactly two decisions, in priority order:
 
 ### Three stores, three jobs
 
-The division is by *which question only this store can answer*, not by preference.
+The division is by _which question only this store can answer_, not by preference.
 Putting per-run cost in Prometheus is what forced the invention of quota delta.
 
-| Store | Owns | Answers |
-|---|---|---|
-| **Prometheus** | cumulative counters, trends, alerting | "how much per week by model/project", "alert me when abnormal" |
-| **Loki** | per-event records, correlated by `prompt.id` | "what did this run cost exactly", "which tool is failing" |
-| **`loop-runs.jsonl`** | run outcome and lineage only | "why did this run stop", "whose retry is it" |
+| Store                 | Owns                                         | Answers                                                        |
+| --------------------- | -------------------------------------------- | -------------------------------------------------------------- |
+| **Prometheus**        | cumulative counters, trends, alerting        | "how much per week by model/project", "alert me when abnormal" |
+| **Loki**              | per-event records, correlated by `prompt.id` | "what did this run cost exactly", "which tool is failing"      |
+| **`loop-runs.jsonl`** | run outcome and lineage only                 | "why did this run stop", "whose retry is it"                   |
 
 `loop-runs.jsonl` exists because **outcome is the only thing telemetry cannot know.**
 The CLI knows what it spent and which tools it called; it does not know whether that
@@ -78,7 +78,7 @@ alternative and is wrong here for three independent reasons:
 
 1. `ralph` runs on **both** machines and Alloy runs only on the mini, so tailing a
    local file would silently lose every company-side outcome.
-2. The vault lives on iCloud. `launchd` on the Air is already denied *read* access
+2. The vault lives on iCloud. `launchd` on the Air is already denied _read_ access
    to iCloud under TCC — the reason `usage/run-hourly-air.sh` exists — and mounting
    an iCloud path into a container invites the same class of failure.
 3. Alloy has no persistent volume for `/var/lib/alloy`, so it loses file positions
@@ -210,12 +210,12 @@ Observatory has no code path that can fabricate an ack.
 
 ### What this buys, concretely
 
-| Change | Before | After |
-|---|---|---|
-| Add an executor | write a cost parser | set env vars |
-| Add a dashboard | write a Vue component | write a query |
-| Add a consumer | parse JSONL | issue a query |
-| Change the schema | update every parser | update one emitter |
+| Change            | Before                | After              |
+| ----------------- | --------------------- | ------------------ |
+| Add an executor   | write a cost parser   | set env vars       |
+| Add a dashboard   | write a Vue component | write a query      |
+| Add a consumer    | parse JSONL           | issue a query      |
+| Change the schema | update every parser   | update one emitter |
 
 ### What stays deliberately monolithic
 
@@ -232,16 +232,16 @@ cases — it calls `task-note` rather than `set` on turn exhaustion precisely be
 guess. This design writes that existing judgement into a controlled vocabulary
 instead of a free-text status string.
 
-| Outcome | Meaning | In denominator? |
-|---|---|---|
-| `reached_stop_at` | Task pushed to pr-ready | yes |
-| `advanced` | Committed work, did not reach `stop_at` | yes |
-| `turns_exhausted` | Budget spent, result unknown | own bucket — **never counted as failure** |
-| `rate_limited` | Never got a fair attempt | **excluded** |
-| `preflight_failed` | Infrastructure failed before the task ran | **excluded** |
-| `executor_failed` | Genuine failure | yes |
-| `stale` | Started, then stopped reporting — no completion, no death | **excluded** |
-| `reclaimed` | Cancelled or moved by hand | **excluded** |
+| Outcome            | Meaning                                                   | In denominator?                           |
+| ------------------ | --------------------------------------------------------- | ----------------------------------------- |
+| `reached_stop_at`  | Task pushed to pr-ready                                   | yes                                       |
+| `advanced`         | Committed work, did not reach `stop_at`                   | yes                                       |
+| `turns_exhausted`  | Budget spent, result unknown                              | own bucket — **never counted as failure** |
+| `rate_limited`     | Never got a fair attempt                                  | **excluded**                              |
+| `preflight_failed` | Infrastructure failed before the task ran                 | **excluded**                              |
+| `executor_failed`  | Genuine failure                                           | yes                                       |
+| `stale`            | Started, then stopped reporting — no completion, no death | **excluded**                              |
+| `reclaimed`        | Cancelled or moved by hand                                | **excluded**                              |
 
 The last two are borrowed from Hermes Agent's `task_runs` outcome column, which
 carries `completed`, `crashed`, `spawn_failed`, `timed_out`, `error_budget` /
@@ -290,15 +290,15 @@ happened. This is the first consumer of the new telemetry, and it is deliberatel
 
 That is not a reduction in ambition. `BUDGET_USD` was never a gate: its own comment
 says it is "checked between iterations (cannot stop one)", and the record shows it
-stopping the 2026-07-31 AG-130 run at $11.25 *after* the PR was already open. Framing
+stopping the 2026-07-31 AG-130 run at $11.25 _after_ the PR was already open. Framing
 it as an audit puts it where it already was.
 
-| Estimate | Source | Actual, from |
-|---|---|---|
-| `story_point` | Notion task cache — 27 of 30 tasks carry one | summed `api_request.cost_usd_micros` per `task_id` |
-| `MAX_TURNS` (100) | ralph parameter | count of `api_request` per `run_id` — see the note on `query_source` below |
-| `BUDGET_USD` ($10) | ralph parameter | summed cost per `run_id` |
-| `model` / `effort` | resolved preset | cost and outcome, stratified by `story_point` |
+| Estimate           | Source                                       | Actual, from                                                               |
+| ------------------ | -------------------------------------------- | -------------------------------------------------------------------------- |
+| `story_point`      | Notion task cache — 27 of 30 tasks carry one | summed `api_request.cost_usd_micros` per `task_id`                         |
+| `MAX_TURNS` (100)  | ralph parameter                              | count of `api_request` per `run_id` — see the note on `query_source` below |
+| `BUDGET_USD` ($10) | ralph parameter                              | summed cost per `run_id`                                                   |
+| `model` / `effort` | resolved preset                              | cost and outcome, stratified by `story_point`                              |
 
 **Turn count is a proxy, not an exact figure.** One main-loop API request is
 approximately one agent turn; subagent and auxiliary requests are meant to be
@@ -311,7 +311,7 @@ session's value. Filtering on it would return an empty result for every loop run
 ever recorded, and an empty result here reads exactly like "no run came close to
 the limit", which is the opposite of what it means. Whoever implements this audit
 has to settle which `query_source` values a `-p` run actually emits before
-writing the filter, rather than inheriting this one. Whether a run *hit* the limit is exact — `ralph` already
+writing the filter, rather than inheriting this one. Whether a run _hit_ the limit is exact — `ralph` already
 detects the `error_max_turns` subtype and it becomes the `turns_exhausted` outcome.
 Only "how close did it get" is approximate.
 
@@ -447,11 +447,11 @@ New and old pipelines run in parallel for **two weeks**, then the old one retire
 
 **Reconciliation is the gate.** For each run present in both, compare:
 
-| Field | Tolerance |
-|---|---|
-| cost | within 5% between `api_request.cost_usd_micros` summed by `run_id` and the ledger's `cost_est_usd` |
-| output tokens | within 5% |
-| run count | exact — every run in one appears in the other |
+| Field         | Tolerance                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| cost          | within 5% between `api_request.cost_usd_micros` summed by `run_id` and the ledger's `cost_est_usd` |
+| output tokens | within 5%                                                                                          |
+| run count     | exact — every run in one appears in the other                                                      |
 
 Runs whose ledger `cost_usd` is `0.00` (11 of 19 today) are reconciliation failures
 of the **old** pipeline and are recorded as such rather than excluded.
@@ -526,14 +526,14 @@ must be updated in the same change, not discovered afterwards:
   The two copies are not merely out of step; **neither contains the other**. On the
   same day the clone's ledgers were 56 MB and 30 MB against iCloud's 10 MB and 7 MB,
   while `tasks.json` was larger in iCloud than in the clone. Staleness runs in
-  different directions per file, and which copy is authoritative differs *per machine*
+  different directions per file, and which copy is authoritative differs _per machine_
   — `writeback.py:23` documents the clone as the stale one on Air, while on the mini
   it is the live one.
 
   This is not an argument against the vault as a store. `_system/` has zero sync
   conflicts because every file there is machine-partitioned with one writer, which is
-  the correct design and works. It is an argument against file sync as a *distribution
-  backbone*: three hand-maintained allowlists is a defect generator, and the same class
+  the correct design and works. It is an argument against file sync as a _distribution
+  backbone_: three hand-maintained allowlists is a defect generator, and the same class
   of bug has already been fixed once from the writer's side (`writeback.py`'s docstring
   records a task going PR-ready on Air while the board showed it not started) without
   the transports being brought along.
