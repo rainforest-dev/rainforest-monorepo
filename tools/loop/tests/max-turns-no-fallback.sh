@@ -186,7 +186,9 @@ print("{}|{}|{}".format(
     r.get("status"), "run_id" if r.get("run_id") else "NO-RUN-ID", r.get("executor")))
 PY
 )
-check "ledger 有一筆 incomplete 且可連回 telemetry" "$ledger_row" "incomplete|run_id|claude"
+# `incomplete` 說不出「用完預算」和「做不到」的差別，而這兩者對「這個 task 值不
+# 值得配額」是相反的答案。turns_exhausted 是自己一桶，永遠不算失敗。
+check "ledger 記為 turns_exhausted 且可連回 telemetry" "$ledger_row" "turns_exhausted|run_id|claude"
 
 # The whole point of the turn-limit branch is that the session can be picked up.
 # Assert the command is printed and reaches the task card, not just that we logged

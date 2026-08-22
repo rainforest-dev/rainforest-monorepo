@@ -936,7 +936,7 @@ print("\x1f".join(str(field or "") for field in (
           --executor "$candidate" \
           --machine "$MACHINE" \
           --run-id "$RUN_ID" \
-          --status incomplete \
+          --status turns_exhausted \
           ${turn_fields[@]+"${turn_fields[@]}"} \
           --note "hit the $MAX_TURNS-turn limit; no fallback attempted" >/dev/null 2>&1 || \
           log "  run ledger unavailable; the spend above is only in this log"
@@ -1068,12 +1068,20 @@ for row in rows:
     [ -n "$pctw_before" ] && run_fields+=(--quota-week-before "$pctw_before")
     [ -n "$pctw_after" ] && run_fields+=(--quota-week-after "$pctw_after")
   fi
+  # `completed` said the executor returned cleanly, which is not the same as the
+  # task reaching stop_at -- 14 of the 19 rows in the live ledger say `completed`
+  # and only one of them has a PR. Decide it here, where the PR is known, rather
+  # than leaving a reader to infer it later from a field that may be absent for
+  # either reason.
+  if [ -n "${run_pr:-}" ]; then run_outcome=reached_stop_at; else run_outcome=advanced; fi
+  [ "$status" -ne 0 ] && run_outcome=executor_failed
   "$LOOPCTL" record-run \
     --project "$slug" \
     --task "$task_id" \
     --executor "$provider" \
     --machine "$MACHINE" \
     --run-id "$RUN_ID" \
+    --status "$run_outcome" \
     ${run_fields[@]+"${run_fields[@]}"} \
     --note "iteration $iter/$MAX_ITER; exit=$status" >/dev/null 2>&1 || \
     log "run ledger unavailable; continuing"

@@ -282,6 +282,95 @@ def _last_run_id_for(machine: str, task: str) -> str | None:
     return None
 
 
+# The outcomes a run may end with. A closed set, because the previous free-text
+# status could not be counted: the live ledger holds `completed`, `incomplete`,
+# `needs-tuning` and `blocked`, which conflate a task outcome, an executor budget
+# exhaustion, a tooling problem and an infrastructure failure. Those are four
+# different answers to "was this worth the money" and only one of them is a
+# failure of the work.
+#
+# `turns_exhausted` is deliberately not a failure: exhausting turns means
+# unfinished, not unable, which is why ralph writes a note rather than asserting a
+# state there. `rate_limited`, `preflight_failed`, `stale` and `reclaimed` are
+# excluded from denominators entirely -- none of them got a fair attempt, and
+# counting them makes a task class look unworthy of quota it was never given.
+#
+# `stale` and `reclaimed` come from Hermes Agent's task_runs vocabulary. A
+# launchd-driven run can stop reporting without finishing or dying, and a human
+# can cancel from Observatory; without words for those, such runs have no outcome
+# at all and become invisible in every denominator rather than merely absent.
+OUTCOMES = frozenset(
+    {
+        "reached_stop_at",
+        "advanced",
+        "turns_exhausted",
+        "rate_limited",
+        "preflight_failed",
+        "executor_failed",
+        "stale",
+        "reclaimed",
+    }
+)
+
+# What the free-text statuses in the existing ledger meant. `completed` is
+# ambiguous on its own -- it says the executor returned cleanly, not that the task
+# reached stop_at -- so it resolves by whether a PR was recorded.
+_LEGACY_OUTCOMES = {
+    "incomplete": "turns_exhausted",
+    "blocked": "preflight_failed",
+    "failed": "executor_failed",
+    # A writeback problem, not a run outcome: the AG-132 row carrying it had
+    # greenlit the task and done the work, with only the Notion write pending.
+    # Reading it as a failure would put it in the denominator as one, which is
+    # the exact distortion the closed set exists to prevent.
+    "needs-tuning": "advanced",
+}
+
+
+def normalize_outcome(status: object, *, pr: object = None) -> str:
+    """One of OUTCOMES, from either a new outcome or a legacy status string."""
+    text = str(status or "").strip()
+    if text in OUTCOMES:
+        return text
+    if text in _LEGACY_OUTCOMES:
+        return _LEGACY_OUTCOMES[text]
+    if text == "completed":
+        return "reached_stop_at" if pr else "advanced"
+    # Anything unrecognised. `advanced` rather than a failure, because inventing
+    # a failure is the costlier error: it is indistinguishable from a measured
+    # one downstream, and it makes a task class look unworthy of quota on the
+    # strength of a string nobody defined.
+    return "advanced"
+
+
+def trailing_outcomes(machine: str, task: str, limit: int = 10) -> list[str]:
+    """The most recent outcomes for this task on this machine, newest first.
+
+    Read from the ledger rather than tracked separately: the rows are already the
+    record of what happened, and a second counter would be a second thing to keep
+    correct. An unreadable ledger yields nothing, which reads as "no history" --
+    the same answer a first run gets, and the safe one, because the only thing
+    that consumes this is a decision to *stop* trying.
+    """
+    path = usage_path(f"loop-runs.{machine}.jsonl")
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, ValueError):
+        return []
+    found: list[str] = []
+    for line in reversed(lines):
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if row.get("task") != task:
+            continue
+        found.append(str(row.get("outcome") or normalize_outcome(row.get("status"), pr=row.get("pr"))))
+        if len(found) >= limit:
+            break
+    return found
+
+
 def append_run(
     *,
     project: str,
@@ -352,6 +441,11 @@ def append_run(
         "machine": machine,
         "started_at": _iso(started_ts or ended),
         "ended_at": _iso(ended),
+        # Both, for one migration window. `outcome` is the closed vocabulary the
+        # audit groups by; `status` is what the caller said, kept so a row written
+        # by an older engine copy is still readable and so the mapping can be
+        # checked rather than trusted.
+        "outcome": normalize_outcome(status, pr=pr),
         "status": status,
         "note": note,
         "quota": _quota_block(

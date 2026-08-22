@@ -874,8 +874,15 @@ write_quota 10 20
 spend_log=$(CLAUDE_BIN="$ROOT/fake-claude-expensive" "$HOME_DIR/ralph.sh" 1 15 2>&1 || true)
 check "the iteration ran at all" "$(last_run_field executor)" "claude"
 excludes "the start line no longer calls it a guard alone" "$spend_log" "\$15 guard·"
-contains "the start line says when it is checked" "$spend_log" \
-  "\$15 checked between iterations (cannot stop one)"
+# The note used to end "(cannot stop one)", which stopped being true for claude
+# when --max-budget-usd landed. The between-iteration half still applies to the
+# executors that have no in-run cap, so the line has to say both rather than
+# either -- a note that claims the budget cannot stop a run would now be wrong,
+# and one that claims it always can would be wrong for codex and agy.
+contains "the start line says the cap binds in-run for claude" "$spend_log" \
+  "\$15 — capped in-run for claude"
+contains "and that the between-iteration check still exists" "$spend_log" \
+  "checked between iterations otherwise"
 contains "a single iteration over the guard is named" "$spend_log" \
   "this iteration alone spent \$16.34, over the \$15 guard by \$1.34"
 contains "and why it was not stopped" "$spend_log" \
