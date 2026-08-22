@@ -92,3 +92,6 @@ libs/portfolio/.reference/
 
 # superpowers brainstorming mockups
 .superpowers/
+
+# Loop task notes — machine-local, same convention as the vault
+_system/tasks/
