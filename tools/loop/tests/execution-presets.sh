@@ -341,6 +341,33 @@ claude_line=$(printf '%s\n' "$calls" | grep '^claude ' || true)
 check "claude was reached as the fallback" "$([ -n "$claude_line" ] && echo yes || echo no)" "yes"
 excludes "the fallback carries no foreign model" "$claude_line" "gpt-5.6-terra"
 excludes "the fallback carries no effort either" "$claude_line" "--effort"
+
+# A task whose last runs all ended without a fair attempt, or in genuine failure,
+# stops being selected. AG-289 is the shape: it died at an openapi-sync preflight
+# with curl exit 60, a TLS failure that does not resolve by retrying, and ranking
+# would have re-picked it every sweep until a human noticed.
+echo "  a task that keeps failing leaves ranking:"
+: > "$RALPH_TEST_CALLS"
+for _ in 1 2 3; do
+  printf '{"run_id":"seed","task":"%s","machine":"%s","outcome":"preflight_failed","status":"preflight_failed"}\n' \
+    "$TASK_KEY" "$MACHINE" >> "$runs_file"
+done
+# Not run_ralph: it clears the ledger on entry, which is exactly the history
+# this test depends on.
+: > "$RALPH_TEST_ENV"
+"$HOME_DIR/ralph.sh" 1 10 > "$ralph_log" 2>&1 || true
+breaker_log=$(cat "$ralph_log")
+breaker_calls=$(cat "$RALPH_TEST_CALLS")
+contains "the loop says it is leaving the task out" "$breaker_log" "consecutive blocking outcomes"
+excludes "and no executor was launched" "$breaker_calls" "claude "
+# One good run in the history is enough to let it back in -- the rule is
+# consecutive, not cumulative, or a task could never recover from a bad week.
+printf '{"run_id":"seed","task":"%s","machine":"%s","outcome":"advanced","status":"advanced"}\n' \
+  "$TASK_KEY" "$MACHINE" >> "$runs_file"
+: > "$RALPH_TEST_CALLS"
+"$HOME_DIR/ralph.sh" 1 10 > "$ralph_log" 2>&1 || true
+contains "a later good run lets it back in" "$(cat "$RALPH_TEST_CALLS")" "claude "
+rm -f "$runs_file"
 # Restore the success-shaped codex for anything after this.
 cat > "$ROOT/fake-codex" <<'FAKE'
 #!/usr/bin/env bash

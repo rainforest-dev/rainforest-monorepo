@@ -39,6 +39,12 @@ MAX_ITER=${1:-15}
 BUDGET_USD=${2:-10}
 BACKOFF=${RALPH_BACKOFF_SECS:-1800}
 MAX_WAITS=${RALPH_MAX_WAITS:-48}
+# Consecutive blocking outcomes on one task before it stops being selected. The
+# engine has no preflight step of its own, so this counts what actually happened
+# rather than where it happened: AG-289 died at an openapi-sync preflight with
+# curl exit 60, a TLS failure that will not resolve by retrying, and ranking
+# would have re-picked it every sweep until a human noticed.
+MAX_BLOCKED=${RALPH_MAX_BLOCKED:-3}
 # A runaway guard, not a cost control -- cost is bounded by BUDGET_USD and the
 # quota gate below, both of which stop the loop on real spend. 40 was too tight
 # to be only a guard: on 2026-07-29 a single bug fix (read the ticket, locate
@@ -860,6 +866,28 @@ print("\x1f".join(str(field or "") for field in (
 )))' \
     2>/dev/null || printf '\x1f\x1f\x1f')
   IFS=$'\x1f' read -r task_id task_item_id task_key TASK_POINTS <<< "$task_row"
+  # Stop re-selecting a task whose last MAX_BLOCKED runs all ended without a fair
+  # attempt or in genuine failure. Read off the ledger rather than tracked
+  # separately -- the rows are already the record, and a second counter would be
+  # a second thing to keep correct.
+  if [ -n "${task_id:-}" ] && [ "$MAX_BLOCKED" -gt 0 ]; then
+    blocked_run=$("$PYTHON_BIN" -c '
+import sys
+sys.path.insert(0, sys.argv[1])
+from loopctl.writeback import trailing_outcomes
+recent = trailing_outcomes(sys.argv[2], sys.argv[3], limit=int(sys.argv[4]))
+blocking = {"preflight_failed", "executor_failed"}
+print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in recent) else "no")
+' "$LOOP_HOME/lib" "$MACHINE" "$task_id" "$MAX_BLOCKED" 2>/dev/null || printf 'no')
+    if [ "$blocked_run" = "yes" ]; then
+      log "task=$task_id has $MAX_BLOCKED consecutive blocking outcomes; leaving it out of ranking until something changes"
+      "$LOOPCTL" task-note "$slug" "$task_id" \
+        --note "Auto-blocked after $MAX_BLOCKED consecutive blocking runs. Nothing here retries into a different result; fix the cause, then run the loop again." \
+        >/dev/null 2>&1 || true
+      exit 0
+    fi
+  fi
+
   # Reset every iteration: a task with no preset must not inherit the previous
   # task's model.
   preferred=""; PLAN_MODEL=""; PLAN_EFFORT=""
