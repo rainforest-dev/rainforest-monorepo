@@ -65,6 +65,11 @@ def _merge_task(task, sig, derived_state: str, prior_task: dict | None) -> dict:
         "title": task.title,
         "state": state,
         "pr": sig.pr_url or overlay.get("pr"),
+        # Whether the task has a branch decides, on a rate limit, between trying
+        # the next executor and waiting for this one. It was already on the
+        # TaskRef and simply never reached the caller, so ralph had no way to
+        # tell a task that had not started from one it would be restarting.
+        "branch": task.branch,
         "priority": task.priority,
         "metadata": task.metadata,
     }

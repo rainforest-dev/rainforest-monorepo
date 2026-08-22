@@ -863,9 +863,10 @@ meta = row.get("metadata") or {}
 item_id = meta.get("item_id") or ""
 print("\x1f".join(str(field or "") for field in (
     row.get("id"), item_id, item_id or meta.get("task_id"), meta.get("points"),
+    row.get("branch"),
 )))' \
-    2>/dev/null || printf '\x1f\x1f\x1f')
-  IFS=$'\x1f' read -r task_id task_item_id task_key TASK_POINTS <<< "$task_row"
+    2>/dev/null || printf '\x1f\x1f\x1f\x1f')
+  IFS=$'\x1f' read -r task_id task_item_id task_key TASK_POINTS TASK_BRANCH <<< "$task_row"
   # Stop re-selecting a task whose last MAX_BLOCKED runs all ended without a fair
   # attempt or in genuine failure. Read off the ledger rather than tracked
   # separately -- the rows are already the record, and a second counter would be
@@ -949,10 +950,19 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
       continue
     fi
     if rate_limited "$candidate_out"; then
-      log "executor=$candidate rate limited; trying next executor"
       provider_rate_limited=1
       out="$candidate_out"
       unset candidate_status
+      # A task with a branch is half-done. The next executor would restart from a
+      # context the first one built and cannot hand over, and would split one
+      # task's spend across two providers -- which is exactly the per-task figure
+      # the estimate audit exists to produce. Wait for this one; the wait below
+      # sleeps to the reset and MAX_WAITS still bounds it.
+      if [ -n "${TASK_BRANCH:-}" ]; then
+        log "executor=$candidate rate limited; task is on $TASK_BRANCH, waiting for this executor rather than switching"
+        break
+      fi
+      log "executor=$candidate rate limited; task has not started, trying next executor"
       continue
     fi
     if [ "$candidate_status" -ne 0 ]; then
