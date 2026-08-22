@@ -318,6 +318,47 @@ OVERRUN_RATIO=${LOOP_OVERRUN_RATIO:-1.5}
 # The gate fires before the executor is chosen -- the preset resolves after the
 # sweep -- so it is deliberately conservative: whichever pool is worst decides.
 # Attribution is a separate question, settled after the run, by provider.
+# Seconds until the soonest quota window resets, and which window, as
+# "<secs>\t<label>". Empty when the snapshot cannot say -- the caller then falls
+# back to the blind interval, which is what every wait did before this.
+#
+# Waiting the interval was never wrong, only uninformed: the snapshot has carried
+# `resets_at` all along, so a run could sleep 1800s to re-read a window with 208
+# minutes left on it. Sleeping to the known moment costs the same and wakes once.
+reset_wait() {
+  "$PYTHON_BIN" - "$QUOTA_FILE" <<'RESETPY' 2>/dev/null || true
+import json
+import sys
+import time
+
+try:
+    doc = json.load(open(sys.argv[1]))
+except (OSError, ValueError):
+    raise SystemExit
+if not isinstance(doc, dict):
+    raise SystemExit
+now = time.time()
+soonest = None
+for provider, windows in (
+    ("claude", ("five_hour", "weekly_all")),
+    ("codex", ("five_hour", "weekly")),
+):
+    block = doc.get(provider) or {}
+    for name in windows:
+        at = (block.get(name) or {}).get("resets_at")
+        if not at:
+            continue
+        secs = float(at) - now
+        # A window that has already rolled over is not something to wait for.
+        if secs <= 0:
+            continue
+        if soonest is None or secs < soonest[0]:
+            soonest = (secs, provider + " " + name.replace("_", "-"))
+if soonest:
+    print(str(int(soonest[0])) + "\t" + soonest[1])
+RESETPY
+}
+
 quota_state() {
   "$PYTHON_BIN" - "$QUOTA_FILE" "$PCT_5H_STOP" "$PCT_WEEK_STOP" "$PCT_5H_DRAIN" "$PCT_WEEK_DRAIN" <<'PY'
 import json
@@ -966,8 +1007,23 @@ print("\x1f".join(str(field or "") for field in (
       log "rate-limited $waits times; stopping for a later resume"
       exit 2
     fi
-    log "rate limited ($waits/$MAX_WAITS); sleeping ${BACKOFF}s"
-    sleep "$BACKOFF"
+    # Sleep to the reset rather than at it. MAX_WAITS stays the ceiling on total
+    # patience, so a reset further out than the interval would ever have reached
+    # is not something to sleep through -- that is a later resume, not a longer
+    # nap.
+    IFS=$'\t' read -r reset_secs reset_window <<< "$(reset_wait)"
+    patience=$(( (MAX_WAITS - waits + 1) * BACKOFF ))
+    if [ -n "${reset_secs:-}" ] && [ "$reset_secs" -gt "$patience" ]; then
+      log "rate limited; $reset_window resets in $((reset_secs / 60))m, past the $((patience / 60))m left in the budget -- stopping for a later resume"
+      exit 2
+    fi
+    if [ -n "${reset_secs:-}" ]; then
+      log "rate limited ($waits/$MAX_WAITS); sleeping $((reset_secs / 60))m until $reset_window resets"
+      sleep "$((reset_secs + 30))"
+    else
+      log "rate limited ($waits/$MAX_WAITS); no reset time in the snapshot, sleeping ${BACKOFF}s"
+      sleep "$BACKOFF"
+    fi
     continue
   fi
   if [ -z "$provider" ]; then
