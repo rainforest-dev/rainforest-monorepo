@@ -603,7 +603,8 @@ run_claude() {
     LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CLAUDE_BIN" -p \
     ${opts[@]+"${opts[@]}"} \
     --permission-mode "${LOOP_CLAUDE_PERMISSION_MODE:-auto}" --add-dir "$LOOP_HOME" \
-    --session-id "$sid" --output-format json --max-turns "$MAX_TURNS")
+    --session-id "$sid" --output-format json --max-turns "$MAX_TURNS" \
+    --max-budget-usd "$BUDGET_USD")
 }
 
 run_codex() {
@@ -728,7 +729,12 @@ PY
 # iteration, and the log printed the guard as though it had applied. The only
 # bound that operates inside an iteration is RALPH_MAX_TURNS, which counts turns,
 # not money. Say which of the two this is, on the line that introduces it.
-USD_GUARD_NOTE="\$$BUDGET_USD checked between iterations (cannot stop one)"
+# Claude enforces the cap inside the run (`--max-budget-usd`, which requires
+# --print and so applies to every executor invocation here). The between-iteration
+# check remains for the executors that have no equivalent, and for the case the
+# cap cannot cover: at MAX_ITER=1 there is no "between iterations" at all, which
+# is how a $10 guard sat over a ~$30 run on 2026-08-22 without ever being wrong.
+USD_GUARD_NOTE="\$$BUDGET_USD — capped in-run for claude, checked between iterations otherwise"
 if [ -n "$BUDGET_WEEKLY_PP" ]; then
   log "start · machine=$MACHINE max_iter=$MAX_ITER · approved ${BUDGET_WEEKLY_PP}pp weekly (stop past ${OVERRUN_RATIO}x) · $USD_GUARD_NOTE"
 else

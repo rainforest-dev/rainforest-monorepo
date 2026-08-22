@@ -214,6 +214,12 @@ run_ralph
 calls=$(cat "$RALPH_TEST_CALLS")
 contains "claude is told the model" "$calls" -- "--model claude-opus-5"
 contains "claude is told the effort" "$calls" "--effort xhigh"
+# The dollar guard is checked between iterations and cannot stop one, and at
+# MAX_ITER=1 there are no iterations to check between -- which is how a $10 guard
+# sat over a ~$30 run on 2026-08-22 without ever being wrong. The cap is the half
+# that binds inside the run, so its absence has to fail here rather than show up
+# as an overspend nobody could have prevented.
+contains "claude is capped in-run by the dollar budget" "$calls" -- "--max-budget-usd 10"
 # Model, effort and the token count used to be fields on the ledger row, passed
 # as optional arguments. That is why they were sparse -- a caller that did not
 # know a value passed None and the write still succeeded. They now ride on the
