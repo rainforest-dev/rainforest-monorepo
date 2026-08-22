@@ -342,6 +342,73 @@ check "claude was reached as the fallback" "$([ -n "$claude_line" ] && echo yes 
 excludes "the fallback carries no foreign model" "$claude_line" "gpt-5.6-terra"
 excludes "the fallback carries no effort either" "$claude_line" "--effort"
 
+# The other half of the same rule. A task with a branch is half-done: switching
+# restarts from a context the first executor built and cannot hand over, and
+# splits one task's spend across two providers -- the per-task figure the
+# estimate audit exists to produce.
+echo "  a rate limit on a started task waits instead of switching:"
+# The gh shim matters here and nowhere else in this suite. A task that declares a
+# branch makes the scanner look the branch's PR up, and a sandbox repo has no
+# usable remote -- the lookup fails, the scan goes stale, and a stale project has
+# no candidates at all. Every other test avoids this by having no branch, which
+# is why the shim was never needed before.
+mkdir -p "$ROOT/ghbin"
+cat > "$ROOT/ghbin/gh" <<'GHFAKE'
+#!/usr/bin/env bash
+exit 0
+GHFAKE
+chmod +x "$ROOT/ghbin/gh"
+git -C "$PROJECT" branch feat/sandbox-in-flight >/dev/null 2>&1 || true
+cat > "$VAULT/$TASK_KEY" <<NOTE
+---
+task_id: "$TASK_ID"
+status: In progress
+priority: P2
+points: 1
+branch: feat/sandbox-in-flight
+scope: personal
+---
+
+# Sandbox task
+
+Exists only inside this test.
+NOTE
+cat > "$ROOT/fake-codex" <<'FAKE'
+#!/usr/bin/env bash
+printf 'codex %s\n' "$*" >> "$RALPH_TEST_CALLS"
+echo '{"type":"error","message":"rate limit reached"}'
+exit 1
+FAKE
+chmod +x "$ROOT/fake-codex"
+# Not silenced: a scan that fails here leaves the old state and the assertions
+# below would pass or fail for the wrong reason.
+PATH="$ROOT/ghbin:$PATH" "$HOME_DIR/loopctl" scan sandbox >/dev/null || echo "  SETUP FAILED: scan errored"
+: > "$RALPH_TEST_CALLS"; : > "$RALPH_TEST_ENV"
+# MAX_WAITS=0 so the wait path exits instead of sleeping: the reset-aware sleep
+# reads a real resets_at from the fixture quota file and would park the suite for
+# hours. Exiting still proves the branch was taken -- the switch never happened.
+PATH="$ROOT/ghbin:$PATH" RALPH_MAX_WAITS=0 "$HOME_DIR/ralph.sh" 1 10 > "$ralph_log" 2>&1 || true
+inflight_calls=$(cat "$RALPH_TEST_CALLS")
+inflight_log=$(cat "$ralph_log")
+contains "codex was still tried" "$inflight_calls" "codex "
+excludes "but claude was not reached" "$inflight_calls" "claude "
+contains "and the log says why" "$inflight_log" "waiting for this executor rather than switching"
+# Put the task back for everything after this.
+cat > "$VAULT/$TASK_KEY" <<NOTE
+---
+task_id: "$TASK_ID"
+status: Not started
+priority: P2
+points: 1
+scope: personal
+---
+
+# Sandbox task
+
+Exists only inside this test.
+NOTE
+"$HOME_DIR/loopctl" scan sandbox >/dev/null 2>&1 || true
+
 # A task whose last runs all ended without a fair attempt, or in genuine failure,
 # stops being selected. AG-289 is the shape: it died at an openapi-sync preflight
 # with curl exit 60, a TLS failure that does not resolve by retrying, and ranking
