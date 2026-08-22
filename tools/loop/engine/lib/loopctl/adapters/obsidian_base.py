@@ -53,6 +53,12 @@ def enumerate_tasks(project, run=None) -> list[TaskRef]:
                     "task_id": data.get("task_id"),
                     "claimed_by": claimed_by or ("loop" if "(@loop)" in body else None),
                     "order": data.get("order", 999999),
+                    # The estimate in force, carried so a run can be stamped with
+                    # it at launch. Read afterwards it would be worthless: a note
+                    # is re-pointed as it is refined, and an audit that looks it
+                    # up later compares the actual against a number nobody was
+                    # working to.
+                    "points": data.get("points"),
                     "source": "obsidian-base",
                 },
             )

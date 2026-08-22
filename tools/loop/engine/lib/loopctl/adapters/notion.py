@@ -117,6 +117,9 @@ def enumerate_tasks(project, run=None) -> list[TaskRef]:
                 metadata={
                     "item_id": item.get("item_id"),
                     "component": item.get("component"),
+                    # See the same field in the obsidian_base adapter: the
+                    # estimate has to be stamped at launch to mean anything.
+                    "points": item.get("points"),
                     "source": "notion",
                 },
             )

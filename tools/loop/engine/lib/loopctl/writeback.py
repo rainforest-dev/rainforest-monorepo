@@ -288,14 +288,11 @@ def append_run(
     task: str,
     executor: str,
     machine: str,
-    cost_usd: str | float | int = 0,
     status: str = "completed",
     note: str | None = None,
     started_ts: int | None = None,
     ended_ts: int | None = None,
-    model: str | None = None,
-    effort: str | None = None,
-    tokens_out: int | None = None,
+    run_id: str | None = None,
     quota_5h_before: str | float | None = None,
     quota_5h_after: str | float | None = None,
     quota_week_before: str | float | None = None,
@@ -308,17 +305,37 @@ def append_run(
 ) -> dict:
     """Append one structured iteration/retro record to a machine partition.
 
-    The row carries edges as well as measurements. Without them the ledger could
-    say what a run cost but not what it was working on, where the work went, or
-    which earlier run it was fixing -- so "did the second attempt close what the
-    first missed" was unanswerable from own data, which is the whole question a
-    fix round exists to answer. These are id fields on an existing row, which is
-    what OpenLineage's parent facet and Pydantic AI's step persistence both
-    reduce to; neither needs a graph store.
+    The row carries the outcome and the edges, and deliberately not the
+    measurements. Cost, output tokens, model and effort used to be threaded in
+    here as optional keyword arguments, which is sparse by construction: a
+    caller that does not know a value passes None and succeeds silently. Of the
+    19 runs in the live ledger, `task_id` was present on 1 and `cost_usd` was
+    0.00 on 11. Those four now arrive on telemetry stamped at process launch,
+    carrying this same `run_id`, where they cannot be half-applied.
+
+    What is left is the part telemetry cannot know. The CLI knows what it spent
+    and which tools it called; it does not know whether that counted as
+    advancing the task. That is the loop's judgement, and this file is where it
+    lives -- small, portable, readable offline, and surviving the loss of Loki.
+
+    The edges are the other half. Without them the ledger could say what a run
+    cost but not what it was working on, where the work went, or which earlier
+    run it was fixing -- so "did the second attempt close what the first missed"
+    was unanswerable from own data, which is the whole question a fix round
+    exists to answer. These are id fields on an existing row, which is what
+    OpenLineage's parent facet and Pydantic AI's step persistence both reduce
+    to; neither needs a graph store.
+
+    `run_id` is passed in rather than derived here whenever the caller launched
+    the run. It has to exist before the executor starts, because it is stamped
+    into OTEL_RESOURCE_ATTRIBUTES and that is set once per process; a value
+    invented at append time, after the executor has exited, could never appear
+    on the telemetry it is supposed to join. The derivation below stays for
+    callers that record a run they did not launch.
     """
     ended = ended_ts or int(time.time())
     record = {
-        "run_id": f"{machine}-{ended}-{task}",
+        "run_id": run_id or f"{machine}-{ended}-{task}",
         # The human key (AG-298), alongside `task` which is the source URL. Every
         # other surface -- greenlight, notes, config -- speaks the human key, so a
         # ledger that only knows the URL cannot be joined against any of them.
@@ -335,14 +352,8 @@ def append_run(
         "machine": machine,
         "started_at": _iso(started_ts or ended),
         "ended_at": _iso(ended),
-        "cost_usd": float(cost_usd or 0),
         "status": status,
         "note": note,
-        # Which model and effort actually ran. Neither was recorded anywhere
-        # before, so "was xhigh worth it" could not be answered from own data.
-        "model": model,
-        "effort": effort,
-        "tokens_out": tokens_out,
         "quota": _quota_block(
             quota_5h_before,
             quota_5h_after,

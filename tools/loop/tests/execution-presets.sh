@@ -103,9 +103,14 @@ cat > "$HOME_DIR/greenlight/sandbox.md" <<GL
 GL
 
 # --- fake executors: record the exact argv they were handed ------------------
+# Attribution is set in the launch environment, so the environment is what has
+# to be captured. Nothing downstream can tell a correctly-attributed run from an
+# unattributed one after the fact -- that is the failure mode the whole change
+# exists to close, and it is invisible to an argv-only fake.
 cat > "$ROOT/fake-claude" <<'FAKE'
 #!/usr/bin/env bash
 printf 'claude %s\n' "$*" >> "$RALPH_TEST_CALLS"
+env | grep -E '^(CLAUDE_CODE_ENABLE_TELEMETRY|OTEL_)' | sort >> "$RALPH_TEST_ENV"
 echo '{"type":"result","subtype":"success","total_cost_usd":0.5,"usage":{"output_tokens":4242},"result":"done"}'
 exit 0
 FAKE
@@ -116,6 +121,7 @@ FAKE
 cat > "$ROOT/fake-codex" <<'FAKE'
 #!/usr/bin/env bash
 printf 'codex %s\n' "$*" >> "$RALPH_TEST_CALLS"
+env | grep -E '^(CLAUDE_CODE_ENABLE_TELEMETRY|OTEL_)' | sort >> "$RALPH_TEST_ENV"
 echo '{"type":"thread.started","thread_id":"t-1"}'
 echo '{"type":"turn.started"}'
 echo '{"type":"item.completed","item":{"id":"i-1","type":"agent_message","text":"done"}}'
@@ -144,6 +150,7 @@ export AGY_BIN=/nonexistent/agy
 export LOOP_EXECUTORS=claude,codex,agy
 export LOOP_QUOTA_FILE="$ROOT/quota/_system/usage/quota.$MACHINE.json"
 export RALPH_TEST_CALLS="$ROOT/calls.log"
+export RALPH_TEST_ENV="$ROOT/env.log"
 # No usage runtime in the sandbox, so refresh_quota is a no-op and the quota file
 # written above is what both samples read.
 export LOOP_USAGE_RUNTIME="$ROOT/no-such-runtime"
@@ -151,10 +158,33 @@ export LOOP_USAGE_RUNTIME="$ROOT/no-such-runtime"
 "$LOOPCTL" scan sandbox >/dev/null 2>&1 || echo "  scan failed"
 
 runs_file="$VAULT/_system/usage/loop-runs.$MACHINE.jsonl"
+ralph_log="$ROOT/ralph.log"
 run_ralph() {
   : > "$RALPH_TEST_CALLS"
+  : > "$RALPH_TEST_ENV"
   rm -f "$runs_file"
-  "$HOME_DIR/ralph.sh" 1 10 >/dev/null 2>&1
+  # Kept rather than discarded: the run_id and the locally-parsed token count
+  # are printed here and recorded nowhere else, so throwing the log away would
+  # leave both unassertable.
+  "$HOME_DIR/ralph.sh" 1 10 > "$ralph_log" 2>&1
+}
+# One attribute out of the OTEL_RESOURCE_ATTRIBUTES string the executor was
+# actually launched with.
+launch_attr() {
+  [ -f "$RALPH_TEST_ENV" ] || { printf 'NO-ENV'; return; }
+  "$VENV/bin/python" - "$RALPH_TEST_ENV" "$1" <<'PY'
+import sys
+from urllib.parse import unquote
+want = sys.argv[2]
+for line in open(sys.argv[1]):
+    if not line.startswith("OTEL_RESOURCE_ATTRIBUTES="):
+        continue
+    for pair in line.split("=", 1)[1].strip().split(","):
+        key, _, value = pair.partition("=")
+        if key == want:
+            print(unquote(value)); raise SystemExit
+print("")
+PY
 }
 last_run_field() {
   [ -f "$runs_file" ] || { printf 'NO-RUN-RECORD'; return; }
@@ -184,9 +214,19 @@ run_ralph
 calls=$(cat "$RALPH_TEST_CALLS")
 contains "claude is told the model" "$calls" -- "--model claude-opus-5"
 contains "claude is told the effort" "$calls" "--effort xhigh"
-check "the run record keeps the model" "$(last_run_field model)" "claude-opus-5"
-check "the run record keeps the effort" "$(last_run_field effort)" "xhigh"
-check "the run record keeps output tokens" "$(last_run_field tokens_out)" "4242"
+# Model, effort and the token count used to be fields on the ledger row, passed
+# as optional arguments. That is why they were sparse -- a caller that did not
+# know a value passed None and the write still succeeded. They now ride on the
+# launch environment, where the same omission is not expressible.
+check "the launch env names the model" "$(launch_attr model)" "claude-opus-5"
+check "the launch env names the effort" "$(launch_attr effort)" "xhigh"
+check "and the row no longer carries either" \
+  "$(last_run_field model)$(last_run_field effort)" ""
+check "nor the cost it used to duplicate" "$(last_run_field cost_usd)" ""
+# The locally parsed figure is not thrown away -- it is the second reading the
+# parallel window checks the telemetry against.
+contains "the log keeps a locally parsed token count" "$(cat "$ralph_log")" \
+  "4242 output tokens (locally parsed)"
 
 # The executor's output used to be read for a cost figure and then dropped, so a
 # failed run left no evidence at all — and codex kept no session either, because
@@ -233,7 +273,8 @@ contains "codex can reach the network" "$calls" \
 # Measured 2026-07-30: every codex run recorded tokens_out as null, because the
 # reader parsed the whole blob as claude's single result object. `reasoning` is
 # deliberately not added in -- see executor_tokens_out.
-check "the run record keeps codex output tokens" "$(last_run_field tokens_out)" "777"
+contains "codex output tokens are still parsed correctly" "$(cat "$ralph_log")" \
+  "777 output tokens (locally parsed)"
 # Dropped 2026-07-30 so a loop run is reopenable with `codex resume` and visible
 # in the ChatGPT app. It is one word, easy to reinstate by reflex, and doing so
 # would silently take that back.
@@ -249,7 +290,7 @@ calls=$(cat "$RALPH_TEST_CALLS")
 contains "claude still runs" "$calls" "claude "
 excludes "no model flag is invented" "$calls" "--model"
 excludes "no effort flag is invented" "$calls" "--effort"
-check "the run record leaves model empty" "$(last_run_field model)" ""
+check "no model is invented on the launch env either" "$(launch_attr model)" ""
 
 # --- 5. an unknown preset falls back rather than failing ---------------------
 echo "  unknown preset:"
@@ -298,6 +339,7 @@ excludes "the fallback carries no effort either" "$claude_line" "--effort"
 cat > "$ROOT/fake-codex" <<'FAKE'
 #!/usr/bin/env bash
 printf 'codex %s\n' "$*" >> "$RALPH_TEST_CALLS"
+env | grep -E '^(CLAUDE_CODE_ENABLE_TELEMETRY|OTEL_)' | sort >> "$RALPH_TEST_ENV"
 echo '{"type":"turn.completed","usage":{"output_tokens":777}}'
 exit 0
 FAKE
@@ -756,12 +798,13 @@ burn_log=$(CLAUDE_BIN="$ROOT/fake-claude-burned" RALPH_TEST_BURNER="$ROOT/fake-b
 # Before anything else: the iteration has to have happened. Assertions in this
 # suite have twice passed because a helper had not loaded and empty compared
 # equal to empty, and an empty queue would do it again here.
-check "the iteration ran at all" "$(last_run_field cost_usd)" "0.5"
+check "the iteration ran at all" "$(last_run_field executor)" "claude"
 check "the pool movement is still recorded" "$(last_run_field quota.weekly_delta_pp)" "47.0"
 check "but the row does not claim it" "$(last_run_field quota.attribution)" "upper-bound"
 # 47pp of movement beside $0.50 of spend is the AG-131 shape. The exact figure
-# claude does have stays on the row, next to the one it does not.
-check "the exact per-run cost is kept beside it" "$(last_run_field cost_usd)" "0.5"
+# claude does have is no longer copied onto the row; it arrives on the run's own
+# events, which is why the row has to carry the id that joins them.
+contains "the run is joinable to what it emitted" "$(last_run_field run_id)" "$MACHINE-"
 contains "the log marks the delta as a bound" "$burn_log" "upper bound — shared pool"
 contains "the approval is not checked against it" "$burn_log" "cannot be checked against it"
 # 47pp against a 4pp approval is 7.8x the 1.5x ceiling. Before this change that
@@ -823,7 +866,7 @@ chmod +x "$ROOT/fake-claude-expensive" "$ROOT/fake-claude-maxturns"
 write_quota 10 20
 : > "$RALPH_TEST_CALLS"; rm -f "$runs_file"
 spend_log=$(CLAUDE_BIN="$ROOT/fake-claude-expensive" "$HOME_DIR/ralph.sh" 1 15 2>&1 || true)
-check "the iteration ran at all" "$(last_run_field cost_usd)" "16.34"
+check "the iteration ran at all" "$(last_run_field executor)" "claude"
 excludes "the start line no longer calls it a guard alone" "$spend_log" "\$15 guard·"
 contains "the start line says when it is checked" "$spend_log" \
   "\$15 checked between iterations (cannot stop one)"
@@ -839,6 +882,101 @@ contains "the turn-limit exit reports the spend" "$turns_log" "spent \$16.34 thi
 # end $1.34 over its guard having never compared the two.
 contains "the turn-limit exit also names the overrun" "$turns_log" \
   "over the \$15 guard by \$1.34"
+
+# --- 19. the run is attributable before it starts, not after it ends ---------
+# The producer half of the telemetry design. Every check here is on the launch
+# environment, because that is the only place the attribution exists -- and a
+# green run proves nothing about it: the OTel SDK drops silently, so the failure
+# mode is a run that looks entirely normal and lands nothing.
+echo "  launch attribution:"
+unset LOOP_AGENT_CONFIG
+cat > "$ROOT/agents.json" <<JSON
+{
+  "default_agent": "claude",
+  "presets": {"deep": {"provider": "claude", "model": "claude-opus-5", "effort": "xhigh"}},
+  "tasks": {"$TASK_KEY": {"preset": "deep"}}
+}
+JSON
+export LOOP_AGENT_CONFIG="$ROOT/agents.json"
+export LOOP_OTLP_ENDPOINT="http://collector.test:4318"
+run_ralph
+otel_env=$(cat "$RALPH_TEST_ENV")
+
+contains "telemetry is switched on at all" "$otel_env" "CLAUDE_CODE_ENABLE_TELEMETRY=1"
+contains "metrics go to the collector" "$otel_env" "OTEL_METRICS_EXPORTER=otlp"
+contains "so do events" "$otel_env" "OTEL_LOGS_EXPORTER=otlp"
+contains "at the configured endpoint" "$otel_env" \
+  "OTEL_EXPORTER_OTLP_ENDPOINT=http://collector.test:4318"
+# The single most load-bearing line in this file. Claude Code defaults to delta,
+# Alloy's Prometheus converter drops delta silently, and the run still exits 0 --
+# so nothing but this assertion stands between a working pipeline and one where
+# only target_info ever arrives.
+contains "counters are cumulative, or Alloy drops them silently" "$otel_env" \
+  "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative"
+# run_id is unbounded and session.id is new every session. Either on a metric
+# label grows Prometheus series without limit; both belong to Loki instead.
+contains "session id stays off metric labels" "$otel_env" \
+  "OTEL_METRICS_INCLUDE_SESSION_ID=false"
+contains "and so does the whole resource block" "$otel_env" \
+  "OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES=false"
+
+check "the run is identified" "$(launch_attr run_id)" "$(last_run_field run_id)"
+check "the machine is named" "$(launch_attr machine)" "$MACHINE"
+check "the project is named" "$(launch_attr project)" "sandbox"
+check "the executor is named" "$(launch_attr executor)" "claude"
+# obsidian-base calls the human key `task_id` and Notion calls it `item_id`.
+# Reading only the latter is why --task-id was empty on every personal run.
+check "the task's human key survives the source's spelling" \
+  "$(launch_attr task_id)" "$TASK_ID"
+# The estimates in force for THIS run, stamped now so an audit compares the
+# actual against the number that was actually being worked to.
+check "the story point in force is stamped" "$(launch_attr story_point)" "1"
+check "so is the dollar guard" "$(launch_attr budget_usd)" "10"
+check "and the turn budget" "$(launch_attr max_turns)" "100"
+
+# The ledger row and the telemetry have to agree on the id or neither can be
+# joined to the other, which is the entire mechanism.
+check "the row and the launch env share one run id" \
+  "$([ "$(launch_attr run_id)" = "$(last_run_field run_id)" ] && echo same || echo split)" "same"
+# It used to embed the task ref -- an 80-character Notion URL inside a baggage
+# value, where a query string would have corrupted every attribute after it.
+excludes "the id no longer embeds the task ref" "$(last_run_field run_id)" "/"
+
+echo "  codex attribution:"
+cat > "$ROOT/agents.json" <<JSON
+{
+  "default_agent": "claude",
+  "presets": {"trial-terra": {"provider": "codex", "model": "gpt-5.6-terra", "effort": "medium"}},
+  "tasks": {"$TASK_KEY": {"preset": "trial-terra"}}
+}
+JSON
+run_ralph
+otel_env=$(cat "$RALPH_TEST_ENV")
+calls=$(cat "$RALPH_TEST_CALLS")
+# Codex needs no exporter env: its provider builds the resource with
+# Resource::builder(), which carries the default env detector.
+check "codex is attributed by the same variable" "$(launch_attr executor)" "codex"
+check "carrying the same estimates" "$(launch_attr story_point)" "1"
+# ...but its exporters come from config, and they take FULL signal paths --
+# with_endpoint() uses the URL as given and appends no /v1/logs of its own.
+contains "codex events carry the full signal path" "$calls" \
+  "endpoint=\"http://collector.test:4318/v1/logs\""
+contains "and so do its traces" "$calls" \
+  "endpoint=\"http://collector.test:4318/v1/traces\""
+# Left alone this defaults to statsig, which resolves to ab.chatgpt.com -- every
+# loop run shipping metrics to a third party without anyone saying so.
+contains "codex metrics do not go to a third party by default" "$calls" \
+  "-c otel.metrics_exporter=none"
+
+echo "  no collector configured:"
+export LOOP_OTLP_ENDPOINT=""
+run_ralph
+otel_env=$(cat "$RALPH_TEST_ENV")
+# One switch, not nine. A host with no collector must not half-configure the
+# SDK and then block on an endpoint that will never answer.
+excludes "telemetry is off entirely" "$otel_env" "CLAUDE_CODE_ENABLE_TELEMETRY"
+excludes "and nothing is left pointing anywhere" "$otel_env" "OTEL_EXPORTER_OTLP_ENDPOINT"
+check "but the run still happens and still records" "$(last_run_field executor)" "codex"
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
