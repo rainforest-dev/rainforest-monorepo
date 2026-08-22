@@ -296,13 +296,22 @@ it as an audit puts it where it already was.
 | Estimate | Source | Actual, from |
 |---|---|---|
 | `story_point` | Notion task cache — 27 of 30 tasks carry one | summed `api_request.cost_usd_micros` per `task_id` |
-| `MAX_TURNS` (100) | ralph parameter | count of `api_request{query_source="main"}` per `run_id` |
+| `MAX_TURNS` (100) | ralph parameter | count of `api_request` per `run_id` — see the note on `query_source` below |
 | `BUDGET_USD` ($10) | ralph parameter | summed cost per `run_id` |
 | `model` / `effort` | resolved preset | cost and outcome, stratified by `story_point` |
 
 **Turn count is a proxy, not an exact figure.** One main-loop API request is
-approximately one agent turn; subagent and auxiliary requests are excluded by the
-`query_source` filter. Whether a run *hit* the limit is exact — `ralph` already
+approximately one agent turn; subagent and auxiliary requests are meant to be
+excluded by a `query_source` filter.
+
+**But `query_source="main"` selects none of them.** Measured 2026-08-22: a
+headless `claude -p` run — which is what every loop run is — reports
+`query_source: sdk` on its `api_request` events. `main` is the interactive
+session's value. Filtering on it would return an empty result for every loop run
+ever recorded, and an empty result here reads exactly like "no run came close to
+the limit", which is the opposite of what it means. Whoever implements this audit
+has to settle which `query_source` values a `-p` run actually emits before
+writing the filter, rather than inheriting this one. Whether a run *hit* the limit is exact — `ralph` already
 detects the `error_max_turns` subtype and it becomes the `turns_exhausted` outcome.
 Only "how close did it get" is approximate.
 
@@ -383,13 +392,29 @@ sum by (project, outcome) (loop_run_outcome_total)
 Exact per-run and per-task cost in Loki, where `run_id` lives:
 
 ```logql
-sum by (run_id) (
+sum by (resources_run_id) (
   sum_over_time(
     {job="claude-code"} | json | body="claude_code.api_request"
-    | unwrap cost_usd_micros [$__range]
+    | unwrap attributes_cost_usd [$__range]
   )
-) / 1e6
+)
 ```
+
+**Corrected against the live pipeline on 2026-08-22, from a run whose export was
+verified.** Three details in the query above were wrong as first written, and each
+one fails by returning nothing rather than by erroring — the same shape as a
+dropped export, which is how a working pipeline gets diagnosed as broken:
+
+- `run_id` is a **resource** attribute, so it arrives nested. LogQL's `json`
+  flattens with `_`, making the field `resources_run_id`. A filter on bare
+  `run_id` matches no line. Same for `task_id` and `project`.
+- the attribute is `cost_usd`, a decimal dollar figure, not `cost_usd_micros`, so
+  there is no `/ 1e6`. Measured: a run costing $0.056422 by the CLI's own
+  accounting reported `cost_usd: 0.056422` on its `claude_code.api_request`
+  event, and `claude_code_cost_usage_USD_total` in Prometheus agreed to the last
+  digit.
+- `json` prefixes event attributes too, so the unwrapped field is
+  `attributes_cost_usd`.
 
 All quota ratios exclude `outcome=~"rate_limited|preflight_failed"`.
 

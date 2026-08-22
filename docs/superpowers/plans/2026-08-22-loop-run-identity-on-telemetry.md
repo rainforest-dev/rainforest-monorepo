@@ -81,3 +81,41 @@ A green test proves the producer is configured. It cannot prove export, because 
 failure mode is silent. So one real iteration must also land
 `claude_code_cost_usage_USD_total` in Prometheus and `{job="claude-code"}` events in
 Loki, both joinable on the `run_id` ralph generated.
+
+## Verified 2026-08-22
+
+The suite is green at 135 + 14 + 11 checks. It proves the producer is configured
+and nothing more, so one real run was launched through ralph's own
+`otel_claude_env` — the functions extracted from `ralph.sh`, not a hand-written
+copy of them — and both stores were queried for it.
+
+`run_id=rainforest-mini-1787398828-0F8E5440`, one `claude -p` costing $0.056422:
+
+- **Prometheus.** `sum by (model, effort) (claude_code_cost_usage_USD_total)`
+  returns `{model="claude-haiku-4-5-20251001"} 0.056422` — the CLI's own figure to
+  the last digit. Cumulative temporality is doing its job: with the default the
+  series would not exist at all. No `run_id` label and no `session.id` label, so
+  the cardinality controls hold.
+- **Loki.** 107 events under this run, including `claude_code.api_request`
+  carrying `cost_usd 0.056422` and `output_tokens 110`, both matching the CLI.
+  The full resource block is on every line: `machine`, `project`, `task_id`,
+  `run_id`, `executor`, `model`, `story_point`, `budget_usd`, `max_turns`.
+
+**The first Loki query returned zero, and the pipeline was fine.** `run_id` is a
+resource attribute, so it arrives nested and LogQL's `json` flattens it to
+`resources_run_id`; a filter on bare `run_id` matches nothing. That is worth
+stating plainly because it is indistinguishable from the failure this design
+warns about — the OTel SDK drops silently, so "no rows" is exactly what a dropped
+export looks like too. The design's own queries have been corrected against the
+live pipeline rather than left to be rediscovered.
+
+Two further findings are recorded in the design rather than acted on here, both
+belonging to the estimate audit that comes later: the cost attribute is
+`cost_usd` in decimal dollars, not `cost_usd_micros`, and `query_source` on a
+`-p` run is `sdk`, not `main` — so the turn-count query as drafted would return
+an empty result for every loop run and read as "nothing came close to the limit".
+
+**Not verified: Codex.** It is not installed on this host, so its `-c` overrides
+and its reading of `OTEL_RESOURCE_ATTRIBUTES` are checked only against the shape
+of its own source and asserted in the suite. Both need one real Codex run on the
+Air before the cross-executor comparisons are trusted.
