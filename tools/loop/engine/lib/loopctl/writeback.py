@@ -282,20 +282,106 @@ def _last_run_id_for(machine: str, task: str) -> str | None:
     return None
 
 
+# The outcomes a run may end with. A closed set, because the previous free-text
+# status could not be counted: the live ledger holds `completed`, `incomplete`,
+# `needs-tuning` and `blocked`, which conflate a task outcome, an executor budget
+# exhaustion, a tooling problem and an infrastructure failure. Those are four
+# different answers to "was this worth the money" and only one of them is a
+# failure of the work.
+#
+# `turns_exhausted` is deliberately not a failure: exhausting turns means
+# unfinished, not unable, which is why ralph writes a note rather than asserting a
+# state there. `rate_limited`, `preflight_failed`, `stale` and `reclaimed` are
+# excluded from denominators entirely -- none of them got a fair attempt, and
+# counting them makes a task class look unworthy of quota it was never given.
+#
+# `stale` and `reclaimed` come from Hermes Agent's task_runs vocabulary. A
+# launchd-driven run can stop reporting without finishing or dying, and a human
+# can cancel from Observatory; without words for those, such runs have no outcome
+# at all and become invisible in every denominator rather than merely absent.
+OUTCOMES = frozenset(
+    {
+        "reached_stop_at",
+        "advanced",
+        "turns_exhausted",
+        "rate_limited",
+        "preflight_failed",
+        "executor_failed",
+        "stale",
+        "reclaimed",
+    }
+)
+
+# What the free-text statuses in the existing ledger meant. `completed` is
+# ambiguous on its own -- it says the executor returned cleanly, not that the task
+# reached stop_at -- so it resolves by whether a PR was recorded.
+_LEGACY_OUTCOMES = {
+    "incomplete": "turns_exhausted",
+    "blocked": "preflight_failed",
+    "failed": "executor_failed",
+    # A writeback problem, not a run outcome: the AG-132 row carrying it had
+    # greenlit the task and done the work, with only the Notion write pending.
+    # Reading it as a failure would put it in the denominator as one, which is
+    # the exact distortion the closed set exists to prevent.
+    "needs-tuning": "advanced",
+}
+
+
+def normalize_outcome(status: object, *, pr: object = None) -> str:
+    """One of OUTCOMES, from either a new outcome or a legacy status string."""
+    text = str(status or "").strip()
+    if text in OUTCOMES:
+        return text
+    if text in _LEGACY_OUTCOMES:
+        return _LEGACY_OUTCOMES[text]
+    if text == "completed":
+        return "reached_stop_at" if pr else "advanced"
+    # Anything unrecognised. `advanced` rather than a failure, because inventing
+    # a failure is the costlier error: it is indistinguishable from a measured
+    # one downstream, and it makes a task class look unworthy of quota on the
+    # strength of a string nobody defined.
+    return "advanced"
+
+
+def trailing_outcomes(machine: str, task: str, limit: int = 10) -> list[str]:
+    """The most recent outcomes for this task on this machine, newest first.
+
+    Read from the ledger rather than tracked separately: the rows are already the
+    record of what happened, and a second counter would be a second thing to keep
+    correct. An unreadable ledger yields nothing, which reads as "no history" --
+    the same answer a first run gets, and the safe one, because the only thing
+    that consumes this is a decision to *stop* trying.
+    """
+    path = usage_path(f"loop-runs.{machine}.jsonl")
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, ValueError):
+        return []
+    found: list[str] = []
+    for line in reversed(lines):
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if row.get("task") != task:
+            continue
+        found.append(str(row.get("outcome") or normalize_outcome(row.get("status"), pr=row.get("pr"))))
+        if len(found) >= limit:
+            break
+    return found
+
+
 def append_run(
     *,
     project: str,
     task: str,
     executor: str,
     machine: str,
-    cost_usd: str | float | int = 0,
     status: str = "completed",
     note: str | None = None,
     started_ts: int | None = None,
     ended_ts: int | None = None,
-    model: str | None = None,
-    effort: str | None = None,
-    tokens_out: int | None = None,
+    run_id: str | None = None,
     quota_5h_before: str | float | None = None,
     quota_5h_after: str | float | None = None,
     quota_week_before: str | float | None = None,
@@ -308,17 +394,37 @@ def append_run(
 ) -> dict:
     """Append one structured iteration/retro record to a machine partition.
 
-    The row carries edges as well as measurements. Without them the ledger could
-    say what a run cost but not what it was working on, where the work went, or
-    which earlier run it was fixing -- so "did the second attempt close what the
-    first missed" was unanswerable from own data, which is the whole question a
-    fix round exists to answer. These are id fields on an existing row, which is
-    what OpenLineage's parent facet and Pydantic AI's step persistence both
-    reduce to; neither needs a graph store.
+    The row carries the outcome and the edges, and deliberately not the
+    measurements. Cost, output tokens, model and effort used to be threaded in
+    here as optional keyword arguments, which is sparse by construction: a
+    caller that does not know a value passes None and succeeds silently. Of the
+    19 runs in the live ledger, `task_id` was present on 1 and `cost_usd` was
+    0.00 on 11. Those four now arrive on telemetry stamped at process launch,
+    carrying this same `run_id`, where they cannot be half-applied.
+
+    What is left is the part telemetry cannot know. The CLI knows what it spent
+    and which tools it called; it does not know whether that counted as
+    advancing the task. That is the loop's judgement, and this file is where it
+    lives -- small, portable, readable offline, and surviving the loss of Loki.
+
+    The edges are the other half. Without them the ledger could say what a run
+    cost but not what it was working on, where the work went, or which earlier
+    run it was fixing -- so "did the second attempt close what the first missed"
+    was unanswerable from own data, which is the whole question a fix round
+    exists to answer. These are id fields on an existing row, which is what
+    OpenLineage's parent facet and Pydantic AI's step persistence both reduce
+    to; neither needs a graph store.
+
+    `run_id` is passed in rather than derived here whenever the caller launched
+    the run. It has to exist before the executor starts, because it is stamped
+    into OTEL_RESOURCE_ATTRIBUTES and that is set once per process; a value
+    invented at append time, after the executor has exited, could never appear
+    on the telemetry it is supposed to join. The derivation below stays for
+    callers that record a run they did not launch.
     """
     ended = ended_ts or int(time.time())
     record = {
-        "run_id": f"{machine}-{ended}-{task}",
+        "run_id": run_id or f"{machine}-{ended}-{task}",
         # The human key (AG-298), alongside `task` which is the source URL. Every
         # other surface -- greenlight, notes, config -- speaks the human key, so a
         # ledger that only knows the URL cannot be joined against any of them.
@@ -335,14 +441,13 @@ def append_run(
         "machine": machine,
         "started_at": _iso(started_ts or ended),
         "ended_at": _iso(ended),
-        "cost_usd": float(cost_usd or 0),
+        # Both, for one migration window. `outcome` is the closed vocabulary the
+        # audit groups by; `status` is what the caller said, kept so a row written
+        # by an older engine copy is still readable and so the mapping can be
+        # checked rather than trusted.
+        "outcome": normalize_outcome(status, pr=pr),
         "status": status,
         "note": note,
-        # Which model and effort actually ran. Neither was recorded anywhere
-        # before, so "was xhigh worth it" could not be answered from own data.
-        "model": model,
-        "effort": effort,
-        "tokens_out": tokens_out,
         "quota": _quota_block(
             quota_5h_before,
             quota_5h_after,

@@ -45,6 +45,16 @@ MAX_WAITS=${RALPH_MAX_WAITS:-48}
 # the code, fix, test, commit, open the PR, record the state) hit the limit on
 # the last step, after the PR was already open.
 MAX_TURNS=${RALPH_MAX_TURNS:-100}
+# Where the OTLP collector is. Alloy runs on the mini, so localhost is right
+# there and the Air reaches it across the LAN; 4318 is the HTTP receiver, which
+# needs no gRPC toolchain on either host. Setting this to empty turns the whole
+# telemetry block off -- the one switch, rather than nine variables to unset.
+OTLP_ENDPOINT=${LOOP_OTLP_ENDPOINT-http://localhost:4318}
+# Generated per executor attempt, below, and stamped into the launch environment
+# before the process starts. Empty here so a function that reads it before the
+# first attempt gets nothing rather than the previous task's id.
+RUN_ID=""
+TASK_POINTS=""
 SPENT=0
 WEEK_PP_SPENT=0
 waits=0
@@ -308,6 +318,47 @@ OVERRUN_RATIO=${LOOP_OVERRUN_RATIO:-1.5}
 # The gate fires before the executor is chosen -- the preset resolves after the
 # sweep -- so it is deliberately conservative: whichever pool is worst decides.
 # Attribution is a separate question, settled after the run, by provider.
+# Seconds until the soonest quota window resets, and which window, as
+# "<secs>\t<label>". Empty when the snapshot cannot say -- the caller then falls
+# back to the blind interval, which is what every wait did before this.
+#
+# Waiting the interval was never wrong, only uninformed: the snapshot has carried
+# `resets_at` all along, so a run could sleep 1800s to re-read a window with 208
+# minutes left on it. Sleeping to the known moment costs the same and wakes once.
+reset_wait() {
+  "$PYTHON_BIN" - "$QUOTA_FILE" <<'RESETPY' 2>/dev/null || true
+import json
+import sys
+import time
+
+try:
+    doc = json.load(open(sys.argv[1]))
+except (OSError, ValueError):
+    raise SystemExit
+if not isinstance(doc, dict):
+    raise SystemExit
+now = time.time()
+soonest = None
+for provider, windows in (
+    ("claude", ("five_hour", "weekly_all")),
+    ("codex", ("five_hour", "weekly")),
+):
+    block = doc.get(provider) or {}
+    for name in windows:
+        at = (block.get(name) or {}).get("resets_at")
+        if not at:
+            continue
+        secs = float(at) - now
+        # A window that has already rolled over is not something to wait for.
+        if secs <= 0:
+            continue
+        if soonest is None or secs < soonest[0]:
+            soonest = (secs, provider + " " + name.replace("_", "-"))
+if soonest:
+    print(str(int(soonest[0])) + "\t" + soonest[1])
+RESETPY
+}
+
 quota_state() {
   "$PYTHON_BIN" - "$QUOTA_FILE" "$PCT_5H_STOP" "$PCT_WEEK_STOP" "$PCT_5H_DRAIN" "$PCT_WEEK_DRAIN" <<'PY'
 import json
@@ -463,28 +514,142 @@ except Exception:
     2>/dev/null || printf ''
 }
 
+# --- attribution ------------------------------------------------------------
+#
+# OTEL_RESOURCE_ATTRIBUTES is set once before the executor starts and is stamped
+# on every metric and event that process emits. That is the whole structural
+# point: it cannot be partially applied, which is precisely how the approach it
+# replaces went sparse. Cost, tokens, model and task were optional keyword
+# arguments to `record-run`, and a caller that did not know a value passed
+# nothing and succeeded silently -- across the 19 runs in the live ledger,
+# `task_id` landed on 1 and `cost_usd` was 0.00 on 11.
+
+# The attribute string is W3C baggage, where `,` and `=` are the delimiters, so
+# a value carrying either silently corrupts every attribute after it -- a Notion
+# task ref with a query string is enough. Percent-encode the delimiters, the
+# space and the percent itself; URLs and paths are otherwise already safe.
+otel_escape() {
+  printf '%s' "$1" | sed -e 's/%/%25/g' -e 's/,/%2C/g' -e 's/=/%3D/g' -e 's/ /%20/g'
+}
+
+# machine, project, task_id, run_id, executor, model, effort -- plus the
+# estimates in force for THIS run.
+#
+# The estimates are stamped here rather than looked up afterwards, and that is
+# not a convenience. A story point lives in the task source and moves as the
+# task is refined, so an audit that reads it later compares the actual against a
+# number nobody was working to. Capturing it at launch makes the estimate
+# immutable per run for free, on the mechanism that already had to exist.
+otel_resource_attributes() {
+  local executor="$1" slug="$2" task_key="$3"
+  local attrs="machine=$(otel_escape "$MACHINE")"
+  attrs="$attrs,project=$(otel_escape "$slug")"
+  attrs="$attrs,run_id=$(otel_escape "$RUN_ID")"
+  attrs="$attrs,executor=$(otel_escape "$executor")"
+  [ -n "$task_key" ] && attrs="$attrs,task_id=$(otel_escape "$task_key")"
+  [ -n "$PLAN_MODEL" ] && attrs="$attrs,model=$(otel_escape "$PLAN_MODEL")"
+  [ -n "$PLAN_EFFORT" ] && attrs="$attrs,effort=$(otel_escape "$PLAN_EFFORT")"
+  [ -n "$TASK_POINTS" ] && attrs="$attrs,story_point=$(otel_escape "$TASK_POINTS")"
+  attrs="$attrs,budget_usd=$(otel_escape "$BUDGET_USD")"
+  attrs="$attrs,max_turns=$(otel_escape "$MAX_TURNS")"
+  printf '%s' "$attrs"
+}
+
+# Sets OTEL_ENV to the launch environment for a Claude Code run, or to nothing
+# when no collector is configured.
+otel_claude_env() {
+  local executor="$1" slug="$2" task_key="$3"
+  OTEL_ENV=()
+  [ -n "$OTLP_ENDPOINT" ] || return 0
+  OTEL_ENV=(
+    CLAUDE_CODE_ENABLE_TELEMETRY=1
+    OTEL_METRICS_EXPORTER=otlp
+    OTEL_LOGS_EXPORTER=otlp
+    OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+    "OTEL_EXPORTER_OTLP_ENDPOINT=$OTLP_ENDPOINT"
+    # NOT optional. Claude Code defaults to delta temporality and Alloy's
+    # Prometheus converter drops delta silently. Measured 2026-08-21: with the
+    # default, only `target_info` arrived -- a gauge synthesised from resource
+    # attributes -- while every `claude_code.*` counter vanished and
+    # `prometheus_remote_storage_samples_failed_total` stayed at 0. Partial
+    # arrival at zero failures is the signature: it clears the whole transport
+    # path and points at the data type.
+    OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
+    # Every CLI session is a new session.id, and every run is a new run_id.
+    # Either on a metric label churns Prometheus series without bound, so both
+    # are off and the ids stay in the log line for Loki-side joins. This is not
+    # a compromise: exact per-run cost was always Loki's job, and Prometheus was
+    # never meant to hold a run_id. INCLUDE_RESOURCE_ATTRIBUTES is the
+    # load-bearing one -- OTEL_RESOURCE_ATTRIBUTES applies to both signals, so
+    # leaving it true would put run_id on metrics through the back door.
+    OTEL_METRICS_INCLUDE_SESSION_ID=false
+    OTEL_METRICS_INCLUDE_RESOURCE_ATTRIBUTES=false
+    # Own hardware, so user.email and the account ids are not an exposure --
+    # they are simply cardinality nothing here reads.
+    OTEL_METRICS_INCLUDE_ACCOUNT_UUID=false
+    # The default is 60s. A run shorter than that would depend entirely on the
+    # shutdown flush, and the SDK fails silently when that flush does not land.
+    OTEL_METRIC_EXPORT_INTERVAL=10000
+    "OTEL_RESOURCE_ATTRIBUTES=$(otel_resource_attributes "$executor" "$slug" "$task_key")"
+  )
+}
+
+# Codex reads OTEL_RESOURCE_ATTRIBUTES without being told to: its provider builds
+# the resource with `Resource::builder()`, which carries the default env
+# detector, so attribution needs no Codex-specific mechanism. The exporters do --
+# they come from config, not env -- and they take FULL signal paths, because
+# Codex hands the endpoint to `LogExporter::builder().with_http().with_endpoint()`
+# and that uses the URL as given rather than appending `/v1/logs` the way the
+# OTEL_EXPORTER_OTLP_ENDPOINT convention does.
+#
+# Sets OTEL_ENV and OTEL_CODEX_OPTS.
+otel_codex_env() {
+  local executor="$1" slug="$2" task_key="$3"
+  OTEL_ENV=()
+  OTEL_CODEX_OPTS=()
+  [ -n "$OTLP_ENDPOINT" ] || return 0
+  OTEL_ENV=(
+    "OTEL_RESOURCE_ATTRIBUTES=$(otel_resource_attributes "$executor" "$slug" "$task_key")"
+  )
+  OTEL_CODEX_OPTS=(
+    -c "otel.exporter={otlp-http={endpoint=\"$OTLP_ENDPOINT/v1/logs\",protocol=\"binary\"}}"
+    -c "otel.trace_exporter={otlp-http={endpoint=\"$OTLP_ENDPOINT/v1/traces\",protocol=\"binary\"}}"
+    # Codex's metrics exporter defaults to `statsig`, which resolves to an OTLP
+    # endpoint at ab.chatgpt.com. Left alone, every loop run would ship metrics
+    # to a third party unremarked. Pointing them here instead is not yet
+    # justified either: Codex's metric names are not the `claude_code.*` ones the
+    # Prometheus queries are written against, and whether the two vocabularies
+    # can be compared at all is an open question the parallel window settles.
+    # Until then the honest setting is neither.
+    -c otel.metrics_exporter=none
+  )
+}
+
 # Two separate gates, both of which stopped this executor dead before 2026-07-29:
 # --permission-mode, because a non-interactive session has nobody to approve a
 # prompt and every Bash call was auto-denied; and --add-dir, because the sandbox
 # confines tools to project_path while the contract and loopctl live in
 # LOOP_HOME -- the executor could not read its own instructions.
 run_claude() {
-  local slug="$1" project_path="$2" prompt="$3" sid="$4"
+  local slug="$1" project_path="$2" prompt="$3" sid="$4" task_key="$5"
   [ -x "$CLAUDE_BIN" ] || return 127
   # `${opts[@]+...}` because an empty array under `set -u` is an unbound
   # expansion on the bash 3.2 that ships with macOS.
   local opts=()
   [ -n "$PLAN_MODEL" ] && opts+=(--model "$PLAN_MODEL")
   [ -n "$PLAN_EFFORT" ] && opts+=(--effort "$PLAN_EFFORT")
-  (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=claude \
+  otel_claude_env claude "$slug" "$task_key"
+  (cd "$project_path" && printf '%s' "$prompt" | env ${OTEL_ENV[@]+"${OTEL_ENV[@]}"} \
+    LOOP_PROJECT="$slug" LOOP_EXECUTOR=claude \
     LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CLAUDE_BIN" -p \
     ${opts[@]+"${opts[@]}"} \
     --permission-mode "${LOOP_CLAUDE_PERMISSION_MODE:-auto}" --add-dir "$LOOP_HOME" \
-    --session-id "$sid" --output-format json --max-turns "$MAX_TURNS")
+    --session-id "$sid" --output-format json --max-turns "$MAX_TURNS" \
+    --max-budget-usd "$BUDGET_USD")
 }
 
 run_codex() {
-  local slug="$1" project_path="$2" prompt="$3"
+  local slug="$1" project_path="$2" prompt="$3" task_key="$4"
   [ -x "$CODEX_BIN" ] || return 127
   # Codex has no dedicated effort flag; `-c` sets it and the server validates it
   # (a bogus level is a 400, so a typo fails loudly rather than being ignored).
@@ -524,13 +689,18 @@ run_codex() {
   # under no OS sandbox.
   local codex_dirs=(--add-dir "$LOOP_HOME")
   [ -n "$VAULT_USAGE" ] && [ -d "$VAULT_USAGE" ] && codex_dirs+=(--add-dir "$VAULT_USAGE")
-  (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=codex \
+  otel_codex_env codex "$slug" "$task_key"
+  (cd "$project_path" && printf '%s' "$prompt" | env ${OTEL_ENV[@]+"${OTEL_ENV[@]}"} \
+    LOOP_PROJECT="$slug" LOOP_EXECUTOR=codex \
     LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CODEX_BIN" exec \
-    ${opts[@]+"${opts[@]}"} "${codex_dirs[@]}" \
+    ${opts[@]+"${opts[@]}"} ${OTEL_CODEX_OPTS[@]+"${OTEL_CODEX_OPTS[@]}"} "${codex_dirs[@]}" \
     -c sandbox_workspace_write.network_access=true \
     --json --sandbox workspace-write -C "$project_path" -)
 }
 
+# No OTel: agy is a third-party CLI with no OpenTelemetry surface of its own, so
+# there is nothing to point at the collector. A run on it is attributable only
+# through the ledger row, which is why the row keeps the outcome and the edges.
 run_agy() {
   local slug="$1" project_path="$2" prompt="$3"
   [ -x "$AGY_BIN" ] || return 127
@@ -541,8 +711,8 @@ run_agy() {
 
 run_executor() {
   case "$1" in
-    claude) run_claude "$2" "$3" "$4" "$5" ;;
-    codex) run_codex "$2" "$3" "$4" ;;
+    claude) run_claude "$2" "$3" "$4" "$5" "$6" ;;
+    codex) run_codex "$2" "$3" "$4" "$6" ;;
     agy) run_agy "$2" "$3" "$4" ;;
     *) log "unknown executor '$1'"; return 127 ;;
   esac
@@ -600,7 +770,12 @@ PY
 # iteration, and the log printed the guard as though it had applied. The only
 # bound that operates inside an iteration is RALPH_MAX_TURNS, which counts turns,
 # not money. Say which of the two this is, on the line that introduces it.
-USD_GUARD_NOTE="\$$BUDGET_USD checked between iterations (cannot stop one)"
+# Claude enforces the cap inside the run (`--max-budget-usd`, which requires
+# --print and so applies to every executor invocation here). The between-iteration
+# check remains for the executors that have no equivalent, and for the case the
+# cap cannot cover: at MAX_ITER=1 there is no "between iterations" at all, which
+# is how a $10 guard sat over a ~$30 run on 2026-08-22 without ever being wrong.
+USD_GUARD_NOTE="\$$BUDGET_USD — capped in-run for claude, checked between iterations otherwise"
 if [ -n "$BUDGET_WEEKLY_PP" ]; then
   log "start · machine=$MACHINE max_iter=$MAX_ITER · approved ${BUDGET_WEEKLY_PP}pp weekly (stop past ${OVERRUN_RATIO}x) · $USD_GUARD_NOTE"
 else
@@ -662,10 +837,29 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
   fi
 
   next_json=$("$LOOPCTL" next "$slug" 2>/dev/null || printf '[]')
-  task_pair=$(printf '%s' "$next_json" | "$PYTHON_BIN" -c \
-    'import json, sys; rows=json.load(sys.stdin); row=rows[0] if rows else {}; print("{}\t{}".format(row.get("id") or "", (row.get("metadata") or {}).get("item_id") or ""))' \
-    2>/dev/null || printf '\t')
-  IFS=$'\t' read -r task_id task_item_id <<< "$task_pair"
+  # Four fields, because they answer different questions. `id` is the source
+  # ref; `item_id` is Notion's human key and also what the PR lookup below
+  # matches on; `task_key` is whichever human key this source has, since
+  # obsidian-base calls it `task_id` and Notion calls it `item_id` -- reading
+  # only the latter is why `--task-id` was empty on every personal run, and it
+  # is the attribute the estimate audit joins on. `points` is the estimate.
+  #
+  # Separated by \x1f, not by tab. Tab is an IFS whitespace character, so `read`
+  # collapses a run of them into one delimiter -- an empty middle field shifts
+  # every field after it left. A task with no Notion item_id would have been
+  # stamped with its story point as its task_id, which is exactly the kind of
+  # silently-wrong attribution this change exists to remove.
+  task_row=$(printf '%s' "$next_json" | "$PYTHON_BIN" -c \
+    'import json, sys
+rows = json.load(sys.stdin)
+row = rows[0] if rows else {}
+meta = row.get("metadata") or {}
+item_id = meta.get("item_id") or ""
+print("\x1f".join(str(field or "") for field in (
+    row.get("id"), item_id, item_id or meta.get("task_id"), meta.get("points"),
+)))' \
+    2>/dev/null || printf '\x1f\x1f\x1f')
+  IFS=$'\x1f' read -r task_id task_item_id task_key TASK_POINTS <<< "$task_row"
   # Reset every iteration: a task with no preset must not inherit the previous
   # task's model.
   preferred=""; PLAN_MODEL=""; PLAN_EFFORT=""
@@ -705,7 +899,19 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
       PLAN_MODEL=""; PLAN_EFFORT=""
     fi
     sid=$(uuidgen)
-    candidate_out=$(run_executor "$candidate" "$slug" "$project_path" "$prompt" "$sid" 2>&1) || candidate_status=$?
+    # Generated here, before the executor starts, because it is stamped into
+    # OTEL_RESOURCE_ATTRIBUTES and that is set once per process -- an id minted
+    # when the ledger row is appended, after the executor has exited, could
+    # never appear on the telemetry it is meant to join.
+    #
+    # Opaque and bounded, unlike the id this replaces. That one embedded the
+    # task ref, so a Notion-sourced run carried an 80-character URL as its id,
+    # in a baggage value where a query string would have broken the encoding --
+    # while `task` and `task_id` already say which task it was. The uuid's first
+    # group is the suffix, so a run_id and its resumable session id share a
+    # visible prefix.
+    RUN_ID="$MACHINE-$(date +%s)-${sid%%-*}"
+    candidate_out=$(run_executor "$candidate" "$slug" "$project_path" "$prompt" "$sid" "$task_key" 2>&1) || candidate_status=$?
     candidate_status=${candidate_status:-0}
     transcript=$(save_transcript "$candidate" "$candidate_out" "${task_item_id:-$slug}")
     [ -n "$transcript" ] && log "  transcript · $transcript"
@@ -759,18 +965,19 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
         "$LOOPCTL" task-note "$slug" "$task_id" \
           --note "Turn limit ($MAX_TURNS) reached, unfinished. Continue: $resume_hint" \
           >/dev/null 2>&1 || log "  (task note not written; the hint above is the only copy)"
-        # The spend happened whether or not the task finished; a ledger that omits
-        # it understates what the task has cost so far.
+        # The outcome, and the run_id that joins it to what the telemetry
+        # recorded while it was running. The spend itself is no longer copied
+        # here: it arrives on the executor's own events under this same id,
+        # where it cannot go missing because a caller did not know it.
         turn_fields=()
-        [ -n "$PLAN_MODEL" ] && turn_fields+=(--model "$PLAN_MODEL")
-        [ -n "$PLAN_EFFORT" ] && turn_fields+=(--effort "$PLAN_EFFORT")
+        [ -n "${task_key:-}" ] && turn_fields+=(--task-id "$task_key")
         "$LOOPCTL" record-run \
           --project "$slug" \
           --task "$task_id" \
           --executor "$candidate" \
           --machine "$MACHINE" \
-          --cost "$turn_cost" \
-          --status incomplete \
+          --run-id "$RUN_ID" \
+          --status turns_exhausted \
           ${turn_fields[@]+"${turn_fields[@]}"} \
           --note "hit the $MAX_TURNS-turn limit; no fallback attempted" >/dev/null 2>&1 || \
           log "  run ledger unavailable; the spend above is only in this log"
@@ -800,8 +1007,23 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
       log "rate-limited $waits times; stopping for a later resume"
       exit 2
     fi
-    log "rate limited ($waits/$MAX_WAITS); sleeping ${BACKOFF}s"
-    sleep "$BACKOFF"
+    # Sleep to the reset rather than at it. MAX_WAITS stays the ceiling on total
+    # patience, so a reset further out than the interval would ever have reached
+    # is not something to sleep through -- that is a later resume, not a longer
+    # nap.
+    IFS=$'\t' read -r reset_secs reset_window <<< "$(reset_wait)"
+    patience=$(( (MAX_WAITS - waits + 1) * BACKOFF ))
+    if [ -n "${reset_secs:-}" ] && [ "$reset_secs" -gt "$patience" ]; then
+      log "rate limited; $reset_window resets in $((reset_secs / 60))m, past the $((patience / 60))m left in the budget -- stopping for a later resume"
+      exit 2
+    fi
+    if [ -n "${reset_secs:-}" ]; then
+      log "rate limited ($waits/$MAX_WAITS); sleeping $((reset_secs / 60))m until $reset_window resets"
+      sleep "$((reset_secs + 30))"
+    else
+      log "rate limited ($waits/$MAX_WAITS); no reset time in the snapshot, sleeping ${BACKOFF}s"
+      sleep "$BACKOFF"
+    fi
     continue
   fi
   if [ -z "$provider" ]; then
@@ -822,6 +1044,13 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
   d5=$(pct_delta "$pct5_before" "$pct5_after")
   dw=$(pct_delta "$pctw_before" "$pctw_after")
   log "iter $iter/$MAX_ITER · project=$slug · executor=$provider · cost=\$$cost · spent=\$$SPENT"
+  # The run_id is the join key for everything the executor emitted, and the log
+  # is now the only place a human sees it. The locally parsed cost and token
+  # count are printed beside it on purpose: they are the second reading against
+  # which the telemetry figures get checked, and one community report has OTel
+  # overstating output tokens by an order of magnitude. Two readings under one
+  # id is what settles that; one reading would only ever agree with itself.
+  log "  run · $RUN_ID · ${tokens_out:-?} output tokens (locally parsed)"
   # Report the pool the executor actually spent. Claude keeps both windows;
   # Codex has only a weekly one, so its five-hour slot is left out rather than
   # printed as "?" every time.
@@ -860,7 +1089,7 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
   # source URL cannot be joined against any of them. The branch is read after the
   # executor ran, because the executor is what creates it. The PR comes from the
   # task's own overlay, which the executor set when it reached pr-ready.
-  [ -n "${task_item_id:-}" ] && run_fields+=(--task-id "$task_item_id")
+  [ -n "${task_key:-}" ] && run_fields+=(--task-id "$task_key")
   run_branch=$(git -C "$project_path" rev-parse --abbrev-ref HEAD 2>/dev/null || printf '')
   [ -n "$run_branch" ] && [ "$run_branch" != "HEAD" ] && run_fields+=(--branch "$run_branch")
   run_pr=$("$LOOPCTL" show "$slug" 2>/dev/null | "$PYTHON_BIN" -c \
@@ -872,9 +1101,11 @@ for row in rows:
         print(row.get("pr") or "")
         break' "${task_item_id:-}" 2>/dev/null || printf '')
   [ -n "$run_pr" ] && run_fields+=(--pr "$run_pr")
-  [ -n "$PLAN_MODEL" ] && run_fields+=(--model "$PLAN_MODEL")
-  [ -n "$PLAN_EFFORT" ] && run_fields+=(--effort "$PLAN_EFFORT")
-  [ -n "$tokens_out" ] && run_fields+=(--tokens-out "$tokens_out")
+  # Model, effort, cost and output tokens are deliberately absent. They were
+  # optional arguments here, which made them sparse -- cost was 0.00 on 11 of
+  # 19 rows -- and they now ride on OTEL_RESOURCE_ATTRIBUTES and the executor's
+  # own metrics, stamped at launch under this run_id. What stays is the part
+  # telemetry cannot know: how the run ended, and what it was attached to.
   # Whether the numbers below are this run's cost or a ceiling on it. Recorded as
   # a field rather than left to the reader: a shared-pool sample and a
   # session-bracketed one look identical once they are both a number in a row.
@@ -893,12 +1124,20 @@ for row in rows:
     [ -n "$pctw_before" ] && run_fields+=(--quota-week-before "$pctw_before")
     [ -n "$pctw_after" ] && run_fields+=(--quota-week-after "$pctw_after")
   fi
+  # `completed` said the executor returned cleanly, which is not the same as the
+  # task reaching stop_at -- 14 of the 19 rows in the live ledger say `completed`
+  # and only one of them has a PR. Decide it here, where the PR is known, rather
+  # than leaving a reader to infer it later from a field that may be absent for
+  # either reason.
+  if [ -n "${run_pr:-}" ]; then run_outcome=reached_stop_at; else run_outcome=advanced; fi
+  [ "$status" -ne 0 ] && run_outcome=executor_failed
   "$LOOPCTL" record-run \
     --project "$slug" \
     --task "$task_id" \
     --executor "$provider" \
     --machine "$MACHINE" \
-    --cost "$cost" \
+    --run-id "$RUN_ID" \
+    --status "$run_outcome" \
     ${run_fields[@]+"${run_fields[@]}"} \
     --note "iteration $iter/$MAX_ITER; exit=$status" >/dev/null 2>&1 || \
     log "run ledger unavailable; continuing"

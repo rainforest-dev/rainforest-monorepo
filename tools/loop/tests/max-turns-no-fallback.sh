@@ -159,7 +159,12 @@ check "log 說明 turn limit" "$(grep -c 'turn limit (100) reached' "$ROOT/ralph
 check "log 明說不會傳給下一個" "$(grep -c 'NOT passed on' "$ROOT/ralph.out" | tr -d ' ')" "1"
 check "log 記下這次花費" "$(grep -c 'spent \$1.23' "$ROOT/ralph.out" | tr -d ' ')" "1"
 check "log 未出現舊的 fallback 字樣" "$(grep -c 'trying next executor' "$ROOT/ralph.out" | tr -d ' ')" "0"
-check "真環境的 allowlist 未被碰" "$(grep -c "$TASK_ID" "$INSTALLED/greenlight/"*.md 2>/dev/null | grep -vc ':0$' | tr -d ' ')" "0"
+# `grep -c` only prefixes `filename:` when it is given more than one file, so
+# counting non-":0" lines reported a hit whenever the installed greenlight dir
+# held exactly one allowlist -- a bare "0" does not end in ":0". `-l` lists the
+# files that matched and nothing else, which is the question being asked.
+check "真環境的 allowlist 未被碰" \
+  "$(grep -l "$TASK_ID" "$INSTALLED/greenlight/"*.md 2>/dev/null | wc -l | tr -d ' ')" "0"
 
 # The spend is real whether or not the task finished; a ledger that omits it
 # understates the task's cost. Assert the entry, not just the absence of an error.
@@ -174,10 +179,16 @@ rows = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
 if len(rows) != 1:
     print(f"ROWS={len(rows)}"); raise SystemExit
 r = rows[0]
-print("{}|{}|{}".format(r.get("status"), r.get("cost_usd") or r.get("cost"), r.get("executor")))
+# The cost used to be read back off this row. It is not written here any more:
+# it arrives on the executor's own telemetry under the run_id below, so what
+# the row has to prove is that the id exists to join them by.
+print("{}|{}|{}".format(
+    r.get("status"), "run_id" if r.get("run_id") else "NO-RUN-ID", r.get("executor")))
 PY
 )
-check "ledger 有一筆 incomplete 且帶成本" "$ledger_row" "incomplete|1.23|claude"
+# `incomplete` 說不出「用完預算」和「做不到」的差別，而這兩者對「這個 task 值不
+# 值得配額」是相反的答案。turns_exhausted 是自己一桶，永遠不算失敗。
+check "ledger 記為 turns_exhausted 且可連回 telemetry" "$ledger_row" "turns_exhausted|run_id|claude"
 
 # The whole point of the turn-limit branch is that the session can be picked up.
 # Assert the command is printed and reaches the task card, not just that we logged
