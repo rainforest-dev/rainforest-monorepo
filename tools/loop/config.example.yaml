@@ -33,6 +33,11 @@ projects:
 
   # A work project driven from a Notion board, gated per task.
   - slug: my-frontend
+    # The repository, not a working tree inside it. The executor creates its own
+    # worktree for each task (the contract tells it to) and commits there, so this
+    # path is only where the loop looks the repository up. Pointing it at a
+    # checkout a person uses is the failure this avoids: that tree carries their
+    # branch and their uncommitted work.
     path: /absolute/path/to/the/repo
     source: notion
     source_config:

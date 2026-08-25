@@ -30,6 +30,12 @@ roles:
       Installed disabled. Enabling an unsupervised executor is a deliberate act,
       never a side effect of running install.sh.
 
+      On Angibles-MacBook-Air the plist runs engine/run-ralph-gui.applescript
+      rather than ralph.sh directly: a launchd job there cannot read
+      ~/Library/Mobile Documents (probed 2026-08-25 -- DENIED on Air, permitted
+      on mini), and both projects that host runs read notion-tasks.json out of
+      the vault. The script ships with the engine role, so no extra install step.
+
   relay-pull:
     description: >
       Pulls greenlight requests queued by Observatory and applies them through
