@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   Host-side sync service for the Loop Observatory container.
-  Replace /Users/rainforest/Repositories/rainforest-obsidian with the mini's local vault checkout and
+  Replace /Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian with the mini's local vault checkout and
   /Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian with the mini's iCloud vault path, then install
   as ~/Library/LaunchAgents/com.rainforest.loop-sync.plist.
   The Notion token and optional HTTP bearer token stay in user-owned files:
@@ -16,14 +16,14 @@
 	<key>ProgramArguments</key>
 	<array>
 		<string>/opt/homebrew/bin/python3</string>
-		<string>/Users/rainforest/Repositories/rainforest-obsidian/scripts/usage/refresh_server.py</string>
+		<string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/scripts/usage/refresh_server.py</string>
 	</array>
 	<key>WorkingDirectory</key>
-	<string>/Users/rainforest/Repositories/rainforest-obsidian</string>
+	<string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian</string>
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>VAULT_PATH</key>
-		<string>/Users/rainforest/Repositories/rainforest-obsidian</string>
+		<string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian</string>
 		<key>LOOP_SYNC_HOST</key>
 		<string>127.0.0.1</string>
 		<key>LOOP_SYNC_PORT</key>

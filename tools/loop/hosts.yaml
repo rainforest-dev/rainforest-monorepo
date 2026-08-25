@@ -67,13 +67,18 @@ roles:
       - launchd/<host>.com.rainforest.loop-sync.plist
     note: Reads its tokens from ~/.config/loop/, which is not in this repo.
 
-  icloud-mirror:
-    description: Mirrors vault-authored files from iCloud into the readable clone.
-    installs:
-      - launchd/<host>.com.rainforest.icloud-mirror.plist
-    note: >
-      The script itself lives in the vault repo (scripts/usage/mirror_icloud.py),
-      not here; only the schedule is deployed from this repo.
+  # icloud-mirror: retired 2026-08-25. It existed because a launchd job was
+  # believed unable to read ~/Library/Mobile Documents under TCC, so vault-authored
+  # files were copied into a second checkout that launchd could read, through an
+  # AppleScript shim that re-entered the GUI session. Probed with a throwaway
+  # LaunchAgent on both machines that day: mini reads the vault directly (41 task
+  # files, contents included), so the premise no longer holds there and the clone,
+  # the shim and this schedule all go with it. Air is still DENIED -- it keeps its
+  # own runtime copy, which is a different mechanism and stays.
+  #
+  # The mirror also actively hurt: _atomic_copy ends in os.replace, which stamps a
+  # fresh mtime whether or not a byte changed, so every downstream freshness check
+  # read 4-to-9-day-old data as two minutes old.
 
 hosts:
   Angibles-MacBook-Air:
@@ -84,4 +89,4 @@ hosts:
   rainforest-mini:
     scope: personal
     executes: personal work only, and hosts Observatory for both
-    roles: [engine, ralph, observatory, loop-sync, usage-hourly, icloud-mirror]
+    roles: [engine, ralph, observatory, loop-sync, usage-hourly]

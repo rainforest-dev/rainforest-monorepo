@@ -15,8 +15,8 @@
          runtime layout, so the gate here read a file that has never existed and
          degraded to "unknown" on every run. An absolute path also sidesteps the
          LOOP_MACHINE=mini / LocalHostName=rainforest-mini split above. -->
-    <key>LOOP_QUOTA_FILE</key><string>/Users/rainforest/Repositories/rainforest-obsidian/_system/usage/quota.rainforest-mini.json</string>
-    <key>LOOP_AGENT_CONFIG</key><string>/Users/rainforest/Repositories/rainforest-obsidian/_system/usage/loop-agents.json</string>
+    <key>LOOP_QUOTA_FILE</key><string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/_system/usage/quota.rainforest-mini.json</string>
+    <key>LOOP_AGENT_CONFIG</key><string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/_system/usage/loop-agents.json</string>
     <key>PATH</key><string>/Users/rainforest/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
   <key>RunAtLoad</key><true/>
