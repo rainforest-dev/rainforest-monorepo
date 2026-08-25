@@ -47,6 +47,42 @@ _BULLET = re.compile(r"^\s*[-*]\s*")
 _BULLET_ID = re.compile(r"^\s*[-*]\s*([A-Za-z]{0,8}-?\d{1,20})(?=\s|—|$)")
 
 
+# An HTML comment, however many lines it spans. The allowlist template ships a
+# worked example inside one -- `<!-- e.g.\n- 106 ...\n- 31 ...\n-->` -- directly
+# under `## Cleared`, and a line-at-a-time scanner cannot see the fence around
+# it. Measured 2026-08-25: a file whose Cleared section read `_(none yet)_`
+# authorised both ids, and `-->` itself parsed as a bullet.
+_COMMENT = re.compile(r"<!--.*?-->", re.S)
+
+# The section a bullet must live under to authorise anything. Free text elsewhere
+# in the file is prose, not permission: `## How to use` documents the format with
+# lines that are themselves valid-looking bullets, and even a YAML frontmatter
+# `---` matches `_BULLET`.
+_CLEARED = re.compile(r"^##\s+Cleared\s*$", re.M)
+_HEADING = re.compile(r"^##\s+", re.M)
+
+
+def cleared_section(text: str) -> str:
+    """The `## Cleared` body with comments removed, or "" when there is none.
+
+    Producer and consumer must narrow the file the same way, for the same reason
+    they must agree on what a bullet is: a rule applied on one side only is a
+    rule that two readers disagree about.
+    """
+    stripped = _COMMENT.sub("", text or "")
+    start = _CLEARED.search(stripped)
+    if not start:
+        # No `## Cleared` heading: an older, hand-written allowlist that is all
+        # bullets under a single `#` title. Narrowing those to nothing would
+        # silently revoke every authorisation they carry -- measured on
+        # rainforest-monorepo.md, which has one live entry and no `##` at all.
+        # Comments are still stripped; only the section narrowing is skipped.
+        return stripped
+    rest = stripped[start.end():]
+    end = _HEADING.search(rest)
+    return rest[: end.start()] if end else rest
+
+
 def is_bullet(line: str) -> bool:
     """True when `line` is an allowlist bullet. See `_BULLET`."""
     return _BULLET.match(line) is not None
@@ -119,7 +155,15 @@ def _line_for(request: dict) -> str:
 
 
 def _already_listed(task_id: str, text: str) -> bool:
-    return any(is_bullet_for(task_id, line) for line in text.splitlines())
+    """Same narrowing as the reader. `_greenlight_rank` only honours bullets in
+    `## Cleared`, so a bullet anywhere else -- the commented example, the format
+    documented under `## How to use` -- must not count as already-listed here
+    either, or `apply_request` reports `duplicate` for an id the loop will never
+    actually see."""
+    return any(
+        is_bullet_for(task_id, line)
+        for line in cleared_section(text).splitlines()
+    )
 
 
 def _fail(reason: str) -> dict:

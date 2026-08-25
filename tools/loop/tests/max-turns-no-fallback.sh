@@ -85,14 +85,17 @@ projects:
     machines: [$MACHINE]
 CFG
 
-# The bullet names the task's `id`, which for an obsidian-base source is the note
-# path -- not the bare T-… . _greenlight_rank matches on id, metadata.item_id, or
-# title, and item_id only exists for Notion-sourced tasks.
+# The bullet names the task's `task_id` frontmatter -- `T-<timestamp>`, the id
+# space personal notes have always carried and which SAFE_ID already accepts.
+# It used to name the note *path* instead, because obsidian-base left
+# `metadata.item_id` empty and `_greenlight_rank` fell back to substring-matching
+# the path. Both halves of that are gone: the adapter carries `item_id`, and the
+# id comparison is exact, so a path in a bullet no longer authorises anything.
 cat > "$HOME_DIR/greenlight/sandbox.md" <<GL
 # sandbox greenlight
 
 ## Cleared
-- _system/tasks/$TASK_ID.md
+- $TASK_ID
 GL
 
 # --- fake executors ----------------------------------------------------------

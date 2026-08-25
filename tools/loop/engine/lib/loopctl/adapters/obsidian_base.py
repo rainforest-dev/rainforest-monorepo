@@ -51,6 +51,18 @@ def enumerate_tasks(project, run=None) -> list[TaskRef]:
                 priority=data.get("priority"),
                 metadata={
                     "task_id": data.get("task_id"),
+                    # The id an allowlist bullet may name. `_greenlight_rank` falls
+                    # back to substring-matching `task_id` -- which for this adapter
+                    # is the note's *path* -- when `item_id` is absent, and a path
+                    # cannot be spelled in the SAFE_ID grammar the greenlight outbox
+                    # emits (`[A-Za-z]{0,8}-?\d{1,20}`). So an outbox request could
+                    # never authorise a personal task at all, and a hand-written
+                    # bullet authorised it by substring: with `- 106` on the list,
+                    # tasks numbered 1, 6 and 10 matched too. The frontmatter
+                    # `task_id` is already in that grammar (`T-20260823121007` from
+                    # new_task.py), so carrying it here gives greenlight an exact
+                    # key and closes both holes.
+                    "item_id": data.get("task_id"),
                     "claimed_by": claimed_by or ("loop" if "(@loop)" in body else None),
                     # `or`, not a default argument: the note template ships `order:`
                     # with no value, which YAML loads as None rather than leaving
