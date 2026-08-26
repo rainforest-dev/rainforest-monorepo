@@ -56,6 +56,7 @@ iteration and record `needs-tuning`, `spec-drafted`, or `split-drafted` through
 
 You are handed the repository, not a working tree to use. Create your own
 worktree for this task and work there -- `git worktree add .claude/worktrees/<name>
+
 <base>` puts it where this repo already keeps them, and any location your own
 tooling prefers is equally fine. The path you were given is a checkout a person
 uses: on the company laptop it sits on `dev` with uncommitted work in it, and
