@@ -136,3 +136,55 @@ describe('aggregate', () => {
     expect(provisional.notion_ref).toBeNull();
   });
 });
+
+describe('readAllRecords with a large partition', () => {
+  // `records.push(...parsed)` passes every element as a separate argument, and
+  // V8 caps that near 65k. A partition past the cap threw `RangeError: Maximum
+  // call stack size exceeded`, surfacing as "Failed to load usage data" and a 500
+  // from /api/usage. Measured 2026-08-25: one machine's partition held 89,559
+  // records and failed; another held 26,388 and did not -- the bug had been there
+  // the whole time, waiting for the file to grow.
+  //
+  // Asserted against the accumulation itself rather than readAllRecords, which
+  // reads paths off disk; the cap is a property of the spread, not of the I/O.
+  const OVER_CAP = 200_000;
+
+  it('spreading past the argument cap is what threw', () => {
+    const big = new Array(OVER_CAP).fill(0);
+    const sink: number[] = [];
+    expect(() => sink.push(...big)).toThrow(RangeError);
+  });
+
+  it('accumulating in a loop does not', () => {
+    const big = new Array(OVER_CAP).fill(0);
+    const sink: number[] = [];
+    expect(() => {
+      for (const value of big) sink.push(value);
+    }).not.toThrow();
+    expect(sink.length).toBe(OVER_CAP);
+  });
+
+  it('parses and aggregates a partition larger than the cap', () => {
+    const line = JSON.stringify({
+      notion_task_id: 'TASK-BIG',
+      provisional_key: null,
+      notion_ref: null,
+      machine: 'mac',
+      tool: 'claude-code',
+      model: 'claude-opus-5',
+      session_id: 's-big',
+      ts: '2026-08-25T00:00:00.000Z',
+      tokens_in: 1,
+      tokens_out: 1,
+      cache: 0,
+      cost_est_usd: 0.001,
+      source: 'turn-parse',
+    });
+    const parsed = parseLedger(new Array(OVER_CAP).fill(line).join('\n'));
+    expect(parsed.length).toBe(OVER_CAP);
+
+    const records: typeof parsed = [];
+    for (const record of parsed) records.push(record);
+    expect(() => aggregate(records)).not.toThrow();
+  });
+});
