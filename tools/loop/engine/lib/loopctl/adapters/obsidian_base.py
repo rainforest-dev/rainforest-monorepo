@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import yaml
@@ -25,6 +26,56 @@ def _frontmatter(path: Path) -> tuple[dict, str]:
     return data if isinstance(data, dict) else {}, body.lstrip("\n")
 
 
+_H1 = re.compile(r"^#\s+(.+)$", re.M)
+
+
+def _task_title(data: dict, body: str, path: Path) -> str:
+    """The note's title, from whichever place its writer put it.
+
+    Only `title:` was read, and nothing writes it. Measured 2026-08-26 over 43
+    live notes: 12 carry `name:` (new_task.py writes that), 31 carry the title
+    only as the body's `# ` heading (the Notion sync writes that), and none
+    carry `title:` -- so every title in the loop was the fallback, a filename
+    stem with its hyphens turned to spaces. Every Notion task displayed as
+    `AG 106`.
+
+    Widening this cannot widen an authorisation: `_greenlight_rank` requires the
+    *task's* title to appear inside an allowlist bullet, so a longer real title
+    matches strictly fewer lines than a short slug did.
+    """
+    for value in (data.get("title"), data.get("name")):
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    heading = _H1.search(body or "")
+    if heading:
+        return heading.group(1).strip()
+    return path.stem.replace("-", " ")
+
+
+def _task_path_id(path: Path, project_path: Path, tasks_dir: Path) -> str:
+    """The note's id: its path relative to whichever root contains it.
+
+    `tasks_dir` is allowed to be absolute -- that is how a code repo points at
+    task notes kept in the vault, which is the whole arrangement for a work
+    project whose decision record lives in Obsidian while its code does not.
+    But the id was always taken relative to `project.path`, which only contains
+    the notes when the project *is* the vault. Pointing a repo at the vault
+    therefore raised `ValueError: ... is not in the subpath of ...` out of
+    `enumerate_tasks`, one level below any `SourceUnreachable` handling, so the
+    scan died outright rather than reporting a bad source.
+
+    Preferring `project.path` keeps every existing id byte-identical -- the
+    registry and the ledger are keyed on it -- and falls back to `tasks_dir`
+    only for notes that live outside the repo, where no id existed before.
+    """
+    for root in (project_path, tasks_dir):
+        try:
+            return path.relative_to(root).as_posix()
+        except ValueError:
+            continue
+    return path.as_posix()
+
+
 def enumerate_tasks(project, run=None) -> list[TaskRef]:
     configured = project.source_config.get("tasks_dir", "_system/tasks")
     tasks_dir = Path(configured).expanduser()
@@ -38,13 +89,13 @@ def enumerate_tasks(project, run=None) -> list[TaskRef]:
         data, body = _frontmatter(path)
         if required_scope and data.get("scope") != required_scope:
             continue
-        relative = path.relative_to(project.path).as_posix()
+        relative = _task_path_id(path, project.path, tasks_dir)
         claimed_by = data.get("claimed_by") or data.get("claimed")
         source_state = normalize_source_state(data.get("status"))
         tasks.append(
             TaskRef(
                 id=relative,
-                title=str(data.get("title") or path.stem.replace("-", " ")),
+                title=_task_title(data, body, path),
                 branch=data.get("branch"),
                 claimed=True,
                 source_state=source_state,
