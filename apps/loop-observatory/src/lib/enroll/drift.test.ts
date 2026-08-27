@@ -69,4 +69,77 @@ describe('driftFor', () => {
       ),
     ).toContain('stale');
   });
+
+  it('reports a declared ralph role the machine cannot run without claude', () => {
+    const d = driftFor(
+      {
+        ...AIR,
+        facts: {
+          ...AIR.facts!,
+          accounts: {
+            claudeAvailable: 'missing',
+            ghLogin: 'rainforest-angible',
+          },
+        },
+      },
+      NOW,
+    );
+    expect(d.map((x) => x.kind)).toContain('role-unsatisfied');
+    expect(d.find((x) => x.kind === 'role-unsatisfied')?.detail).toContain(
+      'claude',
+    );
+  });
+
+  it('does not report claude unavailability when claude is available', () => {
+    // AIR already declares ralph with claudeAvailable: 'ok' -- prove the
+    // condition does not fire unconditionally for every ralph host.
+    expect(driftFor(AIR, NOW)).toEqual([]);
+  });
+
+  it('does not report claude unavailability for a host that does not declare ralph', () => {
+    const d = driftFor(
+      {
+        ...AIR,
+        declaration: {
+          ...AIR.declaration!,
+          roles: AIR.declaration!.roles.filter((r) => r !== 'ralph'),
+        },
+        facts: {
+          ...AIR.facts!,
+          accounts: {
+            claudeAvailable: 'missing',
+            ghLogin: 'rainforest-angible',
+          },
+        },
+      },
+      NOW,
+    );
+    expect(d).toEqual([]);
+  });
+
+  it('reports a declared ralph role with no executors to launch', () => {
+    const d = driftFor(
+      { ...AIR, facts: { ...AIR.facts!, executors: [] } },
+      NOW,
+    );
+    expect(d.map((x) => x.kind)).toContain('role-unsatisfied');
+    expect(d.find((x) => x.kind === 'role-unsatisfied')?.detail).toContain(
+      'executors',
+    );
+  });
+
+  it('does not report empty executors when ralph is not declared', () => {
+    const d = driftFor(
+      {
+        ...AIR,
+        declaration: {
+          ...AIR.declaration!,
+          roles: AIR.declaration!.roles.filter((r) => r !== 'ralph'),
+        },
+        facts: { ...AIR.facts!, executors: [] },
+      },
+      NOW,
+    );
+    expect(d).toEqual([]);
+  });
 });

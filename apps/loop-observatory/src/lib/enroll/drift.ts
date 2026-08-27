@@ -37,6 +37,20 @@ export function driftFor(record: HostRecord, now: number): Drift[] {
         'telemetry-sink declared, but nothing is listening on 4318 — ralph exports into a closed socket and the OTel SDK does not complain',
     });
   }
+  if (d.roles.includes('ralph') && f.accounts.claudeAvailable === 'missing') {
+    out.push({
+      kind: 'role-unsatisfied',
+      detail:
+        "ralph declared, but claude is unavailable on this host (accounts.claudeAvailable: 'missing') — LOOP_EXECUTORS resolves to an executor that cannot run, and ralph reports success anyway",
+    });
+  }
+  if (d.roles.includes('ralph') && f.executors.length === 0) {
+    out.push({
+      kind: 'role-unsatisfied',
+      detail:
+        'ralph declared, but no executors were found (facts.executors is empty) — LOOP_EXECUTORS has nothing to launch, and ralph exits quietly with nothing run',
+    });
+  }
   if (
     d.scope === 'work' &&
     f.accounts.ghLogin &&
