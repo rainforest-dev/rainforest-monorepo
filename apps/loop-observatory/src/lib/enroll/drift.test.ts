@@ -81,6 +81,61 @@ describe('driftFor', () => {
     );
   });
 
+  it('reports a host with facts and no declaration, rather than nothing', () => {
+    // Returning [] here made the setup page print "matches its declaration" in
+    // green for a host that had no declaration to match.
+    const d = driftFor({ ...AIR, declaration: null }, NOW);
+    expect(d.map((x) => x.kind)).toEqual(['not-declared']);
+    expect(d[0]?.detail).toContain('hosts.yaml');
+  });
+
+  it('distinguishes "gh reported no login" from "gh reported the wrong one"', () => {
+    // Two opposite bugs, one condition. A logged-out machine reported the
+    // literal word "unknown" and came out as an account MISMATCH; a genuinely
+    // null login came out silent. Neither is right and they are not the same.
+    const unverified = driftFor(
+      {
+        ...AIR,
+        facts: {
+          ...AIR.facts!,
+          accounts: { claudeAvailable: 'ok', ghLogin: null },
+        },
+      },
+      NOW,
+    );
+    expect(unverified.map((x) => x.kind)).toEqual(['account-unverified']);
+    expect(unverified[0]?.detail).toContain('no login');
+
+    const mismatch = driftFor(
+      {
+        ...AIR,
+        facts: {
+          ...AIR.facts!,
+          accounts: { claudeAvailable: 'ok', ghLogin: 'rainforest-dev' },
+        },
+      },
+      NOW,
+    );
+    expect(mismatch.map((x) => x.kind)).toEqual(['account-mismatch']);
+  });
+
+  it('says nothing about accounts on a personal machine', () => {
+    // Only `work` carries an account expectation, so only `work` can fail one.
+    // A personal host with no gh login is not a finding.
+    const d = driftFor(
+      {
+        ...AIR,
+        declaration: { ...AIR.declaration!, scope: 'personal' },
+        facts: {
+          ...AIR.facts!,
+          accounts: { claudeAvailable: 'ok', ghLogin: null },
+        },
+      },
+      NOW,
+    );
+    expect(d).toEqual([]);
+  });
+
   it('does not report empty executors when ralph is not declared', () => {
     const d = driftFor(
       {

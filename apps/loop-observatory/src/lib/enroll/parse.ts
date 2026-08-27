@@ -58,6 +58,12 @@ export function parseFactsBody(
     return null;
   }
 
+  // Empty means "gh reported no login", which is null -- a state drift.ts
+  // reports as `account-unverified`. It is NOT a login named "" and it is not
+  // the word the old probe used to emit; see probes.ts.
+  const rawGhLogin = typeof a.ghLogin === 'string' ? a.ghLogin.trim() : null;
+  const ghLogin = rawGhLogin === '' ? null : rawGhLogin;
+
   return {
     host,
     facts: {
@@ -69,7 +75,7 @@ export function parseFactsBody(
       accounts: {
         claudeAvailable: (claudeAvailable ??
           null) as HostFacts['accounts']['claudeAvailable'],
-        ghLogin: typeof a.ghLogin === 'string' ? a.ghLogin : null,
+        ghLogin,
       },
       probedAt: src.probedAt,
     },
