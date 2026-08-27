@@ -85,7 +85,8 @@
     },
     "groups": {
       "docker-apps": {
-        "projects": ["personal-calibre", "rss-manager"],
+        "projects": ["personal-calibre", "rss-manager", "loop-observatory"],
+        "projectsRelationship": "independent",
         "version": {
           "generatorOptions": {
             "specifierSource": "conventional-commits",
