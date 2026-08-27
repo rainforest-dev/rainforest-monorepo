@@ -172,7 +172,7 @@ describe('unknown facts refuse rather than default', () => {
 describe('deriveAlloyConfig', () => {
   it('declares an OTLP receiver on the declared bind address', () => {
     const file = deriveAlloyConfig(AIR_DECL, AIR_FACTS);
-    expect(file?.path).toBe('.config/dev-telemetry/alloy/config.alloy');
+    expect(file?.path).toBe('.config/dev-telemetry/alloy/loop-otlp.alloy');
     expect(file?.contents).toContain('otelcol.receiver.otlp');
     expect(file?.contents).toContain('endpoint = "127.0.0.1:4318"');
   });
@@ -215,6 +215,20 @@ describe('deriveAlloyConfig', () => {
     // terraform. The role names the requirement; the absence names the exception.
     expect(deriveAlloyConfig(MINI_DECL, MINI_FACTS)).toBeNull();
   });
+
+  it('does not overwrite the hand-maintained config', () => {
+    // The live host's launchd plist points Alloy's last ProgramArguments entry
+    // at a single file, `config.alloy`, which already defines
+    // prometheus.scrape "host", prometheus.remote_write "rpi",
+    // local.file_match "dev_events", loki.process "dev_events", and
+    // loki.write "rpi". Writing the derived OTLP intake to that same path
+    // would delete those definitions -- Alloy would fail to load entirely,
+    // and the machine would lose all telemetry rather than merely fail to
+    // gain the new receiver. The derived file must land beside it as a
+    // fragment, not on top of it.
+    const file = deriveAlloyConfig(AIR_DECL, AIR_FACTS);
+    expect(file?.path).not.toBe('.config/dev-telemetry/alloy/config.alloy');
+  });
 });
 
 describe('derive', () => {
@@ -223,13 +237,13 @@ describe('derive', () => {
     expect(air).toContain(
       'Library/LaunchAgents/tools.rainforest.loop-ralph.plist',
     );
-    expect(air).toContain('.config/dev-telemetry/alloy/config.alloy');
+    expect(air).toContain('.config/dev-telemetry/alloy/loop-otlp.alloy');
 
     const mini = derive(MINI_DECL, MINI_FACTS).map((f) => f.path);
     expect(mini).toContain(
       'Library/LaunchAgents/tools.rainforest.loop-ralph.plist',
     );
-    expect(mini).not.toContain('.config/dev-telemetry/alloy/config.alloy');
+    expect(mini).not.toContain('.config/dev-telemetry/alloy/loop-otlp.alloy');
   });
 
   it('is deterministic', () => {

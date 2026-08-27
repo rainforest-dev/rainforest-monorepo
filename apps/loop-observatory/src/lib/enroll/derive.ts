@@ -84,6 +84,22 @@ export function deriveRalphPlist(
  * Returns null for a host without the role. The mini is the exception that
  * explains the shape: its sink is the homelab's containerised Alloy, already
  * receiving on 4317/4318.
+ *
+ * Written as a FRAGMENT beside the host's hand-maintained config, never as
+ * that config itself. The live host's `com.homelab.dev-alloy` plist points
+ * Alloy at the `.config/dev-telemetry/alloy` directory rather than a single
+ * file — `alloy run --help`: "If path is a directory, all `*.alloy` files in
+ * that directory will be combined into a single unit" — because the existing
+ * `config.alloy` there already defines `prometheus.scrape "host"`,
+ * `prometheus.remote_write "rpi"`, `local.file_match "dev_events"`,
+ * `loki.process "dev_events"`, and `loki.write "rpi"`. This fragment's
+ * `otelcol.exporter.prometheus` and `otelcol.exporter.loki` blocks reference
+ * `prometheus.remote_write.rpi` and `loki.write.rpi` by name and depend on
+ * that sibling file defining them; it does not define its own remote-write
+ * destination, because the homelab owns the destinations and the host scrape
+ * and dev-events tailing, and this fragment is not the place to redefine or
+ * remove them. Writing this to `config.alloy` itself would delete those
+ * definitions out from under Alloy, which would then fail to load at all.
  */
 export function deriveAlloyConfig(
   d: HostDeclaration,
@@ -127,7 +143,7 @@ otelcol.exporter.loki "agents" {
   forward_to = [loki.write.rpi.receiver]
 }
 `;
-  return { path: '.config/dev-telemetry/alloy/config.alloy', contents };
+  return { path: '.config/dev-telemetry/alloy/loop-otlp.alloy', contents };
 }
 
 /** Every file this host needs. Pure: the only entry point callers should use. */
