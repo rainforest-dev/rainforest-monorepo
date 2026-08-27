@@ -1,0 +1,145 @@
+name: Release loop-observatory to GHCR
+
+# Automatic release on push to main when loop-observatory changes.
+# CI: nx release (semver + GitHub Release) → GHCR push via docker/build-push-action.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/loop-observatory/**'
+      # Baked into the image by apps/loop-observatory/Dockerfile. Without this a
+      # declaration change would never reach a running container, and the app
+      # would be debugged against a stale hosts.yaml.
+      - 'tools/loop/hosts.yaml'
+      # Built into the image (`nx build rainforest-ui`) before the app itself.
+      - 'libs/rainforest-ui/**'
+      - '.github/workflows/release-loop-observatory.yml'
+  workflow_dispatch:
+    inputs:
+      first-release:
+        description: 'First release (skips changelog diff check)'
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  contents: write
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: ghcr.io/rainforest-dev/loop-observatory
+  NX_NO_CLOUD: ${{ vars.NX_NO_CLOUD }}
+
+jobs:
+  release-and-push:
+    name: Release, Build, and Push to GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: nrwl/nx-set-shas@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: nx release — version and changelog
+        id: release
+        # `shell: bash` is load-bearing: it adds `-o pipefail`, which the default
+        # `bash -e {0}` lacks. Without it `nx release ... | tee` reports tee's exit
+        # code, so a failed release is invisible and VERSION falls back to whatever
+        # stale tag already exists. That is how rss-manager republished 0.0.1 under
+        # a "success" tick on every release from 2026-07 to 2026-08.
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIRST_RELEASE: ${{ inputs.first-release }}
+        run: |
+          # nx matches on the project's real name, which for this app is scoped.
+          PROJECT='@rainforest-monorepo/loop-observatory'
+          if [ "$FIRST_RELEASE" = "true" ]; then
+            # First release: nx release conventional-commits needs commits in NX_BASE..HEAD
+            # which may be empty on workflow_dispatch. Read from package.json and tag manually.
+            VERSION=$(node -p "require('./apps/loop-observatory/package.json').version")
+            git tag -f "loop-observatory@${VERSION}"
+            # Still run nx release to generate the GitHub Release and changelog
+            pnpm exec nx release --yes --projects="$PROJECT" --skip-publish --first-release \
+              2>&1 | tee /tmp/nx-release.log || true
+          else
+            pnpm exec nx release --yes --projects="$PROJECT" --skip-publish \
+              2>&1 | tee /tmp/nx-release.log
+            VERSION=$(git tag --sort=-creatordate | grep '^loop-observatory@' | head -1 | sed 's/loop-observatory@//')
+          fi
+          if [ -z "${VERSION}" ]; then
+            echo "::error::No version resolved. Refusing to publish an image under an empty or stale tag."
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Released: ${VERSION}"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/loop-observatory/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ steps.release.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push release tags
+        id: push-tags
+        continue-on-error: true
+        run: git push origin --tags --force
+
+      - name: Release summary
+        if: always()
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          TAG_PUSH: ${{ steps.push-tags.outcome }}
+          GIT_SHA: ${{ github.sha }}
+          IMAGE_NAME: ghcr.io/rainforest-dev/loop-observatory
+        run: |
+          echo "### loop-observatory Release" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Version** | \`${VERSION}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Image** | \`${IMAGE_NAME}:${VERSION}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Git SHA** | \`${GIT_SHA}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Tag Push** | ${TAG_PUSH} |" >> "$GITHUB_STEP_SUMMARY"
