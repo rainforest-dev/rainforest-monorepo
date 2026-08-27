@@ -1,6 +1,6 @@
-name: Release rss-manager to GHCR
+name: Release loop-observatory to GHCR
 
-# Automatic release on push to main when rss-manager changes.
+# Automatic release on push to main when loop-observatory changes.
 # CI: nx release (semver + GitHub Release) → GHCR push via docker/build-push-action.
 
 on:
@@ -8,8 +8,14 @@ on:
     branches:
       - main
     paths:
-      - 'apps/rss-manager/**'
-      - '.github/workflows/release-rss-manager.yml'
+      - 'apps/loop-observatory/**'
+      # Baked into the image by apps/loop-observatory/Dockerfile. Without this a
+      # declaration change would never reach a running container, and the app
+      # would be debugged against a stale hosts.yaml.
+      - 'tools/loop/hosts.yaml'
+      # Built into the image (`nx build rainforest-ui`) before the app itself.
+      - 'libs/rainforest-ui/**'
+      - '.github/workflows/release-loop-observatory.yml'
   workflow_dispatch:
     inputs:
       first-release:
@@ -27,7 +33,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE_NAME: ghcr.io/rainforest-dev/rss-manager
+  IMAGE_NAME: ghcr.io/rainforest-dev/loop-observatory
   NX_NO_CLOUD: ${{ vars.NX_NO_CLOUD }}
 
 jobs:
@@ -71,22 +77,34 @@ jobs:
 
       - name: nx release — version and changelog
         id: release
+        # `shell: bash` is load-bearing: it adds `-o pipefail`, which the default
+        # `bash -e {0}` lacks. Without it `nx release ... | tee` reports tee's exit
+        # code, so a failed release is invisible and VERSION falls back to whatever
+        # stale tag already exists. That is how rss-manager republished 0.0.1 under
+        # a "success" tick on every release from 2026-07 to 2026-08.
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FIRST_RELEASE: ${{ inputs.first-release }}
         run: |
+          # nx matches on the project's real name, which for this app is scoped.
+          PROJECT='@rainforest-monorepo/loop-observatory'
           if [ "$FIRST_RELEASE" = "true" ]; then
             # First release: nx release conventional-commits needs commits in NX_BASE..HEAD
             # which may be empty on workflow_dispatch. Read from package.json and tag manually.
-            VERSION=$(node -p "require('./apps/rss-manager/package.json').version")
-            git tag -f "rss-manager@${VERSION}"
+            VERSION=$(node -p "require('./apps/loop-observatory/package.json').version")
+            git tag -f "loop-observatory@${VERSION}"
             # Still run nx release to generate the GitHub Release and changelog
-            pnpm exec nx release --yes --projects=@rainforest-monorepo/rss-manager --skip-publish --first-release \
+            pnpm exec nx release --yes --projects="$PROJECT" --skip-publish --first-release \
               2>&1 | tee /tmp/nx-release.log || true
           else
-            pnpm exec nx release --yes --projects=@rainforest-monorepo/rss-manager --skip-publish \
+            pnpm exec nx release --yes --projects="$PROJECT" --skip-publish \
               2>&1 | tee /tmp/nx-release.log
-            VERSION=$(git tag --sort=-creatordate | grep '^rss-manager@' | head -1 | sed 's/rss-manager@//')
+            VERSION=$(git tag --sort=-creatordate | grep '^loop-observatory@' | head -1 | sed 's/loop-observatory@//')
+          fi
+          if [ -z "${VERSION}" ]; then
+            echo "::error::No version resolved. Refusing to publish an image under an empty or stale tag."
+            exit 1
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "::notice::Released: ${VERSION}"
@@ -95,7 +113,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: apps/rss-manager/Dockerfile
+          file: apps/loop-observatory/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
@@ -115,9 +133,9 @@ jobs:
           VERSION: ${{ steps.release.outputs.version }}
           TAG_PUSH: ${{ steps.push-tags.outcome }}
           GIT_SHA: ${{ github.sha }}
-          IMAGE_NAME: ghcr.io/rainforest-dev/rss-manager
+          IMAGE_NAME: ghcr.io/rainforest-dev/loop-observatory
         run: |
-          echo "### rss-manager Release" >> "$GITHUB_STEP_SUMMARY"
+          echo "### loop-observatory Release" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
