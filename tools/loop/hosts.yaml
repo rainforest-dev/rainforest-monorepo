@@ -62,6 +62,41 @@ roles:
       - usage/publish-air-to-mini.sh -> ~/.local/share/loop-usage-runtime/
       - launchd/<host>.com.rainforest.usage-air-publish.plist
 
+  telemetry-sink:
+    description: >
+      Somewhere for this executor's own OTLP to land. Required by any host that
+      runs `ralph`, because ralph is what emits it.
+    installs:
+      - telemetry/<host>.config.alloy -> ~/.config/dev-telemetry/alloy/
+      - launchd/<host>.com.homelab.dev-alloy.plist
+    note: >
+      This is an executor concern, not a homelab one, which is why it lives
+      here. `ralph.sh:78` defaults OTLP_ENDPOINT to http://localhost:4318 and
+      injects the exporter env into every `claude -p` it launches -- so a
+      machine can be a perfectly healthy executor and still throw away
+      everything it measures, with no error, because nothing is listening on
+      that port. Enrolling an executor has to install its intake or the
+      telemetry half of enrolling it did not happen.
+
+      Measured 2026-08-26: the Air had run this way for its whole life. Zero
+      `{job="claude-code"}` series in Prometheus and zero lines in Loki carried
+      that machine; every series present came from a hand-exported interactive
+      shell on the mini. Its Alloy was up and healthy the entire time -- it
+      shipped host metrics and dev events fine. It simply had no
+      `otelcol.receiver.otlp` block, and the OTel SDK fails silently against a
+      closed socket.
+
+      Not installed on rainforest-mini, which is the exception that explains the
+      shape: its sink is the homelab's containerised Alloy, provisioned by
+      terraform in rainforest-homelab (`modules/grafana-alloy`), and it already
+      receives on 4317/4318. Two hosts, two provisioning systems, one role --
+      so the role names the requirement and the file names the host.
+
+      The Air's receiver binds 127.0.0.1, not 0.0.0.0 as the mini's does: only
+      local producers push to it, and it is a laptop that joins untrusted
+      networks. The mini binds wide because its Alloy also serves containers
+      across a Docker bridge.
+
   observatory:
     description: The Loop Observatory web app (apps/loop-observatory in this repo).
     installs:
@@ -90,7 +125,8 @@ hosts:
   Angibles-MacBook-Air:
     scope: company
     executes: company work only
-    roles: [engine, ralph, relay-pull, usage-hourly, usage-publish]
+    roles:
+      [engine, ralph, relay-pull, usage-hourly, usage-publish, telemetry-sink]
 
   rainforest-mini:
     scope: personal

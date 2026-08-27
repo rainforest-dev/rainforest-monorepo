@@ -1,7 +1,9 @@
 # Loop telemetry and effectiveness metrics — design
 
 **Date:** 2026-08-21
-**Status:** design approved, pending implementation plan
+**Status:** design approved, pending implementation plan — **with one correction
+recorded 2026-08-27, see "Correction: the ledger does not follow" below. Do not
+execute the retirement list as originally written.**
 **Supersedes:** the telemetry half of the per-task usage tracker
 (`loop-engineering-system` layer 3). Does not touch layers 1, 2, 5 or 6.
 
@@ -465,11 +467,89 @@ recorded as not reproduced. Either way the ambiguity ends with data.
 ### Retire, after reconciliation passes
 
 - the `quota` block in `append_run()` — structurally invalid
-- `cost_est_usd` derivation from session files
-- `ledger.*.jsonl`, `tools/loop/usage/*.sh`, and their two launchd plists
-- `apps/loop-observatory` `ledger.ts`, `budget.ts` and the chart components
+- ~~`cost_est_usd` derivation from session files~~ — **struck 2026-08-27**
+- ~~`ledger.*.jsonl`, `tools/loop/usage/*.sh`, and their two launchd plists~~ —
+  **struck 2026-08-27**
+- ~~`apps/loop-observatory` `ledger.ts`, `budget.ts` and the chart components~~ —
+  **struck 2026-08-27**
+
+## Correction: the ledger does not follow
+
+Recorded 2026-08-27, after measuring what retiring it would actually cost.
+
+**The unfixability argument does not reach the ledger.** This document opens with
+"two measurement defects make the current **ledger** unfixable rather than merely
+buggy". Both defects are defects of `append_run()` / `loop-runs.jsonl`:
+
+- _Quota delta is not attributable_ cites `writeback.py:215`. That line is inside
+  `_quota_block()`, whose only caller is `append_run()`, which writes
+  `loop-runs.<machine>.jsonl`. **`ledger.*.jsonl` has no quota field at all** —
+  thirteen fields, none quota-related, confirmed by a key census over the live
+  file. This document already scopes it correctly one bullet above, in
+  "the `quota` block in `append_run()`".
+- _Write-time attribution is sparse by construction_ names `append_run()` in its
+  own sentence. Re-measured on the real file: of 20 rows, `task_id` truthy on 1.
+
+The ledger is not written by `append_run()`. It is built by parsing session
+transcripts (`enrich.py:138-139`), so it has no write-time attribution to be
+sparse and no quota block to be invalid. Both defects are real; neither is
+evidence about the ledger.
+
+**What retiring it would have deleted.** Measured 2026-08-26 across 262,920 live
+records:
+
+|                           |                                                                                                                                                                                                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cost with no other record | **$80,345 of $98,681 (84%)** — every byte of it from the company machine, which has zero series in Prometheus and zero lines in Loki                                                                                                                                            |
+| Codex                     | **36,654 records.** Prometheus has no Codex metrics _by design_: `ralph.sh:650` sets `otel.metrics_exporter=none` because Codex's default exporter is `statsig`, resolving to `ab.chatgpt.com`. That is a decision not to ship loop telemetry to a third party, not an omission |
+| History                   | Prometheus retains 90d and started 2026-08-05; the ledger starts 2026-04-22. Over half the records predate the replacement, and **no transport moves data backwards in time**                                                                                                   |
+| Interactive sessions      | 711 sessions in the ledger against 7 `run_id`s in Loki. `claude_code_*` exists only where the OTel env is set, which `ralph.sh` does per-run and nothing does for interactive use                                                                                               |
+
+The denominator goes with it. After retirement, "loop runs are N% of my spend"
+resolves against Loki's $10.45 — a number that answers no question anyone asked.
+
+**One property only the file has.** `cost_est_usd` is derived, not observed, so a
+rates correction can be applied retroactively. Exercised 2026-08-26: merging a
+split partition repriced 28,741 records against the current table, moving July
+from $10,885 to $8,922 (the old figure was default-rate fallthrough) and August
+from $3,125 to $8,480. Prometheus counters are fixed at write; a rate-table fix
+cannot reach them.
+
+**What this document got right, and keeps.** The three-store division — split by
+_which question only this store can answer_ — is correct, and so is the reasoning
+that put per-run cost in Loki rather than Prometheus. Applying that same test to
+the ledger is what strikes it from the list: no other store can answer "what has
+this machine spent, in total, since April, including Codex and including the
+work I did by hand".
+
+Quota is the half that moves. It is small, current, and gauge-shaped, and only
+Prometheus can hold it as a series at all — `quota.<machine>.json` is atomically
+overwritten each cycle and keeps exactly one value. Both machines now report
+`loop_quota_used_percent` directly (2026-08-26/27); the trend view and any alert
+rule belong in Grafana, not in a hand-built Observatory panel.
+
+**What was actually wrong was the transport, not the store.** Three outages found
+while measuring this, all the same shape — a writer picked a destination,
+succeeded, and no reader ever checked the bytes arrived:
+
+1. The Air's bridge published to a clone retired on 2026-08-24, succeeding every
+   five minutes for a month.
+2. A CloudDocs directory refuses a rename from an ssh session onto a file a
+   GUI-session process wrote, so a complete 61 MB ledger was delivered and
+   dropped hourly while `|| true` swallowed the error and the destination's
+   mtime never moved.
+3. `vault_path()` fell back to that same clone — the fallback its own docstring
+   warned about — so the mini's entire run record went somewhere nothing reads.
+
+None of the three is evidence that JSONL-in-a-machine-partitioned-vault is the
+wrong store. The remaining transport work is a reader-side delivery assertion and
+shipping the ledger delta instead of a 61 MB full copy on an hourly timer.
 
 ### Downstream surfaces that break with it
+
+> **Superseded 2026-08-27.** The ledger is no longer being retired, so none of
+> the below breaks. Kept as the record of what a retirement would have had to
+> update, because that inventory is what made its true cost visible.
 
 Retiring the ledger is not contained to this repo. Each of these reads it today and
 must be updated in the same change, not discovered afterwards:
@@ -487,6 +567,9 @@ must be updated in the same change, not discovered afterwards:
   Grafana cannot host a button
 - the Notion adapter and task ranking
 - `loop-runs.jsonl`, slimmed to outcome and edges
+- `ledger.*.jsonl` and the Observatory routes that read it — see the correction
+  above; it is the only record of 84% of spend, of all Codex use, and of
+  everything before 2026-08-05
 - Observatory as a **control surface**: greenlight, task notes, feedback write-back.
   The charts move to Grafana; the interactions stay. Its value was never the charts.
 
