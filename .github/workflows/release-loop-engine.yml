@@ -1,0 +1,45 @@
+name: Release loop-engine
+
+# Follows release-personal-calibre.yml: automatic on push to main when the
+# engine changes, publishing a GitHub Release asset. No registry account and no
+# package semantics — the maintenance overhead that ruled out an npm package.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/loop/**'
+      - '.github/workflows/release-loop-engine.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify the bundle's contents
+        run: ./tools/loop/tests/engine-bundle.sh
+      - name: Build
+        id: build
+        run: |
+          version="$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          ./tools/loop/pack-engine.sh "loop-engine-$version.tar.gz"
+          shasum -a 256 "loop-engine-$version.tar.gz" > "loop-engine-$version.tar.gz.sha256"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "loop-engine-${{ steps.build.outputs.version }}" \
+            --title "loop-engine ${{ steps.build.outputs.version }}" \
+            --notes "Engine bundle for executor enrollment. Built from ${GITHUB_SHA}." \
+            "loop-engine-${{ steps.build.outputs.version }}.tar.gz" \
+            "loop-engine-${{ steps.build.outputs.version }}.tar.gz.sha256"
