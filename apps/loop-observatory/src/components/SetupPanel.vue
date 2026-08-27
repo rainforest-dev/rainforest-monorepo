@@ -85,10 +85,22 @@ onMounted(load);
           Sign in: <code>claude login</code> and <code>gh auth login</code>.
         </li>
         <li>
-          Fetch the engine onto the machine being enrolled:
+          Fetch the engine onto the machine being enrolled, and check it before
+          extracting it:
           <pre
             class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle | tar xz</code></pre>
+          ><code>curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle -o loop-engine.tar.gz
+curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle.sha256 -o loop-engine.tar.gz.sha256
+shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code></pre>
+          <p class="text-muted-foreground mt-1">
+            The digest is the one CI published beside the release asset. Served
+            from this host over plain <code>http</code>, so it catches a
+            truncated or corrupted download — piping straight into
+            <code>tar</code> would have extracted a partial engine silently. It
+            does not prove provenance: for that, compare against the
+            <code>.sha256</code> on the GitHub Release, which is HTTPS from a
+            different origin.
+          </p>
         </li>
         <li>
           One-shot self-enrollment isn't wired up yet — <code>install.sh</code>
