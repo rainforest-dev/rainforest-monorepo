@@ -21,7 +21,7 @@ export const MINI_FACTS: HostFacts = {
   otlpListening: true,
   vaultPath:
     '/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian',
-  accounts: { claudePlan: 'max', ghLogin: 'rainforest-dev' },
+  accounts: { claudeAvailable: 'ok', ghLogin: 'rainforest-dev' },
   probedAt: '2026-08-27T06:00:00.000Z',
 };
 
@@ -103,7 +103,7 @@ const AIR_FACTS: HostFacts = {
   brewPrefix: '/opt/homebrew',
   otlpListening: true,
   vaultPath: null,
-  accounts: { claudePlan: 'team', ghLogin: 'rainforest-angible' },
+  accounts: { claudeAvailable: 'ok', ghLogin: 'rainforest-angible' },
   probedAt: '2026-08-27T06:00:00.000Z',
 };
 
@@ -199,7 +199,7 @@ describe('deriveAlloyConfig', () => {
       { ...AIR_FACTS, otlpListening: false },
       { ...AIR_FACTS, executors: [] },
       { ...AIR_FACTS, vaultPath: '/somewhere' },
-      { ...AIR_FACTS, accounts: { claudePlan: null, ghLogin: null } },
+      { ...AIR_FACTS, accounts: { claudeAvailable: null, ghLogin: null } },
     ];
     for (const f of variants) {
       const code = (deriveAlloyConfig(AIR_DECL, f)?.contents ?? '').replace(

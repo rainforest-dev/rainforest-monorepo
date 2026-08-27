@@ -23,7 +23,10 @@ export interface HostFacts {
   brewPrefix: string;
   otlpListening: boolean;
   vaultPath: string | null;
-  accounts: { claudePlan: string | null; ghLogin: string | null };
+  accounts: {
+    claudeAvailable: 'ok' | 'missing' | null;
+    ghLogin: string | null;
+  };
   probedAt: string;
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { PROBE_VERSION,PROBES } from './probes.js';
+import { PROBE_VERSION, PROBES } from './probes.js';
 import type { HostFacts } from './types.js';
 
 describe('probe list', () => {
@@ -29,7 +29,7 @@ describe('probe list', () => {
     // Probes report what `claude` and `gh` resolved to; they never read a token.
     for (const p of PROBES) {
       expect(p.shell).not.toMatch(
-        /auth token|--show-token|cat .*token|\.credentials/,
+        /security find-generic-password|auth token|--show-token|cat .*token|credentials|API_KEY|_TOKEN|_SECRET/,
       );
     }
   });
