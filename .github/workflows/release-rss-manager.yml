@@ -71,22 +71,30 @@ jobs:
 
       - name: nx release — version and changelog
         id: release
+        # `shell: bash` is load-bearing: it adds `-o pipefail`, which the default
+        # `bash -e {0}` lacks. Without it the `| tee` below reports tee's exit code
+        # and a failed release goes green — which is how this workflow republished
+        # 0.0.1 on every run from 2026-07 to 2026-08.
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FIRST_RELEASE: ${{ inputs.first-release }}
         run: |
-          if [ "$FIRST_RELEASE" = "true" ]; then
-            # First release: nx release conventional-commits needs commits in NX_BASE..HEAD
-            # which may be empty on workflow_dispatch. Read from package.json and tag manually.
-            VERSION=$(node -p "require('./apps/rss-manager/package.json').version")
-            git tag -f "rss-manager@${VERSION}"
-            # Still run nx release to generate the GitHub Release and changelog
-            pnpm exec nx release --yes --projects=@rainforest-monorepo/rss-manager --skip-publish --first-release \
-              2>&1 | tee /tmp/nx-release.log || true
-          else
-            pnpm exec nx release --yes --projects=@rainforest-monorepo/rss-manager --skip-publish \
-              2>&1 | tee /tmp/nx-release.log
-            VERSION=$(git tag --sort=-creatordate | grep '^rss-manager@' | head -1 | sed 's/rss-manager@//')
+          PROJECT='@rainforest-monorepo/rss-manager'
+          MANIFEST=./apps/rss-manager/package.json
+          # --skip-publish, never --yes: nx rejects the pair as mutually exclusive.
+          FLAGS=(--skip-publish --projects="$PROJECT")
+          if [ "$FIRST_RELEASE" = "true" ]; then FLAGS+=(--first-release); fi
+          pnpm exec nx release "${FLAGS[@]}" 2>&1 | tee /tmp/nx-release.log
+          # Read the version nx just wrote to the manifest. The old code grepped
+          # git tags for '^rss-manager@', which never matches what nx creates:
+          # releaseTag.pattern renders {projectName}, and this project's name is
+          # scoped. An unmatched grep returned empty, and empty fell through to the
+          # stale rss-manager@0.0.1 tag left over from before that mismatch.
+          VERSION=$(node -p "require('$MANIFEST').version")
+          if [ -z "${VERSION}" ]; then
+            echo "::error::No version resolved. Refusing to publish an image under an empty or stale version."
+            exit 1
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "::notice::Released: ${VERSION}"
