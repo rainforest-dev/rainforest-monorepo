@@ -17,12 +17,14 @@
 //    expat (and thus plistlib) refuses the file outright. Comparison has to use
 //    the parser the platform actually uses, not the strictest one available.
 //
-// Differences this gate expects are named explicitly, not tolerated wholesale:
-// `LOOP_MACHINE` (the live mini plist says `mini`, the generator emits the full
-// host name `rainforest-mini`) and `ProgramArguments` (the live mini plist bakes
-// in `1 10` iteration parameters that belong in config, not in the launchd
-// unit). Any other difference is a generator bug or a committed-file accident,
-// and this test must fail on it rather than swallow it.
+// Differences this gate expects are named explicitly, per host, not tolerated
+// wholesale. An earlier version of this gate excluded `ProgramArguments`
+// globally, by key name alone, for both hosts. That hid a real regression:
+// collapsing the Air's `denied` branch to emit `ralph.sh` directly (deleting
+// the osascript GUI shim, the single most important thing this generator
+// decides) still passed the gate, because the blanket exclusion swallowed the
+// resulting `ProgramArguments` diff along with the mini's expected one. See
+// EXPECTED_DIFFS below for the corrected, per-host, narrowed rules.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -99,7 +101,57 @@ function diff(
   return [{ path, live: a, generated: b }];
 }
 
-const EXPECTED_DIFF_PATHS = new Set(['LOOP_MACHINE', 'ProgramArguments']);
+interface ExpectedDiffRule {
+  path: string;
+  reason: string;
+  /** Returns true when this specific (live, generated) pair is the tolerated
+   * accident described in `reason`, not merely "any difference at this path". */
+  tolerate: (live: unknown, generated: unknown) => boolean;
+}
+
+/**
+ * Per host, because a rule that is correct for one host is a hole for the
+ * other. `ProgramArguments` used to be excluded globally, by key name alone,
+ * for both hosts — which meant collapsing the Air's `denied` branch to emit
+ * `ralph.sh` directly (deleting the osascript GUI shim) still passed: the
+ * blanket exclusion swallowed that regression's `ProgramArguments` diff along
+ * with the mini's expected one. The Air has no rule at all below, because its
+ * generated `ProgramArguments` already matches the committed plist exactly —
+ * confirmed by an empty diff array on a clean run — so nothing there needs
+ * tolerating and any future difference must fail.
+ */
+const EXPECTED_DIFFS: Record<string, ExpectedDiffRule[]> = {
+  'rainforest-mini': [
+    {
+      path: 'EnvironmentVariables.LOOP_MACHINE',
+      reason:
+        'The live plist carries the short alias `mini` while LocalHostName is ' +
+        '`rainforest-mini`; the generator emits the full host name and removes ' +
+        'the split. Tolerated only for this exact live/generated pair, so a ' +
+        'generator that emitted some other wrong value still fails.',
+      tolerate: (live, generated) =>
+        live === 'mini' && generated === 'rainforest-mini',
+    },
+    {
+      path: 'ProgramArguments',
+      reason:
+        'The live plist bakes `ralph.sh 1 10` -- iteration parameters that ' +
+        'belong in config.yaml, not the launchd unit. Tolerated ONLY when the ' +
+        'generated array is a strict, non-empty-deficit prefix of the live ' +
+        'array: every generated element must equal the live element at the ' +
+        'same index (so a wrong binary path still fails), and the live array ' +
+        'must be strictly longer (so a generator that dropped nothing is not ' +
+        'accidentally let through as "prefix of itself").',
+      tolerate: (live, generated) => {
+        if (!Array.isArray(live) || !Array.isArray(generated)) return false;
+        if (generated.length === 0) return false;
+        if (generated.length >= live.length) return false;
+        return generated.every((v, i) => v === live[i]);
+      },
+    },
+  ],
+  'Angibles-MacBook-Air': [],
+};
 
 describe.each(['rainforest-mini', 'Angibles-MacBook-Air'] as const)(
   'deriveRalphPlist reproduces the live %s plist',
@@ -124,9 +176,11 @@ describe.each(['rainforest-mini', 'Angibles-MacBook-Air'] as const)(
       );
       const generated = writeAndParseGenerated(host, file.contents);
 
-      const differences = diff(live, generated).filter(
-        (d) => !EXPECTED_DIFF_PATHS.has(d.path.split('.').pop() ?? d.path),
-      );
+      const rules = EXPECTED_DIFFS[host] ?? [];
+      const differences = diff(live, generated).filter((d) => {
+        const rule = rules.find((r) => r.path === d.path);
+        return !rule || !rule.tolerate(d.live, d.generated);
+      });
 
       expect(
         differences,
