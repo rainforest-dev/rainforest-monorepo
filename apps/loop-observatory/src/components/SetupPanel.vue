@@ -65,14 +65,18 @@ onMounted(load);
         <li>
           One-shot self-enrollment isn't wired up yet — <code>install.sh</code>
           only sets up a host that already has an entry in
-          <code>hosts.yaml</code>. For now: add this machine's name and roles to
-          <code>tools/loop/hosts.yaml</code> in the repo, get that change into
-          the bundle you just fetched, then run:
+          <code>hosts.yaml</code>. For now: you're standing in the directory
+          that <code>tar</code> just extracted, and it has its own
+          <code>hosts.yaml</code> sitting right beside <code>install.sh</code> —
+          open <em>that</em> copy (not a checkout of the repo) and add this
+          machine's name and roles to it, then run:
           <pre
             class="bg-muted mt-1 overflow-x-auto rounded p-2"
           ><code>./install.sh</code></pre>
           (or <code>./install.sh --host=&lt;name&gt;</code> if this machine's
-          hostname doesn't match the entry you added).
+          hostname doesn't match the entry you added). That edit only exists in
+          this extracted copy — the next time this machine enrolls from a fresh
+          bundle, the entry won't be there and you'll need to add it again.
         </li>
       </ol>
       <p class="text-muted-foreground mt-2 text-sm">
