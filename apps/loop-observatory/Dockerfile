@@ -5,7 +5,12 @@ RUN corepack enable
 
 WORKDIR /app
 
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
+# nx.json is not optional here, unlike in the sibling app images. rainforest-ui
+# has no build script and no project.json — its `build` target is inferred by
+# @nx/vite/plugin, and the plugin list lives in nx.json. Without it nx starts,
+# finds no plugins, infers no targets, and reports:
+#   NX  Cannot find configuration for task rainforest-ui:build
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json nx.json ./
 COPY apps/loop-observatory/package.json apps/loop-observatory/
 COPY libs/rainforest-ui/package.json libs/rainforest-ui/
 
