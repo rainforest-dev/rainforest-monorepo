@@ -39,7 +39,15 @@ env:
 jobs:
   release-and-push:
     name: Release, Build, and Push to GHCR
-    runs-on: ubuntu-latest
+    # Native arm64, not ubuntu-latest. The first build of this image ran
+    # linux/amd64 to completion and left linux/arm64 still inside `pnpm install`
+    # when the job hit the 6-hour ceiling: arm64 on an amd64 runner goes through
+    # QEMU, and 2245 packages plus an nx and an astro build do not survive that.
+    # Free for public repositories.
+    runs-on: ubuntu-24.04-arm
+    # A build that takes longer than this is stuck, and six hours is an expensive
+    # way to find that out.
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -112,7 +120,11 @@ jobs:
         with:
           context: .
           file: apps/loop-observatory/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          # arm64 only, matching the runner above. Every consumer of this image is
+          # arm64 — the mini that hosts it and the raspberrypi-5 beside it — so a
+          # second architecture would double the build to serve nobody. Add a
+          # matrix with a manifest merge if an amd64 host ever appears.
+          platforms: linux/arm64
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
