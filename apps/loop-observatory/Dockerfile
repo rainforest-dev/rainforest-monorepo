@@ -29,10 +29,18 @@ WORKDIR /app
 COPY --from=base /deploy/node_modules ./node_modules
 COPY --from=base /app/apps/loop-observatory/dist ./dist
 
+# Host declarations ship WITH the image, not mounted: they are generic config, so
+# a declaration change is a release. Outside a container the app resolves this
+# relative to the working directory, which only launchd was setting.
+COPY tools/loop/hosts.yaml ./tools/loop/hosts.yaml
+ENV LOOP_HOSTS_YAML=/app/tools/loop/hosts.yaml
+
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3003
-# VAULT_PATH must be provided at runtime (mount the vault read-only).
+# VAULT_PATH must be provided at runtime. The vault is mounted READ-WRITE:
+# task decisions, task notes, the greenlight outbox and the enrollment store all
+# write into it.
 EXPOSE 3003
 
 CMD ["node", "./dist/server/entry.mjs"]
