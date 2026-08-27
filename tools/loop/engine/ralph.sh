@@ -19,6 +19,26 @@ PYTHON_BIN=${LOOP_PYTHON:-"$LOOP_HOME/.venv/bin/python"}
 MACHINE=${LOOP_MACHINE:-${USAGE_MACHINE:-$(scutil --get LocalHostName 2>/dev/null || hostname -s 2>/dev/null)}}
 MACHINE=${MACHINE%%.*}
 EXECUTORS=${LOOP_EXECUTORS:-claude,codex,agy}
+# Every commit reachable from any worktree of this repo, as a sorted set. The
+# executor is told to work in a worktree it creates -- `repo/.claude/worktrees/<x>`
+# for claude, `~/.codex/worktrees/...` for codex -- so a commit it makes does not
+# move the HEAD of the path the loop handed it. Comparing this set before and
+# after is what makes "did the executor produce anything" true regardless of where
+# it chose to work; comparing `project_path`'s HEAD alone reported `no commit` for
+# every run that did the right thing.
+#
+# `git worktree list --porcelain` reports every worktree registered against the
+# common .git dir, including ones created during this run. Detached heads and
+# prunable entries are included on purpose: a commit is a commit, and a worktree
+# whose directory has since vanished still left its objects behind.
+repo_heads() {
+  local repo="$1"
+  git -C "$repo" worktree list --porcelain 2>/dev/null \
+    | awk '/^HEAD /{print $2}' \
+    | sort -u \
+    | tr '\n' ' '
+}
+
 # Where `loopctl set` mirrors task state for Loop Observatory. Resolved through
 # loopctl so this cannot drift from the path writeback actually writes to; empty
 # if that fails, and the grant below is simply skipped.
@@ -912,6 +932,7 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
 
   prompt=$(printf 'LOOP_PROJECT=%s\n\n' "$slug"; cat "$CONTRACT")
   head_before=$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)
+  heads_before=$(repo_heads "$project_path")
   out=""
   provider=""
   status=1
@@ -1113,9 +1134,22 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
   # whether the repo moved -- on 2026-07-29 a run logged `done` having produced
   # nothing, and the only way to find out was reading the session transcript.
   head_after=$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)
+  heads_after=$(repo_heads "$project_path")
   verdict=$(executor_verdict "$out")
-  if [ "$head_before" = "$head_after" ]; then
+  # The worktree the executor actually committed in, if it was not the one it was
+  # handed. Reported so a run that produced work somewhere else is still legible
+  # from the log alone, without going and looking.
+  work_tree=""
+  if [ "$heads_before" != "$heads_after" ] && [ "$head_before" = "$head_after" ]; then
+    work_tree=$(git -C "$project_path" worktree list --porcelain 2>/dev/null \
+      | awk -v known=" $heads_before " '
+          /^worktree /{wt=$2}
+          /^HEAD /{ if (index(known, " " $2 " ") == 0) { print wt; exit } }')
+  fi
+  if [ "$heads_before" = "$heads_after" ]; then
     log "  no commit · $verdict"
+  elif [ -n "$work_tree" ]; then
+    log "  committed in $work_tree · $verdict"
   else
     log "  $(git -C "$project_path" rev-list --count "$head_before..$head_after" 2>/dev/null || echo '?') commit(s) · $verdict"
   fi
@@ -1128,7 +1162,11 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
   # executor ran, because the executor is what creates it. The PR comes from the
   # task's own overlay, which the executor set when it reached pr-ready.
   [ -n "${task_key:-}" ] && run_fields+=(--task-id "$task_key")
-  run_branch=$(git -C "$project_path" rev-parse --abbrev-ref HEAD 2>/dev/null || printf '')
+  # Read from the worktree the executor committed in, falling back to the one it
+  # was handed. Reading `project_path` unconditionally recorded the branch the
+  # loop started on -- `dev` -- for every run that worked in a worktree of its
+  # own, which is every run once the executor picks its own.
+  run_branch=$(git -C "${work_tree:-$project_path}" rev-parse --abbrev-ref HEAD 2>/dev/null || printf '')
   [ -n "$run_branch" ] && [ "$run_branch" != "HEAD" ] && run_fields+=(--branch "$run_branch")
   run_pr=$("$LOOPCTL" show "$slug" 2>/dev/null | "$PYTHON_BIN" -c \
     'import json, sys

@@ -2,26 +2,23 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- The loop's own environment moves into run-ralph-gui.applescript: a
+	     launchd job on this machine cannot read ~/Library/Mobile Documents (probed
+	     2026-08-25 -- DENIED here, permitted on mini), and the two projects this
+	     host runs read notion-tasks.json out of the vault. osascript re-enters the
+	     logged-in GUI session, which has the grant. Only PATH stays here, for
+	     osascript itself. -->
 	<key>EnvironmentVariables</key>
 	<dict>
-		<key>LOOP_AGENT_CONFIG</key>
-		<string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/_system/usage/loop-agents.json</string>
-		<key>LOOP_EXECUTORS</key>
-		<string>claude,codex,agy</string>
-		<key>LOOP_MACHINE</key>
-		<string>Angibles-MacBook-Air</string>
-		<key>LOOP_VAULT_PATH</key>
-		<string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian</string>
 		<key>PATH</key>
-		<string>/Users/rainforest/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<string>/usr/bin:/bin:/usr/sbin:/sbin</string>
 	</dict>
 	<key>Label</key>
 	<string>tools.rainforest.loop-ralph</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/Users/rainforest/.claude/loop/ralph.sh</string>
-		<string>1</string>
-		<string>10</string>
+		<string>/usr/bin/osascript</string>
+		<string>/Users/rainforest/.claude/loop/run-ralph-gui.applescript</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>

@@ -1,0 +1,166 @@
+// Grafana Alloy — company MacBook Air (angibles-macbook-air)
+//
+// Ships host metrics to Prometheus and dev-activity events to Loki, both on
+// the Raspberry Pi, reached over Tailscale. Runs as a native launchd process,
+// not a container: Docker Desktop on macOS runs containers inside a Linux VM,
+// so a containerised collector reports the VM's CPU rather than the Mac's —
+// and measuring real core contention is the entire point here.
+//
+// Endpoints come from the launchd plist's EnvironmentVariables. There are no
+// secrets: the tailnet is the authentication boundary.
+
+// ─── Metrics: scrape the native node_exporter, push to the Pi ───────────────
+
+prometheus.scrape "host" {
+  targets = [{
+    __address__ = "127.0.0.1:9100",
+    job         = "macbook-node",
+  }]
+  forward_to = [prometheus.remote_write.rpi.receiver]
+
+  // 15s rather than the Mac Mini's 30s. A pre-push hook runs 30-120s, so 30s
+  // sampling yields 1-4 points and the CPU plateau is not resolvable. At 15s a
+  // 60s hook gets four samples. Costs ~5 MB/day on the Pi, which is ~2% of its
+  // existing ingest.
+  scrape_interval = "15s"
+}
+
+prometheus.remote_write "rpi" {
+  // WITHOUT THIS the laptop's node_exporter series collide with the Mac Mini's
+  // — same metric names, same instance label — and the two machines silently
+  // overwrite each other. This is the single most confusing way a second Alloy
+  // can fail, because the graphs look plausible and are wrong.
+  external_labels = {
+    host = "angible-macbook-air",
+  }
+
+  endpoint {
+    url = sys.env("PROMETHEUS_REMOTE_WRITE_URL")
+
+    queue_config {
+      max_samples_per_send = 1000
+      batch_send_deadline  = "5s"
+    }
+  }
+}
+
+// ─── Logs: tail the event spool, push to the Pi ─────────────────────────────
+
+local.file_match "dev_events" {
+  path_targets = [{
+    __path__ = sys.env("DEV_EVENTS_SPOOL"),
+    job      = "dev-events",
+  }]
+}
+
+loki.source.file "dev_events" {
+  targets    = local.file_match.dev_events.targets
+  forward_to = [loki.process.dev_events.receiver]
+}
+
+loki.process "dev_events" {
+  stage.json {
+    expressions = {
+      event  = "event",
+      status = "status",
+      ts     = "ts",
+    }
+  }
+
+  // Use the emitter's timestamp, not ingest time. Alloy buffers to disk while
+  // the Pi is unreachable and replays later; without this every replayed event
+  // would land bunched at the moment the tunnel came back.
+  stage.timestamp {
+    source = "ts"
+    format = "RFC3339"
+  }
+
+  // Only these two become labels. Together with job and host that is a bounded
+  // label set. Everything high-cardinality — branch, worktree, duration —
+  // stays in the log body, where Loki does not index it and it therefore costs
+  // nothing. A branch name promoted to a label would create a new stream per
+  // feature branch and blow up the index.
+  //
+  // Note the `values` map: Alloy's stage.labels takes one, unlike Promtail's
+  // YAML where the label names are keys directly under the stage. Writing it
+  // the Promtail way fails the initial load with "unrecognized attribute name".
+  stage.labels {
+    values = {
+      event  = "",
+      status = "",
+    }
+  }
+
+  forward_to = [loki.write.rpi.receiver]
+}
+
+loki.write "rpi" {
+  external_labels = {
+    host = "angible-macbook-air",
+  }
+
+  endpoint {
+    url = sys.env("LOKI_PUSH_URL")
+  }
+
+  // NOT the default, and the default is the wrong trade here.
+  //
+  // prometheus.remote_write buffers to disk out of the box; loki.write keeps
+  // its queue in memory and drops entries once retries are exhausted. Measured
+  // during the Pi's first reconnect: 32,623 metric samples replayed intact
+  // while a log entry from ten minutes earlier was already gone
+  // ("final error sending batch, no retries left, dropping data").
+  //
+  // The weaker guarantee happens to cover the more valuable data. A dropped
+  // metric sample is a gap in a curve that the next scrape refills; a dropped
+  // event is a pre-push run that happened once and is now unrecoverable.
+  wal {
+    enabled         = true
+    max_segment_age = "4h"
+  }
+}
+
+// ---------------------------------------------------------------------------
+// OTLP intake for agent telemetry produced ON THIS MACHINE.
+//
+// Everything else here is pull-based (prometheus.scrape) or tail-based
+// (loki.source.file). Agent telemetry is neither: Claude Code and the loop
+// harness push OTLP, and `ralph.sh` defaults to http://localhost:4318, so
+// without a receiver on that port every run on this machine exported into a
+// closed socket and the SDK failed silently. Measured 2026-08-26: zero
+// {job="claude-code"} series and zero Loki lines carry machine=Angibles-MacBook-Air.
+//
+// Bound to 127.0.0.1, not 0.0.0.0: only local producers push here, and this
+// machine is a laptop that joins untrusted networks. The mini binds 0.0.0.0
+// because its Alloy also serves containers on a Docker bridge.
+//
+// Both exporters forward into the remote_write / loki.write already defined
+// above, so agent telemetry takes the same proven path to the Pi as host
+// metrics and dev events -- no second destination to keep in sync.
+otelcol.receiver.otlp "agents" {
+  http {
+    endpoint = "127.0.0.1:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.agents.input]
+    logs    = [otelcol.processor.batch.agents.input]
+  }
+}
+
+otelcol.processor.batch "agents" {
+  timeout = "2s"
+
+  output {
+    metrics = [otelcol.exporter.prometheus.agents.input]
+    logs    = [otelcol.exporter.loki.agents.input]
+  }
+}
+
+otelcol.exporter.prometheus "agents" {
+  forward_to = [prometheus.remote_write.rpi.receiver]
+}
+
+otelcol.exporter.loki "agents" {
+  forward_to = [loki.write.rpi.receiver]
+}

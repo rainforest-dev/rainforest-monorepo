@@ -273,7 +273,13 @@ export function readAllRecords(): LedgerRecord[] {
     } catch {
       continue; // skip an unreadable partition rather than fail the request
     }
-    records.push(...parseLedger(content));
+    // A loop, not `push(...parsed)`. Spreading passes every element as a separate
+    // argument, and V8 caps that near 65k -- so a partition past that threw
+    // `RangeError: Maximum call stack size exceeded` and the usage panel showed
+    // "Failed to load usage data" with a 500. Measured 2026-08-25: 89,559 records
+    // in one partition, against 26,388 in another that still worked, which is why
+    // this surfaced on one machine and not the other.
+    for (const record of parseLedger(content)) records.push(record);
   }
   return records;
 }

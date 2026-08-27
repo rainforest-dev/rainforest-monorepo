@@ -173,6 +173,27 @@ if has_role usage-publish; then
   install_plist com.rainforest.usage-air-publish
 fi
 
+if has_role telemetry-sink; then
+  say "telemetry-sink:"
+  # Host-specific, like the plists: the mini's sink is the homelab's
+  # containerised Alloy and is not installed from here at all. See the role note
+  # in hosts.yaml.
+  alloy_src=$(host_file telemetry "config.alloy")
+  if [ -z "$alloy_src" ]; then
+    say "  skip config — telemetry/$HOST.config.alloy not in the repo"
+  else
+    run mkdir -p "$HOME/.config/dev-telemetry/alloy"
+    run cp "$alloy_src" "$HOME/.config/dev-telemetry/alloy/config.alloy"
+    say "  config -> ~/.config/dev-telemetry/alloy/config.alloy"
+  fi
+  install_plist com.homelab.dev-alloy
+  # Worth saying out loud, because the failure it prevents is silent: ralph
+  # exports to this port whether or not anything is listening, and the OTel SDK
+  # does not complain when nothing is.
+  say "  ralph exports to \$OTLP_ENDPOINT (default http://localhost:4318);"
+  say "  nothing warns if this is not running."
+fi
+
 if has_role observatory; then
   say "observatory:"
   install_plist tools.rainforest.loop-observatory

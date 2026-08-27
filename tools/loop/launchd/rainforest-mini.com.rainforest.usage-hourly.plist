@@ -3,7 +3,7 @@
 <!--
   launchd agent TEMPLATE for the AI-usage tracker's hourly heartbeat.
 
-  Before installing, replace the /Users/rainforest/Repositories/rainforest-obsidian placeholder below with the
+  Before installing, replace the /Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian placeholder below with the
   absolute path to THIS machine's vault checkout (see scripts/usage/README.md
   for the install steps), then copy the result to
   ~/Library/LaunchAgents/com.rainforest.usage-hourly.plist and
@@ -16,7 +16,7 @@
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/bash</string>
-		<string>/Users/rainforest/Repositories/rainforest-obsidian/scripts/usage/run-hourly.sh</string>
+		<string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/scripts/usage/run-hourly.sh</string>
 	</array>
 	<key>EnvironmentVariables</key>
 	<dict>

@@ -95,11 +95,15 @@ projects:
     machines: [$MACHINE]
 CFG
 
+# The bullet names the task's `task_id` frontmatter, not the note path. The
+# path used to work because obsidian-base left `metadata.item_id` empty and
+# the id comparison was a substring test; both are fixed, so only the id
+# authorises now.
 cat > "$HOME_DIR/greenlight/sandbox.md" <<GL
 # sandbox greenlight
 
 ## Cleared
-- $TASK_KEY
+- $TASK_ID
 GL
 
 # --- fake executors: record the exact argv they were handed ------------------
@@ -795,10 +799,14 @@ mkdir -p "$HOME_DIR/depends"
 SECOND=T-88888888888888
 SECOND_KEY="_system/tasks/$SECOND.md"
 sed "s/$TASK_ID/$SECOND/" "$VAULT/$TASK_KEY" > "$VAULT/$SECOND_KEY"
-printf -- '- %s\n' "$SECOND_KEY" >> "$HOME_DIR/greenlight/sandbox.md"
+printf -- '- %s\n' "$SECOND" >> "$HOME_DIR/greenlight/sandbox.md"
+# Keyed by `_task_key` -- `metadata.item_id or id`. For an obsidian-base source
+# that is now the `T-<timestamp>` frontmatter id; it was the note path only while
+# the adapter left `item_id` empty. depends.py's own docstring always said the
+# key is "the human key a person and this file both use, e.g. AG-298".
 cat > "$HOME_DIR/depends/sandbox.yaml" <<YAML
-$SECOND_KEY:
-  depends_on: ["$TASK_KEY"]
+$SECOND:
+  depends_on: ["$TASK_ID"]
   from: "Depends on the sandbox task."
   resolved: 2026-08-03
 YAML
@@ -820,8 +828,8 @@ contains "deps flags an unreviewed resolution" "$("$LOOPCTL" deps sandbox 2>/dev
 # or simply not synced is state the loop cannot confirm, and its standing rule is
 # to stop rather than guess.
 cat > "$HOME_DIR/depends/sandbox.yaml" <<YAML
-$SECOND_KEY:
-  depends_on: ["_system/tasks/T-00000000000000.md"]
+$SECOND:
+  depends_on: ["T-00000000000000"]
   from: "Depends on something that is not there."
   resolved: 2026-08-03
 YAML
@@ -868,7 +876,7 @@ cat > "$HOME_DIR/greenlight/sandbox.md" <<GL
 # sandbox greenlight
 
 ## Cleared
-- $TASK_KEY
+- $TASK_ID
 GL
 rm -rf "$HOME_DIR/projects"
 "$LOOPCTL" scan sandbox >/dev/null 2>&1

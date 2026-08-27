@@ -244,7 +244,11 @@ def _greenlight_rank(task: dict, text: str) -> int | None:
     task_id = str(task.get("id", ""))
     title = str(task.get("title", ""))
     item_id = str((task.get("metadata") or {}).get("item_id") or "")
-    for rank, line in enumerate(text.splitlines()):
+    # Only `## Cleared` authorises, and only outside comments. Scanning the whole
+    # file made every bulleted line in `## How to use` and `## Notes` an
+    # authorisation, along with the commented-out worked example under Cleared
+    # itself. See greenlight.cleared_section.
+    for rank, line in enumerate(greenlight_mod.cleared_section(text).splitlines()):
         # Shared with greenlight.py, the module that writes this file. Both
         # sides must agree on what a bullet is: they once differed by a single
         # whitespace quantifier, so a hand-typed `-290` was a duplicate to the
@@ -260,11 +264,17 @@ def _greenlight_rank(task: dict, text: str) -> int | None:
         # the prefix made `EHT-290` and `AG-290` the same key. The ids are all
         # `AG-<n>` now, so both spellings can go.
         item_match = bool(item_id) and greenlight_mod.is_bullet_for(item_id, line)
-        if (
-            (task_id and task_id in line)
-            or item_match
-            or (title and title in line)
-        ):
+        # `task_id` is matched exactly, like `item_id`, and no longer as a
+        # substring. `x in line` authorised far more than it named: with
+        # `- 106 -- [FE] dashboard timezone` on the list, enumerating ids 1..999
+        # against the *empty* company allowlist returned six matches --
+        # 1, 3, 6, 10, 31, 106 -- because each is a substring of some bullet.
+        # Nothing was exploitable only because the live ids had all migrated to
+        # `AG-<n>`, which is a property of today's data rather than of this
+        # check. Title is left as a substring deliberately: a human writing a
+        # bullet is expected to paraphrase a title, never an id.
+        id_match = bool(task_id) and greenlight_mod.is_bullet_for(task_id, line)
+        if id_match or item_match or (title and title in line):
             return rank
     return None
 

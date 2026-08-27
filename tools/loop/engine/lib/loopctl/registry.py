@@ -88,11 +88,58 @@ class ProjectLock:
         try:
             descriptor = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError as exc:
-            raise LockBusy(f"project '{self.path.stem}' is already locked") from exc
+            # The lock is released in __exit__, so a process killed while holding
+            # it leaves the file behind and every later run fails with exit 2 --
+            # measured 2026-08-25 on the company machine, where a scan interrupted
+            # by `launchctl bootout` blocked both company projects until the files
+            # were removed by hand. The payload already records the pid; nothing
+            # was reading it.
+            #
+            # Reclaimed only when the recorded pid is this host's and no longer
+            # exists. A lock from another machine is left alone: the pid means
+            # nothing here, and these files sit in a directory that has been synced
+            # between machines before.
+            if not self._holder_is_gone():
+                raise LockBusy(
+                    f"project '{self.path.stem}' is already locked"
+                ) from exc
+            try:
+                self.path.unlink()
+                descriptor = os.open(
+                    self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600
+                )
+            except (FileNotFoundError, FileExistsError) as race:
+                # Another process reclaimed it between the check and the unlink.
+                raise LockBusy(
+                    f"project '{self.path.stem}' is already locked"
+                ) from race
         with os.fdopen(descriptor, "w") as handle:
             handle.write(payload)
         self._held = True
         return self
+
+    def _holder_is_gone(self) -> bool:
+        """True when the lock names a dead process on this host.
+
+        Anything unreadable, unparseable, or from another host counts as held:
+        the failure to prefer is refusing to run, not two writers.
+        """
+        try:
+            payload = json.loads(self.path.read_text())
+        except (OSError, ValueError):
+            return False
+        if payload.get("host") != socket.gethostname():
+            return False
+        pid = payload.get("pid")
+        if not isinstance(pid, int) or pid <= 0:
+            return False
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        except PermissionError:
+            return False  # alive, owned by someone else
+        return False
 
     def __exit__(self, exc_type, exc, traceback):
         if self._held:

@@ -30,6 +30,12 @@ roles:
       Installed disabled. Enabling an unsupervised executor is a deliberate act,
       never a side effect of running install.sh.
 
+      On Angibles-MacBook-Air the plist runs engine/run-ralph-gui.applescript
+      rather than ralph.sh directly: a launchd job there cannot read
+      ~/Library/Mobile Documents (probed 2026-08-25 -- DENIED on Air, permitted
+      on mini), and both projects that host runs read notion-tasks.json out of
+      the vault. The script ships with the engine role, so no extra install step.
+
   relay-pull:
     description: >
       Pulls greenlight requests queued by Observatory and applies them through
@@ -56,6 +62,41 @@ roles:
       - usage/publish-air-to-mini.sh -> ~/.local/share/loop-usage-runtime/
       - launchd/<host>.com.rainforest.usage-air-publish.plist
 
+  telemetry-sink:
+    description: >
+      Somewhere for this executor's own OTLP to land. Required by any host that
+      runs `ralph`, because ralph is what emits it.
+    installs:
+      - telemetry/<host>.config.alloy -> ~/.config/dev-telemetry/alloy/
+      - launchd/<host>.com.homelab.dev-alloy.plist
+    note: >
+      This is an executor concern, not a homelab one, which is why it lives
+      here. `ralph.sh:78` defaults OTLP_ENDPOINT to http://localhost:4318 and
+      injects the exporter env into every `claude -p` it launches -- so a
+      machine can be a perfectly healthy executor and still throw away
+      everything it measures, with no error, because nothing is listening on
+      that port. Enrolling an executor has to install its intake or the
+      telemetry half of enrolling it did not happen.
+
+      Measured 2026-08-26: the Air had run this way for its whole life. Zero
+      `{job="claude-code"}` series in Prometheus and zero lines in Loki carried
+      that machine; every series present came from a hand-exported interactive
+      shell on the mini. Its Alloy was up and healthy the entire time -- it
+      shipped host metrics and dev events fine. It simply had no
+      `otelcol.receiver.otlp` block, and the OTel SDK fails silently against a
+      closed socket.
+
+      Not installed on rainforest-mini, which is the exception that explains the
+      shape: its sink is the homelab's containerised Alloy, provisioned by
+      terraform in rainforest-homelab (`modules/grafana-alloy`), and it already
+      receives on 4317/4318. Two hosts, two provisioning systems, one role --
+      so the role names the requirement and the file names the host.
+
+      The Air's receiver binds 127.0.0.1, not 0.0.0.0 as the mini's does: only
+      local producers push to it, and it is a laptop that joins untrusted
+      networks. The mini binds wide because its Alloy also serves containers
+      across a Docker bridge.
+
   observatory:
     description: The Loop Observatory web app (apps/loop-observatory in this repo).
     installs:
@@ -67,21 +108,27 @@ roles:
       - launchd/<host>.com.rainforest.loop-sync.plist
     note: Reads its tokens from ~/.config/loop/, which is not in this repo.
 
-  icloud-mirror:
-    description: Mirrors vault-authored files from iCloud into the readable clone.
-    installs:
-      - launchd/<host>.com.rainforest.icloud-mirror.plist
-    note: >
-      The script itself lives in the vault repo (scripts/usage/mirror_icloud.py),
-      not here; only the schedule is deployed from this repo.
+  # icloud-mirror: retired 2026-08-25. It existed because a launchd job was
+  # believed unable to read ~/Library/Mobile Documents under TCC, so vault-authored
+  # files were copied into a second checkout that launchd could read, through an
+  # AppleScript shim that re-entered the GUI session. Probed with a throwaway
+  # LaunchAgent on both machines that day: mini reads the vault directly (41 task
+  # files, contents included), so the premise no longer holds there and the clone,
+  # the shim and this schedule all go with it. Air is still DENIED -- it keeps its
+  # own runtime copy, which is a different mechanism and stays.
+  #
+  # The mirror also actively hurt: _atomic_copy ends in os.replace, which stamps a
+  # fresh mtime whether or not a byte changed, so every downstream freshness check
+  # read 4-to-9-day-old data as two minutes old.
 
 hosts:
   Angibles-MacBook-Air:
     scope: company
     executes: company work only
-    roles: [engine, ralph, relay-pull, usage-hourly, usage-publish]
+    roles:
+      [engine, ralph, relay-pull, usage-hourly, usage-publish, telemetry-sink]
 
   rainforest-mini:
     scope: personal
     executes: personal work only, and hosts Observatory for both
-    roles: [engine, ralph, observatory, loop-sync, usage-hourly, icloud-mirror]
+    roles: [engine, ralph, observatory, loop-sync, usage-hourly]

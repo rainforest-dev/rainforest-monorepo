@@ -54,10 +54,22 @@ iteration and record `needs-tuning`, `spec-drafted`, or `split-drafted` through
 
 ## 3. Plan and execute
 
-Use the real repository worktree. Preserve unrelated changes. For novel or
-design-bearing work, write and commit a plan first; routine work may follow its
-existing procedure. Implement one coherent task fully, with bounded repair and
-small commits. Never weaken tests to force green.
+You are handed the repository, not a working tree to use. Create your own
+worktree for this task and work there -- `git worktree add .claude/worktrees/<name>
+
+<base>` puts it where this repo already keeps them, and any location your own
+tooling prefers is equally fine. The path you were given is a checkout a person
+uses: on the company laptop it sits on `dev` with uncommitted work in it, and
+committing there would mix your task into someone's unfinished edits.
+
+Preserve unrelated changes. For novel or design-bearing work, write and commit a
+plan first; routine work may follow its existing procedure. Implement one
+coherent task fully, with bounded repair and small commits. Never weaken tests to
+force green.
+
+Remove the worktree when the task reaches its stop condition and the branch is
+pushed. A worktree left behind is not free: `service-dashboard-frontend` carried
+90 of them on 2026-08-25, nine already pointing at deleted directories.
 
 Before writing code against a framework or library, list the repository's own
 `.claude/skills/` and read the ones covering what you are about to touch. They carry

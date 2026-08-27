@@ -20,6 +20,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+class VaultPathUnset(RuntimeError):
+    """No vault path was configured, and there is no safe default to guess."""
+
+
+
 def vault_path() -> Path:
     """Where Observatory's overlays are published.
 
@@ -41,7 +46,20 @@ def vault_path() -> Path:
         configured = None
     if configured:
         return Path(configured).expanduser()
-    return Path.home() / "Repositories" / "rainforest-obsidian"
+    # No guess. The fallback this replaces was the very clone the docstring
+    # above warns about, so the warning and the behaviour contradicted each
+    # other and the behaviour won: `loop-runs.rainforest-mini.jsonl` exists
+    # *only* in that clone today, while `loop-runs.Angibles-MacBook-Air.jsonl`
+    # exists only in the vault -- the run record split in half along a fallback
+    # nobody chose. Measured 2026-08-26.
+    #
+    # Raising is the point. Every caller here is a best-effort mirror wrapped by
+    # the loop, so an unconfigured host now fails visibly at the write instead
+    # of succeeding against a directory no reader ever opens.
+    raise VaultPathUnset(
+        "vault_path is not configured: set LOOP_VAULT_PATH, VAULT_PATH, or "
+        "defaults.vault_path in the loop config"
+    )
 
 
 def usage_path(name: str) -> Path:
