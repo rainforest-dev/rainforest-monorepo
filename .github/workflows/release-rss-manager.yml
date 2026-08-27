@@ -81,10 +81,10 @@ jobs:
             VERSION=$(node -p "require('./apps/rss-manager/package.json').version")
             git tag -f "rss-manager@${VERSION}"
             # Still run nx release to generate the GitHub Release and changelog
-            pnpm exec nx release --yes --projects=rss-manager --skip-publish --first-release \
+            pnpm exec nx release --yes --projects=@rainforest-monorepo/rss-manager --skip-publish --first-release \
               2>&1 | tee /tmp/nx-release.log || true
           else
-            pnpm exec nx release --yes --projects=rss-manager --skip-publish \
+            pnpm exec nx release --yes --projects=@rainforest-monorepo/rss-manager --skip-publish \
               2>&1 | tee /tmp/nx-release.log
             VERSION=$(git tag --sort=-creatordate | grep '^rss-manager@' | head -1 | sed 's/rss-manager@//')
           fi
