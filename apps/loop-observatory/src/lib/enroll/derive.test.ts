@@ -1,9 +1,9 @@
 // apps/loop-observatory/src/lib/enroll/derive.test.ts
 import { describe, expect, it } from 'vitest';
 
-import { deriveRalphPlist } from './derive.js';
-import { UnknownFact } from './types.js';
+import { derive, deriveAlloyConfig, deriveRalphPlist } from './derive.js';
 import type { HostDeclaration, HostFacts } from './types.js';
+import { UnknownFact } from './types.js';
 
 export const MINI_DECL: HostDeclaration = {
   host: 'rainforest-mini',
@@ -166,5 +166,84 @@ describe('unknown facts refuse rather than default', () => {
     expect(() =>
       deriveRalphPlist(MINI_DECL, { ...MINI_FACTS, brewPrefix: '' }),
     ).toThrow(UnknownFact);
+  });
+});
+
+describe('deriveAlloyConfig', () => {
+  it('declares an OTLP receiver on the declared bind address', () => {
+    const file = deriveAlloyConfig(AIR_DECL, AIR_FACTS);
+    expect(file?.path).toBe('.config/dev-telemetry/alloy/config.alloy');
+    expect(file?.contents).toContain('otelcol.receiver.otlp');
+    expect(file?.contents).toContain('endpoint = "127.0.0.1:4318"');
+  });
+
+  it('forwards both metrics and logs', () => {
+    // ralph exports both. A metrics-only path silently drops half of what it
+    // measures, and the drop is invisible: the OTel SDK does not complain.
+    const out = deriveAlloyConfig(AIR_DECL, AIR_FACTS)?.contents ?? '';
+    expect(out).toContain('otelcol.exporter.prometheus');
+    expect(out).toContain('otelcol.exporter.loki');
+  });
+
+  it('binds wide only when the declaration says so', () => {
+    const wide =
+      deriveAlloyConfig({ ...AIR_DECL, otlpBind: '0.0.0.0' }, AIR_FACTS)
+        ?.contents ?? '';
+    expect(wide).toContain('endpoint = "0.0.0.0:4318"');
+  });
+
+  it('no combination of facts can produce a wide bind', () => {
+    // Security defaults are declared, never derived. Whether a machine opens a
+    // port to the network must not be a side effect of what a probe found.
+    const variants: HostFacts[] = [
+      { ...AIR_FACTS, otlpListening: false },
+      { ...AIR_FACTS, executors: [] },
+      { ...AIR_FACTS, vaultPath: '/somewhere' },
+      { ...AIR_FACTS, accounts: { claudePlan: null, ghLogin: null } },
+    ];
+    for (const f of variants) {
+      const code = (deriveAlloyConfig(AIR_DECL, f)?.contents ?? '').replace(
+        /\/\/.*$/gm,
+        '',
+      );
+      expect(code).not.toContain('0.0.0.0');
+    }
+  });
+
+  it('is omitted for a host without the telemetry-sink role', () => {
+    // The mini's sink is the homelab's containerised Alloy, provisioned by
+    // terraform. The role names the requirement; the absence names the exception.
+    expect(deriveAlloyConfig(MINI_DECL, MINI_FACTS)).toBeNull();
+  });
+});
+
+describe('derive', () => {
+  it('returns every file a host needs, and only those', () => {
+    const air = derive(AIR_DECL, AIR_FACTS).map((f) => f.path);
+    expect(air).toContain(
+      'Library/LaunchAgents/tools.rainforest.loop-ralph.plist',
+    );
+    expect(air).toContain('.config/dev-telemetry/alloy/config.alloy');
+
+    const mini = derive(MINI_DECL, MINI_FACTS).map((f) => f.path);
+    expect(mini).toContain(
+      'Library/LaunchAgents/tools.rainforest.loop-ralph.plist',
+    );
+    expect(mini).not.toContain('.config/dev-telemetry/alloy/config.alloy');
+  });
+
+  it('is deterministic', () => {
+    const a = JSON.stringify(derive(AIR_DECL, AIR_FACTS));
+    const b = JSON.stringify(derive(AIR_DECL, AIR_FACTS));
+    expect(a).toBe(b);
+  });
+
+  it('emits no credential-shaped string', () => {
+    const all = derive(AIR_DECL, AIR_FACTS)
+      .map((f) => f.contents)
+      .join('\n');
+    expect(all).not.toMatch(
+      /sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{20,}/,
+    );
   });
 });
