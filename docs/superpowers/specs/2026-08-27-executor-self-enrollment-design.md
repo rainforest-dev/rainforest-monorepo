@@ -162,17 +162,16 @@ _system/usage/hosts.json
 
 One pure function, one face today, two later.
 
-```
-                    ┌──────────────────────────────┐
-  declaration ─────►│  enroll/derive.ts            │
-  (roles, policy)   │                              ├──────► file contents
-  probed facts ────►│  pure: no I/O, no network    │        (deterministic)
-                    └──────────────┬───────────────┘
-                                   │
-                     ┌─────────────┴─────────────┐
-                     ▼                           ▼
-               setup page                  WebMCP tools
-               (today)                     (experimental, later)
+```mermaid
+flowchart LR
+    D["Declaration<br/>roles - policy<br/><i>version-controlled</i>"] --> F
+    P["Probed facts<br/><i>re-read every run,<br/>never stored as truth</i>"] --> F
+    F["derive.ts<br/><b>pure</b><br/>no I/O - no network"] --> O["File contents<br/><i>deterministic</i>"]
+    O --> S["Setup page<br/><b>today</b>"]
+    O -.-> W["WebMCP tools<br/><i>experimental, later</i>"]
+
+    style F stroke-width:3px
+    style W stroke-dasharray: 5 5
 ```
 
 Keeping derivation pure is what stops the page and any future agent surface from
@@ -193,25 +192,29 @@ have, because each surface would look correct alone.
 
 ## Data flow
 
-```
-Prerequisites (owner, once)     Tailscale joined · claude login · gh auth
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as Device
+    participant A as App (Observatory)
 
-  device                                             app
-    │                                                 │
-    │  1. fetch probe list + bundle ─────────────────►│
-    │                                                 │
-    │  2. run probes                                  │
-    │                                                 │
-    │  3. POST /api/enroll/facts ────────────────────►│  records facts
-    │                                                 │  derives
-    │  4. owner picks roles on /setup ────────────────│
-    │◄──── derived file contents ─────────────────────│
-    │                                                 │
-    │  5. write files (all disabled)                  │
-    │                                                 │
-    │  6. POST facts again ──────────────────────────►│  applied state
-    │                                                 │
-    │  ... periodically: POST facts ─────────────────►│  drift
+    Note over D,A: Prerequisites, by the owner:<br/>Tailscale joined · claude login · gh auth
+
+    D->>A: fetch probe list + engine bundle
+    A-->>D: versioned probe list, release artifact
+    D->>D: run probes
+    D->>A: POST /api/enroll/facts
+    Note right of A: records an observation —<br/>nothing happens yet
+    A->>A: derive(declaration, facts)
+    A-->>D: derived file contents
+    D->>D: write files (all disabled)
+    D->>A: POST facts again
+    Note right of A: applied state
+
+    loop periodically — same call
+        D->>A: POST facts
+        Note right of A: declared vs actual = drift
+    end
 ```
 
 **Submitting facts causes nothing to happen.** It records an observation.
