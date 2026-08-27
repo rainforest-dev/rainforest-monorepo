@@ -9,8 +9,19 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
 COPY apps/loop-observatory/package.json apps/loop-observatory/
 COPY libs/rainforest-ui/package.json libs/rainforest-ui/
 
+# Two caches, because pnpm keeps two. The store holds tarballs; publish-time
+# metadata lives in ~/.cache/pnpm/v11/metadata, and `minimumReleaseAge` in
+# pnpm-workspace.yaml needs that metadata for all 3085 lockfile entries. Cache
+# only the store and every build re-fetches all 3085 — measured at 5m 32s with
+# the store fully warm and zero tarballs downloaded.
+#
+# --prefer-offline then reads that cached metadata instead of revalidating it.
+# The supply-chain check still runs: publish times are immutable, so a cached
+# document answers `minimumReleaseAge` with the same value the network would.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --filter @rainforest-monorepo/loop-observatory... --frozen-lockfile
+    --mount=type=cache,id=pnpm-meta,target=/root/.cache/pnpm \
+    pnpm install --filter @rainforest-monorepo/loop-observatory... \
+      --frozen-lockfile --prefer-offline
 
 COPY libs/rainforest-ui libs/rainforest-ui
 COPY apps/loop-observatory apps/loop-observatory
