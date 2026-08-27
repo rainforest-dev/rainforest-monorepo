@@ -292,9 +292,30 @@ disaster recovery, so it carries the heaviest coverage:
 ## Migration
 
 1. `derive.ts` and the probes ship first, reproducing the two existing hosts'
-   current files exactly. Byte-identical output against the committed plists is
-   the gate — if it cannot reproduce them, either the generator is wrong or a
-   committed file contains an accident worth naming.
+   current files. **The gate is semantic equality read through `plutil`, not
+   byte equality** — and writing the plan established why both halves of that
+   sentence are load-bearing:
+   - **Not byte equality.** The two committed plists are formatted differently
+     by hand: the Air's is tab-indented with one key per line, the mini's is
+     two-space indented with eight `<key>x</key><string>y</string>` pairs
+     inline. A generator that reproduced both byte-for-byte would have to encode
+     each host's formatting accidents, which inverts the goal.
+   - **Read through `plutil`, not a strict XML parser.** The Air's plist is not
+     well-formed XML: its comment contains `probed 2026-08-25 -- DENIED here`,
+     and XML forbids `--` inside a comment. `plutil -lint` reports OK and
+     launchd loads it, because Apple's parser is lenient; Python's expat refuses
+     it outright. Comparison must use the parser the platform actually uses.
+
+   **The generator must therefore never emit `--` inside a comment.** It will
+   want to — the house style explains every non-obvious choice inline, and dated
+   evidence like `2026-08-25 -- DENIED` is exactly the phrasing already in use.
+   A generated plist that only Apple can parse would be a strictly worse artefact
+   than the hand-written one it replaces.
+
+   If the generator still cannot reproduce a file after that, either it is wrong
+   or the committed file contains an accident worth naming. Both were true here
+   before the comparison method was settled.
+
 2. Once reproduction passes, the per-host plists and `telemetry/*.config.alloy`
    become generated and leave the repo.
 3. `hosts:` moves from `hosts.yaml` to `_system/usage/hosts.json`; `roles:` stays.
