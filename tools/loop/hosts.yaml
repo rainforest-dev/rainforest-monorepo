@@ -121,14 +121,41 @@ roles:
   # fresh mtime whether or not a byte changed, so every downstream freshness check
   # read 4-to-9-day-old data as two minutes old.
 
+# Declarations. Read by install.sh (roles only) and by the Observatory's
+# enrollment view, which pairs each entry with the facts that host reported and
+# derives its files from the two together.
+#
+# DECLARED, NEVER PROBED. Everything below is a decision about what a machine
+# should be; nothing here is discovered by looking at one. `otlp_bind` is the
+# reason the rule is written down: whether a machine opens a port to the network
+# must not be a side effect of what a probe happened to find. Omit it and it is
+# 127.0.0.1, because the safe value is the one a forgetful entry gets.
+#
+#   home              required, absolute. Every derived path hangs off it, so it
+#                     is never defaulted -- guessing a home directory is the
+#                     mistake vault_path() made when it fell through to a
+#                     retired clone.
+#   scope             company | personal. A company machine resolving `gh` to a
+#                     personal account is a drift finding.
+#   roles             see the definitions above.
+#   otlp_bind         127.0.0.1 (default) | 0.0.0.0.
+#   interval_seconds  StartInterval for the ralph LaunchAgent. Default 1800.
 hosts:
   Angibles-MacBook-Air:
     scope: company
     executes: company work only
+    home: /Users/rainforest
+    # A laptop that joins untrusted networks. Only local producers push to it.
+    otlp_bind: 127.0.0.1
+    interval_seconds: 1800
     roles:
       [engine, ralph, relay-pull, usage-hourly, usage-publish, telemetry-sink]
 
   rainforest-mini:
     scope: personal
     executes: personal work only, and hosts Observatory for both
+    home: /Users/rainforest
+    # Binds wide because its Alloy also serves containers across a Docker bridge.
+    otlp_bind: 0.0.0.0
+    interval_seconds: 1800
     roles: [engine, ralph, observatory, loop-sync, usage-hourly]

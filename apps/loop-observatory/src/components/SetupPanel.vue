@@ -6,12 +6,40 @@ import { onMounted, ref } from 'vue';
 
 import type { Drift } from '@/lib/enroll/drift';
 import type { DerivedFile } from '@/lib/enroll/types';
+import type { HostState } from '@/lib/enroll/view';
 
 interface HostView {
+  state: HostState;
+  detail: string | null;
   drift: Drift[];
   files: DerivedFile[];
   error: string | null;
 }
+
+/**
+ * One headline per state, and only ONE of them is green.
+ *
+ * The page used to decide health itself, as "no drift and no error" -- which
+ * printed "matches its declaration" in emerald for a host that had no
+ * declaration to match and for which zero files had been derived. Nothing here
+ * infers anything now: the server names the state and this maps it to words.
+ */
+const STATE_LABEL: Record<HostState, string> = {
+  ok: 'matches its declaration',
+  'not-declared':
+    'reported facts, but is not declared — nothing can be derived for it',
+  stale: 'has not reported recently enough to be trusted',
+  drift: 'declared and actual disagree',
+  refused: 'derivation refused rather than guess',
+};
+
+const STATE_CLASS: Record<HostState, string> = {
+  ok: 'text-emerald-600',
+  'not-declared': 'text-red-600',
+  stale: 'text-amber-600',
+  drift: 'text-amber-600',
+  refused: 'text-amber-600',
+};
 
 // Hardcoded on purpose, not derived from window.location.origin. This page is
 // commonly viewed through a Cloudflare-fronted hostname, which is an address
@@ -106,7 +134,13 @@ onMounted(load);
         class="rounded-lg border p-4"
       >
         <h3 class="font-medium">{{ host }}</h3>
-        <p v-if="view.error" class="text-sm text-amber-600">
+        <p class="mt-1 text-sm" :class="STATE_CLASS[view.state]">
+          {{ STATE_LABEL[view.state] }}
+        </p>
+        <p v-if="view.detail" class="text-muted-foreground mt-1 text-sm">
+          {{ view.detail }}
+        </p>
+        <p v-if="view.error" class="mt-1 text-sm text-amber-600">
           {{ view.error }}
         </p>
         <ul
@@ -117,9 +151,6 @@ onMounted(load);
             {{ d.kind }}: {{ d.detail }}
           </li>
         </ul>
-        <p v-else-if="!view.error" class="mt-2 text-sm text-emerald-600">
-          matches its declaration
-        </p>
         <details v-if="view.files.length" class="mt-2">
           <summary class="cursor-pointer text-sm">
             {{ view.files.length }} derived files
