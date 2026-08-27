@@ -28,12 +28,23 @@ export function deriveRalphPlist(
 ): DerivedFile {
   if (f.tccICloud === 'unknown') throw new UnknownFact('tccICloud');
 
-  const env: Record<string, string> = {
-    PATH: `${d.home}/.local/bin:${f.brewPrefix}/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`,
-  };
+  const denied = f.tccICloud === 'denied';
+
+  // On a host whose launchd cannot read the vault, the loop's environment moves
+  // into run-ralph-gui.applescript, which re-enters the logged-in GUI session
+  // where the grant exists. Only PATH stays here, for osascript itself. The
+  // script ships with the engine role, so this branch needs no extra install.
+  const env: Record<string, string> = denied
+    ? { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' }
+    : {
+        PATH: `${d.home}/.local/bin:${f.brewPrefix}/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`,
+      };
+
   const body: Record<string, PlistValue> = {
     Label: RALPH_LABEL,
-    ProgramArguments: [`${loopHome(d)}/ralph.sh`],
+    ProgramArguments: denied
+      ? ['/usr/bin/osascript', `${loopHome(d)}/run-ralph-gui.applescript`]
+      : [`${loopHome(d)}/ralph.sh`],
     EnvironmentVariables: env,
     RunAtLoad: true,
     StartInterval: d.intervalSeconds,
@@ -42,12 +53,14 @@ export function deriveRalphPlist(
     StandardErrorPath: `${loopHome(d)}/ralph.err.log`,
   };
 
-  env.LOOP_MACHINE = d.host;
-  if (f.executors.length > 0) env.LOOP_EXECUTORS = f.executors.join(',');
-  const quota = quotaFile(d, f);
-  if (quota) env.LOOP_QUOTA_FILE = quota;
-  if (f.vaultPath)
-    env.LOOP_AGENT_CONFIG = `${f.vaultPath}/_system/usage/loop-agents.json`;
+  if (!denied) {
+    env.LOOP_MACHINE = d.host;
+    if (f.executors.length > 0) env.LOOP_EXECUTORS = f.executors.join(',');
+    const quota = quotaFile(d, f);
+    if (quota) env.LOOP_QUOTA_FILE = quota;
+    if (f.vaultPath)
+      env.LOOP_AGENT_CONFIG = `${f.vaultPath}/_system/usage/loop-agents.json`;
+  }
 
   return {
     path: `Library/LaunchAgents/${RALPH_LABEL}.plist`,

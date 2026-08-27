@@ -79,3 +79,64 @@ describe('deriveRalphPlist, TCC permitted', () => {
     expect(args).not.toContain('<string>10</string>');
   });
 });
+
+const AIR_DECL: HostDeclaration = {
+  host: 'Angibles-MacBook-Air',
+  home: '/Users/rainforest',
+  roles: [
+    'engine',
+    'ralph',
+    'relay-pull',
+    'usage-hourly',
+    'usage-publish',
+    'telemetry-sink',
+  ],
+  scope: 'work',
+  otlpBind: '127.0.0.1',
+  intervalSeconds: 1800,
+};
+
+const AIR_FACTS: HostFacts = {
+  tccICloud: 'denied',
+  executors: ['claude', 'codex'],
+  brewPrefix: '/opt/homebrew',
+  otlpListening: true,
+  vaultPath: null,
+  accounts: { claudePlan: 'team', ghLogin: 'rainforest-angible' },
+  probedAt: '2026-08-27T06:00:00.000Z',
+};
+
+describe('deriveRalphPlist, TCC denied', () => {
+  it('runs ralph through the GUI shim', () => {
+    // launchd on this host cannot read ~/Library/Mobile Documents, and both
+    // projects it runs read out of the vault. osascript re-enters the logged-in
+    // GUI session, which holds the grant.
+    const out = deriveRalphPlist(AIR_DECL, AIR_FACTS).contents;
+    expect(out).toContain('<string>/usr/bin/osascript</string>');
+    expect(out).toContain(
+      '<string>/Users/rainforest/.claude/loop/run-ralph-gui.applescript</string>',
+    );
+    expect(out).not.toContain('/ralph.sh');
+  });
+
+  it('carries only PATH, because the rest moves into the AppleScript', () => {
+    const out = deriveRalphPlist(AIR_DECL, AIR_FACTS).contents;
+    expect(out).toContain('<key>PATH</key>');
+    expect(out).not.toContain('LOOP_EXECUTORS');
+    expect(out).not.toContain('LOOP_MACHINE');
+  });
+
+  it('omits LOOP_QUOTA_FILE when there is no readable vault', () => {
+    // ralph.sh:314's default is this host's own runtime layout, so the override
+    // would be redundant here.
+    expect(deriveRalphPlist(AIR_DECL, AIR_FACTS).contents).not.toContain(
+      'LOOP_QUOTA_FILE',
+    );
+  });
+
+  it('still emits the same label and log paths as the permitted branch', () => {
+    const out = deriveRalphPlist(AIR_DECL, AIR_FACTS).contents;
+    expect(out).toContain('<string>tools.rainforest.loop-ralph</string>');
+    expect(out).toContain('/Users/rainforest/.claude/loop/ralph.err.log');
+  });
+});
