@@ -25,6 +25,24 @@
 // decides) still passed the gate, because the blanket exclusion swallowed the
 // resulting `ProgramArguments` diff along with the mini's expected one. See
 // EXPECTED_DIFFS below for the corrected, per-host, narrowed rules.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// THIS GATE DOES NOT RUN IN CI. It shells out to `plutil` and `xmllint`, and
+// `.github/workflows/ci.yml` runs `nx affected -t test` on `ubuntu-latest`,
+// where `plutil` does not exist at all — the calls would ENOENT, not skip. So
+// the suite below is guarded to darwin.
+//
+// The consequence, stated plainly because a skipped gate that reads as "passed"
+// is precisely the failure this whole branch exists to remove: **the
+// reproduction guarantee holds only where a developer or a macOS runner
+// actually executes this file.** A green CI run on Linux says nothing about
+// whether the generator still reproduces the two live plists. The always-running
+// `describe` at the bottom of this file names which of the two happened, so the
+// answer is in the test output rather than inferred from its absence.
+//
+// Adding a macOS CI job would close this, and is deliberately NOT done here: it
+// is the repo owner's call and it costs money.
+// ─────────────────────────────────────────────────────────────────────────────
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -35,6 +53,13 @@ import { describe, expect, it } from 'vitest';
 
 import { deriveRalphPlist } from './derive.js';
 import { FIXTURES } from './fixtures.js';
+
+/**
+ * `plutil` and `xmllint` ship with macOS. `plutil` exists nowhere else, and it
+ * is not optional here: the point of the gate is to compare through the parser
+ * launchd itself uses.
+ */
+const ON_DARWIN = process.platform === 'darwin';
 
 const REPO_ROOT = join(
   fileURLToPath(new URL('.', import.meta.url)),
@@ -153,7 +178,9 @@ const EXPECTED_DIFFS: Record<string, ExpectedDiffRule[]> = {
   'Angibles-MacBook-Air': [],
 };
 
-describe.each(['rainforest-mini', 'Angibles-MacBook-Air'] as const)(
+describe
+  .skipIf(!ON_DARWIN)
+  .each(['rainforest-mini', 'Angibles-MacBook-Air'] as const)(
   'deriveRalphPlist reproduces the live %s plist',
   (host) => {
     it('derives without error', () => {
@@ -190,40 +217,69 @@ describe.each(['rainforest-mini', 'Angibles-MacBook-Air'] as const)(
   },
 );
 
-it('the generated plists are well-formed XML, unlike the file they replace', () => {
-  // The committed Air plist is not: `probed 2026-08-25 -- DENIED here` inside
-  // a comment, and XML forbids `--` inside a comment. plutil (and launchd)
-  // accept it anyway; a standards-conforming XML parser must not have to.
-  // xmllint is that parser here — it is what actually refuses the committed
-  // file, not a hand-rolled regex standing in for one.
-  const tmp = mkdtempSync(join(tmpdir(), 'xmllint-'));
-  try {
-    for (const host of ['rainforest-mini', 'Angibles-MacBook-Air'] as const) {
-      const { decl, facts } = FIXTURES[host]!;
-      const contents = deriveRalphPlist(decl, facts).contents;
-      const path = join(tmp, `${host}.plist`);
-      writeFileSync(path, contents);
-      expect(() =>
-        execFileSync('xmllint', ['--noout', path], { stdio: 'pipe' }),
-      ).not.toThrow();
-    }
+it.skipIf(!ON_DARWIN)(
+  'the generated plists are well-formed XML, unlike the file they replace',
+  () => {
+    // The committed Air plist is not: `probed 2026-08-25 -- DENIED here` inside
+    // a comment, and XML forbids `--` inside a comment. plutil (and launchd)
+    // accept it anyway; a standards-conforming XML parser must not have to.
+    // xmllint is that parser here — it is what actually refuses the committed
+    // file, not a hand-rolled regex standing in for one.
+    const tmp = mkdtempSync(join(tmpdir(), 'xmllint-'));
+    try {
+      for (const host of ['rainforest-mini', 'Angibles-MacBook-Air'] as const) {
+        const { decl, facts } = FIXTURES[host]!;
+        const contents = deriveRalphPlist(decl, facts).contents;
+        const path = join(tmp, `${host}.plist`);
+        writeFileSync(path, contents);
+        expect(() =>
+          execFileSync('xmllint', ['--noout', path], { stdio: 'pipe' }),
+        ).not.toThrow();
+      }
 
-    // Confirm xmllint is discriminating, not merely lenient: it must reject
-    // the committed Air plist for the documented reason.
-    expect(() =>
-      execFileSync(
-        'xmllint',
-        [
-          '--noout',
-          join(
-            LAUNCHD_DIR,
-            'Angibles-MacBook-Air.tools.rainforest.loop-ralph.plist',
-          ),
-        ],
-        { stdio: 'pipe' },
-      ),
-    ).toThrow();
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
+      // Confirm xmllint is discriminating, not merely lenient: it must reject
+      // the committed Air plist for the documented reason.
+      expect(() =>
+        execFileSync(
+          'xmllint',
+          [
+            '--noout',
+            join(
+              LAUNCHD_DIR,
+              'Angibles-MacBook-Air.tools.rainforest.loop-ralph.plist',
+            ),
+          ],
+          { stdio: 'pipe' },
+        ),
+      ).toThrow();
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  },
+);
+
+// Always runs, on every platform, and says which of the two happened. Vitest
+// prints a skipped suite as a count, and a count of skips sitting inside an
+// otherwise-green run is indistinguishable at a glance from a count of passes —
+// which would make this gate's absence look like its success. A named,
+// executing test cannot be read that way.
+describe('reproduction gate coverage', () => {
+  it(
+    ON_DARWIN
+      ? 'RAN: the gate above compared the generator against both committed plists'
+      : `DID NOT RUN: the gate above needs plutil/xmllint (macOS-only) and this is ${process.platform} — the generator was NOT compared against the committed plists in this run`,
+    () => {
+      if (!ON_DARWIN) {
+        console.warn(
+          `[reproduces-hosts] SKIPPED on ${process.platform}. plutil is macOS-only, so the ` +
+            'migration reproduction gate did not execute. This run proves nothing about ' +
+            'whether derive.ts still reproduces tools/loop/launchd/*.plist. Run the suite ' +
+            'on a Mac before trusting it.',
+        );
+      }
+      // The assertion is on the guard itself: whichever branch of the name
+      // above was chosen must match the platform that actually ran.
+      expect(ON_DARWIN).toBe(process.platform === 'darwin');
+    },
+  );
 });
