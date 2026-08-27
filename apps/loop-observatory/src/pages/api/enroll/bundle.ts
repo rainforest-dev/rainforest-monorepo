@@ -16,7 +16,14 @@ export const GET: APIRoute = () => {
       status: 503,
     });
   try {
-    const size = statSync(path).size;
+    const stat = statSync(path);
+    // statSync() succeeds on a directory too -- without this check the
+    // response would 200 with a bogus content-length, and the real failure
+    // (EISDIR) would only surface once something tried to read the body.
+    if (!stat.isFile()) {
+      return new Response('bundle not readable', { status: 503 });
+    }
+    const size = stat.size;
     return new Response(createReadStream(path) as unknown as ReadableStream, {
       headers: {
         'content-type': 'application/gzip',
