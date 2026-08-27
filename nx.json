@@ -83,6 +83,9 @@
     "version": {
       "preVersionCommand": "pnpm exec nx build rainforest-ui"
     },
+    "changelog": {
+      "automaticFromRef": true
+    },
     "groups": {
       "docker-apps": {
         "projects": ["personal-calibre", "rss-manager", "loop-observatory"],
