@@ -3,6 +3,11 @@
 #
 # The bundle is what a machine installs, so what it contains is what an executor
 # becomes. A bundle missing loopctl produces a host that enrolls and cannot run.
+#
+# Looking for the gate that proves the enrollment generator reproduces the two
+# live per-host plists in tools/loop/launchd/? That lives at
+# apps/loop-observatory/src/lib/enroll/reproduces-hosts.test.ts (a Vitest test,
+# not a script here, because it shells out to plutil rather than needing tsx).
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 INSTALL="$ROOT/install.sh"

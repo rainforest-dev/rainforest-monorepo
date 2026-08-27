@@ -2,28 +2,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { derive, deriveAlloyConfig, deriveRalphPlist } from './derive.js';
-import type { HostDeclaration, HostFacts } from './types.js';
+import { FIXTURES } from './fixtures.js';
+import type { HostFacts } from './types.js';
 import { UnknownFact } from './types.js';
 
-export const MINI_DECL: HostDeclaration = {
-  host: 'rainforest-mini',
-  home: '/Users/rainforest',
-  roles: ['engine', 'ralph', 'observatory', 'loop-sync', 'usage-hourly'],
-  scope: 'personal',
-  otlpBind: '0.0.0.0',
-  intervalSeconds: 1800,
-};
-
-export const MINI_FACTS: HostFacts = {
-  tccICloud: 'permitted',
-  executors: ['claude', 'agy'],
-  brewPrefix: '/opt/homebrew',
-  otlpListening: true,
-  vaultPath:
-    '/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian',
-  accounts: { claudeAvailable: 'ok', ghLogin: 'rainforest-dev' },
-  probedAt: '2026-08-27T06:00:00.000Z',
-};
+const MINI_DECL = FIXTURES['rainforest-mini']!.decl;
+const MINI_FACTS = FIXTURES['rainforest-mini']!.facts;
 
 describe('deriveRalphPlist, TCC permitted', () => {
   it('runs ralph.sh directly', () => {
@@ -81,31 +65,8 @@ describe('deriveRalphPlist, TCC permitted', () => {
   });
 });
 
-const AIR_DECL: HostDeclaration = {
-  host: 'Angibles-MacBook-Air',
-  home: '/Users/rainforest',
-  roles: [
-    'engine',
-    'ralph',
-    'relay-pull',
-    'usage-hourly',
-    'usage-publish',
-    'telemetry-sink',
-  ],
-  scope: 'work',
-  otlpBind: '127.0.0.1',
-  intervalSeconds: 1800,
-};
-
-const AIR_FACTS: HostFacts = {
-  tccICloud: 'denied',
-  executors: ['claude', 'codex'],
-  brewPrefix: '/opt/homebrew',
-  otlpListening: true,
-  vaultPath: null,
-  accounts: { claudeAvailable: 'ok', ghLogin: 'rainforest-angible' },
-  probedAt: '2026-08-27T06:00:00.000Z',
-};
+const AIR_DECL = FIXTURES['Angibles-MacBook-Air']!.decl;
+const AIR_FACTS = FIXTURES['Angibles-MacBook-Air']!.facts;
 
 describe('deriveRalphPlist, TCC denied', () => {
   it('runs ralph through the GUI shim', () => {
