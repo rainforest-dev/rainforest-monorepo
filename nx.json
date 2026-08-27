@@ -86,6 +86,9 @@
     "changelog": {
       "automaticFromRef": true
     },
+    "git": {
+      "push": false
+    },
     "groups": {
       "docker-apps": {
         "projects": ["personal-calibre", "rss-manager", "loop-observatory"],
