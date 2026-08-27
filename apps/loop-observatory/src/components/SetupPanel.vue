@@ -4,8 +4,8 @@
 // values from lib/enroll would drag its node:fs deps into the browser bundle.
 import { onMounted, ref } from 'vue';
 
-import type { Drift } from '../lib/enroll/drift';
-import type { DerivedFile } from '../lib/enroll/types';
+import type { Drift } from '@/lib/enroll/drift';
+import type { DerivedFile } from '@/lib/enroll/types';
 
 interface HostView {
   drift: Drift[];
@@ -24,12 +24,27 @@ const ENROLL_APP_URL = 'http://100.86.67.66:3099';
 
 const views = ref<Record<string, HostView>>({});
 const loading = ref(true);
+const loadError = ref<string | null>(null);
 
-onMounted(async () => {
-  const res = await fetch('/api/enroll/hosts');
-  views.value = (await res.json()).views ?? {};
-  loading.value = false;
-});
+async function load() {
+  loading.value = true;
+  loadError.value = null;
+  try {
+    const res = await fetch('/api/enroll/hosts');
+    if (!res.ok) throw new Error(`/api/enroll/hosts HTTP ${res.status}`);
+    views.value = (await res.json()).views ?? {};
+  } catch (e) {
+    // readHosts() throws rather than reporting {} on a permissions/IO error,
+    // specifically so this failure stays visible instead of reading as "no
+    // machines enrolled" -- a spinner that never stops would defeat that at
+    // the last step, so it must resolve to a stated error instead.
+    loadError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(load);
 </script>
 
 <template>
@@ -42,49 +57,77 @@ onMounted(async () => {
           Sign in: <code>claude login</code> and <code>gh auth login</code>.
         </li>
         <li>
-          Then run, on the machine being enrolled:
+          Fetch the engine onto the machine being enrolled:
           <pre
             class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle | tar xz
-./install.sh --enroll --app {{ ENROLL_APP_URL }}</code></pre>
+          ><code>curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle | tar xz</code></pre>
+        </li>
+        <li>
+          One-shot self-enrollment isn't wired up yet — <code>install.sh</code>
+          only sets up a host that already has an entry in
+          <code>hosts.yaml</code>. For now: add this machine's name and roles to
+          <code>tools/loop/hosts.yaml</code> in the repo, get that change into
+          the bundle you just fetched, then run:
+          <pre
+            class="bg-muted mt-1 overflow-x-auto rounded p-2"
+          ><code>./install.sh</code></pre>
+          (or <code>./install.sh --host=&lt;name&gt;</code> if this machine's
+          hostname doesn't match the entry you added).
         </li>
       </ol>
       <p class="text-muted-foreground mt-2 text-sm">
-        Nothing is enabled by enrolling. Every LaunchAgent is written disabled;
+        Nothing is enabled by installing. Every LaunchAgent is written disabled;
         starting an unsupervised executor stays a separate, explicit act.
       </p>
     </div>
 
     <p v-if="loading" class="text-muted-foreground text-sm">Loading…</p>
-    <div
-      v-for="(view, host) in views"
-      :key="host"
-      class="rounded-lg border p-4"
-    >
-      <h3 class="font-medium">{{ host }}</h3>
-      <p v-if="view.error" class="text-sm text-amber-600">{{ view.error }}</p>
-      <ul
-        v-if="view.drift.length"
-        class="mt-2 space-y-1 text-sm text-amber-600"
+
+    <div v-else-if="loadError" class="rounded-lg border p-4">
+      <p class="text-sm font-medium text-red-600">Failed to load hosts.</p>
+      <p class="text-muted-foreground mt-1 text-sm">{{ loadError }}</p>
+      <button
+        type="button"
+        class="mt-3 rounded-md border px-3 py-1.5 text-sm"
+        @click="load"
       >
-        <li v-for="d in view.drift" :key="d.kind + d.detail">
-          {{ d.kind }}: {{ d.detail }}
-        </li>
-      </ul>
-      <p v-else-if="!view.error" class="mt-2 text-sm text-emerald-600">
-        matches its declaration
-      </p>
-      <details v-if="view.files.length" class="mt-2">
-        <summary class="cursor-pointer text-sm">
-          {{ view.files.length }} derived files
-        </summary>
-        <div v-for="f in view.files" :key="f.path" class="mt-2">
-          <p class="font-mono text-xs">{{ f.path }}</p>
-          <pre
-            class="bg-muted overflow-x-auto rounded p-2 text-xs"
-          ><code>{{ f.contents }}</code></pre>
-        </div>
-      </details>
+        Retry
+      </button>
     </div>
+
+    <template v-else>
+      <div
+        v-for="(view, host) in views"
+        :key="host"
+        class="rounded-lg border p-4"
+      >
+        <h3 class="font-medium">{{ host }}</h3>
+        <p v-if="view.error" class="text-sm text-amber-600">
+          {{ view.error }}
+        </p>
+        <ul
+          v-if="view.drift.length"
+          class="mt-2 space-y-1 text-sm text-amber-600"
+        >
+          <li v-for="d in view.drift" :key="d.kind + d.detail">
+            {{ d.kind }}: {{ d.detail }}
+          </li>
+        </ul>
+        <p v-else-if="!view.error" class="mt-2 text-sm text-emerald-600">
+          matches its declaration
+        </p>
+        <details v-if="view.files.length" class="mt-2">
+          <summary class="cursor-pointer text-sm">
+            {{ view.files.length }} derived files
+          </summary>
+          <div v-for="f in view.files" :key="f.path" class="mt-2">
+            <p class="font-mono text-xs">{{ f.path }}</p>
+            <pre
+              class="bg-muted overflow-x-auto rounded p-2 text-xs"
+            ><code>{{ f.contents }}</code></pre>
+          </div>
+        </details>
+      </div>
+    </template>
   </section>
 </template>
