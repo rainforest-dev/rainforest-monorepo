@@ -3,6 +3,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,7 +11,13 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { hostsPath, readHosts, recordFacts } from './store.js';
+import {
+  hostsPath,
+  MAX_HOSTS,
+  readHosts,
+  recordFacts,
+  TooManyHosts,
+} from './store.js';
 import type { HostFacts } from './types.js';
 
 const FACTS: HostFacts = {
@@ -23,13 +30,31 @@ const FACTS: HostFacts = {
   probedAt: '2026-08-27T06:00:00.000Z',
 };
 
+/**
+ * Every temp root this file has made, so afterEach can remove them.
+ *
+ * Without this the suite leaked one `enroll-*` directory per call, every run,
+ * forever: 156 of them were sitting in $TMPDIR when this was noticed. A test
+ * that quietly accumulates state on the developer's disk is the same shape as
+ * everything else on this branch -- a writer succeeded and nothing checked.
+ */
+const tempRoots: string[] = [];
+
 function withUsageDir(): string {
   const dir = mkdtempSync(join(tmpdir(), 'enroll-'));
+  tempRoots.push(dir);
   vi.stubEnv('VAULT_PATH', dir);
   return join(dir, '_system', 'usage');
 }
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  // `force` so a test that never created its file is not an error, and the
+  // chmod-0000 case below is restored by its own `finally` before we get here.
+  while (tempRoots.length) {
+    rmSync(tempRoots.pop()!, { recursive: true, force: true });
+  }
+});
 
 describe('device records', () => {
   it('returns an empty map before anything has enrolled', () => {
@@ -84,6 +109,28 @@ describe('device records', () => {
     } finally {
       chmodSync(path, 0o644);
     }
+  });
+
+  it('refuses a NEW host once the store is full', () => {
+    // Host keys are attacker-chosen on an unauthenticated endpoint, so the
+    // per-field bounds in parseFactsBody limit each record's size and nothing
+    // about how many records there are.
+    withUsageDir();
+    for (let i = 0; i < MAX_HOSTS; i++) recordFacts(`h${i}`, FACTS, i);
+    expect(Object.keys(readHosts()).length).toBe(MAX_HOSTS);
+    expect(() => recordFacts('one-too-many', FACTS, 1)).toThrow(TooManyHosts);
+    expect(readHosts()['one-too-many']).toBeUndefined();
+  });
+
+  it('still updates a host already in a full store', () => {
+    // Otherwise reaching the cap would freeze every real host's facts at
+    // whatever they last were -- a stale record shown as current, which is the
+    // failure this design exists to remove.
+    withUsageDir();
+    for (let i = 0; i < MAX_HOSTS; i++) recordFacts(`h${i}`, FACTS, i);
+    recordFacts('h0', { ...FACTS, otlpListening: true }, 999);
+    expect(readHosts()['h0']?.facts?.otlpListening).toBe(true);
+    expect(readHosts()['h0']?.reportedAt).toBe(999);
   });
 
   it('writes atomically', () => {

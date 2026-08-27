@@ -51,8 +51,33 @@ export function readHosts(): HostRecordMap {
   }
 }
 
+/**
+ * Two live hosts, and this is a personal system. 64 is room to grow by an order
+ * of magnitude and still a hard stop, which an unauthenticated write endpoint
+ * on a synced directory needs: host keys are attacker-chosen, so without a cap
+ * the field bounds in `parseFactsBody` only limit the size of each record and
+ * not how many there are.
+ */
+export const MAX_HOSTS = 64;
+
+/** A new host would take the store past `MAX_HOSTS`. Existing hosts still update. */
+export class TooManyHosts extends Error {
+  constructor(readonly host: string) {
+    super(
+      `refusing to record a new host: the store already holds ${MAX_HOSTS} of them`,
+    );
+    this.name = 'TooManyHosts';
+  }
+}
+
 export function recordFacts(host: string, facts: HostFacts, now: number): void {
   const hosts = readHosts();
+  // Only NEW keys are capped. A machine already in the store must always be
+  // able to re-report, or reaching the cap would freeze every real host's facts
+  // at whatever they last were -- a stale record shown as current, which is the
+  // failure this whole design targets.
+  if (!(host in hosts) && Object.keys(hosts).length >= MAX_HOSTS)
+    throw new TooManyHosts(host);
   hosts[host] = {
     ...(hosts[host] ?? { declaration: null }),
     facts,
