@@ -88,11 +88,9 @@
         "projects": ["personal-calibre", "rss-manager", "loop-observatory"],
         "projectsRelationship": "independent",
         "version": {
-          "generatorOptions": {
-            "specifierSource": "conventional-commits",
-            "currentVersionResolver": "git-tag",
-            "fallbackCurrentVersionResolver": "disk"
-          }
+          "specifierSource": "conventional-commits",
+          "currentVersionResolver": "git-tag",
+          "fallbackCurrentVersionResolver": "disk"
         },
         "changelog": {
           "createRelease": "github"

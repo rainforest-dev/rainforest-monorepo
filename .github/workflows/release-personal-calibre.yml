@@ -71,20 +71,31 @@ jobs:
 
       - name: nx release — version and changelog
         id: release
+        # `shell: bash` is load-bearing: it adds `-o pipefail`, which the default
+        # `bash -e {0}` lacks, so a failed release below would report tee's exit
+        # code and go green.
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FIRST_RELEASE: ${{ inputs.first-release }}
         run: |
-          FIRST_RELEASE_FLAG=""
-          if [ "$FIRST_RELEASE" = "true" ]; then
-            FIRST_RELEASE_FLAG="--first-release"
+          # This app's nx project name is unscoped — project.json sets it, and that
+          # wins over package.json. Targeting the project, not `-g docker-apps`,
+          # which would version all three apps in the group on any calibre change.
+          PROJECT='personal-calibre'
+          MANIFEST=./apps/personal-calibre/package.json
+          # --skip-publish, never --yes: nx rejects the pair as mutually exclusive.
+          FLAGS=(--skip-publish --projects="$PROJECT")
+          if [ "$FIRST_RELEASE" = "true" ]; then FLAGS+=(--first-release); fi
+          pnpm exec nx release "${FLAGS[@]}" 2>&1 | tee /tmp/nx-release.log
+          # Read the version nx just wrote to the manifest rather than grepping git
+          # tags: releaseTag.pattern renders {projectName}, so the tag text varies
+          # per project, and an unmatched grep silently yields an empty version.
+          VERSION=$(node -p "require('$MANIFEST').version")
+          if [ -z "${VERSION}" ]; then
+            echo "::error::No version resolved. Refusing to publish an image under an empty or stale version."
+            exit 1
           fi
-
-          # shellcheck disable=SC2086
-          pnpm exec nx release --yes -g docker-apps --skip-publish $FIRST_RELEASE_FLAG \
-            2>&1 | tee /tmp/nx-release.log
-
-          VERSION=$(git tag --sort=-creatordate | grep '^personal-calibre@' | head -1 | sed 's/personal-calibre@//')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "::notice::Released: ${VERSION}"
 

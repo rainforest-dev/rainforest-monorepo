@@ -89,21 +89,19 @@ jobs:
         run: |
           # nx matches on the project's real name, which for this app is scoped.
           PROJECT='@rainforest-monorepo/loop-observatory'
-          if [ "$FIRST_RELEASE" = "true" ]; then
-            # First release: nx release conventional-commits needs commits in NX_BASE..HEAD
-            # which may be empty on workflow_dispatch. Read from package.json and tag manually.
-            VERSION=$(node -p "require('./apps/loop-observatory/package.json').version")
-            git tag -f "loop-observatory@${VERSION}"
-            # Still run nx release to generate the GitHub Release and changelog
-            pnpm exec nx release --yes --projects="$PROJECT" --skip-publish --first-release \
-              2>&1 | tee /tmp/nx-release.log || true
-          else
-            pnpm exec nx release --yes --projects="$PROJECT" --skip-publish \
-              2>&1 | tee /tmp/nx-release.log
-            VERSION=$(git tag --sort=-creatordate | grep '^loop-observatory@' | head -1 | sed 's/loop-observatory@//')
-          fi
+          MANIFEST=./apps/loop-observatory/package.json
+          # --skip-publish, never --yes: nx rejects the pair as mutually exclusive.
+          FLAGS=(--skip-publish --projects="$PROJECT")
+          if [ "$FIRST_RELEASE" = "true" ]; then FLAGS+=(--first-release); fi
+          pnpm exec nx release "${FLAGS[@]}" 2>&1 | tee /tmp/nx-release.log
+          # Read the version nx just wrote to the manifest. The old code grepped
+          # git tags for '^loop-observatory@', which never matches what nx creates:
+          # releaseTag.pattern renders {projectName}, and this project's name is
+          # scoped. An unmatched grep returned empty, and empty fell through to a
+          # stale tag.
+          VERSION=$(node -p "require('$MANIFEST').version")
           if [ -z "${VERSION}" ]; then
-            echo "::error::No version resolved. Refusing to publish an image under an empty or stale tag."
+            echo "::error::No version resolved. Refusing to publish an image under an empty or stale version."
             exit 1
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
