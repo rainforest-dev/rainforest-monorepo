@@ -10,8 +10,10 @@
 #
 # No yaml parser is used: the system python3 has no PyYAML, and loopctl's venv is
 # a product of this script, so depending on it here would be circular. The
-# `roles: [...]` lines are read with awk instead, which is why they must stay on
-# one line.
+# `roles: [...]` lines are read with awk instead. The list may wrap onto the
+# line after `roles:` -- Prettier formats hosts.yaml and does exactly that once
+# the list is long enough -- so roles_for accumulates until the closing bracket.
+# tests/hosts-manifest.sh holds both layouts to the same result.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -55,15 +57,29 @@ roles_for() {
     /^  [A-Za-z][^:]*:/ {
       name = $0; gsub(/^  |:.*/, "", name)
       here = (name == want)
+      collecting = 0; buf = ""
       next
     }
-    here && /^    roles:/ {
+    # The [list] may sit on the `roles:` line or on the lines after it.
+    # Prettier formats this repo, including hosts.yaml, and wraps the bracket
+    # onto the next line once the list is long enough -- which the Air entry
+    # already is. Reading only the `roles:` line therefore returned the literal
+    # string "    roles:" for that host, has_role matched nothing, and
+    # `./install.sh --host=Angibles-MacBook-Air` installed NOTHING while
+    # printing "roles:     roles:" and exiting 0. Accumulate until "]".
+    here && (/^    roles:/ || collecting) {
       line = $0
-      sub(/^ *roles: *\[/, "", line)
-      sub(/\].*/, "", line)
-      gsub(/,/, " ", line)
-      print line
-      exit
+      if (!collecting) sub(/^ *roles:/, "", line)
+      buf = buf " " line
+      collecting = 1
+      if (buf ~ /\]/) {
+        sub(/.*\[/, "", buf)
+        sub(/\].*/, "", buf)
+        gsub(/,/, " ", buf)
+        print buf
+        exit
+      }
+      next
     }
   ' "$MANIFEST"
 }

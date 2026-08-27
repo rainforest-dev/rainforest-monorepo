@@ -21,13 +21,20 @@
 	<integer>5</integer>
 	<key>ProcessType</key>
 	<string>Background</string>
+	<!-- The directory form is required, not the single config.alloy file: the
+	     loop's OTLP intake ships as a separate loop-otlp.alloy fragment beside
+	     the hand-maintained config.alloy, and alloy's own run subcommand help
+	     documents that when the given path is a directory, every *.alloy file
+	     in it is combined into a single unit. Pointing at config.alloy alone
+	     would load only the hand-maintained definitions and silently drop the
+	     fragment. -->
 	<key>ProgramArguments</key>
 	<array>
 		<string>/opt/homebrew/bin/alloy</string>
 		<string>run</string>
 		<string>--server.http.listen-addr=127.0.0.1:12345</string>
 		<string>--storage.path=/Users/rainforest/.local/state/dev-telemetry/alloy</string>
-		<string>/Users/rainforest/.config/dev-telemetry/alloy/config.alloy</string>
+		<string>/Users/rainforest/.config/dev-telemetry/alloy</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>

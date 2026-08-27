@@ -49,6 +49,30 @@ for h in $(y '" ".join(k for k,v in d["hosts"].items() if "telemetry-sink" in v[
     "$([ -f "$ROOT/launchd/$h.com.homelab.dev-alloy.plist" ] && echo yes || echo no)" "yes"
 done
 
+echo "== the plist points Alloy at the fragment directory, not a single file =="
+# The loop's OTLP intake ships as loop-otlp.alloy, a fragment beside the
+# hand-maintained config.alloy in the same directory. Alloy only combines
+# every *.alloy file in a directory into one unit when given the directory
+# itself; pointing it at config.alloy alone would silently drop the fragment,
+# with no error, and the OTLP intake would vanish exactly the way it did
+# before this role existed. A future hand-edit or re-enrollment could
+# restore the single-file form with nothing to catch it -- this is that
+# catch.
+plist_last_arg() { # plist_path
+  plutil -convert json -o - "$1" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+print(d["ProgramArguments"][-1])
+'
+}
+for h in $(y '" ".join(k for k,v in d["hosts"].items() if "telemetry-sink" in v["roles"])'); do
+  last_arg=$(plist_last_arg "$ROOT/launchd/$h.com.homelab.dev-alloy.plist")
+  check "$h's Alloy is pointed at a directory, not a .alloy file" \
+    "$(echo "$last_arg" | grep -c '\.alloy$')" "0"
+  check "$h's Alloy directory is the dev-telemetry alloy config dir" \
+    "$(echo "$last_arg" | grep -c '/dev-telemetry/alloy$')" "1"
+done
+
 echo "== the config actually receives what ralph sends =="
 CFG="$ROOT/telemetry/Angibles-MacBook-Air.config.alloy"
 # Strip `//` comments before matching. The block explaining WHY this binds
