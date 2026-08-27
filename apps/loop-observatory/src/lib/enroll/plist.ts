@@ -42,8 +42,20 @@ function render(value: PlistValue, indent: string): string {
     return `${indent}<string>${esc(value)}</string>\n`;
   if (typeof value === 'boolean')
     return `${indent}${value ? '<true/>' : '<false/>'}\n`;
-  if (typeof value === 'number')
+  if (typeof value === 'number') {
+    // `<integer>` is the only numeric plist tag this serialiser emits. The
+    // only numbers it carries are launchd intervals (StartInterval,
+    // ThrottleInterval), where a fractional value is a caller bug rather than
+    // a value worth encoding faithfully — emitting `<real>` would hand
+    // launchd something it may silently round or reject. Refuse instead of
+    // guessing, matching the rest of this codebase.
+    if (!Number.isInteger(value)) {
+      throw new Error(
+        `toPlist: expected an integer, got ${value} (plist <integer> cannot represent fractional values; use a whole number)`,
+      );
+    }
     return `${indent}<integer>${value}</integer>\n`;
+  }
   if (Array.isArray(value)) {
     const inner = value.map((v) => render(v, `${indent}  `)).join('');
     return `${indent}<array>\n${inner}${indent}</array>\n`;

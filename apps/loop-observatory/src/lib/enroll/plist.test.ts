@@ -41,4 +41,20 @@ describe('toPlist', () => {
       expect(c.slice(4, -3)).not.toContain('--');
     }
   });
+
+  it('throws when a number is not an integer', () => {
+    // `<integer>` is the only numeric plist tag this serialiser emits. A
+    // fractional value (e.g. a mistyped StartInterval) would otherwise come
+    // out as `<integer>1800.5</integer>`, which is invalid plist content —
+    // integers must be integral, and reals need `<real>`. Refusing the value
+    // is preferred over emitting `<real>` here: the only numbers this
+    // serialiser carries are launchd intervals, where a fractional value is a
+    // caller bug rather than a value worth encoding faithfully.
+    expect(() => toPlist({ StartInterval: 1800.5 })).toThrow(/1800\.5/);
+  });
+
+  it('still serialises an integer number', () => {
+    const out = toPlist({ ThrottleInterval: 30 });
+    expect(out).toContain('<integer>30</integer>');
+  });
 });
