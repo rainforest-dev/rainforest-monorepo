@@ -87,11 +87,9 @@
       "docker-apps": {
         "projectsRelationship": "independent",
         "version": {
-          "generatorOptions": {
-            "specifierSource": "conventional-commits",
-            "currentVersionResolver": "git-tag",
-            "fallbackCurrentVersionResolver": "disk"
-          }
+          "specifierSource": "conventional-commits",
+          "currentVersionResolver": "git-tag",
+          "fallbackCurrentVersionResolver": "disk"
         },
         "changelog": {
           "createRelease": "github"
