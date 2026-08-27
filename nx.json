@@ -98,9 +98,6 @@
           "currentVersionResolver": "git-tag",
           "fallbackCurrentVersionResolver": "disk"
         },
-        "changelog": {
-          "createRelease": "github"
-        },
         "releaseTag": {
           "pattern": "{projectName}@{version}"
         }
