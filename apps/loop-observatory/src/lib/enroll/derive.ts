@@ -30,6 +30,10 @@ export function deriveRalphPlist(
 
   const denied = f.tccICloud === 'denied';
 
+  // Only checked on the branch that uses it: the denied branch's PATH is a fixed
+  // system list, so an absent Homebrew is not a missing fact there.
+  if (!denied && !f.brewPrefix) throw new UnknownFact('brewPrefix');
+
   // On a host whose launchd cannot read the vault, the loop's environment moves
   // into run-ralph-gui.applescript, which re-enters the logged-in GUI session
   // where the grant exists. Only PATH stays here, for osascript itself. The

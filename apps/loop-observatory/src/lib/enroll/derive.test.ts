@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { deriveRalphPlist } from './derive.js';
+import { UnknownFact } from './types.js';
 import type { HostDeclaration, HostFacts } from './types.js';
 
 export const MINI_DECL: HostDeclaration = {
@@ -138,5 +139,32 @@ describe('deriveRalphPlist, TCC denied', () => {
     const out = deriveRalphPlist(AIR_DECL, AIR_FACTS).contents;
     expect(out).toContain('<string>tools.rainforest.loop-ralph</string>');
     expect(out).toContain('/Users/rainforest/.claude/loop/ralph.err.log');
+  });
+});
+
+describe('unknown facts refuse rather than default', () => {
+  it('refuses when the TCC probe did not run', () => {
+    expect(() =>
+      deriveRalphPlist(MINI_DECL, { ...MINI_FACTS, tccICloud: 'unknown' }),
+    ).toThrow(UnknownFact);
+  });
+
+  it('names the fact that is missing', () => {
+    // A failure that says only "cannot derive" is no better than the silent
+    // default it replaces.
+    try {
+      deriveRalphPlist(MINI_DECL, { ...MINI_FACTS, tccICloud: 'unknown' });
+      throw new Error('expected UnknownFact');
+    } catch (e) {
+      expect((e as UnknownFact).fact).toBe('tccICloud');
+      expect((e as Error).message).toContain('tccICloud');
+    }
+  });
+
+  it('refuses when the brew prefix is empty', () => {
+    // An empty prefix would silently produce PATH entries like "/bin/bin".
+    expect(() =>
+      deriveRalphPlist(MINI_DECL, { ...MINI_FACTS, brewPrefix: '' }),
+    ).toThrow(UnknownFact);
   });
 });
