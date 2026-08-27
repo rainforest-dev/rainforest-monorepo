@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
+
 import type { APIRoute } from 'astro';
 
 /** The name `bundle.ts` hands out via content-disposition, and what step 3 saves. */

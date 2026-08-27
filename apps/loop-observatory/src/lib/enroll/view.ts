@@ -1,6 +1,6 @@
 import type { Declarations } from './declarations.js';
 import { derive } from './derive.js';
-import { driftFor, type Drift } from './drift.js';
+import { type Drift, driftFor } from './drift.js';
 import type { HostRecord, HostRecordMap } from './store.js';
 import type { DerivedFile } from './types.js';
 

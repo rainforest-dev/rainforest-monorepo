@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { STALE_AFTER_MS, driftFor } from './drift.js';
+import { driftFor, STALE_AFTER_MS } from './drift.js';
 import type { HostRecord } from './store.js';
 
 const NOW = 1_787_000_000_000;
