@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -57,6 +63,27 @@ describe('device records', () => {
     writeFileSync(hostsPath(), '{not json');
     expect(readHosts()).toEqual({});
     expect(usage).toBeTruthy();
+  });
+
+  it('throws when the file cannot be read, rather than reporting no devices', () => {
+    // A permissions or I/O error is not "nothing enrolled" -- it is the store
+    // failing to answer the question at all, which drift detection built on
+    // top of this must be able to tell apart from a genuinely empty install.
+    const usage = withUsageDir();
+    mkdirSync(usage, { recursive: true });
+    const path = hostsPath();
+    writeFileSync(path, '{}');
+    chmodSync(path, 0o000);
+    try {
+      // Root (and some sandboxes) ignore file permissions entirely. A test
+      // that passes only because it happened to run privileged would hide
+      // exactly the bug this test exists to catch, so skip rather than
+      // report a false green.
+      if (process.getuid && process.getuid() === 0) return;
+      expect(() => readHosts()).toThrow();
+    } finally {
+      chmodSync(path, 0o644);
+    }
   });
 
   it('writes atomically', () => {

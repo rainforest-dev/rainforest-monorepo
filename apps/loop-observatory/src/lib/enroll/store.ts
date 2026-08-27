@@ -24,12 +24,29 @@ export function hostsPath(): string {
  * nothing and needs its own entry.
  */
 export function readHosts(): HostRecordMap {
+  let raw: string;
   try {
-    const parsed: unknown = JSON.parse(readFileSync(hostsPath(), 'utf-8'));
+    raw = readFileSync(hostsPath(), 'utf-8');
+  } catch (err) {
+    // A fresh install has no file yet -- that is the expected, benign case,
+    // and the only one this function is allowed to paper over. Anything else
+    // (a permissions error, a directory sitting where the file should be,
+    // disk trouble) means the store failed to answer, and reporting {} for
+    // that would read as "nothing enrolled" to the drift detection built on
+    // top of this store -- which is worse than the error reaching the
+    // operator.
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return {};
+    throw err;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
       return {};
     return parsed as HostRecordMap;
   } catch {
+    // A corrupt file is not a reason to take the whole page down -- rebuilt
+    // by re-enrolling, same as a missing one.
     return {};
   }
 }
