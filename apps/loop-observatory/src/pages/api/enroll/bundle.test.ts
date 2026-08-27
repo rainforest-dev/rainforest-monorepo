@@ -25,14 +25,14 @@ describe('GET /api/enroll/bundle', () => {
     delete process.env.LOOP_ENGINE_BUNDLE;
     // @ts-expect-error -- Astro's APIRoute signature wants a full context;
     // this route reads none of it, matching probes.ts and facts.ts.
-    const res = GET({});
+    const res = await GET({});
     expect(res.status).toBe(503);
   });
 
   it('503s when LOOP_ENGINE_BUNDLE points at a missing file', async () => {
     process.env.LOOP_ENGINE_BUNDLE = join(dir, 'does-not-exist.tar.gz');
     // @ts-expect-error -- see above
-    const res = GET({});
+    const res = await GET({});
     expect(res.status).toBe(503);
   });
 
@@ -42,7 +42,7 @@ describe('GET /api/enroll/bundle', () => {
     // (EISDIR) would only surface once something tried to read the body.
     process.env.LOOP_ENGINE_BUNDLE = dir;
     // @ts-expect-error -- see above
-    const res = GET({});
+    const res = await GET({});
     expect(res.status).toBe(503);
   });
 });

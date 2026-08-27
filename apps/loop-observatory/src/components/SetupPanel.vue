@@ -13,6 +13,15 @@ interface HostView {
   error: string | null;
 }
 
+// Hardcoded on purpose, not derived from window.location.origin. This page is
+// commonly viewed through a Cloudflare-fronted hostname, which is an address
+// for the *viewer's* browser, not for the machine running install.sh. That
+// machine needs an address it can reach directly and unattended; going
+// through Cloudflare would route it into an interactive login it has no way
+// to complete. The tailnet IP is the one address that works from the
+// enrolling machine regardless of how the person reading this page got here.
+const ENROLL_APP_URL = 'http://100.86.67.66:3099';
+
 const views = ref<Record<string, HostView>>({});
 const loading = ref(true);
 
@@ -36,8 +45,8 @@ onMounted(async () => {
           Then run, on the machine being enrolled:
           <pre
             class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>curl -fsSL http://100.86.67.66:3099/api/enroll/bundle | tar xz
-./install.sh --enroll --app http://100.86.67.66:3099</code></pre>
+          ><code>curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle | tar xz
+./install.sh --enroll --app {{ ENROLL_APP_URL }}</code></pre>
         </li>
       </ol>
       <p class="text-muted-foreground mt-2 text-sm">
