@@ -22,7 +22,11 @@ bash "$ROOT/pack-engine.sh" "$TMP/bundle.tar.gz" >/dev/null 2>&1
 check "pack-engine.sh produces an archive" "$([ -s "$TMP/bundle.tar.gz" ] && echo yes || echo no)" "yes"
 
 tar -tzf "$TMP/bundle.tar.gz" > "$TMP/list" 2>/dev/null
-for f in engine/ralph.sh engine/loopctl engine/contract.md hosts.yaml install.sh; do
+# enroll.sh is in this list because its absence is silent: the setup page would
+# name a script the bundle does not carry, and a machine following the page
+# would simply skip reporting its facts -- which is the state the whole
+# enrollment surface sat in until 2026-08-28.
+for f in engine/ralph.sh engine/loopctl engine/contract.md hosts.yaml install.sh enroll.sh; do
   check "carries $f" "$(grep -c "^$f\$" "$TMP/list")" "1"
 done
 

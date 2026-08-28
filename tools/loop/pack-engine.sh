@@ -14,4 +14,4 @@ tar -czf "$OUT" -C "$HERE" \
   --exclude 'greenlight' \
   --exclude 'config.yaml' \
   --exclude 'tests' \
-  engine hosts.yaml install.sh telemetry usage relay launchd config.example.yaml
+  engine hosts.yaml install.sh enroll.sh telemetry usage relay launchd config.example.yaml
