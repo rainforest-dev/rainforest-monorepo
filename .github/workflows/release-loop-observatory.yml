@@ -1,7 +1,10 @@
 name: Release loop-observatory to GHCR
 
 # Automatic release on push to main when loop-observatory changes.
-# CI: nx release (semver + GitHub Release) → GHCR push via docker/build-push-action.
+# Version is CalVer + commit sha, computed here; the image is built and pushed by
+# docker/build-push-action. nx release is deliberately not involved: seven of the
+# faults found on 2026-08-27 came from it, and the two things it offered that are
+# wanted here (a version and a tag) are three lines of shell.
 
 on:
   push:
@@ -17,11 +20,6 @@ on:
       - 'libs/rainforest-ui/**'
       - '.github/workflows/release-loop-observatory.yml'
   workflow_dispatch:
-    inputs:
-      first-release:
-        description: 'First release (skips changelog diff check)'
-        type: boolean
-        default: false
 
 permissions:
   actions: read
@@ -34,7 +32,6 @@ concurrency:
 
 env:
   IMAGE_NAME: ghcr.io/rainforest-dev/loop-observatory
-  NX_NO_CLOUD: ${{ vars.NX_NO_CLOUD }}
 
 jobs:
   release-and-push:
@@ -60,18 +57,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - uses: nrwl/nx-set-shas@v5
+      # No node, pnpm or nx on the runner: everything the image needs is built
+      # inside the Dockerfile, and `pnpm install --frozen-lockfile` out here was
+      # only ever feeding nx release.
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -83,37 +71,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: nx release — version and changelog
+      - name: Version
         id: release
-        # `shell: bash` is load-bearing: it adds `-o pipefail`, which the default
-        # `bash -e {0}` lacks. Without it `nx release ... | tee` reports tee's exit
-        # code, so a failed release is invisible and VERSION falls back to whatever
-        # stale tag already exists. That is how rss-manager republished 0.0.1 under
-        # a "success" tick on every release from 2026-07 to 2026-08.
         shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FIRST_RELEASE: ${{ inputs.first-release }}
         run: |
-          # nx matches on the project's real name, which for this app is scoped.
-          PROJECT='@rainforest-monorepo/loop-observatory'
-          MANIFEST=./apps/loop-observatory/package.json
-          # --skip-publish, never --yes: nx rejects the pair as mutually exclusive.
-          FLAGS=(--skip-publish --projects="$PROJECT")
-          if [ "$FIRST_RELEASE" = "true" ]; then FLAGS+=(--first-release); fi
-          pnpm exec nx release "${FLAGS[@]}" 2>&1 | tee /tmp/nx-release.log
-          # Read the version nx just wrote to the manifest. The old code grepped
-          # git tags for '^loop-observatory@', which never matches what nx creates:
-          # releaseTag.pattern renders {projectName}, and this project's name is
-          # scoped. An unmatched grep returned empty, and empty fell through to a
-          # stale tag.
-          VERSION=$(node -p "require('$MANIFEST').version")
-          if [ -z "${VERSION}" ]; then
-            echo "::error::No version resolved. Refusing to publish an image under an empty or stale version."
-            exit 1
-          fi
+          # CalVer plus the commit, the same scheme the company monorepo uses for
+          # its container images. Two properties matter here and semver had
+          # neither:
+          #
+          #   Unique by construction. Nothing has to look up "what was the last
+          #   version" -- the question that failed in four different ways before
+          #   this, most recently by resolving a tag whose commit was never
+          #   pushed and so existed on no branch.
+          #
+          #   Independent of commit type. This workflow fires on paths, while
+          #   semver bumps on feat/fix. #320 was a `chore` that edited
+          #   tools/loop/hosts.yaml -- which the image bakes, so the container
+          #   could not see the new declarations until it was rebuilt. The
+          #   trigger said release, semver said no bump, and the run died on a
+          #   tag collision. A version derived from the commit cannot disagree
+          #   with the thing that triggered the build.
+          VERSION="$(date -u +%Y.%m.%d).$(git rev-parse --short=8 HEAD)"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "::notice::Released: ${VERSION}"
+          echo "::notice::Building ${VERSION}"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -126,16 +106,28 @@ jobs:
           # matrix with a manifest merge if an amd64 host ever appears.
           platforms: linux/arm64
           push: true
+          # :latest is a convenience pointer for humans and moves every build.
+          # Nothing deploys from it -- terraform pins the exact version, which is
+          # the difference that lets a bad release be rolled back.
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ steps.release.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Push release tags
+      - name: Tag the commit this image was built from
         id: push-tags
         continue-on-error: true
-        run: git push origin --tags --force
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          # One tag, on HEAD, pushed by name. The previous `git push origin
+          # --tags --force` pushed every tag in the checkout and could move any
+          # of them; it also relied on nx release to have created one, which
+          # this workflow no longer does.
+          git tag "loop-observatory@${VERSION}"
+          git push origin "loop-observatory@${VERSION}"
 
       - name: Release summary
         if: always()

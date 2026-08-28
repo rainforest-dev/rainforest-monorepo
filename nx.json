@@ -87,11 +87,12 @@
       "automaticFromRef": true
     },
     "git": {
-      "push": false
+      "push": false,
+      "commit": false
     },
     "groups": {
       "docker-apps": {
-        "projects": ["personal-calibre", "rss-manager", "loop-observatory"],
+        "projects": ["personal-calibre", "rss-manager"],
         "projectsRelationship": "independent",
         "version": {
           "specifierSource": "conventional-commits",
