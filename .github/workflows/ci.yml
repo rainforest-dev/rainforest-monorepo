@@ -86,11 +86,22 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
 
+      # The suites shell out to `python3 -c "import yaml"`. install.sh:11 states
+      # the opposite about the ambient interpreter -- "the system python3 has no
+      # PyYAML" -- and is right: the two dev machines happen to carry it, which
+      # is why this was never noticed. The engine declares `pyyaml>=6`, so CI
+      # installs what the engine asks for rather than what a laptop happens to
+      # have, and `uv sync` puts it on PATH the same way install.sh does.
+      - uses: astral-sh/setup-uv@v6
+      - name: Engine dependencies
+        run: uv sync --project tools/loop/engine
+
       # Plain bash, no Nx: these assert on install.sh, hosts.yaml and the packed
       # bundle, none of which belong to an Nx project, so `nx affected` would
       # never reach them. Until 2026-08-28 they ran in no workflow at all.
       - name: tools/loop/tests
         run: |
+          source tools/loop/engine/.venv/bin/activate
           fail=0
           for f in tools/loop/tests/*.sh; do
             echo "── $(basename "$f")"
