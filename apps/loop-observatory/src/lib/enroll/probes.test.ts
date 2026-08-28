@@ -125,6 +125,45 @@ describe('probe list', () => {
     ).toBeNull();
   });
 
+  it('asks launchd about launchd, not whatever shell is running the probe', () => {
+    // The regression this exists for: the probe used to answer with
+    // `[ -r <vault> ]` evaluated in the calling process. Under TCC an
+    // interactive session is routinely permitted where launchd is denied, so it
+    // answered a different question than the one its `why` claimed -- and
+    // derive.ts picks between a direct-exec ralph plist and the osascript GUI
+    // shim on that answer. Asserted on the served text, because the behaviour
+    // only differs on a machine whose launchd and shell disagree, which no unit
+    // test can arrange.
+    const tcc = PROBES.find((p) => p.id === 'tccICloud')!;
+    expect(tcc.shell).toContain('launchctl bootstrap');
+    expect(tcc.shell).toContain('launchctl bootout');
+    // The old form, as the whole answer rather than as the job's body.
+    expect(tcc.shell).not.toMatch(/;\s*if \[ -r "\$HOME\/Library/);
+  });
+
+  it('leaves nothing behind on any path out of the tcc probe', () => {
+    // It bootstraps a LaunchAgent, so "cleans up" is not a nicety: a plist left
+    // in ~/Library/LaunchAgents loads again at the next login. It is written to
+    // a temp dir for that reason, and every exit removes it.
+    const tcc = PROBES.find((p) => p.id === 'tccICloud')!;
+    expect(tcc.shell).toContain('mktemp -d');
+    expect(tcc.shell).not.toContain('Library/LaunchAgents');
+    // One per exit after the directory exists: the refused-bootstrap path and
+    // the normal path.
+    expect(tcc.shell.match(/rm -rf "\$D"/g)?.length).toBe(2);
+    // A probe that hangs would hang enrollment; the wait is bounded.
+    expect(tcc.shell).toMatch(/-lt 50/);
+  });
+
+  it('warns that this probe has a side effect, since one probe now does', () => {
+    // A machine is told not to load LaunchAgents. This step does, on purpose
+    // and briefly, and an agent following that instruction has to be able to
+    // tell the difference from the served list alone.
+    const tcc = PROBES.find((p) => p.id === 'tccICloud')!;
+    expect(tcc.why).toMatch(/SIDE EFFECT/);
+    expect(tcc.why).toMatch(/LaunchAgent/);
+  });
+
   it('is versioned, so a device can tell the list changed', () => {
     expect(PROBE_VERSION).toBeGreaterThan(0);
   });
