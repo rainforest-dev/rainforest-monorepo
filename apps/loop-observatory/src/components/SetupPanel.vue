@@ -98,14 +98,18 @@ onMounted(load);
           <pre
             class="bg-muted mt-1 overflow-x-auto rounded p-2"
           ><code>claude auth login   # NOT `claude login` — that has no such subcommand
-gh auth login</code></pre>
+gh auth login -h github.com</code></pre>
           <p class="text-muted-foreground mt-1">
-            <code>claude auth status</code> and
-            <code>gh auth status</code> confirm both. The
-            <code>accounts</code> probe in the next step reads <code>gh</code>'s
-            login, so a machine that skipped this reports no account and the app
-            flags it as <code>account-unverified</code> rather than silently
-            accepting it.
+            <code>-h github.com</code> answers the only question
+            <code>gh</code> asks before it needs a person: the rest of the flow
+            wants a browser, so this step is not one an agent can finish alone.
+            Run <code>gh auth status</code> first — a host that is already
+            signed in has nothing to do here, and one carrying an
+            <em>expired</em> token looks signed in until you look. The
+            <code>accounts</code> probe in step 4 reads <code>gh</code>'s login,
+            and reports it as absent rather than guessing, so a machine that
+            skips this is flagged <code>account-unverified</code> instead of
+            quietly passing.
           </p>
         </li>
         <li>

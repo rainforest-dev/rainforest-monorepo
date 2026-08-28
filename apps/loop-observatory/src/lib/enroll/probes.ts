@@ -61,6 +61,14 @@ export const PROBES: Probe[] = [
       // that simply was not logged in. Those are different states and the
       // system now tells them apart: empty becomes null, and null on a work
       // machine raises `account-unverified`, not `account-mismatch`.
-      'printf "%s|%s" "$(claude --version >/dev/null 2>&1 && echo ok || echo missing)" "$(gh api user --jq .login 2>/dev/null || true)"',
+      // The gh half is guarded on gh's EXIT CODE, not on 2>/dev/null. With a
+      // stale token `gh api user` prints its 401 body to stdout and exits 1, so
+      // silencing stderr let the whole JSON through as the login: measured on
+      // Angibles-MacBook-Air 2026-08-28, the probe emitted
+      // `missing|{ "message": "Requires authentication", ... }`. parse.ts would
+      // reject that against GH_LOGIN and answer 400 — correct, but the machine
+      // learns only "invalid facts". Empty is the honest value here, and the
+      // app already reads it as account-unverified.
+      'printf "%s|%s" "$(claude --version >/dev/null 2>&1 && echo ok || echo missing)" "$(if L=$(gh api user --jq .login 2>/dev/null); then printf %s "$L"; fi)"',
   },
 ];
