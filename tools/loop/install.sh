@@ -123,7 +123,23 @@ install_plist() {
   fi
   run mkdir -p "$AGENTS"
   run cp "$src" "$AGENTS/$label.plist"
-  say "  $label -> $AGENTS/$label.plist (not loaded)"
+  # "not loaded" was true only until the next login. A LaunchAgent in
+  # ~/Library/LaunchAgents loads when the GUI session starts, and every plist
+  # here carries RunAtLoad, so the honest word is "later", not "never".
+  say "  $label -> $AGENTS/$label.plist (loads at next login)"
+}
+
+# Refuse to let a job start on its own.
+#
+# `launchctl disable` writes a persistent override keyed by label, and that
+# override BEATS a Disabled key inside the plist -- which is why this is the
+# mechanism and not a key in the file. Angibles-MacBook-Air proves the point:
+# `launchctl print-disabled gui/501` there lists
+# `com.rainforest.usage-hourly => enabled`, an explicit override that would have
+# silently outranked anything written into the plist.
+disable_agent() {
+  local label="$1"
+  run launchctl disable "gui/$(id -u)/$label"
 }
 
 if has_role engine; then
@@ -153,7 +169,15 @@ fi
 if has_role ralph; then
   say "ralph:"
   install_plist tools.rainforest.loop-ralph
-  say "  left DISABLED — see README 'Enabling'"
+  # This line used to only SAY it. Nothing in this script called launchctl, no
+  # plist here carries a Disabled key, and the ralph plist has RunAtLoad with a
+  # 1800s StartInterval -- so on a machine with no pre-existing override,
+  # install.sh followed by a logout would have started an unsupervised executor
+  # while printing that it had not. Found 2026-08-28 by the agent enrolling the
+  # Air, which noticed print-disabled disagreeing with the claim and stopped
+  # rather than reconciling it.
+  disable_agent tools.rainforest.loop-ralph
+  say "  DISABLED via launchctl — enabling is a separate act, see README 'Enabling'"
 fi
 
 if has_role relay-pull; then
@@ -216,11 +240,9 @@ if has_role loop-sync; then
   say "  tokens are read from ~/.config/loop/ — not installed from this repo"
 fi
 
-if has_role icloud-mirror; then
-  say "icloud-mirror:"
-  install_plist com.rainforest.icloud-mirror
-  say "  the script itself ships from the vault repo, not here"
-fi
+# icloud-mirror was retired 2026-08-25 (see hosts.yaml). No host declares it, so
+# this block was unreachable -- and a reader scanning install.sh would have
+# concluded the role still existed.
 
 say ""
 say "done. Nothing was loaded or enabled."
