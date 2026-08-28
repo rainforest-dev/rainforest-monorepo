@@ -163,6 +163,65 @@ def _write_notion_status(task_id: object, state: str) -> str:
         return "pending"
 
 
+def publish_project_assignment(
+    documents: list[dict],
+    *,
+    machine: str | None = None,
+    now_ts: int | None = None,
+) -> Path:
+    """Publish which projects this host may run, so something other than this
+    host can answer the question.
+
+    The rule already exists and is not restated here: scan.py refuses a project
+    whose ``machines`` list does not name this host (or say ``both``). What did
+    not exist was any way to READ that from elsewhere. The list lives in
+    ~/.claude/loop/projects/<slug>.json, which is machine-local, so Loop
+    Observatory -- a container with the vault mounted and nothing else -- could
+    show 33 tasks without being able to say which machine would pick any of them
+    up. The two hosts' configs are disjoint: the mini enrols no company project
+    at all, so even reading its own copy answers nothing about AG- work.
+
+    A SLIM projection, deliberately. The scan document carries task titles and
+    absolute paths, and this file lands in an iCloud vault that syncs to every
+    device including phones. Slug, the machines list, and the task item_ids are
+    what a reader needs to join task -> project -> host; the titles it already
+    has from tasks.json.
+
+    Per host, matching every other cross-machine fact here --
+    loop-runs.<machine>.jsonl, quota.<machine>.json, ledger.<machine>.jsonl.
+    A shared file would need both hosts to merge into it and would lose which
+    of them last spoke.
+    """
+    from . import host_machine
+
+    name = machine or host_machine()
+    path = usage_path(f"projects.{name}.json")
+    _atomic_json(
+        path,
+        {
+            "machine": name,
+            "published_at": _iso(now_ts),
+            "projects": [
+                {
+                    "slug": d.get("slug"),
+                    "machines": d.get("machines") or [],
+                    "lifecycle": d.get("lifecycle"),
+                    "task_item_ids": [
+                        item_id
+                        for task in (d.get("tasks") or [])
+                        # tasks.json keys personal work on this id, so it is the
+                        # join column. A task without one cannot be matched and
+                        # is left out rather than guessed at.
+                        if (item_id := (task.get("metadata") or {}).get("item_id"))
+                    ],
+                }
+                for d in documents
+            ],
+        },
+    )
+    return path
+
+
 def publish_task_state(
     slug: str,
     task: dict,
