@@ -120,8 +120,12 @@ shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code><
         </li>
       </ol>
       <p class="text-muted-foreground mt-2 text-sm">
-        Nothing is enabled by installing. Every LaunchAgent is written disabled;
-        starting an unsupervised executor stays a separate, explicit act.
+        The executor is disabled: install.sh runs
+        <code>launchctl disable</code> on <code>loop-ralph</code>, so starting
+        it stays a separate, explicit act. The supporting agents — quota
+        refresh, the telemetry sink, the relay and the publisher — are installed
+        enabled and load at your next login, because they are the services this
+        machine was declared to run.
       </p>
     </div>
 
