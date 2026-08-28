@@ -79,6 +79,12 @@ onMounted(load);
   <section class="flex flex-col gap-6">
     <div class="rounded-lg border p-4">
       <h2 class="font-medium">Before you start</h2>
+      <p class="text-muted-foreground mt-1 text-sm">
+        These steps are server-rendered, so an agent on the machine being
+        enrolled can read them with
+        <code>curl -fsSL {{ ENROLL_APP_URL }}/setup</code> rather than opening a
+        browser. Only the host cards below need JavaScript.
+      </p>
       <ol class="mt-2 list-decimal space-y-1 pl-5 text-sm">
         <li>Join this machine to the tailnet.</li>
         <li>
@@ -103,20 +109,35 @@ shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code><
           </p>
         </li>
         <li>
-          One-shot self-enrollment isn't wired up yet — <code>install.sh</code>
-          only sets up a host that already has an entry in
-          <code>hosts.yaml</code>. For now: you're standing in the directory
-          that <code>tar</code> just extracted, and it has its own
-          <code>hosts.yaml</code> sitting right beside <code>install.sh</code> —
-          open <em>that</em> copy (not a checkout of the repo) and add this
-          machine's name and roles to it, then run:
+          Report what this machine actually is. From the directory
+          <code>tar</code> just extracted:
+          <pre
+            class="bg-muted mt-1 overflow-x-auto rounded p-2"
+          ><code>./enroll.sh</code></pre>
+          <p class="text-muted-foreground mt-1">
+            It fetches the probe list from this app, runs each probe here, and
+            posts the answers back. It reports; it does not decide — what a
+            machine <em>should</em> be lives in <code>hosts.yaml</code>, so a
+            host cannot promote itself by talking to the endpoint. Until a
+            machine has done this, the app has no facts to derive from and the
+            card below reads <em>stale</em> forever.
+          </p>
+        </li>
+        <li>
+          Install the roles this machine is declared to have:
           <pre
             class="bg-muted mt-1 overflow-x-auto rounded p-2"
           ><code>./install.sh</code></pre>
-          (or <code>./install.sh --host=&lt;name&gt;</code> if this machine's
-          hostname doesn't match the entry you added). That edit only exists in
-          this extracted copy — the next time this machine enrolls from a fresh
-          bundle, the entry won't be there and you'll need to add it again.
+          <p class="text-muted-foreground mt-1">
+            Add <code>--host=&lt;name&gt;</code> if this machine's
+            <code>scutil --get LocalHostName</code> doesn't match its entry. The
+            extracted <code>hosts.yaml</code> beside <code>install.sh</code>
+            already carries every declared host, so if this machine is one of
+            them there is nothing to edit. If it isn't, add it there to get
+            through this step — but that edit lives only in this extracted copy;
+            declaring a host for good is a commit to the repo, which is what
+            keeps a machine from declaring itself.
+          </p>
         </li>
       </ol>
       <p class="text-muted-foreground mt-2 text-sm">
