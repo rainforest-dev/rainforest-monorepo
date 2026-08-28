@@ -16,16 +16,45 @@ export const PROBE_VERSION = 2;
 export const PROBES: Probe[] = [
   {
     id: 'tccICloud',
-    why: 'Whether launchd on this host may read ~/Library/Mobile Documents. Decides whether ralph runs directly or through the GUI shim. Measured 2026-08-25: denied on the Air, permitted on the mini. Emits unknown when the question cannot be asked at all, because a probe that fails to run must never be reported as a default -- "denied" would silently select the osascript GUI shim on a machine that is actually permitted.',
+    why: 'Whether LAUNCHD on this host may read ~/Library/Mobile Documents. Decides whether ralph runs directly or through the GUI shim. SIDE EFFECT, stated because it is unusual for a probe: this bootstraps a throwaway LaunchAgent into gui/<uid>, reads its one line of output, and boots it out again. It is not a service and nothing survives the probe -- but a machine told never to load a LaunchAgent should know this step does, deliberately. Emits unknown when the question cannot be asked, because a probe that fails to run must never be reported as a default.',
     shell:
-      // Three answers, not two. The first branch is what makes `unknown`
-      // reachable: this is a macOS TCC question, so anywhere that is not macOS,
-      // and any environment with no usable $HOME, cannot answer it -- as opposed
-      // to answering "denied". `derive.ts` refuses on unknown rather than
-      // guessing, which is the whole point of having the third answer.
+      // Measures launchd, because launchd is the question.
+      //
+      // This probe used to ask `[ -r <vault> ]` in whatever shell was running
+      // it. That answers "can THIS process read the vault", which under TCC is
+      // a different question with a different answer: an interactive session is
+      // routinely permitted where launchd is denied. The `why` above claimed
+      // launchd the whole time. On 2026-08-28 the Air reported `permitted` from
+      // an enrolling agent's shell and derivation produced a direct-exec ralph
+      // plist -- the form the GUI shim exists to avoid. It happened to be
+      // right, because that machine's TCC had changed since it was last
+      // measured, but it was right by accident.
+      //
+      // The only honest way to ask about launchd is to ask launchd. Every exit
+      // path removes the agent and the temp directory; anything that stops the
+      // question being asked at all -- not macOS, no launchctl, no usable
+      // $HOME, a refused bootstrap, no answer within five seconds -- returns
+      // unknown, and derive.ts refuses on unknown rather than guessing.
       'case "$(uname -s 2>/dev/null)" in Darwin) ;; *) echo unknown; exit 0 ;; esac; ' +
+      'command -v launchctl >/dev/null 2>&1 || { echo unknown; exit 0; }; ' +
       '[ -n "$HOME" ] && [ -d "$HOME" ] || { echo unknown; exit 0; }; ' +
-      'if [ -r "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian" ]; then echo permitted; else echo denied; fi',
+      'V="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian"; ' +
+      'D=$(mktemp -d) || { echo unknown; exit 0; }; ' +
+      'L="tools.rainforest.loop-tccprobe.$$"; R="$D/answer"; ' +
+      // Written to a temp dir, never to ~/Library/LaunchAgents: anything left
+      // in that directory loads again at the next login, and a probe must not
+      // be able to outlive itself.
+      'printf \'%s\\n\' \'<?xml version="1.0" encoding="UTF-8"?>\' ' +
+      '\'<plist version="1.0"><dict>\' ' +
+      '"<key>Label</key><string>$L</string>" ' +
+      "'<key>ProgramArguments</key><array><string>/bin/sh</string><string>-c</string>' " +
+      '"<string>if [ -r \\"$V\\" ]; then echo permitted > \\"$R\\"; else echo denied > \\"$R\\"; fi</string></array>" ' +
+      '\'<key>RunAtLoad</key><true/></dict></plist>\' > "$D/p.plist"; ' +
+      'launchctl bootstrap "gui/$(id -u)" "$D/p.plist" >/dev/null 2>&1 || { rm -rf "$D"; echo unknown; exit 0; }; ' +
+      'i=0; while [ ! -s "$R" ] && [ "$i" -lt 50 ]; do sleep 0.1; i=$((i+1)); done; ' +
+      'launchctl bootout "gui/$(id -u)/$L" >/dev/null 2>&1; ' +
+      'ANS=$(cat "$R" 2>/dev/null); rm -rf "$D"; ' +
+      'case "$ANS" in permitted|denied) echo "$ANS" ;; *) echo unknown ;; esac',
   },
   {
     id: 'executors',
