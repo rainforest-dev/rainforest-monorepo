@@ -97,10 +97,22 @@ roles:
       networks. The mini binds wide because its Alloy also serves containers
       across a Docker bridge.
 
-  observatory:
-    description: The Loop Observatory web app (apps/loop-observatory in this repo).
-    installs:
-      - launchd/<host>.tools.rainforest.loop-observatory.plist
+  # observatory: retired 2026-08-27. The app now runs as a container built by
+  # .github/workflows/release-loop-observatory.yml, published to
+  # ghcr.io/rainforest-dev/loop-observatory and provisioned by terraform in
+  # rainforest-homelab (modules/loop-observatory) — the same shape the
+  # telemetry-sink note describes for the mini's Alloy.
+  #
+  # The LaunchAgent ran the app out of ~/loop-observatory-deploy, a checkout
+  # pulled by hand. On the day this was retired that checkout sat at #303, nine
+  # PRs behind main, and nothing anywhere reported the gap: install.sh installs
+  # the plist, and a plist cannot notice that the tree underneath it is stale.
+  # An image carries its version, so "which one is deployed" has an answer.
+  #
+  # The plist on the mini was booted out and `launchctl disable`d rather than
+  # deleted, so rolling back is `launchctl enable` plus a bootstrap. The copy in
+  # this repo is gone: no role installs it, and a plist that nothing installs is
+  # a file that only misleads the next reader.
 
   loop-sync:
     description: Notion/board sync service that owns provider credentials.
@@ -158,4 +170,4 @@ hosts:
     # Binds wide because its Alloy also serves containers across a Docker bridge.
     otlp_bind: 0.0.0.0
     interval_seconds: 1800
-    roles: [engine, ralph, observatory, loop-sync, usage-hourly]
+    roles: [engine, ralph, loop-sync, usage-hourly]

@@ -42,7 +42,7 @@ check "Angibles-MacBook-Air (wrapped list)" \
 # Inline on the `roles:` line.
 check "rainforest-mini (inline list)" \
   "$(roles_for rainforest-mini)" \
-  "engine  ralph  observatory  loop-sync  usage-hourly"
+  "engine  ralph  loop-sync  usage-hourly"
 
 echo "== a role check on the parsed value actually matches =="
 # The failure was not that parsing errored -- it was that a wrong value flowed
