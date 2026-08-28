@@ -86,9 +86,27 @@ onMounted(load);
         browser. Only the host cards below need JavaScript.
       </p>
       <ol class="mt-2 list-decimal space-y-1 pl-5 text-sm">
-        <li>Join this machine to the tailnet.</li>
         <li>
-          Sign in: <code>claude login</code> and <code>gh auth login</code>.
+          Join this machine to the tailnet, then check the app answers — that,
+          not membership itself, is what the rest of these steps need:
+          <pre
+            class="bg-muted mt-1 overflow-x-auto rounded p-2"
+          ><code>curl -fsS {{ ENROLL_APP_URL }}/api/enroll/probes >/dev/null &amp;&amp; echo reachable</code></pre>
+        </li>
+        <li>
+          Sign in:
+          <pre
+            class="bg-muted mt-1 overflow-x-auto rounded p-2"
+          ><code>claude auth login   # NOT `claude login` — that has no such subcommand
+gh auth login</code></pre>
+          <p class="text-muted-foreground mt-1">
+            <code>claude auth status</code> and
+            <code>gh auth status</code> confirm both. The
+            <code>accounts</code> probe in the next step reads <code>gh</code>'s
+            login, so a machine that skipped this reports no account and the app
+            flags it as <code>account-unverified</code> rather than silently
+            accepting it.
+          </p>
         </li>
         <li>
           Fetch the engine onto the machine being enrolled, and check it before
