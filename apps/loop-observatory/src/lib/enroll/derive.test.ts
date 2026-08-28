@@ -68,12 +68,20 @@ describe('deriveRalphPlist, TCC permitted', () => {
 const AIR_DECL = FIXTURES['Angibles-MacBook-Air']!.decl;
 const AIR_FACTS = FIXTURES['Angibles-MacBook-Air']!.facts;
 
+// `denied` is a code path, not a property of any particular machine. It used to
+// be taken straight from the Air's fixture, which meant that when that host's
+// TCC grant actually changed on 2026-08-28 -- and the fixture was corrected to
+// match -- three tests of the shim branch went red without the branch changing
+// at all. The input is constructed here so the branch is tested whether or not
+// a real host is currently in that state.
+const DENIED_FACTS = { ...AIR_FACTS, tccICloud: 'denied' as const };
+
 describe('deriveRalphPlist, TCC denied', () => {
   it('runs ralph through the GUI shim', () => {
     // launchd on this host cannot read ~/Library/Mobile Documents, and both
     // projects it runs read out of the vault. osascript re-enters the logged-in
     // GUI session, which holds the grant.
-    const out = deriveRalphPlist(AIR_DECL, AIR_FACTS).contents;
+    const out = deriveRalphPlist(AIR_DECL, DENIED_FACTS).contents;
     expect(out).toContain('<string>/usr/bin/osascript</string>');
     expect(out).toContain(
       '<string>/Users/rainforest/.claude/loop/run-ralph-gui.applescript</string>',
@@ -82,7 +90,7 @@ describe('deriveRalphPlist, TCC denied', () => {
   });
 
   it('carries only PATH, because the rest moves into the AppleScript', () => {
-    const out = deriveRalphPlist(AIR_DECL, AIR_FACTS).contents;
+    const out = deriveRalphPlist(AIR_DECL, DENIED_FACTS).contents;
     expect(out).toContain('<key>PATH</key>');
     expect(out).not.toContain('LOOP_EXECUTORS');
     expect(out).not.toContain('LOOP_MACHINE');
@@ -91,13 +99,13 @@ describe('deriveRalphPlist, TCC denied', () => {
   it('omits LOOP_QUOTA_FILE when there is no readable vault', () => {
     // ralph.sh:314's default is this host's own runtime layout, so the override
     // would be redundant here.
-    expect(deriveRalphPlist(AIR_DECL, AIR_FACTS).contents).not.toContain(
+    expect(deriveRalphPlist(AIR_DECL, DENIED_FACTS).contents).not.toContain(
       'LOOP_QUOTA_FILE',
     );
   });
 
   it('still emits the same label and log paths as the permitted branch', () => {
-    const out = deriveRalphPlist(AIR_DECL, AIR_FACTS).contents;
+    const out = deriveRalphPlist(AIR_DECL, DENIED_FACTS).contents;
     expect(out).toContain('<string>tools.rainforest.loop-ralph</string>');
     expect(out).toContain('/Users/rainforest/.claude/loop/ralph.err.log');
   });
