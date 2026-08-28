@@ -33,7 +33,14 @@ function post(body: string): Promise<Response> {
   return POST({ request });
 }
 
-const FACTS = FIXTURES['Angibles-MacBook-Air']!.facts;
+// Pinned to `denied` rather than taken as-is: this asserts the endpoint STORES
+// what it was sent, so the value has to be one the test chose. Reading it from a
+// live host's fixture made the assertion fail when that host's TCC actually
+// changed, which says nothing about the endpoint.
+const FACTS = {
+  ...FIXTURES['Angibles-MacBook-Air']!.facts,
+  tccICloud: 'denied' as const,
+};
 
 describe('POST /api/enroll/facts', () => {
   it('records a well-formed report', async () => {

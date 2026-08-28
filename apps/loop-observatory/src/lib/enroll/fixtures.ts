@@ -14,7 +14,7 @@ export const FIXTURES: Record<
     decl: {
       host: 'rainforest-mini',
       home: '/Users/rainforest',
-      roles: ['engine', 'ralph', 'observatory', 'loop-sync', 'usage-hourly'],
+      roles: ['engine', 'ralph', 'loop-sync', 'usage-hourly'],
       scope: 'personal',
       otlpBind: '0.0.0.0',
       intervalSeconds: 1800,
@@ -47,7 +47,7 @@ export const FIXTURES: Record<
       intervalSeconds: 1800,
     },
     facts: {
-      tccICloud: 'denied',
+      tccICloud: 'permitted',
       executors: ['claude', 'codex'],
       brewPrefix: '/opt/homebrew',
       otlpListening: true,
