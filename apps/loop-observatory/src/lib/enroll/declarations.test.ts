@@ -65,10 +65,12 @@ describe('readDeclarations', () => {
     expect(mini.scope).toBe('personal');
     // Declared wide, and only because the file says so.
     expect(mini.otlpBind).toBe('0.0.0.0');
+    // No `observatory`: retired 2026-08-27 when the app became a container
+    // provisioned by terraform in rainforest-homelab. install.sh installs
+    // LaunchAgents, and there is no longer one to install.
     expect(mini.roles).toEqual([
       'engine',
       'ralph',
-      'observatory',
       'loop-sync',
       'usage-hourly',
     ]);

@@ -210,11 +210,6 @@ if has_role telemetry-sink; then
   say "  nothing warns if this is not running."
 fi
 
-if has_role observatory; then
-  say "observatory:"
-  install_plist tools.rainforest.loop-observatory
-fi
-
 if has_role loop-sync; then
   say "loop-sync:"
   install_plist com.rainforest.loop-sync
