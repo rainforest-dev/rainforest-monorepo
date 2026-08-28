@@ -92,10 +92,14 @@ onMounted(load);
         </li>
         <li>
           Fetch the engine onto the machine being enrolled, and check it before
-          extracting it:
+          extracting it. Work in a scratch directory — the first machine
+          enrolled this way was given no location, extracted into the Obsidian
+          vault root, and synced nine files to every device before anyone
+          noticed:
           <pre
             class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle -o loop-engine.tar.gz
+          ><code>mkdir -p ~/.local/share/loop-enroll && cd ~/.local/share/loop-enroll
+curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle -o loop-engine.tar.gz
 curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle.sha256 -o loop-engine.tar.gz.sha256
 shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code></pre>
           <p class="text-muted-foreground mt-1">
