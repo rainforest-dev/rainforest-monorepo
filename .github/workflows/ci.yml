@@ -59,3 +59,49 @@ jobs:
         run: pnpm exec nx affected -t lint test typecheck
         env:
           NX_NO_CLOUD: 'true'
+
+  # macOS, because six of the twelve shell suites and the derivation gate need
+  # tools that exist nowhere else: plutil, scutil, launchctl. Splitting them by
+  # portability was the alternative and it fails the wrong half — the six that
+  # need macOS include ralph-installed-disabled.sh, which is the only automated
+  # check that install.sh actually disables the executor rather than printing
+  # that it did.
+  #
+  # Free: GitHub-hosted runners do not consume billable minutes on public
+  # repositories. That is the only reason this job exists here rather than as a
+  # note saying it would be nice.
+  loop-macos:
+    name: Loop suites and derivation gate (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+
+      # Plain bash, no Nx: these assert on install.sh, hosts.yaml and the packed
+      # bundle, none of which belong to an Nx project, so `nx affected` would
+      # never reach them. Until 2026-08-28 they ran in no workflow at all.
+      - name: tools/loop/tests
+        run: |
+          fail=0
+          for f in tools/loop/tests/*.sh; do
+            echo "── $(basename "$f")"
+            bash "$f" || fail=1
+          done
+          exit $fail
+
+      # reproduces-hosts.test.ts guards itself to darwin and SKIPS elsewhere, so
+      # the Linux job above reports it as passed without running it. This is the
+      # only place it executes.
+      - name: Derivation gate
+        run: pnpm exec nx test loop-observatory --skip-nx-cache
+        env:
+          NX_NO_CLOUD: 'true'
