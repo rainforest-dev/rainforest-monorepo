@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Declarations } from './declarations.js';
+import { FIXTURES } from './fixtures.js';
 import type { HostRecordMap } from './store.js';
 import { buildHostViews } from './view.js';
 
@@ -159,5 +160,93 @@ describe('buildHostViews', () => {
     // Neither declared nor reported: the missing declaration is the first
     // thing to fix, so that is what the state names.
     expect(views['fresh']?.state).toBe('not-declared');
+  });
+});
+
+describe('two readings, attributed', () => {
+  const DECL = FIXTURES['rainforest-mini']!.decl;
+  const FACTS = FIXTURES['rainforest-mini']!.facts;
+  const NOW = 1_800_000_000_000;
+
+  it('reports the disagreement instead of choosing a winner', () => {
+    // The live state on 2026-08-29: hosts.json a day old, quota.<host>.json
+    // written minutes earlier. Overview called the machine fine, Setup called
+    // it stale, and no page showed both.
+    const views = buildHostViews(
+      {
+        'rainforest-mini': {
+          declaration: DECL,
+          facts: FACTS,
+          reportedAt: NOW - 23 * 60 * 60 * 1000,
+        },
+      },
+      NOW,
+      null,
+      {
+        'rainforest-mini': { at: NOW - 4 * 60 * 1000, source: 'quota.x.json' },
+      },
+    );
+    const r = views['rainforest-mini']!.readings;
+    expect(r.enrollment?.source).toBe('hosts.json');
+    expect(r.telemetry?.source).toBe('quota.x.json');
+    // Both ages survive; neither is dropped in favour of the other.
+    expect(r.enrollment!.ageMs).toBeGreaterThan(r.telemetry!.ageMs);
+    expect(r.conflict).toMatch(/disagree/);
+    expect(r.conflict).toMatch(/unverified rather than wrong/);
+  });
+
+  it('stays silent when both readings agree', () => {
+    // A conflict banner that fires when nothing is wrong trains the reader to
+    // ignore it, which is how the next real one gets missed.
+    const views = buildHostViews(
+      {
+        'rainforest-mini': {
+          declaration: DECL,
+          facts: FACTS,
+          reportedAt: NOW - 60 * 1000,
+        },
+      },
+      NOW,
+      null,
+      { 'rainforest-mini': { at: NOW - 60 * 1000, source: 'quota.x.json' } },
+    );
+    expect(views['rainforest-mini']!.readings.conflict).toBeNull();
+  });
+
+  it('does not claim a conflict when telemetry is stale too', () => {
+    // Both silent is a dead machine, not a contradiction.
+    const views = buildHostViews(
+      {
+        'rainforest-mini': {
+          declaration: DECL,
+          facts: FACTS,
+          reportedAt: NOW - 23 * 60 * 60 * 1000,
+        },
+      },
+      NOW,
+      null,
+      {
+        'rainforest-mini': {
+          at: NOW - 20 * 60 * 60 * 1000,
+          source: 'quota.x.json',
+        },
+      },
+    );
+    expect(views['rainforest-mini']!.readings.conflict).toBeNull();
+  });
+
+  it('never prints a raw millisecond count', () => {
+    // The live Setup page read "stale: last reported 77955536ms ago".
+    const views = buildHostViews(
+      {
+        h: { declaration: DECL, facts: FACTS, reportedAt: NOW - 77_955_536 },
+      },
+      NOW,
+      null,
+      null,
+    );
+    const stale = views['h']!.drift.find((d) => d.kind === 'stale')!;
+    expect(stale.detail).not.toMatch(/\d{6,}ms/);
+    expect(stale.detail).toMatch(/21 h 39 min/);
   });
 });
