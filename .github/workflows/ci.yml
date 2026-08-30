@@ -100,14 +100,32 @@ jobs:
       # bundle, none of which belong to an Nx project, so `nx affected` would
       # never reach them. Until 2026-08-28 they ran in no workflow at all.
       - name: tools/loop/tests
+        env:
+          # Three suites drive the real loopctl through a venv and skip
+          # themselves without one, defaulting to ~/.claude/loop/.venv --
+          # install.sh's, which no runner has. They name this escape hatch in
+          # their own skip message; `uv sync` above built the venv it wants.
+          LOOP_TEST_VENV: ${{ github.workspace }}/tools/loop/engine/.venv
         run: |
           source tools/loop/engine/.venv/bin/activate
           fail=0
+          skipped=0
           for f in tools/loop/tests/*.sh; do
             echo "── $(basename "$f")"
-            bash "$f" || fail=1
+            bash "$f"
+            # The suites separate "could not run" (2) from "an assertion failed"
+            # (1), and that distinction is the point of running them in CI at
+            # all: a suite that quietly skips is the shape this job exists to
+            # catch. Both are failures here, counted apart so the summary says
+            # which happened.
+            case $? in
+              0) ;;
+              2) echo "::error::$(basename "$f") could not run"; skipped=$((skipped + 1)) ;;
+              *) echo "::error::$(basename "$f") failed"; fail=$((fail + 1)) ;;
+            esac
           done
-          exit $fail
+          echo "suites failed: $fail, unable to run: $skipped"
+          [ $((fail + skipped)) -eq 0 ]
 
       # reproduces-hosts.test.ts guards itself to darwin and SKIPS elsewhere, so
       # the Linux job above reports it as passed without running it. This is the
