@@ -26,7 +26,11 @@ from loopctl.config import (
 from loopctl.derive import derive_lifecycle, derive_task_state
 from loopctl.errors import SourceUnreachable
 from loopctl.status import priority_key
-from loopctl.writeback import append_run, publish_task_state
+from loopctl.writeback import (
+    append_run,
+    publish_project_assignment,
+    publish_task_state,
+)
 
 _ADAPTERS = {
     "github": github,
@@ -877,6 +881,7 @@ def main(argv=None) -> int:
                 print("loopctl: current path is not enrolled" if not args.slug else f"loopctl: no enrolled project '{args.slug}'")
                 return 1
         now = _now()
+        scanned: list[dict] = []
         for project in targets:
             prior = registry.read_project_state(project.slug)
             if args.dry_run:
@@ -887,7 +892,18 @@ def main(argv=None) -> int:
                     if not document["stale"]:
                         registry.write_project_state(project.slug, document)
                         registry.update_index(project.slug, document["lifecycle"], now)
+            scanned.append(document)
             _print_json(document)
+        # Best-effort and reported, exactly as publish_task_state is: an
+        # unavailable vault must not fail a scan, and must not pass quietly
+        # either. Nothing downstream can tell a host that never published
+        # from one that published nothing.
+        if scanned and not args.dry_run:
+            try:
+                published = publish_project_assignment(scanned)
+                print(f"loopctl: published assignment to {published}")
+            except (OSError, ValueError) as exc:
+                print(f"loopctl: assignment not published: {exc}")
         return 0
     except (ValueError, registry.LockBusy) as exc:
         print(f"loopctl: {exc}")

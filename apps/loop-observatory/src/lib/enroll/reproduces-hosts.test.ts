@@ -7,15 +7,16 @@
 // Comparison is through `plutil`, not bytes and not a strict XML parser, and
 // both halves matter:
 //
-//  * Not byte equality — the two committed plists are formatted differently by
-//    hand (the Air tab-indented one key per line, the mini two-space with
-//    inline `<key>x</key><string>y</string>` pairs). A generator reproducing
-//    both byte-for-byte would have to encode each host's formatting accidents.
-//  * Through plutil — the Air's committed plist is not well-formed XML: its
-//    comment contains `probed 2026-08-25 -- DENIED here`, and XML forbids `--`
-//    inside a comment. `plutil -lint` accepts it and launchd loads it; Python's
-//    expat (and thus plistlib) refuses the file outright. Comparison has to use
-//    the parser the platform actually uses, not the strictest one available.
+//  * Not byte equality — the mini's committed plist is still hand-formatted
+//    (two-space, inline `<key>x</key><string>y</string>` pairs). A generator
+//    reproducing it byte-for-byte would have to encode formatting accidents.
+//  * Through plutil — because the platform's own parser is the one that has to
+//    accept the file. The Air's committed plist used to be the sharp case: its
+//    comment carried `probed 2026-08-25 -- DENIED here`, and XML forbids `--`
+//    inside a comment, so `plutil -lint` accepted it and launchd loaded it while
+//    expat refused the file outright. That file has since been regenerated and
+//    is well-formed; the mini's is still hand-written, and the rule stands for
+//    whichever hand-written file is next.
 //
 // Differences this gate expects are named explicitly, per host, not tolerated
 // wholesale. An earlier version of this gate excluded `ProgramArguments`
@@ -237,20 +238,22 @@ it.skipIf(!ON_DARWIN)(
         ).not.toThrow();
       }
 
-      // Confirm xmllint is discriminating, not merely lenient: it must reject
-      // the committed Air plist for the documented reason.
+      // Confirm xmllint is discriminating, not merely lenient. This used to
+      // point at the committed Air plist, which carried a `--` inside an XML
+      // comment: `plutil -lint` accepted it and launchd loaded it, while a
+      // strict parser refused the whole file. That plist has since been
+      // replaced by generated output, which cannot contain the sequence --
+      // `safeComment` rewrites it -- so the check now builds its own bad file
+      // rather than depending on a defect staying put.
+      const malformed = join(tmp, 'malformed.plist');
+      writeFileSync(
+        malformed,
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+          '<!-- a comment containing -- which XML forbids -->\n' +
+          '<plist version="1.0"><dict/></plist>\n',
+      );
       expect(() =>
-        execFileSync(
-          'xmllint',
-          [
-            '--noout',
-            join(
-              LAUNCHD_DIR,
-              'Angibles-MacBook-Air.tools.rainforest.loop-ralph.plist',
-            ),
-          ],
-          { stdio: 'pipe' },
-        ),
+        execFileSync('xmllint', ['--noout', malformed], { stdio: 'pipe' }),
       ).toThrow();
     } finally {
       rmSync(tmp, { recursive: true, force: true });

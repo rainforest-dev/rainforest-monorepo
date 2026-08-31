@@ -1,6 +1,6 @@
 import type { Declarations } from './declarations.js';
 import { derive } from './derive.js';
-import { type Drift, driftFor } from './drift.js';
+import { type Drift, driftFor, humanAge, STALE_AFTER_MS } from './drift.js';
 import type { HostRecord, HostRecordMap } from './store.js';
 import type { DerivedFile } from './types.js';
 
@@ -31,6 +31,26 @@ export interface HostView {
   drift: Drift[];
   files: DerivedFile[];
   error: string | null;
+  /**
+   * The two ages this page can show for one host, each named by the file it
+   * came from. Deliberately not merged into a single "last seen": they are
+   * written by different things at different rates, and on 2026-08-29 they
+   * disagreed -- the hourly quota job had written minutes earlier while the
+   * enrollment report was a day old. Averaging them, or preferring the fresher
+   * one, would have hidden the finding.
+   */
+  readings: {
+    /** From hosts.json, written by enroll.sh. Null when never enrolled. */
+    enrollment: { ageMs: number; source: string } | null;
+    /** From quota.<host>.json, written hourly. Null when absent. */
+    telemetry: { ageMs: number; source: string } | null;
+    /**
+     * Set when the two disagree about whether this host is alive: the
+     * enrollment report is past STALE_AFTER_MS while telemetry is not. The
+     * page states this rather than resolving it.
+     */
+    conflict: string | null;
+  };
 }
 
 const EMPTY_RECORD: HostRecord = {
@@ -50,10 +70,53 @@ const EMPTY_RECORD: HostRecord = {
  * A host whose derivation refuses shows the refusal; it does not blank the
  * page. One machine with a probe that did not run must not hide the others.
  */
+
+/**
+ * Both ages, each labelled with the file it came from, plus a note when they
+ * contradict each other.
+ *
+ * The contradiction is the point. `hosts.json` is written once by hand and goes
+ * stale in fifteen minutes; `quota.<host>.json` is written hourly by a launchd
+ * job. When the second is fresh and the first is not, the host is demonstrably
+ * running while its facts are unverified -- two true statements that a single
+ * "last seen" would have to choose between. This returns both and says so.
+ */
+function readingsFor(
+  record: HostRecord,
+  telemetry: { at: number; source: string } | null,
+  now: number,
+): HostView['readings'] {
+  const enrollment =
+    record.reportedAt === null
+      ? null
+      : { ageMs: now - record.reportedAt, source: 'hosts.json' };
+  const tel = telemetry
+    ? { ageMs: now - telemetry.at, source: telemetry.source }
+    : null;
+  const enrollmentStale =
+    enrollment === null || enrollment.ageMs > STALE_AFTER_MS;
+  const telemetryFresh = tel !== null && tel.ageMs <= TELEMETRY_FRESH_MS;
+  return {
+    enrollment,
+    telemetry: tel,
+    conflict:
+      enrollmentStale && telemetryFresh
+        ? `these two disagree: ${tel.source} was written ${humanAge(tel.ageMs)} ago, so this host is running, while ${enrollment === null ? 'it has never enrolled' : `hosts.json is ${humanAge(enrollment.ageMs)} old`}. Nothing re-sends the enrollment report, so the facts below are unverified rather than wrong.`
+        : null,
+  };
+}
+
+/**
+ * How fresh a quota snapshot has to be to count as "this host is running".
+ * Two hourly cycles: one missed run is a hiccup, two is a machine that stopped.
+ */
+const TELEMETRY_FRESH_MS = 2 * 60 * 60 * 1000;
+
 export function buildHostViews(
   records: HostRecordMap,
   now: number,
   declarations?: Declarations | null,
+  telemetry?: Record<string, { at: number; source: string }> | null,
 ): Record<string, HostView> {
   const out: Record<string, HostView> = {};
   const hosts = new Set([
@@ -63,6 +126,7 @@ export function buildHostViews(
 
   for (const host of hosts) {
     const record = records[host] ?? EMPTY_RECORD;
+    const readings = readingsFor(record, telemetry?.[host] ?? null, now);
     // App state first, then the version-controlled declaration. App state is a
     // device record and hosts.yaml is the system; a host enrolled through the
     // app should not be overridden by a file it never appeared in.
@@ -80,6 +144,7 @@ export function buildHostViews(
         drift,
         files: [],
         error: null,
+        readings,
       };
       continue;
     }
@@ -91,6 +156,7 @@ export function buildHostViews(
         drift,
         files: [],
         error: null,
+        readings,
       };
       continue;
     }
@@ -103,6 +169,7 @@ export function buildHostViews(
         drift,
         files,
         error: null,
+        readings,
       };
     } catch (e) {
       out[host] = {
@@ -111,6 +178,7 @@ export function buildHostViews(
         drift,
         files: [],
         error: (e as Error).message,
+        readings,
       };
     }
   }

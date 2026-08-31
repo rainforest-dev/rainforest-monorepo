@@ -17,8 +17,37 @@ export interface Drift {
   detail: string;
 }
 
-/** Three device report cycles. Beyond it the host reads stale, not last-known-good. */
+/**
+ * How old an enrollment report may be before this stops trusting it.
+ *
+ * "Three device report cycles" is what this used to say, and there is no cycle.
+ * `enroll.sh` is run once, by hand; nothing re-sends. So every host crosses this
+ * line fifteen minutes after it enrols and stays across it — on 2026-08-29 both
+ * live hosts read stale while their hourly quota job had written minutes
+ * earlier. The number is not the bug and raising it would only mute the symptom;
+ * it is left where it is until something reports on a cycle, and `telemetry.ts`
+ * supplies the second, fresher reading so the page can show both rather than
+ * pick one.
+ */
 export const STALE_AFTER_MS = 15 * 60 * 1000;
+
+/**
+ * A duration a person can act on.
+ *
+ * Deliberately coarse and never rounded up into the next unit: "59 min" stays
+ * 59 min rather than becoming "1 h", because the whole point of showing an age
+ * is deciding whether to trust the value beside it, and a number that flatters
+ * the data defeats that.
+ */
+export function humanAge(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return `${s} sec`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
+  return `${Math.floor(h / 24)} days`;
+}
 
 /**
  * What a host declares against what it reports.
@@ -35,8 +64,14 @@ export function driftFor(record: HostRecord, now: number): Drift[] {
       kind: 'stale',
       detail:
         reportedAt === null
-          ? 'never reported'
-          : `last reported ${now - reportedAt}ms ago`,
+          ? 'never reported — nothing has run enroll.sh here'
+          : // Was `${now - reportedAt}ms ago`, which reached the live page as
+            // "last reported 77955536ms ago". Nobody reads milliseconds: that
+            // is a number the machine kept and forgot to translate on the way
+            // out. The file is named because a second, fresher reading of the
+            // same host exists in quota.<host>.json, and a reader comparing
+            // two ages has to know which is which.
+            `enrollment report is ${humanAge(now - reportedAt)} old (hosts.json)`,
     });
     return out;
   }
