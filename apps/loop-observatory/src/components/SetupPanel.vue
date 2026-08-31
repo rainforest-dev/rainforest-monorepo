@@ -186,6 +186,35 @@ shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code><
             keeps a machine from declaring itself.
           </p>
         </li>
+        <li>
+          Install the agent skills. These ship as Claude Code plugins from the
+          Obsidian vault, which reaches this machine over iCloud — no clone and
+          no credentials:
+          <pre
+            class="bg-muted mt-1 overflow-x-auto rounded p-2"
+          ><code>VAULT=~/Library/Mobile\ Documents/iCloud~md~obsidian/Documents/rainforest-obsidian
+claude plugin marketplace add "$VAULT"
+claude plugin install rainforest-core@rainforest
+claude plugin install rainforest-work@rainforest       # company machine
+# claude plugin install rainforest-personal@rainforest # personal machine instead
+claude plugin list</code></pre>
+          <p class="text-muted-foreground mt-1">
+            Pick <em>one</em> of <code>work</code> /
+            <code>personal</code> beside <code>core</code>. That split is the
+            point: the boundary used to be enforced at runtime by a rule telling
+            the agent to ignore personal skills inside company repos, which
+            meant a company machine still had every one of them installed. Now
+            it does not have them at all.
+          </p>
+          <p class="text-muted-foreground mt-1">
+            Plugins rather than copied directories because a copy carries no
+            version, so nothing can report that it is stale — on 2026-08-31 one
+            machine's copy of the setup skill was a month behind the vault and
+            had been for a month with no warning.
+            <code>claude plugin list</code> prints a version per plugin, which
+            makes that visible without anything having to check.
+          </p>
+        </li>
       </ol>
       <p class="text-muted-foreground mt-2 text-sm">
         The executor is disabled: install.sh runs
