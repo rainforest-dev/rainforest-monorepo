@@ -9,22 +9,22 @@
 		<key>PATH</key>
 		<string>/opt/homebrew/bin:/usr/local/bin:/Users/rainforest/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
 		<key>USAGE_MACHINE</key>
-		<string>Angibles-MacBook-Air</string>
+		<string>rainforest-air</string>
 	</dict>
 	<key>Label</key>
-	<string>com.rainforest.usage-hourly</string>
+	<string>com.rainforest.usage-air-publish</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/bash</string>
-		<string>/Users/rainforest/.local/share/loop-usage-runtime/run-hourly-host.sh</string>
+		<string>/Users/rainforest/.local/share/loop-usage-runtime/publish-air-to-mini.sh</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>StandardErrorPath</key>
-	<string>/tmp/usage-hourly.log</string>
+	<string>/tmp/usage-air-publish.log</string>
 	<key>StandardOutPath</key>
-	<string>/tmp/usage-hourly.log</string>
+	<string>/tmp/usage-air-publish.log</string>
 	<key>StartInterval</key>
-	<integer>3600</integer>
+	<integer>300</integer>
 </dict>
 </plist>

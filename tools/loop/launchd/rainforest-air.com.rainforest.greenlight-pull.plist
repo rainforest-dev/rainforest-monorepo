@@ -8,7 +8,7 @@
     <string>/Users/rainforest/.local/share/loop-greenlight-pull/pull.sh</string>
   </array>
   <key>EnvironmentVariables</key><dict>
-    <key>LOOP_MACHINE</key><string>Angibles-MacBook-Air</string>
+    <key>LOOP_MACHINE</key><string>rainforest-air</string>
     <key>PATH</key><string>/Users/rainforest/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
   <key>RunAtLoad</key><true/>

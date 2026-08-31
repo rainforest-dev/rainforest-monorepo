@@ -128,7 +128,7 @@ loki.write "rpi" {
 // harness push OTLP, and `ralph.sh` defaults to http://localhost:4318, so
 // without a receiver on that port every run on this machine exported into a
 // closed socket and the SDK failed silently. Measured 2026-08-26: zero
-// {job="claude-code"} series and zero Loki lines carry machine=Angibles-MacBook-Air.
+// {job="claude-code"} series and zero Loki lines carry machine=rainforest-air.
 //
 // Bound to 127.0.0.1, not 0.0.0.0: only local producers push here, and this
 // machine is a laptop that joins untrusted networks. The mini binds 0.0.0.0

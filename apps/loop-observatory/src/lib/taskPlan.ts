@@ -78,7 +78,7 @@ const PROVIDERS: {
  * than one that runs under the wrong identity.
  */
 const SCOPE_MACHINES: Record<TaskScope, readonly string[]> = {
-  work: ['Angibles-MacBook-Air', 'Angibles-Air'],
+  work: ['rainforest-air', 'Angibles-Air'],
   personal: ['rainforest-mini'],
 };
 

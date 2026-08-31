@@ -13,7 +13,7 @@
     <key>PATH</key>
     <string>/Users/rainforest/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     <key>LOOP_MACHINE</key>
-    <string>Angibles-MacBook-Air</string>
+    <string>rainforest-air</string>
     <key>LOOP_EXECUTORS</key>
     <string>claude,codex</string>
   </dict>

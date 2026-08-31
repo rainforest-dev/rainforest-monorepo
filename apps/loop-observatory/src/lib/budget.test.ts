@@ -13,7 +13,7 @@ import { must } from './test-support.js';
 // ~120s (2 min) before this; STALE.written_at is ~3120s (52 min) before.
 const NOW_MS = 1_784_000_441_000; // Unix ms
 
-// Mirrors the real Angibles-MacBook-Air snapshot (plan team; claude 5h + weekly-all,
+// Mirrors the real rainforest-air snapshot (plan team; claude 5h + weekly-all,
 // no by-model; codex weekly present, 5-hour absent; agy null). The Claude
 // `source_ts` deliberately lags `written_at` by ~24h — the "looks fresh but is
 // 24h old" case that must surface a per-provider stale tag.
@@ -32,7 +32,7 @@ const FRESH = JSON.stringify({
     five_hour: null,
   },
   agy: null,
-  machine: 'Angibles-MacBook-Air',
+  machine: 'rainforest-air',
   written_at: 1784000321.719549,
 });
 
@@ -71,7 +71,7 @@ describe('parseMachineBudget', () => {
       'parsed machine budget',
     );
     expect(mb).not.toBeNull();
-    expect(mb.machine).toBe('Angibles-MacBook-Air');
+    expect(mb.machine).toBe('rainforest-air');
 
     expect(must(mb.claude, 'claude usage').plan).toBe('team');
     expect(must(mb.claude, 'claude usage').five_hour).toEqual({
@@ -333,7 +333,7 @@ describe('sourceLagMinutes / providerStale', () => {
 describe('combinedBudget', () => {
   it('picks the freshest (lowest stale_minutes) machine snapshot', () => {
     const map: MachineBudgetMap = {
-      'Angibles-MacBook-Air': must(
+      'rainforest-air': must(
         parseMachineBudget(FRESH, 'a', NOW_MS),
         'fresh machine budget',
       ),

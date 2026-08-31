@@ -135,7 +135,7 @@ describe('writeRequest', () => {
         result: 'failed',
         reason: 'project lock is busy; a sweep is running',
         appliedAt: '2026-07-28T08:00:00.000Z',
-        machine: 'Angibles-MacBook-Air',
+        machine: 'rainforest-air',
       }),
     );
     expect(requestState(SLUG, '130')).toBe('failed');
@@ -163,7 +163,7 @@ describe('requestState', () => {
           result,
           reason: null,
           appliedAt: '2026-07-28T08:00:00.000Z',
-          machine: 'Angibles-MacBook-Air',
+          machine: 'rainforest-air',
         }),
       );
       expect(requestState(SLUG, '130')).toBe(result);
@@ -198,7 +198,7 @@ describe('requestState', () => {
         result: 'busy',
         reason: 'project lock is busy; a sweep is running',
         appliedAt: '2026-07-28T08:00:00.000Z',
-        machine: 'Angibles-MacBook-Air',
+        machine: 'rainforest-air',
       }),
     );
     expect(requestState(SLUG, '130')).toBe('failed');
@@ -218,7 +218,7 @@ describe('prunePairs', () => {
         result,
         reason: null,
         appliedAt: OLD.toISOString(),
-        machine: 'Angibles-MacBook-Air',
+        machine: 'rainforest-air',
       }),
     );
   }
@@ -253,7 +253,7 @@ describe('prunePairs', () => {
         result: 'applied',
         reason: null,
         appliedAt: OLD.toISOString(),
-        machine: 'Angibles-MacBook-Air',
+        machine: 'rainforest-air',
       }),
     );
     expect(prunePairs(SLUG, NOW)).toEqual([]);
@@ -295,7 +295,7 @@ describe('scanStates', () => {
         result: 'applied',
         reason: null,
         appliedAt: '2026-07-28T08:00:00.000Z',
-        machine: 'Angibles-MacBook-Air',
+        machine: 'rainforest-air',
       }),
     );
     expect(scanStates(SLUG)).toEqual({ '130': 'pending', '131': 'applied' });

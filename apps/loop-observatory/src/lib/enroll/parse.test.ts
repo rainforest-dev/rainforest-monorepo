@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseFactsBody } from './parse.js';
 
 const BODY = {
-  host: 'Angibles-MacBook-Air',
+  host: 'rainforest-air',
   facts: {
     tccICloud: 'denied',
     executors: ['claude', 'codex'],
@@ -17,7 +17,7 @@ const BODY = {
 
 describe('parseFactsBody', () => {
   it('accepts a well-formed report', () => {
-    expect(parseFactsBody(BODY)?.host).toBe('Angibles-MacBook-Air');
+    expect(parseFactsBody(BODY)?.host).toBe('rainforest-air');
   });
 
   it('rejects a host name that is not a plain hostname', () => {
