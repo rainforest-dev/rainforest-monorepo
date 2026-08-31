@@ -56,7 +56,17 @@ ln -s "$VENV" "$HOME_DIR/.venv"
 
 # --- the vault, which is also the project tree and a git repo ----------------
 mkdir -p "$VAULT/_system/tasks" "$VAULT/_system/usage"
-git -C "$VAULT" init -q
+# `-b main`, not bare `init`. loopctl's base defaults to "main"
+# (adapters/common.py), and commits_ahead runs `git rev-list main..<branch>`,
+# which exits non-zero when main does not exist and raises SourceUnreachable.
+# A bare `git init` takes the branch name from the machine's
+# init.defaultBranch, so this sandbox was `main` on a dev box that sets it and
+# `master` on one that does not -- and on `master` the task was still selected
+# but arrived with its branch dropped, so ralph read it as not-yet-started and
+# switched executors. Reproduced exactly by running this suite with
+# GIT_CONFIG_GLOBAL pointing at init.defaultBranch=master: 141 passed, 2 failed,
+# the same two.
+git -C "$VAULT" init -q -b main
 printf 'seed\n' > "$VAULT/README.md"
 git -C "$VAULT" add -A
 git -C "$VAULT" -c commit.gpgsign=false -c user.email=t@t -c user.name=t commit -qm seed
@@ -362,7 +372,22 @@ cat > "$ROOT/ghbin/gh" <<'GHFAKE'
 exit 0
 GHFAKE
 chmod +x "$ROOT/ghbin/gh"
-git -C "$PROJECT" branch feat/sandbox-in-flight >/dev/null 2>&1 || true
+# Not `|| true`. Every assertion below depends on this branch existing: ralph
+# waits instead of switching only when TASK_BRANCH is set, and TASK_BRANCH comes
+# from the note's `branch:` being real. When the create was swallowed the suite
+# still ran and reported two assertion failures -- "claude was not reached" and
+# "the log says why" -- which describe the symptom and name nothing about the
+# cause. A setup step the assertions rely on has to fail as a setup step.
+git -C "$PROJECT" branch feat/sandbox-in-flight >/dev/null 2>&1 || {
+  echo "  SETUP FAILED: could not create feat/sandbox-in-flight in $PROJECT"
+  git -C "$PROJECT" status --short 2>&1 | head -3 | sed "s/^/    /"
+  git -C "$PROJECT" log --oneline -1 2>&1 | head -1 | sed "s/^/    HEAD: /"
+  exit 2
+}
+git -C "$PROJECT" rev-parse --verify feat/sandbox-in-flight >/dev/null 2>&1 || {
+  echo "  SETUP FAILED: feat/sandbox-in-flight does not resolve after creation"
+  exit 2
+}
 cat > "$VAULT/$TASK_KEY" <<NOTE
 ---
 task_id: "$TASK_ID"
