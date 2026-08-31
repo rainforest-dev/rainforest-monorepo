@@ -204,8 +204,12 @@ claude plugin install rainforest-work@rainforest       # company machine
 agy plugin install "$PLUGINS/rainforest-core"
 agy plugin install "$PLUGINS/rainforest-work"          # match the choice above
 
-# Codex has no plugin system — symlink instead
-for d in "$PLUGINS"/*/skills/*/; do ln -sfn "${d%/}" ~/.agents/skills/"$(basename "${d%/}")"; done</code></pre>
+# Codex has no plugin system — symlink the SAME two plugins, not all three
+for plugin in rainforest-core rainforest-work; do
+  for d in "$PLUGINS/$plugin/skills"/*/; do ln -sfn "${d%/}" ~/.agents/skills/"$(basename "${d%/}")"; done
+done
+# drop links to skills this machine is no longer entitled to
+for l in ~/.agents/skills/*; do [ -L "$l" ] &amp;&amp; [ ! -e "$l" ] &amp;&amp; rm "$l"; done</code></pre>
           <p class="text-muted-foreground mt-1">
             Pick <em>one</em> of <code>work</code> /
             <code>personal</code> beside <code>core</code>. That split is the
@@ -223,10 +227,15 @@ for d in "$PLUGINS"/*/skills/*/; do ln -sfn "${d%/}" ~/.agents/skills/"$(basenam
             <code>agy plugin list</code> both print what is installed.
           </p>
           <p class="text-muted-foreground mt-1">
-            The Codex loop uses <code>ln -sfn</code>, not <code>rm</code> then
-            <code>ln</code>: these skills moved between directories once
-            already, which left every existing symlink dangling and every one of
-            them silently absent from Codex until repointed.
+            The Codex loop names the same two plugins rather than globbing all
+            of <code>plugins/*/</code>. Globbing hands Codex the plugin this
+            machine deliberately did not install — on 2026-08-31 the personal
+            machine's Codex carried all five work skills while its Claude and
+            agy correctly had none, so the boundary held for two agents out of
+            three. It also uses <code>ln -sfn</code> and then sweeps dangling
+            links: these skills moved directories once already, and a dangling
+            symlink is not an error to Codex — the skill is simply invisible, so
+            nothing reports it.
           </p>
         </li>
       </ol>
