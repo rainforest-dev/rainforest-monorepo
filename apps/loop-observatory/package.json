@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "astro dev --port 3003 --host 0.0.0.0",
     "build": "astro check && astro build",
-    "preview": "astro preview --port 3003"
+    "preview": "astro preview --port 3003",
+    "typecheck": "astro check"
   },
   "nx": {
     "targets": {
@@ -20,6 +21,21 @@
           "^build"
         ],
         "cache": true
+      },
+      "typecheck": {
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/src/**/*",
+          "{projectRoot}/tsconfig.json",
+          "{workspaceRoot}/tsconfig.base.json"
+        ],
+        "dependsOn": [
+          "^build"
+        ],
+        "options": {
+          "command": "astro check",
+          "cwd": "{projectRoot}"
+        }
       }
     }
   },

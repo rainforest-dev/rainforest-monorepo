@@ -59,3 +59,78 @@ jobs:
         run: pnpm exec nx affected -t lint test typecheck
         env:
           NX_NO_CLOUD: 'true'
+
+  # macOS, because six of the twelve shell suites and the derivation gate need
+  # tools that exist nowhere else: plutil, scutil, launchctl. Splitting them by
+  # portability was the alternative and it fails the wrong half — the six that
+  # need macOS include ralph-installed-disabled.sh, which is the only automated
+  # check that install.sh actually disables the executor rather than printing
+  # that it did.
+  #
+  # Free: GitHub-hosted runners do not consume billable minutes on public
+  # repositories. That is the only reason this job exists here rather than as a
+  # note saying it would be nice.
+  loop-macos:
+    name: Loop suites and derivation gate (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+
+      # The suites shell out to `python3 -c "import yaml"`. install.sh:11 states
+      # the opposite about the ambient interpreter -- "the system python3 has no
+      # PyYAML" -- and is right: the two dev machines happen to carry it, which
+      # is why this was never noticed. The engine declares `pyyaml>=6`, so CI
+      # installs what the engine asks for rather than what a laptop happens to
+      # have, and `uv sync` puts it on PATH the same way install.sh does.
+      - uses: astral-sh/setup-uv@v6
+      - name: Engine dependencies
+        run: uv sync --project tools/loop/engine
+
+      # Plain bash, no Nx: these assert on install.sh, hosts.yaml and the packed
+      # bundle, none of which belong to an Nx project, so `nx affected` would
+      # never reach them. Until 2026-08-28 they ran in no workflow at all.
+      - name: tools/loop/tests
+        env:
+          # Three suites drive the real loopctl through a venv and skip
+          # themselves without one, defaulting to ~/.claude/loop/.venv --
+          # install.sh's, which no runner has. They name this escape hatch in
+          # their own skip message; `uv sync` above built the venv it wants.
+          LOOP_TEST_VENV: ${{ github.workspace }}/tools/loop/engine/.venv
+        run: |
+          source tools/loop/engine/.venv/bin/activate
+          fail=0
+          skipped=0
+          for f in tools/loop/tests/*.sh; do
+            echo "── $(basename "$f")"
+            bash "$f"
+            # The suites separate "could not run" (2) from "an assertion failed"
+            # (1), and that distinction is the point of running them in CI at
+            # all: a suite that quietly skips is the shape this job exists to
+            # catch. Both are failures here, counted apart so the summary says
+            # which happened.
+            case $? in
+              0) ;;
+              2) echo "::error::$(basename "$f") could not run"; skipped=$((skipped + 1)) ;;
+              *) echo "::error::$(basename "$f") failed"; fail=$((fail + 1)) ;;
+            esac
+          done
+          echo "suites failed: $fail, unable to run: $skipped"
+          [ $((fail + skipped)) -eq 0 ]
+
+      # reproduces-hosts.test.ts guards itself to darwin and SKIPS elsewhere, so
+      # the Linux job above reports it as passed without running it. This is the
+      # only place it executes.
+      - name: Derivation gate
+        run: pnpm exec nx test loop-observatory --skip-nx-cache
+        env:
+          NX_NO_CLOUD: 'true'
