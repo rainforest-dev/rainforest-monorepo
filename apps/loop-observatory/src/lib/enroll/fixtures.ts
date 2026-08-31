@@ -30,9 +30,9 @@ export const FIXTURES: Record<
       probedAt: '2026-08-27T06:00:00.000Z',
     },
   },
-  'Angibles-MacBook-Air': {
+  'rainforest-angible': {
     decl: {
-      host: 'Angibles-MacBook-Air',
+      host: 'rainforest-angible',
       home: '/Users/rainforest',
       roles: [
         'engine',

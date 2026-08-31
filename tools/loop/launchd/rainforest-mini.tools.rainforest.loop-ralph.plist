@@ -9,12 +9,12 @@
     <string>10</string>
   </array>
   <key>EnvironmentVariables</key><dict>
-    <key>LOOP_MACHINE</key><string>mini</string>
+    <key>LOOP_MACHINE</key><string>rainforest-mini</string>
     <key>LOOP_EXECUTORS</key><string>claude,agy</string>
     <!-- Explicit, because the default path only ever matched the other machine's
          runtime layout, so the gate here read a file that has never existed and
          degraded to "unknown" on every run. An absolute path also sidesteps the
-         LOOP_MACHINE=mini / LocalHostName=rainforest-mini split above. -->
+         per-machine default, which is worth not depending on here. -->
     <key>LOOP_QUOTA_FILE</key><string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/_system/usage/quota.rainforest-mini.json</string>
     <key>LOOP_AGENT_CONFIG</key><string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/_system/usage/loop-agents.json</string>
     <key>PATH</key><string>/Users/rainforest/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>

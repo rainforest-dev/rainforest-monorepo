@@ -59,10 +59,10 @@ describe('deliveryModeFor', () => {
 
   it('names Air as the remote executor for both company projects', () => {
     expect(REMOTE_EXECUTORS['service-dashboard-frontend']).toBe(
-      'Angibles-MacBook-Air',
+      'rainforest-angible',
     );
     expect(REMOTE_EXECUTORS['service-cloud-backend']).toBe(
-      'Angibles-MacBook-Air',
+      'rainforest-angible',
     );
   });
 

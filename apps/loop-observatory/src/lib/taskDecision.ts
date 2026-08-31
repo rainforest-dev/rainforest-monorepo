@@ -49,8 +49,8 @@ export const GREENLIGHT_TARGETS: Record<string, GreenlightTarget> = {
  * in taskPlan.ts.
  */
 export const REMOTE_EXECUTORS: Record<string, string> = {
-  'service-dashboard-frontend': 'Angibles-MacBook-Air',
-  'service-cloud-backend': 'Angibles-MacBook-Air',
+  'service-dashboard-frontend': 'rainforest-angible',
+  'service-cloud-backend': 'rainforest-angible',
 };
 
 export type DeliveryMode = 'local' | 'remote-queue' | 'none';

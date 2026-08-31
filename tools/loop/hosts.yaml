@@ -30,7 +30,7 @@ roles:
       Installed disabled. Enabling an unsupervised executor is a deliberate act,
       never a side effect of running install.sh.
 
-      On Angibles-MacBook-Air the plist runs engine/run-ralph-gui.applescript
+      On rainforest-angible the plist runs engine/run-ralph-gui.applescript
       rather than ralph.sh directly: a launchd job there cannot read
       ~/Library/Mobile Documents (probed 2026-08-25 -- DENIED on Air, permitted
       on mini), and both projects that host runs read notion-tasks.json out of
@@ -153,7 +153,7 @@ roles:
 #   otlp_bind         127.0.0.1 (default) | 0.0.0.0.
 #   interval_seconds  StartInterval for the ralph LaunchAgent. Default 1800.
 hosts:
-  Angibles-MacBook-Air:
+  rainforest-angible:
     scope: company
     executes: company work only
     home: /Users/rainforest

@@ -74,7 +74,7 @@ for h in $(y '" ".join(k for k,v in d["hosts"].items() if "telemetry-sink" in v[
 done
 
 echo "== the config actually receives what ralph sends =="
-CFG="$ROOT/telemetry/Angibles-MacBook-Air.config.alloy"
+CFG="$ROOT/telemetry/rainforest-angible.config.alloy"
 # Strip `//` comments before matching. The block explaining WHY this binds
 # loopback necessarily contains the string "0.0.0.0", and a naive grep counted
 # the explanation as the thing it warns about.

@@ -133,7 +133,7 @@ install_plist() {
 #
 # `launchctl disable` writes a persistent override keyed by label, and that
 # override BEATS a Disabled key inside the plist -- which is why this is the
-# mechanism and not a key in the file. Angibles-MacBook-Air proves the point:
+# mechanism and not a key in the file. rainforest-angible proves the point:
 # `launchctl print-disabled gui/501` there lists
 # `com.rainforest.usage-hourly => enabled`, an explicit override that would have
 # silently outranked anything written into the plist.

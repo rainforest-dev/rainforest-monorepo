@@ -149,16 +149,6 @@ interface ExpectedDiffRule {
 const EXPECTED_DIFFS: Record<string, ExpectedDiffRule[]> = {
   'rainforest-mini': [
     {
-      path: 'EnvironmentVariables.LOOP_MACHINE',
-      reason:
-        'The live plist carries the short alias `mini` while LocalHostName is ' +
-        '`rainforest-mini`; the generator emits the full host name and removes ' +
-        'the split. Tolerated only for this exact live/generated pair, so a ' +
-        'generator that emitted some other wrong value still fails.',
-      tolerate: (live, generated) =>
-        live === 'mini' && generated === 'rainforest-mini',
-    },
-    {
       path: 'ProgramArguments',
       reason:
         'The live plist bakes `ralph.sh 1 10` -- iteration parameters that ' +
@@ -176,12 +166,12 @@ const EXPECTED_DIFFS: Record<string, ExpectedDiffRule[]> = {
       },
     },
   ],
-  'Angibles-MacBook-Air': [],
+  'rainforest-angible': [],
 };
 
 describe
   .skipIf(!ON_DARWIN)
-  .each(['rainforest-mini', 'Angibles-MacBook-Air'] as const)(
+  .each(['rainforest-mini', 'rainforest-angible'] as const)(
   'deriveRalphPlist reproduces the live %s plist',
   (host) => {
     it('derives without error', () => {
@@ -228,7 +218,7 @@ it.skipIf(!ON_DARWIN)(
     // file, not a hand-rolled regex standing in for one.
     const tmp = mkdtempSync(join(tmpdir(), 'xmllint-'));
     try {
-      for (const host of ['rainforest-mini', 'Angibles-MacBook-Air'] as const) {
+      for (const host of ['rainforest-mini', 'rainforest-angible'] as const) {
         const { decl, facts } = FIXTURES[host]!;
         const contents = deriveRalphPlist(decl, facts).contents;
         const path = join(tmp, `${host}.plist`);

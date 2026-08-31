@@ -4,7 +4,7 @@
 # It did not. `roles_for` matched only `/^    roles:/` and pulled the list off
 # that one line, which the header comment justified with "which is why they must
 # stay on one line". Nothing enforced that, and Prettier formats this repo --
-# hosts.yaml included. Once Angibles-MacBook-Air accumulated six roles, Prettier
+# hosts.yaml included. Once rainforest-angible accumulated six roles, Prettier
 # wrapped the bracket onto the following line:
 #
 #     roles:
@@ -12,7 +12,7 @@
 #
 # roles_for then returned the literal string "    roles:", ROLES was non-empty so
 # the guard did not fire, has_role matched nothing, and
-# `./install.sh --host=Angibles-MacBook-Air` printed "roles:     roles:",
+# `./install.sh --host=rainforest-angible` printed "roles:     roles:",
 # installed NOTHING, and exited 0. Measured 2026-08-27.
 #
 # A formatter silently invalidating a parser, with no reader to notice, is the
@@ -32,12 +32,12 @@ MANIFEST="$ROOT/hosts.yaml"
 
 echo "== every declared host is discoverable =="
 check "known_hosts finds both live hosts" \
-  "$(known_hosts | tr '\n' ' ')" "Angibles-MacBook-Air rainforest-mini "
+  "$(known_hosts | tr '\n' ' ')" "rainforest-angible rainforest-mini "
 
 echo "== roles parse in BOTH layouts hosts.yaml contains =="
 # Wrapped onto the line after `roles:` (what Prettier produces).
-check "Angibles-MacBook-Air (wrapped list)" \
-  "$(roles_for Angibles-MacBook-Air)" \
+check "rainforest-angible (wrapped list)" \
+  "$(roles_for rainforest-angible)" \
   "engine  ralph  relay-pull  usage-hourly  usage-publish  telemetry-sink"
 # Inline on the `roles:` line.
 check "rainforest-mini (inline list)" \
@@ -48,7 +48,7 @@ echo "== a role check on the parsed value actually matches =="
 # The failure was not that parsing errored -- it was that a wrong value flowed
 # on into has_role and matched nothing, silently.
 for want in engine ralph relay-pull usage-hourly usage-publish telemetry-sink; do
-  case " $(roles_for Angibles-MacBook-Air) " in
+  case " $(roles_for rainforest-angible) " in
     *" $want "*) check "Air has_role $want" "yes" "yes" ;;
     *)           check "Air has_role $want" "no"  "yes" ;;
   esac

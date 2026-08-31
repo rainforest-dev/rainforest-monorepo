@@ -27,7 +27,7 @@ function esc(s: string): string {
 /**
  * XML forbids `--` inside a comment. `plutil` accepts it anyway and Python's
  * expat refuses the whole file, which is exactly the state the committed
- * `Angibles-MacBook-Air.tools.rainforest.loop-ralph.plist` is in: it carries
+ * `rainforest-angible.tools.rainforest.loop-ralph.plist` is in: it carries
  * `probed 2026-08-25 -- DENIED here`, loads fine under launchd, and cannot be
  * read by a standards-conforming parser. Generated files must not inherit that,
  * so the sequence is rewritten rather than rejected — a comment explaining a

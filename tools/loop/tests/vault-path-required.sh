@@ -6,7 +6,7 @@
 # clone its own docstring warns about, in the same breath. The warning and the
 # behaviour contradicted each other and the behaviour won. Measured 2026-08-26:
 # the Air carried `defaults.vault_path` and the mini did not, so the run record
-# split in half along the fallback -- `loop-runs.Angibles-MacBook-Air.jsonl`
+# split in half along the fallback -- `loop-runs.rainforest-angible.jsonl`
 # exists only in the vault, `loop-runs.rainforest-mini.jsonl` only in the clone,
 # and `ledger.rainforest-mini.jsonl` holds 50,791 records in the clone the vault
 # has never seen.

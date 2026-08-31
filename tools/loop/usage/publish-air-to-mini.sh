@@ -52,19 +52,19 @@ publish() { # local_file
 }
 
 cd "$ROOT" || exit 1
-PYTHONPATH="$ROOT" USAGE_MACHINE="${USAGE_MACHINE:-Angibles-MacBook-Air}" \
+PYTHONPATH="$ROOT" USAGE_MACHINE="${USAGE_MACHINE:-rainforest-angible}" \
   /opt/homebrew/bin/python3 -m scripts.usage.export_quota || true
 
-publish "$ROOT/_system/usage/quota.${USAGE_MACHINE:-Angibles-MacBook-Air}.json" || true
+publish "$ROOT/_system/usage/quota.${USAGE_MACHINE:-rainforest-angible}.json" || true
 
 # Ledger enrichment is substantially heavier than the quota heartbeat. Keep the
 # machine card fresh every five minutes, but rebuild/copy the ledger at most
 # hourly. Quota is published first, so a slow ledger pass cannot make the Air
 # appear offline.
-LEDGER="$ROOT/_system/usage/ledger.${USAGE_MACHINE:-Angibles-MacBook-Air}.jsonl"
+LEDGER="$ROOT/_system/usage/ledger.${USAGE_MACHINE:-rainforest-angible}.jsonl"
 LEDGER_MTIME=$(stat -f %m "$LEDGER" 2>/dev/null || echo 0)
 if (( $(date +%s) - LEDGER_MTIME >= 3600 )); then
-  PYTHONPATH="$ROOT" USAGE_MACHINE="${USAGE_MACHINE:-Angibles-MacBook-Air}" \
+  PYTHONPATH="$ROOT" USAGE_MACHINE="${USAGE_MACHINE:-rainforest-angible}" \
     /opt/homebrew/bin/python3 -m scripts.usage.enrich || true
   publish "$LEDGER" || true
 fi

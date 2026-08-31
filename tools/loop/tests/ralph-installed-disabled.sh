@@ -26,7 +26,7 @@ check() { # name, actual, expected
 }
 
 UID_NOW=$(id -u)
-OUT=$(./install.sh --host=Angibles-MacBook-Air --dry-run 2>&1)
+OUT=$(./install.sh --host=rainforest-angible --dry-run 2>&1)
 
 echo "== the executor is disabled, by an actual call =="
 check "install.sh disables loop-ralph" \

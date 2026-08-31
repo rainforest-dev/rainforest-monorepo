@@ -9,9 +9,9 @@ import { buildHostViews } from './view.js';
 const NOW = 1_787_000_000_000;
 
 const RECORDS: HostRecordMap = {
-  'Angibles-MacBook-Air': {
+  'rainforest-angible': {
     declaration: {
-      host: 'Angibles-MacBook-Air',
+      host: 'rainforest-angible',
       home: '/Users/rainforest',
       roles: ['engine', 'ralph', 'telemetry-sink'],
       scope: 'work',
@@ -49,7 +49,7 @@ const DECLARATIONS: Declarations = {
 describe('buildHostViews', () => {
   it('pairs each host with its drift and derived files', () => {
     const views = buildHostViews(RECORDS, NOW);
-    const air = views['Angibles-MacBook-Air'];
+    const air = views['rainforest-angible'];
     expect(air?.state).toBe('drift');
     expect(air?.drift.map((d) => d.kind)).toContain('role-unsatisfied');
     expect(air?.files.map((f) => f.path)).toContain(
@@ -62,9 +62,9 @@ describe('buildHostViews', () => {
     const broken: HostRecordMap = {
       ...RECORDS,
       bad: {
-        ...RECORDS['Angibles-MacBook-Air']!,
+        ...RECORDS['rainforest-angible']!,
         facts: {
-          ...RECORDS['Angibles-MacBook-Air']!.facts!,
+          ...RECORDS['rainforest-angible']!.facts!,
           tccICloud: 'unknown',
         },
       },
@@ -73,7 +73,7 @@ describe('buildHostViews', () => {
     expect(views['bad']?.state).toBe('refused');
     expect(views['bad']?.files).toEqual([]);
     expect(views['bad']?.error).toContain('tccICloud');
-    expect(views['Angibles-MacBook-Air']?.files.length).toBeGreaterThan(0);
+    expect(views['rainforest-angible']?.files.length).toBeGreaterThan(0);
   });
 
   it('does not call a host healthy when nothing declares it', () => {
@@ -83,7 +83,7 @@ describe('buildHostViews', () => {
     const views = buildHostViews(
       {
         ...RECORDS,
-        undeclared: { ...RECORDS['Angibles-MacBook-Air']!, declaration: null },
+        undeclared: { ...RECORDS['rainforest-angible']!, declaration: null },
       },
       NOW,
       { byHost: {}, problems: {}, error: null },
@@ -102,7 +102,7 @@ describe('buildHostViews', () => {
     const records: HostRecordMap = {
       'declared-only': {
         declaration: null,
-        facts: RECORDS['Angibles-MacBook-Air']!.facts,
+        facts: RECORDS['rainforest-angible']!.facts,
         reportedAt: NOW - 60_000,
       },
     };
@@ -125,7 +125,7 @@ describe('buildHostViews', () => {
     // "hosts.yaml is unreadable" and "this host is not in hosts.yaml" put every
     // host in the same state, so the state has to carry which one it was.
     const views = buildHostViews(
-      { air: { ...RECORDS['Angibles-MacBook-Air']!, declaration: null } },
+      { air: { ...RECORDS['rainforest-angible']!, declaration: null } },
       NOW,
       {
         byHost: {},
@@ -139,7 +139,7 @@ describe('buildHostViews', () => {
 
   it('surfaces a per-host declaration problem instead of "not in the file"', () => {
     const views = buildHostViews(
-      { air: { ...RECORDS['Angibles-MacBook-Air']!, declaration: null } },
+      { air: { ...RECORDS['rainforest-angible']!, declaration: null } },
       NOW,
       {
         byHost: {},
