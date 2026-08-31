@@ -187,17 +187,25 @@ shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code><
           </p>
         </li>
         <li>
-          Install the agent skills. These ship as Claude Code plugins from the
-          Obsidian vault, which reaches this machine over iCloud — no clone and
-          no credentials:
+          Install the agent skills. One source in the vault, which reaches this
+          machine over iCloud — no clone and no credentials:
           <pre
             class="bg-muted mt-1 overflow-x-auto rounded p-2"
           ><code>VAULT=~/Library/Mobile\ Documents/iCloud~md~obsidian/Documents/rainforest-obsidian
+PLUGINS="$VAULT/ai-resources/plugins"
+
+# Claude Code
 claude plugin marketplace add "$VAULT"
 claude plugin install rainforest-core@rainforest
 claude plugin install rainforest-work@rainforest       # company machine
 # claude plugin install rainforest-personal@rainforest # personal machine instead
-claude plugin list</code></pre>
+
+# agy (Antigravity / Gemini)
+agy plugin install "$PLUGINS/rainforest-core"
+agy plugin install "$PLUGINS/rainforest-work"          # match the choice above
+
+# Codex has no plugin system — symlink instead
+for d in "$PLUGINS"/*/skills/*/; do ln -sfn "${d%/}" ~/.agents/skills/"$(basename "${d%/}")"; done</code></pre>
           <p class="text-muted-foreground mt-1">
             Pick <em>one</em> of <code>work</code> /
             <code>personal</code> beside <code>core</code>. That split is the
@@ -208,11 +216,17 @@ claude plugin list</code></pre>
           </p>
           <p class="text-muted-foreground mt-1">
             Plugins rather than copied directories because a copy carries no
-            version, so nothing can report that it is stale — on 2026-08-31 one
+            version, so nothing can report it stale — on 2026-08-31 one
             machine's copy of the setup skill was a month behind the vault and
             had been for a month with no warning.
-            <code>claude plugin list</code> prints a version per plugin, which
-            makes that visible without anything having to check.
+            <code>claude plugin list</code> and
+            <code>agy plugin list</code> both print what is installed.
+          </p>
+          <p class="text-muted-foreground mt-1">
+            The Codex loop uses <code>ln -sfn</code>, not <code>rm</code> then
+            <code>ln</code>: these skills moved between directories once
+            already, which left every existing symlink dangling and every one of
+            them silently absent from Codex until repointed.
           </p>
         </li>
       </ol>
