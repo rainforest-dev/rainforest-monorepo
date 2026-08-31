@@ -8,12 +8,22 @@ import type { Drift } from '@/lib/enroll/drift';
 import type { DerivedFile } from '@/lib/enroll/types';
 import type { HostState } from '@/lib/enroll/view';
 
+interface Reading {
+  ageMs: number;
+  source: string;
+}
+
 interface HostView {
   state: HostState;
   detail: string | null;
   drift: Drift[];
   files: DerivedFile[];
   error: string | null;
+  readings: {
+    enrollment: Reading | null;
+    telemetry: Reading | null;
+    conflict: string | null;
+  };
 }
 
 /**
@@ -70,6 +80,17 @@ async function load() {
   } finally {
     loading.value = false;
   }
+}
+
+/** Mirrors humanAge in drift.ts. Ages arrive as ms; nobody reads ms. */
+function age(ms: number): string {
+  const sec = Math.max(0, Math.floor(ms / 1000));
+  if (sec < 60) return `${sec} sec`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min`;
+  const hr = Math.floor(min / 60);
+  if (hr < 48) return min % 60 ? `${hr} h ${min % 60} min` : `${hr} h`;
+  return `${Math.floor(hr / 24)} days`;
 }
 
 onMounted(load);
@@ -205,6 +226,36 @@ shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code><
         </p>
         <p v-if="view.error" class="mt-1 text-sm text-amber-600">
           {{ view.error }}
+        </p>
+
+        <!-- Both ages, each named by the file it came from. Never merged into
+             one "last seen": they are written by different things at different
+             rates, and when they disagree that IS the state worth showing. -->
+        <dl
+          class="text-muted-foreground mt-2 grid grid-cols-[auto_1fr] gap-x-3 text-xs"
+        >
+          <dt>enrollment</dt>
+          <dd>
+            <template v-if="view.readings.enrollment">
+              {{ age(view.readings.enrollment.ageMs) }} old ·
+              <code>{{ view.readings.enrollment.source }}</code>
+            </template>
+            <template v-else>never reported</template>
+          </dd>
+          <dt>telemetry</dt>
+          <dd>
+            <template v-if="view.readings.telemetry">
+              {{ age(view.readings.telemetry.ageMs) }} old ·
+              <code>{{ view.readings.telemetry.source }}</code>
+            </template>
+            <template v-else>no snapshot</template>
+          </dd>
+        </dl>
+        <p
+          v-if="view.readings.conflict"
+          class="mt-2 rounded-md border border-amber-500/40 p-2 text-xs text-amber-700 dark:text-amber-400"
+        >
+          {{ view.readings.conflict }}
         </p>
         <ul
           v-if="view.drift.length"
