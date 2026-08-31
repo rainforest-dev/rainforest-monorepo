@@ -61,9 +61,7 @@ describe('deliveryModeFor', () => {
     expect(REMOTE_EXECUTORS['service-dashboard-frontend']).toBe(
       'rainforest-air',
     );
-    expect(REMOTE_EXECUTORS['service-cloud-backend']).toBe(
-      'rainforest-air',
-    );
+    expect(REMOTE_EXECUTORS['service-cloud-backend']).toBe('rainforest-air');
   });
 
   // C2: the escape hatch used to be consulted first, so setting it made a
