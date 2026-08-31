@@ -38,7 +38,7 @@ function post(body: string): Promise<Response> {
 // live host's fixture made the assertion fail when that host's TCC actually
 // changed, which says nothing about the endpoint.
 const FACTS = {
-  ...FIXTURES['Angibles-MacBook-Air']!.facts,
+  ...FIXTURES['rainforest-air']!.facts,
   tccICloud: 'denied' as const,
 };
 

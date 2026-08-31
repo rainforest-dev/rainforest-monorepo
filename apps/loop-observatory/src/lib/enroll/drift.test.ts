@@ -7,7 +7,7 @@ const NOW = 1_787_000_000_000;
 
 const AIR: HostRecord = {
   declaration: {
-    host: 'Angibles-MacBook-Air',
+    host: 'rainforest-air',
     home: '/Users/rainforest',
     roles: ['engine', 'ralph', 'telemetry-sink'],
     scope: 'work',

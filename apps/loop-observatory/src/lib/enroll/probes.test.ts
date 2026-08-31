@@ -97,7 +97,7 @@ describe('probe list', () => {
     // list -- nothing the list could produce ever reached it. This walks the
     // whole chain: real probe output -> real parser -> real derivation.
     const probed = runProbe('tccICloud', { PATH: process.env.PATH ?? '' });
-    const { decl, facts } = FIXTURES['Angibles-MacBook-Air']!;
+    const { decl, facts } = FIXTURES['rainforest-air']!;
     const parsed = parseFactsBody({
       host: decl.host,
       facts: { ...facts, tccICloud: probed },
@@ -118,7 +118,7 @@ describe('probe list', () => {
       parseFactsBody({
         host: 'h',
         facts: {
-          ...FIXTURES['Angibles-MacBook-Air']!.facts,
+          ...FIXTURES['rainforest-air']!.facts,
           accounts: { claudeAvailable: 'ok', ghLogin: '' },
         },
       })!.facts.accounts.ghLogin,

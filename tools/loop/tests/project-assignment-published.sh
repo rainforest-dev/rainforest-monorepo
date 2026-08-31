@@ -27,12 +27,12 @@ OUT=$(PYTHONPATH=engine/lib python3 - <<'PY' 2>&1
 import json, pathlib, os
 from loopctl.writeback import publish_project_assignment
 docs = [{
-    "slug": "sdf", "machines": ["laptop", "Angibles-MacBook-Air"], "lifecycle": "active",
+    "slug": "sdf", "machines": ["laptop", "rainforest-air"], "lifecycle": "active",
     "path": "/Users/someone/Repositories/sdf",
     "tasks": [{"metadata": {"item_id": "AG-1"}, "title": "a private ticket title"},
               {"metadata": {}, "title": "no item id at all"}],
 }]
-p = publish_project_assignment(docs, machine="Angibles-MacBook-Air", now_ts=1)
+p = publish_project_assignment(docs, machine="rainforest-air", now_ts=1)
 print(pathlib.Path(p).name)
 print(pathlib.Path(p).read_text())
 PY
@@ -40,11 +40,11 @@ PY
 
 echo "== published per host, like every other cross-machine fact here =="
 check "file is named for the machine" \
-  "$(printf '%s' "$OUT" | head -1)" "projects.Angibles-MacBook-Air.json"
+  "$(printf '%s' "$OUT" | head -1)" "projects.rainforest-air.json"
 
 echo "== carries the join columns =="
 check "keeps the machines list" \
-  "$(printf '%s' "$OUT" | grep -c '"Angibles-MacBook-Air"')" "2"
+  "$(printf '%s' "$OUT" | grep -c '"rainforest-air"')" "2"
 check "keeps task item_ids" \
   "$(printf '%s' "$OUT" | grep -c '"AG-1"')" "1"
 # A task with no item_id cannot be joined to tasks.json. Left out, not guessed.

@@ -16,7 +16,7 @@
 on run
 	set vaultPath to "/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian"
 	set agentConfig to vaultPath & "/_system/usage/loop-agents.json"
-	do shell script "LOOP_MACHINE=Angibles-MacBook-Air " & ¬
+	do shell script "LOOP_MACHINE=rainforest-air " & ¬
 		"LOOP_EXECUTORS=claude,codex,agy " & ¬
 		"LOOP_VAULT_PATH=" & quoted form of vaultPath & " " & ¬
 		"LOOP_AGENT_CONFIG=" & quoted form of agentConfig & " " & ¬

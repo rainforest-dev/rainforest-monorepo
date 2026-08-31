@@ -39,11 +39,11 @@ describe('readDeclarations', () => {
     expect(error).toBeNull();
     expect(problems).toEqual({});
     expect(Object.keys(byHost).sort()).toEqual([
-      'Angibles-MacBook-Air',
+      'rainforest-air',
       'rainforest-mini',
     ]);
 
-    const air = byHost['Angibles-MacBook-Air']!;
+    const air = byHost['rainforest-air']!;
     // `company` in the file, `work` in the derivation vocabulary.
     expect(air.scope).toBe('work');
     expect(air.home).toBe('/Users/rainforest');

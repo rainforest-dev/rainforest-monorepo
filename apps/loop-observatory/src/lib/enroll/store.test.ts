@@ -64,10 +64,10 @@ describe('device records', () => {
 
   it('records facts under the host name', () => {
     withUsageDir();
-    recordFacts('Angibles-MacBook-Air', FACTS, 1_787_000_000_000);
+    recordFacts('rainforest-air', FACTS, 1_787_000_000_000);
     const hosts = readHosts();
-    expect(hosts['Angibles-MacBook-Air']?.facts?.tccICloud).toBe('denied');
-    expect(hosts['Angibles-MacBook-Air']?.reportedAt).toBe(1_787_000_000_000);
+    expect(hosts['rainforest-air']?.facts?.tccICloud).toBe('denied');
+    expect(hosts['rainforest-air']?.reportedAt).toBe(1_787_000_000_000);
   });
 
   it('overwrites the previous facts rather than appending', () => {

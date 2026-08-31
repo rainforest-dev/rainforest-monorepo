@@ -65,8 +65,8 @@ describe('deriveRalphPlist, TCC permitted', () => {
   });
 });
 
-const AIR_DECL = FIXTURES['Angibles-MacBook-Air']!.decl;
-const AIR_FACTS = FIXTURES['Angibles-MacBook-Air']!.facts;
+const AIR_DECL = FIXTURES['rainforest-air']!.decl;
+const AIR_FACTS = FIXTURES['rainforest-air']!.facts;
 
 // `denied` is a code path, not a property of any particular machine. It used to
 // be taken straight from the Air's fixture, which meant that when that host's
