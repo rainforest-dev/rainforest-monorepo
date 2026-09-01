@@ -40,7 +40,7 @@
     }
   },
   "dependencies": {
-    "@astrojs/node": "^10.0.6",
+    "@astrojs/node": "^11.0.2",
     "@astrojs/vue": "6.0.1",
     "@lucide/vue": "^1.0.0",
     "@rainforest-dev/rainforest-ui": "workspace:*",
