@@ -137,6 +137,14 @@ local overlay. The runner records one append-only iteration/retro row in
 For `greenlit-only`, opening the PR and recording PR-ready is the terminal action:
 never merge. For personal autonomous work, stop at the configured `stop_at`.
 
-Leave task-created files committed and the touched worktree clean. If interrupted,
-write `~/.claude/loop/handoffs/<slug>/<date>.md`. Finally run
+Leave task-created files committed and the touched worktree clean. Finally run
 `loopctl scan "$LOOP_PROJECT"` to reconcile the registry with ground truth.
+
+You are no longer asked to write a handoff. This line used to read "If
+interrupted, write `~/.claude/loop/handoffs/<slug>/<date>.md`", and on
+2026-09-02 that directory was empty on both machines after 22 recorded runs --
+three of which ended interrupted. The occasion arose and nothing was written,
+which is what an instruction with no writer and no check is worth. The runner
+writes it now, on the two exits where it knows the task was left unfinished, to
+`handoffs/<slug>/<ISO timestamp>.md` -- a time, not just a date, so a second
+interruption on the same project the same day cannot replace the first.

@@ -88,6 +88,51 @@ iter=0
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] ralph: $*"; }
 
+# The interruption record contract.md asks for -- written here rather than asked
+# of the executor.
+#
+# `If interrupted, write ~/.claude/loop/handoffs/<slug>/<date>.md` has been in
+# the contract from the start, and on 2026-09-02 the directory was empty on both
+# machines after 22 recorded runs -- three of which ended interrupted (2
+# incomplete, 1 turns_exhausted). The occasion arose and nothing was written,
+# because an instruction addressed to a model is not a mechanism: nothing writes
+# it, and nothing checks that it was written.
+#
+# The filename carries a time, not just a date. Two interruptions on one project
+# in one day are ordinary -- a turn limit in the morning and a dirty-repo exit in
+# the afternoon -- and `<date>.md` would have the second silently replace the
+# first, losing exactly the record this exists to keep.
+write_handoff() { # slug task why resume
+  local slug="$1" task="$2" why="$3" resume="$4"
+  local dir="$LOOP_HOME/handoffs/$slug"
+  local file="$dir/$(date -u '+%Y-%m-%dT%H%M%SZ').md"
+  mkdir -p "$dir" 2>/dev/null || { log "  handoff not written: cannot create $dir"; return 1; }
+  {
+    printf -- '---\n'
+    # Both ids. `task` is what loopctl addresses -- for an obsidian-base project
+    # that is the note path, which no person recognises. `task_key` is the human
+    # one (T-… or AG-…), and is what the ledger row carries, so a handoff and a
+    # run can be lined up by eye.
+    printf 'task: %s\n' "$task"
+    printf 'task_key: %s\n' "${task_key:-$task}"
+    printf 'project: %s\n' "$slug"
+    printf 'machine: %s\n' "${MACHINE:-unknown}"
+    printf 'executor: %s\n' "${candidate:-unknown}"
+    printf 'run_id: %s\n' "${RUN_ID:-unknown}"
+    printf 'written_at: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    printf -- '---\n\n'
+    printf '# Interrupted: %s\n\n' "${task_key:-$task}"
+    printf '%s\n\n' "$why"
+    if [ -n "$resume" ]; then
+      printf '## Continue\n\n```bash\n%s\n```\n\n' "$resume"
+    fi
+    printf '## Repo at the interruption\n\n```\n'
+    git -C "${project_path:-.}" status --short 2>&1 | head -20
+    printf '```\n\nHEAD: %s\n' "$(git -C "${project_path:-.}" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+  } > "$file" 2>/dev/null || { log "  handoff not written: cannot write $file"; return 1; }
+  log "  handoff written: $file"
+}
+
 # Executor output was read for a cost figure and a verdict line, then dropped. So
 # when the first preset run died on 2026-07-30 there was no way to see what the
 # executor had actually said -- and codex kept no session either, because it still
@@ -1040,6 +1085,9 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
           ${turn_fields[@]+"${turn_fields[@]}"} \
           --note "hit the $MAX_TURNS-turn limit; no fallback attempted" >/dev/null 2>&1 || \
           log "  run ledger unavailable; the spend above is only in this log"
+        write_handoff "$slug" "$task_id" \
+          "Hit the $MAX_TURNS-turn limit with the task unfinished. The session still holds its full context -- what it understood, what it tried, what it had just done -- so continuing it beats starting over." \
+          "$resume_hint" || true
         exit "$candidate_status"
       fi
       # A non-zero exit does not mean nothing happened. On 2026-07-29 an executor
@@ -1047,6 +1095,9 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
       # would have it redo committed work and open a second PR for the same fix.
       if [ "$head_before" != "$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)" ]; then
         log "  the repo moved before this failure; not passing the task on -- inspect the branch, then resume"
+        write_handoff "$slug" "$task_id" \
+          "Executor exited $candidate_status, but the repo had already moved -- commits, and possibly a PR, exist for this task. Handing it on would redo committed work and open a second PR for the same fix (measured 2026-07-29). Inspect the branch before resuming." \
+          "${resume_hint:-}" || true
         exit "$candidate_status"
       fi
       status="$candidate_status"
