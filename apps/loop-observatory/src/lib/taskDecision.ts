@@ -105,7 +105,7 @@ const TERMINAL_OR_ACTIVE = new Set([
   'blocked',
 ]);
 
-function greenlightDir(): string {
+export function greenlightDir(): string {
   return (
     process.env.LOOP_GREENLIGHT_DIR ??
     join(process.env.HOME ?? '', '.claude', 'loop', 'greenlight')
@@ -141,7 +141,7 @@ function executorReady(slug: string): boolean {
   }
 }
 
-function greenlightPath(slug: string): string {
+export function greenlightPath(slug: string): string {
   return join(greenlightDir(), `${slug}.md`);
 }
 
@@ -153,7 +153,17 @@ function greenlightText(slug: string): string {
   }
 }
 
-function lineFor(
+/**
+ * The exact line `addGreenlight` appends, exported so a screen can show it
+ * before it is written.
+ *
+ * The mobile decision screen must display the literal bytes a hold will add,
+ * and the only way that stays true is for it to read the same function the
+ * write uses. A second, display-only rendering of this line would be free to
+ * drift from the real one, and drifting silently is precisely the failure the
+ * requirement guards against.
+ */
+export function lineFor(
   task: SprintTask,
   slug: string,
   plan: ExecutionPlan | null,
@@ -163,6 +173,16 @@ function lineFor(
     ? ` · agent: ${plan.provider}/${plan.model} · effort: ${plan.effort} · cap: ${plan.maxMinutes}m`
     : '';
   return `- ${id} — ${task.name.replace(/[\r\n]+/g, ' ')} · repo: ${slug}${agent}`;
+}
+
+/** How many ids a project's allowlist currently carries. */
+export function greenlitCount(slug: string): number {
+  const text = greenlightText(slug);
+  if (!text) return 0;
+  return text
+    .split(/\r?\n/)
+    .filter((line) => /^\s*-\s*[A-Za-z]{0,8}-?\d{1,20}(?:\s|—|$)/.test(line))
+    .length;
 }
 
 function hasGreenlight(task: SprintTask, slug: string): boolean {

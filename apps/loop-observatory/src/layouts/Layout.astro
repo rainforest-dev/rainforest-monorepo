@@ -4,7 +4,7 @@ import '@/app.css';
 interface Props {
   title?: string;
   description?: string;
-  active?: 'overview' | 'tasks' | 'setup';
+  active?: 'overview' | 'decide' | 'tasks' | 'setup';
 }
 
 const {
@@ -15,6 +15,7 @@ const {
 
 const navLinks = [
   { key: 'overview', label: 'Overview', href: '/' },
+  { key: 'decide', label: 'Decide', href: '/decide' },
   { key: 'tasks', label: 'Tasks', href: '/tasks' },
   { key: 'setup', label: 'Setup', href: '/setup' },
 ] as const;
