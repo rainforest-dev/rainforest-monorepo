@@ -43,8 +43,9 @@ function emptyReason(src: SourceStatus, nothing: string): string {
         Loop status
       </CardTitle>
       <CardDescription>
-        Autonomous task-loop state from the vault queue, progress log and
-        handoffs.
+        Derived from what the machines write: every
+        <code>loop-runs.&lt;machine&gt;.jsonl</code> and the
+        <code>loopctl set</code> mirror. Handoffs are this host's only.
       </CardDescription>
     </CardHeader>
     <CardContent>
@@ -76,7 +77,7 @@ function emptyReason(src: SourceStatus, nothing: string): string {
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
-              {{ emptyReason(loop.sources.task_queue, 'No task claimed') }}
+              {{ emptyReason(loop.sources.runs, 'Nothing running') }}
             </p>
           </div>
 
@@ -107,7 +108,7 @@ function emptyReason(src: SourceStatus, nothing: string): string {
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
-              {{ emptyReason(loop.sources.task_queue, 'Nothing blocked') }}
+              {{ emptyReason(loop.sources.runs, 'Nothing blocked') }}
             </p>
           </div>
         </div>
@@ -136,7 +137,7 @@ function emptyReason(src: SourceStatus, nothing: string): string {
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
-              {{ emptyReason(loop.sources.task_queue, 'No rounds recorded') }}
+              {{ emptyReason(loop.sources.runs, 'No runs recorded') }}
             </p>
           </div>
 
