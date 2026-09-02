@@ -842,11 +842,25 @@ excludes "a blocked task is out of the queue" "$queued" "$SECOND"
 contains "its dependency is still offered" "$queued" "$TASK_ID"
 # Satisfied once the dependency is reviewable — waiting for in-qa would serialise
 # the stacked-branch flow this board actually uses.
-"$LOOPCTL" set sandbox "$TASK_KEY" pr-ready --pr https://example.invalid/1 >/dev/null 2>&1
+"$LOOPCTL" set sandbox "$TASK_KEY" pr-ready --pr https://example.invalid/1 --note "sandbox: suites green" >/dev/null 2>&1
 "$LOOPCTL" scan sandbox >/dev/null 2>&1
 queued=$("$LOOPCTL" next sandbox 2>/dev/null | "$VENV/bin/python" -c \
   'import json,sys; print(",".join(r.get("id","") for r in json.load(sys.stdin)))')
 contains "pr-ready satisfies the edge" "$queued" "$SECOND"
+
+# pr-ready is the terminal claim for a greenlit project -- it says a branch is
+# finished and a person should look. `--note` is where the contract asks for the
+# checks behind that claim, and it was optional, so the claim could be made with
+# no evidence at all. Measured 2026-09-02 on PR #342, the first PR this loop
+# opened unattended: CI failed on `Check formatting`, and nothing had asked the
+# executor whether it ran the formatter the repo's own CLAUDE.md documents.
+noteless=$("$LOOPCTL" set sandbox "$TASK_KEY" pr-ready --pr https://example.invalid/2 2>&1 || true)
+check "pr-ready 沒有 note 會被拒絕" \
+  "$(printf '%s' "$noteless" | grep -c 'pr-ready needs --note' | tr -d ' ')" "1"
+# Whitespace is not evidence either.
+blank=$("$LOOPCTL" set sandbox "$TASK_KEY" pr-ready --pr https://example.invalid/3 --note "   " 2>&1 || true)
+check "只有空白的 note 一樣被拒絕" \
+  "$(printf '%s' "$blank" | grep -c 'pr-ready needs --note' | tr -d ' ')" "1"
 # Satisfied but nobody has confirmed the resolution: enforced anyway, and flagged.
 contains "deps flags an unreviewed resolution" "$("$LOOPCTL" deps sandbox 2>/dev/null)" "unverified"
 # An edge naming something the scan cannot see blocks on purpose: closed, renamed

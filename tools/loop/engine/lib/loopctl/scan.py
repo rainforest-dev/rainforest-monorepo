@@ -702,6 +702,23 @@ def main(argv=None) -> int:
             return 0
 
         if args.cmd == "set":
+            # `pr-ready` is the terminal claim for a greenlit project: it says a
+            # branch is finished and a human should review it. `--note` is where
+            # the contract has always asked for the checks that back that claim,
+            # and it was optional, so a task could reach the end of the loop with
+            # no evidence recorded at all.
+            #
+            # Measured 2026-09-02 on PR #342, the first PR the loop opened
+            # unattended: CI failed on `Check formatting`. The repository's own
+            # CLAUDE.md documents `pnpm prettier --write`, and nothing had asked
+            # the executor to say whether it ran it. Requiring the note does not
+            # prove the checks ran -- nothing here can -- but it stops the claim
+            # being made silently, and the note is what the dashboard shows.
+            if args.state == "pr-ready" and not (args.note or "").strip():
+                raise ValueError(
+                    "pr-ready needs --note naming the checks you ran "
+                    "(format, lint, tests) and their result"
+                )
             with registry.ProjectLock(args.slug):
                 task = set_task_state(
                     args.slug,
