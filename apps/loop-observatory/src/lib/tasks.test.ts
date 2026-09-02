@@ -207,3 +207,37 @@ describe('parseTasksProgress', () => {
     expect(parseTasksProgress('[]')).toBeNull();
   });
 });
+
+describe('the two ages of tasks.json', () => {
+  it('keeps them separate when only the personal half was rebuilt', () => {
+    // The real shape on 2026-09-02: work data fetched from Notion on 08-19,
+    // file regenerated minutes ago because the personal half was re-read from
+    // the notes. One label for both said "synced 14 days ago" over a list that
+    // was a minute old.
+    const d = must(
+      parseTasks(
+        JSON.stringify({
+          synced_at: '2026-08-19T07:59:16Z',
+          written_at: '2026-09-02T10:13:52Z',
+          tasks: [],
+        }),
+      ),
+      'parsed tasks',
+    );
+    expect(d.synced_at).toBe('2026-08-19T07:59:16Z');
+    expect(d.written_at).toBe('2026-09-02T10:13:52Z');
+  });
+
+  it('reports a missing written_at as null rather than borrowing synced_at', () => {
+    // A tasks.json written before this field existed. Falling back to
+    // synced_at would make an unknown rebuild time look like a known one.
+    const d = must(
+      parseTasks(
+        JSON.stringify({ synced_at: '2026-08-19T07:59:16Z', tasks: [] }),
+      ),
+      'parsed tasks',
+    );
+    expect(d.written_at).toBeNull();
+    expect(d.synced_at).toBe('2026-08-19T07:59:16Z');
+  });
+});

@@ -71,7 +71,16 @@ export interface Sprint {
 
 /** Parsed shape of `_system/usage/tasks.json`. */
 export interface TasksData {
+  /** When the WORK half was fetched from Notion. Unchanged by a local run. */
   synced_at: string | null;
+  /**
+   * When the file was last regenerated -- also when the PERSONAL half was
+   * re-read from the notes. Separate from `synced_at` because the two halves
+   * age independently: on 2026-09-02 the work data was 14 days old while the
+   * personal list had been rebuilt a minute earlier, and one label for both
+   * made the fresh half look stale and the stale half look fresh.
+   */
+  written_at: string | null;
   source: string | null;
   board: string | null;
   board_url: string | null;
@@ -184,6 +193,7 @@ export function parseTasks(content: string): TasksData | null {
 
   return {
     synced_at: strOrNull(o.synced_at),
+    written_at: strOrNull(o.written_at),
     source: strOrNull(o.source),
     board: strOrNull(o.board),
     board_url: strOrNull(o.board_url),

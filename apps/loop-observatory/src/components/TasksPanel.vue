@@ -81,13 +81,31 @@ const filteredPoints = computed(() =>
   filteredTasks.value.reduce((sum, t) => sum + (t.points ?? 0), 0),
 );
 
-const syncedLabel = computed<string | null>(() => {
-  void now.value; // recompute on tick
-  const iso = data.value?.synced_at;
+function ageOf(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return null;
-  return `synced ${formatDistanceToNowStrict(new Date(t), { addSuffix: true })}`;
+  return formatDistanceToNowStrict(new Date(t), { addSuffix: true });
+}
+
+/**
+ * Both ages, each naming the half it describes.
+ *
+ * This was one label reading `synced <age>` off `synced_at`, which only moves
+ * when the work half is fetched from Notion. A local run rebuilds the personal
+ * half and leaves that field alone -- correctly -- so on 2026-09-02 the panel
+ * said "synced 14 days ago" over a personal list refreshed a minute earlier.
+ * Same shape as the two machine readings: when two halves age separately,
+ * showing one number for both is wrong about whichever one you are looking at.
+ */
+const syncedLabel = computed<string | null>(() => {
+  void now.value; // recompute on tick
+  const work = ageOf(data.value?.synced_at);
+  const written = ageOf(data.value?.written_at);
+  if (!work && !written) return null;
+  if (!written) return `work synced ${work}`;
+  if (!work) return `rebuilt ${written}`;
+  return `work synced ${work} · rebuilt ${written}`;
 });
 
 // Detail drawer: clicking a card/node opens the local note in-app.
