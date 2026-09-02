@@ -186,6 +186,65 @@ shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code><
             keeps a machine from declaring itself.
           </p>
         </li>
+        <li>
+          Install the agent skills. One source in the vault, which reaches this
+          machine over iCloud — no clone and no credentials:
+          <pre
+            class="bg-muted mt-1 overflow-x-auto rounded p-2"
+          ><code>VAULT=~/Library/Mobile\ Documents/iCloud~md~obsidian/Documents/rainforest-obsidian
+PLUGINS="$VAULT/ai-resources/plugins"
+
+# Claude Code
+claude plugin marketplace add "$VAULT"
+claude plugin install rainforest-core@rainforest
+claude plugin install rainforest-work@rainforest       # company machine
+# claude plugin install rainforest-personal@rainforest # personal machine instead
+
+# agy (Antigravity / Gemini)
+agy plugin install "$PLUGINS/rainforest-core"
+agy plugin install "$PLUGINS/rainforest-work"          # match the choice above
+
+# Codex has no plugin system — symlink the SAME two plugins, not all three
+mkdir -p ~/.agents/skills
+for plugin in rainforest-core rainforest-work; do
+  for d in "$PLUGINS/$plugin/skills"/*/; do ln -sfn "${d%/}" ~/.agents/skills/"$(basename "${d%/}")"; done
+done
+# sweep every symlink here that no longer resolves — including ones this machine
+# is no longer entitled to. find, not a glob: zsh aborts on an unmatched one.
+find ~/.agents/skills -maxdepth 1 -type l -exec sh -c '[ -e "$1" ] || rm "$1"' _ {} \;</code></pre>
+          <p class="text-muted-foreground mt-1">
+            Pick <em>one</em> of <code>work</code> /
+            <code>personal</code> beside <code>core</code>. That split is the
+            point: the boundary used to be enforced at runtime by a rule telling
+            the agent to ignore personal skills inside company repos, which
+            meant a company machine still had every one of them installed. Now
+            it does not have them at all.
+          </p>
+          <p class="text-muted-foreground mt-1">
+            Plugins rather than copied directories because a copy carries no
+            version, so nothing can report it stale — on 2026-08-31 one
+            machine's copy of the setup skill was a month behind the vault and
+            had been for a month with no warning.
+            <code>claude plugin list</code> and
+            <code>agy plugin list</code> both print what is installed.
+          </p>
+          <p class="text-muted-foreground mt-1">
+            The Codex loop names the same two plugins rather than globbing all
+            of <code>plugins/*/</code>. Globbing hands Codex the plugin this
+            machine deliberately did not install — on 2026-08-31 the personal
+            machine's Codex carried all five work skills while its Claude and
+            agy correctly had none, so the boundary held for two agents out of
+            three. It also creates <code>~/.agents/skills</code> first — on a
+            machine that has never run Codex it does not exist, and
+            <code>ln</code> would fail once per skill while the loop carried on,
+            leaving Codex with nothing and saying so only in a wall of errors.
+            The sweep afterwards uses <code>find</code> rather than a glob
+            because zsh aborts on one that matches nothing, and it removes every
+            link that no longer resolves: these skills moved directories once
+            already, and a dangling symlink is not an error to Codex — the skill
+            is simply invisible, so nothing reports it.
+          </p>
+        </li>
       </ol>
       <p class="text-muted-foreground mt-2 text-sm">
         The executor is disabled: install.sh runs
