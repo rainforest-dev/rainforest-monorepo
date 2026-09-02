@@ -225,6 +225,42 @@ PYNOTE
 )
 check "task note 帶著 resume 指令（Observatory 讀得到）" "$progress_note" "HAS_RESUME"
 
+# --- the handoff, written by the runner rather than asked of the executor -----
+# contract.md carried "If interrupted, write handoffs/<slug>/<date>.md" from the
+# start, and on 2026-09-02 the directory was empty on both machines after 22
+# recorded runs, three of them interrupted. An instruction with no writer and no
+# check produces nothing; these assertions are the check.
+HANDOFF_DIR="$HOME_DIR/handoffs/sandbox"
+# `|| true` inside the substitution, not after it. errexit is on from the `set -e`
+# above, and pipefail makes a failing `ls` fail the whole pipeline -- so when the
+# handoff is MISSING, the assignment returned non-zero and killed the script
+# before the check below could run. The assertion passed when the file existed
+# and vanished when it did not, which is the one case it exists to report.
+handoff_count=$( { ls -1 "$HANDOFF_DIR"/*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
+check "中斷時寫出 handoff" "$handoff_count" "1"
+handoff=$( { ls -1 "$HANDOFF_DIR"/*.md 2>/dev/null || true; } | head -1)
+if [ -n "$handoff" ]; then
+  # A time, not just a date. Two interruptions on one project in one day are
+  # ordinary, and <date>.md would have the second silently replace the first --
+  # losing exactly the record this file exists to keep.
+  check "檔名帶時間而非只有日期（同日第二次不會覆蓋第一次）" \
+    "$(basename "$handoff" | grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z\.md$' | tr -d ' ')" "1"
+  # Both ids: the path loopctl addresses, and the key a person reads.
+  check "handoff 帶 loopctl 用的 task id（筆記路徑）" \
+    "$(grep -c "^task: _system/tasks/$TASK_ID.md$" "$handoff" | tr -d ' ')" "1"
+  check "handoff 帶人看得懂的 task_key" \
+    "$(grep -c "^task_key: $TASK_ID$" "$handoff" | tr -d ' ')" "1"
+  check "handoff 帶 run_id（可連回 ledger 與 telemetry）" \
+    "$(grep -cE '^run_id: .+' "$handoff" | tr -d ' ')" "1"
+  check "handoff 帶可直接跑的 resume 指令" \
+    "$(grep -c 'claude --resume' "$handoff" | tr -d ' ')" "1"
+  check "handoff 記下中斷當下的 HEAD" "$(grep -cE '^HEAD: ' "$handoff" | tr -d ' ')" "1"
+  check "log 說出 handoff 寫到哪" \
+    "$(grep -c 'handoff written:' "$ROOT/ralph.out" | tr -d ' ')" "1"
+else
+  check "handoff 存在才能檢查其內容" "no-handoff-written" "a-handoff"
+fi
+
 echo
 echo "  $pass/$((pass+fail))"
 [ "$fail" -eq 0 ] && rm -rf "$ROOT" || echo "  保留現場: $ROOT"
