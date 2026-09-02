@@ -1,12 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { MachineBudget } from './budget.js';
 import {
   budgetMode,
   budgetModesByMachine,
+  newestDateIn,
   parseHandoffIndex,
   parseProgress,
   parseTaskQueue,
+  readLoopState,
 } from './loop.js';
 
 const QUEUE = `# Task Queue
@@ -177,5 +183,65 @@ describe('budgetMode', () => {
       b: mb(claude(8, 22.5), 52),
     });
     expect(modes).toEqual({ a: 'green', b: 'dark' });
+  });
+});
+
+describe('newestDateIn', () => {
+  it('returns the newest date, not the first or last one written', () => {
+    // The progress log is newest-first, so "last in the file" would be the
+    // OLDEST entry -- the reading that makes a dead source look freshest.
+    expect(newestDateIn('a 2026-07-11 b 2026-07-13 c 2026-07-12')).toBe(
+      '2026-07-13',
+    );
+  });
+
+  it('is null when the content carries no date to age', () => {
+    expect(newestDateIn('# Task Queue\n\nnothing here')).toBeNull();
+  });
+});
+
+describe('readLoopState source provenance', () => {
+  let dir: string;
+  const prev = process.env.VAULT_PATH;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'loop-src-'));
+    process.env.VAULT_PATH = dir;
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+    if (prev === undefined) delete process.env.VAULT_PATH;
+    else process.env.VAULT_PATH = prev;
+  });
+
+  it('reports an absent source as absent, not as an empty one', () => {
+    // The defect this exists to catch: readFileOrEmpty returned '' for both,
+    // so a retired source rendered as "No task currently claimed" -- a
+    // sentence about now, produced by a file last written seven weeks earlier.
+    const s = readLoopState(0);
+    expect(s.sources.task_queue.present).toBe(false);
+    expect(s.sources.handoffs.present).toBe(false);
+    expect(s.claimed).toEqual([]);
+  });
+
+  it('ages a present source by its content, never by its mtime', () => {
+    mkdirSync(join(dir, '_system'), { recursive: true });
+    writeFileSync(
+      join(dir, '_system', 'Task-Queue.md'),
+      '# Task Queue\n\n- 2026-07-11 round 1\n- 2026-07-13 round 3\n',
+    );
+    const s = readLoopState(0);
+    expect(s.sources.task_queue.present).toBe(true);
+    // The file was written seconds ago; its newest entry is from July. mtime
+    // would call this fresh, which is exactly the wrong answer.
+    expect(s.sources.task_queue.newestEntry).toBe('2026-07-13');
+  });
+
+  it('separates a readable source with no dated entry from an absent one', () => {
+    mkdirSync(join(dir, '_system'), { recursive: true });
+    writeFileSync(join(dir, '_system', 'Task-Queue.md'), '# Task Queue\n');
+    const s = readLoopState(0);
+    expect(s.sources.task_queue.present).toBe(true);
+    expect(s.sources.task_queue.newestEntry).toBeNull();
   });
 });
