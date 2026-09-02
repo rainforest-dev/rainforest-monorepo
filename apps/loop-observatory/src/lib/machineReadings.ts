@@ -192,3 +192,97 @@ export function disagreement(
     why: readings.conflict,
   };
 }
+
+// -- What the quota snapshot says about a host -------------------------------
+
+/**
+ * How stale a quota snapshot may be and still be described as `alive`.
+ *
+ * Same two-cycle rule `view.ts` uses to decide whether telemetry contradicts an
+ * expired enrollment report, restated here rather than imported because that
+ * module reaches `node:fs` through `derive`.
+ */
+export const TELEMETRY_ALIVE_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * Just enough of a machine snapshot to say what it reports. Structural on
+ * purpose: `budget.ts` imports `node:fs`, so only its types can cross into a
+ * client island, and only these fields are read.
+ */
+export interface SnapshotSummary {
+  claude?: { bars: QuotaBar[] } | null;
+  codex?: { bars: QuotaBar[] } | null;
+}
+
+/**
+ * One sentence, in the snapshot's own terms, for the column that is NOT the
+ * enrollment report.
+ *
+ * The 5-hour window leads because it is the one the halt threshold is written
+ * against: a machine at 10% left is about to stop, and that is the single fact
+ * worth carrying next to "this host has not re-enrolled". A window whose reset
+ * has already passed reports `unknown` rather than a number, for the same
+ * reason the bar on Overview is hatched -- the figure belongs to a window that
+ * no longer exists, and neither 0% nor 100% is an honest way to draw it.
+ */
+export function snapshotSays(
+  snapshot: SnapshotSummary | null,
+  now: number = Date.now(),
+): string {
+  if (!snapshot) return 'no quota snapshot for this machine';
+
+  const bars = [
+    ...(snapshot.claude?.bars ?? []),
+    ...(snapshot.codex?.bars ?? []),
+  ];
+  if (bars.length === 0) return 'alive · reports no quota window';
+
+  const lead = bars.find((b) => isFiveHourWindow(b.label)) ?? bars[0];
+
+  if (isWindowUnknown(lead.resets_at, now)) {
+    // Whether the *other* windows also rolled over changes the sentence:
+    // naming only the 5-hour one would imply the rest still held a figure.
+    const allUnknown = bars.every((b) => isWindowUnknown(b.resets_at, now));
+    return allUnknown
+      ? 'alive · quota figures stale · unknown'
+      : `alive · ${lead.label} stale · unknown`;
+  }
+
+  const left = remainingPct(lead.used_pct);
+  const halting = left <= HALT_AT_PCT ? ' — at the halt line' : '';
+  return `alive · ${left.toFixed(1)}% of the ${lead.label} window left${halting}`;
+}
+
+/**
+ * Whether the snapshot's own age still supports the word `alive`.
+ *
+ * Separate from `snapshotSays`, which describes the contents: a snapshot can be
+ * four minutes old and carry figures from yesterday afternoon, which is exactly
+ * the pair one of these two machines has to show.
+ */
+export function snapshotFreshness(telemetry: Reading | null): {
+  alive: boolean;
+  status: RemainingStatus;
+} {
+  if (!telemetry) return { alive: false, status: 'bad' };
+  const alive = telemetry.ageMs <= TELEMETRY_ALIVE_MS;
+  return { alive, status: alive ? 'ok' : 'warn' };
+}
+
+/**
+ * Why an enrollment report can or cannot be trusted, in the words the left
+ * column needs.
+ *
+ * Never "offline": the report expiring says nothing about whether the machine
+ * is running, and implying otherwise is the arbitration the right column exists
+ * to prevent.
+ */
+export function enrollmentDoubt(enrollment: Reading | null): string {
+  if (!enrollment) {
+    return 'This machine has never run ./enroll.sh, so there are no facts to derive from — not even stale ones.';
+  }
+  if (enrollment.ageMs <= STALE_AFTER_MS) {
+    return 'Reported recently enough to be trusted. It expires 15 minutes after it was sent, and nothing re-sends it.';
+  }
+  return `Has not reported recently enough to be trusted. It expired ${humanAge(enrollment.ageMs - STALE_AFTER_MS)} ago and nothing re-sends it: what this machine is declared to run is unverified until ./enroll.sh runs again.`;
+}

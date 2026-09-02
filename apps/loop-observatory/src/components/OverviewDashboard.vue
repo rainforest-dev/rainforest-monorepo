@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RefreshCw } from '@lucide/vue';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import BreakdownBars from '@/components/BreakdownBars.vue';
 import CollapsibleSection from '@/components/CollapsibleSection.vue';
@@ -85,6 +85,22 @@ async function load() {
   } finally {
     loading.value = false;
   }
+  await revealHashTarget();
+}
+
+/**
+ * Scroll to `#machine-<name>` once the cards it names actually exist.
+ *
+ * Nothing on this page is server-rendered -- the fetches above run on mount --
+ * so a `/#machine-rainforest-mini` link from Setup arrives at a document where
+ * the target has not been created yet. The browser looks once, finds nothing,
+ * and gives up silently, which reads as a dead link rather than a slow one.
+ */
+async function revealHashTarget() {
+  const id = window.location.hash.slice(1);
+  if (!id) return;
+  await nextTick();
+  document.getElementById(id)?.scrollIntoView({ block: 'start' });
 }
 
 // The header Refresh button re-runs the vault scripts, then broadcasts this
