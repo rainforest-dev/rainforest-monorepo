@@ -340,3 +340,52 @@ describe('readLoopState source provenance', () => {
     expect(readLoopState(0).recent_rounds).toHaveLength(1);
   });
 });
+
+describe('handoffs across machines', () => {
+  let dir: string;
+  const prev = process.env.VAULT_PATH;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'loop-ho-'));
+    process.env.VAULT_PATH = dir;
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+    if (prev === undefined) delete process.env.VAULT_PATH;
+    else process.env.VAULT_PATH = prev;
+  });
+
+  const put = (machine: string, project: string, stamp: string) => {
+    const d = join(dir, '_system', 'handoffs', machine, project);
+    mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, `${stamp}.md`), '# interrupted\n');
+  };
+
+  it('shows the newest handoff whichever machine left it', () => {
+    // The bug this closes: $LOOP_HOME/handoffs is machine-local and the
+    // container mounts one host's copy, so the OTHER machine's handoff was
+    // invisible on the page whose job is to show it.
+    put('rainforest-mini', 'obsidian-vault', '2026-09-01T100000Z');
+    put('rainforest-air', 'service-dashboard-frontend', '2026-09-02T080000Z');
+    const s = readLoopState(0);
+    expect(s.last_handoff).toContain('rainforest-air');
+    expect(s.sources.handoffs.present).toBe(true);
+    expect(s.sources.handoffs.newestEntry).toBe('2026-09-02');
+  });
+
+  it('orders by the filename stamp, not by mtime', () => {
+    // Both files are written seconds apart right now, so mtime would order them
+    // by write order. The stamp says which interruption actually came first --
+    // and 266 files in this vault share one synthetic mtime, so mtime is not a
+    // clock here at all.
+    put('a', 'p', '2026-09-02T080000Z');
+    put('b', 'p', '2026-08-01T080000Z');
+    expect(readLoopState(0).last_handoff).toContain('2026-09-02');
+  });
+
+  it('reports absent rather than empty when nothing has been left', () => {
+    const s = readLoopState(0);
+    expect(s.sources.handoffs.present).toBe(false);
+    expect(s.sources.handoffs.newestEntry).toBeNull();
+  });
+});

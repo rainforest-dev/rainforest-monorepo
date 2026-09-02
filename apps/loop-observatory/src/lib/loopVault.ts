@@ -155,3 +155,59 @@ export function readProgress(usageDir: string): ProgressRow[] {
     (b.updated_at ?? '').localeCompare(a.updated_at ?? ''),
   );
 }
+
+/** A handoff the runner left when a task was interrupted. */
+export interface Handoff {
+  machine: string;
+  project: string;
+  /** The `<ISO timestamp>.md` basename, which is when it was written. */
+  stamp: string;
+  path: string;
+}
+
+/**
+ * Handoffs from every machine, newest first.
+ *
+ * `$LOOP_HOME/handoffs` is machine-local, and the container mounts exactly one
+ * host's copy -- so until the runner started publishing here, a handoff left by
+ * the other machine was invisible on the page whose job is to show it. The
+ * layout is `handoffs/<machine>/<project>/<ISO timestamp>.md`, and the timestamp
+ * is in the filename rather than read from an mtime: 266 files in this vault
+ * share one synthetic mtime from a bulk restore.
+ */
+export function readHandoffs(systemDir: string): Handoff[] {
+  const root = join(systemDir, 'handoffs');
+  const out: Handoff[] = [];
+  let machines: string[];
+  try {
+    machines = readdirSync(root);
+  } catch {
+    return [];
+  }
+  for (const machine of machines) {
+    let projects: string[];
+    try {
+      projects = readdirSync(join(root, machine));
+    } catch {
+      continue;
+    }
+    for (const project of projects) {
+      let files: string[];
+      try {
+        files = readdirSync(join(root, machine, project));
+      } catch {
+        continue;
+      }
+      for (const f of files) {
+        if (!f.endsWith('.md')) continue;
+        out.push({
+          machine,
+          project,
+          stamp: f.replace(/\.md$/, ''),
+          path: join(root, machine, project, f),
+        });
+      }
+    }
+  }
+  return out.sort((a, b) => b.stamp.localeCompare(a.stamp));
+}

@@ -104,9 +104,33 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] ralph: $*"; }
 # first, losing exactly the record this exists to keep.
 write_handoff() { # slug task why resume
   local slug="$1" task="$2" why="$3" resume="$4"
-  local dir="$LOOP_HOME/handoffs/$slug"
-  local file="$dir/$(date -u '+%Y-%m-%dT%H%M%SZ').md"
-  mkdir -p "$dir" 2>/dev/null || { log "  handoff not written: cannot create $dir"; return 1; }
+  local stamp; stamp=$(date -u '+%Y-%m-%dT%H%M%SZ')
+  # The vault first, because a handoff nobody can reach is only half written.
+  # $LOOP_HOME/handoffs is machine-local: the Observatory container mounts one
+  # host's copy, so a handoff left by the other machine was invisible on the
+  # page whose job is to show it. The vault is the one place both machines write
+  # and the container reads, and it is already where the run ledger goes -- same
+  # directory, resolved the same way, so the two cannot drift apart.
+  #
+  # $VAULT_USAGE is `usage_path("").parent`, which is <vault>/_system -- NOT
+  # <vault>/_system/usage, despite the name. Handoffs land beside `usage/`
+  # rather than inside it on purpose: they are documents a person reads, not
+  # per-machine telemetry.
+  local dir file
+  if [ -n "${VAULT_USAGE:-}" ]; then
+    dir="$VAULT_USAGE/handoffs/${MACHINE:-unknown}/$slug"
+  else
+    dir="$LOOP_HOME/handoffs/$slug"
+  fi
+  file="$dir/$stamp.md"
+  if ! mkdir -p "$dir" 2>/dev/null; then
+    # Falling back is not the same as succeeding. Say which happened, so a
+    # handoff missing from the page can be told from one that was never written.
+    log "  handoff: vault unavailable ($dir); falling back to this machine only"
+    dir="$LOOP_HOME/handoffs/$slug"
+    file="$dir/$stamp.md"
+    mkdir -p "$dir" 2>/dev/null || { log "  handoff not written: cannot create $dir"; return 1; }
+  fi
   {
     printf -- '---\n'
     # Both ids. `task` is what loopctl addresses -- for an obsidian-base project
