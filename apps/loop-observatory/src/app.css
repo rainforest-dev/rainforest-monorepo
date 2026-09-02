@@ -75,3 +75,23 @@
     --scope-personal: #7c3aed;
   }
 }
+
+/*
+ * Shared horizontal-scroll affordance. The default macOS overlay scrollbar is
+ * invisible until it moves, so a column row that scrolls looks like one that
+ * has simply been cut off. This keeps a thin, always-present track in the
+ * theme's own border colour.
+ */
+@layer components {
+  .lo-scroll::-webkit-scrollbar {
+    height: 8px;
+  }
+  .lo-scroll::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
+  .lo-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}

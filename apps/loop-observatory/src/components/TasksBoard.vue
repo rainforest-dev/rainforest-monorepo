@@ -81,7 +81,7 @@ const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
 
 <template>
   <!-- The column row scrolls horizontally on narrow widths; the page never does. -->
-  <div class="-mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
+  <div class="lo-scroll -mx-1 flex gap-4 overflow-x-auto px-1 pb-3.5">
     <section
       v-for="col in columns"
       :key="col.status"
