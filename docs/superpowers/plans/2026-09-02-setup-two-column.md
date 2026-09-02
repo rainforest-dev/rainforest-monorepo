@@ -16,7 +16,7 @@ still quietly answers with the source that happens to be stale, which is how
 printed on two pages about the same machine on the same afternoon.
 
 The five command blocks are also read-only. Every one of them is a command a
-person is meant to run on a *different* machine, and the only way to get one
+person is meant to run on a _different_ machine, and the only way to get one
 there is to select it by hand out of a `<pre>` that scrolls horizontally.
 
 ## Acceptance criteria → where each lands
@@ -43,7 +43,7 @@ is never duplicated into a JS array that could drift from what is rendered.
 tailnet IP, deliberately (a Cloudflare-fronted origin is unreachable from the
 machine being enrolled). That is a non-secure context, so `navigator.clipboard`
 is `undefined` in Chrome and Safari. The button falls back to a hidden
-`textarea` + `document.execCommand('copy')`, and when *that* fails it says
+`textarea` + `document.execCommand('copy')`, and when _that_ fails it says
 `select it` rather than `copied`. A button that reports success it did not have
 is the same defect as a page that reports health it never checked.
 
@@ -56,7 +56,7 @@ count, so it gets unit tests instead of a template expression.
 
 **`Re-run ./enroll.sh` copies; it does not run.** This app cannot execute
 anything on the machine the card describes — that machine is the one that has
-not reported. Wiring the button to a local endpoint would enrol *this* host
+not reported. Wiring the button to a local endpoint would enrol _this_ host
 under another host's name. It copies the command and labels itself so.
 
 **`View last payload` renders `records[host].facts`.** `/api/enroll/hosts`
