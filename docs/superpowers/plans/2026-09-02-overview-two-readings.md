@@ -1,7 +1,7 @@
 # Overview's Machines: two readings, and where they disagree
 
 Task `T-20260902130101` (P1, `loop-observatory`). Spec: `LoopObservatoryDesktop v2.dc.html`
-in the *Loop Observatory Mobile View* design project. v1 is fiction and is not a source.
+in the _Loop Observatory Mobile View_ design project. v1 is fiction and is not a source.
 
 ## The argument the design is making
 
@@ -15,7 +15,7 @@ exactly what `readingsFor()` in `src/lib/enroll/view.ts` was built to surface.
 
 `SetupPanel.vue` already renders `readings.{enrollment,telemetry,conflict}`.
 `MachinesPanel.vue` and `OverviewDashboard.vue` do not read them at all. So Overview
-still picks one clock and reports it as *the* "Last seen" — the arbitration the design
+still picks one clock and reports it as _the_ "Last seen" — the arbitration the design
 forbids. This is mostly a wiring task, not a new data pipeline.
 
 ## Changes
@@ -31,14 +31,14 @@ and gets unit tests:
   is the inverse of the current `statusOf(used_pct)`, and the inversion is the point.
 - `HALT_AT_PCT = 10` and `haltMarker(bar)` — the 5-hour window carries the line the
   loop actually stops at, so a reader sees the threshold and not just the value.
-- `readingPills(readings)` — one pill per source, each naming *its own* source file and
-  *its own* age, plus `expired` on an enrollment report past `STALE_AFTER_MS`.
+- `readingPills(readings)` — one pill per source, each naming _its own_ source file and
+  _its own_ age, plus `expired` on an enrollment report past `STALE_AFTER_MS`.
 - `unknownNote(bar)` — "no figure since X — unknown, not zero".
 
 ### 2. `src/components/MachinesPanel.vue`
 
 - Accept a `readings` prop keyed by machine name; render the two pills and, when
-  `readings.conflict` is set, a *Sources disagree* box with `snapshot says` /
+  `readings.conflict` is set, a _Sources disagree_ box with `snapshot says` /
   `enrollment says` and the server's one-line explanation of why both hold.
   It states the split. It does not resolve it, and it does not rank the sources.
 - Replace the single "Last seen" line, which was the arbitration.
