@@ -1,17 +1,25 @@
 <!-- apps/loop-observatory/src/components/SetupPanel.vue -->
 <script setup lang="ts">
-// Type-only imports: this is a client-hydrated island, so importing runtime
-// values from lib/enroll would drag its node:fs deps into the browser bundle.
-import { onMounted, ref } from 'vue';
+// Type-only imports where the module reaches node: this is a client-hydrated
+// island, so a runtime import from lib/enroll or lib/budget would drag their
+// node:fs deps into the browser bundle. `machineReadings.ts` is deliberately
+// node-free, so the sentences it builds are imported for real and unit-tested
+// rather than restated in this template.
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
+import CommandBlock from '@/components/CommandBlock.vue';
+import type { MachineBudget, MachineBudgetMap } from '@/lib/budget';
+import { COPY_FEEDBACK_MS, copyText } from '@/lib/clipboard';
 import type { Drift } from '@/lib/enroll/drift';
-import type { DerivedFile } from '@/lib/enroll/types';
+import type { DerivedFile, HostFacts } from '@/lib/enroll/types';
 import type { HostState } from '@/lib/enroll/view';
-
-interface Reading {
-  ageMs: number;
-  source: string;
-}
+import {
+  enrollmentDoubt,
+  type HostReadings,
+  type Reading,
+  snapshotFreshness,
+  snapshotSays,
+} from '@/lib/machineReadings';
 
 interface HostView {
   state: HostState;
@@ -19,11 +27,12 @@ interface HostView {
   drift: Drift[];
   files: DerivedFile[];
   error: string | null;
-  readings: {
-    enrollment: Reading | null;
-    telemetry: Reading | null;
-    conflict: string | null;
-  };
+  readings: HostReadings;
+}
+
+interface HostRecord {
+  facts: HostFacts | null;
+  reportedAt: number | null;
 }
 
 /**
@@ -51,6 +60,11 @@ const STATE_CLASS: Record<HostState, string> = {
   refused: 'text-amber-600',
 };
 
+/** Status colours, always paired with a word — never colour on its own. */
+const OK_STYLE = { color: 'var(--status-good)' };
+const WARN_STYLE = { color: 'var(--status-warning)' };
+const BAD_STYLE = { color: 'var(--status-critical)' };
+
 // Hardcoded on purpose, not derived from window.location.origin. This page is
 // commonly viewed through a Cloudflare-fronted hostname, which is an address
 // for the *viewer's* browser, not for the machine running install.sh. That
@@ -60,17 +74,49 @@ const STATE_CLASS: Record<HostState, string> = {
 // enrolling machine regardless of how the person reading this page got here.
 const ENROLL_APP_URL = 'http://100.86.67.66:3099';
 
+/** Mirrors STALE_AFTER_MS in drift.ts: the window the report is valid for. */
+const EXPIRES_AFTER_MS = 15 * 60 * 1000;
+
 const views = ref<Record<string, HostView>>({});
+const records = ref<Record<string, HostRecord>>({});
+const budgets = ref<MachineBudgetMap>({});
 const loading = ref(true);
 const loadError = ref<string | null>(null);
+/**
+ * When the ages in `views` were measured. They arrive as durations, so turning
+ * one back into a clock time needs the instant it was taken from -- not
+ * `Date.now()` at render, which drifts by however long the page has been open.
+ */
+const loadedAt = ref(Date.now());
+/** Hosts whose reported payload is expanded. */
+const openPayloads = ref<Set<string>>(new Set());
 
 async function load() {
   loading.value = true;
   loadError.value = null;
   try {
-    const res = await fetch('/api/enroll/hosts');
-    if (!res.ok) throw new Error(`/api/enroll/hosts HTTP ${res.status}`);
-    views.value = (await res.json()).views ?? {};
+    // The budget snapshot is the OTHER reading, and it is optional: if it
+    // fails, the right-hand column says it has no snapshot rather than leaving
+    // the enrollment report looking like the only source that was ever checked.
+    const [hRes, bRes] = await Promise.all([
+      fetch('/api/enroll/hosts'),
+      fetch('/api/budget').catch(() => null),
+    ]);
+    if (!hRes.ok) throw new Error(`/api/enroll/hosts HTTP ${hRes.status}`);
+    const hData = (await hRes.json()) as {
+      views?: Record<string, HostView>;
+      records?: Record<string, HostRecord>;
+    };
+    loadedAt.value = Date.now();
+    views.value = hData.views ?? {};
+    records.value = hData.records ?? {};
+
+    if (bRes?.ok) {
+      const bData = (await bRes.json()) as MachineBudgetMap | { error: string };
+      budgets.value = 'error' in bData ? {} : bData;
+    } else {
+      budgets.value = {};
+    }
   } catch (e) {
     // readHosts() throws rather than reporting {} on a permissions/IO error,
     // specifically so this failure stays visible instead of reading as "no
@@ -93,7 +139,121 @@ function age(ms: number): string {
   return `${Math.floor(hr / 24)} days`;
 }
 
-onMounted(load);
+/** The age said again as a clock time, because "21 h 39 min ago" is hard to
+ *  line up against a terminal scrollback and "12:19 yesterday" is not. */
+function clockTime(ms: number): string {
+  const at = new Date(loadedAt.value - ms);
+  const time = at.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const days = Math.floor(
+    (new Date(loadedAt.value).setHours(0, 0, 0, 0) -
+      new Date(at).setHours(0, 0, 0, 0)) /
+      86_400_000,
+  );
+  if (days === 0) return time;
+  if (days === 1) return `${time} yesterday`;
+  return `${time} on ${at.toLocaleDateString()}`;
+}
+
+interface ColumnPair {
+  host: string;
+  view: HostView;
+  /** Enrollment side: the report expires and nothing re-sends it. */
+  expiry: { label: string; style: Record<string, string> };
+  lastSent: string;
+  doubt: string;
+  /** Snapshot side: a different file, on a different clock. */
+  written: string;
+  writtenStyle: Record<string, string>;
+  says: string;
+  /**
+   * The server's sentence when the two contradict each other, and an explicit
+   * statement when they do not. Never blank: an empty right-hand column would
+   * read as "checked and fine", which is the inference this page exists to
+   * refuse.
+   */
+  conflict: string;
+  conflictStyle: Record<string, string>;
+  payload: string | null;
+}
+
+const pairs = computed<ColumnPair[]>(() =>
+  Object.entries(views.value).map(([host, view]) => {
+    const enrollment: Reading | null = view.readings.enrollment;
+    const telemetry: Reading | null = view.readings.telemetry;
+    const fresh = snapshotFreshness(telemetry);
+    const budget: MachineBudget | null = budgets.value[host] ?? null;
+    const facts = records.value[host]?.facts ?? null;
+
+    return {
+      host,
+      view,
+      expiry: enrollment
+        ? enrollment.ageMs > EXPIRES_AFTER_MS
+          ? { label: 'expired', style: WARN_STYLE }
+          : { label: 'in window', style: OK_STYLE }
+        : { label: 'never sent', style: BAD_STYLE },
+      lastSent: enrollment
+        ? `${age(enrollment.ageMs)} ago (${clockTime(enrollment.ageMs)})`
+        : 'never',
+      doubt: enrollmentDoubt(enrollment),
+      written: telemetry
+        ? `${age(telemetry.ageMs)} ago (${clockTime(telemetry.ageMs)})`
+        : 'no snapshot on disk',
+      writtenStyle: telemetry
+        ? fresh.alive
+          ? OK_STYLE
+          : WARN_STYLE
+        : BAD_STYLE,
+      says: snapshotSays(budget),
+      conflict:
+        view.readings.conflict ??
+        (telemetry
+          ? 'These two do not contradict each other right now. That is agreement between two sources, not confirmation by one — each is still only as good as its own clock.'
+          : 'There is no second reading for this machine, so nothing here has been corroborated. One source agreeing with itself is not two sources agreeing.'),
+      conflictStyle: view.readings.conflict ? WARN_STYLE : {},
+      payload: facts ? JSON.stringify(facts, null, 2) : null,
+    };
+  }),
+);
+
+/**
+ * The re-run button copies; it does not run.
+ *
+ * This app cannot execute anything on the machine the card describes -- that
+ * machine is the one that has not reported, and it is reachable only from its
+ * own console. A button wired to a local endpoint would enrol THIS host under
+ * another host's name, which is precisely the self-promotion `enroll.sh` is
+ * built to make impossible.
+ */
+const ENROLL_COMMAND = './enroll.sh';
+const copiedEnroll = ref<string | null>(null);
+let enrollTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function copyEnroll(host: string) {
+  const ok = await copyText(ENROLL_COMMAND);
+  copiedEnroll.value = ok ? host : null;
+  clearTimeout(enrollTimer);
+  enrollTimer = setTimeout(() => (copiedEnroll.value = null), COPY_FEEDBACK_MS);
+}
+
+function togglePayload(host: string) {
+  const next = new Set(openPayloads.value);
+  if (next.has(host)) next.delete(host);
+  else next.add(host);
+  openPayloads.value = next;
+}
+
+onMounted(() => {
+  load();
+  window.addEventListener('lo:refresh', load);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('lo:refresh', load);
+  clearTimeout(enrollTimer);
+});
 </script>
 
 <template>
@@ -110,16 +270,16 @@ onMounted(load);
         <li>
           Join this machine to the tailnet, then check the app answers — that,
           not membership itself, is what the rest of these steps need:
-          <pre
-            class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>curl -fsS {{ ENROLL_APP_URL }}/api/enroll/probes >/dev/null &amp;&amp; echo reachable</code></pre>
+          <CommandBlock>
+            <pre><code>curl -fsS {{ ENROLL_APP_URL }}/api/enroll/probes >/dev/null &amp;&amp; echo reachable</code></pre>
+          </CommandBlock>
         </li>
         <li>
           Sign in:
-          <pre
-            class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>claude auth login   # NOT `claude login` — that has no such subcommand
+          <CommandBlock>
+            <pre><code>claude auth login   # NOT `claude login` — that has no such subcommand
 gh auth login -h github.com</code></pre>
+          </CommandBlock>
           <p class="text-muted-foreground mt-1">
             <code>-h github.com</code> answers the only question
             <code>gh</code> asks before it needs a person: the rest of the flow
@@ -139,12 +299,12 @@ gh auth login -h github.com</code></pre>
           enrolled this way was given no location, extracted into the Obsidian
           vault root, and synced nine files to every device before anyone
           noticed:
-          <pre
-            class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>mkdir -p ~/.local/share/loop-enroll && cd ~/.local/share/loop-enroll
+          <CommandBlock>
+            <pre><code>mkdir -p ~/.local/share/loop-enroll && cd ~/.local/share/loop-enroll
 curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle -o loop-engine.tar.gz
 curl -fsSL {{ ENROLL_APP_URL }}/api/enroll/bundle.sha256 -o loop-engine.tar.gz.sha256
 shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code></pre>
+          </CommandBlock>
           <p class="text-muted-foreground mt-1">
             The digest is the one CI published beside the release asset. Served
             from this host over plain <code>http</code>, so it catches a
@@ -158,9 +318,9 @@ shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code><
         <li>
           Report what this machine actually is. From the directory
           <code>tar</code> just extracted:
-          <pre
-            class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>./enroll.sh</code></pre>
+          <CommandBlock>
+            <pre><code>./enroll.sh</code></pre>
+          </CommandBlock>
           <p class="text-muted-foreground mt-1">
             It fetches the probe list from this app, runs each probe here, and
             posts the answers back. It reports; it does not decide — what a
@@ -172,9 +332,9 @@ shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code><
         </li>
         <li>
           Install the roles this machine is declared to have:
-          <pre
-            class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>./install.sh</code></pre>
+          <CommandBlock>
+            <pre><code>./install.sh</code></pre>
+          </CommandBlock>
           <p class="text-muted-foreground mt-1">
             Add <code>--host=&lt;name&gt;</code> if this machine's
             <code>scutil --get LocalHostName</code> doesn't match its entry. The
@@ -189,9 +349,8 @@ shasum -a 256 -c loop-engine.tar.gz.sha256 && tar xzf loop-engine.tar.gz</code><
         <li>
           Install the agent skills. One source in the vault, which reaches this
           machine over iCloud — no clone and no credentials:
-          <pre
-            class="bg-muted mt-1 overflow-x-auto rounded p-2"
-          ><code>VAULT=~/Library/Mobile\ Documents/iCloud~md~obsidian/Documents/rainforest-obsidian
+          <CommandBlock>
+            <pre><code>VAULT=~/Library/Mobile\ Documents/iCloud~md~obsidian/Documents/rainforest-obsidian
 PLUGINS="$VAULT/ai-resources/plugins"
 
 # Claude Code
@@ -212,6 +371,7 @@ done
 # sweep every symlink here that no longer resolves — including ones this machine
 # is no longer entitled to. find, not a glob: zsh aborts on an unmatched one.
 find ~/.agents/skills -maxdepth 1 -type l -exec sh -c '[ -e "$1" ] || rm "$1"' _ {} \;</code></pre>
+          </CommandBlock>
           <p class="text-muted-foreground mt-1">
             Pick <em>one</em> of <code>work</code> /
             <code>personal</code> beside <code>core</code>. That split is the
@@ -270,72 +430,162 @@ find ~/.agents/skills -maxdepth 1 -type l -exec sh -c '[ -e "$1" ] || rm "$1"' _
       </button>
     </div>
 
-    <template v-else>
-      <div
-        v-for="(view, host) in views"
-        :key="host"
-        class="rounded-lg border p-4"
-      >
-        <h3 class="font-medium">{{ host }}</h3>
-        <p class="mt-1 text-sm" :class="STATE_CLASS[view.state]">
-          {{ STATE_LABEL[view.state] }}
-        </p>
-        <p v-if="view.detail" class="text-muted-foreground mt-1 text-sm">
-          {{ view.detail }}
-        </p>
-        <p v-if="view.error" class="mt-1 text-sm text-amber-600">
-          {{ view.error }}
-        </p>
-
-        <!-- Both ages, each named by the file it came from. Never merged into
-             one "last seen": they are written by different things at different
-             rates, and when they disagree that IS the state worth showing. -->
-        <dl
-          class="text-muted-foreground mt-2 grid grid-cols-[auto_1fr] gap-x-3 text-xs"
-        >
-          <dt>enrollment</dt>
-          <dd>
-            <template v-if="view.readings.enrollment">
-              {{ age(view.readings.enrollment.ageMs) }} old ·
-              <code>{{ view.readings.enrollment.source }}</code>
-            </template>
-            <template v-else>never reported</template>
-          </dd>
-          <dt>telemetry</dt>
-          <dd>
-            <template v-if="view.readings.telemetry">
-              {{ age(view.readings.telemetry.ageMs) }} old ·
-              <code>{{ view.readings.telemetry.source }}</code>
-            </template>
-            <template v-else>no snapshot</template>
-          </dd>
-        </dl>
-        <p
-          v-if="view.readings.conflict"
-          class="mt-2 rounded-md border border-amber-500/40 p-2 text-xs text-amber-700 dark:text-amber-400"
-        >
-          {{ view.readings.conflict }}
-        </p>
-        <ul
-          v-if="view.drift.length"
-          class="mt-2 space-y-1 text-sm text-amber-600"
-        >
-          <li v-for="d in view.drift" :key="d.kind + d.detail">
-            {{ d.kind }}: {{ d.detail }}
-          </li>
-        </ul>
-        <details v-if="view.files.length" class="mt-2">
-          <summary class="cursor-pointer text-sm">
-            {{ view.files.length }} derived files
-          </summary>
-          <div v-for="f in view.files" :key="f.path" class="mt-2">
-            <p class="font-mono text-xs">{{ f.path }}</p>
-            <pre
-              class="bg-muted overflow-x-auto rounded p-2 text-xs"
-            ><code>{{ f.contents }}</code></pre>
-          </div>
-        </details>
+    <section v-else class="flex flex-col gap-4">
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 class="font-medium">Enrolled hosts</h2>
+        <span class="text-muted-foreground font-mono text-xs">
+          enrollment report only · expires 15 min after it is sent
+        </span>
       </div>
-    </template>
+
+      <!-- Two columns, and the split is the point. The left one is everything
+           `enroll.sh` said about this machine; the right one is the same
+           machine read from a different file on a different clock. They are
+           never merged, and neither is promoted to "the state". -->
+      <article
+        v-for="pair in pairs"
+        :key="pair.host"
+        class="grid grid-cols-1 overflow-hidden rounded-lg border md:grid-cols-2"
+      >
+        <div class="flex flex-col gap-3 p-4">
+          <div class="flex items-start justify-between gap-3">
+            <h3 class="font-mono text-sm">{{ pair.host }}</h3>
+            <span
+              class="border-border shrink-0 rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wide"
+              :style="pair.expiry.style"
+            >
+              {{ pair.expiry.label }}
+            </span>
+          </div>
+
+          <p class="text-sm" :class="STATE_CLASS[pair.view.state]">
+            {{ STATE_LABEL[pair.view.state] }}
+          </p>
+          <p v-if="pair.view.detail" class="text-muted-foreground text-sm">
+            {{ pair.view.detail }}
+          </p>
+          <p v-if="pair.view.error" class="text-sm text-amber-600">
+            {{ pair.view.error }}
+          </p>
+
+          <dl
+            class="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-xs"
+          >
+            <dt>source</dt>
+            <dd class="text-foreground">enrollment report · hosts.json</dd>
+            <dt>last sent</dt>
+            <dd :style="pair.expiry.style">{{ pair.lastSent }}</dd>
+            <dt>expires after</dt>
+            <dd class="text-foreground">15 min · nothing re-sends it</dd>
+          </dl>
+
+          <p class="text-sm leading-relaxed">{{ pair.doubt }}</p>
+
+          <ul
+            v-if="pair.view.drift.length"
+            class="space-y-1 text-sm text-amber-600"
+          >
+            <li v-for="d in pair.view.drift" :key="d.kind + d.detail">
+              {{ d.kind }}: {{ d.detail }}
+            </li>
+          </ul>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              class="border-border hover:bg-muted h-9 rounded-md border px-3 text-sm transition-colors"
+              title="Copies the command — this app cannot run it on that machine"
+              @click="copyEnroll(pair.host)"
+            >
+              {{
+                copiedEnroll === pair.host
+                  ? 'copied — run it there'
+                  : 'Re-run ./enroll.sh'
+              }}
+            </button>
+            <button
+              type="button"
+              class="text-muted-foreground hover:text-foreground h-9 rounded-md px-3 text-sm transition-colors"
+              :aria-expanded="openPayloads.has(pair.host)"
+              @click="togglePayload(pair.host)"
+            >
+              {{ openPayloads.has(pair.host) ? 'Hide' : 'View' }} last payload
+            </button>
+          </div>
+          <p class="text-muted-foreground text-xs">
+            That button copies the command. It has to be run on
+            <code>{{ pair.host }}</code> itself — nothing here can reach a
+            machine that has stopped reporting, and a button that enrolled
+            <em>this</em> host under that name would be worse than no button.
+          </p>
+
+          <div v-if="openPayloads.has(pair.host)">
+            <p class="text-muted-foreground mb-1 font-mono text-xs">
+              exactly what this host reported, at the time named above
+            </p>
+            <pre
+              v-if="pair.payload"
+              class="bg-muted max-h-72 overflow-auto rounded p-2 text-xs"
+            ><code>{{ pair.payload }}</code></pre>
+            <p v-else class="text-muted-foreground text-xs">
+              No payload on record — this host has never posted its facts.
+            </p>
+          </div>
+
+          <details v-if="pair.view.files.length">
+            <summary class="cursor-pointer text-sm">
+              {{ pair.view.files.length }} derived files
+            </summary>
+            <div v-for="f in pair.view.files" :key="f.path" class="mt-2">
+              <p class="font-mono text-xs">{{ f.path }}</p>
+              <pre
+                class="bg-muted overflow-x-auto rounded p-2 text-xs"
+              ><code>{{ f.contents }}</code></pre>
+            </div>
+          </details>
+        </div>
+
+        <div
+          class="bg-muted/40 flex flex-col gap-3 border-t p-4 md:border-l md:border-t-0"
+        >
+          <span
+            class="text-muted-foreground font-mono text-[10px] uppercase tracking-wide"
+          >
+            The other reading of this machine
+          </span>
+          <dl
+            class="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-xs"
+          >
+            <dt>source</dt>
+            <dd class="text-foreground">
+              quota snapshot ·
+              <template v-if="pair.view.readings.telemetry">
+                {{ pair.view.readings.telemetry.source }}
+              </template>
+              <template v-else>none on disk</template>
+            </dd>
+            <dt>written</dt>
+            <dd :style="pair.writtenStyle">{{ pair.written }}</dd>
+            <dt>says</dt>
+            <dd class="text-foreground">{{ pair.says }}</dd>
+          </dl>
+
+          <p class="text-sm leading-relaxed" :style="pair.conflictStyle">
+            {{ pair.conflict }}
+          </p>
+
+          <!-- Same machine, same two readings, drawn as bars. The link exists
+               because this column is a summary of Overview's card, and a
+               summary a reader cannot get back to the source of is just an
+               assertion. -->
+          <a
+            :href="`/#machine-${pair.host}`"
+            class="mt-auto font-mono text-xs text-[var(--status-good)] hover:underline"
+          >
+            see it on Overview →
+          </a>
+        </div>
+      </article>
+    </section>
   </section>
 </template>

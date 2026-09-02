@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   disagreement,
+  enrollmentDoubt,
   HALT_AT_PCT,
   HALT_MARKER_LABEL,
   type HostReadings,
@@ -10,6 +11,8 @@ import {
   readingPills,
   remainingPct,
   remainingStatus,
+  snapshotFreshness,
+  snapshotSays,
   unknownNote,
 } from './machineReadings.js';
 
@@ -144,5 +147,151 @@ describe('stating a disagreement without settling it', () => {
       'snapshotSays',
       'why',
     ]);
+  });
+});
+
+describe('what the quota snapshot says', () => {
+  const NOW = 1_800_000_000_000;
+  const future = (h: number) => (NOW + h * HOUR) / 1000;
+  const past = (h: number) => (NOW - h * HOUR) / 1000;
+
+  it('refuses to describe a machine it has no snapshot for', () => {
+    expect(snapshotSays(null, NOW)).toBe('no quota snapshot for this machine');
+  });
+
+  it('leads with the 5-hour window, because that is what the loop halts on', () => {
+    const says = snapshotSays(
+      {
+        claude: {
+          bars: [
+            {
+              label: 'Weekly · all models',
+              used_pct: 20,
+              resets_at: future(72),
+            },
+            { label: '5-hour', used_pct: 90, resets_at: future(4) },
+          ],
+        },
+      },
+      NOW,
+    );
+    expect(says).toBe(
+      'alive · 10.0% of the 5-hour window left — at the halt line',
+    );
+  });
+
+  it('flags the halt line only at or below the threshold', () => {
+    const bar = (used: number) => ({
+      claude: {
+        bars: [{ label: '5-hour', used_pct: used, resets_at: future(4) }],
+      },
+    });
+    expect(snapshotSays(bar(89), NOW)).toBe(
+      'alive · 11.0% of the 5-hour window left',
+    );
+    expect(snapshotSays(bar(90), NOW)).toContain('at the halt line');
+  });
+
+  it('says unknown, not zero, when every window has already rolled over', () => {
+    expect(
+      snapshotSays(
+        {
+          claude: {
+            bars: [
+              { label: '5-hour', used_pct: 40, resets_at: past(9) },
+              { label: 'Weekly · all models', used_pct: 40, resets_at: null },
+            ],
+          },
+        },
+        NOW,
+      ),
+    ).toBe('alive · quota figures stale · unknown');
+  });
+
+  it('names the window when only that one rolled over', () => {
+    expect(
+      snapshotSays(
+        {
+          claude: {
+            bars: [
+              { label: '5-hour', used_pct: 40, resets_at: past(1) },
+              {
+                label: 'Weekly · all models',
+                used_pct: 40,
+                resets_at: future(72),
+              },
+            ],
+          },
+        },
+        NOW,
+      ),
+    ).toBe('alive · 5-hour stale · unknown');
+  });
+
+  it('falls back to the first window when there is no 5-hour one', () => {
+    expect(
+      snapshotSays(
+        {
+          codex: {
+            bars: [{ label: 'Weekly', used_pct: 66, resets_at: future(144) }],
+          },
+        },
+        NOW,
+      ),
+    ).toBe('alive · 34.0% of the Weekly window left');
+  });
+
+  it('distinguishes a snapshot with no windows from no snapshot at all', () => {
+    expect(snapshotSays({ claude: null, codex: null }, NOW)).toBe(
+      'alive · reports no quota window',
+    );
+  });
+});
+
+describe('whether the snapshot itself is fresh enough to say "alive"', () => {
+  it('treats two hourly cycles as the limit', () => {
+    expect(
+      snapshotFreshness({ ageMs: 4 * MIN, source: 'quota.mini.json' }),
+    ).toEqual({
+      alive: true,
+      status: 'ok',
+    });
+    expect(
+      snapshotFreshness({ ageMs: 3 * HOUR, source: 'quota.mini.json' }),
+    ).toEqual({
+      alive: false,
+      status: 'warn',
+    });
+  });
+
+  it('has no snapshot at all as its own worst case', () => {
+    expect(snapshotFreshness(null)).toEqual({ alive: false, status: 'bad' });
+  });
+});
+
+describe('why the enrollment report can or cannot be trusted', () => {
+  it('never reported is not the same as expired', () => {
+    expect(enrollmentDoubt(null)).toContain('has never run ./enroll.sh');
+  });
+
+  it('says a fresh report will expire, since nothing re-sends it', () => {
+    const doubt = enrollmentDoubt({ ageMs: 2 * MIN, source: 'hosts.json' });
+    expect(doubt).toContain('Reported recently enough to be trusted');
+    expect(doubt).toContain('nothing re-sends it');
+  });
+
+  it('dates the expiry from the 15-minute window, not from the report', () => {
+    // 21 h 39 m old: expired 21 h 24 m ago, not 21 h 39 m ago.
+    const doubt = enrollmentDoubt({
+      ageMs: 21 * HOUR + 39 * MIN,
+      source: 'hosts.json',
+    });
+    expect(doubt).toContain('It expired 21 h 24 min ago');
+  });
+
+  it('does not call an expired report an offline machine', () => {
+    const doubt = enrollmentDoubt({ ageMs: 5 * HOUR, source: 'hosts.json' });
+    expect(doubt).not.toMatch(/offline|down|dead/i);
+    expect(doubt).toContain('unverified');
   });
 });

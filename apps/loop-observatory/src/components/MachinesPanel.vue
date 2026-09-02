@@ -334,7 +334,15 @@ const cards = computed<Card[]>(() => {
     </div>
 
     <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <Card v-for="card in cards" :key="card.name">
+      <!-- Anchor target for Setup's `see it on Overview →`. `scroll-mt` clears
+           the sticky header, which would otherwise put the card's own name
+           under it. -->
+      <Card
+        v-for="card in cards"
+        :id="`machine-${card.name}`"
+        :key="card.name"
+        class="scroll-mt-20"
+      >
         <CardHeader>
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
