@@ -205,11 +205,13 @@ agy plugin install "$PLUGINS/rainforest-core"
 agy plugin install "$PLUGINS/rainforest-work"          # match the choice above
 
 # Codex has no plugin system — symlink the SAME two plugins, not all three
+mkdir -p ~/.agents/skills
 for plugin in rainforest-core rainforest-work; do
   for d in "$PLUGINS/$plugin/skills"/*/; do ln -sfn "${d%/}" ~/.agents/skills/"$(basename "${d%/}")"; done
 done
-# drop links to skills this machine is no longer entitled to
-for l in ~/.agents/skills/*; do [ -L "$l" ] &amp;&amp; [ ! -e "$l" ] &amp;&amp; rm "$l"; done</code></pre>
+# sweep every symlink here that no longer resolves — including ones this machine
+# is no longer entitled to. find, not a glob: zsh aborts on an unmatched one.
+find ~/.agents/skills -maxdepth 1 -type l -exec sh -c '[ -e "$1" ] || rm "$1"' _ {} \;</code></pre>
           <p class="text-muted-foreground mt-1">
             Pick <em>one</em> of <code>work</code> /
             <code>personal</code> beside <code>core</code>. That split is the
@@ -232,10 +234,15 @@ for l in ~/.agents/skills/*; do [ -L "$l" ] &amp;&amp; [ ! -e "$l" ] &amp;&amp; 
             machine deliberately did not install — on 2026-08-31 the personal
             machine's Codex carried all five work skills while its Claude and
             agy correctly had none, so the boundary held for two agents out of
-            three. It also uses <code>ln -sfn</code> and then sweeps dangling
-            links: these skills moved directories once already, and a dangling
-            symlink is not an error to Codex — the skill is simply invisible, so
-            nothing reports it.
+            three. It also creates <code>~/.agents/skills</code> first — on a
+            machine that has never run Codex it does not exist, and
+            <code>ln</code> would fail once per skill while the loop carried on,
+            leaving Codex with nothing and saying so only in a wall of errors.
+            The sweep afterwards uses <code>find</code> rather than a glob
+            because zsh aborts on one that matches nothing, and it removes every
+            link that no longer resolves: these skills moved directories once
+            already, and a dangling symlink is not an error to Codex — the skill
+            is simply invisible, so nothing reports it.
           </p>
         </li>
       </ol>
