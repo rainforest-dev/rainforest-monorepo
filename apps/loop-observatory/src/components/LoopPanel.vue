@@ -15,9 +15,24 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import type { LoopState } from '@/lib/loop';
+import type { LoopState, SourceStatus } from '@/lib/loop';
 
 defineProps<{ loop: LoopState | null }>();
+
+/**
+ * What an empty section actually means.
+ *
+ * "No task currently claimed." reads as a statement about now. On 2026-09-02 it
+ * was a statement about 2026-07-13: all three files this panel reads belong to
+ * the retired `vault` source adapter, no project declares `source: vault` any
+ * more, and nothing has written them since. An absent source and an empty one
+ * produced the same sentence, so the panel could not say which it was.
+ */
+function emptyReason(src: SourceStatus, nothing: string): string {
+  if (!src.present) return `source not present — ${src.path}`;
+  if (!src.newestEntry) return `${nothing} — source has no dated entry`;
+  return `${nothing} as of ${src.newestEntry}`;
+}
 </script>
 
 <template>
@@ -61,7 +76,7 @@ defineProps<{ loop: LoopState | null }>();
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
-              No task currently claimed.
+              {{ emptyReason(loop.sources.task_queue, 'No task claimed') }}
             </p>
           </div>
 
@@ -91,7 +106,9 @@ defineProps<{ loop: LoopState | null }>();
                 </div>
               </li>
             </ul>
-            <p v-else class="text-muted-foreground text-sm">Nothing blocked.</p>
+            <p v-else class="text-muted-foreground text-sm">
+              {{ emptyReason(loop.sources.task_queue, 'Nothing blocked') }}
+            </p>
           </div>
         </div>
 
@@ -119,7 +136,7 @@ defineProps<{ loop: LoopState | null }>();
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
-              No rounds recorded.
+              {{ emptyReason(loop.sources.task_queue, 'No rounds recorded') }}
             </p>
           </div>
 
@@ -155,7 +172,11 @@ defineProps<{ loop: LoopState | null }>();
               {{ loop.last_handoff }}
             </p>
             <p v-else class="text-muted-foreground text-sm">
-              No handoffs recorded.
+              {{
+                loop.sources.handoffs.present
+                  ? 'No handoff has ever been written here — not “none today”.'
+                  : `source not present — ${loop.sources.handoffs.path}`
+              }}
             </p>
           </div>
         </div>

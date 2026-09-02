@@ -39,6 +39,12 @@ export interface LoopState {
   recent_progress: ProgressEntry[];
   last_handoff: string | null;
   budget_mode_by_machine: Record<string, BudgetMode>;
+  /** Provenance for the three file-backed sections above. */
+  sources: {
+    task_queue: SourceStatus;
+    progress: SourceStatus;
+    handoffs: SourceStatus;
+  };
 }
 
 function vaultBase(): string {
@@ -57,12 +63,45 @@ export function handoffIndexPath(): string {
   return join(vaultBase(), '.claude', 'handoffs', 'INDEX.md');
 }
 
-function readFileOrEmpty(path: string): string {
+/**
+ * Where one of this panel's answers came from, and how old that answer is.
+ *
+ * Without this the panel could not tell "the source is gone" from "the source
+ * says nothing", because `readFileOrEmpty` returned `''` for both. Measured
+ * 2026-09-02 on the live app: all three files below were last written
+ * 2026-07-30 and carry content from 2026-07-11..13, because they belong to the
+ * retired `vault` source adapter -- no project uses `source: vault` any more,
+ * so nothing writes them. The panel rendered "No task currently claimed",
+ * "Nothing blocked" and "No handoffs recorded", every one of which reads as a
+ * statement about now.
+ */
+export interface SourceStatus {
+  /** Named in the UI, so a reader can see which file an answer came from. */
+  path: string;
+  /** False when the file could not be read at all -- absent, or unreadable. */
+  present: boolean;
+  /**
+   * Newest date in the file's OWN CONTENT, never its mtime. iCloud rewrites
+   * mtimes on sync, and 266 files in this vault share one synthetic timestamp
+   * from a bulk restore on 2026-07-30, so mtime is not a freshness signal here.
+   * Null means the file was read but holds no dated entry to age.
+   */
+  newestEntry: string | null;
+}
+
+function readSource(path: string): { text: string; present: boolean } {
   try {
-    return readFileSync(path, 'utf-8');
+    return { text: readFileSync(path, 'utf-8'), present: true };
   } catch {
-    return '';
+    return { text: '', present: false };
   }
+}
+
+/** The newest `YYYY-MM-DD` anywhere in the text, or null if it carries none. */
+export function newestDateIn(content: string): string | null {
+  const found = content.match(/\d{4}-\d{2}-\d{2}/g);
+  if (!found?.length) return null;
+  return found.reduce((a, b) => (a >= b ? a : b));
 }
 
 /** Strip markdown checkbox/list prefix and inline HTML comments from a task line. */
@@ -191,14 +230,25 @@ export function budgetModesByMachine(
 
 /** Read and combine all loop-state files. Graceful when any file is absent. */
 export function readLoopState(nowMs: number = Date.now()): LoopState {
-  const { claimed, blocked, recent_rounds } = parseTaskQueue(
-    readFileOrEmpty(taskQueuePath()),
-  );
-  const recent_progress = parseProgress(readFileOrEmpty(progressPath()));
-  const last_handoff = parseHandoffIndex(readFileOrEmpty(handoffIndexPath()));
+  const queue = readSource(taskQueuePath());
+  const progress = readSource(progressPath());
+  const handoffs = readSource(handoffIndexPath());
+
+  const { claimed, blocked, recent_rounds } = parseTaskQueue(queue.text);
+  const recent_progress = parseProgress(progress.text);
+  const last_handoff = parseHandoffIndex(handoffs.text);
   const budget_mode_by_machine = budgetModesByMachine(
     readMachineBudgets(nowMs),
   );
+
+  const status = (
+    path: string,
+    read: { text: string; present: boolean },
+  ): SourceStatus => ({
+    path,
+    present: read.present,
+    newestEntry: read.present ? newestDateIn(read.text) : null,
+  });
 
   return {
     claimed,
@@ -207,5 +257,10 @@ export function readLoopState(nowMs: number = Date.now()): LoopState {
     recent_progress,
     last_handoff,
     budget_mode_by_machine,
+    sources: {
+      task_queue: status(taskQueuePath(), queue),
+      progress: status(progressPath(), progress),
+      handoffs: status(handoffIndexPath(), handoffs),
+    },
   };
 }
