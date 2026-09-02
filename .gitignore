@@ -95,3 +95,9 @@ libs/portfolio/.reference/
 
 # Loop task notes — machine-local, same convention as the vault
 _system/tasks/
+
+# Tool session output (playwright MCP page snapshots), never source.
+.playwright-mcp/
+
+# Screenshots are evidence for a PR, never repository content — see AGENTS.md.
+/*.png

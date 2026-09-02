@@ -1,0 +1,9 @@
+# Fast gate: format the staged files. Nothing heavier — typecheck and test run at
+# pre-push, and authoritatively in CI, so commits stay quick while working.
+#
+# `pnpm format:check` is a CI step separate from `nx affected`, because prettier
+# covers files no Nx project owns. It is also the step that failed on PR #342,
+# the first PR this repo's loop opened unattended: the formatter this repo's own
+# CLAUDE.md documents had simply not been run. Formatting on the way in means
+# that failure cannot be created in the first place.
+pnpm exec lint-staged
