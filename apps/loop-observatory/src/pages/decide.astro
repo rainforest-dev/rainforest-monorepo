@@ -1,0 +1,11 @@
+---
+// The phone-sized greenlight screen. Its own route rather than a breakpoint on
+// Overview: this is one job done deliberately, and mixing it into a page built
+// for a 1440px canvas is how the hold target ends up 32px tall.
+import MobileDecide from '@/components/MobileDecide.vue';
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout title="Loop Observatory — Decide" active="decide">
+  <MobileDecide client:load />
+</Layout>
