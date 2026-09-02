@@ -6,6 +6,12 @@ import {
   type MachineBudgetMap,
   readMachineBudgets,
 } from './budget.js';
+import {
+  latestRunPerTask,
+  openRuns,
+  readProgress,
+  readRuns,
+} from './loopVault.js';
 import { stripHtmlComments } from './markdown.js';
 
 /** Loop budget mode per the autonomous-task-loop §0 thresholds. */
@@ -41,8 +47,11 @@ export interface LoopState {
   budget_mode_by_machine: Record<string, BudgetMode>;
   /** Provenance for the three file-backed sections above. */
   sources: {
-    task_queue: SourceStatus;
+    /** Cross-machine: every `loop-runs.<machine>.jsonl` in the vault. */
+    runs: SourceStatus;
+    /** Cross-machine: the mirror every `loopctl set` publishes. */
     progress: SourceStatus;
+    /** This host only -- $LOOP_HOME/handoffs is machine-local. */
     handoffs: SourceStatus;
   };
 }
@@ -229,13 +238,34 @@ export function budgetModesByMachine(
 }
 
 /** Read and combine all loop-state files. Graceful when any file is absent. */
+function usageDir(): string {
+  return join(vaultBase(), '_system', 'usage');
+}
+
 export function readLoopState(nowMs: number = Date.now()): LoopState {
-  const queue = readSource(taskQueuePath());
-  const progress = readSource(progressPath());
   const handoffs = readSource(handoffIndexPath());
 
-  const { claimed, blocked, recent_rounds } = parseTaskQueue(queue.text);
-  const recent_progress = parseProgress(progress.text);
+  // Derived from what the machines write now, across BOTH of them.
+  const runs = readRuns(usageDir());
+  const rows = readProgress(usageDir());
+
+  const claimed: ClaimedTask[] = openRuns(runs).map((r) => ({
+    task: `${r.task_id ?? r.task ?? 'unknown task'} · ${r.machine ?? '?'} · started ${r.started_at ?? '?'}`,
+  }));
+  const blocked: BlockedTask[] = latestRunPerTask(runs)
+    .filter((r) => r.status === 'blocked')
+    .map((r) => ({
+      task: `${r.task_id ?? r.task ?? 'unknown task'} · ${r.machine ?? '?'}`,
+      reason: r.note ?? 'no reason recorded on the run',
+    }));
+  const recent_rounds: RoundMarker[] = runs.slice(0, 6).map((r) => ({
+    date: (r.started_at ?? '').slice(0, 10) || 'undated',
+    note: `${r.machine ?? '?'} · ${r.project ?? '?'} · ${r.status ?? 'no status'}`,
+  }));
+  const recent_progress: ProgressEntry[] = rows.slice(0, 5).map((r) => ({
+    date: (r.updated_at ?? '').slice(0, 10) || 'undated',
+    title: `${r.key} — ${r.loop_status ?? 'no status'}`,
+  }));
   const last_handoff = parseHandoffIndex(handoffs.text);
   const budget_mode_by_machine = budgetModesByMachine(
     readMachineBudgets(nowMs),
@@ -258,8 +288,20 @@ export function readLoopState(nowMs: number = Date.now()): LoopState {
     last_handoff,
     budget_mode_by_machine,
     sources: {
-      task_queue: status(taskQueuePath(), queue),
-      progress: status(progressPath(), progress),
+      // Named for what they are, not for what the panel used to read. `runs`
+      // and `progress` are per-machine files in the vault and cover both
+      // machines; `handoffs` is the one section that cannot, because
+      // $LOOP_HOME/handoffs is machine-local and only this host's is mounted.
+      runs: {
+        path: join(usageDir(), 'loop-runs.<machine>.jsonl'),
+        present: runs.length > 0,
+        newestEntry: (runs[0]?.started_at ?? '').slice(0, 10) || null,
+      },
+      progress: {
+        path: join(usageDir(), 'tasks-progress.json'),
+        present: rows.length > 0,
+        newestEntry: (rows[0]?.updated_at ?? '').slice(0, 10) || null,
+      },
       handoffs: status(handoffIndexPath(), handoffs),
     },
   };

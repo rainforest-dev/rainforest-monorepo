@@ -215,33 +215,128 @@ describe('readLoopState source provenance', () => {
   });
 
   it('reports an absent source as absent, not as an empty one', () => {
-    // The defect this exists to catch: readFileOrEmpty returned '' for both,
-    // so a retired source rendered as "No task currently claimed" -- a
-    // sentence about now, produced by a file last written seven weeks earlier.
+    // The defect this exists to catch: an unreadable source and one that holds
+    // nothing produced the same empty arrays, so a retired file rendered as
+    // "No task currently claimed" -- a sentence about now.
     const s = readLoopState(0);
-    expect(s.sources.task_queue.present).toBe(false);
+    expect(s.sources.runs.present).toBe(false);
+    expect(s.sources.progress.present).toBe(false);
     expect(s.sources.handoffs.present).toBe(false);
     expect(s.claimed).toEqual([]);
   });
 
-  it('ages a present source by its content, never by its mtime', () => {
-    mkdirSync(join(dir, '_system'), { recursive: true });
+  it('reads runs from every machine, not just one', () => {
+    const u = join(dir, '_system', 'usage');
+    mkdirSync(u, { recursive: true });
     writeFileSync(
-      join(dir, '_system', 'Task-Queue.md'),
-      '# Task Queue\n\n- 2026-07-11 round 1\n- 2026-07-13 round 3\n',
+      join(u, 'loop-runs.rainforest-mini.jsonl'),
+      JSON.stringify({
+        run_id: 'a',
+        task_id: 'T-1',
+        project: 'p',
+        machine: 'rainforest-mini',
+        started_at: '2026-08-25T01:00:00+00:00',
+        ended_at: '2026-08-25T01:30:00+00:00',
+        status: 'completed',
+      }) + '\n',
+    );
+    writeFileSync(
+      join(u, 'loop-runs.rainforest-air.jsonl'),
+      JSON.stringify({
+        run_id: 'b',
+        task_id: 'AG-9',
+        project: 'q',
+        machine: 'rainforest-air',
+        started_at: '2026-08-26T05:00:00+00:00',
+        ended_at: '2026-08-26T05:10:00+00:00',
+        status: 'advanced',
+      }) + '\n',
     );
     const s = readLoopState(0);
-    expect(s.sources.task_queue.present).toBe(true);
-    // The file was written seconds ago; its newest entry is from July. mtime
-    // would call this fresh, which is exactly the wrong answer.
-    expect(s.sources.task_queue.newestEntry).toBe('2026-07-13');
+    expect(s.sources.runs.present).toBe(true);
+    // Newest first, across machines -- the Air's run is newer than the mini's.
+    expect(s.recent_rounds[0]?.note).toContain('rainforest-air');
+    expect(s.recent_rounds.map((r) => r.date)).toEqual([
+      '2026-08-26',
+      '2026-08-25',
+    ]);
+    expect(s.sources.runs.newestEntry).toBe('2026-08-26');
   });
 
-  it('separates a readable source with no dated entry from an absent one', () => {
-    mkdirSync(join(dir, '_system'), { recursive: true });
-    writeFileSync(join(dir, '_system', 'Task-Queue.md'), '# Task Queue\n');
+  it('claims only runs that never ended', () => {
+    const u = join(dir, '_system', 'usage');
+    mkdirSync(u, { recursive: true });
+    writeFileSync(
+      join(u, 'loop-runs.m.jsonl'),
+      JSON.stringify({
+        run_id: 'done',
+        task_id: 'T-done',
+        machine: 'm',
+        started_at: '2026-08-25T01:00:00+00:00',
+        ended_at: '2026-08-25T01:30:00+00:00',
+        status: 'completed',
+      }) +
+        '\n' +
+        JSON.stringify({
+          run_id: 'open',
+          task_id: 'T-open',
+          machine: 'm',
+          started_at: '2026-08-26T01:00:00+00:00',
+          status: 'in-flight',
+        }) +
+        '\n',
+    );
     const s = readLoopState(0);
-    expect(s.sources.task_queue.present).toBe(true);
-    expect(s.sources.task_queue.newestEntry).toBeNull();
+    expect(s.claimed).toHaveLength(1);
+    expect(s.claimed[0]?.task).toContain('T-open');
+  });
+
+  it('a task blocked once and run again since is not still blocked', () => {
+    const u = join(dir, '_system', 'usage');
+    mkdirSync(u, { recursive: true });
+    writeFileSync(
+      join(u, 'loop-runs.m.jsonl'),
+      JSON.stringify({
+        run_id: 'old',
+        task_id: 'T-1',
+        project: 'p',
+        machine: 'm',
+        started_at: '2026-08-20T00:00:00+00:00',
+        ended_at: '2026-08-20T00:10:00+00:00',
+        status: 'blocked',
+        note: 'waiting on review',
+      }) +
+        '\n' +
+        JSON.stringify({
+          run_id: 'new',
+          task_id: 'T-1',
+          project: 'p',
+          machine: 'm',
+          started_at: '2026-08-27T00:00:00+00:00',
+          ended_at: '2026-08-27T00:10:00+00:00',
+          status: 'completed',
+        }) +
+        '\n',
+    );
+    expect(readLoopState(0).blocked).toEqual([]);
+  });
+
+  it('survives an unparseable row without hiding the rest of the file', () => {
+    const u = join(dir, '_system', 'usage');
+    mkdirSync(u, { recursive: true });
+    writeFileSync(
+      join(u, 'loop-runs.m.jsonl'),
+      '{ this is not json\n' +
+        JSON.stringify({
+          run_id: 'ok',
+          task_id: 'T-2',
+          machine: 'm',
+          started_at: '2026-08-26T00:00:00+00:00',
+          ended_at: '2026-08-26T00:05:00+00:00',
+          status: 'completed',
+        }) +
+        '\n',
+    );
+    expect(readLoopState(0).recent_rounds).toHaveLength(1);
   });
 });
