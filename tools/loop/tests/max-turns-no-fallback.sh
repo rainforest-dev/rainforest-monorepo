@@ -230,7 +230,13 @@ check "task note 帶著 resume 指令（Observatory 讀得到）" "$progress_not
 # start, and on 2026-09-02 the directory was empty on both machines after 22
 # recorded runs, three of them interrupted. An instruction with no writer and no
 # check produces nothing; these assertions are the check.
-HANDOFF_DIR="$HOME_DIR/handoffs/sandbox"
+# The VAULT, not LOOP_HOME. A handoff in LOOP_HOME is machine-local: the
+# Observatory container mounts one host's copy, so the other machine's handoff
+# was invisible on the page whose job is to show it. Asserting the vault path is
+# the difference between "written" and "written somewhere it can be read".
+HANDOFF_DIR="$VAULT/_system/handoffs/$MACHINE/sandbox"
+check "handoff 沒有留在 machine-local 的 LOOP_HOME" \
+  "$( { ls -1 "$HOME_DIR/handoffs/sandbox"/*.md 2>/dev/null || true; } | wc -l | tr -d ' ')" "0"
 # `|| true` inside the substitution, not after it. errexit is on from the `set -e`
 # above, and pipefail makes a failing `ls` fail the whole pipeline -- so when the
 # handoff is MISSING, the assignment returned non-zero and killed the script

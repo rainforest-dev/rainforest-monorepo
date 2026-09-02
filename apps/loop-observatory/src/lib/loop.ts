@@ -9,6 +9,7 @@ import {
 import {
   latestRunPerTask,
   openRuns,
+  readHandoffs,
   readProgress,
   readRuns,
 } from './loopVault.js';
@@ -266,19 +267,17 @@ export function readLoopState(nowMs: number = Date.now()): LoopState {
     date: (r.updated_at ?? '').slice(0, 10) || 'undated',
     title: `${r.key} — ${r.loop_status ?? 'no status'}`,
   }));
-  const last_handoff = parseHandoffIndex(handoffs.text);
+  // Cross-machine now. The retired INDEX.md is still read below, only so the
+  // panel can say it is gone if someone is still looking at an old vault.
+  // <vault>/_system/handoffs, beside usage/ rather than inside it: handoffs are
+  // documents a person reads, not per-machine telemetry.
+  const published = readHandoffs(join(vaultBase(), '_system'));
+  const last_handoff = published.length
+    ? `${published[0]!.machine} · ${published[0]!.project} · ${published[0]!.stamp}`
+    : parseHandoffIndex(handoffs.text);
   const budget_mode_by_machine = budgetModesByMachine(
     readMachineBudgets(nowMs),
   );
-
-  const status = (
-    path: string,
-    read: { text: string; present: boolean },
-  ): SourceStatus => ({
-    path,
-    present: read.present,
-    newestEntry: read.present ? newestDateIn(read.text) : null,
-  });
 
   return {
     claimed,
@@ -302,7 +301,11 @@ export function readLoopState(nowMs: number = Date.now()): LoopState {
         present: rows.length > 0,
         newestEntry: (rows[0]?.updated_at ?? '').slice(0, 10) || null,
       },
-      handoffs: status(handoffIndexPath(), handoffs),
+      handoffs: {
+        path: join(vaultBase(), '_system', 'handoffs/<machine>/<project>/'),
+        present: published.length > 0,
+        newestEntry: published[0]?.stamp.slice(0, 10) ?? null,
+      },
     },
   };
 }
