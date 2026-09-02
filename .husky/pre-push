@@ -1,0 +1,61 @@
+#!/bin/sh
+# Mirror CI's checks against the whole push range, so commits that each pass
+# individually cannot collectively fail CI.
+#
+# `build` is deliberately not here: CI runs it authoritatively, and building
+# inside a git worktree corrupts the shared .nx cache. lint + typecheck + test
+# catch nearly everything before a push burns a runner.
+
+set -e
+
+# Agent worktrees inherit an absolute core.hooksPath pointing at the main clone,
+# so git would run whatever branch THAT checkout has against THIS worktree's
+# files — a hook naming a path the pushed branch moved or deleted then fails on a
+# tree that is perfectly fine. Hand over to this worktree's own hook so the
+# script and the files it checks always come from the same commit. This repo runs
+# its loop executor in worktrees, so it is the normal case here, not an edge one.
+hook_dir=$(cd "$(dirname "$0")" && pwd)
+[ "${hook_dir##*/}" = '_' ] && hook_dir=${hook_dir%/*}
+toplevel=$(git rev-parse --show-toplevel)
+if [ "$hook_dir" != "$toplevel/.husky" ] && [ -f "$toplevel/.husky/pre-push" ]; then
+  exec sh "$toplevel/.husky/pre-push" "$@"
+fi
+
+# Prefer the branch's own upstream; fall back to this repo's trunk.
+if base_ref=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null); then
+  base="$base_ref"
+else
+  base="origin/main"
+fi
+
+if ! git rev-parse --verify --quiet "$base" >/dev/null; then
+  echo "[pre-push] no base ref '$base' locally — skipping the affected check"
+  exit 0
+fi
+
+if [ -z "$(git rev-list "$base"..HEAD)" ]; then
+  echo "[pre-push] no commits ahead of $base — skipping the affected check"
+  exit 0
+fi
+
+# prettier covers files that belong to no Nx project (workflows, markdown, the
+# loop tooling), so `nx affected` alone would miss them. This is the check that
+# failed on PR #342 and it is cheap, so it runs first and fails fast.
+echo "[pre-push] prettier --check"
+pnpm format:check
+
+# Vitest's default pool is `cores - 1` forks, which is right when this is the only
+# suite on the machine and ruinous when it is not: this repo's loop runs several
+# worktrees unattended. Only bound the pool when another suite is already running.
+# Anchored on the worker's own argv so a shell that merely mentions the string —
+# an agent grepping for it, this hook open in an editor — cannot trip the cap.
+running_vitest_workers() {
+  ps -Ao args | grep -cE '^[^ ]*/node .*--require [^ ]*vitest/suppress-warnings'
+}
+if [ -z "$VITEST_MAX_FORKS" ] && [ "$(running_vitest_workers)" -gt 0 ]; then
+  export VITEST_MAX_FORKS=3
+  echo "[pre-push] another vitest suite is running — capping this one at 3 workers"
+fi
+
+echo "[pre-push] nx affected -t lint typecheck test against $base..HEAD"
+pnpm exec nx affected -t lint typecheck test --base="$base" --head=HEAD --parallel=3
