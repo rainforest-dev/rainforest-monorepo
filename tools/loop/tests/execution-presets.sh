@@ -861,6 +861,49 @@ check "pr-ready 沒有 note 會被拒絕" \
 blank=$("$LOOPCTL" set sandbox "$TASK_KEY" pr-ready --pr https://example.invalid/3 --note "   " 2>&1 || true)
 check "只有空白的 note 一樣被拒絕" \
   "$(printf '%s' "$blank" | grep -c 'pr-ready needs --note' | tr -d ' ')" "1"
+
+# --- stop_at has to be a value a task can actually reach ---------------------
+# Greenlight retirement compares stop_at to a task's state by string equality, so
+# a value no task can hold means the authorisation is never withdrawn and the
+# finished task stays the top candidate. Measured 2026-09-02: rainforest-monorepo
+# carried `stop_at: pr` -- a plausible typo for `pr-ready` -- and nothing
+# complained. Two tasks finished, kept their greenlight, and the next sweep was
+# about to redo one that already had a PR open, at roughly $10 a run.
+bad_cfg="$ROOT/bad-stop-at.yaml"
+sed 's/^    stop_at: pr-ready$/    stop_at: pr/' "$HOME_DIR/config.yaml" > "$bad_cfg"
+check "測試前置:壞掉的 config 確實含 stop_at: pr" \
+  "$(grep -c 'stop_at: pr$' "$bad_cfg" | tr -d ' ')" "1"
+bad_out=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" - "$bad_cfg" <<'PYBAD' 2>&1 || true
+import sys
+from pathlib import Path
+from loopctl.config import load_config
+try:
+    load_config(Path(sys.argv[1]))
+    print("LOADED")
+except ValueError as exc:
+    print(f"REJECTED {exc}")
+PYBAD
+)
+check "不合法的 stop_at 會被拒絕" \
+  "$(printf '%s' "$bad_out" | grep -c 'REJECTED unsupported loop stop_at: pr' | tr -d ' ')" "1"
+# `done` and `none` are not pipeline states but are the documented terminals for
+# autonomous and read-only projects, so they must keep loading.
+for term in done none; do
+  ok_cfg="$ROOT/stop-at-$term.yaml"
+  sed "s/^    stop_at: pr-ready$/    stop_at: $term/" "$HOME_DIR/config.yaml" > "$ok_cfg"
+  ok_out=$(PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" - "$ok_cfg" <<'PYOK' 2>&1 || true
+import sys
+from pathlib import Path
+from loopctl.config import load_config
+try:
+    load_config(Path(sys.argv[1]))
+    print("LOADED")
+except ValueError as exc:
+    print(f"REJECTED {exc}")
+PYOK
+)
+  check "stop_at: $term 仍可載入" "$(printf '%s' "$ok_out" | grep -c '^LOADED$' | tr -d ' ')" "1"
+done
 # Satisfied but nobody has confirmed the resolution: enforced anyway, and flagged.
 contains "deps flags an unreviewed resolution" "$("$LOOPCTL" deps sandbox 2>/dev/null)" "unverified"
 # An edge naming something the scan cannot see blocks on purpose: closed, renamed
