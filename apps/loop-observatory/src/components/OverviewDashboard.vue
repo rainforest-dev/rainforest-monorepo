@@ -21,10 +21,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MachineBudgetMap } from '@/lib/budget';
 import type { UsageAggregates } from '@/lib/ledger';
 import type { LoopState } from '@/lib/loop';
+import type { HostReadings } from '@/lib/machineReadings';
 
 const usage = ref<UsageAggregates | null>(null);
 const budgets = ref<MachineBudgetMap>({});
 const loop = ref<LoopState | null>(null);
+/**
+ * The second reading for every machine, from the enrollment API.
+ *
+ * A page whose thesis is that one source is not enough cannot afford to fail
+ * closed here: if this fetch dies, the cards fall back to a single labelled
+ * reading rather than presenting the quota snapshot as if it had been
+ * corroborated by anything.
+ */
+const readings = ref<Record<string, HostReadings>>({});
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -32,10 +42,11 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    const [uRes, bRes, lRes] = await Promise.all([
+    const [uRes, bRes, lRes, hRes] = await Promise.all([
       fetch('/api/usage'),
       fetch('/api/budget'),
       fetch('/api/loop'),
+      fetch('/api/enroll/hosts').catch(() => null),
     ]);
     if (!uRes.ok) throw new Error(`/api/usage HTTP ${uRes.status}`);
     const uData = (await uRes.json()) as UsageAggregates | { error: string };
@@ -54,6 +65,20 @@ async function load() {
       loop.value = 'error' in lData ? null : lData;
     } else {
       loop.value = null;
+    }
+
+    if (hRes?.ok) {
+      const hData = (await hRes.json()) as {
+        views?: Record<string, { readings: HostReadings }>;
+      };
+      readings.value = Object.fromEntries(
+        Object.entries(hData.views ?? {}).map(([host, v]) => [
+          host,
+          v.readings,
+        ]),
+      );
+    } else {
+      readings.value = {};
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
@@ -91,6 +116,7 @@ onBeforeUnmount(() => window.removeEventListener('lo:refresh', load));
       :budgets="budgets"
       :by-machine="usage.byMachine"
       :modes="loop?.budget_mode_by_machine ?? {}"
+      :readings="readings"
     />
 
     <LoopPanel :loop="loop" />
