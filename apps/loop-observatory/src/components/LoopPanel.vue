@@ -6,7 +6,10 @@ import {
   History,
   ListChecks,
 } from '@lucide/vue';
+import { useNow } from '@vueuse/core';
+import { computed } from 'vue';
 
+import SourceMetaLine from '@/components/SourceMetaLine.vue';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -15,23 +18,34 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import type { LoopState, SourceStatus } from '@/lib/loop';
+import type { LoopState } from '@/lib/loop';
+import { emptyReason, sourceMeta } from '@/lib/loopFreshness';
 
-defineProps<{ loop: LoopState | null }>();
+const props = defineProps<{ loop: LoopState | null }>();
 
 /**
- * What an empty section actually means.
+ * Ages are rendered against a ticking clock, not frozen at the fetch.
  *
- * "No task currently claimed." reads as a statement about now. On 2026-09-02 it
- * was a statement about 2026-07-13: all three files this panel reads belong to
- * the retired `vault` source adapter, no project declares `source: vault` any
- * more, and nothing has written them since. An absent source and an empty one
- * produced the same sentence, so the panel could not say which it was.
+ * The alternative turns this panel's own claim into the thing it was written to
+ * stop: a dashboard left open on a second monitor would go on insisting the
+ * data was "read 1 min ago" for the rest of the afternoon.
  */
-function emptyReason(src: SourceStatus, nothing: string): string {
-  if (!src.present) return `source not present — ${src.path}`;
-  if (!src.newestEntry) return `${nothing} — source has no dated entry`;
-  return `${nothing} as of ${src.newestEntry}`;
+const now = useNow({ interval: 30_000 });
+const nowMs = computed(() => now.value.getTime());
+
+const runs = computed(() =>
+  props.loop ? sourceMeta(props.loop.sources.runs, nowMs.value) : null,
+);
+const progress = computed(() =>
+  props.loop ? sourceMeta(props.loop.sources.progress, nowMs.value) : null,
+);
+const handoffs = computed(() =>
+  props.loop ? sourceMeta(props.loop.sources.handoffs, nowMs.value) : null,
+);
+
+function empty(src: 'runs' | 'progress', nothing: string): string {
+  if (!props.loop) return nothing;
+  return emptyReason(props.loop.sources[src], nothing, nowMs.value);
 }
 </script>
 
@@ -45,7 +59,8 @@ function emptyReason(src: SourceStatus, nothing: string): string {
       <CardDescription>
         Derived from what the machines write: every
         <code>loop-runs.&lt;machine&gt;.jsonl</code> and the
-        <code>loopctl set</code> mirror. Handoffs are this host's only.
+        <code>loopctl set</code> mirror. Handoffs are this host's only. Each
+        section names its file and how old that file's newest entry is.
       </CardDescription>
     </CardHeader>
     <CardContent>
@@ -58,10 +73,11 @@ function emptyReason(src: SourceStatus, nothing: string): string {
         <div class="space-y-5">
           <div>
             <p
-              class="text-muted-foreground mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
+              class="text-muted-foreground mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
             >
               <ListChecks class="size-3.5" /> Claimed
             </p>
+            <SourceMetaLine v-if="runs" :meta="runs" />
             <ul v-if="loop.claimed.length" class="space-y-2">
               <li
                 v-for="(c, i) in loop.claimed"
@@ -77,16 +93,17 @@ function emptyReason(src: SourceStatus, nothing: string): string {
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
-              {{ emptyReason(loop.sources.runs, 'Nothing running') }}
+              {{ empty('runs', 'Nothing running') }}
             </p>
           </div>
 
           <div>
             <p
-              class="text-muted-foreground mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
+              class="text-muted-foreground mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
             >
               <Ban class="size-3.5" /> Blocked
             </p>
+            <SourceMetaLine v-if="runs" :meta="runs" />
             <ul v-if="loop.blocked.length" class="space-y-2">
               <li v-for="(b, i) in loop.blocked" :key="i" class="text-sm">
                 <div class="flex items-start gap-2">
@@ -108,7 +125,7 @@ function emptyReason(src: SourceStatus, nothing: string): string {
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
-              {{ emptyReason(loop.sources.runs, 'Nothing blocked') }}
+              {{ empty('runs', 'Nothing blocked') }}
             </p>
           </div>
         </div>
@@ -117,10 +134,11 @@ function emptyReason(src: SourceStatus, nothing: string): string {
         <div class="space-y-5">
           <div>
             <p
-              class="text-muted-foreground mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
+              class="text-muted-foreground mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
             >
               <History class="size-3.5" /> Recent rounds
             </p>
+            <SourceMetaLine v-if="runs" :meta="runs" />
             <ul v-if="loop.recent_rounds.length" class="space-y-1.5">
               <li
                 v-for="(r, i) in loop.recent_rounds"
@@ -137,17 +155,24 @@ function emptyReason(src: SourceStatus, nothing: string): string {
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
-              {{ emptyReason(loop.sources.runs, 'No runs recorded') }}
+              {{ empty('runs', 'No runs recorded') }}
             </p>
           </div>
 
-          <div v-if="loop.recent_progress.length">
+          <!--
+            Rendered even when empty. It used to disappear entirely, which is
+            this panel's recurring failure in another shape: a section that
+            vanishes cannot say whether nothing happened or nothing is writing
+            the file any more.
+          -->
+          <div>
             <p
-              class="text-muted-foreground mb-2 text-xs font-semibold uppercase tracking-wide"
+              class="text-muted-foreground mb-1 text-xs font-semibold uppercase tracking-wide"
             >
               Progress log
             </p>
-            <ul class="space-y-1.5">
+            <SourceMetaLine v-if="progress" :meta="progress" />
+            <ul v-if="loop.recent_progress.length" class="space-y-1.5">
               <li
                 v-for="(p, i) in loop.recent_progress"
                 :key="i"
@@ -161,14 +186,18 @@ function emptyReason(src: SourceStatus, nothing: string): string {
                 <span class="text-foreground">{{ p.title }}</span>
               </li>
             </ul>
+            <p v-else class="text-muted-foreground text-sm">
+              {{ empty('progress', 'No progress recorded') }}
+            </p>
           </div>
 
           <div>
             <p
-              class="text-muted-foreground mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
+              class="text-muted-foreground mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
             >
               <ArrowLeftRight class="size-3.5" /> Last handoff
             </p>
+            <SourceMetaLine v-if="handoffs" :meta="handoffs" />
             <p v-if="loop.last_handoff" class="text-foreground text-sm">
               {{ loop.last_handoff }}
             </p>

@@ -6,6 +6,7 @@ import {
   type MachineBudgetMap,
   readMachineBudgets,
 } from './budget.js';
+import { epochOf } from './loopFreshness.js';
 import {
   latestRunPerTask,
   openRuns,
@@ -86,6 +87,13 @@ export function handoffIndexPath(): string {
  * statement about now.
  */
 export interface SourceStatus {
+  /**
+   * Short name shown beside every section, e.g. `loop-runs.<machine>.jsonl`.
+   * Written out rather than derived from `path`, because two of these three
+   * paths are directory globs and `basename` on them yields `<project>` and
+   * the empty string -- neither of which names the source to a reader.
+   */
+  label: string;
   /** Named in the UI, so a reader can see which file an answer came from. */
   path: string;
   /** False when the file could not be read at all -- absent, or unreadable. */
@@ -97,6 +105,17 @@ export interface SourceStatus {
    * Null means the file was read but holds no dated entry to age.
    */
   newestEntry: string | null;
+  /**
+   * The same instant as `newestEntry`, kept as epoch ms so the panel can age it
+   * against a ticking clock. The date string alone made the reader subtract.
+   */
+  newestEntryAt: number | null;
+  /**
+   * When the server opened this source. Distinct from `newestEntryAt`, and the
+   * distinction is the point: a file read four seconds ago can hold content
+   * seven weeks old, and only the second number says whether the loop is alive.
+   */
+  readAt: number;
 }
 
 function readSource(path: string): { text: string; present: boolean } {
@@ -292,19 +311,28 @@ export function readLoopState(nowMs: number = Date.now()): LoopState {
       // machines; `handoffs` is the one section that cannot, because
       // $LOOP_HOME/handoffs is machine-local and only this host's is mounted.
       runs: {
+        label: 'loop-runs.<machine>.jsonl',
         path: join(usageDir(), 'loop-runs.<machine>.jsonl'),
         present: runs.length > 0,
         newestEntry: (runs[0]?.started_at ?? '').slice(0, 10) || null,
+        newestEntryAt: epochOf(runs[0]?.started_at),
+        readAt: nowMs,
       },
       progress: {
+        label: 'tasks-progress.json',
         path: join(usageDir(), 'tasks-progress.json'),
         present: rows.length > 0,
         newestEntry: (rows[0]?.updated_at ?? '').slice(0, 10) || null,
+        newestEntryAt: epochOf(rows[0]?.updated_at),
+        readAt: nowMs,
       },
       handoffs: {
+        label: 'handoffs/<machine>/<project>/',
         path: join(vaultBase(), '_system', 'handoffs/<machine>/<project>/'),
         present: published.length > 0,
         newestEntry: published[0]?.stamp.slice(0, 10) ?? null,
+        newestEntryAt: epochOf(published[0]?.stamp),
+        readAt: nowMs,
       },
     },
   };
