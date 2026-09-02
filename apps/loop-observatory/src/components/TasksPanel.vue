@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import { KanbanSquare, LayoutGrid, Network, RefreshCw } from '@lucide/vue';
+import { RefreshCw } from '@lucide/vue';
 import { useNow } from '@vueuse/core';
-import { formatDistanceToNowStrict } from 'date-fns';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
+import SprintHeading from '@/components/SprintHeading.vue';
 import TaskDetail from '@/components/TaskDetail.vue';
+import TaskFilterBar, {
+  type ScopeFilter,
+  type ScopeOption,
+  type TaskView,
+} from '@/components/TaskFilterBar.vue';
 import TasksBoard from '@/components/TasksBoard.vue';
 import TasksGraph from '@/components/TasksGraph.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DEFAULT_SORT_MODE, SORT_MODES, type SortMode } from '@/lib/taskSort';
+import { DEFAULT_SORT_MODE, type SortMode } from '@/lib/taskSort';
 import type { SprintTask, TasksData } from '@/lib/tasks';
+import { trackerNotice } from '@/lib/tasksHeader';
 
 // Self-fetching page island (mounted directly on /tasks).
 const data = ref<TasksData | null>(null);
@@ -39,26 +44,23 @@ onMounted(() => {
 });
 onBeforeUnmount(() => window.removeEventListener('lo:refresh', load));
 
-// Relative "synced" label re-renders on this tick.
+// The pill's ages re-render on this tick.
 const now = useNow({ interval: 30_000 });
 const hasTasks = computed(() => (data.value?.tasks.length ?? 0) > 0);
 
+const notice = computed(() =>
+  trackerNotice(data.value?.synced_at, data.value?.written_at, now.value),
+);
+
 // Scope filter shared by both the Board and the Graph views.
-type ScopeFilter = 'all' | 'work' | 'personal';
 const scopeFilter = ref<ScopeFilter>('all');
 const allTasks = computed<SprintTask[]>(() => data.value?.tasks ?? []);
 
-// Which tab is active — tracked so the sort control can hide itself on Graph
-// (sorting a graph is meaningless there).
-type TaskView = 'board' | 'graph';
+// Which view is showing, and how the Board orders cards inside a column.
 const activeView = ref<TaskView>('board');
-
-// Board column sort — Board-only, board's own `order` by default.
 const sortMode = ref<SortMode>(DEFAULT_SORT_MODE);
 
-const scopeOptions = computed<
-  { key: ScopeFilter; label: string; count: number }[]
->(() => [
+const scopeOptions = computed<ScopeOption[]>(() => [
   { key: 'all', label: 'All', count: allTasks.value.length },
   {
     key: 'work',
@@ -81,33 +83,6 @@ const filteredPoints = computed(() =>
   filteredTasks.value.reduce((sum, t) => sum + (t.points ?? 0), 0),
 );
 
-function ageOf(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return null;
-  return formatDistanceToNowStrict(new Date(t), { addSuffix: true });
-}
-
-/**
- * Both ages, each naming the half it describes.
- *
- * This was one label reading `synced <age>` off `synced_at`, which only moves
- * when the work half is fetched from Notion. A local run rebuilds the personal
- * half and leaves that field alone -- correctly -- so on 2026-09-02 the panel
- * said "synced 14 days ago" over a personal list refreshed a minute earlier.
- * Same shape as the two machine readings: when two halves age separately,
- * showing one number for both is wrong about whichever one you are looking at.
- */
-const syncedLabel = computed<string | null>(() => {
-  void now.value; // recompute on tick
-  const work = ageOf(data.value?.synced_at);
-  const written = ageOf(data.value?.written_at);
-  if (!work && !written) return null;
-  if (!written) return `work synced ${work}`;
-  if (!work) return `rebuilt ${written}`;
-  return `work synced ${work} · rebuilt ${written}`;
-});
-
 // Detail drawer: clicking a card/node opens the local note in-app.
 const selected = ref<SprintTask | null>(null);
 const drawerOpen = ref(false);
@@ -118,19 +93,8 @@ function openTask(task: SprintTask) {
 </script>
 
 <template>
-  <section>
-    <div class="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-      <KanbanSquare class="text-muted-foreground size-4" />
-      <h2 class="text-foreground text-lg font-semibold tracking-tight">
-        Sprint tasks
-      </h2>
-      <span v-if="data?.sprint" class="text-muted-foreground text-sm">
-        {{ data.sprint.name }}
-      </span>
-      <span v-if="syncedLabel" class="text-muted-foreground/80 ml-auto text-xs">
-        {{ syncedLabel }}
-      </span>
-    </div>
+  <section class="flex flex-col gap-4">
+    <SprintHeading :sprint-name="data?.sprint?.name ?? null" :notice="notice" />
 
     <div v-if="loading" class="text-muted-foreground py-24 text-center">
       Loading sprint tasks…
@@ -155,87 +119,31 @@ function openTask(task: SprintTask) {
           from the Notion board.
         </div>
 
-        <Tabs v-else v-model="activeView">
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-3">
-              <!-- Scope segmented control: filters both views. -->
-              <div
-                class="bg-muted inline-flex items-center gap-0.5 rounded-md p-1"
-                role="group"
-                aria-label="Filter tasks by scope"
-              >
-                <button
-                  v-for="opt in scopeOptions"
-                  :key="opt.key"
-                  type="button"
-                  :aria-pressed="scopeFilter === opt.key"
-                  class="inline-flex items-center gap-1.5 rounded-sm px-3 py-1 text-sm font-medium transition-colors"
-                  :class="
-                    scopeFilter === opt.key
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  "
-                  @click="scopeFilter = opt.key"
-                >
-                  {{ opt.label }}
-                  <span class="text-muted-foreground text-xs tabular-nums">{{
-                    opt.count
-                  }}</span>
-                </button>
-              </div>
-              <!-- Sort segmented control: Board only — Graph has no order to apply it to. -->
-              <div
-                v-if="activeView === 'board'"
-                class="bg-muted inline-flex items-center gap-0.5 rounded-md p-1"
-                role="group"
-                aria-label="Sort board columns"
-              >
-                <button
-                  v-for="opt in SORT_MODES"
-                  :key="opt.id"
-                  type="button"
-                  :aria-pressed="sortMode === opt.id"
-                  class="inline-flex items-center gap-1.5 rounded-sm px-3 py-1 text-sm font-medium transition-colors"
-                  :class="
-                    sortMode === opt.id
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  "
-                  @click="sortMode = opt.id"
-                >
-                  {{ opt.label }}
-                </button>
-              </div>
-              <p class="text-muted-foreground text-sm tabular-nums">
-                {{ filteredTasks.length }} tasks · {{ filteredPoints }} pts
-              </p>
-            </div>
-            <TabsList>
-              <TabsTrigger value="board" class="gap-1.5">
-                <LayoutGrid class="size-3.5" /> Board
-              </TabsTrigger>
-              <TabsTrigger value="graph" class="gap-1.5">
-                <Network class="size-3.5" /> Graph
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        <template v-else>
+          <TaskFilterBar
+            v-model:scope="scopeFilter"
+            v-model:sort-mode="sortMode"
+            v-model:view="activeView"
+            class="mb-4"
+            :scope-options="scopeOptions"
+            :task-count="filteredTasks.length"
+            :points-total="filteredPoints"
+          />
 
-          <TabsContent value="board">
-            <TasksBoard
-              :tasks="filteredTasks"
-              :statuses="data!.statuses"
-              :sort-mode="sortMode"
-              @select="openTask"
-            />
-          </TabsContent>
-          <TabsContent value="graph">
-            <TasksGraph
-              :tasks="filteredTasks"
-              :statuses="data!.statuses"
-              @select="openTask"
-            />
-          </TabsContent>
-        </Tabs>
+          <TasksBoard
+            v-if="activeView === 'board'"
+            :tasks="filteredTasks"
+            :statuses="data!.statuses"
+            :sort-mode="sortMode"
+            @select="openTask"
+          />
+          <TasksGraph
+            v-else
+            :tasks="filteredTasks"
+            :statuses="data!.statuses"
+            @select="openTask"
+          />
+        </template>
       </CardContent>
     </Card>
 
