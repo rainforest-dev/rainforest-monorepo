@@ -134,6 +134,18 @@ its summary with "已在 Notion 與 Loop registry 設為 Blocked" having written
 local overlay. The runner records one append-only iteration/retro row in
 `_system/usage/loop-runs.<machine>.jsonl`.
 
+Before recording `pr-ready`, run the repository's own CI gate locally and put the
+commands and their result in `--note`. Not a summary of what you believe -- the
+commands you ran. `loopctl` refuses `pr-ready` without a note, because the claim
+"this branch is ready for a person" with no evidence behind it is the one this
+loop is least able to check for itself.
+
+Which commands is the repository's business, not this contract's: read its
+CLAUDE.md and use what it documents. Measured 2026-09-02 on PR #342, the first PR
+this loop opened unattended -- CI failed on `Check formatting`, while
+`pnpm prettier --write` sat documented in the repository's own CLAUDE.md,
+unrun. A green PR is not the bar; a PR whose checks you actually ran is.
+
 For `greenlit-only`, opening the PR and recording PR-ready is the terminal action:
 never merge. For personal autonomous work, stop at the configured `stop_at`.
 
