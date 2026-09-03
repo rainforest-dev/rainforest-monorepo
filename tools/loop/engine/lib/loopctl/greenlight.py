@@ -289,8 +289,26 @@ def apply_request(
         -1,
     )
     if cleared == -1:
-        lines += ["", "## Cleared", ""]
-        cleared = len(lines) - 2
+        # Above the existing bullets, never appended below them.
+        #
+        # `cleared_section` treats a file with no `## Cleared` as all-bullets --
+        # deliberately, so a hand-written allowlist keeps working. Adding the
+        # heading at the end therefore moved every one of those bullets OUTSIDE
+        # the section that authorises them: the first apply on such a file
+        # returned success while silently revoking everything already cleared.
+        # Reproduced on a copy of rainforest-monorepo.md, which today has one
+        # live entry and no `##` at all, so the next apply would have done it.
+        first_entry = next(
+            (
+                i
+                for i, text in enumerate(lines)
+                if is_bullet(text) or _is_continuation(text)
+            ),
+            -1,
+        )
+        at = len(lines) if first_entry == -1 else first_entry
+        lines[at:at] = ["## Cleared", ""]
+        cleared = at
     placeholder = next(
         (i for i, text in enumerate(lines) if i > cleared and re.match(r"^\s*_\(none\)", text, re.I)),
         -1,

@@ -1311,6 +1311,58 @@ excludes "the executor's stderr does not enter the parsed envelope" \
 contains "it is captured separately" \
   "$(grep 'candidate_out=$(run_executor' "$ENGINE/ralph.sh")" '2>"$candidate_err"'
 
+echo "greenlight: authorisation does not change without saying so"
+
+gl_py() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c "$1" "${@:2}"; }
+
+# The live hazard: rainforest-monorepo.md has bullets and no `## Cleared` at all,
+# and cleared_section deliberately treats such a file as all-bullets so a
+# hand-written allowlist keeps working. Adding the heading at the END therefore
+# moved every existing bullet OUTSIDE the section that authorises it -- the first
+# apply returned success while revoking everything already cleared.
+gl_file="$HOME_DIR/gl-demo.md"
+printf '# demo greenlight\n\n- AG-111 — already authorised\n  ↳ context line\n' > "$gl_file"
+gl_after=$(gl_py '
+import sys, pathlib
+from loopctl.greenlight import apply_request, cleared_section, SUPPORTED_VERSION
+p = pathlib.Path(sys.argv[1])
+apply_request({"version": SUPPORTED_VERSION, "slug": "demo", "id": "AG-222", "title": "new"},
+              p, expected_slug="demo")
+print(" ".join(sorted(
+    l.strip().split()[1] for l in cleared_section(p.read_text()).splitlines()
+    if l.strip().startswith("-"))))
+' "$gl_file")
+check "clearing one id does not revoke the ids already there" "$gl_after" "AG-111 AG-222"
+
+# Title-as-substring stays for a bullet an owner typed with no id -- that is the
+# case it was written for -- but a bullet that names an id is decided by the id.
+# A task titled `Setup` otherwise matched every bullet containing the word.
+ranked=$(gl_py '
+from loopctl.scan import _greenlight_rank
+text = "## Cleared\n- AG-999 — Setup the collector\n"
+short = _greenlight_rank({"id": "AG-1", "title": "Setup"}, text)
+named = _greenlight_rank({"id": "AG-999", "title": "Setup"}, text)
+print(f"{short is None} {named is not None}")
+')
+check "a short title cannot ride on a bullet that names another id" "$ranked" "True True"
+
+# greenlit-only with nothing to read is inert, not strict: every task ranks None
+# and `next` reports zero candidates, which reads exactly like "nothing cleared
+# yet". obsidian-vault has been in that state on the mini since enrolment.
+inert=$(gl_py '
+import pathlib, sys, tempfile
+from loopctl.config import load_config
+d = pathlib.Path(tempfile.mkdtemp())
+(d / "c.yaml").write_text(
+    "projects:\n- slug: x\n  path: /tmp\n  source: obsidian-base\n  policy: greenlit-only\n")
+try:
+    load_config(str(d / "c.yaml"))
+    print("ACCEPTED")
+except ValueError as exc:
+    print("REJECTED" if "greenlight" in str(exc) else f"OTHER: {exc}")
+')
+check "greenlit-only without a greenlight file is refused at load" "$inert" "REJECTED"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

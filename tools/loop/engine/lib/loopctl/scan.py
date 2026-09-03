@@ -242,6 +242,10 @@ def _greenlight_text(project) -> str:
         return ""
 
 
+#: Shortest title that may authorise a task on its own, on a bullet naming no id.
+MIN_TITLE_MATCH = 12
+
+
 def _greenlight_rank(task: dict, text: str) -> int | None:
     if not text:
         return None
@@ -278,7 +282,26 @@ def _greenlight_rank(task: dict, text: str) -> int | None:
         # check. Title is left as a substring deliberately: a human writing a
         # bullet is expected to paraphrase a title, never an id.
         id_match = bool(task_id) and greenlight_mod.is_bullet_for(task_id, line)
-        if id_match or item_match or (title and title in line):
+        # A bullet that names an id is decided by that id alone.
+        #
+        # Title-as-substring stays for bullets an owner typed without one -- they
+        # paraphrase a title, never an id, and that is the case it was written
+        # for. But applied to a bullet that DOES name a task, it authorised
+        # whatever else happened to share a word with it: a task titled `Setup`
+        # matched every bullet containing "Setup", including bullets clearing a
+        # different id entirely. The id is the specific thing on such a line; the
+        # prose beside it is context for the reader, not a second key.
+        #
+        # MIN_TITLE_MATCH is calibrated against nothing but judgement: it is the
+        # length below which a title is too generic to authorise on. Raise it if
+        # a short title ever slips through; lower it only with an example.
+        title_match = (
+            bool(title)
+            and len(title) >= MIN_TITLE_MATCH
+            and greenlight_mod.bullet_id(line) is None
+            and title in line
+        )
+        if id_match or item_match or title_match:
             return rank
     return None
 
