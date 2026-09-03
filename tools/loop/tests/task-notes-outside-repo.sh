@@ -91,10 +91,18 @@ OUT3="$(enumerate "$VAULT" "_system/tasks" personal)"
 check "personal notes enumerate"  "$(printf '%s' "$OUT3" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')" "1"
 check "id is vault-relative"      "$(printf '%s' "$OUT3" | python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["id"])')" "_system/tasks/c.md"
 
-echo "== a malformed note is a source error, not a crash =="
+echo "== a malformed note is one note's problem, not the project's =="
+# This asserted `SourceUnreachable`, which was an improvement on the crash it
+# replaced but is still the second of the two faults named at the top of this
+# file: SourceUnreachable marks the WHOLE project stale, so a typo in one note
+# emptied the task list on both machines and said only "stale". The note is
+# skipped now, with a warning on stderr naming it, and its neighbours enumerate.
 printf -- '---\nscope: work-adhoc\nname: Probe: unquoted\n---\n' > "$VAULT/_system/tasks/bad.md"
-OUT4="$(enumerate "$REPO" "$VAULT/_system/tasks" work-adhoc)"
-check "reported as SourceUnreachable" "$(printf '%s' "$OUT4" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("error") if isinstance(d,dict) else "none")')" "SourceUnreachable"
+OUT4="$(enumerate "$REPO" "$VAULT/_system/tasks" work-adhoc 2>"$ROOT/../.note-warning")"
+# Both good work-adhoc notes -- the same two line 76 counts before bad.md exists.
+check "its neighbours still enumerate" "$(printf '%s' "$OUT4" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else "error:"+str(d.get("error")))')" "2"
+check "and the skipped one is named, not silent" "$(grep -c 'bad.md' "$ROOT/../.note-warning" || true)" "1"
+rm -f "$ROOT/../.note-warning"
 
 echo "== the title comes from wherever its writer put it =="
 # 31 of 43 live notes are Notion-synced: no `name:`, title only in the body H1.
