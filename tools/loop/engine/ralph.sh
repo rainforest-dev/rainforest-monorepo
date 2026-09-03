@@ -1384,6 +1384,10 @@ $(cat "$candidate_err")"
   # own, which is every run once the executor picks its own.
   run_branch=$(git -C "${work_tree:-$project_path}" rev-parse --abbrev-ref HEAD 2>/dev/null || printf '')
   [ -n "$run_branch" ] && [ "$run_branch" != "HEAD" ] && run_fields+=(--branch "$run_branch")
+  # Already read out of task_row for the budget gate; passing it on costs nothing
+  # and is what makes cost-per-point answerable at all. Recorded per run because
+  # a re-estimated ticket must not retroactively change what past runs cost.
+  [ -n "${TASK_POINTS:-}" ] && run_fields+=(--points "$TASK_POINTS")
   run_pr=$("$LOOPCTL" show "$slug" 2>/dev/null | "$PYTHON_BIN" -c \
     'import json, sys
 rows = (json.load(sys.stdin) or {}).get("tasks") or []

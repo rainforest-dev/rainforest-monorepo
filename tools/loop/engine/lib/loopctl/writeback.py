@@ -187,6 +187,14 @@ def _engine_version() -> str | None:
     return text or None
 
 
+def publish_doctor(report: dict) -> str:
+    """Write one host's doctor report where the Observatory can read it."""
+    name = str(report.get("machine") or host_machine())
+    path = usage_path(f"doctor.{name}.json")
+    _atomic_json(path, report)
+    return str(path)
+
+
 def publish_project_assignment(
     documents: list[dict],
     *,
@@ -497,6 +505,21 @@ def trailing_outcomes(machine: str, task: str, limit: int = 10) -> list[str]:
     return found
 
 
+def _points(value: object) -> int | None:
+    """The estimate as a number, or None when there is not one.
+
+    Accepts the string form because it arrives through a CLI flag, and refuses
+    anything that is not a plain integer rather than coercing: "3 (was 5)" is a
+    note somebody typed, not a size, and averaging it in would be inventing data.
+    """
+    if value is None or value == "":
+        return None
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
 def append_run(
     *,
     project: str,
@@ -517,6 +540,7 @@ def append_run(
     task_id: str | None = None,
     branch: str | None = None,
     pr: str | None = None,
+    points: str | int | None = None,
 ) -> dict:
     """Append one structured iteration/retro record to a machine partition.
 
@@ -555,6 +579,12 @@ def append_run(
         # other surface -- greenlight, notes, config -- speaks the human key, so a
         # ledger that only knows the URL cannot be joined against any of them.
         "task_id": task_id,
+        # The size the board gave this task, recorded per run rather than looked
+        # up later: points move when a ticket is re-estimated, and a cost per
+        # point computed from today's estimate against last month's spend would
+        # be quietly wrong. None when the source carries no estimate, which is
+        # most personal work -- absent, not zero, because zero divides.
+        "points": _points(points),
         "branch": branch,
         "pr": pr,
         # Derived rather than passed: the caller has no reason to know it, and a

@@ -1527,6 +1527,86 @@ excludes "not the Gemini CLI's, which has no permissions key" "$grants_src" \
   '${AGY_SETTINGS:-$HOME/.gemini/settings.json}'
 
 
+echo
+echo "metrics: a run says how big the task was, and audit adds it up"
+
+# TASK_POINTS was read for the budget gate and thrown away. Without it in the row
+# there is no cost per point to compute -- which is why every "what did this
+# cost" answer in this session was arrived at by eye.
+contains "ralph passes the estimate it already read" \
+  "$(grep -A1 'run_fields+=(--points' "$ENGINE/ralph.sh")" '--points "$TASK_POINTS"'
+
+pts() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  "from loopctl.writeback import _points; print(repr(_points($1)))"; }
+check "an integer estimate is kept"          "$(pts 3)"           "3"
+check "the string a CLI flag delivers too"   "$(pts \"'5'\")"      "5"
+# "3 (was 5)" is a note somebody typed, not a size. Coercing it would invent
+# data, and an absent estimate divides better than a wrong one.
+check "prose is refused rather than coerced" "$(pts \"'3 (was 5)'\")" "None"
+check "and absent stays absent, never zero"  "$(pts None)"        "None"
+
+echo
+echo "audit: what the ledger cannot say, it declines to say"
+AUDIT_VAULT="$HOME_DIR/auditvault"
+aud() {
+  rm -rf "$AUDIT_VAULT"
+  env PYTHONPATH="$HOME_DIR/lib" AUDIT_VAULT="$AUDIT_VAULT" \
+    "$VENV/bin/python" "$HERE/audit_probe.py" "$1"
+}
+jq_field() { "$VENV/bin/python" -c "import json,sys;d=json.load(sys.stdin);print($1)"; }
+
+same='{"task_id":"T-1","machine":"m","started_at":"2026-09-01T00:00:00+00:00","ended_at":"2026-09-01T00:00:00+00:00","outcome":"advanced"}'
+real='{"task_id":"T-1","machine":"m","started_at":"2026-09-01T00:00:00+00:00","ended_at":"2026-09-01T00:10:00+00:00","outcome":"reached_stop_at","points":2}'
+
+# Rows written before 2026-09-03 all have started_at == ended_at, because ralph
+# had the epoch and never passed it. Summing those as zero would make every
+# historical task look instant.
+out=$(aud "[$same,$real]")
+check "a zero-length row is excluded, not summed as zero" \
+  "$(printf '%s' "$out" | jq_field 'str(d[chr(119)+chr(97)+chr(108)+chr(108)+chr(95)+chr(115)+chr(101)+chr(99)+chr(111)+chr(110)+chr(100)+chr(115)])')" "600"
+check "and the excluded ones are counted, not hidden" \
+  "$(printf '%s' "$out" | jq_field 'd["runs_without_duration"]')" "1"
+check "cost per point uses the estimate the rows carried" \
+  "$(printf '%s' "$out" | jq_field 'd["cost_per_point"]["wall_seconds_per_point"]')" "300.0"
+
+# No usable duration means the question has no answer, and saying so beats
+# dividing by something nobody supplied.
+check "no timed run yields no cost per point" \
+  "$(aud "[$same]" | jq_field 'd["cost_per_point"]')" "None"
+check "a task with no rows says so rather than reporting zeroes" \
+  "$(aud '[]' | jq_field 'd["reason"]')" "no run has ever recorded this task"
+
+echo
+echo "doctor: absence is a state, not a pass"
+
+doc() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  "from loopctl.doctor import _pair; print(_pair('x', declared=$1, observed=$2, source='s')['state'])"; }
+# The class every one of today's bugs belongs to: a consumer that was never
+# written reads exactly like one that agrees.
+check "neither side readable is unknown, never ok" "$(doc None None)"        "unknown"
+check "a producer with no consumer is missing"     "$(doc \"'a'\" None)"     "missing"
+check "two sides that disagree say so"             "$(doc \"'a'\" \"'b'\")" "differs"
+check "and agreement is the only ok"               "$(doc \"'a'\" \"'a'\")" "ok"
+
+# An SLA turns agreement into staleness: the bundle mount matched for two days
+# while being two days old, and matching was not the question.
+sla() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  "from loopctl.doctor import _pair; print(_pair('ledger', declared='m', observed='m', source='s', age=$1)['state'])"; }
+check "inside its SLA a pair is ok"    "$(sla 3600)"    "ok"
+check "past its SLA the same pair is stale" "$(sla 999999)" "stale"
+
+# The runner is declared by a file and observed through launchctl -- forcing
+# those through string equality reported `differs` on a healthy host, which is
+# how a check earns being ignored.
+run_state() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  "from loopctl.doctor import _pair; print(_pair('runner', declared='plist installed=True', observed='loaded=True enabled=True', source='s', state=$1)['state'])"; }
+check "a pair may pass its own verdict" "$(run_state \"'ok'\")" "ok"
+
+# Non-zero exit, so an hourly job cannot report success over a red pair.
+grep -q 'return 0 if result.get("state") == "ok" else 1' "$ENGINE/lib/loopctl/scan.py" \
+  && { pass=$((pass+1)); printf '    PASS  %s\n' "doctor exits non-zero when a pair is not ok"; } \
+  || { fail=$((fail+1)); printf '    FAIL  %s\n' "doctor exits non-zero when a pair is not ok"; }
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
