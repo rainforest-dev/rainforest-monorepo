@@ -309,6 +309,17 @@ def _greenlight_rank(task: dict, text: str) -> int | None:
 def next_candidates(project, state: dict) -> list[dict]:
     if project.policy == "read-only" or state.get("stale"):
         return []
+    # Assigned to this machine, checked here rather than only in the sweep.
+    #
+    # `sweep_projects` filtered on `machines:`; `next <slug>` did not, and `next`
+    # is the path ralph actually takes. So the assignment held only for the sweep
+    # -- a project listing one machine would hand its queue to the other as soon
+    # as anything asked for it by name. Checking inside the candidate function
+    # means every caller gets it, which is why the two disagreed in the first
+    # place.
+    machines = list(getattr(project, "machines", None) or [])
+    if machines and "both" not in machines and host_machine() not in machines:
+        return []
     lifecycle = state.get("lifecycle")
     if lifecycle in {"dormant", "archived"}:
         return []
