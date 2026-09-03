@@ -814,7 +814,19 @@ run_codex() {
 # discovers this has already been paid for, and its output says "no output
 # produced", which is indistinguishable from a model that chose to say nothing.
 agy_has_command_grants() {
-  local settings="${AGY_SETTINGS:-$HOME/.gemini/settings.json}"
+  # agy's own settings, not the Gemini CLI's. ~/.gemini/settings.json belongs to
+  # the latter and has no permissions key at all, so reading it meant grants were
+  # never found and this executor was always reported unavailable -- the same
+  # "claude, then nothing" as the bug above, with a log line explaining it.
+  # The binary states the path: "The CLI is configured via
+  # ~/.gemini/antigravity-cli/settings.json", and that file is where
+  # trustedWorkspaces lives here.
+  #
+  # Only the global scope is read. agy also merges ~/.gemini/config/projects/,
+  # which takes precedence, so a project could grant commands this does not see;
+  # the log line says which file was consulted rather than claiming there are no
+  # grants anywhere.
+  local settings="${AGY_SETTINGS:-$HOME/.gemini/antigravity-cli/settings.json}"
   [ -f "$settings" ] || return 1
   "$PYTHON_BIN" - "$settings" <<'PYEOF' 2>/dev/null
 import json, sys
@@ -858,12 +870,15 @@ run_agy() {
   # Which commands to grant is the owner's decision -- it includes `git push` --
   # so this names the gap rather than filling it.
   if [ "${LOOP_AGY_ALLOW_UNBOUNDED:-0}" != "1" ] && ! agy_has_command_grants; then
-    log "  executor=agy has no command grants in settings.json; it could only edit files"
+    log "  executor=agy has no command grants in ${AGY_SETTINGS:-$HOME/.gemini/antigravity-cli/settings.json}; it could only edit files"
     log "    add permissions.allow entries (e.g. command(git status)) or set LOOP_AGY_ALLOW_UNBOUNDED=1"
     return 127
   fi
   local opts=()
   [ -n "$PLAN_MODEL" ] && opts+=(--model "$PLAN_MODEL")
+  # PLAN_EFFORT is deliberately not passed. agy takes --effort low|medium|high,
+  # and the presets in loop-agents.json include xhigh, which has no counterpart
+  # -- mapping it would be inventing a level. The model still routes.
   # Bounded by default, now that it can actually start. `accept-edits`
   # auto-approves file edits only; commands stay governed by agy's permission
   # rules, and headless mode auto-denies anything no rule covers. Making this

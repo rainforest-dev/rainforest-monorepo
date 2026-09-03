@@ -1514,6 +1514,19 @@ check "no permissions block at all does not" "$(grants _ '{"general":{}}')" "no"
 contains "and agy reports itself unavailable rather than running blind" "$agy_src" \
   "! agy_has_command_grants"
 
+# The default path itself, which every case above hides by setting AGY_SETTINGS.
+# The first version read ~/.gemini/settings.json -- the Gemini CLI's file, which
+# has no permissions key on either machine -- so grants were never found and agy
+# was always unavailable: the same "claude, then nothing", with a log line. agy's
+# own binary states the path: "The CLI is configured via
+# ~/.gemini/antigravity-cli/settings.json".
+grants_src=$(sed -n '/^agy_has_command_grants()/,/^}/p' "$ENGINE/ralph.sh")
+contains "the default is agy's settings file" "$grants_src" \
+  '$HOME/.gemini/antigravity-cli/settings.json'
+excludes "not the Gemini CLI's, which has no permissions key" "$grants_src" \
+  '${AGY_SETTINGS:-$HOME/.gemini/settings.json}'
+
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
