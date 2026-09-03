@@ -1363,6 +1363,45 @@ except ValueError as exc:
 ')
 check "greenlit-only without a greenlight file is refused at load" "$inert" "REJECTED"
 
+echo
+echo "greenlight retirement: reached OR passed, and blocked is neither"
+
+# Equality meant retirement fired only if a scan happened to catch the task in
+# precisely the stop_at state. A task that went straight to in-qa or released --
+# what happens when the PR is merged before the next sweep -- kept its
+# authorisation and stayed the top candidate. AG-290 sat cleared on the Air with
+# its PR merged 2026-08-13 and cost $1.29 on 08-26 to rediscover it was done.
+retire=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c '
+from loopctl import PIPELINE_STATES
+progress = [s for s in PIPELINE_STATES if s != "blocked"]
+order = {n: i for i, n in enumerate(progress)}
+def retires(state, target="pr-ready"):
+    return state in order and order[state] >= order[target]
+print(" ".join(
+    f"{s}={retires(s)}" for s in
+    ("in-progress", "pr-ready", "in-qa", "released", "blocked")))
+')
+check "a task at or past stop_at retires; one short of it does not" "$retire" \
+  "in-progress=False pr-ready=True in-qa=True released=True blocked=False"
+
+# The trap in the fix itself: PIPELINE_STATES is a list and `blocked` is appended
+# last, so BY INDEX it sorts after `released`. Ranking on that would retire the
+# authorisation of a task that is stuck rather than finished, and the owner would
+# have to clear it again to unblock it.
+blocked_idx=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c '
+from loopctl import PIPELINE_STATES
+print(PIPELINE_STATES.index("blocked") > PIPELINE_STATES.index("released"))
+')
+check "blocked really does sort after released by raw index" "$blocked_idx" "True"
+
+# Unreachable outright before: no task is ever in state `done` or `none`, so a
+# project configured that way could never retire anything at all.
+unreachable=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c '
+from loopctl import PIPELINE_STATES
+print(" ".join(s for s in ("done", "none") if s in PIPELINE_STATES) or "neither")
+')
+check "done and none are not states a task can be in" "$unreachable" "neither"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

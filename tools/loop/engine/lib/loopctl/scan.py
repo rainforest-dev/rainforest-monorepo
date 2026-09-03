@@ -501,7 +501,32 @@ def _retire_greenlight_if_terminal(slug: str, task: dict) -> dict | None:
         return None
     if project is None or project.policy != "greenlit-only" or not project.greenlight:
         return None
-    if str(task.get("state") or "") != str(project.stop_at or ""):
+    # Reached OR passed, not exactly equal.
+    #
+    # Equality meant retirement fired only if a scan happened to observe the task
+    # in precisely the stop_at state. A task that went straight from in-progress
+    # to in-qa or released -- which is what happens when the owner merges the PR
+    # before the next sweep -- was never seen at `pr-ready`, kept its
+    # authorisation, and stayed the top candidate. AG-290 sat cleared on the Air
+    # with its PR merged 2026-08-13 and cost $1.29 on 08-26 to rediscover that it
+    # was done. Equality also made retirement unreachable outright for a project
+    # whose stop_at is `done` or `none`: no task is ever in those states.
+    # `blocked` is excluded, not ranked. PIPELINE_STATES is a list, and `blocked`
+    # is appended last -- so by index it sorts AFTER `released`, and comparing on
+    # that would retire the authorisation of a task that is stuck rather than
+    # finished, making the owner clear it again to unblock it. Progress order is
+    # the prefix up to `released`; blocked is a state off to one side of it.
+    progress = [s for s in PIPELINE_STATES if s != "blocked"]
+    order = {name: i for i, name in enumerate(progress)}
+    state = str(task.get("state") or "")
+    target = str(project.stop_at or "")
+    if target in ("done", "none"):
+        # Nothing short of a terminal board state ends such a project's interest.
+        if state not in _TERMINAL_GROUND_TRUTH:
+            return None
+    elif state not in order or target not in order:
+        return None
+    elif order[state] < order[target]:
         return None
     item_id = (task.get("metadata") or {}).get("item_id") or task.get("id")
     path = Path(project.greenlight).expanduser()
