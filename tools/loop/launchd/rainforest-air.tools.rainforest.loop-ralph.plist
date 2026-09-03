@@ -4,9 +4,20 @@
 <dict>
   <key>Label</key>
   <string>tools.rainforest.loop-ralph</string>
+  <!-- Through the GUI session, not ralph.sh directly.
+       hosts.yaml has said so since 2026-08-25: a launchd-spawned process on this
+       host cannot read ~/Library/Mobile Documents. Probed with a throwaway
+       LaunchAgent, `ls` on the vault's task folder returned DENIED here and 42
+       files through osascript. This file said ralph.sh anyway -- so install.sh,
+       and therefore the Setup page's own step, installed a runner that could not
+       read the vault its two projects live in.
+       run-ralph-gui.applescript carries the whole environment (LOOP_MACHINE,
+       executors, LOOP_VAULT_PATH, agent config, PATH), which is why the block
+       below no longer repeats it. -->
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/rainforest/.claude/loop/ralph.sh</string>
+    <string>/usr/bin/osascript</string>
+    <string>/Users/rainforest/.claude/loop/run-ralph-gui.applescript</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>

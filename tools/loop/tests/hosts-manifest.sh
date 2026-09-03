@@ -57,6 +57,31 @@ done
 echo "== an unknown host still yields nothing =="
 check "roles_for on a host not in the manifest" "$(roles_for not-a-host)" ""
 
+echo "== the plists match what the manifest says about them =="
+# hosts.yaml documented since 2026-08-25 that the Air's ralph must run through
+# run-ralph-gui.applescript, because a launchd process there cannot read
+# ~/Library/Mobile Documents. The plist ran ralph.sh directly anyway, and
+# install.sh copies these files verbatim -- so the Setup page's own `./install.sh`
+# step installed a runner that could not read the vault. The manifest and the
+# file it describes disagreed, and nothing compared them.
+LAUNCHD="$(cd "$(dirname "$0")/../launchd" && pwd)"
+prog() { plutil -extract ProgramArguments json -o - "$LAUNCHD/$1" 2>/dev/null; }
+envv() { plutil -extract EnvironmentVariables json -o - "$LAUNCHD/$1" 2>/dev/null \
+  | python3 -c "import json,sys; print(json.load(sys.stdin).get(sys.argv[1], ''))" "$2"; }
+
+air=rainforest-air.tools.rainforest.loop-ralph.plist
+check "the Air's ralph goes through the GUI shim the manifest names" \
+  "$(prog "$air" | grep -c 'run-ralph-gui.applescript')" "1"
+check "and not through ralph.sh, which cannot read the vault there" \
+  "$(prog "$air" | grep -c 'loop/ralph.sh')" "0"
+
+# host_machine() honours LOOP_MACHINE and every per-machine file is keyed on what
+# it returns, so a short name here opens a second run ledger beside the real one.
+for host in rainforest-air rainforest-mini; do
+  check "$host names itself in full" \
+    "$(envv "$host.tools.rainforest.loop-ralph.plist" LOOP_MACHINE)" "$host"
+done
+
 echo
 printf '  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
