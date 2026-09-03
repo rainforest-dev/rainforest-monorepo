@@ -1141,6 +1141,17 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
     # of zero -- a twelve-minute session included.
     RUN_STARTED_TS=$(date +%s)
     RUN_ID="$MACHINE-$RUN_STARTED_TS-${sid%%-*}"
+    # What this host says it is about to run, written BEFORE the executor starts
+    # and independently of the ledger. `loopctl doctor` compares this run_id with
+    # the newest row in loop-runs.<machine>.jsonl: they diverge exactly when
+    # record-run failed, which on the Air went unnoticed from 2026-08-06 to
+    # 2026-09-03 because a ledger with no new rows is indistinguishable from a
+    # machine with nothing to do. Best-effort, and its failure is visible in the
+    # pair rather than swallowed here.
+    printf '{"run_id":"%s","started_ts":%s,"task":"%s"}\n' \
+      "$RUN_ID" "$RUN_STARTED_TS" "${task_id//\"/}" \
+      > "$LOOP_HOME/last-iteration.json" 2>/dev/null || \
+      log "  could not record the intended run; doctor's ledger pair will read unknown"
     # stderr kept OUT of the value that gets parsed as JSON.
     #
     # `2>&1` here meant one warning line from the executor -- or from anything it

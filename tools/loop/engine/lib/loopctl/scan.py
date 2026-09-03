@@ -876,9 +876,18 @@ def main(argv=None) -> int:
                 # Published like every other cross-machine fact: one file per
                 # host, so a silent machine is visibly absent rather than merging
                 # into the other one's answer.
+                #
+                # A failure here becomes a field, not a traceback: this command's
+                # whole point is that it still reports when something underneath
+                # it cannot be reached.
                 from loopctl.writeback import publish_doctor
 
-                result["published_to"] = publish_doctor(result)
+                try:
+                    result["published_to"] = publish_doctor(result)
+                except (OSError, ValueError) as exc:
+                    result["published_to"] = None
+                    result["publish_error"] = str(exc)
+                    result["state"] = "missing"
             _print_json(result)
             # Non-zero when anything is not ok, so an hourly job that runs this
             # cannot report success over a red pair -- the exact failure the

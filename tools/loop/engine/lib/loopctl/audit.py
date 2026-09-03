@@ -95,9 +95,11 @@ def audit_task(task: str, machines: Iterable[str]) -> dict:
         outcomes[key] = outcomes.get(key, 0) + 1
 
     timed = [s for s in (_seconds(r) for r in rows) if s is not None]
-    points = next(
-        (r["points"] for r in reversed(rows) if isinstance(r.get("points"), int)), None
-    )
+    # Every size any row carried, newest first, so a re-estimate is visible
+    # rather than silently resolved to the latest. Recording points per run means
+    # one task can legitimately hold two, and a single number would hide that.
+    seen = [r["points"] for r in rows if isinstance(r.get("points"), int)]
+    points = seen[-1] if seen else None
 
     # Per pool, and per attribution, because adding an exact delta to a bracketed
     # one produces a number with no meaning either reading would support.
@@ -127,13 +129,29 @@ def audit_task(task: str, machines: Iterable[str]) -> dict:
         # Split, not averaged over all runs: a total that silently excludes rows
         # would read as the whole story.
         "wall_seconds": sum(timed) if timed else None,
+        # Both counts, so nobody has to subtract to learn how much of the total
+        # the total covers.
+        "runs_with_duration": len(timed),
         "runs_without_duration": len(rows) - len(timed),
         "points": points,
+        "points_seen": sorted(set(seen)) if len(set(seen)) > 1 else None,
         "quota": spend,
         "prs": prs,
-        # The question the ledger cannot answer on its own, said plainly rather
-        # than left for a reader to notice is missing.
-        "cost_per_point": None
+        # Latency, named as latency. Wall time includes rate-limit sleeps and
+        # turn-limit stalls, so per-point wall seconds says how long a point
+        # takes to come back, not what it costs. Cost is quota percentage points,
+        # reported per pool and attribution because a bracketed delta and a
+        # measured one cannot be added.
+        "latency": None
         if points in (None, 0) or not timed
         else {"wall_seconds_per_point": round(sum(timed) / points, 1)},
+        "cost": None
+        if points in (None, 0)
+        else {
+            bucket: {
+                "five_hour_pp_per_point": round(v["five_hour_pp"] / points, 2),
+                "weekly_pp_per_point": round(v["weekly_pp"] / points, 2),
+            }
+            for bucket, v in spend.items()
+        },
     }

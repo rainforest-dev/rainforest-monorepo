@@ -1566,13 +1566,16 @@ check "a zero-length row is excluded, not summed as zero" \
   "$(printf '%s' "$out" | jq_field 'str(d[chr(119)+chr(97)+chr(108)+chr(108)+chr(95)+chr(115)+chr(101)+chr(99)+chr(111)+chr(110)+chr(100)+chr(115)])')" "600"
 check "and the excluded ones are counted, not hidden" \
   "$(printf '%s' "$out" | jq_field 'd["runs_without_duration"]')" "1"
-check "cost per point uses the estimate the rows carried" \
-  "$(printf '%s' "$out" | jq_field 'd["cost_per_point"]["wall_seconds_per_point"]')" "300.0"
+# Named latency, not cost: wall time includes rate-limit sleeps and turn-limit
+# stalls, so per-point seconds says how long a point takes to come back rather
+# than what it consumed. Cost is quota percentage points, reported separately.
+check "latency per point uses the estimate the rows carried" \
+  "$(printf '%s' "$out" | jq_field 'd["latency"]["wall_seconds_per_point"]')" "300.0"
 
 # No usable duration means the question has no answer, and saying so beats
 # dividing by something nobody supplied.
-check "no timed run yields no cost per point" \
-  "$(aud "[$same]" | jq_field 'd["cost_per_point"]')" "None"
+check "no timed run yields no latency figure" \
+  "$(aud "[$same]" | jq_field 'd["latency"]')" "None"
 check "a task with no rows says so rather than reporting zeroes" \
   "$(aud '[]' | jq_field 'd["reason"]')" "no run has ever recorded this task"
 
@@ -1590,8 +1593,10 @@ check "and agreement is the only ok"               "$(doc \"'a'\" \"'a'\")" "ok"
 
 # An SLA turns agreement into staleness: the bundle mount matched for two days
 # while being two days old, and matching was not the question.
+# projects_published, not ledger: the ledger pair deliberately has no SLA now,
+# because rows exist per iteration and an idle host is not a broken one.
 sla() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
-  "from loopctl.doctor import _pair; print(_pair('ledger', declared='m', observed='m', source='s', age=$1)['state'])"; }
+  "from loopctl.doctor import _pair; print(_pair('projects_published', declared='m', observed='m', source='s', age=$1)['state'])"; }
 check "inside its SLA a pair is ok"    "$(sla 3600)"    "ok"
 check "past its SLA the same pair is stale" "$(sla 999999)" "stale"
 
@@ -1601,6 +1606,26 @@ check "past its SLA the same pair is stale" "$(sla 999999)" "stale"
 run_state() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
   "from loopctl.doctor import _pair; print(_pair('runner', declared='plist installed=True', observed='loaded=True enabled=True', source='s', state=$1)['state'])"; }
 check "a pair may pass its own verdict" "$(run_state \"'ok'\")" "ok"
+
+# The review found doctor doing the exact thing its docstring forbids: with no
+# declared side, the comparison could not fail, so a host with no bundle mount
+# reported engine_version green for a machine nothing could have told to upgrade.
+check "an unreadable declared side is unknown, not ok" "$(doc None \"'x'\")" "unknown"
+
+# launchctl holds no override for a label that was never explicitly toggled, and
+# launchd's default for that is enabled. Requiring True reported `differs` on
+# every host that had simply never been touched.
+runner_default=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c "
+loaded, enabled = True, None
+print('ok' if (loaded and enabled is not False) else 'differs')")
+check "no override means enabled, not unknown-so-broken" "$runner_default" "ok"
+
+# Rows exist per iteration and never for an empty sweep, so an age SLA on the
+# ledger is red every quiet weekend. The pair compares run ids instead.
+excludes "the ledger pair carries no freshness SLA" \
+  "$(sed -n '/^SLA_SECONDS/,/^}/p' "$ENGINE/lib/loopctl/doctor.py")" '"ledger"'
+contains "ralph records the run it intends to start" \
+  "$(grep -B4 'last-iteration.json' "$ENGINE/ralph.sh" | head -8)" 'run_id'
 
 # Non-zero exit, so an hourly job cannot report success over a red pair.
 grep -q 'return 0 if result.get("state") == "ok" else 1' "$ENGINE/lib/loopctl/scan.py" \

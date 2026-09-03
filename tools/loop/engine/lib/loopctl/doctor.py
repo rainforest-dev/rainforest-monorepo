@@ -39,7 +39,11 @@ from loopctl.writeback import usage_path
 #: freshness. These are judgement, not measurement, and are named here rather
 #: than buried so they can be argued with.
 SLA_SECONDS: dict[str, int] = {
-    "ledger": 48 * 3600,
+    # No entry for `ledger`. Rows are written per iteration and never for an
+    # empty sweep, so an idle host's ledger ages by design: a 48h SLA turned
+    # every quiet weekend red, and a check that is red when nothing is wrong is
+    # one people learn to ignore. What that pair should compare is the run ralph
+    # says it started against the run the ledger holds -- see `_ledger_pair`.
     "projects_published": 3 * 3600,
     "quota_snapshot": 3 * 3600,
 }
@@ -75,11 +79,15 @@ def _pair(
     """
     if state is not None:
         pass
-    elif declared is None and observed is None:
-        state = "unknown"
-    elif observed is None:
-        state = "missing"
-    elif declared is not None and str(declared) != str(observed):
+    elif declared is None or observed is None:
+        # Either side unreadable is `unknown`, and an unreadable DECLARED side
+        # with a present observed one is the case worth naming: it fell through
+        # to the comparison, which cannot fail against None, and came out `ok`.
+        # On a host with no bundle mount that is engine_version reporting green
+        # for a machine nothing could have told to upgrade -- absence read as
+        # success, in the file whose docstring exists to forbid it.
+        state = "missing" if declared is not None else "unknown"
+    elif str(declared) != str(observed):
         state = "differs"
     else:
         sla = SLA_SECONDS.get(pair_id)
@@ -131,24 +139,39 @@ def _engine_version_pair(loop_home: Path) -> dict:
     )
 
 
-def _ledger_pair(machine: str, now: float) -> dict:
-    """The ledger this host writes, against when it last actually wrote."""
+def _ledger_pair(machine: str, loop_home: Path, now: float) -> dict:
+    """The run ralph says it started, against the run the ledger holds.
+
+    Not an age check. Rows exist only for iterations, never for empty sweeps, so
+    an idle host's ledger is old because there was nothing to do -- a freshness
+    SLA there is red every quiet weekend, which is how a check earns being
+    ignored. What matters is whether the row for the run that DID happen arrived:
+    those two diverge exactly when `record-run` failed, which on the Air went
+    unnoticed from 2026-08-06 to 2026-09-03 because a ledger with no new rows
+    looks identical to a machine with nothing to run.
+    """
     path = usage_path(f"loop-runs.{machine}.jsonl")
-    last = None
+    intended = intended_ts = None
+    try:
+        doc = json.loads((loop_home / "last-iteration.json").read_text(encoding="utf-8"))
+        intended, intended_ts = doc.get("run_id"), doc.get("started_ts")
+    except (OSError, ValueError):
+        pass
+    recorded = None
     try:
         lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
         if lines:
-            last = json.loads(lines[-1]).get("started_at")
+            recorded = json.loads(lines[-1]).get("run_id")
     except (OSError, ValueError):
         pass
     return _pair(
         "ledger",
-        declared=machine,
-        observed=machine if last else None,
-        age=_age(_mtime(path), now),
-        source=str(path),
-        note=f"last row started {last or 'never'}"
-        " -- the Air swallowed every row for a month and said nothing",
+        declared=intended,
+        observed=recorded,
+        age=_age(intended_ts, now) if isinstance(intended_ts, (int, float)) else None,
+        source=f"{loop_home}/last-iteration.json vs {path}",
+        note="the run this host set out to make, against the row it recorded"
+        " -- these part when record-run fails, and nothing else notices",
     )
 
 
@@ -163,10 +186,24 @@ def _projects_pair(machine: str, now: float) -> dict:
         published = doc.get("published_at")
     except (OSError, ValueError):
         pass
+    # Counts, not names. Comparing the machine to itself passed while `scan
+    # <slug>` rewrote the file down to a single project -- the publication was
+    # present, current, and missing most of what it should list.
+    declared_count = None
+    try:
+        from loopctl.config import config_path, load_config
+
+        declared_count = sum(
+            1
+            for pr in load_config(config_path()).projects
+            if not pr.machines or "both" in pr.machines or machine in pr.machines
+        )
+    except Exception:
+        declared_count = None
     return _pair(
         "projects_published",
-        declared=machine,
-        observed=machine if count else None,
+        declared=declared_count,
+        observed=count,
         age=_age(_mtime(path), now),
         source=str(path),
         note=f"{count if count is not None else 'no'} project(s), published {published or 'never'}"
@@ -175,14 +212,31 @@ def _projects_pair(machine: str, now: float) -> dict:
 
 
 def _quota_pair(machine: str, now: float) -> dict:
+    """The budget gate's input, aged by when it was MEASURED.
+
+    mtime is the one number that hid this: on 2026-09-03 the Air's file had a
+    fresh written_at over a source_ts 21 hours old, so anything reading the file
+    date saw a current snapshot of a stale reading. The age that matters is the
+    newest source_ts across pools -- what the gate is actually deciding on.
+    """
     path = usage_path(f"quota.{machine}.json")
+    newest = None
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        for pool in doc.values():
+            ts = (pool or {}).get("source_ts") if isinstance(pool, dict) else None
+            if isinstance(ts, (int, float)):
+                newest = ts if newest is None else max(newest, ts)
+    except (OSError, ValueError):
+        pass
     return _pair(
         "quota_snapshot",
         declared=machine,
-        observed=machine if path.exists() else None,
-        age=_age(_mtime(path), now),
+        observed=machine if newest is not None else None,
+        age=_age(newest, now),
         source=str(path),
-        note="the file the budget gate reads before every run",
+        note="aged by source_ts, not the file date -- a fresh file can hold a"
+        " reading from yesterday, and the gate decides on the reading",
     )
 
 
@@ -226,7 +280,11 @@ def _runner_pair(loop_home: Path) -> dict:
         verdict = "missing"
     elif loaded is None:
         verdict = "unknown"
-    elif loaded and enabled:
+    elif loaded and enabled is not False:
+        # `enabled is None` means launchctl holds no override for the label, and
+        # launchd's default for that is enabled -- so only an explicit `=>
+        # disabled` is a held-off job. Requiring True made every host that was
+        # never explicitly toggled report `differs` while running perfectly.
         verdict = "ok"
     else:
         verdict = "differs"
@@ -247,14 +305,23 @@ def report(machine: str | None = None, now: float | None = None) -> dict:
     loop_home = Path(os.environ.get("LOOP_HOME") or (Path.home() / ".claude" / "loop"))
     pairs = [
         _engine_version_pair(loop_home),
-        _ledger_pair(name, now),
+        _ledger_pair(name, loop_home, now),
         _projects_pair(name, now),
         _quota_pair(name, now),
         _runner_pair(loop_home),
     ]
+    # The runner is excluded from the overall state. On a host whose owner has
+    # deliberately not enabled it, `differs` is the correct reading of the pair
+    # and the wrong thing to exit non-zero on every hour -- that is how a check
+    # gets muted. It goes back in when hosts.yaml can say `ralph: enabled` and
+    # the pair can tell "off on purpose" from "off and forgotten".
+    graded = [p for p in pairs if p["id"] != "runner"]
     worst = "ok"
-    for order in ("unknown", "stale", "differs", "missing"):
-        if any(p["state"] == order for p in pairs):
+    # Ordered by how much it costs to be wrong. `unknown` sits with `stale`
+    # rather than below it: a pair that cannot be read is not a milder version
+    # of one that is merely old.
+    for order in ("stale", "unknown", "differs", "missing"):
+        if any(p["state"] == order for p in graded):
             worst = order
     return {
         "machine": name,
