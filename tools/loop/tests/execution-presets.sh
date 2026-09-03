@@ -496,7 +496,7 @@ resolver="$ROOT/resolver.sh"
 awk '/^preferred_plan\(\) \{/,/^\}/' "$HOME_DIR/ralph.sh" > "$resolver"
 resolve() {
   AGENT_CONFIG="$ROOT/agents.json" PYTHON_BIN="$VENV/bin/python" \
-    bash -c '. "$1"; preferred_plan "$2" "$3"' _ "$resolver" "$2" "$3" | tr '\t' ' '
+    bash -c '. "$1"; preferred_plan "$2" "$3"' _ "$resolver" "$2" "$3" | tr '\037' ' '
 }
 url="https://app.notion.com/p/39f0f67c1d0c81aaba20dd126c204cc8"
 check "item_id wins over the url id" "$(resolve _ "$url" AG-132)" "codex gpt-5.6-terra medium"
@@ -686,7 +686,7 @@ awk '/^quota_state\(\) \{/,/^PY$/' "$HOME_DIR/ralph.sh" > "$qs_lib"; printf '}\n
 qs() {
   PYTHON_BIN="$VENV/bin/python" QUOTA_FILE="$1" \
   PCT_5H_STOP=80 PCT_WEEK_STOP=90 PCT_5H_DRAIN=60 PCT_WEEK_DRAIN=85 \
-    bash -c '. "$1"; quota_state | tr "\t" "|"' _ "$qs_lib"
+    bash -c '. "$1"; quota_state | tr "\037" "|"' _ "$qs_lib"
 }
 check "both pools are reported" "$(qs "$ROOT/quota/_system/usage/quota.$MACHINE.json")" "ok|12|22||44"
 # A pool over its stop threshold halts the iteration whichever pool it is: the
@@ -738,7 +738,7 @@ cpp() {  # <fake-home> <transcript>
 # HOME is redirected so the helper looks in the sandbox's .codex/sessions.
 mkdir -p "$ROOT/fakehome/.codex"; ln -sfn "$ROOT/codex-sessions" "$ROOT/fakehome/.codex/sessions"
 check "the run's own session is found and bracketed" \
-  "$(cpp "$ROOT/fakehome" "$ROOT/fake-transcript.log" | tr '\t' '>')" "53.0>57.0"
+  "$(cpp "$ROOT/fakehome" "$ROOT/fake-transcript.log" | tr '\037' '>')" "53.0>57.0"
 # A transcript naming no thread must yield nothing rather than someone else's run.
 printf '{"type":"turn.completed"}\n' > "$ROOT/no-thread.log"
 check "no thread id means no number" "$(cpp "$ROOT/fakehome" "$ROOT/no-thread.log")" ""
@@ -1011,11 +1011,11 @@ attr() {  # <provider> <own-session-bracket>
 type quota_attribution >/dev/null 2>&1 || { echo "HELPER-NOT-LOADED"; exit 0; }
 quota_attribution "$2" "$3"' _ "$attr_lib" "$1" "${2:-}"
 }
-check "a bracketed codex delta is exact" "$(attr codex "$(printf '53.0\t57.0')")" "exact"
+check "a bracketed codex delta is exact" "$(attr codex "$(printf '53.0\03757.0')")" "exact"
 check "codex falling back to the file is not" "$(attr codex "")" "upper-bound"
 # The point of the whole change: claude has no per-session quota to bracket, so
 # no input makes its delta exact.
-check "claude is never exact, bracket or not" "$(attr claude "$(printf '53.0\t57.0')")" "upper-bound"
+check "claude is never exact, bracket or not" "$(attr claude "$(printf '53.0\03757.0')")" "upper-bound"
 
 mb_lib="$ROOT/mark-bound.sh"
 awk '/^mark_bound\(\) \{/,/^\}/' "$HOME_DIR/ralph.sh" > "$mb_lib"
@@ -1264,6 +1264,52 @@ check "another project's work is not this run's" \
 # and accusing a run on the strength of unknown is the costlier error.
 check "an undated row is not read as movement" \
   "$(detect "{\"tasks\":{\"T-OTHER\":{$here}}}" T-MINE)" ""
+
+echo
+echo "field separators: an empty middle field must survive the read"
+
+# The defect, reproduced against the shell that actually runs this: `read` with
+# IFS=tab collapses adjacent separators, so an empty field does not arrive empty
+# -- it vanishes and everything after it shifts left. On a team plan five_hour is
+# null, which put the WEEKLY percentage in the 5-hour column and left weekly
+# blank, on the machine whose company quota the gate is meant to protect.
+collapsed=$(/bin/bash -c "printf 'a\t\tc' | { IFS=\$'\t' read -r x y z; printf '%s|%s|%s' \"\$x\" \"\$y\" \"\$z\"; }")
+check "the shell really does collapse adjacent tabs" "$collapsed" "a|c|"
+kept=$(/bin/bash -c "printf 'a\037\037c' | { IFS=\$'\037' read -r x y z; printf '%s|%s|%s' \"\$x\" \"\$y\" \"\$z\"; }")
+check "and does not collapse \\x1f" "$kept" "a||c"
+
+# No tab-separated multi-field line may come back: any of them can grow an empty
+# field later, and the failure is silent when it does.
+tabbed=$(grep -c "IFS=\$'\\t'" "$ENGINE/ralph.sh" || true)
+check "no reader in ralph splits on tab any more" "$tabbed" "0"
+
+echo
+echo "the runner does not invent work or lose it"
+
+# An empty queue used to launch the executor anyway; `record-run --task ""` then
+# landed a row that normalize_outcome reads as `advanced`, so nothing-to-do was
+# recorded as progress -- and paid for.
+contains "an empty task queue breaks instead of running" \
+  "$(grep -A10 "read -r task_id task_item_id" "$ENGINE/ralph.sh")" \
+  'if [ -z "${task_id:-}" ]; then'
+
+# The contract has executors commit in a worktree of their own, so $project_path
+# is precisely the checkout that does NOT move. Comparing it meant a run that
+# committed, pushed and then exited non-zero was handed to the next executor: a
+# second branch and a second PR for work already done.
+excludes "the failure guard does not compare the one checkout that cannot move" \
+  "$(grep -A1 'the repo moved before this failure' "$ENGINE/ralph.sh")" \
+  'rev-parse HEAD'
+contains "it compares every worktree instead" \
+  "$(grep -B2 'the repo moved before this failure' "$ENGINE/ralph.sh")" \
+  'repo_heads "$project_path"'
+
+# One stderr line inside the envelope makes verdict, subtype, cost and tokens all
+# absent -- and an outcome is then decided without the fields that decide it.
+excludes "the executor's stderr does not enter the parsed envelope" \
+  "$(grep 'candidate_out=$(run_executor' "$ENGINE/ralph.sh")" "2>&1"
+contains "it is captured separately" \
+  "$(grep 'candidate_out=$(run_executor' "$ENGINE/ralph.sh")" '2>"$candidate_err"'
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
