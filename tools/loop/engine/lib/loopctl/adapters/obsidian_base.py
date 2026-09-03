@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 import yaml
@@ -9,6 +10,10 @@ from loopctl.adapters.common import task_signals_from_ref
 from loopctl.errors import SourceUnreachable
 from loopctl.models import TaskRef
 from loopctl.status import normalize_source_state, priority_key
+
+
+class _NoteUnparseable(Exception):
+    """One note cannot be read as a task. Not a reason to fail the project."""
 
 
 def _frontmatter(path: Path) -> tuple[dict, str]:
@@ -22,7 +27,13 @@ def _frontmatter(path: Path) -> tuple[dict, str]:
         raw, body = text[4:].split("\n---", 1)
         data = yaml.safe_load(raw) or {}
     except (ValueError, yaml.YAMLError) as exc:
-        raise SourceUnreachable(f"task note has invalid frontmatter: {path}") from exc
+        # A malformed note is one note's problem, and the caller skips it. Raising
+        # SourceUnreachable marked the WHOLE project stale, which zeroes its
+        # candidates on both machines -- so a single typo in one file's
+        # frontmatter stopped the loop for everything in that directory, and said
+        # only "stale". Unreadable is still fatal above: that means the vault is
+        # not there, which is a source-level fact rather than a content one.
+        raise _NoteUnparseable(f"invalid frontmatter: {exc}") from exc
     return data if isinstance(data, dict) else {}, body.lstrip("\n")
 
 
@@ -85,8 +96,13 @@ def enumerate_tasks(project, run=None) -> list[TaskRef]:
         raise SourceUnreachable(f"Obsidian task folder is missing: {tasks_dir}")
     required_scope = project.source_config.get("scope", "personal")
     tasks = []
+    skipped: list[str] = []
     for path in sorted(tasks_dir.rglob("*.md")):
-        data, body = _frontmatter(path)
+        try:
+            data, body = _frontmatter(path)
+        except _NoteUnparseable as exc:
+            skipped.append(f"{path.name}: {exc}")
+            continue
         if required_scope and data.get("scope") != required_scope:
             continue
         relative = _task_path_id(path, project.path, tasks_dir)
@@ -132,6 +148,11 @@ def enumerate_tasks(project, run=None) -> list[TaskRef]:
                 },
             )
         )
+    # Skipped, not silent. The return type has no room for a warning, and a note
+    # that vanishes from the board with no explanation is the failure this change
+    # replaced in a quieter form.
+    for note in skipped:
+        print(f"loopctl: skipping unparseable task note -- {note}", file=sys.stderr)
     return sorted(
         tasks,
         key=lambda task: (
