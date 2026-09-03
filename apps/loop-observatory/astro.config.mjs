@@ -12,6 +12,11 @@ export default defineConfig({
   site: process.env.SITE_URL ?? 'https://loop.rainforest.tools',
   output: 'server',
   adapter: node({ mode: 'standalone' }),
+  // Astro's own origin check compares the Origin header against the request as
+  // the server received it, which is http:// behind this deployment's TLS
+  // terminator -- so every POST from the public https:// address was rejected.
+  // `src/middleware.ts` checks an allowlist instead; see src/lib/originGuard.ts.
+  security: { checkOrigin: false },
   vite: { plugins: [tailwindcss()] },
   integrations: [vue()],
 });
