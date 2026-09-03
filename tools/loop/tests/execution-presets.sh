@@ -1175,6 +1175,61 @@ excludes "telemetry is off entirely" "$otel_env" "CLAUDE_CODE_ENABLE_TELEMETRY"
 excludes "and nothing is left pointing anywhere" "$otel_env" "OTEL_EXPORTER_OTLP_ENDPOINT"
 check "but the run still happens and still records" "$(last_run_field executor)" "codex"
 
+echo
+echo "ledger: a run says how long it took and which task it moved"
+
+# started_at fell back to the append time for every row ever written, because
+# ralph had the epoch (it is inside RUN_ID) and never passed it on.
+#
+# Not asserted by comparing this run's own two stamps: the harness's executor
+# returns instantly, so both land in the same second whether or not the value
+# was passed -- the test would pass for the wrong reason. Two checks that cannot:
+# the CLI honours an explicit start, and every call site in ralph supplies one.
+"$HOME_DIR/loopctl" record-run \
+  --project ledger-probe --task ledger-probe --executor claude \
+  --status advanced --started-ts 1700000000 >/dev/null 2>&1 || true
+probe_started=$(last_run_field started_at)
+probe_ended=$(last_run_field ended_at)
+check "the ledger honours an explicit start time" "${probe_started%%T*}" "2023-11-14"
+if [ "$probe_started" = "$probe_ended" ]; then
+  fail=$((fail + 1)); printf '    FAIL %s\n' "started_at was overwritten by the append time"
+else
+  pass=$((pass + 1)); printf '    ok   %s\n' "and does not overwrite it with the append time"
+fi
+
+# A future call site that forgets the flag reintroduces the whole class, and it
+# would look correct in every fast test. Checked at the source instead.
+# Invocations only. A bare `record-run` also appears in a comment, and counting
+# that made this demand a flag on a line that cannot carry one.
+run_calls=$(grep -c '"\$LOOPCTL" record-run' "$ENGINE/ralph.sh")
+started_args=$(grep -c -- '--started-ts' "$ENGINE/ralph.sh")
+check "every record-run in ralph passes a start time" "$started_args" "$run_calls"
+
+# The closed vocabulary has to carry the new outcome, or normalize_outcome
+# silently rewrites it to `advanced` -- which is the exact claim it exists to
+# stop making.
+outcomes=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c 'from loopctl.writeback import OUTCOMES; print(" ".join(sorted(OUTCOMES)))')
+contains "misattributed is a recordable outcome" "$outcomes" "misattributed"
+normalised=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c 'from loopctl.writeback import normalize_outcome; print(normalize_outcome("misattributed"))')
+check "and survives normalisation rather than degrading to advanced" "$normalised" "misattributed"
+
+# The engine version rides on the file every scan publishes. Absent means absent:
+# a host that never installed from a bundle must not be given a version it
+# cannot have, because a guess is indistinguishable from a report.
+echo "  engine version:"
+unset LOOP_ENGINE_VERSION 2>/dev/null || true
+absent=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c '
+import os
+os.environ["LOOP_HOME"] = "/nonexistent/loop"
+from loopctl.writeback import _engine_version
+print("NONE" if _engine_version() is None else "SOMETHING")')
+check "no marker on disk reports nothing, not a guess" "$absent" "NONE"
+printf '2026.09.03-abc1234\n' > "$LOOP_HOME/.engine-version"
+reported=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c '
+from loopctl.writeback import _engine_version
+print(_engine_version())')
+check "an installed marker is reported verbatim" "$reported" "2026.09.03-abc1234"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

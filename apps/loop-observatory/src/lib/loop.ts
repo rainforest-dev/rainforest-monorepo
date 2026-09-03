@@ -6,6 +6,7 @@ import {
   type MachineBudgetMap,
   readMachineBudgets,
 } from './budget.js';
+import { engineDrift, readEngineReports } from './engineVersions.js';
 import { epochOf } from './loopFreshness.js';
 import {
   latestRunPerTask,
@@ -46,6 +47,12 @@ export interface LoopState {
   recent_rounds: RoundMarker[];
   recent_progress: ProgressEntry[];
   last_handoff: string | null;
+  /**
+   * Which engine release each machine runs, or how they disagree. Null when no
+   * machine has published one -- distinct from "they agree", which is the
+   * reading that let a three-release gap sit unnoticed.
+   */
+  engines: string | null;
   budget_mode_by_machine: Record<string, BudgetMode>;
   /** Provenance for the three file-backed sections above. */
   sources: {
@@ -304,6 +311,7 @@ export function readLoopState(nowMs: number = Date.now()): LoopState {
     recent_rounds,
     recent_progress,
     last_handoff,
+    engines: engineDrift(readEngineReports(usageDir())),
     budget_mode_by_machine,
     sources: {
       // Named for what they are, not for what the panel used to read. `runs`

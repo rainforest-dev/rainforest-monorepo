@@ -147,6 +147,13 @@ if has_role engine; then
   run mkdir -p "$LOOP_HOME"
   # --ignore-existing on the owner-maintained files only; code is always refreshed.
   run rsync -a --exclude '__pycache__' "$HERE/engine/lib/" "$LOOP_HOME/lib/"
+  # What this machine is running, so the dashboard can say when a host is
+  # behind instead of that answer needing an ssh and a grep. Absent when the
+  # engine was copied by hand rather than installed from a bundle, and absent
+  # is the truthful reading: nothing here can name a version it never had.
+  if [ -f "$HERE/engine/.engine-version" ]; then
+    run cp "$HERE/engine/.engine-version" "$LOOP_HOME/.engine-version"
+  fi
   for f in loopctl ralph.sh contract.md pyproject.toml uv.lock; do
     run rsync -a "$HERE/engine/$f" "$LOOP_HOME/$f"
   done

@@ -163,6 +163,23 @@ def _write_notion_status(task_id: object, state: str) -> str:
         return "pending"
 
 
+def _engine_version() -> str | None:
+    """The release this machine installed, or None if it cannot say.
+
+    Written by `install.sh` from the bundle it unpacked. None when the engine was
+    copied into place by hand -- a real arrangement here, and the reason this
+    returns None rather than a guess: a version inferred from the files on disk
+    would look exactly like a reported one, and the point of the field is to tell
+    a host that is behind from a host that never said.
+    """
+    home = os.environ.get("LOOP_HOME") or (Path.home() / ".claude" / "loop")
+    try:
+        text = (Path(home) / ".engine-version").read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return text or None
+
+
 def publish_project_assignment(
     documents: list[dict],
     *,
@@ -201,6 +218,11 @@ def publish_project_assignment(
         {
             "machine": name,
             "published_at": _iso(now_ts),
+            # Rides on the file every scan already publishes, rather than on the
+            # enrollment probes: adding a probe bumps the protocol version and
+            # every installed bundle then refuses to enrol until it is replaced.
+            # This channel needs no coordination and updates hourly on its own.
+            "engine_version": _engine_version(),
             "projects": [
                 {
                     "slug": d.get("slug"),
@@ -380,6 +402,10 @@ OUTCOMES = frozenset(
     {
         "reached_stop_at",
         "advanced",
+        # The run did work, but not on the task this row names. Distinct from
+        # `advanced`, which claims progress ON this task -- the reading that put
+        # $9.25 and 12pp of a 5-hour window against a ticket that never ran.
+        "misattributed",
         "turns_exhausted",
         "rate_limited",
         "preflight_failed",
