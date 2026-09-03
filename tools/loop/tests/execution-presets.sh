@@ -1230,6 +1230,41 @@ from loopctl.writeback import _engine_version
 print(_engine_version())')
 check "an installed marker is reported verbatim" "$reported" "2026.09.03-abc1234"
 
+# The misattribution detector, run as the shipped code rather than a copy: the
+# block is extracted from ralph.sh itself, so a change there that breaks it fails
+# here. It is the one piece of this that `bash -n` cannot vouch for -- a heredoc
+# inside a command substitution parses fine and can still decide wrongly.
+echo "  misattribution detector:"
+det_a=$(grep -n "<<'PYEOF'" "$ENGINE/ralph.sh" | cut -d: -f1)
+det_b=$(grep -n '^PYEOF$' "$ENGINE/ralph.sh" | cut -d: -f1)
+det="$HOME_DIR/detect.py"
+sed -n "$((det_a + 1)),$((det_b - 1))p" "$ENGINE/ralph.sh" > "$det"
+
+detect() { # rows-json claimed-id -> what it would report
+  printf '%s' "$1" > "$HOME_DIR/progress.json"
+  "$VENV/bin/python" "$det" "$HOME_DIR/progress.json" "$2" 1000 \
+    rainforest-mini rainforest-monorepo 2>/dev/null
+}
+here='"machine":"rainforest-mini","project":"rainforest-monorepo"'
+
+check "another task moving in this run's window is reported" \
+  "$(detect "{\"tasks\":{\"T-OTHER\":{$here,\"updated_ts\":1500}}}" T-MINE)" "T-OTHER"
+# The claimed task moving is proof the run was on the right thing, PR or not.
+check "the claimed task moving keeps it quiet" \
+  "$(detect "{\"tasks\":{\"T-MINE\":{$here,\"updated_ts\":1500},\"T-OTHER\":{$here,\"updated_ts\":1500}}}" T-MINE)" ""
+check "a task last touched before this run is not evidence" \
+  "$(detect "{\"tasks\":{\"T-OTHER\":{$here,\"updated_ts\":500}}}" T-MINE)" ""
+# Another host's concurrent run overlaps this window constantly; reading it as
+# this run's work would make misattribution the normal outcome on two machines.
+check "another machine's work is not this run's" \
+  "$(detect "{\"tasks\":{\"T-OTHER\":{\"machine\":\"rainforest-air\",\"project\":\"rainforest-monorepo\",\"updated_ts\":1500}}}" T-MINE)" ""
+check "another project's work is not this run's" \
+  "$(detect "{\"tasks\":{\"T-OTHER\":{\"machine\":\"rainforest-mini\",\"project\":\"other-repo\",\"updated_ts\":1500}}}" T-MINE)" ""
+# Six rows in the live mirror predate the timestamp entirely. Undated is unknown,
+# and accusing a run on the strength of unknown is the costlier error.
+check "an undated row is not read as movement" \
+  "$(detect "{\"tasks\":{\"T-OTHER\":{$here}}}" T-MINE)" ""
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
