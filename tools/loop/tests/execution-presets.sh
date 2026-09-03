@@ -1702,6 +1702,35 @@ check "an absent mechanism reports not_applicable" "$na" "not_applicable"
 contains "and not_applicable is excluded from the verdict" \
   "$(sed -n '/graded = \[/,/\]/p' "$ENGINE/lib/loopctl/doctor.py")" 'not_applicable'
 
+echo
+echo "doctor: launchd keeps the plist it read, not the one on disk"
+
+# launchd reads a plist once, at bootstrap, and keeps it. Replacing the file
+# changes nothing about the running service and `disable` does not unload it, so
+# install.sh can write a corrected unit the machine never adopts. Measured
+# 2026-09-03 on the Air: the plist said `ralph.sh 1 10` while launchd ran
+# `ralph.sh` alone, and the runner kept the 15-iteration default it had been
+# bootstrapped with -- twice, after the file was fixed. `bootstrap` on the
+# already-registered label then failed with `5: Input/output error`, a message
+# that says nothing about which definition is loaded.
+ld() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  "from loopctl.doctor import _pair; print(_pair('loaded_definition', declared=$1, observed=$2, source='s', state=$3)['state'])"; }
+check "a plist launchd never re-read is differs" \
+  "$(ld \"'ralph.sh 1 10'\" \"'ralph.sh'\" None)" "differs"
+check "and matching definitions are ok" \
+  "$(ld \"'ralph.sh 1 10'\" \"'ralph.sh 1 10'\" None)" "ok"
+# Nothing registered means nothing to disagree with. A runner that is
+# deliberately off must not make this red -- that is the `runner` pair's
+# question, and asking it twice is how a check becomes noise.
+check "nothing loaded is not applicable, not broken" \
+  "$(ld None None \"'not_applicable'\")" "not_applicable"
+
+# The pair reads both sides through the tools that own them, so it cannot drift
+# from either: plutil for the file, launchctl print for what is running.
+def_src=$(sed -n '/^def _loaded_definition_pair/,/^def /p' "$ENGINE/lib/loopctl/doctor.py")
+contains "the declared side comes from the plist itself" "$def_src" 'plutil'
+contains "and the observed side from launchd"            "$def_src" 'launchctl'
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

@@ -263,6 +263,82 @@ def _quota_pair(machine: str, now: float) -> dict:
     )
 
 
+def _loaded_definition_pair(loop_home: Path) -> dict:
+    """The plist on disk, against the definition launchd is actually running.
+
+    launchd reads a plist once, at bootstrap, and keeps what it read. Replacing
+    the file afterwards changes nothing about the running service, and `disable`
+    does not unload it -- so `install.sh` can write a corrected unit that the
+    machine never adopts, silently, for as long as the old one stays registered.
+
+    Measured 2026-09-03 on the Air: the plist said `ralph.sh 1 10` while launchd
+    ran `ralph.sh` alone, so the runner kept the 15-iteration default it had been
+    bootstrapped with, twice, after the file had been fixed. `bootstrap` on the
+    already-registered label failed with `5: Input/output error`, a message that
+    says nothing about which definition is loaded.
+
+    Compared on ProgramArguments alone. It is the field that carries the
+    iteration and budget caps here, it is cheap to read from both sides, and a
+    unit that differs in it differs in the part that decides how much a wake can
+    spend.
+    """
+    import subprocess
+
+    label = "tools.rainforest.loop-ralph"
+    plist = Path(os.environ.get("HOME", "")) / "Library/LaunchAgents" / f"{label}.plist"
+    declared = None
+    try:
+        out = subprocess.run(
+            ["plutil", "-extract", "ProgramArguments", "json", "-o", "-", str(plist)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if out.returncode == 0:
+            declared = " ".join(json.loads(out.stdout))
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+
+    observed = None
+    try:
+        printed = subprocess.run(
+            ["launchctl", "print", f"gui/{os.getuid()}/{label}"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if printed.returncode == 0:
+            args, collecting = [], False
+            for raw in printed.stdout.splitlines():
+                line = raw.strip()
+                if line.startswith("arguments = {"):
+                    collecting = True
+                    continue
+                if collecting:
+                    if line == "}":
+                        break
+                    args.append(line)
+            observed = " ".join(args) if args else None
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+    # Nothing registered means nothing to disagree with. A runner that is
+    # deliberately off must not make this red -- that is the `runner` pair's
+    # question, and asking it twice is how a check becomes noise.
+    state = None
+    if declared is None or observed is None:
+        state = "not_applicable"
+    return _pair(
+        "loaded_definition",
+        declared=declared,
+        observed=observed,
+        state=state,
+        source=f"{plist} vs launchctl print gui/{os.getuid()}/{label}",
+        note="launchd keeps the plist it read at bootstrap; replacing the file"
+        " changes nothing until the label is booted out and bootstrapped again",
+    )
+
+
 def _runner_pair(loop_home: Path) -> dict:
     """Whether the runner this host declares is loaded and enabled.
 
@@ -332,6 +408,7 @@ def report(machine: str | None = None, now: float | None = None) -> dict:
         _projects_pair(name, now),
         _quota_pair(name, now),
         _runner_pair(loop_home),
+        _loaded_definition_pair(loop_home),
     ]
     # The runner is excluded from the overall state. On a host whose owner has
     # deliberately not enabled it, `differs` is the correct reading of the pair
