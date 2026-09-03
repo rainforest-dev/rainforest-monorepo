@@ -23,8 +23,27 @@ const data = ref<TasksData | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
-async function load() {
-  loading.value = true;
+/**
+ * How often the board re-reads the API.
+ *
+ * The panel used to fetch once on mount and then only on the Refresh button, so
+ * a `loopctl set` landing while the page was open never appeared -- and until
+ * 2026-09-03 that button returned 403 from the public address, which left no
+ * working path to a current board at all.
+ *
+ * Cheap enough to do on a timer: /api/tasks reads local files, and the overlay
+ * it merges (`tasks-progress.json`) is written by every `loopctl set`, so the
+ * loop's own progress shows up without anything being rebuilt.
+ */
+const POLL_MS = 30_000;
+
+/**
+ * `background` skips the spinner. A poll that flips the panel into its loading
+ * state every thirty seconds would make a board nobody touched look busy, and
+ * would throw away the scroll position on a long list.
+ */
+async function load(background = false) {
+  if (!background) loading.value = true;
   error.value = null;
   try {
     const res = await fetch('/api/tasks');
@@ -38,11 +57,40 @@ async function load() {
   }
 }
 
+let poll: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Only while the tab is visible.
+ *
+ * A backgrounded tab left open overnight would otherwise keep asking, and the
+ * answer it stored would be from whenever the machine last let the timer run --
+ * so it also reloads immediately on becoming visible again, rather than showing
+ * a stale board until the next tick.
+ */
+function onVisibility() {
+  if (document.visibilityState === 'visible') {
+    void load(true);
+    poll ??= setInterval(() => void load(true), POLL_MS);
+  } else if (poll) {
+    clearInterval(poll);
+    poll = null;
+  }
+}
+
+const onRefreshEvent = () => void load();
+
 onMounted(() => {
-  load();
-  window.addEventListener('lo:refresh', load);
+  void load();
+  window.addEventListener('lo:refresh', onRefreshEvent);
+  document.addEventListener('visibilitychange', onVisibility);
+  if (document.visibilityState === 'visible')
+    poll = setInterval(() => void load(true), POLL_MS);
 });
-onBeforeUnmount(() => window.removeEventListener('lo:refresh', load));
+onBeforeUnmount(() => {
+  window.removeEventListener('lo:refresh', onRefreshEvent);
+  document.removeEventListener('visibilitychange', onVisibility);
+  if (poll) clearInterval(poll);
+});
 
 // The pill's ages re-render on this tick.
 const now = useNow({ interval: 30_000 });
