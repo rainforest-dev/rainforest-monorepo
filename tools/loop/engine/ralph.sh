@@ -315,7 +315,7 @@ except OSError:
     raise SystemExit
 
 if first is not None and last is not None:
-    print("{}\t{}".format(first, last))
+    print("{}\x1f{}".format(first, last))
 PY
 }
 
@@ -399,9 +399,21 @@ PCT_WEEK_DRAIN=${LOOP_PCT_WEEK_DRAIN:-85}
 BUDGET_WEEKLY_PP=${LOOP_BUDGET_WEEKLY_PP:-}
 OVERRUN_RATIO=${LOOP_OVERRUN_RATIO:-1.5}
 
-# Emits "<verdict>\t<five_hour_pct>\t<weekly_pct>". Verdict is one of
+# \x1f, not a tab, for every multi-field line in this file.
+#
+# `IFS=$'\t' read` collapses ADJACENT separators, so an empty field in the middle
+# does not arrive empty -- it disappears and every field after it shifts left. On
+# a team plan `five_hour` is null, so `<mode>\t\t<weekly>` filed the weekly
+# percentage as the 5-hour one and left weekly blank: the Air has been recording
+# its quota in the wrong column, and the gate has been reading a 5-hour figure
+# that was never measured. Reproduced on /bin/bash 3.2.57:
+#   printf 'a\t\tc' | IFS=$'\t' read x y z  ->  x=a y=c z=
+# \x1f is not collapsed, which is why `task_row` already used it. Everything else
+# here now does too, rather than only the two lines with a known-empty field --
+# any of them can grow one.
+# Emits "<verdict>\x1f<five_hour_pct>\x1f<weekly_pct>". Verdict is one of
 # stop / drain / ok / unknown; unknown keeps the contract's conservative path.
-# Emits "<verdict>\t<claude_5h>\t<claude_week>\t<codex_5h>\t<codex_week>".
+# Emits "<verdict>\x1f<claude_5h>\x1f<claude_week>\x1f<codex_5h>\x1f<codex_week>".
 # Verdict is stop / drain / ok / unknown; unknown keeps the conservative path.
 #
 # Both pools, because this read only `claude` while the loop routes work to Codex
@@ -414,7 +426,7 @@ OVERRUN_RATIO=${LOOP_OVERRUN_RATIO:-1.5}
 # sweep -- so it is deliberately conservative: whichever pool is worst decides.
 # Attribution is a separate question, settled after the run, by provider.
 # Seconds until the soonest quota window resets, and which window, as
-# "<secs>\t<label>". Empty when the snapshot cannot say -- the caller then falls
+# "<secs>\x1f<label>". Empty when the snapshot cannot say -- the caller then falls
 # back to the blind interval, which is what every wait did before this.
 #
 # Waiting the interval was never wrong, only uninformed: the snapshot has carried
@@ -450,7 +462,7 @@ for provider, windows in (
         if soonest is None or secs < soonest[0]:
             soonest = (secs, provider + " " + name.replace("_", "-"))
 if soonest:
-    print(str(int(soonest[0])) + "\t" + soonest[1])
+    print(str(int(soonest[0])) + "\x1f" + soonest[1])
 RESETPY
 }
 
@@ -467,7 +479,7 @@ try:
 except (OSError, ValueError):
     doc = None
 if not isinstance(doc, dict):
-    print("unknown\t\t\t\t")
+    print("unknown\x1f\x1f\x1f\x1f")
     raise SystemExit
 
 claude = doc.get("claude") or {}
@@ -490,7 +502,7 @@ elif any(v > drain5 for v in fives) or any(v > drainw for v in weeks):
     verdict = "drain"
 else:
     verdict = "ok"
-print("\t".join([verdict] + [
+print("\x1f".join([verdict] + [
     "" if readings[k] is None else str(readings[k])
     for k in ("claude_5h", "claude_week", "codex_5h", "codex_week")
 ]))
@@ -563,13 +575,13 @@ mark_bound() {
   esac
 }
 
-# Whether one spend exceeded the guard, and by how much: "<0|1>\t<amount over>".
+# Whether one spend exceeded the guard, and by how much: "<0|1>\x1f<amount over>".
 usd_over() {
   "$PYTHON_BIN" -c \
     'from decimal import Decimal; import sys
 spend, guard = Decimal(sys.argv[1] or 0), Decimal(sys.argv[2])
-print("{}\t{}".format(int(spend > guard), max(spend - guard, Decimal(0))))' \
-    "$1" "$2" 2>/dev/null || printf '0\t0'
+print("{}\x1f{}".format(int(spend > guard), max(spend - guard, Decimal(0))))' \
+    "$1" "$2" 2>/dev/null || printf '0\x1f0'
 }
 
 # One log-safe line describing how an executor ended: its stop reason and what
@@ -816,7 +828,7 @@ run_executor() {
 IFS=',' read -r -a executor_list <<< "$EXECUTORS"
 [ "${#executor_list[@]}" -gt 0 ] || { log "no executors configured"; exit 1; }
 
-# Emits "<provider>\t<model>\t<effort>" for a task, or nothing at all.
+# Emits "<provider>\x1f<model>\x1f<effort>" for a task, or nothing at all.
 #
 # A task stores only a preset id; the model and effort behind it are resolved
 # here, at run time. That is the point of the indirection -- renaming a model in
@@ -853,7 +865,7 @@ try:
     preset = presets.get(name) or {} if name else {}
     provider = preset.get("provider") or task.get("agent") or document.get("default_agent") or "claude"
     if provider in PROVIDERS:
-        print("{}\t{}\t{}".format(provider, preset.get("model") or "", preset.get("effort") or ""))
+        print("{}\x1f{}\x1f{}".format(provider, preset.get("model") or "", preset.get("effort") or ""))
 except (OSError, ValueError, TypeError, AttributeError):
     pass
 PY
@@ -878,7 +890,7 @@ else
 fi
 while [ "$iter" -lt "$MAX_ITER" ]; do
   refresh_quota
-  IFS=$'\t' read -r QUOTA_MODE pct5_before pctw_before cx5_before cxw_before <<< "$(quota_state)"
+  IFS=$'\x1f' read -r QUOTA_MODE pct5_before pctw_before cx5_before cxw_before <<< "$(quota_state)"
   headroom=$("$PYTHON_BIN" -c \
     'import sys
 def room(now, stop):
@@ -907,8 +919,8 @@ print("5h {}pp to {}%, weekly {}pp to {}%".format(
     exit 1
   }
   selection=$(printf '%s' "$sweep" | "$PYTHON_BIN" -c \
-    'import json, sys; rows=json.load(sys.stdin); row=rows[0] if rows else {}; print("{}\t{}".format(row.get("slug", ""), row.get("path", "")))')
-  IFS=$'\t' read -r slug project_path <<< "$selection"
+    'import json, sys; rows=json.load(sys.stdin); row=rows[0] if rows else {}; print("{}\x1f{}".format(row.get("slug", ""), row.get("path", "")))')
+  IFS=$'\x1f' read -r slug project_path <<< "$selection"
   if [ -z "$slug" ] || [ -z "$project_path" ]; then
     log "queue empty for $MACHINE"
     break
@@ -956,6 +968,15 @@ print("\x1f".join(str(field or "") for field in (
 )))' \
     2>/dev/null || printf '\x1f\x1f\x1f\x1f')
   IFS=$'\x1f' read -r task_id task_item_id task_key TASK_POINTS TASK_BRANCH <<< "$task_row"
+  # No task means nothing to run. Previously the loop carried on and launched the
+  # executor anyway, and `record-run --task ""` then landed a row with no task at
+  # all -- which `normalize_outcome` reads as `advanced`, because an unrecognised
+  # status degrades to that rather than to a failure. So an empty queue produced
+  # a ledger row claiming progress, spending a session to do it.
+  if [ -z "${task_id:-}" ]; then
+    log "  no task in $slug -- nothing to run"
+    break
+  fi
   # Stop re-selecting a task whose last MAX_BLOCKED runs all ended without a fair
   # attempt or in genuine failure. Read off the ledger rather than tracked
   # separately -- the rows are already the record, and a second counter would be
@@ -981,7 +1002,7 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
   # Reset every iteration: a task with no preset must not inherit the previous
   # task's model.
   preferred=""; PLAN_MODEL=""; PLAN_EFFORT=""
-  IFS=$'\t' read -r preferred PLAN_MODEL PLAN_EFFORT <<< "$(preferred_plan "$task_id" "${task_item_id:-}")"
+  IFS=$'\x1f' read -r preferred PLAN_MODEL PLAN_EFFORT <<< "$(preferred_plan "$task_id" "${task_item_id:-}")"
   # Kept aside because the executor loop clears PLAN_* for any non-preferred
   # candidate and needs the originals back if it comes round to the preferred one.
   plan_model_for_preferred="$PLAN_MODEL"
@@ -1035,9 +1056,30 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
     # of zero -- a twelve-minute session included.
     RUN_STARTED_TS=$(date +%s)
     RUN_ID="$MACHINE-$RUN_STARTED_TS-${sid%%-*}"
-    candidate_out=$(run_executor "$candidate" "$slug" "$project_path" "$prompt" "$sid" "$task_key" 2>&1) || candidate_status=$?
+    # stderr kept OUT of the value that gets parsed as JSON.
+    #
+    # `2>&1` here meant one warning line from the executor -- or from anything it
+    # shells out to -- landed inside the envelope the next step reads for verdict,
+    # subtype, cost and tokens. The parse then fails silently and every one of
+    # those becomes absent: cost 0, `error_max_turns` undetected, and an outcome
+    # decided without the fields that would have decided it. Diagnostics are still
+    # kept; they go to the log and the transcript, which is where they were
+    # useful, rather than into a value whose format they break.
+    candidate_err=$(mktemp "${TMPDIR:-/tmp}/ralph-err.XXXXXX")
+    candidate_out=$(run_executor "$candidate" "$slug" "$project_path" "$prompt" "$sid" "$task_key" 2>"$candidate_err") || candidate_status=$?
     candidate_status=${candidate_status:-0}
-    transcript=$(save_transcript "$candidate" "$candidate_out" "${task_item_id:-$slug}")
+    # The transcript gets both; `candidate_out` keeps only stdout, because it is
+    # the value the envelope is parsed out of. Merging them back here would put
+    # the bug straight back.
+    candidate_log="$candidate_out"
+    if [ -s "$candidate_err" ]; then
+      log "  executor stderr ($(wc -l < "$candidate_err" | tr -d ' ') lines): $(head -1 "$candidate_err")"
+      candidate_log="$candidate_out
+--- stderr ---
+$(cat "$candidate_err")"
+    fi
+    rm -f "$candidate_err"
+    transcript=$(save_transcript "$candidate" "$candidate_log" "${task_item_id:-$slug}")
     [ -n "$transcript" ] && log "  transcript · $transcript"
     if [ "$candidate_status" -eq 127 ]; then
       log "executor=$candidate unavailable; trying next executor"
@@ -1081,7 +1123,7 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
         # was never consulted, because the between-iterations check lives past the
         # `exit` below. It still cannot stop the spend -- it has already happened --
         # but a run that went over must not exit silently as though it had not.
-        IFS=$'\t' read -r turn_over turn_over_by <<< "$(usd_over "$turn_cost" "$BUDGET_USD")"
+        IFS=$'\x1f' read -r turn_over turn_over_by <<< "$(usd_over "$turn_cost" "$BUDGET_USD")"
         if [ "$turn_over" -eq 1 ]; then
           log "  over the \$$BUDGET_USD guard by \$$turn_over_by — the guard is checked between iterations, so it could not stop this one"
         fi
@@ -1123,7 +1165,15 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
       # A non-zero exit does not mean nothing happened. On 2026-07-29 an executor
       # exited 1 one step after committing and opening a PR. Handing that task on
       # would have it redo committed work and open a second PR for the same fix.
-      if [ "$head_before" != "$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)" ]; then
+      # Compared across every worktree, not just $project_path's HEAD. The
+      # contract has executors commit in a worktree of their own, so the checkout
+      # this variable names is exactly the one that does NOT move -- the guard
+      # could only ever fire for an executor that ignored the contract. A run that
+      # committed, pushed and then exited non-zero was therefore handed on anyway:
+      # the same failure this block was written to prevent, arriving through the
+      # path the contract recommends. `repo_heads` is what the success path at the
+      # end of the iteration already compares.
+      if [ "$heads_before" != "$(repo_heads "$project_path")" ]; then
         log "  the repo moved before this failure; not passing the task on -- inspect the branch, then resume"
         write_handoff "$slug" "$task_id" \
           "Executor exited $candidate_status, but the repo had already moved -- commits, and possibly a PR, exist for this task. Handing it on would redo committed work and open a second PR for the same fix (measured 2026-07-29). Inspect the branch before resuming." \
@@ -1151,7 +1201,7 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
     # patience, so a reset further out than the interval would ever have reached
     # is not something to sleep through -- that is a later resume, not a longer
     # nap.
-    IFS=$'\t' read -r reset_secs reset_window <<< "$(reset_wait)"
+    IFS=$'\x1f' read -r reset_secs reset_window <<< "$(reset_wait)"
     patience=$(( (MAX_WAITS - waits + 1) * BACKOFF ))
     if [ -n "${reset_secs:-}" ] && [ "$reset_secs" -gt "$patience" ]; then
       log "rate limited; $reset_window resets in $((reset_secs / 60))m, past the $((patience / 60))m left in the budget -- stopping for a later resume"
@@ -1180,7 +1230,7 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
     "$SPENT" "$cost")
   tokens_out=$(executor_tokens_out "$out")
   refresh_quota
-  IFS=$'\t' read -r _ pct5_after pctw_after cx5_after cxw_after <<< "$(quota_state)"
+  IFS=$'\x1f' read -r _ pct5_after pctw_after cx5_after cxw_after <<< "$(quota_state)"
   d5=$(pct_delta "$pct5_before" "$pct5_after")
   dw=$(pct_delta "$pctw_before" "$pctw_after")
   log "iter $iter/$MAX_ITER · project=$slug · executor=$provider · cost=\$$cost · spent=\$$SPENT"
@@ -1200,7 +1250,7 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
     # delta is a shared-pool sample like any other, so it loses the exact claim.
     own=$(codex_weekly_pp "${transcript:-}")
     if [ -n "$own" ]; then
-      IFS=$'\t' read -r cxw_before cxw_after <<< "$own"
+      IFS=$'\x1f' read -r cxw_before cxw_after <<< "$own"
     fi
     attribution=$(quota_attribution codex "$own")
     dw=$(pct_delta "${cxw_before:-}" "${cxw_after:-}")
@@ -1412,7 +1462,7 @@ print(Decimal(sys.argv[1]) + Decimal(sys.argv[2].strip("~pp")))' \
   # it. Reported whether or not the cumulative check below fires: on the last
   # iteration -- and on every iteration when max_iter=1 -- that check is the only
   # one there is, and it runs too late to matter.
-  IFS=$'\t' read -r iter_over iter_over_by <<< "$(usd_over "$cost" "$BUDGET_USD")"
+  IFS=$'\x1f' read -r iter_over iter_over_by <<< "$(usd_over "$cost" "$BUDGET_USD")"
   if [ "$iter_over" -eq 1 ]; then
     log "  this iteration alone spent \$$cost, over the \$$BUDGET_USD guard by \$$iter_over_by — the guard is checked between iterations, so it could not stop it"
   fi
