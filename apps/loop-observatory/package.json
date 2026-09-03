@@ -36,6 +36,13 @@
           "command": "astro check",
           "cwd": "{projectRoot}"
         }
+      },
+      "test": {
+        "inputs": [
+          "default",
+          "{workspaceRoot}/tools/loop/launchd/**/*",
+          "{workspaceRoot}/tools/loop/hosts.yaml"
+        ]
       }
     }
   },

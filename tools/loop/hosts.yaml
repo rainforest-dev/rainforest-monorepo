@@ -30,11 +30,21 @@ roles:
       Installed disabled. Enabling an unsupervised executor is a deliberate act,
       never a side effect of running install.sh.
 
-      On rainforest-air the plist runs engine/run-ralph-gui.applescript
-      rather than ralph.sh directly: a launchd job there cannot read
-      ~/Library/Mobile Documents (probed 2026-08-25 -- DENIED on Air, permitted
-      on mini), and both projects that host runs read notion-tasks.json out of
-      the vault. The script ships with the engine role, so no extra install step.
+      SUPERSEDED 2026-09-03: the Air's launchd now reads ~/Library/Mobile
+      Documents. Measured 2026-08-31 by the enrolment probe and again 2026-09-03
+      by hand, both with the probe corrected on 08-28 to bootstrap a throwaway
+      LaunchAgent rather than ask the calling shell -- the only instrument that
+      answers this question. Its plist runs ralph.sh directly, like the mini's.
+
+      Kept because it is why the shim exists: a launchd job there could not read
+      the vault (probed 2026-08-25 -- DENIED on Air, permitted on mini), and both
+      projects that host runs read notion-tasks.json out of it.
+      engine/run-ralph-gui.applescript still ships with the engine role for the
+      day that returns; nothing points at it now.
+
+      This paragraph was stale for nine days and caused a wrong plist change on
+      2026-09-03, twice, because it carries no measurement date of its own while
+      hosts.json does. Prefer the probe over this prose.
 
   relay-pull:
     description: >
@@ -50,8 +60,10 @@ roles:
     installs:
       - launchd/<host>.com.rainforest.usage-hourly.plist
     note: >
-      Air additionally needs usage/run-hourly-air.sh, because launchd there is
-      denied READ access to iCloud under TCC (writes are allowed) -- a plist
+      Air additionally needs usage/run-hourly-air.sh. Written when launchd there
+      was denied READ access to iCloud under TCC (writes were allowed); measured
+      permitted on 2026-08-31 and 2026-09-03, so the wrapper is belt-and-braces
+      now rather than load-bearing -- a plist
       pointing straight at the iCloud path fails before the script starts, and
       silently. That is a host-specific implementation of a shared role, which
       is why it is a filename and not a directory.
@@ -126,8 +138,10 @@ roles:
   # AppleScript shim that re-entered the GUI session. Probed with a throwaway
   # LaunchAgent on both machines that day: mini reads the vault directly (41 task
   # files, contents included), so the premise no longer holds there and the clone,
-  # the shim and this schedule all go with it. Air is still DENIED -- it keeps its
-  # own runtime copy, which is a different mechanism and stays.
+  # the shim and this schedule all go with it. Air was still DENIED when this was
+  # written; re-measured 2026-08-31 and 2026-09-03 it is permitted. Its runtime
+  # copy stays for now -- a different mechanism, and nothing has verified the
+  # hourly job against the vault directly.
   #
   # The mirror also actively hurt: _atomic_copy ends in os.replace, which stamps a
   # fresh mtime whether or not a byte changed, so every downstream freshness check
