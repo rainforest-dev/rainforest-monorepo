@@ -76,11 +76,16 @@ check "and not through ralph.sh, which cannot read the vault there" \
   "$(prog "$air" | grep -c 'loop/ralph.sh')" "0"
 
 # host_machine() honours LOOP_MACHINE and every per-machine file is keyed on what
-# it returns, so a short name here opens a second run ledger beside the real one.
-for host in rainforest-air rainforest-mini; do
-  check "$host names itself in full" \
-    "$(envv "$host.tools.rainforest.loop-ralph.plist" LOOP_MACHINE)" "$host"
-done
+# it returns, so a short name opens a second run ledger beside the real one. The
+# two hosts carry it in different places by design: on a denied host the whole
+# environment moves into the applescript and the plist keeps only the PATH
+# osascript itself needs, so asserting one location for both would be wrong.
+check "the mini names itself in full, in its plist" \
+  "$(envv rainforest-mini.tools.rainforest.loop-ralph.plist LOOP_MACHINE)" "rainforest-mini"
+check "the Air's plist carries no machine name to disagree with" \
+  "$(envv rainforest-air.tools.rainforest.loop-ralph.plist LOOP_MACHINE)" ""
+check "and the applescript it runs names it in full" \
+  "$(grep -c 'LOOP_MACHINE=rainforest-air' "$(dirname "$0")/../engine/run-ralph-gui.applescript")" "1"
 
 echo
 printf '  %d passed, %d failed\n' "$pass" "$fail"
