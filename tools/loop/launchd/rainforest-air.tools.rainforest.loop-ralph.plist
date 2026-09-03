@@ -7,6 +7,15 @@
   <key>ProgramArguments</key>
   <array>
     <string>/Users/rainforest/.claude/loop/ralph.sh</string>
+    <!-- max_iter 1, budget 10, matching the mini. Fifteen iterations was the
+         default this host inherited by passing no arguments at all, and the
+         first enabled run spent 39 minutes on a task whose PR had merged three
+         weeks earlier. One iteration per wake is what a second machine gets
+         until its rows are trustworthy. These belong in config.yaml rather than
+         a launchd unit; they are here because that is where the runner reads
+         them today. -->
+    <string>1</string>
+    <string>10</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
