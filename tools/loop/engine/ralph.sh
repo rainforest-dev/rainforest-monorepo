@@ -1029,7 +1029,12 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
     # while `task` and `task_id` already say which task it was. The uuid's first
     # group is the suffix, so a run_id and its resumable session id share a
     # visible prefix.
-    RUN_ID="$MACHINE-$(date +%s)-${sid%%-*}"
+    # Kept as its own variable, not re-read out of RUN_ID. The epoch was already
+    # here and already correct; it was simply never passed on, so `started_at`
+    # fell back to the append time and every row in the ledger claimed a duration
+    # of zero -- a twelve-minute session included.
+    RUN_STARTED_TS=$(date +%s)
+    RUN_ID="$MACHINE-$RUN_STARTED_TS-${sid%%-*}"
     candidate_out=$(run_executor "$candidate" "$slug" "$project_path" "$prompt" "$sid" "$task_key" 2>&1) || candidate_status=$?
     candidate_status=${candidate_status:-0}
     transcript=$(save_transcript "$candidate" "$candidate_out" "${task_item_id:-$slug}")
@@ -1105,6 +1110,7 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
           --executor "$candidate" \
           --machine "$MACHINE" \
           --run-id "$RUN_ID" \
+          --started-ts "$RUN_STARTED_TS" \
           --status turns_exhausted \
           ${turn_fields[@]+"${turn_fields[@]}"} \
           --note "hit the $MAX_TURNS-turn limit; no fallback attempted" >/dev/null 2>&1 || \
@@ -1281,6 +1287,55 @@ for row in rows:
   # than leaving a reader to infer it later from a field that may be absent for
   # either reason.
   if [ -n "${run_pr:-}" ]; then run_outcome=reached_stop_at; else run_outcome=advanced; fi
+  # Did this run move a DIFFERENT task than the one it was handed?
+  #
+  # On 2026-09-02 a run recorded task_id T-20260902130404 while doing
+  # T-20260902124524's work: it opened PR #350, wrote that task's overlay, and
+  # left the one it names untouched and still queued. Nothing noticed, because
+  # every check downstream reads the id in the row. Two things then read false --
+  # a ticket that never ran looked in progress, and $9.25 with 12pp of a 5-hour
+  # window was filed against it -- and the ledger is what the budget panel is
+  # built on, so the error is not cosmetic.
+  #
+  # Detected the only way available after the fact: the overlay mirror records
+  # when each task was last set and by which machine, so a task other than this
+  # one moving inside this run's window is the evidence. Only consulted when
+  # `run_pr` is empty, because a run that produced the PR its own task carries
+  # has already proved it worked on the right thing.
+  if [ -z "${run_pr:-}" ] && [ "$status" -eq 0 ] && [ -n "${VAULT_USAGE:-}" ]; then
+    moved=$("$PYTHON_BIN" - "$VAULT_USAGE/tasks-progress.json" "${task_item_id:-}" \
+      "$RUN_STARTED_TS" "$MACHINE" "$slug" <<'PYEOF' 2>/dev/null || printf ''
+import json, sys
+
+path, want, started, machine, project = sys.argv[1:6]
+try:
+    rows = (json.load(open(path)) or {}).get("tasks") or {}
+except (OSError, ValueError):
+    raise SystemExit
+begin = int(started)
+others = []
+for key, row in rows.items():
+    if key == want:
+        # The claimed task did move; nothing to report even without a PR.
+        raise SystemExit
+    ts = row.get("updated_ts")
+    if not isinstance(ts, (int, float)) or ts < begin:
+        continue
+    # Same host and same project, or it is somebody else's run overlapping ours.
+    if row.get("machine") not in (None, machine):
+        continue
+    if row.get("project") not in (None, project):
+        continue
+    others.append(key)
+print(",".join(sorted(others)[:3]))
+PYEOF
+    )
+    if [ -n "${moved:-}" ]; then
+      run_outcome=misattributed
+      run_note_extra=" · moved $moved instead of ${task_item_id:-this task}"
+      log "  ledger · this run moved $moved, not ${task_item_id:-the claimed task}"
+    fi
+  fi
   [ "$status" -ne 0 ] && run_outcome=executor_failed
   "$LOOPCTL" record-run \
     --project "$slug" \
@@ -1288,10 +1343,32 @@ for row in rows:
     --executor "$provider" \
     --machine "$MACHINE" \
     --run-id "$RUN_ID" \
+    --started-ts "$RUN_STARTED_TS" \
     --status "$run_outcome" \
     ${run_fields[@]+"${run_fields[@]}"} \
-    --note "iteration $iter/$MAX_ITER; exit=$status" >/dev/null 2>&1 || \
+    --note "iteration $iter/$MAX_ITER; exit=$status${run_note_extra:-}" >/dev/null 2>&1 || \
     log "run ledger unavailable; continuing"
+  # A handoff for the endings that are not the turn limit.
+  #
+  # `write_handoff` fired only on turns_exhausted, but the common unfinished
+  # ending is `advanced`: the executor returned cleanly without reaching stop_at.
+  # So the Loop status panel had a "Last handoff" section that could not have
+  # data -- 22 runs, 0 handoffs -- and its emptiness read as "nothing was ever
+  # interrupted" rather than "nothing writes here". #351 drew the same
+  # distinction for the other rows on that panel; this supplies the writer the
+  # remaining one was missing.
+  case "$run_outcome" in
+    advanced)
+      write_handoff "$slug" "$task_id" \
+        "The executor returned cleanly without reaching stop_at, so the task moved but is not done. The session below still holds what it worked out." \
+        "cd '$project_path' && ${candidate:-claude} --resume $sid" || true
+      ;;
+    misattributed)
+      write_handoff "$slug" "$task_id" \
+        "This run moved ${moved:-another task} instead of this one, which is still where it was. Do not read the ledger row for this run as progress here." \
+        "cd '$project_path' && ${candidate:-claude} --resume $sid" || true
+      ;;
+  esac
   # Points actually consumed this iteration. `pct_delta` says "window reset" when
   # the window rolled over, which is not a measurement -- carry nothing rather
   # than guess, and say so, or the approved figure quietly stops meaning anything.

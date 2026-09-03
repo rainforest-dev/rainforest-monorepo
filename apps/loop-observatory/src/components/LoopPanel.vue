@@ -62,6 +62,15 @@ function empty(src: 'runs' | 'progress', nothing: string): string {
         <code>loopctl set</code> mirror. Handoffs are this host's only. Each
         section names its file and how old that file's newest entry is.
       </CardDescription>
+      <!--
+        Which engine each machine runs. Here rather than on a machine card
+        because it is a fact about this panel's own trustworthiness: two hosts on
+        different releases can enforce different rules, and on 2026-09-02 one was
+        three releases behind with every panel still green.
+      -->
+      <CardDescription v-if="loop?.engines" class="mt-1 font-mono text-xs">
+        {{ loop.engines }}
+      </CardDescription>
     </CardHeader>
     <CardContent>
       <div v-if="!loop" class="text-muted-foreground py-8 text-center text-sm">
