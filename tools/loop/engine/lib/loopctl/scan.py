@@ -11,6 +11,8 @@ from pathlib import Path
 import yaml
 
 from loopctl import AGENT_STATES, PIPELINE_STATES, host_machine, registry, signals
+from loopctl.audit import audit_task
+from loopctl.doctor import report as doctor_report
 from loopctl import depends as depends_mod
 from loopctl import greenlight as greenlight_mod
 from loopctl.adapters import github, notion, obsidian_base, vault
@@ -518,6 +520,30 @@ def _project_source(slug: str) -> str | None:
     return getattr(project, "source", None) if project else None
 
 
+def _ledger_machines() -> list[str]:
+    """Every machine that has a run ledger in the vault, newest name order aside.
+
+    Discovered from the files rather than from hosts.yaml: a partition can exist
+    for a machine no longer declared -- `loop-runs.Angibles-MacBook-Air.jsonl`
+    would be one -- and a total that silently skipped it would be short in
+    exactly the case where somebody is asking why the numbers look wrong.
+    """
+    from loopctl.writeback import usage_path
+
+    # usage_path("").parent is <vault>/_system, one level ABOVE the usage dir --
+    # an easy off-by-one that silently finds nothing, which is why this asks for
+    # the parent of a named file instead.
+    try:
+        names = sorted(p.name for p in usage_path("loop-runs").parent.iterdir())
+    except OSError:
+        return []
+    out = []
+    for name in names:
+        if name.startswith("loop-runs.") and name.endswith(".jsonl"):
+            out.append(name[len("loop-runs.") : -len(".jsonl")])
+    return out
+
+
 def _retire_greenlight_if_terminal(slug: str, task: dict) -> dict | None:
     """Withdraw the task's greenlight once the loop has reached the project's stop_at.
 
@@ -750,6 +776,24 @@ def _build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--task-id", help="the human key, e.g. AG-298")
     run_parser.add_argument("--branch")
     run_parser.add_argument("--pr")
+    run_parser.add_argument("--points", help="the board's estimate for this task")
+
+    doctor_parser = sub.add_parser("doctor")
+    doctor_parser.add_argument("--machine", default=None)
+    doctor_parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="also write the report to the vault, where the Observatory reads it",
+    )
+
+    audit_parser = sub.add_parser("audit")
+    audit_parser.add_argument("task", help="task id or source url")
+    audit_parser.add_argument(
+        "--machine",
+        action="append",
+        dest="machines",
+        help="ledger partition to read; repeatable, defaults to every one present",
+    )
 
     sweep_parser = sub.add_parser("sweep")
     sweep_parser.add_argument("--machine", required=True)
@@ -826,6 +870,38 @@ def main(argv=None) -> int:
             _print_json(task)
             return 0
 
+        if args.cmd == "doctor":
+            result = doctor_report(args.machine)
+            if args.publish:
+                # Published like every other cross-machine fact: one file per
+                # host, so a silent machine is visibly absent rather than merging
+                # into the other one's answer.
+                #
+                # A failure here becomes a field, not a traceback: this command's
+                # whole point is that it still reports when something underneath
+                # it cannot be reached.
+                from loopctl.writeback import publish_doctor
+
+                try:
+                    result["published_to"] = publish_doctor(result)
+                except (OSError, ValueError) as exc:
+                    result["published_to"] = None
+                    result["publish_error"] = str(exc)
+                    result["state"] = "missing"
+            _print_json(result)
+            # Non-zero when anything is not ok, so an hourly job that runs this
+            # cannot report success over a red pair -- the exact failure the
+            # whole command exists to end.
+            return 0 if result.get("state") == "ok" else 1
+
+        if args.cmd == "audit":
+            # Every partition by default. A task can move between machines, and
+            # reading only this host's ledger would report a total that is
+            # confidently short -- the failure mode this command exists to end.
+            machines = args.machines or _ledger_machines()
+            _print_json(audit_task(args.task, machines))
+            return 0
+
         if args.cmd == "record-run":
             # The machine name picks the file the row lands in, so a free-form
             # value silently forks the telemetry rather than failing. On
@@ -863,6 +939,7 @@ def main(argv=None) -> int:
                     task_id=args.task_id,
                     branch=args.branch,
                     pr=args.pr,
+                    points=args.points,
                 )
             )
             return 0
