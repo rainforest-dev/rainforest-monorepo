@@ -66,6 +66,21 @@ def load_config(path: Path) -> Config:
         source = entry["source"]
         if source not in SOURCES:
             raise ValueError(f"unsupported loop source: {source}")
+        # `greenlit-only` with nothing to read is not a strict configuration --
+        # it is an inert one. `_greenlight_text` returns "" for a project with no
+        # `greenlight:` key, every task then ranks None, and `next` reports zero
+        # candidates: indistinguishable from "the owner has cleared nothing yet".
+        # obsidian-vault has been in that state on the mini since enrolment.
+        # Raised for the same reason as stop_at above: a policy that cannot ever
+        # admit a task should fail where it is written, not go quiet where it is
+        # read.
+        if policy == "greenlit-only" and not (
+            entry.get("greenlight") or defaults.get("greenlight")
+        ):
+            raise ValueError(
+                f"project {entry.get('slug')!r} is greenlit-only but names no "
+                "greenlight file; it can never have a candidate"
+            )
         stop_at = entry.get("stop_at") or _STOP_AT_BY_POLICY.get(policy, "pr-ready")
         if stop_at not in _valid_stop_at():
             raise ValueError(

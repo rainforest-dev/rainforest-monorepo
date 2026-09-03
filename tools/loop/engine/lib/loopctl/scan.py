@@ -242,6 +242,10 @@ def _greenlight_text(project) -> str:
         return ""
 
 
+#: Shortest title that may authorise a task on its own, on a bullet naming no id.
+MIN_TITLE_MATCH = 12
+
+
 def _greenlight_rank(task: dict, text: str) -> int | None:
     if not text:
         return None
@@ -278,7 +282,26 @@ def _greenlight_rank(task: dict, text: str) -> int | None:
         # check. Title is left as a substring deliberately: a human writing a
         # bullet is expected to paraphrase a title, never an id.
         id_match = bool(task_id) and greenlight_mod.is_bullet_for(task_id, line)
-        if id_match or item_match or (title and title in line):
+        # A bullet that names an id is decided by that id alone.
+        #
+        # Title-as-substring stays for bullets an owner typed without one -- they
+        # paraphrase a title, never an id, and that is the case it was written
+        # for. But applied to a bullet that DOES name a task, it authorised
+        # whatever else happened to share a word with it: a task titled `Setup`
+        # matched every bullet containing "Setup", including bullets clearing a
+        # different id entirely. The id is the specific thing on such a line; the
+        # prose beside it is context for the reader, not a second key.
+        #
+        # MIN_TITLE_MATCH is calibrated against nothing but judgement: it is the
+        # length below which a title is too generic to authorise on. Raise it if
+        # a short title ever slips through; lower it only with an example.
+        title_match = (
+            bool(title)
+            and len(title) >= MIN_TITLE_MATCH
+            and greenlight_mod.bullet_id(line) is None
+            and title in line
+        )
+        if id_match or item_match or title_match:
             return rank
     return None
 
@@ -478,7 +501,32 @@ def _retire_greenlight_if_terminal(slug: str, task: dict) -> dict | None:
         return None
     if project is None or project.policy != "greenlit-only" or not project.greenlight:
         return None
-    if str(task.get("state") or "") != str(project.stop_at or ""):
+    # Reached OR passed, not exactly equal.
+    #
+    # Equality meant retirement fired only if a scan happened to observe the task
+    # in precisely the stop_at state. A task that went straight from in-progress
+    # to in-qa or released -- which is what happens when the owner merges the PR
+    # before the next sweep -- was never seen at `pr-ready`, kept its
+    # authorisation, and stayed the top candidate. AG-290 sat cleared on the Air
+    # with its PR merged 2026-08-13 and cost $1.29 on 08-26 to rediscover that it
+    # was done. Equality also made retirement unreachable outright for a project
+    # whose stop_at is `done` or `none`: no task is ever in those states.
+    # `blocked` is excluded, not ranked. PIPELINE_STATES is a list, and `blocked`
+    # is appended last -- so by index it sorts AFTER `released`, and comparing on
+    # that would retire the authorisation of a task that is stuck rather than
+    # finished, making the owner clear it again to unblock it. Progress order is
+    # the prefix up to `released`; blocked is a state off to one side of it.
+    progress = [s for s in PIPELINE_STATES if s != "blocked"]
+    order = {name: i for i, name in enumerate(progress)}
+    state = str(task.get("state") or "")
+    target = str(project.stop_at or "")
+    if target in ("done", "none"):
+        # Nothing short of a terminal board state ends such a project's interest.
+        if state not in _TERMINAL_GROUND_TRUTH:
+            return None
+    elif state not in order or target not in order:
+        return None
+    elif order[state] < order[target]:
         return None
     item_id = (task.get("metadata") or {}).get("item_id") or task.get("id")
     path = Path(project.greenlight).expanduser()
