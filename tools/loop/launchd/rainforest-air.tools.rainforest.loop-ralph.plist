@@ -19,14 +19,15 @@
     <string>/usr/bin/osascript</string>
     <string>/Users/rainforest/.claude/loop/run-ralph-gui.applescript</string>
   </array>
+  <!-- PATH only, and the system one: the loop's whole environment moves into
+       run-ralph-gui.applescript, which re-enters the logged-in GUI session where
+       the vault grant exists. This block needs to find osascript and nothing
+       else. deriveRalphPlist emits exactly this for a host whose launchd is
+       denied, and reproduces-hosts.test.ts compares the two. -->
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>/Users/rainforest/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-    <key>LOOP_MACHINE</key>
-    <string>rainforest-air</string>
-    <key>LOOP_EXECUTORS</key>
-    <string>claude,codex</string>
+    <string>/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>
