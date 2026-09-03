@@ -57,6 +57,32 @@ done
 echo "== an unknown host still yields nothing =="
 check "roles_for on a host not in the manifest" "$(roles_for not-a-host)" ""
 
+echo "== the plists agree with the one thing that derives them =="
+# hosts.yaml's prose and a committed plist are both descriptions of a machine at
+# some past moment, and only one of them carries a timestamp. On 2026-09-03 the
+# prose said the Air's launchd is DENIED iCloud (probed 2026-08-25); the live
+# facts said permitted, measured 2026-08-31 by the probe that was corrected on
+# 08-28 to ask launchd rather than the calling shell. Re-measured under launchd
+# today: permitted. So the prose is the stale one, and a test asserting a shape
+# from it would pin the wrong answer.
+#
+# What is safe to assert is agreement, not shape: deriveRalphPlist is the single
+# renderer, and reproduces-hosts.test.ts already compares its output against
+# these files. This checks the part that test cannot -- that the machine name
+# each host runs under is the full one, wherever it is carried.
+LAUNCHD="$(cd "$(dirname "$0")/../launchd" && pwd)"
+envv() { plutil -extract EnvironmentVariables json -o - "$LAUNCHD/$1" 2>/dev/null \
+  | python3 -c "import json,sys; print(json.load(sys.stdin).get(sys.argv[1], ''))" "$2"; }
+
+# host_machine() honours LOOP_MACHINE and every per-machine file is keyed on what
+# it returns, so a short name opens a second run ledger beside the real one. The
+# mini's committed plist said `mini` while the plist on that host said
+# rainforest-mini: someone fixed the machine and not the file install.sh copies.
+for host in rainforest-air rainforest-mini; do
+  check "$host names itself in full" \
+    "$(envv "$host.tools.rainforest.loop-ralph.plist" LOOP_MACHINE)" "$host"
+done
+
 echo
 printf '  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

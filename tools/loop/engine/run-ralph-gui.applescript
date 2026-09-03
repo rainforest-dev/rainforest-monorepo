@@ -1,6 +1,11 @@
 -- Run ralph through the logged-in GUI session.
 --
--- On Air, a launchd-spawned process cannot read ~/Library/Mobile Documents:
+-- SUPERSEDED 2026-09-03: the Air's launchd now reads the vault (measured
+-- 2026-08-31 by the enrolment probe and again 2026-09-03 by hand), so its plist
+-- runs ralph.sh directly and nothing invokes this script today. Kept because the
+-- grant can be withdrawn, and because the mechanism below is the answer if it is.
+--
+-- On Air, a launchd-spawned process could not read ~/Library/Mobile Documents:
 -- probed 2026-08-25 with a throwaway LaunchAgent, `ls` on the vault's task
 -- folder returned DENIED while the same command through `osascript` returned 42
 -- files. mini has the grant and needs no shim; Air does not, and its two

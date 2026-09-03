@@ -51,7 +51,13 @@ export const FIXTURES: Record<
       executors: ['claude', 'codex'],
       brewPrefix: '/opt/homebrew',
       otlpListening: true,
-      vaultPath: null,
+      // Measured live on 2026-08-31 and unchanged 2026-09-03. It was null here
+      // from when the Air's launchd could not read the vault; the grant changed
+      // and this did not, so deriveRalphPlist omitted LOOP_AGENT_CONFIG and the
+      // Air -- the only machine whose tasks have presets, all 11 of them AG-* --
+      // ran with them silently ignored.
+      vaultPath:
+        '/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian',
       accounts: { claudeAvailable: 'ok', ghLogin: 'rainforest-angible' },
       probedAt: '2026-08-27T06:00:00.000Z',
     },

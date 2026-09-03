@@ -16,6 +16,15 @@
     <string>rainforest-air</string>
     <key>LOOP_EXECUTORS</key>
     <string>claude,codex</string>
+    <!-- Both emitted by deriveRalphPlist once this host's vaultPath fact is
+         present, and both were missing while it was stale at null. Every preset
+         in loop-agents.json is an AG-* ticket, so this is the one machine that
+         needs the file -- and without the variable ralph fell to the executor
+         default and ignored all eleven, saying nothing. -->
+    <key>LOOP_AGENT_CONFIG</key>
+    <string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/_system/usage/loop-agents.json</string>
+    <key>LOOP_QUOTA_FILE</key>
+    <string>/Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian/_system/usage/quota.rainforest-air.json</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>
