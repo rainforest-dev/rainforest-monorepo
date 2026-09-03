@@ -1054,6 +1054,27 @@ if [ -n "$BUDGET_WEEKLY_PP" ]; then
 else
   log "start · machine=$MACHINE max_iter=$MAX_ITER · $USD_GUARD_NOTE"
 fi
+# Refresh the world before deciding what to do in it.
+#
+# `next` reads registry state; only `scan` writes it. ralph never called scan, so
+# it woke every 30 minutes and chose from a snapshot whose age nobody bounded --
+# 3.5 hours on 2026-09-03, and that only because a person had run scan by hand
+# that afternoon. A ticket closed in Notion, a PR merged, a task newly cleared:
+# none of it reached the runner. `queue empty` was as old as the snapshot too.
+# It is half of why AG-290 stayed selectable after its PR merged: the scan that
+# would have moved it to `released` never ran.
+#
+# A failed scan stops the wake. Running on a stale snapshot is the failure this
+# removes, so falling back to one on error would reintroduce it at exactly the
+# moment the data is least trustworthy.
+log "scan · refreshing task state before choosing"
+if ! scan_out=$("$LOOPCTL" scan --all 2>&1); then
+  log "scan failed; not choosing a task from a snapshot of unknown age"
+  printf '%s\n' "$scan_out" | tail -3 | while IFS= read -r line; do log "  $line"; done
+  exit 4
+fi
+printf '%s\n' "$scan_out" | grep -E '^loopctl: (published|assignment)' | while IFS= read -r line; do log "  $line"; done
+
 while [ "$iter" -lt "$MAX_ITER" ]; do
   refresh_quota
   IFS=$'\x1f' read -r QUOTA_MODE pct5_before pctw_before cx5_before cxw_before <<< "$(quota_state)"

@@ -1670,6 +1670,38 @@ wd=$(sed -n '/^run_with_timeout()/,/^}/p' "$ENGINE/ralph.sh")
 contains "the watchdog kills the process group" "$wd" 'kill -TERM -"$job"'
 contains "which needs job control on"           "$wd" 'set -m'
 
+echo
+echo "the runner refreshes the world before choosing in it"
+
+# `next` reads registry state and only `scan` writes it. ralph never called
+# scan, so every wake chose from a snapshot of unbounded age -- 3.5h on
+# 2026-09-03, and only that fresh because a person had run scan by hand. It is
+# half of why AG-290 stayed selectable after its PR merged.
+contains "ralph scans before the iteration loop" \
+  "$(grep -B2 -A6 'refreshing task state' "$ENGINE/ralph.sh")" 'scan --all'
+# Falling back to the old snapshot on error would reintroduce the failure at the
+# moment the data is least trustworthy.
+contains "and a failed scan stops the wake" \
+  "$(grep -A4 'scan --all' "$ENGINE/ralph.sh")" 'exit 4'
+
+# scan printed a task document, published nothing, and exited 0 -- on the Air,
+# for a month, because gh was missing from a non-interactive PATH.
+contains "a scan that could not publish exits non-zero" \
+  "$(grep -B2 -A2 'publish_failed' "$ENGINE/lib/loopctl/scan.py" | tail -6)" 'return 3 if publish_failed'
+
+echo
+echo "doctor: a mechanism that is absent is not a mechanism that failed"
+# The Air installs from a downloaded tarball and has no bundle mount at all, so
+# `unknown` there made doctor exit 1 forever on a healthy host -- which is how a
+# check earns being ignored. Absent mechanism and failing mechanism are split.
+na=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c "
+from loopctl.doctor import _pair
+p = _pair('engine_version', declared=None, observed='v', source='s', state='not_applicable')
+print(p['state'])")
+check "an absent mechanism reports not_applicable" "$na" "not_applicable"
+contains "and not_applicable is excluded from the verdict" \
+  "$(sed -n '/graded = \[/,/\]/p' "$ENGINE/lib/loopctl/doctor.py")" 'not_applicable'
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
