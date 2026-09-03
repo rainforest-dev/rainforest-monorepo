@@ -1468,6 +1468,29 @@ PROBE
 scoped=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" "$HOME_DIR/scope_probe.py")
 check "mine yes, another machine no, both yes, unassigned yes" "$scoped" "1011"
 
+echo "agy: the prompt has to reach it"
+
+# `--print` is a string option on agy. `--print --dangerously-skip-permissions`
+# handed it that flag as the prompt and left the real one, arriving on stdin,
+# unread -- agy says so and exits non-zero. Reproduced on 1.1.23 and 1.1.25:
+#
+#   Error: --print took "--dangerously-skip-permissions" as its prompt, so the
+#   intended prompt was left as an argument and ignored.
+#
+# So this executor never ran once, and `claude,agy` meant "claude, then nothing".
+agy_src=$(sed -n '/^run_agy()/,/^}/p' "$ENGINE/ralph.sh")
+contains "the prompt is attached to the flag" "$agy_src" '--print="$prompt"'
+excludes "not passed as a bare flag with the prompt on stdin" "$agy_src" '"$AGY_BIN" --print '
+excludes "and stdin is no longer where the prompt goes" "$agy_src" "printf '%s' \"\$prompt\" | LOOP_PROJECT"
+
+# Making it work while leaving skip-permissions on would have turned a fallback
+# that did nothing into an unbounded one -- worse than the bug being fixed.
+contains "unbounded requires an explicit opt-in" "$agy_src" 'LOOP_AGY_ALLOW_UNBOUNDED:-0'
+contains "and the default mode bounds it" "$agy_src" '--mode accept-edits'
+# loopctl writes its lock under LOOP_HOME, outside the workspace, exactly as the
+# claude executor already grants.
+contains "LOOP_HOME is granted, as it is for claude" "$agy_src" '--add-dir "$LOOP_HOME"'
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

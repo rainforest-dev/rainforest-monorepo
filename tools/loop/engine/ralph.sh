@@ -811,9 +811,38 @@ run_codex() {
 run_agy() {
   local slug="$1" project_path="$2" prompt="$3"
   [ -x "$AGY_BIN" ] || return 127
-  (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=agy \
-    LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$AGY_BIN" --print \
-    --dangerously-skip-permissions)
+  # The prompt goes ON the flag. `--print` is a string option, so `--print
+  # --dangerously-skip-permissions` handed it that flag as the prompt and left
+  # the real one, arriving on stdin, unread -- agy said so and exited non-zero:
+  #
+  #   Error: --print took "--dangerously-skip-permissions" as its prompt, so the
+  #   intended prompt was left as an argument and ignored.
+  #
+  # So this executor has never run once. The ledger has no agy row on either
+  # machine, and `claude,agy` on the mini has meant "claude, then nothing".
+  # Reproduced on 1.1.23 and 1.1.25.
+  local opts=()
+  [ -n "$PLAN_MODEL" ] && opts+=(--model "$PLAN_MODEL")
+  # Bounded by default, now that it can actually start. `accept-edits`
+  # auto-approves file edits only; commands stay governed by agy's permission
+  # rules, and headless mode auto-denies anything no rule covers. Making this
+  # work and leaving --dangerously-skip-permissions on would have turned a
+  # fallback that did nothing into an unbounded one, which is worse than the bug.
+  if [ "${LOOP_AGY_ALLOW_UNBOUNDED:-0}" = "1" ]; then
+    opts+=(--dangerously-skip-permissions)
+  else
+    opts+=(--mode accept-edits)
+  fi
+  # --add-dir mirrors the grant claude gets: loopctl writes its lock under
+  # LOOP_HOME, which is outside the workspace.
+  #
+  # Not --sandbox. It is seatbelt -- no network, only workspace paths writable --
+  # so it needs the same explicit grants codex needed on 2026-07-30, and turning
+  # it on untested would replace one silent failure with another.
+  (cd "$project_path" && LOOP_PROJECT="$slug" LOOP_EXECUTOR=agy \
+    LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$AGY_BIN" --print="$prompt" \
+    --add-dir "$LOOP_HOME" --print-timeout "${LOOP_AGY_TIMEOUT:-15m}" \
+    ${opts[@]+"${opts[@]}"})
 }
 
 run_executor() {
