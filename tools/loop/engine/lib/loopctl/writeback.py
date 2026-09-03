@@ -433,6 +433,10 @@ OUTCOMES = frozenset(
     {
         "reached_stop_at",
         "advanced",
+        # Killed before the executor returned. Distinct from executor_failed,
+        # which is the executor deciding it was done and saying so with a
+        # non-zero exit -- this one never got to say anything at all.
+        "interrupted",
         # The run did work, but not on the task this row names. Distinct from
         # `advanced`, which claims progress ON this task -- the reading that put
         # $9.25 and 12pp of a 5-hour window against a ticket that never ran.

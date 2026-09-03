@@ -176,7 +176,24 @@ const EXPECTED_DIFFS: Record<string, ExpectedDiffRule[]> = {
       },
     },
   ],
-  'rainforest-air': [],
+  'rainforest-air': [
+    {
+      path: 'ProgramArguments',
+      reason:
+        'Same as the mini: the live plist bakes `ralph.sh 1 10`, iteration ' +
+        'parameters that belong in config.yaml rather than the launchd unit. ' +
+        'This host inherited the 15-iteration default by passing none, and its ' +
+        'first enabled run spent 39 minutes on an already-merged ticket. ' +
+        'Tolerated under the same strict-prefix rule, so a wrong binary path ' +
+        'still fails and a generator that dropped nothing is not let through.',
+      tolerate: (live, generated) => {
+        if (!Array.isArray(live) || !Array.isArray(generated)) return false;
+        if (generated.length === 0) return false;
+        if (generated.length >= live.length) return false;
+        return generated.every((v, i) => v === live[i]);
+      },
+    },
+  ],
 };
 
 describe

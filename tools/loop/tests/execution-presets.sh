@@ -1632,6 +1632,44 @@ grep -q 'return 0 if result.get("state") == "ok" else 1' "$ENGINE/lib/loopctl/sc
   && { pass=$((pass+1)); printf '    PASS  %s\n' "doctor exits non-zero when a pair is not ok"; } \
   || { fail=$((fail+1)); printf '    FAIL  %s\n' "doctor exits non-zero when a pair is not ok"; }
 
+echo
+echo "a killed run leaves evidence, and a stalled one ends"
+
+# record-run, write_handoff and save_transcript all happen AFTER the executor
+# returns, and there was no trap -- so a SIGTERM mid-run wrote nothing at all.
+# Measured 2026-09-03 on the Air: a 39-minute run killed by hand left no ledger
+# row, no handoff, no transcript. That absence is evidence for nothing, because
+# it is what every interruption looks like whatever caused it.
+contains "TERM is trapped"  "$(grep 'trap .* TERM' "$ENGINE/ralph.sh")" "on_interrupt"
+contains "and INT too"      "$(grep 'trap .* INT'  "$ENGINE/ralph.sh")" "on_interrupt"
+interrupt_src=$(sed -n '/^on_interrupt()/,/^}/p' "$ENGINE/ralph.sh")
+contains "the interrupt records a run"   "$interrupt_src" 'record-run'
+contains "with its own outcome"          "$interrupt_src" '--status interrupted'
+contains "and leaves a handoff"          "$interrupt_src" 'write_handoff'
+# Nothing to say between runs: a trap that recorded a phantom row for an idle
+# interrupt would be inventing the thing this exists to stop inventing.
+contains "but only while one is in flight" "$interrupt_src" 'RUN_IN_FLIGHT'
+
+outcomes=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  'from loopctl.writeback import OUTCOMES; print(" ".join(sorted(OUTCOMES)))')
+contains "interrupted is a recordable outcome" "$outcomes" "interrupted"
+norm=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c \
+  'from loopctl.writeback import normalize_outcome; print(normalize_outcome("interrupted"))')
+check "and is not rewritten to advanced" "$norm" "interrupted"
+
+# --max-turns bounds the conversation and --max-budget-usd the spend; neither
+# ends a session that has stopped. The Air sat eleven minutes at 0% CPU with no
+# network and nothing in the loop would have ended it.
+contains "claude runs under a wall-clock ceiling" \
+  "$(sed -n '/^run_claude()/,/^}/p' "$ENGINE/ralph.sh")" 'run_with_timeout'
+
+# Killing only the job leaves its children holding the stdout pipe, and the
+# command substitution then waits for them anyway: 20s against a 1s timeout,
+# measured. The watchdog takes the process group.
+wd=$(sed -n '/^run_with_timeout()/,/^}/p' "$ENGINE/ralph.sh")
+contains "the watchdog kills the process group" "$wd" 'kill -TERM -"$job"'
+contains "which needs job control on"           "$wd" 'set -m'
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

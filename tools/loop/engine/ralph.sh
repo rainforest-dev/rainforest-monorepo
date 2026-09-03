@@ -85,8 +85,51 @@ SPENT=0
 WEEK_PP_SPENT=0
 waits=0
 iter=0
+# Set once an executor is actually in flight, cleared when its outcome has been
+# recorded. Only while this is 1 does an interrupted exit have something to say.
+RUN_IN_FLIGHT=0
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] ralph: $*"; }
+
+# What a killed run leaves behind.
+#
+# There was no trap at all, and record-run, write_handoff and save_transcript all
+# happen AFTER the executor returns -- so a SIGTERM mid-run wrote nothing: no
+# ledger row, no handoff, no transcript. Measured 2026-09-03 on the Air, where a
+# 39-minute run was killed and left exactly that. The absence is then evidence
+# for nothing, because it is what every interruption looks like, whatever caused
+# it; and the quota those 39 minutes spent is unaccounted for, like AG-290's.
+#
+# Deliberately minimal. It records THAT the run was cut off and which task it was
+# on -- facts this shell holds -- and claims nothing about how far the work got,
+# which only the executor knew and did not get to say.
+on_interrupt() { # signal
+  local signal="$1"
+  trap - EXIT INT TERM
+  if [ "${RUN_IN_FLIGHT:-0}" != "1" ]; then
+    log "interrupted by $signal between runs; nothing was in flight"
+    exit 143
+  fi
+  log "interrupted by $signal with a run in flight — recording it before exiting"
+  "$LOOPCTL" record-run \
+    --project "${slug:-unknown}" \
+    --task "${task_id:-unknown}" \
+    --executor "${candidate:-unknown}" \
+    --machine "$MACHINE" \
+    ${RUN_ID:+--run-id "$RUN_ID"} \
+    ${RUN_STARTED_TS:+--started-ts "$RUN_STARTED_TS"} \
+    ${task_key:+--task-id "$task_key"} \
+    ${TASK_POINTS:+--points "$TASK_POINTS"} \
+    --status interrupted \
+    --note "killed by $signal after $(( $(date +%s) - ${RUN_STARTED_TS:-$(date +%s)} ))s; the executor never returned, so nothing here says how far it got" \
+    >/dev/null 2>&1 || log "  and the ledger could not be written either"
+  write_handoff "${slug:-unknown}" "${task_id:-unknown}" \
+    "Killed by $signal while the executor was running. No transcript and no outcome were written, because both happen after it returns -- so this file is the only record that the run existed." \
+    "cd '${project_path:-.}' && ${candidate:-claude} --resume ${sid:-<session id lost>}" || true
+  exit 143
+}
+trap 'on_interrupt SIGTERM' TERM
+trap 'on_interrupt SIGINT' INT
 
 # The interruption record contract.md asks for -- written here rather than asked
 # of the executor.
@@ -737,6 +780,37 @@ otel_codex_env() {
 # prompt and every Bash call was auto-denied; and --add-dir, because the sandbox
 # confines tools to project_path while the contract and loopctl live in
 # LOOP_HOME -- the executor could not read its own instructions.
+# A wall-clock ceiling for an executor, because none of their own limits is one.
+#
+# claude's --max-turns bounds the conversation and --max-budget-usd bounds the
+# spend; neither ends a session that has simply stopped. On 2026-09-03 a run on
+# the Air sat eleven minutes at 0% CPU with no network before a person killed it,
+# and nothing in the loop would have ended it -- so the cost was open-ended and
+# the only evidence was whatever the kill left, which was nothing.
+#
+# `timeout` is not on macOS. Two things here are load-bearing, both learned by
+# reproducing the failure:
+#
+#  * the job runs in its own process group and the watchdog kills the GROUP.
+#    Killing only the job leaves its children holding the stdout pipe, and the
+#    command substitution reading it blocks until they exit anyway -- 20s
+#    against a 1s timeout, measured.
+#  * the watchdog's own output goes to /dev/null. A background `sleep` inherits
+#    the caller's stdout, which here is that same command substitution, so
+#    killing the watchdog shell while its sleep lived blocked a finished run for
+#    the whole timeout -- thirty minutes by default. Also reproduced.
+run_with_timeout() { # seconds command...
+  local secs="$1"; shift
+  set -m
+  ( "$@" ) & local job=$!
+  ( sleep "$secs"; kill -TERM -"$job" 2>/dev/null ) >/dev/null 2>&1 & local dog=$!
+  set +m
+  wait "$job"; local rc=$?
+  kill -TERM -"$dog" 2>/dev/null || kill "$dog" 2>/dev/null
+  wait "$dog" 2>/dev/null
+  return "$rc"
+}
+
 run_claude() {
   local slug="$1" project_path="$2" prompt="$3" sid="$4" task_key="$5"
   [ -x "$CLAUDE_BIN" ] || return 127
@@ -746,13 +820,20 @@ run_claude() {
   [ -n "$PLAN_MODEL" ] && opts+=(--model "$PLAN_MODEL")
   [ -n "$PLAN_EFFORT" ] && opts+=(--effort "$PLAN_EFFORT")
   otel_claude_env claude "$slug" "$task_key"
-  (cd "$project_path" && printf '%s' "$prompt" | env ${OTEL_ENV[@]+"${OTEL_ENV[@]}"} \
-    LOOP_PROJECT="$slug" LOOP_EXECUTOR=claude \
-    LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CLAUDE_BIN" -p \
-    ${opts[@]+"${opts[@]}"} \
-    --permission-mode "${LOOP_CLAUDE_PERMISSION_MODE:-auto}" --add-dir "$LOOP_HOME" \
-    --session-id "$sid" --output-format json --max-turns "$MAX_TURNS" \
-    --max-budget-usd "$BUDGET_USD")
+  # Wrapped in a nested function rather than re-quoted into a string: this call
+  # carries two arrays and a piped prompt, and rebuilding that through `bash -c`
+  # is how a quoting bug reaches the one invocation every run depends on.
+  # Dynamic scope makes the locals above visible inside it.
+  _claude_invoke() {
+    cd "$project_path" && printf '%s' "$prompt" | env ${OTEL_ENV[@]+"${OTEL_ENV[@]}"} \
+      LOOP_PROJECT="$slug" LOOP_EXECUTOR=claude \
+      LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$CLAUDE_BIN" -p \
+      ${opts[@]+"${opts[@]}"} \
+      --permission-mode "${LOOP_CLAUDE_PERMISSION_MODE:-auto}" --add-dir "$LOOP_HOME" \
+      --session-id "$sid" --output-format json --max-turns "$MAX_TURNS" \
+      --max-budget-usd "$BUDGET_USD"
+  }
+  run_with_timeout "${LOOP_RUN_TIMEOUT:-1800}" _claude_invoke
 }
 
 run_codex() {
@@ -1161,6 +1242,7 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
     # decided without the fields that would have decided it. Diagnostics are still
     # kept; they go to the log and the transcript, which is where they were
     # useful, rather than into a value whose format they break.
+    RUN_IN_FLIGHT=1
     candidate_err=$(mktemp "${TMPDIR:-/tmp}/ralph-err.XXXXXX")
     candidate_out=$(run_executor "$candidate" "$slug" "$project_path" "$prompt" "$sid" "$task_key" 2>"$candidate_err") || candidate_status=$?
     candidate_status=${candidate_status:-0}
@@ -1498,6 +1580,8 @@ PYEOF
     ${run_fields[@]+"${run_fields[@]}"} \
     --note "iteration $iter/$MAX_ITER; exit=$status${run_note_extra:-}" >/dev/null 2>&1 || \
     log "run ledger unavailable; continuing"
+  # The outcome is recorded; an interrupt from here on has nothing to add.
+  RUN_IN_FLIGHT=0
   # A handoff for the endings that are not the turn limit.
   #
   # `write_handoff` fired only on turns_exhausted, but the common unfinished
