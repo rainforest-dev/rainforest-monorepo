@@ -4,6 +4,7 @@ import argparse
 import contextlib
 import json
 import os
+import sys
 import subprocess
 import tempfile
 from pathlib import Path
@@ -1076,13 +1077,22 @@ def main(argv=None) -> int:
         # unavailable vault must not fail a scan, and must not pass quietly
         # either. Nothing downstream can tell a host that never published
         # from one that published nothing.
+        publish_failed = False
         if scanned and not args.dry_run:
             try:
                 published = publish_project_assignment(scanned)
                 print(f"loopctl: published assignment to {published}")
             except (OSError, ValueError) as exc:
-                print(f"loopctl: assignment not published: {exc}")
-        return 0
+                print(f"loopctl: assignment not published: {exc}", file=sys.stderr)
+                publish_failed = True
+        # Non-zero when the publication did not happen.
+        #
+        # It used to return 0 and print a line. On the Air that line went to a
+        # log nobody reads while `gh` was missing from a non-interactive PATH, so
+        # scan printed a full task document, published nothing, and exited 0 --
+        # and every caller took that as done. The scan itself still succeeded and
+        # its output is still on stdout; what changed is that the caller can tell.
+        return 3 if publish_failed else 0
     except (ValueError, registry.LockBusy) as exc:
         print(f"loopctl: {exc}")
         return 2

@@ -116,7 +116,30 @@ def _engine_version_pair(loop_home: Path) -> dict:
     share = Path(
         os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share")
     )
-    marker = share / "loop-engine-bundle" / "loop-engine.tar.gz.sha256"
+    bundle_dir = share / "loop-engine-bundle"
+    marker = bundle_dir / "loop-engine.tar.gz.sha256"
+    # A host with no bundle directory has no local source to compare against.
+    #
+    # The mount belongs to whichever machine serves the Observatory -- it is a
+    # homelab concern, not a loop role -- and the other host installs from a
+    # tarball it downloads and discards. So on the Air the declared side is not
+    # missing, it does not exist, and reporting `unknown` there made doctor exit
+    # non-zero forever on a perfectly healthy machine. That is how a check earns
+    # being ignored, which is the one thing this file cannot afford.
+    #
+    # The distinction is between the mechanism being absent and the mechanism
+    # failing: no directory at all is `not_applicable`, a directory whose marker
+    # cannot be read stays `unknown`.
+    if not bundle_dir.is_dir():
+        return _pair(
+            "engine_version",
+            declared=None,
+            observed=installed,
+            state="not_applicable",
+            source=f"no {bundle_dir}; this host installs from a downloaded bundle",
+            note="nothing local to compare against -- cross-machine drift is the"
+            " Observatory's engines row, which both hosts publish to",
+        )
     try:
         # The release filename carries the version; the checksum file names it.
         first = marker.read_text(encoding="utf-8").split()
@@ -315,7 +338,9 @@ def report(machine: str | None = None, now: float | None = None) -> dict:
     # and the wrong thing to exit non-zero on every hour -- that is how a check
     # gets muted. It goes back in when hosts.yaml can say `ralph: enabled` and
     # the pair can tell "off on purpose" from "off and forgotten".
-    graded = [p for p in pairs if p["id"] != "runner"]
+    graded = [
+        p for p in pairs if p["id"] != "runner" and p["state"] != "not_applicable"
+    ]
     worst = "ok"
     # Ordered by how much it costs to be wrong. `unknown` sits with `stale`
     # rather than below it: a pair that cannot be read is not a milder version
