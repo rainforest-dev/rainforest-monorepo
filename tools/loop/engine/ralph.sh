@@ -808,6 +808,25 @@ run_codex() {
 # No OTel: agy is a third-party CLI with no OpenTelemetry surface of its own, so
 # there is nothing to point at the collector. A run on it is attributable only
 # through the ledger row, which is why the row keeps the outcome and the edges.
+# Whether agy has any rule that could let a command through.
+#
+# Read from the settings file rather than inferred from a failed run: a run that
+# discovers this has already been paid for, and its output says "no output
+# produced", which is indistinguishable from a model that chose to say nothing.
+agy_has_command_grants() {
+  local settings="${AGY_SETTINGS:-$HOME/.gemini/settings.json}"
+  [ -f "$settings" ] || return 1
+  "$PYTHON_BIN" - "$settings" <<'PYEOF' 2>/dev/null
+import json, sys
+
+try:
+    allow = (json.load(open(sys.argv[1])).get("permissions") or {}).get("allow") or []
+except (OSError, ValueError):
+    raise SystemExit(1)
+raise SystemExit(0 if any("command(" in str(rule) for rule in allow) else 1)
+PYEOF
+}
+
 run_agy() {
   local slug="$1" project_path="$2" prompt="$3"
   [ -x "$AGY_BIN" ] || return 127
@@ -821,6 +840,28 @@ run_agy() {
   # So this executor has never run once. The ledger has no agy row on either
   # machine, and `claude,agy` on the mini has meant "claude, then nothing".
   # Reproduced on 1.1.23 and 1.1.25.
+  # Bounded and able to do nothing are different things.
+  #
+  # In headless mode agy auto-denies every `command(...)` no permissions.allow
+  # rule covers -- it cannot prompt, so it refuses and says so:
+  #
+  #   no output produced -- a tool required the "command" permission that
+  #   headless mode cannot prompt for, so it was auto-denied.
+  #
+  # ~/.gemini/settings.json has no permissions block at all today, so a fixed agy
+  # would start, edit files, and have every git, npm and loopctl call refused --
+  # then exit 0 with prose. ralph would file that as `advanced`: a row that reads
+  # as progress for a run that could not commit, push, open a PR, or record its
+  # own state. Refusing here means it shows up as an unavailable executor, which
+  # is what it is, instead of as work that happened.
+  #
+  # Which commands to grant is the owner's decision -- it includes `git push` --
+  # so this names the gap rather than filling it.
+  if [ "${LOOP_AGY_ALLOW_UNBOUNDED:-0}" != "1" ] && ! agy_has_command_grants; then
+    log "  executor=agy has no command grants in settings.json; it could only edit files"
+    log "    add permissions.allow entries (e.g. command(git status)) or set LOOP_AGY_ALLOW_UNBOUNDED=1"
+    return 127
+  fi
   local opts=()
   [ -n "$PLAN_MODEL" ] && opts+=(--model "$PLAN_MODEL")
   # Bounded by default, now that it can actually start. `accept-edits`

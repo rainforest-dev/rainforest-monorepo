@@ -1491,6 +1491,29 @@ contains "and the default mode bounds it" "$agy_src" '--mode accept-edits'
 # claude executor already grants.
 contains "LOOP_HOME is granted, as it is for claude" "$agy_src" '--add-dir "$LOOP_HOME"'
 
+# Bounded and able to do nothing are different things. In headless mode agy
+# auto-denies every command(...) no permissions.allow rule covers -- measured:
+# "no output produced -- a tool required the "command" permission that headless
+# mode cannot prompt for, so it was auto-denied". ~/.gemini/settings.json carries
+# no permissions block, so a fixed agy would edit files, have every git, npm and
+# loopctl call refused, and exit 0 with prose -- which ralph files as `advanced`.
+# A row reading as progress for a run that could not commit, push or record
+# anything is the failure this whole series has been removing.
+grants_fn="$HOME_DIR/grants.sh"
+sed -n '/^agy_has_command_grants()/,/^}/p' "$ENGINE/ralph.sh" > "$grants_fn"
+grants() { # settings-json -> yes|no
+  printf '%s' "$2" > "$HOME_DIR/agy-settings.json"
+  PYTHON_BIN="$VENV/bin/python" AGY_SETTINGS="$HOME_DIR/agy-settings.json" \
+    /bin/bash -c ". \"$grants_fn\"; agy_has_command_grants && echo yes || echo no"
+}
+check "a command( rule counts as a grant" \
+  "$(grants _ '{"permissions":{"allow":["command(git status)"]}}')" "yes"
+check "a rule that is not a command does not" \
+  "$(grants _ '{"permissions":{"allow":["read(*)"]}}')" "no"
+check "no permissions block at all does not" "$(grants _ '{"general":{}}')" "no"
+contains "and agy reports itself unavailable rather than running blind" "$agy_src" \
+  "! agy_has_command_grants"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
