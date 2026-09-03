@@ -20,8 +20,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-class VaultPathUnset(RuntimeError):
-    """No vault path was configured, and there is no safe default to guess."""
+class VaultPathUnset(OSError):
+    """No vault path was configured, and there is no safe default to guess.
+
+    An OSError, not a RuntimeError, because every caller here already guards vault
+    access with `except OSError` -- a missing file and a missing vault are the same
+    kind of "cannot read that" to them. As a RuntimeError it escaped all of those
+    and reached `main`, which catches only ValueError and LockBusy, so an unset
+    vault path came out as a traceback instead of the message it carries.
+    """
 
 
 
@@ -248,6 +255,7 @@ def publish_task_state(
     slug: str,
     task: dict,
     *,
+    source: str | None = None,
     machine: str | None = None,
     now_ts: int | None = None,
 ) -> dict:
@@ -270,7 +278,22 @@ def publish_task_state(
         entries = {}
     task_id = _progress_task_id(task)
     entry = dict(entries.get(task_id) or {})
-    notion_state = _write_notion_status(task.get("id"), str(task.get("state") or ""))
+    # Gated on the project's source, not on "a token exists and the id parses".
+    #
+    # The old gate asked whether a NOTION_TOKEN was set and whether the task id
+    # looked like a page id -- neither of which says the task came from Notion.
+    # A machine holding a token for the company board would write to it for any
+    # project whose ids happened to fit the shape. Nothing crossed over in
+    # practice, because an obsidian-base id is a note path and cannot parse as a
+    # page id; that is a property of today's ids, not of the check.
+    #
+    # An unstated source does not write. The caller knows it, so not passing it
+    # is a mistake, and the safe reading of a mistake here is silence.
+    notion_state = (
+        _write_notion_status(task.get("id"), str(task.get("state") or ""))
+        if source == "notion"
+        else "unavailable"
+    )
     entry.update(
         {
             "loop_status": _display_state(task.get("state")),

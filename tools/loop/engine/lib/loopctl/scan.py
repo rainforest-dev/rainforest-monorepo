@@ -337,6 +337,15 @@ def next_candidates(project, state: dict) -> list[dict]:
         # stopping it mid-way would strand it.
         if task_state not in _IN_FLIGHT and depends_mod.blockers(task, edges, tasks):
             continue
+        # Another machine's claim is honoured here, not only in prose.
+        # contract.md tells the executor "if another owner/machine already holds
+        # the claim, choose another candidate" -- but nothing enforced it, so the
+        # rule held exactly as long as the executor read and obeyed that line.
+        # Six notes carry a claim today; the second machine would have offered
+        # every one of them.
+        claimed = str((task.get("metadata") or {}).get("claimed_by") or "").strip()
+        if claimed and claimed != f"loop-{host_machine()}":
+            continue
         candidates.append((task, greenlight_rank))
     state_order = {
         "in-progress": 0,
@@ -439,7 +448,7 @@ def set_task_state(
     # Observatory went on showing "Queued" for an hour, because the sandbox had
     # denied the mirror write and the failure was swallowed here.
     try:
-        publish_task_state(slug, task)
+        publish_task_state(slug, task, source=_project_source(slug))
     except OSError as exc:
         task["mirror_error"] = f"{type(exc).__name__}: {exc}"
     return task
@@ -476,10 +485,26 @@ def set_task_note(slug: str, task_id: str, note: str, *, now_ts: int | None = No
     registry.write_project_state(slug, document)
     # Best-effort and reported, exactly as in set_task_state.
     try:
-        publish_task_state(slug, task)
+        publish_task_state(slug, task, source=_project_source(slug))
     except OSError as exc:
         task["mirror_error"] = f"{type(exc).__name__}: {exc}"
     return task
+
+
+def _project_source(slug: str) -> str | None:
+    """The configured source for a slug, or None when it cannot be determined.
+
+    Resolved here rather than passed in: neither `set_task_state` nor
+    `set_task_note` has the project in scope, and giving them one would thread it
+    through for a single field. None on any failure, which `publish_task_state`
+    treats as "do not write to Notion" -- the safe reading, because not knowing
+    where a task came from is not a reason to write it somewhere.
+    """
+    try:
+        project = find_project(load_config(config_path()), slug)
+    except (OSError, ValueError, yaml.YAMLError):
+        return None
+    return getattr(project, "source", None) if project else None
 
 
 def _retire_greenlight_if_terminal(slug: str, task: dict) -> dict | None:

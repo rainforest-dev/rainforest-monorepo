@@ -1402,6 +1402,44 @@ print(" ".join(s for s in ("done", "none") if s in PIPELINE_STATES) or "neither"
 ')
 check "done and none are not states a task can be in" "$unreachable" "neither"
 
+echo
+echo "the engine does not act on what it cannot know"
+
+eng() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c "$1"; }
+
+# contract.md tells the executor to skip a task another machine has claimed, but
+# nothing enforced it: the rule held only as long as the executor read that line.
+# Six notes carry a claim today, and the second machine would have offered them.
+claims=$(eng '
+import types
+from loopctl import host_machine
+from loopctl.scan import next_candidates
+mine, theirs = f"loop-{host_machine()}", "loop-somebody-else"
+def task(tid, owner):
+    return {"id": tid, "state": "queued", "title": "t", "metadata": {"claimed_by": owner}}
+project = types.SimpleNamespace(policy="autonomous", slug="p", source="obsidian-base")
+state = {"tasks": [task("A", mine), task("B", theirs), task("C", None)]}
+print(" ".join(t["id"] for t in next_candidates(project, state)))
+')
+check "a task claimed by another machine is not offered" "$claims" "A C"
+
+# `In review` was live on the board and unmapped, so it derived as `not-started`:
+# a task waiting on a reviewer looked like fresh work and could be picked up.
+review=$(eng 'from loopctl.status import normalize_source_state; print(normalize_source_state("In review"))')
+check "In review derives as pr-ready, not as fresh work" "$review" "pr-ready"
+
+# VaultPathUnset reached `main`, which catches only ValueError and LockBusy, so
+# an unset vault path came out as a traceback rather than its own message --
+# while every vault read here already guards with `except OSError`.
+vpu=$(eng 'from loopctl.writeback import VaultPathUnset; print(issubclass(VaultPathUnset, OSError))')
+check "VaultPathUnset is the kind of error its callers already catch" "$vpu" "True"
+
+# The Notion write was gated on "a token exists and the id parses", neither of
+# which says the task came from Notion. An unstated source now writes nowhere:
+# not knowing where a task came from is not a reason to write it somewhere.
+gate=$(grep -c 'source == "notion"' "$HOME_DIR/lib/loopctl/writeback.py")
+check "the Notion write is gated on the project source" "$gate" "1"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"

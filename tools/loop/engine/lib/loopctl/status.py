@@ -11,6 +11,10 @@ _STATUS_MAP = {
     "in progress": "in-progress",
     "in progress / pr": "in-progress",
     "in-progress": "in-progress",
+    # Live on the board and unmapped until now, so it derived as `not-started`
+    # -- a task waiting on a reviewer looked like fresh work and could be picked
+    # up again. Review happens after the PR exists, so it belongs with pr-ready.
+    "in review": "pr-ready",
     "pr ready": "pr-ready",
     "pr-ready": "pr-ready",
     "in qa": "in-qa",
