@@ -1440,6 +1440,34 @@ check "VaultPathUnset is the kind of error its callers already catch" "$vpu" "Tr
 gate=$(grep -c 'source == "notion"' "$HOME_DIR/lib/loopctl/writeback.py")
 check "the Notion write is gated on the project source" "$gate" "1"
 
+echo
+echo "a project assigned elsewhere is not this machine's to run"
+
+# `sweep_projects` filtered on machines:; `next <slug>` did not -- and `next` is
+# the path ralph takes. The assignment therefore held only for the sweep, so a
+# project listing one machine handed its queue to the other the moment anything
+# asked for it by name. Checked inside next_candidates now, so both agree.
+cat > "$HOME_DIR/scope_probe.py" <<'PROBE'
+import types
+
+from loopctl import host_machine
+from loopctl.scan import next_candidates
+
+task = {"id": "A", "state": "queued", "title": "t", "metadata": {}}
+
+
+def n(machines):
+    project = types.SimpleNamespace(
+        policy="autonomous", slug="p", source="obsidian-base", machines=machines
+    )
+    return len(next_candidates(project, {"tasks": [task]}))
+
+
+print(f"{n([host_machine()])}{n(['somebody-elses-mac'])}{n(['both'])}{n([])}")
+PROBE
+scoped=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" "$HOME_DIR/scope_probe.py")
+check "mine yes, another machine no, both yes, unassigned yes" "$scoped" "1011"
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
