@@ -808,12 +808,97 @@ run_codex() {
 # No OTel: agy is a third-party CLI with no OpenTelemetry surface of its own, so
 # there is nothing to point at the collector. A run on it is attributable only
 # through the ledger row, which is why the row keeps the outcome and the edges.
+# Whether agy has any rule that could let a command through.
+#
+# Read from the settings file rather than inferred from a failed run: a run that
+# discovers this has already been paid for, and its output says "no output
+# produced", which is indistinguishable from a model that chose to say nothing.
+agy_has_command_grants() {
+  # agy's own settings, not the Gemini CLI's. ~/.gemini/settings.json belongs to
+  # the latter and has no permissions key at all, so reading it meant grants were
+  # never found and this executor was always reported unavailable -- the same
+  # "claude, then nothing" as the bug above, with a log line explaining it.
+  # The binary states the path: "The CLI is configured via
+  # ~/.gemini/antigravity-cli/settings.json", and that file is where
+  # trustedWorkspaces lives here.
+  #
+  # Only the global scope is read. agy also merges ~/.gemini/config/projects/,
+  # which takes precedence, so a project could grant commands this does not see;
+  # the log line says which file was consulted rather than claiming there are no
+  # grants anywhere.
+  local settings="${AGY_SETTINGS:-$HOME/.gemini/antigravity-cli/settings.json}"
+  [ -f "$settings" ] || return 1
+  "$PYTHON_BIN" - "$settings" <<'PYEOF' 2>/dev/null
+import json, sys
+
+try:
+    allow = (json.load(open(sys.argv[1])).get("permissions") or {}).get("allow") or []
+except (OSError, ValueError):
+    raise SystemExit(1)
+raise SystemExit(0 if any("command(" in str(rule) for rule in allow) else 1)
+PYEOF
+}
+
 run_agy() {
   local slug="$1" project_path="$2" prompt="$3"
   [ -x "$AGY_BIN" ] || return 127
-  (cd "$project_path" && printf '%s' "$prompt" | LOOP_PROJECT="$slug" LOOP_EXECUTOR=agy \
-    LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$AGY_BIN" --print \
-    --dangerously-skip-permissions)
+  # The prompt goes ON the flag. `--print` is a string option, so `--print
+  # --dangerously-skip-permissions` handed it that flag as the prompt and left
+  # the real one, arriving on stdin, unread -- agy said so and exited non-zero:
+  #
+  #   Error: --print took "--dangerously-skip-permissions" as its prompt, so the
+  #   intended prompt was left as an argument and ignored.
+  #
+  # So this executor has never run once. The ledger has no agy row on either
+  # machine, and `claude,agy` on the mini has meant "claude, then nothing".
+  # Reproduced on 1.1.23 and 1.1.25.
+  # Bounded and able to do nothing are different things.
+  #
+  # In headless mode agy auto-denies every `command(...)` no permissions.allow
+  # rule covers -- it cannot prompt, so it refuses and says so:
+  #
+  #   no output produced -- a tool required the "command" permission that
+  #   headless mode cannot prompt for, so it was auto-denied.
+  #
+  # ~/.gemini/settings.json has no permissions block at all today, so a fixed agy
+  # would start, edit files, and have every git, npm and loopctl call refused --
+  # then exit 0 with prose. ralph would file that as `advanced`: a row that reads
+  # as progress for a run that could not commit, push, open a PR, or record its
+  # own state. Refusing here means it shows up as an unavailable executor, which
+  # is what it is, instead of as work that happened.
+  #
+  # Which commands to grant is the owner's decision -- it includes `git push` --
+  # so this names the gap rather than filling it.
+  if [ "${LOOP_AGY_ALLOW_UNBOUNDED:-0}" != "1" ] && ! agy_has_command_grants; then
+    log "  executor=agy has no command grants in ${AGY_SETTINGS:-$HOME/.gemini/antigravity-cli/settings.json}; it could only edit files"
+    log "    add permissions.allow entries (e.g. command(git status)) or set LOOP_AGY_ALLOW_UNBOUNDED=1"
+    return 127
+  fi
+  local opts=()
+  [ -n "$PLAN_MODEL" ] && opts+=(--model "$PLAN_MODEL")
+  # PLAN_EFFORT is deliberately not passed. agy takes --effort low|medium|high,
+  # and the presets in loop-agents.json include xhigh, which has no counterpart
+  # -- mapping it would be inventing a level. The model still routes.
+  # Bounded by default, now that it can actually start. `accept-edits`
+  # auto-approves file edits only; commands stay governed by agy's permission
+  # rules, and headless mode auto-denies anything no rule covers. Making this
+  # work and leaving --dangerously-skip-permissions on would have turned a
+  # fallback that did nothing into an unbounded one, which is worse than the bug.
+  if [ "${LOOP_AGY_ALLOW_UNBOUNDED:-0}" = "1" ]; then
+    opts+=(--dangerously-skip-permissions)
+  else
+    opts+=(--mode accept-edits)
+  fi
+  # --add-dir mirrors the grant claude gets: loopctl writes its lock under
+  # LOOP_HOME, which is outside the workspace.
+  #
+  # Not --sandbox. It is seatbelt -- no network, only workspace paths writable --
+  # so it needs the same explicit grants codex needed on 2026-07-30, and turning
+  # it on untested would replace one silent failure with another.
+  (cd "$project_path" && LOOP_PROJECT="$slug" LOOP_EXECUTOR=agy \
+    LOOP_QUOTA_MODE="${QUOTA_MODE:-ok}" "$AGY_BIN" --print="$prompt" \
+    --add-dir "$LOOP_HOME" --print-timeout "${LOOP_AGY_TIMEOUT:-15m}" \
+    ${opts[@]+"${opts[@]}"})
 }
 
 run_executor() {

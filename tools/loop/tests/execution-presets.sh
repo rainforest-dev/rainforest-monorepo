@@ -1468,6 +1468,65 @@ PROBE
 scoped=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" "$HOME_DIR/scope_probe.py")
 check "mine yes, another machine no, both yes, unassigned yes" "$scoped" "1011"
 
+echo "agy: the prompt has to reach it"
+
+# `--print` is a string option on agy. `--print --dangerously-skip-permissions`
+# handed it that flag as the prompt and left the real one, arriving on stdin,
+# unread -- agy says so and exits non-zero. Reproduced on 1.1.23 and 1.1.25:
+#
+#   Error: --print took "--dangerously-skip-permissions" as its prompt, so the
+#   intended prompt was left as an argument and ignored.
+#
+# So this executor never ran once, and `claude,agy` meant "claude, then nothing".
+agy_src=$(sed -n '/^run_agy()/,/^}/p' "$ENGINE/ralph.sh")
+contains "the prompt is attached to the flag" "$agy_src" '--print="$prompt"'
+excludes "not passed as a bare flag with the prompt on stdin" "$agy_src" '"$AGY_BIN" --print '
+excludes "and stdin is no longer where the prompt goes" "$agy_src" "printf '%s' \"\$prompt\" | LOOP_PROJECT"
+
+# Making it work while leaving skip-permissions on would have turned a fallback
+# that did nothing into an unbounded one -- worse than the bug being fixed.
+contains "unbounded requires an explicit opt-in" "$agy_src" 'LOOP_AGY_ALLOW_UNBOUNDED:-0'
+contains "and the default mode bounds it" "$agy_src" '--mode accept-edits'
+# loopctl writes its lock under LOOP_HOME, outside the workspace, exactly as the
+# claude executor already grants.
+contains "LOOP_HOME is granted, as it is for claude" "$agy_src" '--add-dir "$LOOP_HOME"'
+
+# Bounded and able to do nothing are different things. In headless mode agy
+# auto-denies every command(...) no permissions.allow rule covers -- measured:
+# "no output produced -- a tool required the "command" permission that headless
+# mode cannot prompt for, so it was auto-denied". ~/.gemini/settings.json carries
+# no permissions block, so a fixed agy would edit files, have every git, npm and
+# loopctl call refused, and exit 0 with prose -- which ralph files as `advanced`.
+# A row reading as progress for a run that could not commit, push or record
+# anything is the failure this whole series has been removing.
+grants_fn="$HOME_DIR/grants.sh"
+sed -n '/^agy_has_command_grants()/,/^}/p' "$ENGINE/ralph.sh" > "$grants_fn"
+grants() { # settings-json -> yes|no
+  printf '%s' "$2" > "$HOME_DIR/agy-settings.json"
+  PYTHON_BIN="$VENV/bin/python" AGY_SETTINGS="$HOME_DIR/agy-settings.json" \
+    /bin/bash -c ". \"$grants_fn\"; agy_has_command_grants && echo yes || echo no"
+}
+check "a command( rule counts as a grant" \
+  "$(grants _ '{"permissions":{"allow":["command(git status)"]}}')" "yes"
+check "a rule that is not a command does not" \
+  "$(grants _ '{"permissions":{"allow":["read(*)"]}}')" "no"
+check "no permissions block at all does not" "$(grants _ '{"general":{}}')" "no"
+contains "and agy reports itself unavailable rather than running blind" "$agy_src" \
+  "! agy_has_command_grants"
+
+# The default path itself, which every case above hides by setting AGY_SETTINGS.
+# The first version read ~/.gemini/settings.json -- the Gemini CLI's file, which
+# has no permissions key on either machine -- so grants were never found and agy
+# was always unavailable: the same "claude, then nothing", with a log line. agy's
+# own binary states the path: "The CLI is configured via
+# ~/.gemini/antigravity-cli/settings.json".
+grants_src=$(sed -n '/^agy_has_command_grants()/,/^}/p' "$ENGINE/ralph.sh")
+contains "the default is agy's settings file" "$grants_src" \
+  '$HOME/.gemini/antigravity-cli/settings.json'
+excludes "not the Gemini CLI's, which has no permissions key" "$grants_src" \
+  '${AGY_SETTINGS:-$HOME/.gemini/settings.json}'
+
+
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
 rm -rf "$ROOT"
