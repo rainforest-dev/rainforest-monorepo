@@ -21,7 +21,12 @@ const {
 // icon in this file already is. Labels stay on the tabs: four of them fit at
 // 390px, and an icon-only bar makes the reader guess.
 const navLinks = [
-  { key: 'overview', label: 'Overview', href: '/', icon: 'M3 12h4l3 8 4-16 3 8h4' },
+  {
+    key: 'overview',
+    label: 'Overview',
+    href: '/',
+    icon: 'M3 12h4l3 8 4-16 3 8h4',
+  },
   { key: 'decide', label: 'Decide', href: '/decide', icon: 'M20 6 9 17l-5-5' },
   {
     key: 'tasks',
@@ -96,7 +101,10 @@ const navLinks = [
         <!-- Header nav from `sm` up. Below that it would need 154px this screen
              does not have, which is exactly how much the whole page overflowed
              by at 390px, on every route, before this. -->
-        <nav class="ml-2 hidden items-center gap-1 sm:flex" aria-label="Primary">
+        <nav
+          class="ml-2 hidden items-center gap-1 sm:flex"
+          aria-label="Primary"
+        >
           {
             navLinks.map((link) => (
               <a

@@ -117,7 +117,7 @@ const viewChips = computed(() =>
       </div>
 
       <p
-        class="text-muted-foreground shrink-0 font-mono text-[11px] whitespace-nowrap tabular-nums"
+        class="text-muted-foreground shrink-0 whitespace-nowrap font-mono text-[11px] tabular-nums"
       >
         {{ taskCount }} tasks · {{ pointsTotal }} pts
       </p>

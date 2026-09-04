@@ -166,8 +166,8 @@ function empty(src: 'runs' | 'progress', nothing: string): string {
                   variant="outline"
                   class="mr-1.5 align-[0.05em] text-[10px] tabular-nums"
                 >
-                  {{ r.date }}
-                </Badge>{{ r.note }}
+                  {{ r.date }} </Badge
+                >{{ r.note }}
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
