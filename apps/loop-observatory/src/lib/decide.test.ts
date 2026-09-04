@@ -458,3 +458,40 @@ describe('the deciding facts are on the card, not behind the press', () => {
     expect(source).toContain('statusVar[card.quotaStatus]');
   });
 });
+
+describe('what was discussed reaches the screen that decides', () => {
+  const source = readFileSync(
+    join(import.meta.dirname, '..', 'components', 'DecidePanel.vue'),
+    'utf-8',
+  );
+
+  // A Notion-sourced task has no vault note: tasks.json gives it no path, and
+  // no note on this machine has ever carried an `## Execution Plan`. The
+  // progress overlay that `loopctl task-note` writes is the only channel that
+  // works for both scopes — so a conversation with an agent about whether a
+  // task is worth running has exactly one place to land, and the screen that
+  // decides showed none of it while the screen that reports afterwards showed
+  // it all.
+  it('renders the note on the card', () => {
+    expect(source).toContain('card.note');
+  });
+
+  it('and in full in the drawer, where the press is confirmed', () => {
+    expect(source).toContain('detail.note');
+    expect(source).toContain('whitespace-pre-line');
+  });
+
+  it('clamps it on the card but not in the drawer', () => {
+    // The card is for choosing between tasks; the drawer is the last screen
+    // before a press that starts spending, so nothing there is elided.
+    const card = source.slice(0, source.indexOf('detail.note'));
+    expect(card).toContain('line-clamp-3');
+    expect((source.match(/line-clamp-3/g) ?? []).length).toBe(1);
+  });
+
+  it('says when the note was written', () => {
+    // An old note read as current is the same defect as an old board read as
+    // current, one field down.
+    expect(source).toContain('noteAt');
+  });
+});
