@@ -1772,11 +1772,34 @@ echo "outcome: advanced is a claim, so it has to be earned"
 # nothing was recorded as progress -- and MAX_BLOCKED counts blocked and failed
 # runs, neither of which `advanced` is. Nine timeouts, nine claims of progress,
 # no guard reached.
-verdict=$(sed -n '/advanced. is a claim/,/^  fi$/p' "$ENGINE/ralph.sh")
-contains "a PR is reached_stop_at"        "$verdict" 'run_outcome=reached_stop_at'
-contains "a commit anywhere is advanced"  "$verdict" 'repo_heads "$project_path"'
-contains "the task moving is advanced"    "$verdict" 'task_moved'
-contains "and nothing at all is no_progress" "$verdict" 'run_outcome=no_progress'
+#
+# Called, not grepped. The first attempt at this fix WAS grepped: the assertions
+# below were `contains ... 'task_moved'` against the source, and they passed
+# while the chain read $task_moved eleven lines above the probe that sets it.
+# A test that asks whether code mentions a thing cannot tell you it does it.
+eval "$(sed -n '/^decide_outcome()/,/^}/p' "$ENGINE/ralph.sh")"
+check "a PR is reached_stop_at" \
+  "$(decide_outcome '#365' same '')" "reached_stop_at"
+check "a commit anywhere is advanced" \
+  "$(decide_outcome '' changed '')" "advanced"
+# Writing `blocked` with a reason is work, even with nothing else to show.
+check "the task's own state moving is advanced" \
+  "$(decide_outcome '' same blocked)" "advanced"
+check "and nothing at all is no_progress" \
+  "$(decide_outcome '' same '')" "no_progress"
+# A PR outranks the rest: it is the only evidence that says the task is finished
+# rather than merely further along.
+check "a PR wins over a commit" \
+  "$(decide_outcome '#365' changed moved)" "reached_stop_at"
+
+# The evidence is per-iteration, and the call site must clear it. Left standing,
+# a run that produced nothing inherits the previous run's credit -- the same
+# defect one loop turn later.
+probe_line=$(grep -n '^  task_moved=""' "$ENGINE/ralph.sh" | head -1 | cut -d: -f1)
+decide_line=$(grep -n 'decide_outcome "' "$ENGINE/ralph.sh" | head -1 | cut -d: -f1)
+check "the probe is cleared and read in that order" \
+  "$([ -n "$probe_line" ] && [ -n "$decide_line" ] && [ "$probe_line" -lt "$decide_line" ] \
+     && printf 'yes' || printf 'no')" "yes"
 
 blocking=$(grep '^blocking = ' "$ENGINE/ralph.sh")
 contains "no_progress counts toward MAX_BLOCKED"  "$blocking" 'no_progress'
