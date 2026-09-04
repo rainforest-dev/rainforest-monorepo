@@ -1,12 +1,21 @@
 <script setup lang="ts">
 /**
- * The greenlight decision, made from a phone.
+ * The greenlight decision.
  *
- * Deliberately slow. The desktop drawer clears a task with one tap because a
- * mis-tap at a desk is recoverable; a pocket is not a desk, so this screen
- * clears only on a press held for a full second, shows the literal line that
- * press will write before it starts, and has no swipe gesture anywhere -- a
- * swipe is the one gesture a phone performs by accident.
+ * Was MobileDecide, and was a phone column at every width: at 1440 it drew 67
+ * cards 448px wide with 496px of nothing either side, a 414px-wide button for a
+ * 48px control, and a document 20.8 screens tall. It is a queue to triage, and a
+ * desk should see several at once. One column below `lg`, two above, three above
+ * `2xl`. Renamed because the old name had stopped being true, and a name that
+ * misleads is the cheapest kind of wrong comment to leave lying around.
+ *
+ * Deliberately slow, at EVERY width. The task drawer clears with one tap because
+ * a mis-tap at a desk is recoverable; this screen clears only on a press held for
+ * a full second, shows the literal line that press will write before it starts,
+ * and has no swipe gesture anywhere -- a swipe is the one gesture a phone
+ * performs by accident. The hold did not become a phone affordance when the
+ * layout did: clearing a task spends money without asking again, and that is a
+ * property of the action, not of the screen it was pressed on.
  *
  * It is a face on the existing write path, not a second one. Everything it
  * posts goes to `/api/task-decision`, the same endpoint `TaskDetail.vue` uses.
@@ -158,7 +167,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="mx-auto flex max-w-md flex-col gap-7 pb-14">
+  <!-- max-w-md is the phone column and stays one. Wider, it becomes a grid: at
+       1440 this rendered 67 cards 448px wide with 496px of nothing either side,
+       a 414px-wide button for a 48px control, and a document 20.8 screens tall.
+       The screen is for triaging a queue; a desk should see several at once. -->
+  <div class="mx-auto flex max-w-md flex-col gap-7 pb-14 lg:max-w-6xl">
     <header
       class="border-border bg-background/80 sticky top-0 z-20 -mx-1 flex items-center justify-between gap-3 border-b px-1 py-3 backdrop-blur"
     >
@@ -233,98 +246,112 @@ onBeforeUnmount(() => {
           nothing here to authorise — not “nothing today”.
         </p>
 
-        <article
-          v-for="card in cards"
-          :key="card.id"
-          class="bg-card border-border flex flex-col gap-3 rounded-2xl border p-4 shadow-sm"
-        >
-          <div class="flex flex-wrap items-center gap-1.5">
-            <span class="font-mono text-xs">{{ card.id }}</span>
-            <span
-              v-if="card.scope === 'company'"
-              class="border-primary/40 bg-primary/15 text-primary rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest"
-              >company</span
+        <!-- Its own container: the heading and the two notes above are siblings
+             of these cards, and gridding the section would lay them out as
+             cells. Two columns from lg, three from 2xl, one below. -->
+        <div class="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+          <article
+            v-for="card in cards"
+            :key="card.id"
+            class="bg-card border-border flex flex-col gap-3 rounded-2xl border p-4 shadow-sm"
+          >
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="font-mono text-xs">{{ card.id }}</span>
+              <span
+                v-if="card.scope === 'company'"
+                class="border-primary/40 bg-primary/15 text-primary rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest"
+                >company</span
+              >
+              <span
+                v-else
+                class="border-border bg-muted text-muted-foreground rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest"
+                >personal</span
+              >
+              <span
+                class="border-border text-muted-foreground rounded-full border border-dashed px-2 py-0.5 font-mono text-[10px]"
+                >{{ card.host }}</span
+              >
+            </div>
+
+            <h3
+              class="m-0 text-[17px] font-semibold leading-snug tracking-tight"
             >
-            <span
+              {{ card.title }}
+            </h3>
+            <div
+              class="text-muted-foreground font-mono text-[11px] leading-relaxed"
+            >
+              {{ card.meta }}
+            </div>
+
+            <!-- Stacked on a phone, side by side once there is room. The hold is
+               unchanged at every width: it exists because clearing a task spends
+               money without asking again, and that is not a property of the
+               screen it was pressed on. Only the layout is responsive. -->
+            <div
+              v-if="card.state === 'pending'"
+              class="mt-auto flex flex-col gap-2 sm:flex-row"
+            >
+              <button
+                type="button"
+                class="border-primary text-primary rounded-xl border bg-transparent px-4 text-[15px] font-semibold sm:flex-1"
+                :style="{ minHeight: `${PRIMARY_MIN_PX}px` }"
+                @click="open(card.id)"
+              >
+                Review to clear
+              </button>
+              <button
+                type="button"
+                class="border-border text-muted-foreground rounded-xl border bg-transparent px-4 text-sm disabled:opacity-60 sm:shrink-0"
+                :style="{ minHeight: `${TOUCH_MIN_PX}px` }"
+                :disabled="busyId === card.id"
+                @click="post(card.id, 'plan-first')"
+              >
+                Keep on hold
+              </button>
+            </div>
+
+            <div
+              v-else-if="card.state === 'cleared'"
+              class="flex items-center gap-2 rounded-xl border px-3.5 font-mono text-[11px] leading-snug"
+              :style="{
+                minHeight: `${PRIMARY_MIN_PX}px`,
+                color: 'var(--status-good)',
+                borderColor: 'var(--status-good)',
+                backgroundColor:
+                  'color-mix(in oklch, var(--status-good) 13%, transparent)',
+              }"
+            >
+              <span
+                class="size-1.5 flex-none rounded-full"
+                :style="{ backgroundColor: 'var(--status-good)' }"
+              ></span>
+              <span>{{ card.stateNote }}</span>
+            </div>
+
+            <div
               v-else
-              class="border-border bg-muted text-muted-foreground rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest"
-              >personal</span
-            >
-            <span
-              class="border-border text-muted-foreground rounded-full border border-dashed px-2 py-0.5 font-mono text-[10px]"
-              >{{ card.host }}</span
-            >
-          </div>
-
-          <h3 class="m-0 text-[17px] font-semibold leading-snug tracking-tight">
-            {{ card.title }}
-          </h3>
-          <div
-            class="text-muted-foreground font-mono text-[11px] leading-relaxed"
-          >
-            {{ card.meta }}
-          </div>
-
-          <div v-if="card.state === 'pending'" class="flex flex-col gap-2">
-            <button
-              type="button"
-              class="border-primary text-primary rounded-xl border bg-transparent px-4 text-[15px] font-semibold"
+              class="border-border text-muted-foreground flex items-center justify-between gap-2.5 rounded-xl border border-dashed px-3.5 font-mono text-[11px]"
               :style="{ minHeight: `${PRIMARY_MIN_PX}px` }"
-              @click="open(card.id)"
             >
-              Review to clear
-            </button>
-            <button
-              type="button"
-              class="border-border text-muted-foreground rounded-xl border bg-transparent text-sm disabled:opacity-60"
-              :style="{ minHeight: `${TOUCH_MIN_PX}px` }"
-              :disabled="busyId === card.id"
-              @click="post(card.id, 'plan-first')"
-            >
-              Keep on hold
-            </button>
-          </div>
-
-          <div
-            v-else-if="card.state === 'cleared'"
-            class="flex items-center gap-2 rounded-xl border px-3.5 font-mono text-[11px] leading-snug"
-            :style="{
-              minHeight: `${PRIMARY_MIN_PX}px`,
-              color: 'var(--status-good)',
-              borderColor: 'var(--status-good)',
-              backgroundColor:
-                'color-mix(in oklch, var(--status-good) 13%, transparent)',
-            }"
-          >
-            <span
-              class="size-1.5 flex-none rounded-full"
-              :style="{ backgroundColor: 'var(--status-good)' }"
-            ></span>
-            <span>{{ card.stateNote }}</span>
-          </div>
-
-          <div
-            v-else
-            class="border-border text-muted-foreground flex items-center justify-between gap-2.5 rounded-xl border border-dashed px-3.5 font-mono text-[11px]"
-            :style="{ minHeight: `${PRIMARY_MIN_PX}px` }"
-          >
-            <span>{{ card.stateNote }}</span>
-            <!--
+              <span>{{ card.stateNote }}</span>
+              <!--
               Not "release": the write path records a decision, it does not
               erase one, and a button that claims to un-hold would be claiming
               a mechanism that does not exist. Reviewing again is what actually
               changes the outcome.
             -->
-            <button
-              type="button"
-              class="text-primary bg-transparent px-1 font-mono text-[11px]"
-              :style="{ minHeight: `${TOUCH_MIN_PX}px` }"
-              @click="open(card.id)"
-            >
-              review again
-            </button>
-          </div>
-        </article>
+              <button
+                type="button"
+                class="text-primary bg-transparent px-1 font-mono text-[11px]"
+                :style="{ minHeight: `${TOUCH_MIN_PX}px` }"
+                @click="open(card.id)"
+              >
+                review again
+              </button>
+            </div>
+          </article>
+        </div>
       </section>
 
       <!-- QUOTA -------------------------------------------------------------->

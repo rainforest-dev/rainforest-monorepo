@@ -63,7 +63,7 @@ describe('hold, not tap', () => {
 
 describe('the screen has no swipe', () => {
   const source = readFileSync(
-    join(import.meta.dirname, '..', 'components', 'MobileDecide.vue'),
+    join(import.meta.dirname, '..', 'components', 'DecidePanel.vue'),
     'utf-8',
   );
 

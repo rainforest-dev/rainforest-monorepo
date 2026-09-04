@@ -1,7 +1,7 @@
 /**
  * The phone-sized greenlight screen, derived rather than drawn.
  *
- * Everything here is pure and free of `node:` imports: `MobileDecide.vue` is a
+ * Everything here is pure and free of `node:` imports: `DecidePanel.vue` is a
  * client-hydrated island, so anything it imports for a runtime value ends up in
  * the browser bundle. `api/decide.ts` does the reading; this file only turns
  * what was read into the sentences the screen is allowed to say.
