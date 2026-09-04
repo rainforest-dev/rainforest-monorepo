@@ -446,7 +446,6 @@ def next_candidates(project, state: dict) -> list[dict]:
         candidates.append((task, greenlight_rank))
     state_order = {
         "in-progress": 0,
-        "blocked": 1,
         "needs-tuning": 2,
         "spec-drafted": 3,
         "split-drafted": 4,
