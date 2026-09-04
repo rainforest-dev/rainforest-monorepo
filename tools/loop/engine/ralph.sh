@@ -31,6 +31,34 @@ EXECUTORS=${LOOP_EXECUTORS:-claude,codex,agy}
 # common .git dir, including ones created during this run. Detached heads and
 # prunable entries are included on purpose: a commit is a commit, and a worktree
 # whose directory has since vanished still left its objects behind.
+# The state the shared overlay records for one task, or nothing when it cannot
+# say. `loop_status` is what `publish_task_state` writes, so this is the same
+# value Observatory renders on the card.
+#
+# Read twice, side by side, rather than by timestamp. `updated_ts >= run start`
+# only answers "was this row touched", and an executor touches its own row on
+# every iteration: it writes a note before it does anything. AG-801 wrote a fresh
+# note nine times while its state stayed Blocked, so a touch-based probe calls
+# every one of those a move and the run reads as `advanced` however little
+# happened. Two readings of the same field bound the run, and a rewrite that
+# changes nothing cannot fool them.
+#
+# Unreadable is empty, both times, so before equals after and nothing moved. That
+# is the honest reading: no evidence of movement is not evidence of movement.
+task_overlay_state() { # task_item_id
+  [ -n "${VAULT_USAGE:-}" ] && [ -n "${1:-}" ] || return 0
+  "$PYTHON_BIN" - "$VAULT_USAGE/tasks-progress.json" "$1" <<'PYEOF' 2>/dev/null || printf ''
+import json, sys
+
+path, want = sys.argv[1:3]
+try:
+    rows = (json.load(open(path)) or {}).get("tasks") or {}
+except (OSError, ValueError):
+    raise SystemExit
+print((rows.get(want) or {}).get("loop_status") or "")
+PYEOF
+}
+
 # What a finished run actually produced, from evidence rather than from what is
 # left over when nothing else matched.
 #
@@ -1246,6 +1274,9 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
   prompt=$(printf 'LOOP_PROJECT=%s\n\n' "$slug"; cat "$CONTRACT")
   head_before=$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)
   heads_before=$(repo_heads "$project_path")
+  # Beside heads_before, and for the same reason: both are the "before" half of a
+  # comparison, and a before taken after the run is not one.
+  task_state_before=$(task_overlay_state "${task_item_id:-}")
   out=""
   provider=""
   status=1
@@ -1572,27 +1603,15 @@ for row in rows:
   fi
   # Did this run move the task it WAS handed?
   #
-  # The same overlay mirror the misattribution check below reads, asked the other
-  # way round. Probed before the outcome is decided, and cleared first: this is
-  # per-iteration evidence, and a value surviving into the next iteration would
-  # credit a run that produced nothing with the previous run's work.
-  task_moved=""
-  if [ -n "${VAULT_USAGE:-}" ] && [ -n "${task_item_id:-}" ]; then
-    task_moved=$("$PYTHON_BIN" - "$VAULT_USAGE/tasks-progress.json" "$task_item_id" \
-      "$RUN_STARTED_TS" <<'PYEOF' 2>/dev/null || printf ''
-import json, sys
-
-path, want, started = sys.argv[1:4]
-try:
-    rows = (json.load(open(path)) or {}).get("tasks") or {}
-except (OSError, ValueError):
-    raise SystemExit
-row = rows.get(want) or {}
-ts = row.get("updated_ts")
-if isinstance(ts, (int, float)) and ts >= int(started):
-    print(row.get("loop_status") or "moved")
-PYEOF
-    )
+  # The state it records now against the state it recorded before this run
+  # started. Writing `blocked` with a reason where the board said `queued` is work
+  # and shows here; rewriting the same `blocked` with a fresher note is not, and
+  # does not.
+  task_state_after=$(task_overlay_state "${task_item_id:-}")
+  if [ "${task_state_before:-}" != "$task_state_after" ]; then
+    task_moved="$task_state_after"
+  else
+    task_moved=""
   fi
   if [ "$heads_before" != "$(repo_heads "$project_path")" ]; then
     heads_state=changed
