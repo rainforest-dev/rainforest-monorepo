@@ -251,6 +251,33 @@ export interface DecideCard {
   note: string | null;
   /** When that note was written, so an old one does not read as current. */
   noteAt: string | null;
+  /**
+   * The plan written into the task's `## Execution Plan`, when one is.
+   *
+   * The whole facility already existed and had never been used: `suggestTaskPlans`
+   * proposes candidates, `writeTaskPlan` persists one, `/api/task-plan` serves
+   * both, `TaskDetail` renders it -- and measured 2026-09-04, zero notes on this
+   * machine carry the section. Both scopes can hold one; a work task resolves to
+   * `_system/tasks/<id>.md`.
+   *
+   * It is the estimate half of a reconciliation whose other half already works:
+   * `loopctl audit <task>` sums the ledger into runs, wall seconds and quota
+   * points actually spent. Showing the estimate on the screen that authorises
+   * the spend is what makes writing one worth doing.
+   */
+  plan: DecidePlan | null;
+}
+
+/** The estimate, flattened to what a card can show without a second request. */
+export interface DecidePlan {
+  provider: string;
+  model: string;
+  effort: string;
+  maxMinutes: number;
+  inputTokens: number;
+  outputTokens: number;
+  quotaWindow: string;
+  rationale: string;
 }
 
 /** Just the task fields a card reads. */

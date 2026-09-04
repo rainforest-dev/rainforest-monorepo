@@ -495,3 +495,34 @@ describe('what was discussed reaches the screen that decides', () => {
     expect(source).toContain('noteAt');
   });
 });
+
+describe('the estimate is shown where the spend is authorised', () => {
+  const source = readFileSync(
+    join(import.meta.dirname, '..', 'components', 'DecidePanel.vue'),
+    'utf-8',
+  );
+
+  // The whole facility already existed and had never been used: suggestTaskPlans
+  // proposes candidates, writeTaskPlan persists one into `## Execution Plan`,
+  // /api/task-plan serves both, TaskDetail renders it — and measured
+  // 2026-09-04, zero of 136 notes carried the section. It was visible only on
+  // the screen that reports on a task, never on the one that authorises it.
+  it.each(['card.plan', 'detail.plan'])('renders %s', (expr) => {
+    expect(source).toContain(expr);
+  });
+
+  it('names the executor it would run on, not just a cost', () => {
+    // "config" and "budget" are the same block: which provider, model and
+    // effort, and what that is expected to take.
+    for (const field of ['provider', 'model', 'effort', 'maxMinutes']) {
+      expect(source).toContain(`plan.${field}`);
+    }
+  });
+
+  it('gives the rationale in the drawer only', () => {
+    // A sentence per card would push the actions off a phone screen; the drawer
+    // is where a press is confirmed and has the room.
+    expect(source).toContain('detail.plan.rationale');
+    expect(source).not.toContain('card.plan.rationale');
+  });
+});

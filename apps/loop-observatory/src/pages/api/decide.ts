@@ -35,6 +35,7 @@ import {
   lineFor,
   REMOTE_EXECUTORS,
 } from '../../lib/taskDecision.js';
+import { readTaskPlan } from '../../lib/taskNote.js';
 import { readTasks, type SprintTask } from '../../lib/tasks.js';
 
 /**
@@ -216,6 +217,24 @@ export const GET: APIRoute = () => {
         }),
         note: progressByKey.get(String(task.id))?.note ?? null,
         noteAt: progressByKey.get(String(task.id))?.updated_at ?? null,
+        // One small file read per card, and only for cards that have a note at
+        // all -- readTaskPlan returns null for a missing file rather than
+        // throwing, which is every card today.
+        plan: (() => {
+          const p = readTaskPlan(String(task.id));
+          return p
+            ? {
+                provider: p.provider,
+                model: p.model,
+                effort: p.effort,
+                maxMinutes: p.maxMinutes,
+                inputTokens: p.inputTokens,
+                outputTokens: p.outputTokens,
+                quotaWindow: p.quotaWindow,
+                rationale: p.rationale,
+              }
+            : null;
+        })(),
       });
     }
 

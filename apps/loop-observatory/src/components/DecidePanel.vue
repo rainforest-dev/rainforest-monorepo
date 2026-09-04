@@ -394,6 +394,31 @@ onBeforeUnmount(() => {
               {{ card.note }}
             </p>
 
+            <!--
+              The estimate, when one has been written.
+
+              `## Execution Plan` in the task note, which `suggestTaskPlans`
+              proposes and `writeTaskPlan` persists. The whole facility existed
+              and had never been used: measured 2026-09-04, zero notes carried
+              the section, and nothing showed it on the screen that authorises
+              the spend -- only on the one that reports afterwards.
+
+              Its other half already works. `loopctl audit <task>` sums the
+              ledger into runs, wall seconds and quota points actually spent:
+              AG-801 came back 12 runs, 6341s, 27.0pp of the codex week. An
+              estimate shown here is what that number can later be checked
+              against.
+            -->
+            <p
+              v-if="card.plan"
+              class="text-muted-foreground m-0 font-mono text-[11px] leading-relaxed"
+            >
+              est · {{ card.plan.provider }}/{{ card.plan.model }} ·
+              {{ card.plan.effort }} · ≤{{ card.plan.maxMinutes }}m ·
+              {{ Math.round(card.plan.inputTokens / 1000) }}k in /
+              {{ Math.round(card.plan.outputTokens / 1000) }}k out
+            </p>
+
             <p
               class="m-0 font-mono text-[11px] leading-relaxed"
               :class="card.quotaStatus === 'ok' ? 'text-muted-foreground' : ''"
@@ -762,6 +787,42 @@ onBeforeUnmount(() => {
 
         <!-- In full here. The card clamps it; this is the last screen before a
              press that starts spending, so nothing is elided. -->
+        <!-- The estimate in full, beside the facts it will be judged against.
+             `loopctl audit <task>` is the other half: it sums the ledger into
+             what the run actually took. -->
+        <div
+          v-if="detail.plan"
+          class="border-border rounded-xl border px-3.5 py-3 text-[13px] leading-relaxed"
+        >
+          <p
+            class="text-muted-foreground m-0 mb-1.5 font-mono text-[10px] uppercase tracking-widest"
+          >
+            estimate
+          </p>
+          <div
+            class="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1.5 font-mono text-[11px]"
+          >
+            <span>executor</span
+            ><span class="text-foreground"
+              >{{ detail.plan.provider }} · {{ detail.plan.model }} ·
+              {{ detail.plan.effort }}</span
+            >
+            <span>ceiling</span
+            ><span class="text-foreground"
+              >{{ detail.plan.maxMinutes }} min ·
+              {{ detail.plan.quotaWindow }}</span
+            >
+            <span>tokens</span
+            ><span class="text-foreground"
+              >{{ detail.plan.inputTokens.toLocaleString() }} in ·
+              {{ detail.plan.outputTokens.toLocaleString() }} out</span
+            >
+          </div>
+          <p v-if="detail.plan.rationale" class="m-0 mt-2 text-[13px]">
+            {{ detail.plan.rationale }}
+          </p>
+        </div>
+
         <div
           v-if="detail.note"
           class="border-border whitespace-pre-line rounded-xl border px-3.5 py-3 text-[13px] leading-relaxed"
