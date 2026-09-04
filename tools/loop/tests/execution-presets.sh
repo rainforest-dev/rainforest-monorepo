@@ -1792,14 +1792,61 @@ check "and nothing at all is no_progress" \
 check "a PR wins over a commit" \
   "$(decide_outcome '#365' changed moved)" "reached_stop_at"
 
-# The evidence is per-iteration, and the call site must clear it. Left standing,
-# a run that produced nothing inherits the previous run's credit -- the same
-# defect one loop turn later.
-probe_line=$(grep -n '^  task_moved=""' "$ENGINE/ralph.sh" | head -1 | cut -d: -f1)
-decide_line=$(grep -n 'decide_outcome "' "$ENGINE/ralph.sh" | head -1 | cut -d: -f1)
-check "the probe is cleared and read in that order" \
-  "$([ -n "$probe_line" ] && [ -n "$decide_line" ] && [ "$probe_line" -lt "$decide_line" ] \
-     && printf 'yes' || printf 'no')" "yes"
+# `task_moved` is a comparison, so its two halves must bracket the executor. A
+# "before" taken after the run is not one, and a decision taken before the
+# "after" reads the previous iteration's value.
+line() { grep -n "$1" "$ENGINE/ralph.sh" | head -1 | cut -d: -f1; }
+before_line=$(line '^  task_state_before=')
+launch_line=$(line 'candidate_out=.(run_executor')
+after_line=$(line '^  task_state_after=')
+decide_line=$(line 'decide_outcome "')
+ordered=yes
+prev=0
+for n in "$before_line" "$launch_line" "$after_line" "$decide_line"; do
+  { [ -n "$n" ] && [ "$n" -gt "$prev" ]; } || ordered=no
+  prev=${n:-$prev}
+done
+check "before, run, after, decide -- in that order" "$ordered" "yes"
+
+# The probe itself. `updated_ts >= run start` answered "was this row touched",
+# and an executor touches its own row every iteration before it does anything --
+# AG-801 rewrote its note nine times while its state stayed Blocked, and each of
+# those read as a move. Two readings of the same field cannot be fooled that way.
+eval "$(sed -n '/^task_overlay_state()/,/^}/p' "$ENGINE/ralph.sh")"
+# The two variables the function closes over. Unset, every call returns empty --
+# which would make "an unchanged state is not a move" pass because BOTH sides are
+# empty, the same fixture trap that let a stripped-plist test pass earlier today.
+PYTHON_BIN="$VENV/bin/python"
+VAULT_USAGE="$HOME_DIR/vaultusage"; mkdir -p "$VAULT_USAGE"
+progress() { cat > "$VAULT_USAGE/tasks-progress.json" <<JSON
+{"tasks": {"AG-801": {"loop_status": "$1", "note": "$2", "updated_ts": 9999999999}}}
+JSON
+}
+
+progress Blocked "first pass: no unbind contract on develop"
+was=$(task_overlay_state AG-801)
+check "the probe reads the state the overlay records" "$was" "Blocked"
+# Guards every comparison below: two empty strings also compare equal.
+check "and that reading is not empty" \
+  "$([ -n "$was" ] && printf 'read' || printf 'empty')" "read"
+
+# The nine-run case, exactly: same state, a freshly rewritten note.
+progress Blocked "second pass: still no unbind contract, quota now 58%"
+now=$(task_overlay_state AG-801)
+check "a rewritten note with an unchanged state is not a move" \
+  "$([ "$was" != "$now" ] && printf 'moved' || printf 'still')" "still"
+
+progress "PR ready" "opened the PR"
+now=$(task_overlay_state AG-801)
+check "a changed state is a move" \
+  "$([ "$was" != "$now" ] && printf 'moved' || printf 'still')" "moved"
+
+# Unreadable must read the same both times, so before equals after and the run
+# claims nothing on the strength of a failure.
+rm -f "$VAULT_USAGE/tasks-progress.json"
+check "an unreadable overlay says nothing rather than something" \
+  "$(task_overlay_state AG-801)" ""
+check "and a task with no id says nothing" "$(task_overlay_state '')" ""
 
 blocking=$(grep '^blocking = ' "$ENGINE/ralph.sh")
 contains "no_progress counts toward MAX_BLOCKED"  "$blocking" 'no_progress'
