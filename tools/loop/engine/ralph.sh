@@ -92,6 +92,16 @@ else:
 ' "$2" 2>/dev/null
 }
 
+new_task_pr() { # overlay_before overlay_after
+  [ -n "${1:-}" ] && [ -n "${2:-}" ] || return 0
+  local before_state before_pr before_reason after_state after_pr after_pr_reason
+  IFS=$'\x1f' read -r before_state before_pr before_reason <<< "$1"
+  IFS=$'\x1f' read -r after_state after_pr after_pr_reason <<< "$2"
+  if [ -z "$before_pr" ] && [ -n "$after_pr" ]; then
+    printf '%s' "$after_pr"
+  fi
+}
+
 # What a finished run actually produced, from evidence rather than from what is
 # left over when nothing else matched.
 #
@@ -119,16 +129,6 @@ else:
 # auto-block it through MAX_BLOCKED. `no_executor` is recorded and deliberately
 # not counted; `executor_failed` is counted, because an executor that ran and
 # failed says something about the work.
-new_task_pr() { # overlay_before overlay_after
-  [ -n "${1:-}" ] && [ -n "${2:-}" ] || return 0
-  local before_state before_pr before_reason after_state after_pr after_reason
-  IFS=$'\x1f' read -r before_state before_pr before_reason <<< "$1"
-  IFS=$'\x1f' read -r after_state after_pr after_reason <<< "$2"
-  if [ -z "$before_pr" ] && [ -n "$after_pr" ]; then
-    printf '%s' "$after_pr"
-  fi
-}
-
 failure_outcome() { # executors_ran
   if [ "${1:-0}" -eq 0 ]; then printf 'no_executor'; else printf 'executor_failed'; fi
 }
