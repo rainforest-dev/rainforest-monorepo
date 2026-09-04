@@ -49,10 +49,19 @@ _TERMINAL_GROUND_TRUTH = {"in-qa", "released"}
 # bottom of next_candidates. So a blocked task was not merely still eligible --
 # it travelled through a wider gate than a healthy one.
 #
-# AG-801 was correctly marked Blocked and was reselected nine times between
-# 2026-09-03 16:04 and 09-04 00:59, each run timing out at thirty minutes with no
-# commit and no PR, moving the company weekly quota from 37% to 54%. The board
-# said the right thing the whole time; nothing read it.
+# AG-801 was reselected eleven times between 2026-09-03 16:04 and 09-04 02:34,
+# moving the company Codex weekly quota from 37% to 58%.
+#
+# Nothing timed out. Every one of those rows is `exit=0`. Each run fetched, synced
+# the OpenAPI schemas, typechecked, searched the generated contract for
+# `unbind` / `is_binded_by` / `is_binded_at`, found none of it on `develop`,
+# restored the ticket to Blocked and wrote a reasoned note. Correct work reaching
+# the correct answer, eleven times, because nothing read the answer -- `blocked`
+# was a member of the set above and so stayed selectable.
+#
+# The first version of this comment said "each run timing out at thirty minutes",
+# which is what the fix was designed around and is not what the ledger says.
+# Corrected 2026-09-04 after reading the rows.
 _IN_FLIGHT = {
     "in-progress",
     "pr-ready",
@@ -327,15 +336,29 @@ def _greenlight_rank(task: dict, text: str) -> int | None:
 def _at_or_past_stop_at(state: object, stop_at: object) -> bool:
     """Whether a task has reached the point this project stops at.
 
-    Shares the ordering with `_retire_greenlight_if_terminal` deliberately: the
-    question "may this be selected" and the question "should its authorisation be
-    withdrawn" are the same question asked at two moments, and letting them drift
-    is how a finished task stayed selectable while its greenlight was retired.
+    The single ordering. `next_candidates` asks "may this be selected" and
+    `_retire_greenlight_if_terminal` asks "should its authorisation be withdrawn",
+    and those are one question at two moments. This function claimed to be shared
+    when it landed and was not: it and the retirement path were two hand copies of
+    the same ten lines, agreeing by coincidence, with nothing asserting they
+    agreed. Found by review 2026-09-04. `test_stop_at_ordering_is_shared` now
+    fails if the retirement path stops calling this.
 
-    `blocked` is excluded from the ordering here as it is there -- PIPELINE_STATES
-    is a list and blocked is appended last, so by index it sorts after `released`.
-    Callers reach this only for states that are not blocked, but the exclusion
-    stays so a future caller cannot inherit that trap.
+    Reached OR passed, not exactly equal. Equality meant retirement fired only if a
+    scan happened to observe the task in precisely the stop_at state. A task that
+    went straight from in-progress to in-qa or released -- which is what happens
+    when the owner merges the PR before the next sweep -- was never seen at
+    `pr-ready`, kept its authorisation, and stayed the top candidate. AG-290 sat
+    cleared on the Air with its PR merged 2026-08-13 and cost $1.29 on 08-26 to
+    rediscover that it was done. Equality also made retirement unreachable outright
+    for a project whose stop_at is `done` or `none`: no task is ever in those
+    states.
+
+    `blocked` is excluded, not ranked. PIPELINE_STATES is a list and `blocked` is
+    appended last, so by index it sorts AFTER `released`; comparing on that would
+    retire the authorisation of a task that is stuck rather than finished, making
+    the owner clear it again to unblock it. Progress order is the prefix up to
+    `released`; blocked is a state off to one side of it.
     """
     progress = [s for s in PIPELINE_STATES if s != "blocked"]
     order = {name: i for i, name in enumerate(progress)}
@@ -609,9 +632,16 @@ def _retire_greenlight_if_terminal(slug: str, task: dict) -> dict | None:
     agree: `_IN_FLIGHT` includes `pr-ready` and `state_order` ranks it above
     `not-started`, so a finished task stayed the top candidate and the next sweep
     would pick it up again. Retiring the authorisation is the half that belongs
-    here -- the task is done, so there is nothing left to authorise. Re-pressing
-    Greenlight is how the owner sends the loop back to a PR that needs more work,
-    which keeps that path open instead of closing it.
+    here -- the task is done, so there is nothing left to authorise.
+
+    This used to claim that re-pressing Greenlight sends the loop back to a PR
+    needing more work. It does not, and has not since `next_candidates` began
+    refusing anything at or past stop_at -- that check runs before the greenlight
+    is looked at, so a re-press changes nothing. Asked directly on 2026-09-04, the
+    owner decided that is correct: once a PR exists it is a person's problem, no
+    exception, including one whose CI is red (`derive_task_state` calls that
+    `blocked`, and selection refuses it on that ground instead). Written down
+    rather than left as a sentence describing a route that is not there.
 
     Returns None when this project has no allowlist to retire from.
     """
@@ -621,32 +651,7 @@ def _retire_greenlight_if_terminal(slug: str, task: dict) -> dict | None:
         return None
     if project is None or project.policy != "greenlit-only" or not project.greenlight:
         return None
-    # Reached OR passed, not exactly equal.
-    #
-    # Equality meant retirement fired only if a scan happened to observe the task
-    # in precisely the stop_at state. A task that went straight from in-progress
-    # to in-qa or released -- which is what happens when the owner merges the PR
-    # before the next sweep -- was never seen at `pr-ready`, kept its
-    # authorisation, and stayed the top candidate. AG-290 sat cleared on the Air
-    # with its PR merged 2026-08-13 and cost $1.29 on 08-26 to rediscover that it
-    # was done. Equality also made retirement unreachable outright for a project
-    # whose stop_at is `done` or `none`: no task is ever in those states.
-    # `blocked` is excluded, not ranked. PIPELINE_STATES is a list, and `blocked`
-    # is appended last -- so by index it sorts AFTER `released`, and comparing on
-    # that would retire the authorisation of a task that is stuck rather than
-    # finished, making the owner clear it again to unblock it. Progress order is
-    # the prefix up to `released`; blocked is a state off to one side of it.
-    progress = [s for s in PIPELINE_STATES if s != "blocked"]
-    order = {name: i for i, name in enumerate(progress)}
-    state = str(task.get("state") or "")
-    target = str(project.stop_at or "")
-    if target in ("done", "none"):
-        # Nothing short of a terminal board state ends such a project's interest.
-        if state not in _TERMINAL_GROUND_TRUTH:
-            return None
-    elif state not in order or target not in order:
-        return None
-    elif order[state] < order[target]:
+    if not _at_or_past_stop_at(task.get("state"), project.stop_at):
         return None
     item_id = (task.get("metadata") or {}).get("item_id") or task.get("id")
     path = Path(project.greenlight).expanduser()
@@ -904,6 +909,24 @@ def main(argv=None) -> int:
                 raise ValueError(
                     "pr-ready needs --note naming the checks you ran "
                     "(format, lint, tests) and their result"
+                )
+            # The same guard, for the same reason, on the state that decides whether
+            # the runner may pick this task up again.
+            #
+            # A reason is not documentation here, it is the mechanism. `_task_signals`
+            # copies overlay["blocked_reason"] onto the signal, and `derive_task_state`
+            # returns `blocked` on that signal BEFORE it considers commits -- so the
+            # reason is what makes blocked survive a branch that is ahead. Without one,
+            # an executor that committed once and then said `set blocked` derives
+            # `in-progress` on the next scan, the refusal in next_candidates never sees
+            # it, and the task is selected forever. AG-801 was caught only because it
+            # never committed; one commit away it was the same loop. contract.md:123
+            # already tells executors to pass it. Found by review 2026-09-04.
+            if args.state == "blocked" and not (args.blocked_reason or "").strip():
+                raise ValueError(
+                    "blocked needs --blocked-reason naming what must change outside "
+                    "this loop; without one the state does not survive a branch with "
+                    "commits and the task is selected again"
                 )
             with registry.ProjectLock(args.slug):
                 task = set_task_state(

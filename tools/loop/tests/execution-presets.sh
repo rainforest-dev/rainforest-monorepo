@@ -1755,10 +1755,11 @@ sel() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" "$HOME_DIR/sel_probe.p
 
 # `blocked` was in _IN_FLIGHT, and membership does two things: it makes a task
 # selectable AND exempts it from the dependency check. A blocked task travelled
-# through a WIDER gate than a healthy one. AG-801 was correctly marked Blocked
-# and reselected nine times between 2026-09-03 16:04 and 09-04 00:59, each run
-# timing out at thirty minutes with nothing to show, moving the company weekly
-# quota 37% -> 54%. The board said the right thing; nothing read it.
+# through a WIDER gate than a healthy one. AG-801 was reselected eleven times
+# between 2026-09-03 16:04 and 09-04 02:34, moving the company Codex weekly quota
+# 37% -> 58%. Every one of those runs exited 0 and correctly concluded the task
+# was blocked on a backend contract that is not on develop; nothing read the
+# conclusion. This gate is what reads it.
 check "blocked is never selected, and pr-ready stops at stop_at" \
   "$(sel pr-ready)" "in-progress queued"
 # A project that runs past pr-ready still continues that work.
@@ -1847,6 +1848,92 @@ rm -f "$VAULT_USAGE/tasks-progress.json"
 check "an unreadable overlay says nothing rather than something" \
   "$(task_overlay_state AG-801)" ""
 check "and a task with no id says nothing" "$(task_overlay_state '')" ""
+
+echo
+echo "review 2026-09-04: the story was wrong, and so was the measurement"
+
+# ONE ordering. This function claimed to be shared with
+# _retire_greenlight_if_terminal and was not -- they were two hand copies of the
+# same ten lines, agreeing by coincidence, with nothing asserting they agreed.
+cat > "$HOME_DIR/order_probe.py" <<'PROBE'
+import sys
+from loopctl.scan import _at_or_past_stop_at
+print("yes" if _at_or_past_stop_at(sys.argv[1], sys.argv[2]) else "no")
+PROBE
+ord_() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" "$HOME_DIR/order_probe.py" "$1" "$2"; }
+check "pr-ready has reached a pr-ready stop"    "$(ord_ pr-ready pr-ready)" "yes"
+check "in-progress has not"                     "$(ord_ in-progress pr-ready)" "no"
+check "in-qa is past it"                        "$(ord_ in-qa pr-ready)" "yes"
+check "blocked is off the order, never past it" "$(ord_ blocked pr-ready)" "no"
+check "stop_at=done ends only at a terminal state" "$(ord_ released done)" "yes"
+check "and pr-ready does not end a done project"   "$(ord_ pr-ready done)" "no"
+
+# The duplication itself, which no behavioural test can see: a second copy agrees
+# until the day it does not.
+retire_src=$(sed -n '/^def _retire_greenlight_if_terminal/,/^def sweep_projects/p' \
+  "$ENGINE/lib/loopctl/scan.py")
+contains "retirement calls the shared ordering" "$retire_src" '_at_or_past_stop_at('
+check "and keeps no copy of it" \
+  "$(printf '%s' "$retire_src" | grep -c 'progress = \[s for s in PIPELINE_STATES')" "0"
+# The docstring promised a path that selection closed. The owner decided
+# 2026-09-04 that a PR is a person's problem from then on, no exception.
+check "and no longer promises re-pressing Greenlight reopens a PR" \
+  "$(printf '%s' "$retire_src" | grep -c 'keeps that path open')" "0"
+
+# `blocked` without a reason does not survive a branch with commits: _task_signals
+# copies overlay["blocked_reason"] onto the signal and derive_task_state returns
+# `blocked` on it BEFORE it looks at commits. Without one, an executor that
+# committed once and then said `set blocked` derives `in-progress` next scan and
+# is selected forever. AG-801 was caught only because it never committed.
+blocked_guard=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c '
+import sys
+from loopctl import scan
+src = open(scan.__file__).read()
+print("guarded" if "blocked needs --blocked-reason" in src else "unguarded")')
+check "set blocked demands a reason" "$blocked_guard" "guarded"
+# The mechanism the guard exists for, asserted rather than described.
+derive_src=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c '
+from loopctl.derive import derive_task_state, TaskSignals
+with_reason = derive_task_state(TaskSignals(branch_exists=True, commits_ahead=3,
+                                            blocked_reason="backend contract absent"))
+without    = derive_task_state(TaskSignals(branch_exists=True, commits_ahead=3))
+print(with_reason, without)')
+check "a reason survives commits; no reason does not" "$derive_src" "blocked in-progress"
+
+# repo_commits, against the table in its own comment. `heads_before != heads_after`
+# answers "did a worktree appear", not "were commits made" -- AG-801 rows 10 and
+# 11 were recorded advanced on a worktree belonging to something else.
+eval "$(sed -n '/^repo_heads()/,/^}/p;/^repo_commits()/,/^}/p' "$ENGINE/ralph.sh")"
+R="$HOME_DIR/commitrepo"; W="$HOME_DIR/commitwt"
+rm -rf "$R" "$W"; mkdir -p "$R"
+git -C "$R" init -q -b main
+git -C "$R" config user.email t@t; git -C "$R" config user.name t
+echo a > "$R/a"; git -C "$R" add a; git -C "$R" commit -qm a
+git -C "$R" checkout -qb other; echo o > "$R/o"; git -C "$R" add o; git -C "$R" commit -qm o
+git -C "$R" checkout -q main
+heads0=$(repo_heads "$R"); n0=$(repo_commits "$R")
+git -C "$R" worktree add -q "$W" other
+check "adding a worktree moves the head set" \
+  "$([ "$heads0" != "$(repo_heads "$R")" ] && printf 'differ' || printf 'same')" "differ"
+check "but creates no commit" "$(repo_commits "$R")" "$n0"
+echo b > "$W/b"; git -C "$W" add b; git -C "$W" commit -qm b
+check "a commit in a worktree counts" \
+  "$([ "$(repo_commits "$R")" -gt "$n0" ] && printf 'counted' || printf 'missed')" "counted"
+n1=$(repo_commits "$R")
+git -C "$W" checkout -q --detach
+echo c > "$W/c"; git -C "$W" add c; git -C "$W" commit -qm c
+check "so does one on a detached HEAD" \
+  "$([ "$(repo_commits "$R")" -gt "$n1" ] && printf 'counted' || printf 'missed')" "counted"
+check "an unreadable repo counts nothing rather than something" \
+  "$(repo_commits "$HOME_DIR/no-such-repo")" ""
+
+# Every executor failing used to exit without writing a row: trailing_outcomes saw
+# nothing, MAX_BLOCKED could not count it, and `executor_failed` -- which is in the
+# blocking set -- had never once appeared in either ledger.
+fail_exit=$(sed -n '/all configured executors failed/,/^  fi$/p' "$ENGINE/ralph.sh")
+contains "the all-executors-failed exit records a run" "$fail_exit" 'record-run'
+contains "as executor_failed"                          "$fail_exit" '--status executor_failed'
+contains "and leaves a handoff"                        "$fail_exit" 'write_handoff'
 
 blocking=$(grep '^blocking = ' "$ENGINE/ralph.sh")
 contains "no_progress counts toward MAX_BLOCKED"  "$blocking" 'no_progress'

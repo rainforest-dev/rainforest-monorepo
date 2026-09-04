@@ -433,12 +433,15 @@ OUTCOMES = frozenset(
     {
         "reached_stop_at",
         "advanced",
-        # Ran, returned cleanly, and left nothing behind: no PR, no commit, no
-        # state written anywhere. `advanced` claimed progress for this, and nine
-        # consecutive thirty-minute timeouts on AG-801 were all recorded that way
-        # while the weekly quota moved 37% -> 54%. It is also the outcome
-        # MAX_BLOCKED counts, because a run that produced nothing is the thing
-        # that must not be retried forever.
+        # Ran, returned cleanly, and left nothing behind: no PR, no commit, and
+        # no CHANGE to the state the task records.
+        #
+        # Scope, honestly: this would not have caught AG-801. Those eleven runs
+        # each moved the task to `blocked` with a reason, which is work and is
+        # recorded as `advanced` on purpose. What stops that shape is refusing to
+        # select a blocked task, in scan.next_candidates. This outcome catches the
+        # other shape -- a run that changes nothing anywhere -- and MAX_BLOCKED
+        # counts it.
         "no_progress",
         # Killed before the executor returned. Distinct from executor_failed,
         # which is the executor deciding it was done and saying so with a
