@@ -119,6 +119,16 @@ else:
 # auto-block it through MAX_BLOCKED. `no_executor` is recorded and deliberately
 # not counted; `executor_failed` is counted, because an executor that ran and
 # failed says something about the work.
+new_task_pr() { # overlay_before overlay_after
+  [ -n "${1:-}" ] && [ -n "${2:-}" ] || return 0
+  local before_state before_pr before_reason after_state after_pr after_reason
+  IFS=$'\x1f' read -r before_state before_pr before_reason <<< "$1"
+  IFS=$'\x1f' read -r after_state after_pr after_reason <<< "$2"
+  if [ -z "$before_pr" ] && [ -n "$after_pr" ]; then
+    printf '%s' "$after_pr"
+  fi
+}
+
 failure_outcome() { # executors_ran
   if [ "${1:-0}" -eq 0 ]; then printf 'no_executor'; else printf 'executor_failed'; fi
 }
@@ -1723,15 +1733,6 @@ $(cat "$candidate_err")"
   # and is what makes cost-per-point answerable at all. Recorded per run because
   # a re-estimated ticket must not retroactively change what past runs cost.
   [ -n "${TASK_POINTS:-}" ] && run_fields+=(--points "$TASK_POINTS")
-  run_pr=$("$LOOPCTL" show "$slug" 2>/dev/null | "$PYTHON_BIN" -c \
-    'import json, sys
-rows = (json.load(sys.stdin) or {}).get("tasks") or []
-want = sys.argv[1]
-for row in rows:
-    if str((row.get("metadata") or {}).get("item_id") or "") == want:
-        print(row.get("pr") or "")
-        break' "${task_item_id:-}" 2>/dev/null || printf '')
-  [ -n "$run_pr" ] && run_fields+=(--pr "$run_pr")
   # Model, effort, cost and output tokens are deliberately absent. They were
   # optional arguments here, which made them sparse -- cost was 0.00 on 11 of
   # 19 rows -- and they now ride on OTEL_RESOURCE_ATTRIBUTES and the executor's
@@ -1773,6 +1774,11 @@ for row in rows:
       task_moved=""
     fi
   fi
+  run_pr=""
+  if [ "$probe_state" = ok ]; then
+    run_pr=$(new_task_pr "$task_state_before" "$task_state_after")
+  fi
+  [ -n "$run_pr" ] && run_fields+=(--pr "$run_pr")
   iter_commits=$(repo_commits_since "$project_path" "${iter_started_ts:-}")
   if [ -n "$iter_commits" ] && [ "$iter_commits" -gt 0 ]; then
     commits_state=changed
