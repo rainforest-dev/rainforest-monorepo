@@ -149,18 +149,25 @@ function empty(src: 'runs' | 'progress', nothing: string): string {
             </p>
             <SourceMetaLine v-if="runs" :meta="runs" />
             <ul v-if="loop.recent_rounds.length" class="space-y-1.5">
+              <!-- Inline flow, not a flex row.
+                   As a flex row the badge held ~130px and the note wrapped
+                   inside the ~230px left over, which at 390px made every entry
+                   three lines: `rainforest-air`, then the project, then the
+                   outcome. In flow the badge is just the first thing on line
+                   one and every line after it spans the full column, so the
+                   same text takes two. Identical on a wide screen, where it was
+                   one line either way. -->
               <li
                 v-for="(r, i) in loop.recent_rounds"
                 :key="i"
-                class="flex items-baseline gap-2 text-sm"
+                class="text-muted-foreground text-sm"
               >
                 <Badge
                   variant="outline"
-                  class="shrink-0 text-[10px] tabular-nums"
+                  class="mr-1.5 align-[0.05em] text-[10px] tabular-nums"
                 >
                   {{ r.date }}
-                </Badge>
-                <span class="text-muted-foreground">{{ r.note }}</span>
+                </Badge>{{ r.note }}
               </li>
             </ul>
             <p v-else class="text-muted-foreground text-sm">
