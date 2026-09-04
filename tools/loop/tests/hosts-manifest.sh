@@ -99,9 +99,9 @@ check "the endpoint export_quota needs is in the file install.sh copies" \
 # The general reader, not the one-off. Exercised against real plists: a source
 # missing a key the destination has must refuse; the same file against itself
 # must not.
-ALLOW_ENV_LOSS=0; REFUSALS=0; AGENTS="$LAUNCHD"; HOST=rainforest-mini
+ALLOW_ENV_LOSS=""; REFUSALS=0; AGENTS="$LAUNCHD"; HOST=rainforest-mini
 TMPDIR_ELC=$(mktemp -d); trap 'rm -rf "$TMPDIR_ELC"' EXIT
-eval "$(sed -n '/^env_keys()/,/^}/p;/^env_loss_check()/,/^}/p' "$ROOT/install.sh")"
+eval "$(sed -n '/^env_values()/,/^}/p;/^env_loss_check()/,/^}/p' "$ROOT/install.sh")"
 say() { printf '%s\n' "$*"; }
 
 # Every committed plist must be well-formed XML, which means no double hyphen

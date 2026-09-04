@@ -24,7 +24,7 @@ AGENTS="$HOME/Library/LaunchAgents"
 
 HOST=""
 DRY=0
-ALLOW_ENV_LOSS=0
+ALLOW_ENV_LOSS=""
 # Counted, because the script ends in `say` and would otherwise exit 0 with a
 # refusal three screens up. A caller checking $? -- the relay that installs on
 # the Air does -- must see this.
@@ -33,9 +33,19 @@ for arg in "$@"; do
   case "$arg" in
     --host=*) HOST="${arg#--host=}" ;;
     --dry-run|-n) DRY=1 ;;
-    --allow-plist-env-loss) ALLOW_ENV_LOSS=1 ;;
+    --allow-plist-env-loss=*)
+      label=${arg#--allow-plist-env-loss=}
+      case "$label" in
+        ''|*[!A-Za-z0-9._-]*) echo "invalid LaunchAgent label: $label" >&2; exit 2 ;;
+      esac
+      ALLOW_ENV_LOSS="$ALLOW_ENV_LOSS $label"
+      ;;
+    --allow-plist-env-loss)
+      echo 'use --allow-plist-env-loss=<label>; global permission is not supported' >&2
+      exit 2 ;;
     -h|--help)
       sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      printf '\nOptions:\n  --host=<name>\n  --dry-run, -n\n  --allow-plist-env-loss=<label>  Allow removed or changed env values for this label only; repeat for another label. Read failures still refuse.\n'
       exit 0
       ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
@@ -136,16 +146,14 @@ install_plist() {
   say "  $label -> $AGENTS/$label.plist (loads at next login)"
 }
 
-# The EnvironmentVariables keys a plist declares, one per line; nothing at all
-# when it has none or cannot be read.
-env_keys() {
-  plutil -extract EnvironmentVariables json -o - "$1" 2>/dev/null \
-    | /usr/bin/python3 -c 'import json,sys
-try:
-    d = json.load(sys.stdin)
-except ValueError:
-    raise SystemExit
-print("\n".join(sorted(d or {})))' 2>/dev/null
+# Reading the whole document distinguishes an absent key from an unreadable file.
+env_values() {
+  plutil -convert json -o - "$1" 2>/dev/null \
+    | python3 -c 'import json,sys
+d = json.load(sys.stdin).get("EnvironmentVariables", {})
+if not isinstance(d, dict) or not all(isinstance(v, str) for v in d.values()):
+    raise SystemExit(1)
+print(json.dumps(d, sort_keys=True))' 2>/dev/null
 }
 TMPDIR_ELC=$(mktemp -d)
 trap 'rm -rf "$TMPDIR_ELC"' EXIT
@@ -163,30 +171,38 @@ trap 'rm -rf "$TMPDIR_ELC"' EXIT
 # nobody reads to the end, and the whole failure being prevented is a difference
 # that nothing looked at. `install.sh` is the writer; this is the reader.
 #
-# The repo stays the source of truth: the fix is to commit the key, not to keep
-# it on one machine. --allow-plist-env-loss is for when the key is genuinely
-# meant to go.
+# The repo stays the source of truth. A label-scoped override accepts an
+# intentional removal or value change, never an unreadable comparison.
 env_loss_check() {
   local label="$1" src="$2" dst="$AGENTS/$1.plist"
-  [ "$ALLOW_ENV_LOSS" -eq 1 ] && return 0
-  [ -f "$dst" ] || return 0
-  # plutil, not plistlib. A double hyphen is illegal inside an XML comment and
-  # plutil accepts it regardless, so a plist this project happily ships can be
-  # unreadable to a strict parser -- which is a silent "cannot answer" here, and
-  # therefore a silent pass. Reading it with the same lenient tool that the rest
-  # of this repo and launchd itself use removes the mismatch.
-  local lost
-  lost=$(env_keys "$dst" | sort > "$TMPDIR_ELC/dst" 2>/dev/null
-         env_keys "$src" | sort > "$TMPDIR_ELC/src" 2>/dev/null
-         comm -23 "$TMPDIR_ELC/dst" "$TMPDIR_ELC/src" | tr '\n' ' ' | sed 's/ *$//')
+  local lost reason=""
+  if ! env_values "$src" > "$TMPDIR_ELC/src"; then
+    reason="cannot read source EnvironmentVariables"
+  elif [ ! -e "$dst" ] && [ ! -L "$dst" ]; then
+    return 0
+  elif ! env_values "$dst" > "$TMPDIR_ELC/dst"; then
+    reason="cannot read installed EnvironmentVariables"
+  elif ! lost=$(python3 -c 'import json,sys
+old, new = (json.load(open(p)) for p in sys.argv[1:])
+print(" ".join(sorted(k for k,v in old.items() if k not in new or new[k] != v)))' \
+      "$TMPDIR_ELC/dst" "$TMPDIR_ELC/src" 2>/dev/null); then
+    reason="cannot compare EnvironmentVariables"
+  fi
+  if [ -n "$reason" ]; then
+    say "  REFUSING to install $label: $reason" >&2
+    REFUSALS=$((REFUSALS + 1))
+    return 1
+  fi
   [ -z "$lost" ] && return 0
+  case " $ALLOW_ENV_LOSS " in
+    *" $label "*) say "  allowing env changes for $label: $lost"; return 0 ;;
+  esac
   say "  REFUSING to install $label" >&2
   say "    the copy already on this machine sets: $lost" >&2
-  say "    and $HOST.$label.plist does not." >&2
-  say "    Overwriting would delete those, silently." >&2
+  say "    and $HOST.$label.plist removes them or changes their values." >&2
   say "" >&2
   say "    Commit them to launchd/$HOST.$label.plist if they are load-bearing," >&2
-  say "    or re-run with --allow-plist-env-loss if they are genuinely going." >&2
+  say "    or re-run with --allow-plist-env-loss=$label to accept this label's changes." >&2
   REFUSALS=$((REFUSALS + 1))
   return 1
 }
