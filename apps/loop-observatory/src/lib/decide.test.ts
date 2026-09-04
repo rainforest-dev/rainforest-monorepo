@@ -422,3 +422,39 @@ describe('the queue says how old the board behind it is', () => {
     expect(notice).not.toMatch(/^rebuilt/);
   });
 });
+
+describe('the deciding facts are on the card, not behind the press', () => {
+  const source = readFileSync(
+    join(import.meta.dirname, '..', 'components', 'DecidePanel.vue'),
+    'utf-8',
+  );
+
+  // `caution` and `quotaLine` are computed per card and were rendered only
+  // inside the drawer that "Review to clear" opens. With 67 cards that is 67
+  // presses to learn what any of them costs, on the screen whose whole job is
+  // choosing between them — and the press that reveals the budget is the same
+  // press that starts spending it. Three of today's sixty-seven carry a
+  // caution; AG-708's says the run will likely be cut off by the window reset
+  // rather than finish, which is the entire decision.
+  it.each(['card.caution', 'card.quotaLine', 'card.project'])(
+    'renders %s on the card face',
+    (expr) => {
+      expect(source).toContain(expr);
+    },
+  );
+
+  it('still shows them in the drawer', () => {
+    // Moving them out of the detail view would trade one omission for another:
+    // the drawer is where the reader confirms before a press that spends.
+    expect(source).toContain('detail.caution');
+    expect(source).toContain('detail.quotaLine');
+  });
+
+  it('mutes the window line while it is ok and colours it when it is not', () => {
+    // All sixty-seven resolve to one identical line today. Sixty-seven coloured
+    // sentences saying the same thing is how a reader learns to skip the row
+    // that will one day say 8%.
+    expect(source).toMatch(/card\.quotaStatus === 'ok'/);
+    expect(source).toContain('statusVar[card.quotaStatus]');
+  });
+});

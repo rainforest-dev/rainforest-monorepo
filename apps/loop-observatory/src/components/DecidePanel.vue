@@ -327,8 +327,62 @@ onBeforeUnmount(() => {
             <div
               class="text-muted-foreground font-mono text-[11px] leading-relaxed"
             >
-              {{ card.meta }}
+              {{ card.meta
+              }}<template v-if="card.project"> · {{ card.project }}</template>
             </div>
+
+            <!--
+              The two facts that change the answer, on the face.
+
+              Both are computed per card and were rendered only inside the
+              drawer that opens after "Review to clear" is pressed. With 67
+              cards that is 67 presses to learn what any of them costs, on the
+              one screen whose whole job is choosing between them -- and the
+              press that reveals the budget is the same press that begins
+              spending it.
+
+              `caution` is the look-again signal and leads when present. Three
+              of today\'s sixty-seven carry one, and AG-708\'s reads "6 points
+              against 51% of the window. It will likely be cut off by the window
+              reset rather than finish." That is the whole decision, and it was
+              behind a press.
+
+              `quotaLine` is the window this run would spend. Muted while the
+              status is ok and coloured when it is not: today all sixty-seven
+              resolve to one identical line, and sixty-seven green sentences
+              saying the same thing is how a reader learns to skip the row that
+              will one day say 8%.
+            -->
+            <p
+              v-if="card.caution"
+              class="m-0 flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] leading-snug"
+              :style="{
+                color: 'var(--status-warning)',
+                borderColor:
+                  'color-mix(in oklch, var(--status-warning) 45%, transparent)',
+                backgroundColor:
+                  'color-mix(in oklch, var(--status-warning) 12%, transparent)',
+              }"
+            >
+              <span
+                class="mt-1.5 inline-block size-1.5 shrink-0 rounded-full"
+                :style="{ backgroundColor: 'var(--status-warning)' }"
+                aria-hidden="true"
+              />
+              {{ card.caution }}
+            </p>
+
+            <p
+              class="m-0 font-mono text-[11px] leading-relaxed"
+              :class="card.quotaStatus === 'ok' ? 'text-muted-foreground' : ''"
+              :style="
+                card.quotaStatus === 'ok'
+                  ? undefined
+                  : { color: statusVar[card.quotaStatus] }
+              "
+            >
+              {{ card.quotaLine }}
+            </p>
 
             <!-- Stacked on a phone, side by side once there is room. The hold is
                unchanged at every width: it exists because clearing a task spends
