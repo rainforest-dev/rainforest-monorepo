@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  node_exporter for the company MacBook Air.
+
+  Deliberately NOT `brew services start node_exporter`, which is what the Mac
+  Mini uses: brew’s own plist takes no arguments, and this one needs the
+  collector.textfile.directory flag so ps-sampler’s .prom output is picked up.
+
+  The copy on that host said "Installed by install.sh" and was in no repo. It had
+  drifted out of version control, or was never in it, and the sentence claiming
+  otherwise is why nobody looked. Committed 2026-09-04.
+
+  no-collector.thermal is the point of that commit. macOS exposes no CPU power or
+  thermal reading that node_exporter’s darwin collector can take, so it returned
+  node_scrape_collector_success{collector="thermal"} 0 on every scrape, forever:
+  the only failing collector of thirteen on that host, and a red that can never
+  go green teaches a reader to stop looking at reds.
+
+  Turning it off is only half. A collector that is simply absent makes "this host
+  cannot measure temperature" indistinguishable from "temperature is fine", and
+  the second is the more dangerous reading. install.sh writes
+  node_thermal_supported 0 into the textfile directory beside this, so the
+  absence is a series carrying a reason rather than a silence.
+
+  No double hyphen anywhere in this comment: it is illegal inside an XML comment,
+  plutil accepts it and plistlib does not, and the copy this replaces had one.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.homelab.dev-node-exporter</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node_exporter</string>
+        <string>--web.listen-address=127.0.0.1:9100</string>
+        <string>--collector.textfile.directory=/Users/rainforest/.local/state/dev-telemetry/textfile</string>
+        <string>--no-collector.thermal</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rainforest/Library/Logs/dev-node-exporter.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/rainforest/Library/Logs/dev-node-exporter.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+    <key>Nice</key>
+    <integer>5</integer>
+</dict>
+</plist>
