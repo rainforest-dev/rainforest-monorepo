@@ -24,7 +24,7 @@ import { readHosts } from '../../lib/enroll/store.js';
 import { readTelemetry } from '../../lib/enroll/telemetry.js';
 import { buildHostViews, type HostView } from '../../lib/enroll/view.js';
 import { usageDir } from '../../lib/ledger.js';
-import { openRuns, readRuns } from '../../lib/loopVault.js';
+import { openRuns, readProgress, readRuns } from '../../lib/loopVault.js';
 import { remainingStatus } from '../../lib/machineReadings.js';
 import {
   getTaskDecision,
@@ -143,6 +143,12 @@ export const GET: APIRoute = () => {
 
     // --- cards --------------------------------------------------------------
     const data = readTasks();
+    // The note every `loopctl set` and `loopctl task-note` writes, keyed by the
+    // same id these cards carry. Read once rather than per card.
+    const progressByKey = new Map(
+      readProgress(usageDir()).map((row) => [row.key, row] as const),
+    );
+
     const cards: DecideCard[] = [];
     for (const task of data?.tasks ?? []) {
       const slug = task.component
@@ -208,6 +214,8 @@ export const GET: APIRoute = () => {
           points: task.points,
           windowLeftPct: left,
         }),
+        note: progressByKey.get(String(task.id))?.note ?? null,
+        noteAt: progressByKey.get(String(task.id))?.updated_at ?? null,
       });
     }
 

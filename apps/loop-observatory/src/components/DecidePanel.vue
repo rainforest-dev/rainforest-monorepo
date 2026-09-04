@@ -372,6 +372,28 @@ onBeforeUnmount(() => {
               {{ card.caution }}
             </p>
 
+            <!--
+              What was written about this task before anyone decided on it.
+
+              `loopctl task-note` and `loopctl set` write it, and it is the only
+              note channel a Notion-sourced task has: those carry no vault note
+              at all -- tasks.json gives them no path, and no note on this
+              machine has ever held an `## Execution Plan`. So a conversation
+              with an agent about whether a task is worth running has exactly
+              one place to land, and until now the screen that decides showed
+              none of it while the screen that reports afterwards showed it all.
+
+              Clamped to three lines here and given in full in the drawer: the
+              card is for choosing between tasks, the drawer for committing to
+              one.
+            -->
+            <p
+              v-if="card.note"
+              class="border-border text-muted-foreground m-0 line-clamp-3 border-l-2 pl-2.5 text-[12px] leading-snug"
+            >
+              {{ card.note }}
+            </p>
+
             <p
               class="m-0 font-mono text-[11px] leading-relaxed"
               :class="card.quotaStatus === 'ok' ? 'text-muted-foreground' : ''"
@@ -736,6 +758,20 @@ onBeforeUnmount(() => {
             The executor picks it up on its next pass and starts without asking
             again. Stopping it after that means going back to the desk.
           </p>
+        </div>
+
+        <!-- In full here. The card clamps it; this is the last screen before a
+             press that starts spending, so nothing is elided. -->
+        <div
+          v-if="detail.note"
+          class="border-border whitespace-pre-line rounded-xl border px-3.5 py-3 text-[13px] leading-relaxed"
+        >
+          <p
+            class="text-muted-foreground m-0 mb-1.5 font-mono text-[10px] uppercase tracking-widest"
+          >
+            note<template v-if="detail.noteAt"> · {{ detail.noteAt }}</template>
+          </p>
+          {{ detail.note }}
         </div>
 
         <div

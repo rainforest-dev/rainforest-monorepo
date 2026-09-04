@@ -234,6 +234,23 @@ export interface DecideCard {
   quotaStatus: RemainingStatus;
   greenlightLine: string;
   caution: string | null;
+  /**
+   * What was written about this task before anyone decided on it.
+   *
+   * `tasks-progress.json`'s note, the mirror every `loopctl set` and
+   * `loopctl task-note` writes. It is the one note channel that works for a
+   * Notion-sourced task: those carry no vault note -- tasks.json gives them no
+   * path, and zero notes on this machine have ever held an `## Execution Plan`
+   * -- so a per-task file is not where a company task's context can live.
+   *
+   * It is also where a conversation with an agent is supposed to land. Nothing
+   * here writes it; `loopctl task-note` does, from a session. This is the
+   * reader, so that when something is written the screen deciding on the task
+   * shows it rather than the screen reporting on it afterwards.
+   */
+  note: string | null;
+  /** When that note was written, so an old one does not read as current. */
+  noteAt: string | null;
 }
 
 /** Just the task fields a card reads. */
