@@ -280,7 +280,26 @@ def _quota_pair(machine: str, now: float) -> dict:
             if not readings:
                 errors.append("no usable quota window")
         state = "unknown" if errors else "stale" if age > SLA_SECONDS["quota_snapshot"] else "ok"
-        pools[name] = {"state": state, "age_seconds": age, "readings": readings, "errors": errors}
+        # Why the figure is old, in the producer's own words.
+        #
+        # `quota.py` records `source` (live | snapshot | none) and, on a
+        # fallback, `unavailable_reason`. Without carrying it here, a stale pool
+        # says only "stale", and finding out why took a throwaway LaunchAgent on
+        # the Air to reproduce the keychain read: the credential was readable and
+        # simply held an empty accessToken. A reason the producer already wrote
+        # and no reader repeated is the shape of every other bug this week.
+        source = pool.get("source") if isinstance(pool, dict) else None
+        reason = pool.get("unavailable_reason") if isinstance(pool, dict) else None
+        pools[name] = {
+            "state": state,
+            "age_seconds": age,
+            "readings": readings,
+            "errors": errors,
+            "source": source,
+            # Only when it explains something. A live pool has no reason to give,
+            # and a null here must not read as "the producer did not say".
+            **({"unavailable_reason": reason} if reason else {}),
+        }
 
     state = "missing" if not pools else "ok"
     for candidate in ("stale", "unknown"):
