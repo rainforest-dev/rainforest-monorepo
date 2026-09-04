@@ -11,7 +11,7 @@
   <key>EnvironmentVariables</key><dict>
     <!-- The full name. host_machine() honours LOOP_MACHINE and every
          per-machine file is keyed on what it returns, so installing `mini`
-         starts a second run ledger -- loop-runs.mini.jsonl beside the real one.
+         starts a second run ledger: loop-runs.mini.jsonl beside the real one.
          The absolute LOOP_QUOTA_FILE below was written to sidestep that split
          for the quota gate; nothing sidestepped it for the ledger. The plist
          already on that host says rainforest-mini; this one, the one install.sh

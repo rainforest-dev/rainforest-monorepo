@@ -84,5 +84,67 @@ for host in rainforest-air rainforest-mini; do
 done
 
 echo
+echo "== install.sh will not silently delete a plist's environment =="
+
+# The mini's installed com.rainforest.usage-hourly carried
+# OTEL_EXPORTER_OTLP_ENDPOINT and the repo's copy did not, so `./install.sh`
+# would have deleted it. export_quota.emit() resolves the endpoint from exactly
+# that variable and `return 0`s when there is none: no error, no log line, an
+# hourly metric that just stops. It was caught by diffing the two by hand,
+# minutes before the install -- which is luck, not a mechanism.
+check "the endpoint export_quota needs is in the file install.sh copies" \
+  "$(envv rainforest-mini.com.rainforest.usage-hourly.plist OTEL_EXPORTER_OTLP_ENDPOINT)" \
+  "http://127.0.0.1:4318"
+
+# The general reader, not the one-off. Exercised against real plists: a source
+# missing a key the destination has must refuse; the same file against itself
+# must not.
+ALLOW_ENV_LOSS=0; REFUSALS=0; AGENTS="$LAUNCHD"; HOST=rainforest-mini
+TMPDIR_ELC=$(mktemp -d); trap 'rm -rf "$TMPDIR_ELC"' EXIT
+eval "$(sed -n '/^env_keys()/,/^}/p;/^env_loss_check()/,/^}/p' "$ROOT/install.sh")"
+say() { printf '%s\n' "$*"; }
+
+# Every committed plist must be well-formed XML, which means no double hyphen
+# inside a comment. plutil accepts one and plistlib does not, so such a file
+# ships looking fine and is unreadable to anything strict -- including the
+# check below, whose "cannot answer" path is a silent pass. Caught 2026-09-04
+# in a comment added in this very change.
+bad=""
+for f in "$LAUNCHD"/*.plist; do
+  python3 -c 'import plistlib,sys; plistlib.load(open(sys.argv[1],"rb"))' "$f" 2>/dev/null \
+    || bad="$bad $(basename "$f")"
+done
+check "every launchd plist parses strictly" "$bad" ""
+
+# .plist, and the removal is checked: `plutil -remove` on an extensionless
+# temp file leaves the key in place, and a fixture silently identical to the
+# original makes the refusal test pass for the wrong reason.
+stripped=$(mktemp -t env_loss).plist; trap 'rm -f "$stripped"' EXIT
+cp "$LAUNCHD/rainforest-mini.com.rainforest.usage-hourly.plist" "$stripped"
+plutil -remove EnvironmentVariables.OTEL_EXPORTER_OTLP_ENDPOINT "$stripped" >/dev/null
+check "the fixture really lost the key" \
+  "$(plutil -extract EnvironmentVariables.OTEL_EXPORTER_OTLP_ENDPOINT raw -o - "$stripped" \
+     >/dev/null 2>&1 && printf 'present' || printf 'gone')" "gone"
+
+# Called in THIS shell. `got=$(verdict ...)` reads correctly and is wrong:
+# command substitution forks, so every REFUSALS increment lands in a subshell
+# and the counter the script exits on always reads 0.
+verdict() { if env_loss_check "$1" "$2" >/dev/null 2>&1; then got=installed; else got=refused; fi; }
+
+# dst is $AGENTS/<label>.plist, so name the label after the file that is there.
+verdict rainforest-mini.com.rainforest.usage-hourly "$stripped"
+check "a source dropping a key the machine has is refused" "$got" "refused"
+check "and the refusal is counted, so the script can exit non-zero" "$REFUSALS" "1"
+
+verdict rainforest-mini.com.rainforest.usage-hourly \
+  "$LAUNCHD/rainforest-mini.com.rainforest.usage-hourly.plist"
+check "an identical source installs" "$got" "installed"
+check "and installing changes no count" "$REFUSALS" "1"
+# Nothing installed yet is not a loss. A first install on a fresh machine must
+# not be refused for having nothing to compare against.
+verdict com.nothing.here.at.all "$stripped"
+check "no plist on the machine yet is not a loss" "$got" "installed"
+
+echo
 printf '  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
