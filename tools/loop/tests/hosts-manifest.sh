@@ -146,5 +146,33 @@ verdict com.nothing.here.at.all "$stripped"
 check "no plist on the machine yet is not a loss" "$got" "installed"
 
 echo
+echo "== the wrapper and the scripts it runs are installed together =="
+
+# The Air's launchd is denied read access to iCloud under TCC, so the hourly job
+# runs a RUNTIME COPY of the vault's scripts. install.sh copied the wrapper and
+# not the scripts, and that copy was five weeks old on 2026-09-04: a field added
+# to quota.py was live in the vault, absent from the runtime, and the job kept
+# emitting the old shape. The wrapper is the only half anything checked.
+hourly=$(sed -n '/^if has_role usage-hourly/,/^fi$/p' "$ROOT/install.sh")
+# `check`, not `contains`: this suite has no `contains`, and the first version of
+# these three lines called it anyway. bash printed "command not found" to stderr
+# and the run still said "0 failed" -- three assertions that vanished without
+# failing, which is the same shape as everything else here.
+has() { printf '%s' "$hourly" | grep -c -- "$1"; }
+check "the wrapper is installed"  "$([ "$(has 'run-hourly-host.sh')" -gt 0 ] && echo yes || echo no)" "yes"
+check "and so are its scripts"    "$([ "$(has 'scripts/usage/')" -gt 0 ] && echo yes || echo no)" "yes"
+check "resolved through loopctl, not guessed" \
+  "$([ "$(has 'from loopctl.writeback import usage_path')" -gt 0 ] && echo yes || echo no)" "yes"
+check "and an unresolvable vault warns rather than passing quietly" \
+  "$(printf '%s' "$hourly" | grep -c 'WARNING: runtime scripts NOT synced')" "1"
+# Order matters: a sync placed after install_plist would leave one wake running
+# the old copy.
+sync_line=$(printf '%s' "$hourly" | grep -n 'scripts/usage/' | tail -1 | cut -d: -f1)
+plist_line=$(printf '%s' "$hourly" | grep -n 'install_plist com.rainforest.usage-hourly' | cut -d: -f1)
+check "the scripts are in place before the job is installed" \
+  "$([ -n "$sync_line" ] && [ -n "$plist_line" ] && [ "$sync_line" -lt "$plist_line" ] \
+     && printf 'yes' || printf 'no')" "yes"
+
+echo
 printf '  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

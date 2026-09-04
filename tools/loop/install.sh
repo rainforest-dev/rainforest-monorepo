@@ -284,6 +284,32 @@ if has_role usage-hourly; then
     run rsync -a "$wrapper" "$SHARE/loop-usage-runtime/run-hourly-host.sh"
     run chmod +x "$SHARE/loop-usage-runtime/run-hourly-host.sh"
     say "  wrapper installed as run-hourly-host.sh"
+    # And the scripts the wrapper runs. Installing one without the other is what
+    # this block did until 2026-09-04, and the Air's runtime copy of
+    # scripts/usage was dated 2026-07-27 -- five weeks of vault fixes that
+    # reached that machine's disk through iCloud and never reached the job.
+    # Measured that day: a field added to quota.py was live in the vault, absent
+    # from the runtime, and the hourly job kept emitting the old shape with
+    # nothing to say it was old.
+    #
+    # This is the only place that can do it. The wrapper exists precisely because
+    # launchd on that host is denied read access to iCloud under TCC, so the job
+    # cannot refresh itself; install.sh runs from a shell that can.
+    #
+    # The vault is resolved through loopctl rather than guessed, so it cannot
+    # drift from the path writeback actually uses. No vault, no sync, and it says
+    # so loudly -- a wrapper pointing at scripts nobody updates is the bug.
+    vault_root=$("$LOOP_HOME/.venv/bin/python" -c \
+      'import sys; sys.path.insert(0, "'"$LOOP_HOME"'/lib"); from loopctl.writeback import usage_path; print(usage_path("").parent.parent)' \
+      2>/dev/null || printf '')
+    if [ -n "$vault_root" ] && [ -d "$vault_root/scripts/usage" ]; then
+      run rsync -a --delete --exclude __pycache__ --exclude tests \
+        "$vault_root/scripts/usage/" "$SHARE/loop-usage-runtime/scripts/usage/"
+      say "  runtime scripts synced from the vault"
+    else
+      say "  WARNING: runtime scripts NOT synced (vault unresolved); the hourly" >&2
+      say "           job keeps whatever copy it already has" >&2
+    fi
   else
     say "  no wrapper for this host — the plist runs the vault script directly"
   fi

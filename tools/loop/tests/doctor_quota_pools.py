@@ -52,6 +52,33 @@ class QuotaTests(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertEqual(self.pair({"codex": value})["state"], "unknown")
 
+    def test_a_stale_pool_repeats_the_reason_its_producer_gave(self):
+        # rainforest-air, measured 2026-09-04: the Claude figure had not moved for
+        # 44 hours and the pair said "stale" and nothing else, so finding out why
+        # took a throwaway LaunchAgent to reproduce the keychain read. quota.py
+        # writes the reason; this is the reader that repeats it.
+        reading = pool("weekly_all", age=44 * 3600)
+        reading["source"] = "snapshot"
+        reading["unavailable_reason"] = "credential holds no access token"
+        got = self.pair({"claude": reading})["pools"]["claude"]
+        self.assertEqual(got["state"], "stale")
+        self.assertEqual(got["source"], "snapshot")
+        self.assertEqual(got["unavailable_reason"], "credential holds no access token")
+
+    def test_a_live_pool_offers_no_reason_rather_than_a_null_one(self):
+        # A null would read as "the producer did not say", which is a different
+        # fact from "there was nothing to explain".
+        reading = pool("weekly_all")
+        reading["source"] = "live"
+        got = self.pair({"claude": reading})["pools"]["claude"]
+        self.assertEqual(got["source"], "live")
+        self.assertNotIn("unavailable_reason", got)
+
+    def test_a_producer_that_says_nothing_is_not_invented_for(self):
+        got = self.pair({"codex": pool("weekly")})["pools"]["codex"]
+        self.assertIsNone(got["source"])
+        self.assertNotIn("unavailable_reason", got)
+
     def test_sla_boundary(self):
         self.assertEqual(self.pair({"codex": pool("weekly", age=10800)})["state"], "ok")
         self.assertEqual(self.pair({"codex": pool("weekly", age=10801)})["state"], "stale")
