@@ -34,6 +34,8 @@ const NOW = Date.UTC(2026, 8, 2, 12, 0, 0);
 const MIN = 60_000;
 const HOUR = 60 * MIN;
 
+import { trackerNotice } from './tasksHeader.js';
+
 describe('hold, not tap', () => {
   it('keeps the duration inside the range the design allows', () => {
     expect(holdMs(1500)).toBe(1500);
@@ -373,5 +375,50 @@ describe('card meta names its gaps', () => {
         component: 'cloud-frontend',
       }),
     ).toBe('P1 · 3 pts · cloud-frontend · pr-ready');
+  });
+});
+
+describe('the queue says how old the board behind it is', () => {
+  const source = readFileSync(
+    join(import.meta.dirname, '..', 'components', 'DecidePanel.vue'),
+    'utf-8',
+  );
+
+  // On 2026-09-04 this screen offered 67 cards to authorise off a board synced
+  // 21.8 hours earlier, several of them already merged, and said nothing. The
+  // Tasks page reads the same two fields from the same file and has always
+  // shown them. `synced_at` moves only when Notion is fetched, which needs an
+  // MCP client and so happens from a session rather than the hourly job, while
+  // `written_at` is always minutes old and says nothing about the board — so
+  // the age cannot be inferred from the file's mtime and has to be carried.
+  it('renders the age rather than only receiving it', () => {
+    expect(source).toContain('trackerNotice');
+    expect(source).toContain('boardNotice');
+  });
+
+  it('uses the Tasks page helper, not a second sentence', () => {
+    // One board described two ways by two screens is worse than not describing
+    // it: a reader who saw both would have to decide which to believe.
+    expect(source).toMatch(/from '@\/lib\/tasksHeader'/);
+  });
+
+  it('says the age even when both timestamps are unreadable', () => {
+    // An unknown age is no reason to stop saying the board is a tracker.
+    const notice = trackerNotice(null, null, new Date('2026-09-04T12:00:00Z'));
+    expect(notice.length).toBeGreaterThan(0);
+    expect(notice).not.toContain('null');
+  });
+
+  it('names the sync separately from the rebuild', () => {
+    const notice = trackerNotice(
+      '2026-09-03T11:44:02Z',
+      '2026-09-04T09:21:09Z',
+      new Date('2026-09-04T09:31:09Z'),
+    );
+    expect(notice).toContain('work synced');
+    expect(notice).toContain('rebuilt');
+    // The failure this prevents: one label off `written_at` alone, which is
+    // fresh every hour and would have called that 22-hour-old board current.
+    expect(notice).not.toMatch(/^rebuilt/);
   });
 });

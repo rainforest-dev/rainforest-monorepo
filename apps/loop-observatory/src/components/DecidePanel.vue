@@ -22,6 +22,8 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
+import { trackerNotice } from '@/lib/tasksHeader';
+
 import {
   type DecideCard,
   type DecideView,
@@ -38,6 +40,23 @@ import {
 } from '@/lib/decide';
 
 const view = ref<DecideView | null>(null);
+
+/**
+ * The board's own age, in the Tasks page's words.
+ *
+ * `trackerNotice` rather than a second sentence: one board described two ways by
+ * two screens is worse than not describing it at all, and `synced_at` moves only
+ * when Notion is fetched -- which needs an MCP client and so happens from a
+ * session, never from the hourly job. `written_at` is always minutes old and
+ * says nothing about the queue.
+ */
+const boardNotice = computed(() =>
+  trackerNotice(
+    view.value?.syncedAt,
+    view.value?.writtenAt,
+    new Date(now.value),
+  ),
+);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const busyId = ref<string | null>(null);
@@ -231,6 +250,33 @@ onBeforeUnmount(() => {
         <p class="text-muted-foreground m-0 text-sm leading-relaxed">
           Nothing starts until its id is in the greenlight file. Hold to clear —
           one deliberate press, no swipes.
+        </p>
+
+        <!--
+          How old the board behind these cards is.
+          The same sentence the Tasks page has always shown, from the same helper
+          and the same file, in the same warn pill so the two screens cannot
+          describe one board differently. It was missing here, and this is the
+          screen where the age costs something: on 2026-09-04 it offered 67 cards
+          to authorise off a board synced 21.8 hours earlier, several of them
+          already merged.
+        -->
+        <p
+          class="m-0 flex w-fit items-center gap-2 rounded-full border px-3 py-1 font-mono text-[11px] leading-normal"
+          :style="{
+            color: 'var(--status-warning)',
+            borderColor:
+              'color-mix(in oklch, var(--status-warning) 45%, transparent)',
+            backgroundColor:
+              'color-mix(in oklch, var(--status-warning) 14%, transparent)',
+          }"
+        >
+          <span
+            class="inline-block size-1.5 shrink-0 rounded-full"
+            :style="{ backgroundColor: 'var(--status-warning)' }"
+            aria-hidden="true"
+          />
+          {{ boardNotice }}
         </p>
 
         <p
