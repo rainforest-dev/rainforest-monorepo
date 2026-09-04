@@ -42,14 +42,29 @@ _ADAPTERS = {
     "vault": vault,
 }
 _TERMINAL_GROUND_TRUTH = {"in-qa", "released"}
+# Work that has started and can be continued.
+#
+# `blocked` is NOT here. It used to be, and membership does two things: it makes
+# a task selectable, and it exempts the task from the dependency check at the
+# bottom of next_candidates. So a blocked task was not merely still eligible --
+# it travelled through a wider gate than a healthy one.
+#
+# AG-801 was correctly marked Blocked and was reselected nine times between
+# 2026-09-03 16:04 and 09-04 00:59, each run timing out at thirty minutes with no
+# commit and no PR, moving the company weekly quota from 37% to 54%. The board
+# said the right thing the whole time; nothing read it.
 _IN_FLIGHT = {
     "in-progress",
     "pr-ready",
-    "blocked",
     "needs-tuning",
     "spec-drafted",
     "split-drafted",
 }
+
+#: Started, and not runnable until something changes outside the loop. Kept apart
+#: from _IN_FLIGHT so the two questions -- "is this task under way" and "may the
+#: runner pick it up" -- cannot be answered by one set again.
+_BLOCKED = {"blocked"}
 
 
 def _merge_task(task, sig, derived_state: str, prior_task: dict | None) -> dict:
@@ -309,6 +324,31 @@ def _greenlight_rank(task: dict, text: str) -> int | None:
     return None
 
 
+def _at_or_past_stop_at(state: object, stop_at: object) -> bool:
+    """Whether a task has reached the point this project stops at.
+
+    Shares the ordering with `_retire_greenlight_if_terminal` deliberately: the
+    question "may this be selected" and the question "should its authorisation be
+    withdrawn" are the same question asked at two moments, and letting them drift
+    is how a finished task stayed selectable while its greenlight was retired.
+
+    `blocked` is excluded from the ordering here as it is there -- PIPELINE_STATES
+    is a list and blocked is appended last, so by index it sorts after `released`.
+    Callers reach this only for states that are not blocked, but the exclusion
+    stays so a future caller cannot inherit that trap.
+    """
+    progress = [s for s in PIPELINE_STATES if s != "blocked"]
+    order = {name: i for i, name in enumerate(progress)}
+    target = str(stop_at or "")
+    current = str(state or "")
+    if target in ("done", "none"):
+        # Nothing short of a terminal board state ends such a project's interest.
+        return current in _TERMINAL_GROUND_TRUTH
+    if current not in order or target not in order:
+        return False
+    return order[current] >= order[target]
+
+
 def next_candidates(project, state: dict) -> list[dict]:
     if project.policy == "read-only" or state.get("stale"):
         return []
@@ -341,6 +381,23 @@ def next_candidates(project, state: dict) -> list[dict]:
             greenlight_rank = _greenlight_rank(task, greenlight)
             if greenlight_rank is None:
                 continue
+        # Blocked is refused before anything else about the task is considered.
+        # Not "deprioritised": there is no ranking at which running a task whose
+        # blocker still stands is the right move, and the runner has no way to
+        # clear one.
+        if task_state in _BLOCKED:
+            continue
+        # At or past this project's stop_at is finished, for this loop.
+        #
+        # Selection never consulted stop_at at all: `pr-ready` is in _IN_FLIGHT,
+        # so on a project that stops there the finished task stayed the top
+        # candidate and was handed back to an executor that had nothing left to
+        # do. Retirement of the greenlight covered this only on the path where
+        # `loopctl set` observed the transition; a task that reached the state
+        # some other way -- a PR opened by hand, a scan noticing it -- kept both
+        # its authorisation and its place in the queue.
+        if _at_or_past_stop_at(task_state, project.stop_at):
+            continue
         if task_state not in _IN_FLIGHT | {"queued", "not-started"}:
             continue
         # An unmet dependency drops the task from the queue. The board is a DAG

@@ -31,6 +31,36 @@ EXECUTORS=${LOOP_EXECUTORS:-claude,codex,agy}
 # common .git dir, including ones created during this run. Detached heads and
 # prunable entries are included on purpose: a commit is a commit, and a worktree
 # whose directory has since vanished still left its objects behind.
+# What a finished run actually produced, from evidence rather than from what is
+# left over when nothing else matched.
+#
+# `advanced` used to be the else-branch of "is there a PR", which made it the
+# outcome of every clean exit that produced nothing -- nine consecutive
+# thirty-minute timeouts on AG-801 among them, each recorded as progress while
+# the company weekly quota went 37% -> 54%. Nothing counted them: MAX_BLOCKED
+# counts blocked and failed runs, and `advanced` is neither.
+#
+# A function taking all three pieces of evidence as arguments, rather than an
+# inline chain reading whatever happens to be in scope. The first attempt at this
+# fix was an inline chain, and it read $task_moved eleven lines before the probe
+# that sets it -- dead on the first iteration, and holding the PREVIOUS
+# iteration's value on every one after. The test grepped ralph.sh for the string
+# "task_moved" and passed. Evidence a caller must hand over cannot be silently
+# absent, and can be tested by calling this.
+decide_outcome() { # pr heads_state task_moved
+  if [ -n "${1:-}" ]; then
+    printf 'reached_stop_at'
+  elif [ "${2:-}" = changed ]; then
+    printf 'advanced'
+  elif [ -n "${3:-}" ]; then
+    # The executor wrote its own task's state. Recording `blocked` with a reason
+    # is real work, even with no commit and no PR.
+    printf 'advanced'
+  else
+    printf 'no_progress'
+  fi
+}
+
 repo_heads() {
   local repo="$1"
   git -C "$repo" worktree list --porcelain 2>/dev/null \
@@ -1174,7 +1204,13 @@ import sys
 sys.path.insert(0, sys.argv[1])
 from loopctl.writeback import trailing_outcomes
 recent = trailing_outcomes(sys.argv[2], sys.argv[3], limit=int(sys.argv[4]))
-blocking = {"preflight_failed", "executor_failed"}
+# A run that produced nothing counts, however calmly it ended. `no_progress` is
+# a clean exit with no PR, no commit and no state written -- and nine of those in
+# a row on AG-801 cost 17 percentage points of a company weekly quota while this
+# set contained neither it nor `advanced`, which is what they were recorded as.
+# `interrupted` counts too: a task that cannot finish inside the wall-clock
+# ceiling will not finish inside the next one either.
+blocking = {"preflight_failed", "executor_failed", "no_progress", "interrupted"}
 print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in recent) else "no")
 ' "$LOOP_HOME/lib" "$MACHINE" "$task_id" "$MAX_BLOCKED" 2>/dev/null || printf 'no')
     if [ "$blocked_run" = "yes" ]; then
@@ -1534,12 +1570,42 @@ for row in rows:
     [ -n "$pctw_before" ] && run_fields+=(--quota-week-before "$pctw_before")
     [ -n "$pctw_after" ] && run_fields+=(--quota-week-after "$pctw_after")
   fi
+  # Did this run move the task it WAS handed?
+  #
+  # The same overlay mirror the misattribution check below reads, asked the other
+  # way round. Probed before the outcome is decided, and cleared first: this is
+  # per-iteration evidence, and a value surviving into the next iteration would
+  # credit a run that produced nothing with the previous run's work.
+  task_moved=""
+  if [ -n "${VAULT_USAGE:-}" ] && [ -n "${task_item_id:-}" ]; then
+    task_moved=$("$PYTHON_BIN" - "$VAULT_USAGE/tasks-progress.json" "$task_item_id" \
+      "$RUN_STARTED_TS" <<'PYEOF' 2>/dev/null || printf ''
+import json, sys
+
+path, want, started = sys.argv[1:4]
+try:
+    rows = (json.load(open(path)) or {}).get("tasks") or {}
+except (OSError, ValueError):
+    raise SystemExit
+row = rows.get(want) or {}
+ts = row.get("updated_ts")
+if isinstance(ts, (int, float)) and ts >= int(started):
+    print(row.get("loop_status") or "moved")
+PYEOF
+    )
+  fi
+  if [ "$heads_before" != "$(repo_heads "$project_path")" ]; then
+    heads_state=changed
+  else
+    heads_state=same
+  fi
   # `completed` said the executor returned cleanly, which is not the same as the
   # task reaching stop_at -- 14 of the 19 rows in the live ledger say `completed`
-  # and only one of them has a PR. Decide it here, where the PR is known, rather
-  # than leaving a reader to infer it later from a field that may be absent for
-  # either reason.
-  if [ -n "${run_pr:-}" ]; then run_outcome=reached_stop_at; else run_outcome=advanced; fi
+  # and only one of them has a PR. Decided here, where all three pieces of
+  # evidence are in hand, rather than left to a reader to infer later from a
+  # field that may be absent for either reason.
+  run_outcome=$(decide_outcome "${run_pr:-}" "$heads_state" "$task_moved")
+
   # Did this run move a DIFFERENT task than the one it was handed?
   #
   # On 2026-09-02 a run recorded task_id T-20260902130404 while doing

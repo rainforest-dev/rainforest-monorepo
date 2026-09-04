@@ -433,6 +433,13 @@ OUTCOMES = frozenset(
     {
         "reached_stop_at",
         "advanced",
+        # Ran, returned cleanly, and left nothing behind: no PR, no commit, no
+        # state written anywhere. `advanced` claimed progress for this, and nine
+        # consecutive thirty-minute timeouts on AG-801 were all recorded that way
+        # while the weekly quota moved 37% -> 54%. It is also the outcome
+        # MAX_BLOCKED counts, because a run that produced nothing is the thing
+        # that must not be retried forever.
+        "no_progress",
         # Killed before the executor returned. Distinct from executor_failed,
         # which is the executor deciding it was done and saying so with a
         # non-zero exit -- this one never got to say anything at all.
