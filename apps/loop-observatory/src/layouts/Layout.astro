@@ -13,11 +13,28 @@ const {
   active,
 } = Astro.props;
 
+// One list, two renderings: a text row in the header from `sm` up, and a bottom
+// tab bar below it. The four destinations are the same either way -- a phone
+// getting a different set of places to go is a different app, not a layout.
+//
+// `icon` is a path drawn in a 24x24 stroked viewBox, which is what every other
+// icon in this file already is. Labels stay on the tabs: four of them fit at
+// 390px, and an icon-only bar makes the reader guess.
 const navLinks = [
-  { key: 'overview', label: 'Overview', href: '/' },
-  { key: 'decide', label: 'Decide', href: '/decide' },
-  { key: 'tasks', label: 'Tasks', href: '/tasks' },
-  { key: 'setup', label: 'Setup', href: '/setup' },
+  { key: 'overview', label: 'Overview', href: '/', icon: 'M3 12h4l3 8 4-16 3 8h4' },
+  { key: 'decide', label: 'Decide', href: '/decide', icon: 'M20 6 9 17l-5-5' },
+  {
+    key: 'tasks',
+    label: 'Tasks',
+    href: '/tasks',
+    icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  },
+  {
+    key: 'setup',
+    label: 'Setup',
+    href: '/setup',
+    icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+  },
 ] as const;
 ---
 
@@ -63,7 +80,9 @@ const navLinks = [
     <header
       class="border-border bg-background/80 sticky top-0 z-30 border-b backdrop-blur"
     >
-      <div class="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3">
+      <div
+        class="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6"
+      >
         <a href="/" class="flex items-center gap-2">
           <span
             class="inline-block size-2.5 rounded-full"
@@ -74,7 +93,10 @@ const navLinks = [
           </span>
         </a>
 
-        <nav class="ml-2 flex items-center gap-1" aria-label="Primary">
+        <!-- Header nav from `sm` up. Below that it would need 154px this screen
+             does not have, which is exactly how much the whole page overflowed
+             by at 390px, on every route, before this. -->
+        <nav class="ml-2 hidden items-center gap-1 sm:flex" aria-label="Primary">
           {
             navLinks.map((link) => (
               <a
@@ -160,9 +182,54 @@ const navLinks = [
       </div>
     </header>
 
-    <main class="mx-auto max-w-6xl px-6 py-8">
+    <!-- The bottom bar is fixed, so the last card would sit under it. Its own
+         height plus the home-indicator inset, and only while the bar is there. -->
+    <main
+      class="mx-auto max-w-6xl px-4 py-6 pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 sm:pb-8"
+    >
       <slot />
     </main>
+
+    <!-- Phones only. Four destinations, thumb-height, which is where this app is
+         actually read: /decide already says "Hold to clear -- one deliberate
+         press, no swipes", and that is a sentence written for a phone. -->
+    <nav
+      class="border-border bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
+      aria-label="Primary"
+    >
+      <ul class="grid grid-cols-4">
+        {
+          navLinks.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                aria-current={active === link.key ? 'page' : undefined}
+                class:list={[
+                  'flex h-[4.25rem] flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
+                  active === link.key
+                    ? 'text-foreground'
+                    : 'text-muted-foreground',
+                ]}
+              >
+                <svg
+                  class="size-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d={link.icon} />
+                </svg>
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
 
     <script is:inline>
       (function () {
