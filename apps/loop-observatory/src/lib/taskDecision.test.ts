@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,6 +8,7 @@ import {
   deliveryModeFor,
   greenlitFor,
   REMOTE_EXECUTORS,
+  GREENLIGHT_TARGETS,
 } from './taskDecision.js';
 
 let savedConfig: string | undefined;
@@ -130,5 +131,57 @@ describe('greenlitFor', () => {
   it('on the local path, defers to the allowlist and ignores the outbox', () => {
     expect(greenlitFor('local', 'none', () => true)).toBe(true);
     expect(greenlitFor('local', 'applied', () => false)).toBe(false);
+  });
+});
+
+describe('a personal task can be decided on at all', () => {
+  // `projectFor` opened with `task.scope !== 'work'`, so every personal task
+  // returned no project and `/api/decide` skipped it before anything else was
+  // computed: 20 personal tasks, 0 cards, while the queue read "67 undecided".
+  //
+  // The runner never agreed with that. The mini enrols `rainforest-monorepo` as
+  // `greenlit-only` with `stop_at: pr-ready`, and its greenlight file has been
+  // maintained by hand since 2026-08-21 with `T-` ids in it. Personal
+  // greenlighting was already the practice; only this screen refused to offer
+  // it.
+  it('maps the two components that live in rainforest-monorepo', () => {
+    expect(GREENLIGHT_TARGETS['loop-engine']?.slug).toBe('rainforest-monorepo');
+    expect(GREENLIGHT_TARGETS['loop-observatory']?.slug).toBe(
+      'rainforest-monorepo',
+    );
+  });
+
+  it('leaves the company components exactly as they were', () => {
+    expect(GREENLIGHT_TARGETS['cloud-frontend']?.slug).toBe(
+      'service-dashboard-frontend',
+    );
+    expect(GREENLIGHT_TARGETS['cloud-backend']?.slug).toBe(
+      'service-cloud-backend',
+    );
+  });
+
+  it.each(['usage-tracker', 'jobsmith', 'tooling', 'personal-infra'])(
+    'does not map %s, which has nowhere to deliver a decision',
+    (component) => {
+      // usage-tracker lives in the vault, which is enrolled read-only; the rest
+      // are separate repositories enrolled on no machine. A card for one would
+      // offer a decision the runner is configured to refuse or cannot receive.
+      expect(GREENLIGHT_TARGETS[component]).toBeUndefined();
+    },
+  );
+
+  it('gates on the component map, not on scope', () => {
+    // The two disagree the moment a personal component is mapped, and the scope
+    // check wins silently. Only the map can say where a decision is delivered.
+    const source = readFileSync(
+      join(import.meta.dirname, 'taskDecision.ts'),
+      'utf-8',
+    );
+    const fn = source.slice(
+      source.indexOf('function projectFor'),
+      source.indexOf('function taskFor'),
+    );
+    expect(fn).not.toContain("scope !== 'work'");
+    expect(fn).toContain('GREENLIGHT_TARGETS');
   });
 });

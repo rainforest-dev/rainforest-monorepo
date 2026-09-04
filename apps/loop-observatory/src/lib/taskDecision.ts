@@ -31,6 +31,33 @@ interface GreenlightTarget {
   component: string;
 }
 
+/**
+ * Which component a greenlight can be written for, and where it lands.
+ *
+ * A task whose component is absent here never becomes a decide card at all --
+ * `/api/decide` skips it before anything else is computed. Until 2026-09-04 the
+ * map held only the two company components, so all 20 personal tasks were
+ * invisible on the screen that authorises work, and the queue read "67
+ * undecided" while 6 unfinished personal ones sat with nowhere to be decided.
+ *
+ * The loop side was already configured for them: the mini's config.yaml enrols
+ * `rainforest-monorepo` as `greenlit-only` with `stop_at: pr-ready`, its
+ * greenlight file exists, and `machines: [rainforest-mini]`. Only this table was
+ * missing, so the owner could not reach a decision the runner was waiting for.
+ *
+ * Adding a component authorises nothing by itself. It makes the task appear
+ * where a deliberate per-task press can authorise it -- which is the difference
+ * between "may be offered" and "is allowed", and the reason this is a map of
+ * components rather than a wildcard.
+ *
+ * Deliberately not mapped, each for a reason rather than an oversight:
+ *   • `usage-tracker` -- lives in the vault's scripts/usage, and the vault is
+ *     enrolled `read-only`. A greenlight there would authorise work the runner
+ *     is configured to refuse.
+ *   • `jobsmith`, `tooling`, `personal-infra`, `career-narrative` -- separate
+ *     repositories, none of them enrolled on any machine. A card for one would
+ *     offer a decision with nowhere to deliver it.
+ */
 export const GREENLIGHT_TARGETS: Record<string, GreenlightTarget> = {
   'cloud-frontend': {
     slug: 'service-dashboard-frontend',
@@ -39,6 +66,15 @@ export const GREENLIGHT_TARGETS: Record<string, GreenlightTarget> = {
   'cloud-backend': {
     slug: 'service-cloud-backend',
     component: 'cloud-backend',
+  },
+  // Both live in rainforest-monorepo: tools/loop and apps/loop-observatory.
+  'loop-engine': {
+    slug: 'rainforest-monorepo',
+    component: 'loop-engine',
+  },
+  'loop-observatory': {
+    slug: 'rainforest-monorepo',
+    component: 'loop-observatory',
   },
 };
 
@@ -192,9 +228,28 @@ function hasGreenlight(task: SprintTask, slug: string): boolean {
   );
 }
 
+/**
+ * The project a greenlight for this task would be written to, or null.
+ *
+ * `task.scope !== 'work'` used to be the first clause here and made every
+ * personal task unreachable, whatever GREENLIGHT_TARGETS said. It was written
+ * when that map held only the two company components, so it restated what the
+ * map already enforced; once a personal component is mapped the two disagree,
+ * and the scope check wins silently.
+ *
+ * It was also out of step with the runner it serves. The mini enrols
+ * `rainforest-monorepo` as `greenlit-only` with `stop_at: pr-ready`, and its
+ * greenlight file has been maintained by hand since 2026-08-21 -- "mini owns
+ * this allowlist" -- with `T-` ids in it and retired entries annotated "re-add
+ * to send the loop back to it". Personal greenlighting was already the practice;
+ * only this screen refused to offer it.
+ *
+ * The component map stays the gate, because it is the one that can say where a
+ * decision would be delivered. The id shape stays too: it is what separates a
+ * board task from a note path.
+ */
 function projectFor(task: SprintTask): GreenlightTarget | null {
-  if (task.scope !== 'work' || !/^(?:[A-Za-z]+-)?\d+$/.test(String(task.id)))
-    return null;
+  if (!/^(?:[A-Za-z]+-)?\d+$/.test(String(task.id))) return null;
   return task.component ? (GREENLIGHT_TARGETS[task.component] ?? null) : null;
 }
 
