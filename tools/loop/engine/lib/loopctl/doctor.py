@@ -27,6 +27,7 @@ Rules for adding a pair:
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
 from pathlib import Path
@@ -240,27 +241,64 @@ def _quota_pair(machine: str, now: float) -> dict:
     mtime is the one number that hid this: on 2026-09-03 the Air's file had a
     fresh written_at over a source_ts 21 hours old, so anything reading the file
     date saw a current snapshot of a stale reading. The age that matters is the
-    newest source_ts across pools -- what the gate is actually deciding on.
+    oldest source_ts across readable pools, not the freshest sibling.
     """
     path = usage_path(f"quota.{machine}.json")
-    newest = None
+    pools = {}
     try:
         doc = json.loads(path.read_text(encoding="utf-8"))
-        for pool in doc.values():
-            ts = (pool or {}).get("source_ts") if isinstance(pool, dict) else None
-            if isinstance(ts, (int, float)):
-                newest = ts if newest is None else max(newest, ts)
+        if not isinstance(doc, dict):
+            raise ValueError("quota is not an object")
     except (OSError, ValueError):
-        pass
-    return _pair(
+        doc = {}
+
+    def number(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+    for name, windows in (("claude", ("five_hour", "weekly_all")), ("codex", ("five_hour", "weekly"))):
+        pool = doc.get(name)
+        if pool is None:
+            continue
+        age, readings, errors = None, {}, []
+        if not isinstance(pool, dict):
+            errors.append("invalid provider object")
+        else:
+            ts = pool.get("source_ts")
+            if number(ts) and 0 < ts <= now:
+                age = _age(ts, now)
+            else:
+                errors.append("source_ts missing or invalid")
+            for window in windows:
+                bucket = pool.get(window)
+                if bucket is None:
+                    continue
+                value = bucket.get("used_pct") if isinstance(bucket, dict) else None
+                if number(value) and 0 <= value <= 100:
+                    readings[window] = value
+                else:
+                    errors.append(f"{window}.used_pct missing or invalid")
+            if not readings:
+                errors.append("no usable quota window")
+        state = "unknown" if errors else "stale" if age > SLA_SECONDS["quota_snapshot"] else "ok"
+        pools[name] = {"state": state, "age_seconds": age, "readings": readings, "errors": errors}
+
+    state = "missing" if not pools else "ok"
+    for candidate in ("stale", "unknown"):
+        if any(pool["state"] == candidate for pool in pools.values()):
+            state = candidate
+    ages = [pool["age_seconds"] for pool in pools.values() if pool["age_seconds"] is not None]
+    pair = _pair(
         "quota_snapshot",
         declared=machine,
-        observed=machine if newest is not None else None,
-        age=_age(newest, now),
+        observed=machine if pools else None,
+        state=state,
+        age=max(ages) if ages else None,
         source=str(path),
         note="aged by source_ts, not the file date -- a fresh file can hold a"
         " reading from yesterday, and the gate decides on the reading",
     )
+    pair["pools"] = pools
+    return pair
 
 
 def _loaded_definition_pair(loop_home: Path) -> dict:
