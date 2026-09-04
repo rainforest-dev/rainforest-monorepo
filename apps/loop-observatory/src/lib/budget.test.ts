@@ -39,6 +39,14 @@ const FRESH = JSON.stringify({
 // Synthetic snapshot exercising every non-Air path in one file: plan pro; claude
 // 5h + weekly-all + weekly by-model (fable); codex weekly + 5-hour; and an agy
 // estimated block (cost + activity, no quota).
+// Fresh in both senses: the file is two minutes old and so are its readings.
+// FRESH deliberately is not -- its Claude source_ts lags a day -- so it cannot
+// stand in for "an ordinary current snapshot" once staleness reads the figures.
+const FRESH_THROUGHOUT = JSON.stringify({
+  ...JSON.parse(FRESH),
+  claude: { ...JSON.parse(FRESH).claude, source_ts: 1784000201.719549 },
+});
+
 const STALE = JSON.stringify({
   machine: 'mac-mini',
   written_at: 1783997321.719549,
@@ -93,7 +101,11 @@ describe('parseMachineBudget', () => {
 
     expect(mb.written_at).toBe(1784000321.719549);
     // (1784000441 - 1784000321.72) / 60 ≈ 1.99 min
-    expect(mb.stale_minutes).toBeCloseTo(2, 0);
+    // 1438, not 2. written_at is two minutes old; the Claude reading inside it
+    // is ~24h old, and the snapshot is only as fresh as the oldest figure it
+    // carries. This fixture is named FRESH because its FILE is -- that is the
+    // whole shape of the bug.
+    expect(mb.stale_minutes).toBeCloseTo(1438, 0);
   });
 
   it('exposes per-provider source_ts and a null agy block', () => {
@@ -188,7 +200,9 @@ describe('parseMachineBudget', () => {
       parseMachineBudget(STALE, 'from-file', NOW_MS),
       'parsed machine budget',
     );
-    expect(mb.stale_minutes).toBeCloseTo(52.0, 0);
+    // 57, not 52: written_at is 52 minutes old and its oldest provider reading
+    // is 57. The worse of the two is the honest answer.
+    expect(mb.stale_minutes).toBeCloseTo(57.0, 0);
   });
 
   it('falls back to the filename-derived machine when JSON omits it', () => {
@@ -331,7 +345,32 @@ describe('sourceLagMinutes / providerStale', () => {
 });
 
 describe('combinedBudget', () => {
-  it('picks the freshest (lowest stale_minutes) machine snapshot', () => {
+  it('prefers a recently written file over one written an hour ago', () => {
+    const map: MachineBudgetMap = {
+      'rainforest-air': must(
+        parseMachineBudget(FRESH_THROUGHOUT, 'a', NOW_MS),
+        'fresh machine budget',
+      ),
+      'mac-mini': must(
+        parseMachineBudget(STALE, 'b', NOW_MS),
+        'stale machine budget',
+      ),
+    };
+    const combined = must(combinedBudget(map), 'combined budget');
+    expect(
+      must(
+        must(combined.claude, 'claude usage').five_hour,
+        'claude five_hour bucket',
+      ).used_pct,
+    ).toBe(35.4);
+  });
+
+  it('does not pick a snapshot whose file is new and whose reading is a day old', () => {
+    // FRESH is written two minutes ago and carries a ~24h-old Claude reading;
+    // STALE is written 52 minutes ago and its readings are 57 minutes old. The
+    // combined snapshot used to take FRESH, so the panel reported a figure from
+    // the previous day as the current one. Measured on the live Air 2026-09-04:
+    // a file four minutes old holding a 44-hour-old Claude reading.
     const map: MachineBudgetMap = {
       'rainforest-air': must(
         parseMachineBudget(FRESH, 'a', NOW_MS),
@@ -348,11 +387,7 @@ describe('combinedBudget', () => {
         must(combined.claude, 'claude usage').five_hour,
         'claude five_hour bucket',
       ).used_pct,
-    ).toBe(35.4);
-    expect(
-      must(must(combined.codex, 'codex usage').weekly, 'codex weekly bucket')
-        .used_pct,
-    ).toBe(2);
+    ).toBe(89.0);
   });
 
   it('returns null for an empty map', () => {
