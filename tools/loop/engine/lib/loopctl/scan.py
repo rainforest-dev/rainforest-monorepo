@@ -341,8 +341,11 @@ def _at_or_past_stop_at(state: object, stop_at: object) -> bool:
     and those are one question at two moments. This function claimed to be shared
     when it landed and was not: it and the retirement path were two hand copies of
     the same ten lines, agreeing by coincidence, with nothing asserting they
-    agreed. Found by review 2026-09-04. `test_stop_at_ordering_is_shared` now
-    fails if the retirement path stops calling this.
+    agreed. Found by review 2026-09-04. execution-presets.sh now asserts both
+    that the retirement path calls this and that it keeps no copy of the
+    ordering; a second copy makes that suite fail. (This sentence first named a
+    `test_stop_at_ordering_is_shared` that was never written -- a docstring
+    citing a test that does not exist is the same defect as a test that greps.)
 
     Reached OR passed, not exactly equal. Equality meant retirement fired only if a
     scan happened to observe the task in precisely the stop_at state. A task that

@@ -27,7 +27,7 @@ EXECUTORS=${LOOP_EXECUTORS:-claude,codex,agy}
 # it chose to work; comparing `project_path`'s HEAD alone reported `no commit` for
 # every run that did the right thing.
 #
-# NOT the progress measure any more -- see `repo_commits` directly below. This
+# NOT the progress measure any more -- see `repo_commits_since` directly below. This
 # set changes whenever a worktree is added or removed with no commit anywhere, so
 # it cannot answer "did the executor produce anything". It stays the right
 # instrument for the conservative guard on the failure path, where the question
@@ -38,32 +38,58 @@ EXECUTORS=${LOOP_EXECUTORS:-claude,codex,agy}
 # common .git dir, including ones created during this run. Detached heads and
 # prunable entries are included on purpose: a commit is a commit, and a worktree
 # whose directory has since vanished still left its objects behind.
-# The state the shared overlay records for one task, or nothing when it cannot
-# say. `loop_status` is what `publish_task_state` writes, so this is the same
-# value Observatory renders on the card.
+# What the registry records for one task: its agent_state, pr and blocked_reason,
+# joined into one comparable string. Exits non-zero when it could not read,
+# which is NOT the same as "nothing is there".
 #
-# Read twice, side by side, rather than by timestamp. `updated_ts >= run start`
-# only answers "was this row touched", and an executor touches its own row on
-# every iteration: it writes a note before it does anything. AG-801 wrote a fresh
-# note nine times while its state stayed Blocked, so a touch-based probe calls
-# every one of those a move and the run reads as `advanced` however little
-# happened. Two readings of the same field bound the run, and a rewrite that
-# changes nothing cannot fool them.
+# The registry, not `tasks-progress.json`. The first version read the mirror on
+# the reasoning that `publish_task_state` writes it on every `loopctl set`, so it
+# moves whenever the registry does. That is wrong in two ways this codebase
+# already documents:
 #
-# Unreadable is empty, both times, so before equals after and nothing moved. That
-# is the honest reading: no evidence of movement is not evidence of movement.
-task_overlay_state() { # task_item_id
-  [ -n "${VAULT_USAGE:-}" ] && [ -n "${1:-}" ] || return 0
-  "$PYTHON_BIN" - "$VAULT_USAGE/tasks-progress.json" "$1" <<'PYEOF' 2>/dev/null || printf ''
+#   * `set_task_state` swallows a failed mirror write into `mirror_error` and
+#     returns success (scan.py). A sandbox denying that write -- measured with
+#     codex on 2026-07-30, and the reason the note at the run_executor call site
+#     exists -- leaves the registry moved and the mirror still. Real work would
+#     then read as no movement.
+#   * the mirror is one file in a shared vault, keyed by item_id, replaced whole.
+#     The other machine writing the same task between our two readings can revert
+#     ours. The registry is per-host and has neither problem.
+#
+# `agent_state` and not `loop_status`: the display string is a rendering, and a
+# rendering is one more thing that can change without the state changing.
+task_overlay_state() { # slug task_item_id
+  [ -n "${1:-}" ] && [ -n "${2:-}" ] || return 1
+  # `-c`, not a heredoc. `loopctl show | python - <<PYEOF` reads the PROGRAM from
+  # stdin, so the heredoc replaces the pipe and json.load(sys.stdin) finds the
+  # exhausted program instead of the document. Every call returned exit 1, and
+  # every comparison built on it read "unchanged". A writer that succeeded and a
+  # reader that received nothing, inside the change whose subject is that shape.
+  # No apostrophes below: the program is a single-quoted shell word.
+  "$LOOPCTL" show "$1" 2>/dev/null | "$PYTHON_BIN" -c '
 import json, sys
 
-path, want = sys.argv[1:3]
+want = sys.argv[1]
 try:
-    rows = (json.load(open(path)) or {}).get("tasks") or {}
-except (OSError, ValueError):
-    raise SystemExit
-print((rows.get(want) or {}).get("loop_status") or "")
-PYEOF
+    doc = json.load(sys.stdin) or {}
+except ValueError:
+    raise SystemExit(1)
+tasks = doc.get("tasks")
+if not isinstance(tasks, list):
+    raise SystemExit(1)
+for task in tasks:
+    meta = task.get("metadata") or {}
+    if want in (meta.get("item_id"), task.get("id")):
+        overlay = task.get("overlay") or {}
+        print("\x1f".join(
+            str(overlay.get(key) or "")
+            for key in ("agent_state", "pr", "blocked_reason")
+        ))
+        break
+else:
+    # Readable, and no such task: an empty answer, not a failed one.
+    print("")
+' "$2" 2>/dev/null
 }
 
 # What a finished run actually produced, from evidence rather than from what is
@@ -84,11 +110,30 @@ PYEOF
 # iteration's value on every one after. The test grepped ralph.sh for the string
 # "task_moved" and passed. Evidence a caller must hand over cannot be silently
 # absent, and can be tested by calling this.
-decide_outcome() { # pr commits_state task_moved
+# Which failure an iteration with no surviving executor was.
+#
+# Every candidate returning 127 means no executor is installed or granted on this
+# host -- a fact about the machine, not the task. `status` is never assigned on
+# that branch, so one outcome for both would file "claude is not on the PATH"
+# against whichever task happened to be selected, and three wakes of that
+# auto-block it through MAX_BLOCKED. `no_executor` is recorded and deliberately
+# not counted; `executor_failed` is counted, because an executor that ran and
+# failed says something about the work.
+failure_outcome() { # executors_ran
+  if [ "${1:-0}" -eq 0 ]; then printf 'no_executor'; else printf 'executor_failed'; fi
+}
+
+decide_outcome() { # pr commits_state task_moved probe_state
   if [ -n "${1:-}" ]; then
     printf 'reached_stop_at'
   elif [ "${2:-}" = changed ]; then
     printf 'advanced'
+  elif [ "${4:-ok}" != ok ]; then
+    # The movement probe could not read. No PR and no commit is then not enough
+    # to say nothing happened, and `no_progress` is counted by MAX_BLOCKED -- so
+    # a host whose registry or vault went unreadable would auto-block whatever it
+    # selected. Recorded, not counted.
+    printf 'unmeasured'
   elif [ -n "${3:-}" ]; then
     # The executor wrote its own task's state. Recording `blocked` with a reason
     # is real work, even with no commit and no PR.
@@ -106,33 +151,42 @@ repo_heads() {
     | tr '\n' ' '
 }
 
-# How many commits this repo can reach, counting every ref and every worktree
-# HEAD -- a detached one included, which `--all` covers (verified 2026-09-04 on a
-# scratch repo, all four rows below).
+# Commits this repo gained during one iteration: counted from LOCAL tips only,
+# and only those dated inside the window.
 #
-# Compared before and after, a rise means commits were created during the run.
-# That is the question `heads_before != heads_after` was standing in for, and not
-# the question that comparison answers:
+# Two dead ends are recorded here because both look right and both were measured
+# wrong, on a scratch repo, git 2.54.0:
 #
-#   worktree add on an existing branch : heads DIFFER, count 2 -> 2
-#   a commit in that worktree          : count 2 -> 3
-#   a commit on a detached HEAD there  : count 3 -> 4
-#   worktree remove                    : heads DIFFER, count unchanged
+#   `heads_before != heads_after`  -- a set of worktree HEAD pointers. `git
+#     worktree add` on an existing branch moves the set and creates nothing.
+#     AG-801's last two runs were called `advanced` on exactly that; their ledger
+#     rows carry `chore/probe-new-runner-sizing` and
+#     `claude/recursing-turing-42d8ec`, worktrees belonging to something else.
 #
-# AG-801's last two runs were recorded `advanced` on the first row of that table.
-# Their ledger rows carry `chore/probe-new-runner-sizing` and
-# `claude/recursing-turing-42d8ec` -- worktrees belonging to something else that
-# appeared inside the run window. Found by review 2026-09-04.
+#   `rev-list --count --all`       -- `--all` includes refs/remotes and refs/stash.
+#     Measured: baseline 1, after a `git fetch` that brought one upstream commit
+#     and zero executor commits 2, after `git stash -u` 5. The contract has the
+#     executor fetch before it looks at anything, so this turned the most common
+#     shape of a stalled run into `advanced` -- the same defect as the head set,
+#     with a more common trigger. AG-801's own notes say every run fetched.
 #
-# An intermediate version of this fix counted `rev-list <after-heads> --not
-# <before-heads>`, which is worse than it looks: a worktree added on a branch the
-# before-set could not reach makes that branch's EXISTING commits newly
-# reachable, and they are then counted as if this run had made them. Measured,
-# not reasoned -- it returned 1 for a run that committed nothing.
+# Local tips are refs/heads plus every worktree HEAD, so a detached HEAD in a
+# worktree still counts; remote-tracking refs and the stash never do. `--since`
+# then excludes commits that merely became reachable: a new local branch pointing
+# at old history contributes nothing, because those commits predate the window.
+# A rebase does count, its commits carrying fresh committer dates.
 #
-# Empty on failure; the caller reads empty as "no evidence".
-repo_commits() { # repo
-  git -C "$1" rev-list --count --all 2>/dev/null || printf ''
+# Empty on any doubt, and the caller reads empty as "no evidence".
+repo_commits_since() { # repo since_epoch
+  local repo="$1" since="$2" tips
+  [ -n "$since" ] || { printf ''; return; }
+  tips=$({ git -C "$repo" for-each-ref --format='%(objectname)' refs/heads 2>/dev/null
+           git -C "$repo" worktree list --porcelain 2>/dev/null | awk '/^HEAD /{print $2}'
+         } | sort -u | tr '\n' ' ')
+  [ -n "$tips" ] || { printf ''; return; }
+  # Unquoted on purpose: a space-separated sha list built directly above.
+  # shellcheck disable=SC2086
+  git -C "$repo" rev-list --count --since="@$since" $tips 2>/dev/null || printf ''
 }
 
 
@@ -1324,13 +1378,18 @@ print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in re
   prompt=$(printf 'LOOP_PROJECT=%s\n\n' "$slug"; cat "$CONTRACT")
   head_before=$(git -C "$project_path" rev-parse HEAD 2>/dev/null || echo -)
   heads_before=$(repo_heads "$project_path")
-  commits_before=$(repo_commits "$project_path")
+  # The window this iteration's commits must fall inside. Per iteration, not per
+  # ralph run: a second iteration must not inherit the first one's evidence.
+  iter_started_ts=$(date +%s)
   # Beside heads_before, and for the same reason: both are the "before" half of a
   # comparison, and a before taken after the run is not one.
-  task_state_before=$(task_overlay_state "${task_item_id:-}")
+  task_state_before=$(task_overlay_state "$slug" "${task_item_id:-}"); probe_before=$?
   out=""
   provider=""
   status=1
+  # Did any executor get as far as running? 127 means the binary is missing or
+  # ungranted, which is a fact about this host and not about the task.
+  executors_ran=0
   provider_rate_limited=0
   for candidate in "${ordered_executors[@]}"; do
     # A model name belongs to one provider. The preset resolved a model for the
@@ -1403,6 +1462,7 @@ $(cat "$candidate_err")"
       unset candidate_status
       continue
     fi
+    executors_ran=1
     if rate_limited "$candidate_out"; then
       provider_rate_limited=1
       out="$candidate_out"
@@ -1540,12 +1600,29 @@ $(cat "$candidate_err")"
     # MAX_BLOCKED could not count it, and the budget panel showed no spend for
     # attempts that had already cost their wall-clock. `executor_failed` is in the
     # blocking set and has never once appeared in either machine's ledger --
-    # because the only path that names it (line ~1717) is the SUCCESS path, which
-    # a run reaching here never gets to. Found by review 2026-09-04.
+    # because the only path that names it sets it from `status` at the end of a
+    # successful iteration, which a run reaching here never gets to. Found by
+    # review 2026-09-04. (That sentence carried a line number, which was wrong
+    # within the hour -- a line number in a comment rots on the next edit.)
+    #
+    # Two different failures, and only one of them is the task's.
+    #
+    # Every candidate returning 127 means no executor is installed or granted on
+    # this host -- `status` is never assigned on that branch, so a single outcome
+    # here would file "claude is not on the PATH" against whichever task was
+    # selected, and three wakes of that auto-block it through MAX_BLOCKED. Before
+    # this row existed the wake simply exited non-zero and retried, which was
+    # wrong in the other direction. `no_executor` is recorded and not counted.
     #
     # `--executor` is the last candidate tried, not the one that mattered: they
     # all failed, and the note carries the full list so the row does not imply a
     # single culprit.
+    fail_outcome=$(failure_outcome "$executors_ran")
+    if [ "$fail_outcome" = no_executor ]; then
+      fail_note="no executor in $EXECUTORS could start (all returned 127: binary missing or ungranted); the task was never reached"
+    else
+      fail_note="every executor in $EXECUTORS failed; last exit ${status:-?}"
+    fi
     "$LOOPCTL" record-run \
       --project "$slug" \
       --task "$task_id" \
@@ -1555,11 +1632,11 @@ $(cat "$candidate_err")"
       ${RUN_STARTED_TS:+--started-ts "$RUN_STARTED_TS"} \
       ${task_key:+--task-id "$task_key"} \
       ${TASK_POINTS:+--points "$TASK_POINTS"} \
-      --status executor_failed \
-      --note "every executor in $EXECUTORS failed; last exit ${status:-?}" \
+      --status "$fail_outcome" \
+      --note "$fail_note" \
       >/dev/null 2>&1 || log "  and the ledger could not be written either"
     write_handoff "$slug" "$task_id" \
-      "Every configured executor ($EXECUTORS) failed on this task; the last exited ${status:-?}. The project was not changed. Check the executors themselves before resuming -- a task that defeats all of them is usually not a task problem." \
+      "$fail_note. The project was not changed. Check the executors themselves before resuming -- a task that defeats all of them is usually not a task problem." \
       "${resume_hint:-}" || true
     exit "${status:-1}"
   fi
@@ -1684,15 +1761,20 @@ for row in rows:
   # started. Writing `blocked` with a reason where the board said `queued` is work
   # and shows here; rewriting the same `blocked` with a fresher note is not, and
   # does not.
-  task_state_after=$(task_overlay_state "${task_item_id:-}")
-  if [ "${task_state_before:-}" != "$task_state_after" ]; then
-    task_moved="$task_state_after"
-  else
+  task_state_after=$(task_overlay_state "$slug" "${task_item_id:-}"); probe_after=$?
+  if [ "$probe_before" -ne 0 ] || [ "$probe_after" -ne 0 ]; then
+    probe_state=unreadable
     task_moved=""
+  else
+    probe_state=ok
+    if [ "${task_state_before:-}" != "$task_state_after" ]; then
+      task_moved="$task_state_after"
+    else
+      task_moved=""
+    fi
   fi
-  commits_after=$(repo_commits "$project_path")
-  if [ -n "$commits_before" ] && [ -n "$commits_after" ] \
-     && [ "$commits_after" -gt "$commits_before" ]; then
+  iter_commits=$(repo_commits_since "$project_path" "${iter_started_ts:-}")
+  if [ -n "$iter_commits" ] && [ "$iter_commits" -gt 0 ]; then
     commits_state=changed
   else
     commits_state=same
@@ -1702,7 +1784,7 @@ for row in rows:
   # and only one of them has a PR. Decided here, where all three pieces of
   # evidence are in hand, rather than left to a reader to infer later from a
   # field that may be absent for either reason.
-  run_outcome=$(decide_outcome "${run_pr:-}" "$commits_state" "$task_moved")
+  run_outcome=$(decide_outcome "${run_pr:-}" "$commits_state" "$task_moved" "$probe_state")
 
   # Did this run move a DIFFERENT task than the one it was handed?
   #
