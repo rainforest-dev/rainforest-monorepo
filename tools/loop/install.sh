@@ -338,6 +338,48 @@ if has_role telemetry-sink; then
     say "  config -> ~/.config/dev-telemetry/alloy/config.alloy"
   fi
   install_plist com.homelab.dev-alloy
+  install_plist com.homelab.dev-node-exporter
+
+  # Say that this host cannot measure temperature, rather than saying nothing.
+  #
+  # macOS exposes no CPU power or thermal reading node_exporter can take, so its
+  # darwin thermal collector returned
+  # node_scrape_collector_success{collector="thermal"} 0 on every scrape -- the
+  # only failing collector of thirteen on the Air, measured 2026-09-04. The plist
+  # now passes no-collector.thermal.
+  #
+  # That alone would leave the worse of the two readings available: a dashboard
+  # cannot tell "this host has no sensor" from "the sensor says fine", and the
+  # second is the dangerous one. A gauge carrying the reason can.
+  #
+  # Written where node_exporter is already told to look, so it rides the same
+  # scrape as everything else. Rewritten every install: it is a claim about this
+  # platform, and it should be the current claim rather than whatever was true
+  # when the file first appeared.
+  tfdir=$("$LOOP_HOME/.venv/bin/python" -c \
+    'import plistlib, sys
+args = plistlib.load(open(sys.argv[1], "rb")).get("ProgramArguments") or []
+for a in args:
+    if a.startswith("--collector.textfile.directory="):
+        print(a.split("=", 1)[1])
+        break' "$(host_file launchd 'com.homelab.dev-node-exporter.plist')" 2>/dev/null || printf '')
+  if [ -n "$tfdir" ]; then
+    run mkdir -p "$tfdir"
+    if [ "$DRY" -eq 1 ]; then
+      say "  would: write $tfdir/thermal.prom (node_thermal_supported 0)"
+    else
+      cat > "$tfdir/thermal.prom" <<'PROM'
+# HELP node_thermal_supported Whether a CPU thermal reading is obtainable here.
+# TYPE node_thermal_supported gauge
+node_thermal_supported{reason="darwin exposes no CPU power to node_exporter; collector disabled"} 0
+PROM
+      say "  thermal reported unsupported -> $tfdir/thermal.prom"
+    fi
+  else
+    say "  WARNING: no textfile directory in the node-exporter plist, so nothing" >&2
+    say "           states that thermal is unsupported on this host" >&2
+  fi
+
   # Worth saying out loud, because the failure it prevents is silent: ralph
   # exports to this port whether or not anything is listening, and the OTel SDK
   # does not complain when nothing is.

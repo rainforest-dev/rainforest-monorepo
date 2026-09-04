@@ -174,5 +174,38 @@ check "the scripts are in place before the job is installed" \
      && printf 'yes' || printf 'no')" "yes"
 
 echo
+echo "== a collector that cannot work is disabled AND said out loud =="
+
+# macOS exposes no CPU power or thermal reading node_exporter can take, so
+# node_scrape_collector_success{collector="thermal"} was 0 on every scrape --
+# the only failing collector of thirteen on the Air, measured 2026-09-04. A red
+# that can never go green teaches a reader to stop looking at reds.
+#
+# But turning it off is only half: a collector that is simply absent makes "this
+# host has no sensor" read the same as "the sensor says fine", and the second is
+# the dangerous one. Both halves are asserted, because either alone is wrong.
+ne="$LAUNCHD/rainforest-air.com.homelab.dev-node-exporter.plist"
+check "the node-exporter plist is in the repo at all" \
+  "$([ -f "$ne" ] && printf 'tracked' || printf 'missing')" "tracked"
+disabled=$(plutil -convert json -o - "$ne" 2>/dev/null | grep -c 'no-collector.thermal')
+check "and it turns the collector off" "$disabled" "1"
+
+tele=$(sed -n '/^if has_role telemetry-sink/,/^fi$/p' "$ROOT/install.sh")
+th() { printf '%s' "$tele" | grep -c "$1"; }
+check "the role installs it" \
+  "$([ "$(th 'install_plist com.homelab.dev-node-exporter')" -gt 0 ] && echo yes || echo no)" "yes"
+check "and states the absence" \
+  "$([ "$(th 'node_thermal_supported')" -gt 0 ] && echo yes || echo no)" "yes"
+check "with a reason attached" \
+  "$([ "$(th 'reason=')" -gt 0 ] && echo yes || echo no)" "yes"
+check "and warns when it cannot" \
+  "$([ "$(th 'WARNING: no textfile directory')" -gt 0 ] && echo yes || echo no)" "yes"
+# The two must agree. A plist that stopped disabling the collector while the
+# file still claimed the host unsupported would be a new lie, not a fixed one.
+declared=$(printf '%s' "$tele" | grep -c 'node_thermal_supported{[^}]*} 0')
+check "disabled and declared-unsupported travel together" \
+  "$([ "$disabled" -eq "$declared" ] && printf 'agree' || printf 'DRIFTED')" "agree"
+
+echo
 printf '  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
