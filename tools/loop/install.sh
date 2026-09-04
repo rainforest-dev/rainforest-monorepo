@@ -24,10 +24,16 @@ AGENTS="$HOME/Library/LaunchAgents"
 
 HOST=""
 DRY=0
+ALLOW_ENV_LOSS=0
+# Counted, because the script ends in `say` and would otherwise exit 0 with a
+# refusal three screens up. A caller checking $? -- the relay that installs on
+# the Air does -- must see this.
+REFUSALS=0
 for arg in "$@"; do
   case "$arg" in
     --host=*) HOST="${arg#--host=}" ;;
     --dry-run|-n) DRY=1 ;;
+    --allow-plist-env-loss) ALLOW_ENV_LOSS=1 ;;
     -h|--help)
       sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
@@ -121,12 +127,68 @@ install_plist() {
     say "  skip $label — launchd/$HOST.$label.plist not in the repo"
     return 0
   fi
+  env_loss_check "$label" "$src" || return 1
   run mkdir -p "$AGENTS"
   run cp "$src" "$AGENTS/$label.plist"
   # "not loaded" was true only until the next login. A LaunchAgent in
   # ~/Library/LaunchAgents loads when the GUI session starts, and every plist
   # here carries RunAtLoad, so the honest word is "later", not "never".
   say "  $label -> $AGENTS/$label.plist (loads at next login)"
+}
+
+# The EnvironmentVariables keys a plist declares, one per line; nothing at all
+# when it has none or cannot be read.
+env_keys() {
+  plutil -extract EnvironmentVariables json -o - "$1" 2>/dev/null \
+    | /usr/bin/python3 -c 'import json,sys
+try:
+    d = json.load(sys.stdin)
+except ValueError:
+    raise SystemExit
+print("\n".join(sorted(d or {})))' 2>/dev/null
+}
+TMPDIR_ELC=$(mktemp -d)
+trap 'rm -rf "$TMPDIR_ELC"' EXIT
+
+# Refuse to overwrite a plist whose EnvironmentVariables this one would drop.
+#
+# On 2026-09-04 the mini's installed com.rainforest.usage-hourly carried
+# OTEL_EXPORTER_OTLP_ENDPOINT and the repo's copy did not. Installing would have
+# removed it, and export_quota.emit() resolves the endpoint from exactly that
+# variable and `return 0`s when it finds none -- no error, no log line, an hourly
+# metric that simply stops. It was found by diffing the two by hand before an
+# install, which is not a mechanism.
+#
+# A refusal rather than a warning. This runs perhaps twice a month, in a log
+# nobody reads to the end, and the whole failure being prevented is a difference
+# that nothing looked at. `install.sh` is the writer; this is the reader.
+#
+# The repo stays the source of truth: the fix is to commit the key, not to keep
+# it on one machine. --allow-plist-env-loss is for when the key is genuinely
+# meant to go.
+env_loss_check() {
+  local label="$1" src="$2" dst="$AGENTS/$1.plist"
+  [ "$ALLOW_ENV_LOSS" -eq 1 ] && return 0
+  [ -f "$dst" ] || return 0
+  # plutil, not plistlib. A double hyphen is illegal inside an XML comment and
+  # plutil accepts it regardless, so a plist this project happily ships can be
+  # unreadable to a strict parser -- which is a silent "cannot answer" here, and
+  # therefore a silent pass. Reading it with the same lenient tool that the rest
+  # of this repo and launchd itself use removes the mismatch.
+  local lost
+  lost=$(env_keys "$dst" | sort > "$TMPDIR_ELC/dst" 2>/dev/null
+         env_keys "$src" | sort > "$TMPDIR_ELC/src" 2>/dev/null
+         comm -23 "$TMPDIR_ELC/dst" "$TMPDIR_ELC/src" | tr '\n' ' ' | sed 's/ *$//')
+  [ -z "$lost" ] && return 0
+  say "  REFUSING to install $label" >&2
+  say "    the copy already on this machine sets: $lost" >&2
+  say "    and $HOST.$label.plist does not." >&2
+  say "    Overwriting would delete those, silently." >&2
+  say "" >&2
+  say "    Commit them to launchd/$HOST.$label.plist if they are load-bearing," >&2
+  say "    or re-run with --allow-plist-env-loss if they are genuinely going." >&2
+  REFUSALS=$((REFUSALS + 1))
+  return 1
 }
 
 # Refuse to let a job start on its own.
@@ -252,6 +314,10 @@ fi
 # concluded the role still existed.
 
 say ""
+if [ "$REFUSALS" -gt 0 ]; then
+  say "INCOMPLETE: $REFUSALS plist(s) refused above. Everything else was installed." >&2
+  exit 1
+fi
 say "done. Nothing was loaded or enabled."
 say "To load a job:      launchctl bootstrap gui/\$(id -u) $AGENTS/<label>.plist"
 say "To check disabled:  launchctl print-disabled gui/\$(id -u) | grep rainforest"

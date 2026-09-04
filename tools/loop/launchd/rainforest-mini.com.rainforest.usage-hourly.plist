@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  launchd agent TEMPLATE for the AI-usage tracker's hourly heartbeat.
+  The AI-usage tracker's hourly heartbeat on rainforest-mini.
 
-  Before installing, replace the /Users/rainforest/Library/Mobile Documents/iCloud~md~obsidian/Documents/rainforest-obsidian placeholder below with the
-  absolute path to THIS machine's vault checkout (see scripts/usage/README.md
-  for the install steps), then copy the result to
-  ~/Library/LaunchAgents/com.rainforest.usage-hourly.plist and
-  `launchctl load` it.
+  Not a template: install.sh copies this file verbatim to
+  ~/Library/LaunchAgents/com.rainforest.usage-hourly.plist. It still said
+  "TEMPLATE, replace the placeholder below" long after the path was filled in,
+  which reads as an invitation to hand-edit the installed copy. A hand-edit is
+  how the OTLP endpoint below came to exist on the machine and nowhere else.
+
+  No double hyphen anywhere in these comments: it is illegal inside an XML
+  comment, plutil accepts it anyway, and Python's plistlib does not. A comment
+  written with one made this file unreadable to every strict parser while
+  `plutil -lint` still said OK.
 -->
 <plist version="1.0">
 <dict>
@@ -24,6 +29,17 @@
 		<string>/opt/homebrew/bin/python3</string>
 		<key>PATH</key>
 		<string>/opt/homebrew/bin:/usr/bin:/bin</string>
+		<!-- Where this machine's Alloy listens. export_quota.emit() resolves the
+		     endpoint from this variable and, finding none, `return 0`s: no error,
+		     no log line, just no quota metric. launchd gives a job none of the
+		     shell's environment, so it has to be here.
+
+		     It was here on the machine and not in this file, so running
+		     install.sh would have deleted it and stopped the hourly quota
+		     export silently. Found 2026-09-04 by diffing the two before an
+		     install, not by anything noticing afterwards. -->
+		<key>OTEL_EXPORTER_OTLP_ENDPOINT</key>
+		<string>http://127.0.0.1:4318</string>
 	</dict>
 	<key>StartInterval</key>
 	<integer>3600</integer>
