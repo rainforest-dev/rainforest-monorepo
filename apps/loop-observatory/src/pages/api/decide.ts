@@ -242,7 +242,17 @@ export const GET: APIRoute = () => {
       };
     });
 
-    const view: DecideView = { cards, quotas, running, hosts, now };
+    const view: DecideView = {
+      cards,
+      quotas,
+      running,
+      hosts,
+      // Straight off the file `readTasks` already read for the cards, so the
+      // age cannot disagree with the queue it describes.
+      syncedAt: data?.synced_at ?? null,
+      writtenAt: data?.written_at ?? null,
+      now,
+    };
     return Response.json(view);
   } catch (err) {
     return Response.json({ error: String(err) }, { status: 500 });

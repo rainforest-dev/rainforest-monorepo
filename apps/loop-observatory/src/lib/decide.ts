@@ -455,6 +455,22 @@ export interface DecideView {
   quotas: QuotaAccount[];
   running: RunningRun[];
   hosts: DecideHost[];
+  /**
+   * How old the board behind these cards is, from tasks.json's own fields.
+   *
+   * `synced_at` moves only when the work half is fetched from Notion, and that
+   * fetch needs an MCP client, so it happens from a Claude session and not from
+   * the hourly job -- run-hourly-host.sh says so in as many words. The file is
+   * rewritten hourly regardless, so `written_at` is always fresh and says
+   * nothing about the board.
+   *
+   * The Tasks page has shown both since it was built. This screen did not, and
+   * on 2026-09-04 it offered 67 cards to authorise off a board synced 21.8 hours
+   * earlier, some of them already merged. Of the two screens it is the one where
+   * the age matters more: pressing a button here starts spending.
+   */
+  syncedAt: string | null;
+  writtenAt: string | null;
   /** Wall clock the server derived the ages from, so the client can drift-check. */
   now: number;
 }
