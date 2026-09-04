@@ -80,12 +80,19 @@ const OWNER_ICON = { ai: Bot, you: Hand, done: Check, parked: Circle } as const;
 </script>
 
 <template>
-  <!-- The column row scrolls horizontally on narrow widths; the page never does. -->
-  <div class="lo-scroll -mx-1 flex gap-4 overflow-x-auto px-1 pb-3.5">
+  <!-- Columns side by side from `sm` up, stacked below it.
+       A horizontal board on a 390px screen shows ONE 288px column and puts the
+       rest off-frame with nothing saying they are there -- and the row is as
+       tall as its tallest column, so the page measured 5430px, six and a half
+       screens, nearly all of it the empty space beside a short column. Stacking
+       turns that into what a phone is good at: one thing, then the next. -->
+  <div
+    class="lo-scroll -mx-1 flex flex-col gap-4 px-1 pb-3.5 sm:flex-row sm:overflow-x-auto"
+  >
     <section
       v-for="col in columns"
       :key="col.status"
-      class="flex w-72 shrink-0 flex-col"
+      class="flex w-full flex-col sm:w-72 sm:shrink-0"
     >
       <!-- Column header: status • count • summed points -->
       <div class="mb-2 flex items-center gap-2 px-1">

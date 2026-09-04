@@ -66,10 +66,22 @@ const viewChips = computed(() =>
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div class="flex flex-wrap items-center gap-4">
+  <!-- One scrolling strip below `sm`, the wrapping row it always was above it.
+       Measured at 390px: the four groups are 261, 287, 119 and 179 wide, so
+       wrapping puts them on FOUR rows -- 157px, on top of a 100px heading, so
+       the first card sat at 396px and 47% of the screen was chrome before any
+       task. Shrinking the chips would have fitted two rows and taken the tap
+       targets below 32px, which is the wrong thing to trade on a phone. A strip
+       keeps every target its size and costs one row. -->
+  <div
+    class="lo-scroll -mx-1 flex flex-nowrap items-center gap-3 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:justify-between sm:overflow-visible sm:px-0 sm:pb-0"
+  >
+    <!-- shrink-0 on every group. In a nowrap strip a flex item still SHRINKS
+         below its content, and without this the view chips were drawn on top of
+         "Personal 20" -- overlapping text, not a scroll. -->
+    <div class="flex shrink-0 flex-nowrap items-center gap-4 sm:flex-wrap">
       <div
-        class="flex flex-wrap items-center gap-1.5"
+        class="flex shrink-0 flex-nowrap items-center gap-1.5 sm:flex-wrap"
         role="group"
         aria-label="Filter tasks by scope"
       >
@@ -88,7 +100,7 @@ const viewChips = computed(() =>
       <!-- Sort is Board-only: a graph has no column order to apply it to. -->
       <div
         v-if="view === 'board'"
-        class="flex flex-wrap items-center gap-1.5"
+        class="flex shrink-0 flex-nowrap items-center gap-1.5 sm:flex-wrap"
         role="group"
         aria-label="Sort board columns"
       >
@@ -104,7 +116,9 @@ const viewChips = computed(() =>
         </button>
       </div>
 
-      <p class="text-muted-foreground font-mono text-[11px] tabular-nums">
+      <p
+        class="text-muted-foreground shrink-0 whitespace-nowrap font-mono text-[11px] tabular-nums"
+      >
         {{ taskCount }} tasks · {{ pointsTotal }} pts
       </p>
     </div>
