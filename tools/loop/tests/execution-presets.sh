@@ -1755,10 +1755,11 @@ sel() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" "$HOME_DIR/sel_probe.p
 
 # `blocked` was in _IN_FLIGHT, and membership does two things: it makes a task
 # selectable AND exempts it from the dependency check. A blocked task travelled
-# through a WIDER gate than a healthy one. AG-801 was correctly marked Blocked
-# and reselected nine times between 2026-09-03 16:04 and 09-04 00:59, each run
-# timing out at thirty minutes with nothing to show, moving the company weekly
-# quota 37% -> 54%. The board said the right thing; nothing read it.
+# through a WIDER gate than a healthy one. AG-801 was reselected eleven times
+# between 2026-09-03 16:04 and 09-04 02:34, moving the company Codex weekly quota
+# 37% -> 58%. Every one of those runs exited 0 and correctly concluded the task
+# was blocked on a backend contract that is not on develop; nothing read the
+# conclusion. This gate is what reads it.
 check "blocked is never selected, and pr-ready stops at stop_at" \
   "$(sel pr-ready)" "in-progress queued"
 # A project that runs past pr-ready still continues that work.
@@ -1779,18 +1780,42 @@ echo "outcome: advanced is a claim, so it has to be earned"
 # A test that asks whether code mentions a thing cannot tell you it does it.
 eval "$(sed -n '/^decide_outcome()/,/^}/p' "$ENGINE/ralph.sh")"
 check "a PR is reached_stop_at" \
-  "$(decide_outcome '#365' same '')" "reached_stop_at"
+  "$(decide_outcome '#365' same '' ok)" "reached_stop_at"
 check "a commit anywhere is advanced" \
-  "$(decide_outcome '' changed '')" "advanced"
+  "$(decide_outcome '' changed '' ok)" "advanced"
 # Writing `blocked` with a reason is work, even with nothing else to show.
 check "the task's own state moving is advanced" \
-  "$(decide_outcome '' same blocked)" "advanced"
+  "$(decide_outcome '' same blocked ok)" "advanced"
 check "and nothing at all is no_progress" \
-  "$(decide_outcome '' same '')" "no_progress"
+  "$(decide_outcome '' same '' ok)" "no_progress"
 # A PR outranks the rest: it is the only evidence that says the task is finished
 # rather than merely further along.
 check "a PR wins over a commit" \
-  "$(decide_outcome '#365' changed moved)" "reached_stop_at"
+  "$(decide_outcome '#365' changed moved ok)" "reached_stop_at"
+# A probe that could not read is not a measurement of nothing. `no_progress` is
+# counted by MAX_BLOCKED, so defaulting to it would auto-block whatever a host
+# selected the moment its registry went unreadable.
+check "an unreadable probe is unmeasured, not no_progress" \
+  "$(decide_outcome '' same '' unreadable)" "unmeasured"
+check "but evidence still outranks a failed probe" \
+  "$(decide_outcome '' changed '' unreadable)" "advanced"
+
+# Which failure an iteration with no surviving executor was. 127 from every
+# candidate is a fact about the host: `status` is never assigned on that branch,
+# so one outcome for both would file "claude is not on the PATH" against the task
+# and auto-block it after three wakes.
+eval "$(sed -n '/^failure_outcome()/,/^}/p' "$ENGINE/ralph.sh")"
+check "nothing could start is no_executor" "$(failure_outcome 0)" "no_executor"
+check "something ran and failed is executor_failed" "$(failure_outcome 1)" "executor_failed"
+blk=$(grep '^blocking = ' "$ENGINE/ralph.sh")
+check "no_executor is not counted toward MAX_BLOCKED" \
+  "$(printf '%s' "$blk" | grep -c no_executor)" "0"
+check "and neither is unmeasured" \
+  "$(printf '%s' "$blk" | grep -c unmeasured)" "0"
+for o in no_executor unmeasured; do
+  contains "but $o is a recordable outcome" \
+    "$(sed -n '/^OUTCOMES = /,/^)/p' "$ENGINE/lib/loopctl/writeback.py")" "\"$o\""
+done
 
 # `task_moved` is a comparison, so its two halves must bracket the executor. A
 # "before" taken after the run is not one, and a decision taken before the
@@ -1808,45 +1833,191 @@ for n in "$before_line" "$launch_line" "$after_line" "$decide_line"; do
 done
 check "before, run, after, decide -- in that order" "$ordered" "yes"
 
-# The probe itself. `updated_ts >= run start` answered "was this row touched",
-# and an executor touches its own row every iteration before it does anything --
-# AG-801 rewrote its note nine times while its state stayed Blocked, and each of
-# those read as a move. Two readings of the same field cannot be fooled that way.
+# The probe itself, against the sandbox's real registry through the real loopctl
+# -- not a fixture, and not the shared mirror.
+#
+# `updated_ts >= run start` answered "was this row touched", and an executor
+# touches its own row every iteration before it does anything: AG-801 rewrote its
+# note eleven times while its state stayed Blocked. Two readings of the same
+# field cannot be fooled that way.
+#
+# And the registry, not tasks-progress.json: `set_task_state` swallows a failed
+# mirror write into `mirror_error` and returns success, so a sandbox denying that
+# write -- measured with codex on 2026-07-30 -- leaves the registry moved and the
+# mirror still, and real work would read as no movement.
 eval "$(sed -n '/^task_overlay_state()/,/^}/p' "$ENGINE/ralph.sh")"
-# The two variables the function closes over. Unset, every call returns empty --
-# which would make "an unchanged state is not a move" pass because BOTH sides are
-# empty, the same fixture trap that let a stripped-plist test pass earlier today.
 PYTHON_BIN="$VENV/bin/python"
-VAULT_USAGE="$HOME_DIR/vaultusage"; mkdir -p "$VAULT_USAGE"
-progress() { cat > "$VAULT_USAGE/tasks-progress.json" <<JSON
-{"tasks": {"AG-801": {"loop_status": "$1", "note": "$2", "updated_ts": 9999999999}}}
-JSON
-}
+# Prove the harness before asserting anything through it: an empty `show` would
+# make every comparison below pass by comparing nothing to nothing.
+show_tasks=$("$LOOPCTL" show sandbox | "$PYTHON_BIN" -c \
+  'import json,sys; print(len((json.load(sys.stdin) or {}).get("tasks") or []))' 2>/dev/null)
+check "the sandbox registry has a task to read" \
+  "$([ "${show_tasks:-0}" -gt 0 ] && printf 'yes' || printf 'no')" "yes"
+# The identifier ralph actually hands the probe is `task_item_id`, the second
+# field of a `loopctl next` row -- `AG-801` in production, the note path here.
+# Derive it the same way rather than assuming $TASK_KEY is the same string.
+ITEM_ID=$("$LOOPCTL" show sandbox | "$PYTHON_BIN" -c \
+  'import json,sys
+t = ((json.load(sys.stdin) or {}).get("tasks") or [{}])[0]
+print((t.get("metadata") or {}).get("item_id") or t.get("id") or "")')
+check "and an identifier to address it by" \
+  "$([ -n "$ITEM_ID" ] && printf 'have' || printf 'none')" "have"
 
-progress Blocked "first pass: no unbind contract on develop"
-was=$(task_overlay_state AG-801)
-check "the probe reads the state the overlay records" "$was" "Blocked"
+"$LOOPCTL" set sandbox "$TASK_KEY" in-progress >/dev/null 2>&1
+was=$(task_overlay_state sandbox "$ITEM_ID"); was_rc=$?
+check "the probe reads the registry" "$was_rc" "0"
 # Guards every comparison below: two empty strings also compare equal.
 check "and that reading is not empty" \
   "$([ -n "$was" ] && printf 'read' || printf 'empty')" "read"
 
-# The nine-run case, exactly: same state, a freshly rewritten note.
-progress Blocked "second pass: still no unbind contract, quota now 58%"
-now=$(task_overlay_state AG-801)
+# The eleven-run case: a fresh note, the same state.
+"$LOOPCTL" task-note sandbox "$TASK_KEY" --note "a newer note, same state" >/dev/null 2>&1
+now=$(task_overlay_state sandbox "$ITEM_ID")
 check "a rewritten note with an unchanged state is not a move" \
   "$([ "$was" != "$now" ] && printf 'moved' || printf 'still')" "still"
 
-progress "PR ready" "opened the PR"
-now=$(task_overlay_state AG-801)
+"$LOOPCTL" set sandbox "$TASK_KEY" blocked --blocked-reason "waiting on a backend contract" >/dev/null 2>&1
+now=$(task_overlay_state sandbox "$ITEM_ID")
 check "a changed state is a move" \
   "$([ "$was" != "$now" ] && printf 'moved' || printf 'still')" "moved"
 
-# Unreadable must read the same both times, so before equals after and the run
-# claims nothing on the strength of a failure.
-rm -f "$VAULT_USAGE/tasks-progress.json"
-check "an unreadable overlay says nothing rather than something" \
-  "$(task_overlay_state AG-801)" ""
-check "and a task with no id says nothing" "$(task_overlay_state '')" ""
+# A project that was never scanned is unreadable, and must say so with its exit
+# status rather than by returning the empty string a readable-but-absent task
+# returns -- `no_progress` is counted, and "could not read" must not become it.
+task_overlay_state no-such-project "$ITEM_ID" >/dev/null 2>&1
+check "an unreadable project exits non-zero" \
+  "$([ $? -ne 0 ] && printf 'failed' || printf 'succeeded')" "failed"
+task_overlay_state "" "$ITEM_ID" >/dev/null 2>&1
+check "and so does a missing slug" \
+  "$([ $? -ne 0 ] && printf 'failed' || printf 'succeeded')" "failed"
+absent=$(task_overlay_state sandbox "_system/tasks/not-a-real-task.md"); absent_rc=$?
+check "a readable project with no such task succeeds" "$absent_rc" "0"
+check "and answers empty" "$absent" ""
+
+echo
+echo "review 2026-09-04: the story was wrong, and so was the measurement"
+
+# ONE ordering. This function claimed to be shared with
+# _retire_greenlight_if_terminal and was not -- they were two hand copies of the
+# same ten lines, agreeing by coincidence, with nothing asserting they agreed.
+cat > "$HOME_DIR/order_probe.py" <<'PROBE'
+import sys
+from loopctl.scan import _at_or_past_stop_at
+print("yes" if _at_or_past_stop_at(sys.argv[1], sys.argv[2]) else "no")
+PROBE
+ord_() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" "$HOME_DIR/order_probe.py" "$1" "$2"; }
+check "pr-ready has reached a pr-ready stop"    "$(ord_ pr-ready pr-ready)" "yes"
+check "in-progress has not"                     "$(ord_ in-progress pr-ready)" "no"
+check "in-qa is past it"                        "$(ord_ in-qa pr-ready)" "yes"
+check "blocked is off the order, never past it" "$(ord_ blocked pr-ready)" "no"
+check "stop_at=done ends only at a terminal state" "$(ord_ released done)" "yes"
+check "and pr-ready does not end a done project"   "$(ord_ pr-ready done)" "no"
+
+# The duplication itself, which no behavioural test can see: a second copy agrees
+# until the day it does not.
+retire_src=$(sed -n '/^def _retire_greenlight_if_terminal/,/^def sweep_projects/p' \
+  "$ENGINE/lib/loopctl/scan.py")
+contains "retirement calls the shared ordering" "$retire_src" '_at_or_past_stop_at('
+check "and keeps no copy of it" \
+  "$(printf '%s' "$retire_src" | grep -c 'progress = \[s for s in PIPELINE_STATES')" "0"
+# The docstring promised a path that selection closed. The owner decided
+# 2026-09-04 that a PR is a person's problem from then on, no exception.
+check "and no longer promises re-pressing Greenlight reopens a PR" \
+  "$(printf '%s' "$retire_src" | grep -c 'keeps that path open')" "0"
+
+# `blocked` without a reason does not survive a branch with commits: _task_signals
+# copies overlay["blocked_reason"] onto the signal and derive_task_state returns
+# `blocked` on it BEFORE it looks at commits. Without one, an executor that
+# committed once and then said `set blocked` derives `in-progress` next scan and
+# is selected forever. AG-801 was caught only because it never committed.
+"$LOOPCTL" set sandbox "$TASK_KEY" blocked >/dev/null 2>&1
+check "set blocked without a reason is refused" \
+  "$([ $? -ne 0 ] && printf 'refused' || printf 'accepted')" "refused"
+"$LOOPCTL" set sandbox "$TASK_KEY" blocked --blocked-reason "   " >/dev/null 2>&1
+check "and whitespace is not a reason" \
+  "$([ $? -ne 0 ] && printf 'refused' || printf 'accepted')" "refused"
+"$LOOPCTL" set sandbox "$TASK_KEY" blocked --blocked-reason "the backend contract is not on develop" >/dev/null 2>&1
+check "a real reason is accepted" \
+  "$([ $? -eq 0 ] && printf 'accepted' || printf 'refused')" "accepted"
+# The mechanism the guard exists for, asserted rather than described.
+derive_src=$(env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" -c '
+from loopctl.derive import derive_task_state, TaskSignals
+with_reason = derive_task_state(TaskSignals(branch_exists=True, commits_ahead=3,
+                                            blocked_reason="backend contract absent"))
+without    = derive_task_state(TaskSignals(branch_exists=True, commits_ahead=3))
+print(with_reason, without)')
+check "a reason survives commits; no reason does not" "$derive_src" "blocked in-progress"
+
+# repo_commits_since, against every trigger that has produced a false `advanced`
+# here. Two instruments were measured wrong before this one:
+#
+#   heads_before != heads_after   -- `git worktree add` on an existing branch
+#     moves the head set and creates nothing. AG-801 rows 10 and 11 were called
+#     advanced on a worktree belonging to something else.
+#   rev-list --count --all        -- `--all` spans refs/remotes and refs/stash,
+#     so `git fetch` and `git stash` both inflate it. The contract has the
+#     executor fetch before it looks at anything, and AG-801's own notes say
+#     every run did.
+eval "$(sed -n '/^repo_heads()/,/^}/p;/^repo_commits_since()/,/^}/p' "$ENGINE/ralph.sh")"
+UP="$HOME_DIR/upstream"; R="$HOME_DIR/commitrepo"; W="$HOME_DIR/commitwt"
+rm -rf "$UP" "$R" "$W"; mkdir -p "$UP"
+git -C "$UP" init -q -b main
+git -C "$UP" config user.email t@t; git -C "$UP" config user.name t
+echo a > "$UP/a"; git -C "$UP" add a; git -C "$UP" commit -qm a
+# Two commits before the clone, so `HEAD~1` below is both a different sha and
+# older than the window -- with one commit it is neither, and the assertions
+# either collapse under `sort -u` or count an upstream commit as ours.
+echo a2 > "$UP/a2"; git -C "$UP" add a2; git -C "$UP" commit -qm a2
+git clone -q "$UP" "$R"
+git -C "$R" config user.email t@t; git -C "$R" config user.name t
+sleep 1; T0=$(date +%s); sleep 1
+n() { repo_commits_since "$R" "$T0"; }
+
+check "an untouched repo has gained nothing" "$(n)" "0"
+
+# The trigger that defeated `--all`, and the reason this is not `--all`.
+echo b > "$UP/b"; git -C "$UP" add b; git -C "$UP" commit -qm b
+git -C "$R" fetch -q origin
+check "a fetch brings commits but this run made none" "$(n)" "0"
+echo dirty > "$R/dirty"; git -C "$R" stash -q -u
+check "and neither does a stash" "$(n)" "0"
+# The trigger that defeated the head set.
+git -C "$R" branch -q old HEAD~1
+check "nor a new local branch on old history" "$(n)" "0"
+# The branch must sit at a sha the main worktree is not on, or `sort -u` collapses
+# the two HEADs and the head-set comparison below proves nothing.
+check "and that branch is at a different commit" \
+  "$([ "$(git -C "$R" rev-parse old)" != "$(git -C "$R" rev-parse HEAD)" ] \
+     && printf 'diverged' || printf 'same')" "diverged"
+heads0=$(repo_heads "$R")
+git -C "$R" worktree add -q "$W" old
+check "a worktree add still moves the head set" \
+  "$([ "$heads0" != "$(repo_heads "$R")" ] && printf 'differ' || printf 'same')" "differ"
+check "but is still not a commit" "$(n)" "0"
+
+# What does count.
+echo c > "$R/c"; git -C "$R" add c; git -C "$R" commit -qm c
+check "a real commit counts" "$(n)" "1"
+echo e > "$W/e"; git -C "$W" add e; git -C "$W" commit -qm e
+check "so does one in a worktree" "$(n)" "2"
+git -C "$W" checkout -q --detach
+echo f > "$W/f"; git -C "$W" add f; git -C "$W" commit -qm f
+check "and one on a detached HEAD" "$(n)" "3"
+
+check "an unreadable repo counts nothing rather than something" \
+  "$(repo_commits_since "$HOME_DIR/no-such-repo" "$T0")" ""
+check "and no window is no answer, not zero" \
+  "$(repo_commits_since "$R" "")" ""
+
+# Structural, and only structural: the decision this block makes is
+# `failure_outcome`, which is called above. What is left to assert is that the
+# block reaches record-run at all -- it did not until 2026-09-04, so a run where
+# every executor failed left no row, `trailing_outcomes` saw nothing, and
+# `executor_failed` had never once appeared in either machine's ledger.
+fail_exit=$(sed -n '/all configured executors failed/,/^  fi$/p' "$ENGINE/ralph.sh")
+contains "the all-executors-failed exit records a run" "$fail_exit" 'record-run'
+contains "with the outcome that branch chose"          "$fail_exit" '--status "$fail_outcome"'
+contains "and leaves a handoff"                        "$fail_exit" 'write_handoff'
 
 blocking=$(grep '^blocking = ' "$ENGINE/ralph.sh")
 contains "no_progress counts toward MAX_BLOCKED"  "$blocking" 'no_progress'

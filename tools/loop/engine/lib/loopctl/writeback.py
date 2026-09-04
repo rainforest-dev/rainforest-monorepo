@@ -433,13 +433,40 @@ OUTCOMES = frozenset(
     {
         "reached_stop_at",
         "advanced",
-        # Ran, returned cleanly, and left nothing behind: no PR, no commit, no
-        # state written anywhere. `advanced` claimed progress for this, and nine
-        # consecutive thirty-minute timeouts on AG-801 were all recorded that way
-        # while the weekly quota moved 37% -> 54%. It is also the outcome
-        # MAX_BLOCKED counts, because a run that produced nothing is the thing
-        # that must not be retried forever.
+        # Ran, returned cleanly, and left nothing behind: no PR, no commit, and
+        # no CHANGE to the state the task records.
+        #
+        # Scope, stated against the probes as they are now rather than as they
+        # were when this outcome was added:
+        #
+        #   * AG-801 run 1 moved the task queued -> blocked, which is work, and
+        #     is `advanced`.
+        #   * runs 2-11 read blocked -> blocked and fetched but committed
+        #     nothing, so they are `no_progress` and MAX_BLOCKED stops the task at
+        #     run 4.
+        #
+        # Neither was true when this was written. The movement probe then asked
+        # whether the row had been touched, and every run touched it; the commit
+        # probe then compared worktree HEAD pointers, and later `rev-list --all`,
+        # both of which a `git fetch` satisfies. So this outcome was unreachable
+        # for exactly the shape it was added for, and the honest reading was that
+        # only the `blocked` refusal in scan.next_candidates stopped AG-801. That
+        # refusal is still the first and best line; this is the second.
         "no_progress",
+        # Not one executor could start -- every candidate returned 127, the
+        # binary missing or ungranted. Recorded so the attempts are visible, and
+        # deliberately NOT in ralph's `blocking` set: MAX_BLOCKED is per task, and
+        # a host with no working executor would otherwise auto-block whichever
+        # task it happened to select three times, on the strength of runs that
+        # never reached it. Split out of `executor_failed` on 2026-09-04 the same
+        # day that row began to be written at all.
+        "no_executor",
+        # The run produced no PR and no commit, and the probe that would say
+        # whether the task's own state moved could not read. Distinct from
+        # `no_progress`, which is a measurement; this is the absence of one, and
+        # it is not in ralph's `blocking` set for that reason -- a host whose
+        # registry went unreadable must not auto-block the task it selected.
+        "unmeasured",
         # Killed before the executor returned. Distinct from executor_failed,
         # which is the executor deciding it was done and saying so with a
         # non-zero exit -- this one never got to say anything at all.
