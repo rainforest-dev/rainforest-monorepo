@@ -259,7 +259,9 @@ function parseAgy(o: Record<string, unknown>): MachineAgy | null {
 /**
  * Parse one machine's quota snapshot. `machineFromFile` is the name derived from
  * the `quota.<machine>.json` filename — used only when the JSON omits `machine`.
- * `nowMs` (Unix ms) drives the `stale_minutes` computation. Returns `null` when
+ * `nowMs` (Unix ms) drives the `stale_minutes` computation, which ages the
+ * snapshot by the oldest provider `source_ts` it carries or by `written_at`,
+ * whichever is worse. Returns `null` when
  * the content is not a JSON object; a malformed provider sub-object degrades to
  * `null` for that provider rather than failing the whole snapshot.
  */
@@ -279,14 +281,39 @@ export function parseMachineBudget(
   const o = obj as Record<string, unknown>;
 
   const written_at = num(o.written_at);
-  const stale_minutes =
-    written_at !== null ? round(nowMs / 1000 / 60 - written_at / 60) : null;
+  const claude = parseClaude(o);
+  const codex = parseCodex(o);
+  const agy = parseAgy(o);
+
+  // Aged by the OLDEST reading the snapshot carries, or by `written_at`,
+  // whichever is worse.
+  //
+  // `written_at` alone said the Air was 4 minutes stale over a Claude reading
+  // taken 44 hours earlier (measured 2026-09-04). `read_quota` gets Claude's
+  // numbers from a live endpoint using a keychain token, and with the keychain
+  // locked -- every process outside the GUI security session -- it falls back
+  // silently to the on-disk snapshot, so a file written this second can hold a
+  // two-day-old figure. `sourceLagMinutes` and `providerStale` below already
+  // knew this; they tag one provider in MachinesPanel, and nothing carried it
+  // into the number `loop.ts` and `taskPlan.ts` gate on.
+  //
+  // Both halves are kept because they fail differently: `written_at` catches a
+  // machine that stopped publishing at all, `source_ts` a machine that publishes
+  // a figure it did not re-read.
+  const sources = [claude?.source_ts, codex?.source_ts, agy?.source_ts].filter(
+    (t): t is number => typeof t === 'number' && Number.isFinite(t),
+  );
+  const ages = [
+    written_at,
+    sources.length ? Math.min(...sources) : null,
+  ].flatMap((t) => (t === null ? [] : [nowMs / 1000 / 60 - t / 60]));
+  const stale_minutes = ages.length ? round(Math.max(...ages)) : null;
 
   return {
     machine: str(o.machine) ?? machineFromFile,
-    claude: parseClaude(o),
-    codex: parseCodex(o),
-    agy: parseAgy(o),
+    claude,
+    codex,
+    agy,
     written_at,
     stale_minutes,
   };
