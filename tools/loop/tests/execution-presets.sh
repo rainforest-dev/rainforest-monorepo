@@ -1417,7 +1417,8 @@ from loopctl.scan import next_candidates
 mine, theirs = f"loop-{host_machine()}", "loop-somebody-else"
 def task(tid, owner):
     return {"id": tid, "state": "queued", "title": "t", "metadata": {"claimed_by": owner}}
-project = types.SimpleNamespace(policy="autonomous", slug="p", source="obsidian-base")
+project = types.SimpleNamespace(policy="autonomous", slug="p", source="obsidian-base",
+                                stop_at="pr-ready")
 state = {"tasks": [task("A", mine), task("B", theirs), task("C", None)]}
 print(" ".join(t["id"] for t in next_candidates(project, state)))
 ')
@@ -1458,7 +1459,8 @@ task = {"id": "A", "state": "queued", "title": "t", "metadata": {}}
 
 def n(machines):
     project = types.SimpleNamespace(
-        policy="autonomous", slug="p", source="obsidian-base", machines=machines
+        policy="autonomous", slug="p", source="obsidian-base", machines=machines,
+        stop_at="pr-ready",
     )
     return len(next_candidates(project, {"tasks": [task]}))
 
@@ -1730,6 +1732,55 @@ check "nothing loaded is not applicable, not broken" \
 def_src=$(sed -n '/^def _loaded_definition_pair/,/^def /p' "$ENGINE/lib/loopctl/doctor.py")
 contains "the declared side comes from the plist itself" "$def_src" 'plutil'
 contains "and the observed side from launchd"            "$def_src" 'launchctl'
+
+echo
+echo "selection: greenlit, unfinished, and unblocked -- all three"
+
+cat > "$HOME_DIR/sel_probe.py" <<'PROBE'
+import sys, types
+from loopctl.scan import next_candidates
+
+def task(tid, state):
+    return {"id": tid, "state": state, "title": "t", "metadata": {}}
+
+project = types.SimpleNamespace(
+    policy="autonomous", slug="p", source="obsidian-base",
+    machines=[], stop_at=sys.argv[1],
+)
+state = {"tasks": [task(s, s) for s in
+                   ("queued", "in-progress", "pr-ready", "blocked", "in-qa")]}
+print(" ".join(sorted(t["id"] for t in next_candidates(project, state))))
+PROBE
+sel() { env PYTHONPATH="$HOME_DIR/lib" "$VENV/bin/python" "$HOME_DIR/sel_probe.py" "$1"; }
+
+# `blocked` was in _IN_FLIGHT, and membership does two things: it makes a task
+# selectable AND exempts it from the dependency check. A blocked task travelled
+# through a WIDER gate than a healthy one. AG-801 was correctly marked Blocked
+# and reselected nine times between 2026-09-03 16:04 and 09-04 00:59, each run
+# timing out at thirty minutes with nothing to show, moving the company weekly
+# quota 37% -> 54%. The board said the right thing; nothing read it.
+check "blocked is never selected, and pr-ready stops at stop_at" \
+  "$(sel pr-ready)" "in-progress queued"
+# A project that runs past pr-ready still continues that work.
+check "a project stopping later still continues a pr-ready task" \
+  "$(sel done)" "in-progress pr-ready queued"
+
+echo
+echo "outcome: advanced is a claim, so it has to be earned"
+
+# It was the else-branch of "is there a PR", so every clean exit that produced
+# nothing was recorded as progress -- and MAX_BLOCKED counts blocked and failed
+# runs, neither of which `advanced` is. Nine timeouts, nine claims of progress,
+# no guard reached.
+verdict=$(sed -n '/advanced. is a claim/,/^  fi$/p' "$ENGINE/ralph.sh")
+contains "a PR is reached_stop_at"        "$verdict" 'run_outcome=reached_stop_at'
+contains "a commit anywhere is advanced"  "$verdict" 'repo_heads "$project_path"'
+contains "the task moving is advanced"    "$verdict" 'task_moved'
+contains "and nothing at all is no_progress" "$verdict" 'run_outcome=no_progress'
+
+blocking=$(grep '^blocking = ' "$ENGINE/ralph.sh")
+contains "no_progress counts toward MAX_BLOCKED"  "$blocking" 'no_progress'
+contains "and so does interrupted"                "$blocking" 'interrupted'
 
 printf '\n  %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

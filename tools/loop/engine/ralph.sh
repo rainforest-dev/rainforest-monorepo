@@ -1174,7 +1174,13 @@ import sys
 sys.path.insert(0, sys.argv[1])
 from loopctl.writeback import trailing_outcomes
 recent = trailing_outcomes(sys.argv[2], sys.argv[3], limit=int(sys.argv[4]))
-blocking = {"preflight_failed", "executor_failed"}
+# A run that produced nothing counts, however calmly it ended. `no_progress` is
+# a clean exit with no PR, no commit and no state written -- and nine of those in
+# a row on AG-801 cost 17 percentage points of a company weekly quota while this
+# set contained neither it nor `advanced`, which is what they were recorded as.
+# `interrupted` counts too: a task that cannot finish inside the wall-clock
+# ceiling will not finish inside the next one either.
+blocking = {"preflight_failed", "executor_failed", "no_progress", "interrupted"}
 print("yes" if len(recent) >= int(sys.argv[4]) and all(o in blocking for o in recent) else "no")
 ' "$LOOP_HOME/lib" "$MACHINE" "$task_id" "$MAX_BLOCKED" 2>/dev/null || printf 'no')
     if [ "$blocked_run" = "yes" ]; then
@@ -1539,7 +1545,51 @@ for row in rows:
   # and only one of them has a PR. Decide it here, where the PR is known, rather
   # than leaving a reader to infer it later from a field that may be absent for
   # either reason.
-  if [ -n "${run_pr:-}" ]; then run_outcome=reached_stop_at; else run_outcome=advanced; fi
+  # `advanced` is a claim, so it has to be earned.
+  #
+  # It used to be the else-branch of "is there a PR", which made it the outcome
+  # of every clean exit that produced nothing -- nine consecutive thirty-minute
+  # timeouts on AG-801 among them, each recorded as progress while the company
+  # weekly quota went 37% -> 54%. Nothing counted them, because MAX_BLOCKED
+  # counts blocked and failed runs and `advanced` is neither.
+  #
+  # Progress now means the run left something: a PR, a commit in any worktree, or
+  # a state written to the task's own overlay. None of those and it is
+  # `no_progress`, which MAX_BLOCKED does count.
+  if [ -n "${run_pr:-}" ]; then
+    run_outcome=reached_stop_at
+  elif [ "$heads_before" != "$(repo_heads "$project_path")" ]; then
+    run_outcome=advanced
+  elif [ -n "${task_moved:-}" ]; then
+    run_outcome=advanced
+  else
+    run_outcome=no_progress
+  fi
+  # Did this run move the task it WAS handed?
+  #
+  # The same overlay mirror the misattribution check below reads, asked the other
+  # way round. An executor that wrote its own task's state did something, even
+  # with no commit and no PR -- recording `blocked` with a reason is real work.
+  # One that wrote nothing anywhere produced nothing, and saying otherwise is
+  # what let AG-801 run nine times.
+  if [ -n "${VAULT_USAGE:-}" ] && [ -n "${task_item_id:-}" ]; then
+    task_moved=$("$PYTHON_BIN" - "$VAULT_USAGE/tasks-progress.json" "$task_item_id" \
+      "$RUN_STARTED_TS" <<'PYEOF' 2>/dev/null || printf ''
+import json, sys
+
+path, want, started = sys.argv[1:4]
+try:
+    rows = (json.load(open(path)) or {}).get("tasks") or {}
+except (OSError, ValueError):
+    raise SystemExit
+row = rows.get(want) or {}
+ts = row.get("updated_ts")
+if isinstance(ts, (int, float)) and ts >= int(started):
+    print(row.get("loop_status") or "moved")
+PYEOF
+    )
+  fi
+
   # Did this run move a DIFFERENT task than the one it was handed?
   #
   # On 2026-09-02 a run recorded task_id T-20260902130404 while doing
