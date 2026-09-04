@@ -48,6 +48,20 @@ It places files and installs LaunchAgent plists **without loading or enabling
 anything**. Starting an unsupervised executor is a deliberate act, never a side
 effect of an install.
 
+### Preserving installed plist environment
+
+The installer refuses unreadable source or installed plists, and refuses to
+remove or change an installed `EnvironmentVariables` value. A valid plist with
+no environment key is an empty environment, not a read failure. No values are
+printed in refusal messages.
+
+Prefer committing the intended environment to the host-specific plist. To
+accept a deliberate change for one label, use
+`--allow-plist-env-loss=com.rainforest.usage-hourly`. Repeat the option for each
+label you approve. The old unscoped flag is rejected; permission for one label
+does not cover another, and cannot bypass a read or parse error. `--dry-run`
+performs the same comparison without overwriting files.
+
 ## Enabling
 
     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/<label>.plist
