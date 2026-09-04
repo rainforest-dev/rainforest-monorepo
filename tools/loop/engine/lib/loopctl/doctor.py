@@ -277,29 +277,42 @@ def _loaded_definition_pair(loop_home: Path) -> dict:
     already-registered label failed with `5: Input/output error`, a message that
     says nothing about which definition is loaded.
 
-    Compared on ProgramArguments alone. It is the field that carries the
-    iteration and budget caps here, it is cheap to read from both sides, and a
-    unit that differs in it differs in the part that decides how much a wake can
-    spend.
+    Compare the executable, argument boundaries, and explicit environment.
     """
     import subprocess
 
     label = "tools.rainforest.loop-ralph"
     plist = Path(os.environ.get("HOME", "")) / "Library/LaunchAgents" / f"{label}.plist"
     declared = None
+    errors = []
     try:
         out = subprocess.run(
-            ["plutil", "-extract", "ProgramArguments", "json", "-o", "-", str(plist)],
+            ["plutil", "-convert", "json", "-o", "-", str(plist)],
             capture_output=True,
             text=True,
             timeout=10,
         )
         if out.returncode == 0:
-            declared = " ".join(json.loads(out.stdout))
-    except (OSError, ValueError, subprocess.SubprocessError):
-        pass
+            doc = json.loads(out.stdout)
+            args = doc.get("ProgramArguments")
+            program = doc.get("Program") or (args[0] if args else None)
+            env = doc.get("EnvironmentVariables", {})
+            if not isinstance(program, str) or not program:
+                raise ValueError("plist has no executable")
+            if args is None:
+                args = [program]
+            if not isinstance(args, list) or not args or not all(isinstance(a, str) for a in args):
+                raise ValueError("invalid ProgramArguments")
+            if not isinstance(env, dict) or not all(isinstance(v, str) for v in env.values()):
+                raise ValueError("invalid EnvironmentVariables")
+            declared = {"program": program, "arguments": args, "environment": env}
+        else:
+            errors.append(f"plutil exited {out.returncode}")
+    except (OSError, ValueError, TypeError, AttributeError, subprocess.SubprocessError) as exc:
+        errors.append(f"plist read failed: {type(exc).__name__}")
 
     observed = None
+    absent = False
     try:
         printed = subprocess.run(
             ["launchctl", "print", f"gui/{os.getuid()}/{label}"],
@@ -308,33 +321,67 @@ def _loaded_definition_pair(loop_home: Path) -> dict:
             timeout=10,
         )
         if printed.returncode == 0:
-            args, collecting = [], False
+            args, env, program, collecting = None, None, None, None
             for raw in printed.stdout.splitlines():
                 line = raw.strip()
-                if line.startswith("arguments = {"):
-                    collecting = True
+                if not line:
+                    continue
+                if line.startswith("program = "):
+                    program = line.removeprefix("program = ")
+                if line == "arguments = {":
+                    args, collecting = [], "arguments"
+                    continue
+                if line == "environment = {":
+                    env, collecting = {}, "environment"
                     continue
                 if collecting:
                     if line == "}":
-                        break
-                    args.append(line)
-            observed = " ".join(args) if args else None
-    except (OSError, subprocess.SubprocessError):
-        pass
+                        collecting = None
+                    elif collecting == "arguments":
+                        args.append(line)
+                    elif " => " in line:
+                        key, value = line.split(" => ", 1)
+                        env[key] = value
+                    else:
+                        raise ValueError("unparseable launchd environment")
+            if not program or collecting is not None:
+                raise ValueError("incomplete launchd definition")
+            if args is None:
+                args = [program]
+            if not args:
+                raise ValueError("empty launchd arguments")
+            env = env or {}
+            # launchd adds these independently of EnvironmentVariables.
+            for key in ("OSLogRateLimit", "XPC_SERVICE_NAME"):
+                if key not in (declared or {}).get("environment", {}):
+                    env.pop(key, None)
+            observed = {"program": program, "arguments": args, "environment": env}
+        elif f'Could not find service "{label}" in domain' in printed.stderr:
+            absent = True
+        else:
+            errors.append(f"launchctl print exited {printed.returncode}")
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        errors.append(f"launchctl read failed: {type(exc).__name__}")
 
     # Nothing registered means nothing to disagree with. A runner that is
     # deliberately off must not make this red -- that is the `runner` pair's
     # question, and asking it twice is how a check becomes noise.
-    state = None
-    if declared is None or observed is None:
+    if errors:
+        state = "unknown"
+    elif absent:
         state = "not_applicable"
+    elif declared is None or observed is None:
+        state = "unknown"
+    else:
+        state = "ok" if declared == observed else "differs"
     return _pair(
         "loaded_definition",
         declared=declared,
         observed=observed,
         state=state,
         source=f"{plist} vs launchctl print gui/{os.getuid()}/{label}",
-        note="launchd keeps the plist it read at bootstrap; replacing the file"
+        note=("; ".join(errors) + "; " if errors else "")
+        + "launchd keeps the plist it read at bootstrap; replacing the file"
         " changes nothing until the label is booted out and bootstrapped again",
     )
 
