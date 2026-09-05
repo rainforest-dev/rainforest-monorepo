@@ -6,9 +6,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   deliveryModeFor,
+  GREENLIGHT_TARGETS,
   greenlitFor,
   REMOTE_EXECUTORS,
-  GREENLIGHT_TARGETS,
 } from './taskDecision.js';
 
 let savedConfig: string | undefined;
