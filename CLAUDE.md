@@ -11,6 +11,7 @@ Nx 23.0.0 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-liff-e2e** - Playwright e2e tests
 - **apps/personal-calibre** - Next.js Calibre library browser, shipped as a Docker image
 - **apps/rss-manager** - Astro + React RSS registry manager, shipped as a Docker image
+- **apps/personal-memories** - Astro + React local-only memories album (port 3004); never deployed, private data stays outside the repo
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
 
 ## Essential Commands
