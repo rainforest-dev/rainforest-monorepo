@@ -26,6 +26,7 @@
   "dependencies": {
     "@astrojs/node": "^10.1.4",
     "@astrojs/react": "^5.0.7",
+    "@rainforest-dev/rainforest-ui": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "astro": "^6.4.8",
     "react": "catalog:",

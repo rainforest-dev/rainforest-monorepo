@@ -23,22 +23,22 @@ const STALE_UI: Record<
 > = {
   'feed-dead': {
     label: 'feed dead',
-    className: 'bg-red-900 text-red-300',
+    className: 'bg-destructive/15 text-destructive',
     retirable: true,
   },
   'delivery-gap': {
     label: 'delivery gap',
-    className: 'bg-amber-900 text-amber-300',
+    className: 'bg-warning/15 text-warning',
     retirable: false,
   },
   'low-value': {
     label: 'low value',
-    className: 'bg-amber-900 text-amber-300',
+    className: 'bg-warning/15 text-warning',
     retirable: true,
   },
   unspecified: {
     label: 'flagged',
-    className: 'bg-gray-700 text-gray-300',
+    className: 'bg-muted text-muted-foreground',
     retirable: true,
   },
 };
@@ -53,10 +53,10 @@ function daysAgo(dateStr: string): string {
 }
 
 const STATUS_COLORS: Record<Source['status'], string> = {
-  active: 'bg-green-900 text-green-300',
-  proposed: 'bg-blue-900 text-blue-300',
-  'no-rss': 'bg-gray-800 text-gray-400',
-  retired: 'bg-red-900 text-red-400',
+  active: 'bg-success/15 text-success',
+  proposed: 'bg-info/15 text-info',
+  'no-rss': 'bg-muted text-muted-foreground',
+  retired: 'bg-destructive/15 text-destructive',
 };
 
 export default function SourceTable() {
@@ -127,9 +127,12 @@ export default function SourceTable() {
     {} as Record<string, number>,
   );
 
-  if (error) return <p className="py-8 text-center text-red-400">{error}</p>;
+  if (error)
+    return <p className="text-destructive py-8 text-center">{error}</p>;
   if (loading)
-    return <p className="py-8 text-center text-gray-400">Loading sources…</p>;
+    return (
+      <p className="text-muted-foreground py-8 text-center">Loading sources…</p>
+    );
 
   return (
     <div className="space-y-4">
@@ -141,8 +144,8 @@ export default function SourceTable() {
             onClick={() => setStatusFilter(s)}
             className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
               statusFilter === s
-                ? 'bg-violet-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             }`}
           >
             {s === 'all'
@@ -158,14 +161,14 @@ export default function SourceTable() {
         placeholder="Filter by name, tag, or category…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="w-full rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
+        className="border-input bg-background text-foreground placeholder:text-muted-foreground focus:border-ring w-full rounded border px-4 py-2 text-sm focus:outline-none"
       />
 
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-800 text-left text-gray-500">
+            <tr className="border-border text-muted-foreground border-b text-left">
               <th className="py-2 pr-4 font-medium">Source</th>
               <th className="py-2 pr-4 font-medium">Category</th>
               <th className="py-2 pr-4 font-medium">Tags</th>
@@ -177,7 +180,7 @@ export default function SourceTable() {
             {filtered.map((s) => (
               <tr
                 key={s.url || s.name}
-                className="border-b border-gray-800 hover:bg-gray-800/50"
+                className="border-border hover:bg-muted/50 border-b"
               >
                 <td className="py-2 pr-4">
                   {s.url ? (
@@ -185,21 +188,23 @@ export default function SourceTable() {
                       href={s.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-violet-400 hover:underline"
+                      className="text-primary hover:underline"
                     >
                       {s.name}
                     </a>
                   ) : (
-                    <span className="text-gray-300">{s.name}</span>
+                    <span className="text-foreground">{s.name}</span>
                   )}
                 </td>
-                <td className="py-2 pr-4 text-gray-400">{s.category || '—'}</td>
+                <td className="text-muted-foreground py-2 pr-4">
+                  {s.category || '—'}
+                </td>
                 <td className="py-2 pr-4">
                   <div className="flex flex-wrap gap-1">
                     {s.tags.map((t) => (
                       <span
                         key={t}
-                        className="rounded bg-gray-800 px-1.5 py-0.5 text-xs text-gray-400"
+                        className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs"
                       >
                         #{t}
                       </span>
@@ -226,7 +231,7 @@ export default function SourceTable() {
                 <td className="py-2 text-right">
                   <div className="flex items-center justify-end gap-2">
                     {s.proposedDate && s.status === 'proposed' && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-muted-foreground text-xs">
                         {daysAgo(s.proposedDate)}
                       </span>
                     )}
@@ -234,7 +239,7 @@ export default function SourceTable() {
                       <button
                         onClick={() => doAction(s.name, 'activate')}
                         disabled={pending.has(s.name)}
-                        className="rounded bg-violet-600 px-3 py-1 text-xs text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                       >
                         {pending.has(s.name) ? '…' : 'Activate'}
                       </button>
@@ -248,7 +253,7 @@ export default function SourceTable() {
                           href={READER_FEEDS_URL}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded bg-amber-700 px-3 py-1 text-xs text-amber-100 transition-colors hover:bg-amber-600"
+                          className="bg-warning text-warning-foreground hover:bg-warning/90 rounded px-3 py-1 text-xs transition-colors"
                         >
                           Re-subscribe
                         </a>
@@ -256,7 +261,7 @@ export default function SourceTable() {
                         <button
                           onClick={() => doAction(s.name, 'retire')}
                           disabled={pending.has(s.name)}
-                          className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
+                          className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                         >
                           {pending.has(s.name) ? '…' : 'Retire'}
                         </button>
@@ -268,7 +273,7 @@ export default function SourceTable() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <p className="py-8 text-center text-gray-500">
+          <p className="text-muted-foreground py-8 text-center">
             No sources match the current filter.
           </p>
         )}

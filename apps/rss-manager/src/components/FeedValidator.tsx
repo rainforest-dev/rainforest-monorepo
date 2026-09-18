@@ -43,12 +43,12 @@ export default function FeedValidator() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && validate()}
-          className="flex-1 rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
+          className="border-input bg-background text-foreground placeholder:text-muted-foreground focus:border-ring flex-1 rounded border px-4 py-2 text-sm focus:outline-none"
         />
         <button
           onClick={validate}
           disabled={!url || loading}
-          className="rounded bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
         >
           {loading ? 'Checking…' : 'Validate'}
         </button>
@@ -56,25 +56,25 @@ export default function FeedValidator() {
 
       {result && (
         <div
-          className={`rounded-lg p-4 ${result.valid ? 'border border-green-800 bg-green-900/30' : 'border border-red-800 bg-red-900/30'}`}
+          className={`rounded-lg p-4 ${result.valid ? 'border-success/40 bg-success/10 border' : 'border-destructive/40 bg-destructive/10 border'}`}
         >
           {result.valid ? (
             <div className="space-y-1 text-sm">
-              <p className="font-medium text-green-300">
+              <p className="text-success font-medium">
                 ✓ Valid {result.format?.toUpperCase()} feed
               </p>
               {result.title && (
-                <p className="text-gray-300">Title: {result.title}</p>
+                <p className="text-foreground">Title: {result.title}</p>
               )}
               {result.itemCount !== undefined && (
-                <p className="text-gray-400">
+                <p className="text-muted-foreground">
                   {result.itemCount} item{result.itemCount !== 1 ? 's' : ''}{' '}
                   found
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-sm text-red-300">✗ {result.error}</p>
+            <p className="text-destructive text-sm">✗ {result.error}</p>
           )}
         </div>
       )}

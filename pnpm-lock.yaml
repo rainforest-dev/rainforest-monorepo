@@ -210,6 +210,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.30.0(zod@3.25.76)
+      '@rainforest-dev/rainforest-ui':
+        specifier: workspace:*
+        version: link:../../libs/rainforest-ui
       better-sqlite3:
         specifier: ^12.2.0
         version: 12.11.1
@@ -548,6 +551,9 @@ importers:
       '@astrojs/react':
         specifier: ^5.0.7
         version: 5.0.7(@types/node@25.9.7)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(jiti@2.7.0)(less@4.5.1)(lightningcss@1.33.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
+      '@rainforest-dev/rainforest-ui':
+        specifier: workspace:*
+        version: link:../../libs/rainforest-ui
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.2.2(vite@8.0.16(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))

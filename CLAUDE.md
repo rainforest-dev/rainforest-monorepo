@@ -40,6 +40,31 @@ personal-website → @rainforest-dev/rainforest-ui (via `workspace:*`)
 
 The `dependsOn: ["^build"]` is configured in `apps/personal-website/package.json` under `nx.targets.build` and `nx.targets.dev`, so building personal-website automatically builds rainforest-ui first.
 
+### Shared Theme
+
+Every app gets its colours, radius and light/dark switching from one Tailwind plugin,
+[libs/rainforest-ui/src/tailwindcss/shadcn.ts](libs/rainforest-ui/src/tailwindcss/shadcn.ts):
+
+```css
+@import 'tailwindcss';
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+```
+
+`personal-website`, `personal-calibre` and `rss-manager` all load it. Every token is derived from a
+single `--seed` with `oklch(from var(--seed) L C h)`, so changing the seed re-themes all three.
+Beyond the stock shadcn set it defines `success` / `warning` / `info`, `chart-1..5` and `sidebar-*`.
+
+- Style with semantic utilities (`bg-muted`, `text-muted-foreground`, `bg-success/15`). Raw palette
+  classes (`text-gray-500`, `bg-violet-600`) and hex literals bypass the seed and do not switch
+  scheme.
+- Dark mode follows `prefers-color-scheme` unless an ancestor carries `data-scheme="light|dark"`.
+  Do not add a `.dark` class variant; the plugin never sets one.
+- UI type is Inter (`--font-sans`). Lora is the website's editorial serif only.
+- The plugin resolves from `dist/`, so consuming apps need `dependsOn: ["^build"]`. The two Docker
+  images skip the full library build and emit that one entry with `tsc`; see either Dockerfile.
+
+`personal-liff` is still the unstyled `create-liff-app` scaffold on Mantine and does not load it.
+
 ### rainforest-ui Multi-Entry Build
 
 The library uses glob-based entry points in [vite.config.ts](libs/rainforest-ui/vite.config.ts):

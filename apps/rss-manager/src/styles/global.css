@@ -1,1 +1,15 @@
 @import 'tailwindcss';
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
