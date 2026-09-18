@@ -39,6 +39,8 @@ allowBuilds:
   core-js: true
   es5-ext: true
   esbuild: true
+  # Optional vite peer; its postinstall is not needed to compile anything here.
+  less: false
   msw: true
   nx: true
   sharp: true

@@ -11,10 +11,7 @@ import {
 } from './summarizer';
 
 type Availability =
-  | 'unavailable'
-  | 'downloadable'
-  | 'downloading'
-  | 'available';
+  'unavailable' | 'downloadable' | 'downloading' | 'available';
 
 /** Install a stub `Summarizer` global. Pass `null` to remove it entirely. */
 function stubSummarizer(

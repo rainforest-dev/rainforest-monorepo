@@ -150,10 +150,7 @@ export const DOWNLOAD_TIMEOUT_MS = 600_000;
  * or after an await that spent the activation does not.
  */
 export type SummarizeFailure =
-  | 'timeout'
-  | 'too-long'
-  | 'needs-gesture'
-  | 'failed';
+  'timeout' | 'too-long' | 'needs-gesture' | 'failed';
 
 export class SummarizeError extends Error {
   constructor(

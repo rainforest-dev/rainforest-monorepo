@@ -1135,9 +1135,7 @@ import TopicList from '../components/TopicList.tsx';
 import FeedValidator from '../components/FeedValidator.tsx';
 
 const tab = (Astro.url.searchParams.get('tab') ?? 'sources') as
-  | 'sources'
-  | 'topics'
-  | 'validate';
+  'sources' | 'topics' | 'validate';
 ---
 
 <!doctype html>

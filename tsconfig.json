@@ -29,8 +29,6 @@
     },
     {
       "path": "./libs/personal-portfolio"
-    },
-    {
     }
   ],
   "compilerOptions": {

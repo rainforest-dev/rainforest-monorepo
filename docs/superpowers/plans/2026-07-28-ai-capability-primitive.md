@@ -149,10 +149,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { detectCapability, __resetForTests } from './language-model';
 
 type Availability =
-  | 'unavailable'
-  | 'downloadable'
-  | 'downloading'
-  | 'available';
+  'unavailable' | 'downloadable' | 'downloading' | 'available';
 
 /** Install a stub `LanguageModel` global. Pass `null` to remove it entirely. */
 function stubLanguageModel(availability: Availability | null) {
