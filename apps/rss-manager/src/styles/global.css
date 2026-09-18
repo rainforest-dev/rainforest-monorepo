@@ -3,6 +3,7 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.625rem;
 }
 
 @layer base {

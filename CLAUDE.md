@@ -9,6 +9,8 @@ Nx 23.0.0 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-website** - Astro 6 + SSR personal website (primary app), deployed on Vercel
 - **apps/personal-liff** - Next.js 16 LINE LIFF app (dev port 9000, self-signed HTTPS via `--experimental-https`)
 - **apps/personal-liff-e2e** - Playwright e2e tests
+- **apps/personal-calibre** - Next.js Calibre library browser, shipped as a Docker image
+- **apps/rss-manager** - Astro + React RSS registry manager, shipped as a Docker image
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
 
 ## Essential Commands
@@ -53,12 +55,16 @@ Every app gets its colours, radius and light/dark switching from one Tailwind pl
 `personal-website`, `personal-calibre` and `rss-manager` all load it. Every token is derived from a
 single `--seed` with `oklch(from var(--seed) L C h)`, so changing the seed re-themes all three.
 Beyond the stock shadcn set it defines `success` / `warning` / `info`, `chart-1..5` and `sidebar-*`.
+Each app sets its own `--radius` in `@theme`: a plugin's `addBase` lands in `@layer base`, which
+would silently beat `@theme`.
 
 - Style with semantic utilities (`bg-muted`, `text-muted-foreground`, `bg-success/15`). Raw palette
   classes (`text-gray-500`, `bg-violet-600`) and hex literals bypass the seed and do not switch
   scheme.
-- Dark mode follows `prefers-color-scheme` unless an ancestor carries `data-scheme="light|dark"`.
-  Do not add a `.dark` class variant; the plugin never sets one.
+- The tokens follow `prefers-color-scheme` unless an ancestor carries `data-scheme="light|dark"`.
+  Tailwind's `dark:` variant only ever follows the OS, so it disagrees with a forced
+  `data-scheme`; reach for a token before a `dark:` utility. Do not add a `.dark` class variant;
+  the plugin never sets one.
 - UI type is Inter (`--font-sans`). Lora is the website's editorial serif only.
 - The plugin resolves from `dist/`, so consuming apps need `dependsOn: ["^build"]`. The two Docker
   images skip the full library build and emit that one entry with `tsc`; see either Dockerfile.

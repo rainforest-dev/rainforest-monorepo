@@ -161,7 +161,7 @@ export default function SourceTable() {
         placeholder="Filter by name, tag, or category…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="border-input bg-background text-foreground placeholder:text-muted-foreground focus:border-ring w-full rounded border px-4 py-2 text-sm focus:outline-none"
+        className="border-input bg-card text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/30 w-full rounded border px-4 py-2 text-sm focus:outline-none focus:ring-2"
       />
 
       {/* Table */}

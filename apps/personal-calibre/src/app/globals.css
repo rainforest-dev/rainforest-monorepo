@@ -6,6 +6,10 @@
    theme, so this app re-themes with every other app in the workspace. */
 @plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
 
+@theme {
+  --radius: 0.625rem;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);

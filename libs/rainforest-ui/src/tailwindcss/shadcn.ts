@@ -4,6 +4,19 @@ interface IOptions {
   sourceColor?: string;
 }
 
+// `var()` is substituted where the property is declared and the resolved value is what
+// inherits, so these are spread into every scheme block: declared once on `:root`, a nested
+// `[data-scheme]` subtree would keep the root's colours.
+const sidebarAliases: Record<string, string> = {
+  '--sidebar-foreground': 'var(--foreground)',
+  '--sidebar-primary': 'var(--primary)',
+  '--sidebar-primary-foreground': 'var(--primary-foreground)',
+  '--sidebar-accent': 'var(--accent)',
+  '--sidebar-accent-foreground': 'var(--accent-foreground)',
+  '--sidebar-border': 'var(--border)',
+  '--sidebar-ring': 'var(--ring)',
+};
+
 const lightVars = (seed: string): Record<string, string> => ({
   '--seed': `var(--shadcn-seed-override, ${seed})`,
   '--background': 'oklch(from var(--seed) 0.98 0.012 h)',
@@ -37,14 +50,7 @@ const lightVars = (seed: string): Record<string, string> => ({
   '--chart-4': 'oklch(from var(--seed) 0.72 0.12 calc(h + 210))',
   '--chart-5': 'oklch(from var(--seed) 0.6 0.13 calc(h + 290))',
   '--sidebar': 'oklch(from var(--seed) 0.965 0.014 h)',
-  '--sidebar-foreground': 'var(--foreground)',
-  '--sidebar-primary': 'var(--primary)',
-  '--sidebar-primary-foreground': 'var(--primary-foreground)',
-  '--sidebar-accent': 'var(--accent)',
-  '--sidebar-accent-foreground': 'var(--accent-foreground)',
-  '--sidebar-border': 'var(--border)',
-  '--sidebar-ring': 'var(--ring)',
-  '--radius': '0.625rem',
+  ...sidebarAliases,
 });
 
 const darkVars: Record<string, string> = {
@@ -79,6 +85,7 @@ const darkVars: Record<string, string> = {
   '--chart-4': 'oklch(from var(--seed) 0.82 0.11 calc(h + 210))',
   '--chart-5': 'oklch(from var(--seed) 0.72 0.12 calc(h + 290))',
   '--sidebar': 'oklch(from var(--seed) 0.19 0.02 h)',
+  ...sidebarAliases,
 };
 
 // Static fallback for engines without relative-color-syntax support (pre-Safari 26),
@@ -110,7 +117,7 @@ const fallbackLight: Record<string, string> = {
   '--warning-foreground': '#fdf8ef',
   '--info': '#3275b4',
   '--info-foreground': '#f3f8fd',
-  '--chart-1': '#008688',
+  '--chart-1': '#3e7d7d',
   '--chart-2': '#6091d1',
   '--chart-3': '#8b4a70',
   '--chart-4': '#e28b62',
@@ -144,12 +151,12 @@ const fallbackDark: Record<string, string> = {
   '--warning-foreground': '#1c1505',
   '--info': '#76b3f1',
   '--info-foreground': '#0a1624',
-  '--chart-1': '#43c3c4',
+  '--chart-1': '#8fc9c8',
   '--chart-2': '#88bafd',
   '--chart-3': '#c57fa6',
   '--chart-4': '#ffad87',
   '--chart-5': '#92b25b',
-  '--sidebar': '#081717',
+  '--sidebar': '#1b2b2b',
 };
 
 export default plugin.withOptions(
