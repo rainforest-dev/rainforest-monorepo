@@ -25,6 +25,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@rainforest-dev/rainforest-ui": "workspace:*",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "catalog:",
@@ -42,12 +43,18 @@
       "dev": {
         "options": {
           "port": 8080
-        }
+        },
+        "dependsOn": [
+          "^build"
+        ]
       },
       "build": {
         "outputs": [
           "{projectRoot}/.next/!(cache)/**/*",
           "{projectRoot}/.next/!(cache)"
+        ],
+        "dependsOn": [
+          "^build"
         ]
       }
     }

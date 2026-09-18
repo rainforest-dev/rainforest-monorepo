@@ -265,6 +265,9 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
+      '@rainforest-dev/rainforest-ui':
+        specifier: workspace:*
+        version: link:../../libs/rainforest-ui
       '@tailwindcss/postcss':
         specifier: ^4.0.0
         version: 4.3.3
@@ -564,6 +567,9 @@ importers:
         specifier: 'catalog:'
         version: 4.2.2
     devDependencies:
+      '@rainforest-dev/rainforest-ui':
+        specifier: workspace:*
+        version: link:../../libs/rainforest-ui
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.7
@@ -19654,8 +19660,8 @@ snapshots:
 
   '@typescript-eslint/project-service@8.65.0(typescript@6.0.3)':
     dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.65.0(typescript@6.0.3)
-      '@typescript-eslint/types': 8.65.0
+      '@typescript-eslint/tsconfig-utils': 8.70.0(typescript@6.0.3)
+      '@typescript-eslint/types': 8.70.0
       debug: 4.4.3(supports-color@7.2.0)
       typescript: 6.0.3
     transitivePeerDependencies:

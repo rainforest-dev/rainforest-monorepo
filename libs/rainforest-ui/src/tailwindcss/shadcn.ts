@@ -4,6 +4,19 @@ interface IOptions {
   sourceColor?: string;
 }
 
+// `var()` is substituted where the property is declared and the resolved value is what
+// inherits, so these are spread into every scheme block: declared once on `:root`, a nested
+// `[data-scheme]` subtree would keep the root's colours.
+const sidebarAliases: Record<string, string> = {
+  '--sidebar-foreground': 'var(--foreground)',
+  '--sidebar-primary': 'var(--primary)',
+  '--sidebar-primary-foreground': 'var(--primary-foreground)',
+  '--sidebar-accent': 'var(--accent)',
+  '--sidebar-accent-foreground': 'var(--accent-foreground)',
+  '--sidebar-border': 'var(--border)',
+  '--sidebar-ring': 'var(--ring)',
+};
+
 const lightVars = (seed: string): Record<string, string> => ({
   '--seed': `var(--shadcn-seed-override, ${seed})`,
   '--background': 'oklch(from var(--seed) 0.98 0.012 h)',
@@ -25,6 +38,19 @@ const lightVars = (seed: string): Record<string, string> => ({
   '--border': 'oklch(from var(--seed) 0.88 0.015 h)',
   '--input': 'oklch(from var(--seed) 0.88 0.015 h)',
   '--ring': 'oklch(from var(--seed) 0.55 0.12 h)',
+  '--success': 'oklch(0.55 0.13 150)',
+  '--success-foreground': 'oklch(0.98 0.01 150)',
+  '--warning': 'oklch(0.62 0.13 75)',
+  '--warning-foreground': 'oklch(0.98 0.01 75)',
+  '--info': 'oklch(0.55 0.12 250)',
+  '--info-foreground': 'oklch(0.98 0.01 250)',
+  '--chart-1': 'oklch(from var(--seed) 0.55 0.12 h)',
+  '--chart-2': 'oklch(from var(--seed) 0.65 0.11 calc(h + 60))',
+  '--chart-3': 'oklch(from var(--seed) 0.5 0.1 calc(h + 150))',
+  '--chart-4': 'oklch(from var(--seed) 0.72 0.12 calc(h + 210))',
+  '--chart-5': 'oklch(from var(--seed) 0.6 0.13 calc(h + 290))',
+  '--sidebar': 'oklch(from var(--seed) 0.965 0.014 h)',
+  ...sidebarAliases,
 });
 
 const darkVars: Record<string, string> = {
@@ -47,6 +73,19 @@ const darkVars: Record<string, string> = {
   '--border': 'oklch(from var(--seed) 0.32 0.02 h)',
   '--input': 'oklch(from var(--seed) 0.32 0.02 h)',
   '--ring': 'oklch(from var(--seed) 0.75 0.11 h)',
+  '--success': 'oklch(0.76 0.14 150)',
+  '--success-foreground': 'oklch(0.17 0.02 150)',
+  '--warning': 'oklch(0.8 0.13 80)',
+  '--warning-foreground': 'oklch(0.17 0.02 80)',
+  '--info': 'oklch(0.75 0.11 250)',
+  '--info-foreground': 'oklch(0.17 0.02 250)',
+  '--chart-1': 'oklch(from var(--seed) 0.75 0.11 h)',
+  '--chart-2': 'oklch(from var(--seed) 0.78 0.11 calc(h + 60))',
+  '--chart-3': 'oklch(from var(--seed) 0.68 0.1 calc(h + 150))',
+  '--chart-4': 'oklch(from var(--seed) 0.82 0.11 calc(h + 210))',
+  '--chart-5': 'oklch(from var(--seed) 0.72 0.12 calc(h + 290))',
+  '--sidebar': 'oklch(from var(--seed) 0.19 0.02 h)',
+  ...sidebarAliases,
 };
 
 // Static fallback for engines without relative-color-syntax support (pre-Safari 26),
@@ -72,6 +111,18 @@ const fallbackLight: Record<string, string> = {
   '--border': '#d2e3e2',
   '--input': '#d2e3e2',
   '--ring': '#3e7d7d',
+  '--success': '#298646',
+  '--success-foreground': '#f4fbf5',
+  '--warning': '#b37903',
+  '--warning-foreground': '#fdf8ef',
+  '--info': '#3275b4',
+  '--info-foreground': '#f3f8fd',
+  '--chart-1': '#3e7d7d',
+  '--chart-2': '#6091d1',
+  '--chart-3': '#8b4a70',
+  '--chart-4': '#e28b62',
+  '--chart-5': '#6e8d2b',
+  '--sidebar': '#e9f7f6',
 };
 
 const fallbackDark: Record<string, string> = {
@@ -94,6 +145,18 @@ const fallbackDark: Record<string, string> = {
   '--border': '#35504f',
   '--input': '#35504f',
   '--ring': '#8fc9c8',
+  '--success': '#68ca80',
+  '--success-foreground': '#0b1a10',
+  '--warning': '#e9b452',
+  '--warning-foreground': '#1c1505',
+  '--info': '#76b3f1',
+  '--info-foreground': '#0a1624',
+  '--chart-1': '#8fc9c8',
+  '--chart-2': '#88bafd',
+  '--chart-3': '#c57fa6',
+  '--chart-4': '#ffad87',
+  '--chart-5': '#92b25b',
+  '--sidebar': '#1b2b2b',
 };
 
 export default plugin.withOptions(
@@ -146,6 +209,25 @@ export default plugin.withOptions(
           border: 'var(--border)',
           input: 'var(--input)',
           ring: 'var(--ring)',
+          success: 'var(--success)',
+          'success-foreground': 'var(--success-foreground)',
+          warning: 'var(--warning)',
+          'warning-foreground': 'var(--warning-foreground)',
+          info: 'var(--info)',
+          'info-foreground': 'var(--info-foreground)',
+          'chart-1': 'var(--chart-1)',
+          'chart-2': 'var(--chart-2)',
+          'chart-3': 'var(--chart-3)',
+          'chart-4': 'var(--chart-4)',
+          'chart-5': 'var(--chart-5)',
+          sidebar: 'var(--sidebar)',
+          'sidebar-foreground': 'var(--sidebar-foreground)',
+          'sidebar-primary': 'var(--sidebar-primary)',
+          'sidebar-primary-foreground': 'var(--sidebar-primary-foreground)',
+          'sidebar-accent': 'var(--sidebar-accent)',
+          'sidebar-accent-foreground': 'var(--sidebar-accent-foreground)',
+          'sidebar-border': 'var(--sidebar-border)',
+          'sidebar-ring': 'var(--sidebar-ring)',
         },
         borderRadius: {
           sm: 'calc(var(--radius) - 4px)',

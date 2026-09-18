@@ -55,11 +55,11 @@ function QueueRow({
   showTier?: boolean;
 }) {
   return (
-    <li className="border-b border-gray-800 py-3 last:border-b-0">
+    <li className="border-border border-b py-3 last:border-b-0">
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex items-baseline gap-2">
           {showTier && (
-            <span className="shrink-0 rounded bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
+            <span className="bg-muted text-muted-foreground shrink-0 rounded px-2 py-0.5 text-xs">
               {TIER_LABELS[item.tier] ?? `Tier ${item.tier}`}
             </span>
           )}
@@ -67,29 +67,29 @@ function QueueRow({
             href={item.readerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-violet-400 hover:underline"
+            className="text-primary font-medium hover:underline"
           >
             {item.title}
           </a>
         </div>
-        <span className="shrink-0 text-xs text-gray-500">
+        <span className="text-muted-foreground shrink-0 text-xs">
           {item.siteName} · {item.sort.readingMinutes} min
         </span>
       </div>
-      <p className="mt-1 text-sm text-gray-400">{item.why}</p>
+      <p className="text-muted-foreground mt-1 text-sm">{item.why}</p>
       <div className="mt-1 flex flex-wrap items-center gap-2">
         {item.tags.map((tag) => (
-          <span key={tag} className="text-xs text-gray-500">
+          <span key={tag} className="text-muted-foreground text-xs">
             #{tag}
           </span>
         ))}
         {DECAY_LABEL[item.decay] && (
-          <span className="text-xs text-gray-500">
+          <span className="text-muted-foreground text-xs">
             {DECAY_LABEL[item.decay]}
           </span>
         )}
         {item.sort.progress > 0 && (
-          <span className="text-xs text-gray-500">
+          <span className="text-muted-foreground text-xs">
             {Math.round(item.sort.progress * 100)}% read
           </span>
         )}
@@ -116,19 +116,22 @@ export default function ReadingQueue() {
   const queue = data && data.generated !== null ? data.queue : [];
   const sorted = useMemo(() => sortQueue(queue, mode), [queue, mode]);
 
-  if (error) return <p className="py-8 text-center text-red-400">{error}</p>;
+  if (error)
+    return <p className="text-destructive py-8 text-center">{error}</p>;
   if (!data)
-    return <p className="py-8 text-center text-gray-400">Loading queue…</p>;
+    return (
+      <p className="text-muted-foreground py-8 text-center">Loading queue…</p>
+    );
 
   if (data.generated === null)
     return (
       <div className="py-12 text-center">
-        <p className="text-gray-400">
+        <p className="text-muted-foreground">
           No reading queue has been generated yet.
         </p>
-        <p className="mt-2 text-sm text-gray-500">
-          Run the <code className="text-violet-400">reading-queue</code> skill
-          to build one.
+        <p className="text-muted-foreground mt-2 text-sm">
+          Run the <code className="text-primary">reading-queue</code> skill to
+          build one.
         </p>
       </div>
     );
@@ -139,7 +142,7 @@ export default function ReadingQueue() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-500">
+        <p className="text-muted-foreground text-sm">
           {data.counts.queued} queued · {data.counts.backlog} in backlog ·{' '}
           {data.counts.stale} stale · {data.counts.scanned} scanned · generated{' '}
           {data.generated}
@@ -151,8 +154,8 @@ export default function ReadingQueue() {
               onClick={() => setMode(m)}
               className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
                 mode === m
-                  ? 'bg-violet-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               }`}
             >
               {label}
@@ -164,7 +167,7 @@ export default function ReadingQueue() {
       {mode === 'default' ? (
         tiers.map((tier) => (
           <section key={tier}>
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
+            <h3 className="text-muted-foreground mb-2 text-sm font-semibold uppercase tracking-wider">
               {TIER_LABELS[tier] ?? `Tier ${tier}`}
             </h3>
             <ul>
@@ -186,10 +189,10 @@ export default function ReadingQueue() {
 
       {data.stale.length > 0 && (
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
+          <h3 className="text-muted-foreground mb-2 text-sm font-semibold uppercase tracking-wider">
             Stale ({data.stale.length})
           </h3>
-          <p className="mb-3 text-xs text-gray-500">
+          <p className="text-muted-foreground mb-3 text-xs">
             Read-only. Archive these in Readwise yourself — this app never
             writes to Reader.
           </p>
@@ -201,9 +204,11 @@ export default function ReadingQueue() {
                 <div key={reason}>
                   {/* Sticky so the group you are reading stays named while you
                       scroll a list this long. */}
-                  <h4 className="sticky top-0 z-10 -mx-2 mb-2 border-b border-gray-800 bg-[#0f1117] px-2 py-2 text-xs font-semibold uppercase tracking-wider text-violet-400">
+                  <h4 className="border-border bg-background text-primary sticky top-0 z-10 -mx-2 mb-2 border-b px-2 py-2 text-xs font-semibold uppercase tracking-wider">
                     {STALE_REASONS[reason].label}{' '}
-                    <span className="text-gray-500">({items.length})</span>
+                    <span className="text-muted-foreground">
+                      ({items.length})
+                    </span>
                   </h4>
                   <ul className="space-y-2">
                     {items.map((item) => (
@@ -213,20 +218,20 @@ export default function ReadingQueue() {
                             href={item.readerUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-gray-300 hover:text-violet-400 hover:underline"
+                            className="text-foreground hover:text-primary hover:underline"
                           >
                             {item.title}
                           </a>
                           {DECAY_LABEL[item.decay] && (
-                            <span className="shrink-0 rounded bg-gray-800 px-1.5 py-0.5 text-xs text-gray-500">
+                            <span className="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-xs">
                               {DECAY_LABEL[item.decay]}
                             </span>
                           )}
-                          <span className="ml-auto shrink-0 text-xs text-gray-500">
+                          <span className="text-muted-foreground ml-auto shrink-0 text-xs">
                             {item.savedAt}
                           </span>
                         </div>
-                        <p className="mt-0.5 text-xs text-gray-500">
+                        <p className="text-muted-foreground mt-0.5 text-xs">
                           {item.why}
                         </p>
                       </li>

@@ -33,6 +33,7 @@
     "tailwindcss": "catalog:"
   },
   "devDependencies": {
+    "@rainforest-dev/rainforest-ui": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
