@@ -5,10 +5,7 @@ export interface RelayContext {
 }
 
 export type RelayOutcome =
-  | 'IS_VALID_WALLET'
-  | 'IS_LOCK'
-  | 'IS_CONNECTED'
-  | 'pass';
+  'IS_VALID_WALLET' | 'IS_LOCK' | 'IS_CONNECTED' | 'pass';
 
 /**
  * The background script's fixed gate order before forwarding a dApp

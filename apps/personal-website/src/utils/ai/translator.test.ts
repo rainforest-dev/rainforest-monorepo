@@ -14,11 +14,7 @@ const EN_ZH = { sourceLanguage: 'en', targetLanguage: 'zh-Hant' };
 
 function stubTranslator(
   availability:
-    | 'unavailable'
-    | 'downloadable'
-    | 'downloading'
-    | 'available'
-    | null,
+    'unavailable' | 'downloadable' | 'downloading' | 'available' | null,
   translateImpl?: (input: string, opts?: unknown) => Promise<string>,
   destroy = vi.fn(),
 ) {

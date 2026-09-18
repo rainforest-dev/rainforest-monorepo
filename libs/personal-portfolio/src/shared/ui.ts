@@ -29,11 +29,7 @@ const BUTTON_BASE =
   '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0';
 
 export type ButtonVariant =
-  | 'default'
-  | 'secondary'
-  | 'outline'
-  | 'ghost'
-  | 'danger';
+  'default' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'default' | 'icon';
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {

@@ -8,10 +8,7 @@ import { join } from 'node:path';
  * else's bug. `unspecified` is a legacy flag written before the type existed.
  */
 export type StaleType =
-  | 'feed-dead'
-  | 'delivery-gap'
-  | 'low-value'
-  | 'unspecified';
+  'feed-dead' | 'delivery-gap' | 'low-value' | 'unspecified';
 
 export type Stale = { type: StaleType; note: string };
 

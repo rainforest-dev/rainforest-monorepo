@@ -1,9 +1,5 @@
 export type WalletStage =
-  | 'unspecified'
-  | 'initial'
-  | 'pairing'
-  | 'connected'
-  | 'error';
+  'unspecified' | 'initial' | 'pairing' | 'connected' | 'error';
 
 export type WalletEvent =
   | { type: 'connect' }

@@ -117,10 +117,7 @@ export const DOWNLOAD_TIMEOUT_MS = 600_000;
 
 /** Same vocabulary as the summarizer, so the two features can share failure copy. */
 export type TranslateFailure =
-  | 'timeout'
-  | 'too-long'
-  | 'needs-gesture'
-  | 'failed';
+  'timeout' | 'too-long' | 'needs-gesture' | 'failed';
 
 export class TranslateError extends Error {
   constructor(
