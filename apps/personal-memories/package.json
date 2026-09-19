@@ -1,0 +1,54 @@
+{
+  "name": "@rainforest-monorepo/personal-memories",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 3004 --host 127.0.0.1",
+    "build": "astro check && astro build",
+    "preview": "astro preview --port 3004 --host 127.0.0.1",
+    "ingest": "node src/cli/ingest.ts"
+  },
+  "nx": {
+    "name": "personal-memories",
+    "projectType": "application",
+    "sourceRoot": "apps/personal-memories/src",
+    "targets": {
+      "dev": {
+        "dependsOn": [
+          "^build"
+        ]
+      },
+      "build": {
+        "dependsOn": [
+          "^build"
+        ],
+        "cache": true
+      },
+      "typecheck": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "options": {
+          "cwd": "apps/personal-memories",
+          "command": "tsc --noEmit -p tsconfig.json"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@astrojs/node": "^10.1.4",
+    "@astrojs/react": "^5.0.7",
+    "@tailwindcss/vite": "catalog:",
+    "astro": "^6.4.8",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwindcss": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "^3.2.4"
+  }
+}

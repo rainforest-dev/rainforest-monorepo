@@ -1,0 +1,22 @@
+[LINE] Chat history with Alice 🌷
+Saved on: 11/03/2025, 21:15
+
+Sat, 11/01/2025
+12:05AM	Alice 🌷	Still awake?
+12:07AM	Bob	Yes, reading.
+9:30AM	Bob	[Photo]
+9:31AM	Alice 🌷	[Sticker]
+12:00PM	Alice 🌷	"Lunch plan:
+1. noodles
+2. the ""good"" tea place
+see you at 1"
+12:02PM	Bob	Sounds good
+12:03PM		You unsent a message.
+1:15PM	Bob	[Video]
+
+Sun, 11/02/2025
+8:45PM	Alice 🌷	[Voice message]
+8:46PM		Alice 🌷 unsent a message.
+8:47PM	Bob	[File]
+11:59PM	Bob	[Gift]
+11:59PM	Bob	[Gift]

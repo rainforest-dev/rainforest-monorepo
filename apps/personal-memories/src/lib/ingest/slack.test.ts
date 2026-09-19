@@ -1,0 +1,46 @@
+import { join } from 'node:path';
+
+import { describe, expect, it } from 'vitest';
+
+import { parseSlackExport } from './slack.ts';
+
+const root = join(import.meta.dirname, '__fixtures__', 'slack');
+const { events, skipped } = parseSlackExport(root);
+
+describe('parseSlackExport', () => {
+  it('keeps messages and file shares, skips other subtypes', () => {
+    expect(events).toHaveLength(5);
+    expect(skipped).toBe(2);
+  });
+
+  it('converts ts to +08:00 timestamps in order across day files', () => {
+    expect(events.map((e) => e.at)).toEqual([
+      '2025-11-01T09:00:00+08:00',
+      '2025-11-01T09:05:00+08:00',
+      '2025-11-01T09:06:00+08:00',
+      '2025-11-02T09:00:00+08:00',
+      '2025-11-02T09:01:00+08:00',
+    ]);
+  });
+
+  it('resolves display names, falling back to real names, and mentions', () => {
+    expect(events.map((e) => e.author)).toEqual([
+      'Bob',
+      'Alice',
+      'Alice',
+      'Bob',
+      'Alice',
+    ]);
+    expect(events[0].text).toBe('Morning @Alice');
+  });
+
+  it('attaches exported files relative to the root and drops missing ones', () => {
+    expect(events[1].media).toEqual([{ path: join('dm-alice', 'map.png') }]);
+    expect(events[2].media).toBeUndefined();
+    expect(events[2].text).toBe('And the missing one');
+  });
+
+  it('treats thread replies as ordinary events', () => {
+    expect(events[4].text).toBe('Thread reply');
+  });
+});

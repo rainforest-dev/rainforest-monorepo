@@ -1,0 +1,40 @@
+[
+  {
+    "type": "message",
+    "user": "U0BOB",
+    "text": "Morning <@U0ALICE>",
+    "ts": "1761958800.000100"
+  },
+  {
+    "type": "message",
+    "user": "U0ALICE",
+    "text": "Here is the map",
+    "ts": "1761959100.000200",
+    "subtype": "file_share",
+    "files": [
+      { "id": "F01", "name": "map.png", "mimetype": "image/png", "size": 68 }
+    ]
+  },
+  {
+    "type": "message",
+    "user": "U0ALICE",
+    "text": "And the missing one",
+    "ts": "1761959160.000300",
+    "subtype": "file_share",
+    "files": [
+      {
+        "id": "F02",
+        "name": "not-exported.jpg",
+        "mimetype": "image/jpeg",
+        "size": 1024
+      }
+    ]
+  },
+  {
+    "type": "message",
+    "subtype": "channel_join",
+    "user": "U0BOB",
+    "text": "<@U0BOB> has joined",
+    "ts": "1761959200.000400"
+  }
+]
