@@ -7,7 +7,8 @@
     "dev": "astro dev --port 3004 --host 127.0.0.1",
     "build": "astro check && astro build",
     "preview": "astro preview --port 3004 --host 127.0.0.1",
-    "ingest": "node src/cli/ingest.ts"
+    "ingest": "node src/cli/ingest.ts",
+    "fixture": "node src/cli/fixture.ts"
   },
   "nx": {
     "name": "personal-memories",

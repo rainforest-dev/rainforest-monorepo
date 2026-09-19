@@ -45,5 +45,5 @@ the metadata with
 The `--library` flag is required: without it, osxphotos tries to read a Photos preferences file
 that the terminal is not permitted to open. The index points at originals, edits, or (with
 Optimize Mac Storage, where originals are cloud-only) local derivatives. The CLI never triggers
-a download. No API can list Google Photos since 2025. Ting's photos therefore arrive only
+a download. No API can list Google Photos since 2025. Photos from someone else's phone therefore arrive only
 through the shared iCloud/Photos album.
