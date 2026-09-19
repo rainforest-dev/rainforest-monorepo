@@ -86,10 +86,15 @@ export function parseSlackExport(root: string): SlackExport {
           (mention, id: string) =>
             users.has(id) ? `@${users.get(id)}` : mention,
         );
-        const media = (message.files ?? [])
-          .map((file) => file.name && findMedia(root, channel, file.name))
-          .filter((path): path is string => Boolean(path))
-          .map((path) => ({ path }));
+        const media: { path: string }[] = [];
+        const missing: string[] = [];
+        for (const { name } of message.files ?? []) {
+          if (!name) continue;
+          const path = findMedia(root, channel, name);
+          if (path) media.push({ path });
+          else missing.push(`[file] ${name}`);
+        }
+        const body = [text, ...missing].filter(Boolean).join('\n');
 
         result.events.push(
           makeEvent({
@@ -99,7 +104,7 @@ export function parseSlackExport(root: string): SlackExport {
               (message.user && users.get(message.user)) ||
               message.user ||
               'unknown',
-            text: text || undefined,
+            text: body || undefined,
             media,
           }),
         );
