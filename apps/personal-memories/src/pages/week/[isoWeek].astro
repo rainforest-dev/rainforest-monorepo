@@ -1,0 +1,150 @@
+---
+import EmptyState from '../../components/EmptyState.astro';
+import Layout from '../../layouts/Layout.astro';
+import { getTimeline } from '../../lib/store.ts';
+import type { TimelineSource } from '../../lib/timeline.ts';
+import {
+  dayHeading,
+  groupByWeek,
+  taipeiTime,
+  weekSpan,
+} from '../../lib/weeks.ts';
+
+const { isoWeek = '' } = Astro.params;
+const state = getTimeline();
+const days =
+  state.status === 'ready'
+    ? groupByWeek(state.timeline.events).get(isoWeek)
+    : undefined;
+const span = weekSpan(isoWeek);
+
+if (state.status === 'ready' && !days) Astro.response.status = 404;
+
+const SOURCES: { source: TimelineSource; label: string }[] = [
+  { source: 'line', label: 'LINE' },
+  { source: 'slack', label: 'Slack' },
+  { source: 'photo', label: '照片' },
+];
+
+const IMAGE = /\.(avif|gif|jpe?g|png|webp)$/i;
+const fileName = (path: string) => path.split(/[\\/]/).pop();
+---
+
+<Layout title={`${isoWeek} · Memories`}>
+  <nav class="mb-4 text-sm">
+    <a href="/" class="text-stone-500 hover:underline">← 所有週次</a>
+  </nav>
+  {
+    state.status === 'missing' ? (
+      <EmptyState path={state.path} />
+    ) : !days ? (
+      <p>找不到 {isoWeek} 這一週。</p>
+    ) : (
+      <>
+        <header class="mb-6 space-y-3">
+          <h1 class="text-2xl font-semibold">{isoWeek}</h1>
+          {span && (
+            <p class="text-sm text-stone-500">
+              {span[0]} – {span[1]}
+            </p>
+          )}
+          <fieldset class="flex gap-4 text-sm" data-source-filter>
+            <legend class="sr-only">來源</legend>
+            {SOURCES.map(({ source, label }) => (
+              <label class="flex items-center gap-1.5">
+                <input type="checkbox" value={source} checked />
+                {label}
+              </label>
+            ))}
+          </fieldset>
+        </header>
+        {[...days].map(([date, events]) => (
+          <section id={`day-${date}`} class="mb-8" data-day>
+            <h2 class="sticky top-0 mb-3 bg-stone-50/95 py-1 font-semibold">
+              {dayHeading(date)}
+            </h2>
+            <ol class="space-y-3">
+              {events.map((event) => (
+                <li
+                  data-event-id={event.id}
+                  data-source={event.source}
+                  class="rounded-lg border border-stone-200 bg-white p-3"
+                >
+                  <div class="mb-1 flex gap-2 text-xs text-stone-500">
+                    <time datetime={event.at} class="tabular-nums">
+                      {taipeiTime(event.at)}
+                    </time>
+                    <span>
+                      {event.source === 'photo' ? '照片' : event.author}
+                    </span>
+                  </div>
+                  {event.text && (
+                    <p class="whitespace-pre-wrap break-words">{event.text}</p>
+                  )}
+                  {event.media?.map(({ path }, n) => {
+                    const src = `/media/${encodeURIComponent(event.id)}${n ? `?n=${n}` : ''}`;
+                    return event.source === 'photo' || IMAGE.test(path) ? (
+                      <img
+                        src={src}
+                        alt={event.text ?? `照片 ${taipeiTime(event.at)}`}
+                        loading="lazy"
+                        class="mt-2 w-full max-w-[480px] rounded"
+                      />
+                    ) : (
+                      <a href={src} class="mt-2 block text-sm underline">
+                        {fileName(path)}
+                      </a>
+                    );
+                  })}
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
+      </>
+    )
+  }
+</Layout>
+
+<script>
+  const KEY = 'memories:hidden-sources';
+  const filter = document.querySelector('[data-source-filter]');
+
+  if (filter) {
+    const boxes = [
+      ...filter.querySelectorAll<HTMLInputElement>('input[type=checkbox]'),
+    ];
+    const readHidden = (): string[] => {
+      try {
+        const value = JSON.parse(localStorage.getItem(KEY) ?? '[]');
+        return Array.isArray(value) ? value : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const apply = () => {
+      const hidden = new Set(
+        boxes.filter((b) => !b.checked).map((b) => b.value),
+      );
+      document
+        .querySelectorAll<HTMLElement>('[data-event-id]')
+        .forEach((el) => (el.hidden = hidden.has(el.dataset['source'] ?? '')));
+      document.querySelectorAll<HTMLElement>('[data-day]').forEach((day) => {
+        day.hidden = !day.querySelector('[data-event-id]:not([hidden])');
+      });
+    };
+
+    const hidden = new Set(readHidden());
+    boxes.forEach((box) => (box.checked = !hidden.has(box.value)));
+    apply();
+
+    filter.addEventListener('change', () => {
+      localStorage.setItem(
+        KEY,
+        JSON.stringify(boxes.filter((b) => !b.checked).map((b) => b.value)),
+      );
+      apply();
+    });
+  }
+</script>

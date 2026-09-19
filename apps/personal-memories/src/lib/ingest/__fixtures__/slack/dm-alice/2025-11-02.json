@@ -16,6 +16,17 @@
   {
     "type": "message",
     "user": "U0BOB",
+    "text": "",
+    "ts": "1762045320.000000",
+    "subtype": "file_share",
+    "files": [
+      { "id": "F03", "name": "receipt.pdf" },
+      { "id": "F04", "name": "ticket.jpg" }
+    ]
+  },
+  {
+    "type": "message",
+    "user": "U0BOB",
     "text": "edited",
     "ts": "1762045300.000000",
     "subtype": "message_changed"

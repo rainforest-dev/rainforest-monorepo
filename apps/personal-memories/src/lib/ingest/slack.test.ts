@@ -9,7 +9,7 @@ const { events, skipped } = parseSlackExport(root);
 
 describe('parseSlackExport', () => {
   it('keeps messages and file shares, skips other subtypes', () => {
-    expect(events).toHaveLength(5);
+    expect(events).toHaveLength(6);
     expect(skipped).toBe(2);
   });
 
@@ -20,6 +20,7 @@ describe('parseSlackExport', () => {
       '2025-11-01T09:06:00+08:00',
       '2025-11-02T09:00:00+08:00',
       '2025-11-02T09:01:00+08:00',
+      '2025-11-02T09:02:00+08:00',
     ]);
   });
 
@@ -30,14 +31,21 @@ describe('parseSlackExport', () => {
       'Alice',
       'Bob',
       'Alice',
+      'Bob',
     ]);
     expect(events[0].text).toBe('Morning @Alice');
   });
 
-  it('attaches exported files relative to the root and drops missing ones', () => {
+  it('attaches exported files relative to the root', () => {
     expect(events[1].media).toEqual([{ path: join('dm-alice', 'map.png') }]);
+    expect(events[1].text).toBe('Here is the map');
+  });
+
+  it('names files missing from the export in the text, one line each', () => {
     expect(events[2].media).toBeUndefined();
-    expect(events[2].text).toBe('And the missing one');
+    expect(events[2].text).toBe('And the missing one\n[file] not-exported.jpg');
+    expect(events[5].media).toBeUndefined();
+    expect(events[5].text).toBe('[file] receipt.pdf\n[file] ticket.jpg');
   });
 
   it('treats thread replies as ordinary events', () => {

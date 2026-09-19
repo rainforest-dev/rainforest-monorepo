@@ -1,19 +1,46 @@
 ---
+import EmptyState from '../components/EmptyState.astro';
+import Layout from '../layouts/Layout.astro';
+import { getTimeline } from '../lib/store.ts';
+import { countBySource, groupByWeek, weekSpan } from '../lib/weeks.ts';
 
+const state = getTimeline();
+const weeks =
+  state.status === 'ready'
+    ? [...groupByWeek(state.timeline.events)].reverse().map(([week, days]) => ({
+        week,
+        span: weekSpan(week)!,
+        counts: countBySource(days),
+      }))
+    : [];
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Memories</title>
-  </head>
-  <body>
-    <main>
-      <h1>Memories</h1>
-      <p>
-        Run <code>pnpm nx run personal-memories:ingest</code> to build the timeline.
-      </p>
-    </main>
-  </body>
-</html>
+<Layout title="Memories">
+  <h1 class="mb-6 text-2xl font-semibold">Memories</h1>
+  {
+    state.status === 'missing' ? (
+      <EmptyState path={state.path} />
+    ) : (
+      <ol class="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white">
+        {weeks.map(({ week, span, counts }) => (
+          <li data-week={week}>
+            <a
+              href={`/week/${week}`}
+              class="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3 hover:bg-stone-100"
+            >
+              <span class="font-medium">{week}</span>
+              <span class="text-sm text-stone-500">
+                {span[0]} – {span[1]}
+              </span>
+              <span class="ml-auto flex gap-3 text-sm tabular-nums text-stone-600">
+                <span>LINE {counts.line}</span>
+                <span>Slack {counts.slack}</span>
+                <span>照片 {counts.photo}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    )
+  }
+</Layout>
