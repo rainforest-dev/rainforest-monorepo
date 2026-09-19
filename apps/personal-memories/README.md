@@ -47,3 +47,24 @@ that the terminal is not permitted to open. The index points at originals, edits
 Optimize Mac Storage, where originals are cloud-only) local derivatives. The CLI never triggers
 a download. No API can list Google Photos since 2025. Photos from someone else's phone therefore arrive only
 through the shared iCloud/Photos album.
+
+## Browsing
+
+```bash
+MEMORIES_DATA_DIR="$HOME/.local/share/memories" pnpm nx dev personal-memories
+```
+
+- `/` lists every ISO week (Monday start, Asia/Taipei) that has events, newest first.
+- `/week/<YYYY-Www>` shows that week day by day in reading order, with photos inline and a
+  LINE / Slack / 照片 filter remembered in `localStorage`.
+- `/media/<event id>` streams an event's file. The path comes only from `timeline.json`; photos
+  are read in place from the Photos library and Slack files from the export.
+
+Without a `timeline.json` the pages show how to run `ingest` instead of failing.
+
+For a synthetic data directory built from the parser fixtures (used by
+`pnpm nx e2e personal-memories-e2e`):
+
+```bash
+node apps/personal-memories/src/cli/fixture.ts /tmp/memories-fixture
+```
