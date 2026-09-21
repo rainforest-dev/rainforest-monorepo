@@ -71,4 +71,3 @@ personal data in a screenshot that goes on a public PR; use fixture data.
 
 The browser-upload procedure this section used to describe predates `--attach`
 and is no longer needed.
-
