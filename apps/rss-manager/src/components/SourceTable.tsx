@@ -70,6 +70,7 @@ export default function SourceTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
   const [writable, setWritable] = useState(true);
   const [pending, setPending] = useState<Set<string>>(new Set());
 
@@ -128,6 +129,27 @@ export default function SourceTable() {
         n.delete(name);
         return n;
       });
+    }
+  }
+
+  /**
+   * Readwise has no URL that adds a given feed, so re-subscribing means pasting
+   * it into the Add feeds box (Shift + A). The click carries the URL over on
+   * the clipboard and lets the link open the subscriptions page as usual.
+   */
+  async function copyFeedUrl(name: string, url: string) {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(name);
+      window.setTimeout(
+        () => setCopied((current) => (current === name ? null : current)),
+        3000,
+      );
+    } catch {
+      // Denied, or no clipboard outside a secure context. The page still opens,
+      // so show the URL to copy by hand.
+      setActionError(`Could not copy the feed URL — paste it by hand: ${url}`);
     }
   }
 
@@ -299,9 +321,11 @@ export default function SourceTable() {
                           href={READER_FEEDS_URL}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => copyFeedUrl(s.name, s.url)}
+                          title={`Copies ${s.url} and opens Readwise — paste it there with Shift + A`}
                           className="bg-warning text-warning-foreground hover:bg-warning/90 rounded px-3 py-1 text-xs transition-colors"
                         >
-                          Re-subscribe
+                          {copied === s.name ? 'Copied ✓' : 'Re-subscribe'}
                         </a>
                       ) : (
                         <button
