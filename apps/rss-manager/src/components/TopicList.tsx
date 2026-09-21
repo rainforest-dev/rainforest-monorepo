@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react';
 
-type Topic = {
-  name: string;
-  tags: string[];
-  description: string;
-  status: 'active' | 'proposed' | 'declined';
-  proposedDate?: string;
-};
-
-const READ_ONLY_NOTE =
-  'The vault is mounted read-only, so the registry cannot be edited from here.';
+import { patchRegistry } from '../lib/patchRegistry.js';
+import type { Topic } from '../lib/registry.types.js';
+import { READ_ONLY_NOTE } from '../lib/registry.types.js';
 
 const STATUS_COLORS: Record<Topic['status'], string> = {
   active: 'bg-success/15 text-success',
@@ -55,22 +48,13 @@ export default function TopicList() {
     setPending((p) => new Set(p).add(name));
     setActionError(null);
     try {
-      const res = await fetch('/api/topics', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, action }),
-      });
-      // Success is read from the body, not the status: an auth proxy answers a
-      // redirected PATCH with its own 200 page, which would otherwise look like
-      // a write that landed.
-      const body = (await res.json().catch(() => null)) as {
-        ok?: boolean;
-        error?: string;
-        writable?: boolean;
-      } | null;
-      if (!res.ok || !body?.ok) {
-        if (body?.writable === false) setWritable(false);
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      const result = await patchRegistry('/api/topics', name, action);
+      if (!result.ok) {
+        // The banner above already states the read-only case; repeating it here
+        // would read as a second, separate problem.
+        if (result.readOnly) setWritable(false);
+        else setActionError(result.error);
+        return;
       }
       setTopics((prev) =>
         prev.map((t) => {

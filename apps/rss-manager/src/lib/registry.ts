@@ -1,38 +1,9 @@
 import { accessSync, constants, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-/**
- * `feed-dead` and `delivery-gap` have opposite remedies. A dead feed should be
- * retired; a delivery gap means the feed is alive and Readwise stopped
- * delivering, so retiring it destroys a working source to route around someone
- * else's bug. `unspecified` is a legacy flag written before the type existed.
- */
-export type StaleType =
-  'feed-dead' | 'delivery-gap' | 'low-value' | 'unspecified';
+import type { Source, Stale, StaleType, Topic } from './registry.types.js';
 
-export type Stale = { type: StaleType; note: string };
-
-export type Source = {
-  name: string;
-  /** The feed itself — XML, not something to hand a reader. */
-  url: string;
-  /** The site the feed belongs to: where a click on the source should land. */
-  siteUrl: string;
-  tags: string[];
-  status: 'active' | 'proposed' | 'no-rss' | 'retired';
-  category: string;
-  proposedDate?: string;
-  stale?: Stale;
-};
-
-export type Topic = {
-  name: string;
-  tags: string[];
-  description: string;
-  status: 'active' | 'proposed' | 'declined';
-  proposedDate?: string;
-  stale?: Stale;
-};
+export type { Source, Stale, StaleType, Topic } from './registry.types.js';
 
 function stripFrontmatter(content: string): string {
   const match = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
@@ -87,28 +58,36 @@ function extractUrl(line: string): string {
 const FEED_SEGMENT = /^(feeds?|rss|atom)$|\.(xml|rss|atom|json)$/i;
 
 /**
- * The site behind a feed URL. The feed path is plumbing layered on top of the
- * page a reader actually wants, so drop the feed-serving segments and keep the
- * real path underneath: `https://tkdodo.eu/blog/rss.xml` is the blog,
- * `https://astro.build/rss.xml` is the site root. A query string only ever
- * selects a feed (`?channel_id=…`), so it goes too.
+ * The site behind a feed URL, or `''` when the URL does not say.
+ *
+ * Only trailing segments are plumbing: `/blog/rss.xml` is the blog serving a
+ * feed, while `/atom/everything/` and `/feeds/posts/default` are routes that
+ * merely contain the word, so stripping those would invent a dead link. When
+ * nothing trailing matches, the feed path is indistinguishable from a page
+ * path — `medium.com/feed/@someone`, `hnrss.org/frontpage` — and a guess would
+ * land the reader on XML, which is what this whole thing is meant to avoid.
  */
 export function siteUrlFromFeed(feedUrl: string): string {
   let parsed: URL;
   try {
     parsed = new URL(feedUrl);
   } catch {
-    return feedUrl;
+    return '';
   }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
 
-  const segments = parsed.pathname
-    .split('/')
-    .filter(Boolean)
-    .filter((segment) => !FEED_SEGMENT.test(segment));
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  const depth = segments.length;
+  while (segments.length && FEED_SEGMENT.test(segments[segments.length - 1]))
+    segments.pop();
 
-  return segments.length
-    ? `${parsed.origin}/${segments.join('/')}`
-    : parsed.origin;
+  if (segments.length === depth) return '';
+  if (segments.length) return `${parsed.origin}/${segments.join('/')}`;
+
+  // The path was plumbing all the way down, so the origin is the site — unless
+  // a query names which feed it is (`?channel_id=…`), where every such feed on
+  // the host would otherwise collapse onto one homepage.
+  return parsed.search ? '' : parsed.origin;
 }
 
 export function parseSources(content: string): Source[] {
@@ -144,9 +123,6 @@ export function parseSources(content: string): Source[] {
     const tags = extractTags(tagsText);
 
     let url = '';
-    // A `website:` line is already the site (those entries have no feed), so it
-    // is taken as-is instead of being run through the feed-path stripping.
-    let isWebsite = false;
     let proposedDate: string | undefined;
     let j = i + 1;
     while (j < lines.length && lines[j].trim() === '') j++;
@@ -155,7 +131,6 @@ export function parseSources(content: string): Source[] {
       if (nextLine.startsWith('http') || nextLine.startsWith('website:')) {
         if (nextLine.startsWith('http')) url = extractUrl(nextLine);
         else {
-          isWebsite = true;
           const urlMatch = nextLine.match(/https?:\/\/[^\s·]+/);
           url = urlMatch ? urlMatch[0] : '';
         }
@@ -175,7 +150,8 @@ export function parseSources(content: string): Source[] {
     sources.push({
       name,
       url,
-      siteUrl: isWebsite ? url : siteUrlFromFeed(url),
+      // A no-RSS entry has no feed: its URL is already the site.
+      siteUrl: status === 'no-rss' ? url : siteUrlFromFeed(url),
       tags,
       status,
       category,
@@ -252,10 +228,11 @@ export function registryFilePath(filename: string): string {
 }
 
 /**
- * Whether a registry file can be written. The vault is mounted read-only in
- * some deployments, where every edit fails at `writeFileSync`; asking first
- * lets the UI disable the buttons instead of offering a click that can only
- * fail.
+ * Whether a registry file can be written, for the flag a list response carries
+ * so the UI can disable edits that could only fail. It is asked right after the
+ * file has been read, so a false here means the mount is read-only rather than
+ * the file being absent; a write that fails anyway is classified from its own
+ * errno (see `registryApi.ts`), which no probe can race.
  */
 export function isWritable(filename: string): boolean {
   try {

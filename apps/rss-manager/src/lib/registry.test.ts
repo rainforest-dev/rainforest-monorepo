@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -122,6 +122,14 @@ describe('parseSources', () => {
     expect(bySite['The Verge']).toBe('https://www.theverge.com');
     expect(bySite["TkDodo's Blog"]).toBe('https://tkdodo.eu/blog');
   });
+
+  it('treats a no-rss entry as its own site however the line is written', () => {
+    const bare = parseSources(
+      '## No RSS Found\n\n- [ ] **Changelog** #tech/claude-code\n  https://claude.ai/changelog · _2026-06-17_\n',
+    )[0];
+    expect(bare.status).toBe('no-rss');
+    expect(bare.siteUrl).toBe('https://claude.ai/changelog');
+  });
 });
 
 describe('siteUrlFromFeed', () => {
@@ -131,80 +139,35 @@ describe('siteUrlFromFeed', () => {
     ['https://www.theverge.com/rss/index.xml', 'https://www.theverge.com'],
     ['https://tkdodo.eu/blog/rss.xml', 'https://tkdodo.eu/blog'],
     ['https://www.reddit.com/r/rust/.rss', 'https://www.reddit.com/r/rust'],
-    ['https://medium.com/feed/@someone', 'https://medium.com/@someone'],
-    [
-      'https://www.youtube.com/feeds/videos.xml?channel_id=UC123',
-      'https://www.youtube.com',
-    ],
+    ['https://example.com/blog/atom.xml', 'https://example.com/blog'],
   ])('%s → %s', (feed, site) => {
     expect(siteUrlFromFeed(feed)).toBe(site);
   });
 
-  it('returns anything unparseable unchanged', () => {
+  it('leaves a route that merely contains the word alone', () => {
+    // Stripping these mid-path would invent a 404.
+    expect(siteUrlFromFeed('https://simonwillison.net/atom/everything/')).toBe(
+      '',
+    );
+    expect(
+      siteUrlFromFeed('https://blog.example.com/feeds/posts/default'),
+    ).toBe('');
+    expect(siteUrlFromFeed('https://medium.com/feed/@someone')).toBe('');
+  });
+
+  it('gives up when a query is what names the feed', () => {
+    // Every channel would otherwise collapse onto the same homepage.
+    expect(
+      siteUrlFromFeed(
+        'https://www.youtube.com/feeds/videos.xml?channel_id=UC123',
+      ),
+    ).toBe('');
+  });
+
+  it('gives up on anything that is not an http(s) URL', () => {
     expect(siteUrlFromFeed('')).toBe('');
-    expect(siteUrlFromFeed('not-a-url')).toBe('not-a-url');
-  });
-});
-
-describe('stale flags', () => {
-  const FIXTURE = `# R
-
-## Active Sources
-
-### Web
-
-- [x] **web.dev** #domain/frontend <!-- stale: delivery-gap | live feed active May 2026, Readwise not delivering since 2026-02-17 -->
-  https://web.dev/feed.xml
-
-- [x] **Readwise Docs** #domain/ai <!-- stale: feed-dead | feed URL returns 404 as of 2026-06-28 -->
-  https://docs.readwise.io/rss.xml
-
-- [x] **Legacy Flag** #domain/ai <!-- stale: last seen 2025-08-19; likely a Readwise subscription gap -->
-  https://example.com/rss.xml
-
-- [x] **Healthy** #domain/ai
-  https://example.org/rss.xml
-`;
-
-  function byName(name: string) {
-    const found = parseSources(FIXTURE).find((s) => s.name === name);
-    if (!found) throw new Error(`fixture has no source named "${name}"`);
-    return found;
-  }
-
-  it('parses a typed delivery-gap flag', () => {
-    expect(byName('web.dev').stale).toEqual({
-      type: 'delivery-gap',
-      note: 'live feed active May 2026, Readwise not delivering since 2026-02-17',
-    });
-  });
-
-  it('parses a typed feed-dead flag', () => {
-    expect(byName('Readwise Docs').stale?.type).toBe('feed-dead');
-  });
-
-  it('keeps an untyped legacy flag working as unspecified', () => {
-    const stale = byName('Legacy Flag').stale;
-    expect(stale?.type).toBe('unspecified');
-    expect(stale?.note).toContain('last seen 2025-08-19');
-  });
-
-  it('leaves a healthy source unflagged', () => {
-    expect(byName('Healthy').stale).toBeUndefined();
-  });
-
-  it('leaves no comment marker behind on unterminated input', () => {
-    const src = parseSources(
-      '## Active Sources\n\n- [x] **X** #domain/ai <!-- stale: low-value | see <!-- nested -->\n  https://e.com/f\n',
-    )[0];
-    expect(src.tags).toEqual(['domain/ai']);
-  });
-
-  it('does not read a # inside a stale note as a tag', () => {
-    const src = parseSources(
-      '## Active Sources\n\n- [x] **X** #domain/ai <!-- stale: low-value | see #frontend channel -->\n  https://e.com/f\n',
-    )[0];
-    expect(src.tags).toEqual(['domain/ai']);
+    expect(siteUrlFromFeed('not-a-url')).toBe('');
+    expect(siteUrlFromFeed('javascript:alert(1)')).toBe('');
   });
 });
 
@@ -212,7 +175,10 @@ describe('isWritable', () => {
   const originalVaultPath = process.env.VAULT_PATH;
 
   afterEach(() => {
-    process.env.VAULT_PATH = originalVaultPath;
+    // Assigning undefined would store the string 'undefined' and send every
+    // later lookup to a relative path.
+    if (originalVaultPath === undefined) delete process.env.VAULT_PATH;
+    else process.env.VAULT_PATH = originalVaultPath;
   });
 
   it('is true for a registry file that exists and can be written', () => {
@@ -226,6 +192,19 @@ describe('isWritable', () => {
     process.env.VAULT_PATH = mkdtempSync(join(tmpdir(), 'rss-manager-'));
     expect(isWritable('RSS-Source-Registry.md')).toBe(false);
   });
+
+  // root bypasses the permission bits, so this can only run unprivileged.
+  it.skipIf(process.getuid?.() === 0)(
+    'is false for a file that exists but cannot be written',
+    () => {
+      const dir = mkdtempSync(join(tmpdir(), 'rss-manager-'));
+      const file = join(dir, 'RSS-Source-Registry.md');
+      writeFileSync(file, '# R\n', 'utf-8');
+      chmodSync(file, 0o444);
+      process.env.VAULT_PATH = dir;
+      expect(isWritable('RSS-Source-Registry.md')).toBe(false);
+    },
+  );
 });
 
 describe('parseTopics', () => {

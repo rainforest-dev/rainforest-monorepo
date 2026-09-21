@@ -1,25 +1,11 @@
 import { useEffect, useState } from 'react';
 
-// Re-declared locally rather than imported: registry.ts pulls in node:fs, which
-// would land in the client bundle for this island.
-type StaleType = 'feed-dead' | 'delivery-gap' | 'low-value' | 'unspecified';
-
-type Source = {
-  name: string;
-  url: string;
-  siteUrl: string;
-  tags: string[];
-  status: 'active' | 'proposed' | 'no-rss' | 'retired';
-  category: string;
-  proposedDate?: string;
-  stale?: { type: StaleType; note: string };
-};
+import { patchRegistry } from '../lib/patchRegistry.js';
+import type { Source, StaleType } from '../lib/registry.types.js';
+import { READ_ONLY_NOTE } from '../lib/registry.types.js';
 
 /** Where Readwise manages feed subscriptions — the fix for a delivery gap. */
 const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';
-
-const READ_ONLY_NOTE =
-  'The vault is mounted read-only, so the registry cannot be edited from here.';
 
 const STALE_UI: Record<
   StaleType,
@@ -95,22 +81,13 @@ export default function SourceTable() {
     setPending((p) => new Set(p).add(name));
     setActionError(null);
     try {
-      const res = await fetch('/api/sources', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, action }),
-      });
-      // Success is read from the body, not the status: an auth proxy answers a
-      // redirected PATCH with its own 200 page, which would otherwise look like
-      // a write that landed.
-      const body = (await res.json().catch(() => null)) as {
-        ok?: boolean;
-        error?: string;
-        writable?: boolean;
-      } | null;
-      if (!res.ok || !body?.ok) {
-        if (body?.writable === false) setWritable(false);
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      const result = await patchRegistry('/api/sources', name, action);
+      if (!result.ok) {
+        // The banner above already states the read-only case; repeating it
+        // under the table would read as a second, separate problem.
+        if (result.readOnly) setWritable(false);
+        else setActionError(result.error);
+        return;
       }
       // Optimistic update
       setSources((prev) =>
@@ -139,6 +116,7 @@ export default function SourceTable() {
    */
   async function copyFeedUrl(name: string, url: string) {
     if (!url) return;
+    setActionError(null);
     try {
       await navigator.clipboard.writeText(url);
       setCopied(name);
@@ -236,7 +214,9 @@ export default function SourceTable() {
               >
                 <td className="py-2 pr-4">
                   {/* The name goes to the site; the feed XML is a click no
-                      reader wants, so it gets its own small link instead. */}
+                      reader wants, so it gets its own small link instead. When
+                      the feed URL does not say what the site is, the name is
+                      plain text rather than a link onto XML. */}
                   <div className="flex items-center gap-2">
                     {s.siteUrl ? (
                       <a
