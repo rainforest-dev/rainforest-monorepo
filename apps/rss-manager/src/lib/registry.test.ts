@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseSources, parseTopics } from './registry.js';
+import { parseSources, parseTopics, siteUrlFromFeed } from './registry.js';
 
 const SOURCES_FIXTURE = `---
 type: source-registry
@@ -79,6 +79,7 @@ describe('parseSources', () => {
     expect(active[0].tags).toContain('domain/frontend');
     expect(active[0].tags).toContain('tech/astro');
     expect(active[0].url).toBe('https://astro.build/rss.xml');
+    expect(active[0].siteUrl).toBe('https://astro.build');
     expect(active[0].category).toBe('Frontend & Web');
   });
 
@@ -95,6 +96,44 @@ describe('parseSources', () => {
     const sources = parseSources(SOURCES_FIXTURE);
     const noRss = sources.filter((s) => s.status === 'no-rss');
     expect(noRss).toHaveLength(1);
+  });
+
+  it('keeps a `website:` entry as its own site', () => {
+    const noRss = parseSources(SOURCES_FIXTURE).find(
+      (s) => s.status === 'no-rss',
+    );
+    expect(noRss?.siteUrl).toBe('https://claude.ai/changelog');
+  });
+
+  it('points a feed URL at the site it belongs to', () => {
+    const bySite = Object.fromEntries(
+      parseSources(SOURCES_FIXTURE).map((s) => [s.name, s.siteUrl]),
+    );
+    expect(bySite['CSS-Tricks']).toBe('https://css-tricks.com');
+    expect(bySite['The Verge']).toBe('https://www.theverge.com');
+    expect(bySite["TkDodo's Blog"]).toBe('https://tkdodo.eu/blog');
+  });
+});
+
+describe('siteUrlFromFeed', () => {
+  it.each([
+    ['https://astro.build/rss.xml', 'https://astro.build'],
+    ['https://css-tricks.com/feed/', 'https://css-tricks.com'],
+    ['https://www.theverge.com/rss/index.xml', 'https://www.theverge.com'],
+    ['https://tkdodo.eu/blog/rss.xml', 'https://tkdodo.eu/blog'],
+    ['https://www.reddit.com/r/rust/.rss', 'https://www.reddit.com/r/rust'],
+    ['https://medium.com/feed/@someone', 'https://medium.com/@someone'],
+    [
+      'https://www.youtube.com/feeds/videos.xml?channel_id=UC123',
+      'https://www.youtube.com',
+    ],
+  ])('%s → %s', (feed, site) => {
+    expect(siteUrlFromFeed(feed)).toBe(site);
+  });
+
+  it('returns anything unparseable unchanged', () => {
+    expect(siteUrlFromFeed('')).toBe('');
+    expect(siteUrlFromFeed('not-a-url')).toBe('not-a-url');
   });
 });
 

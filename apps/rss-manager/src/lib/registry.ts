@@ -14,7 +14,10 @@ export type Stale = { type: StaleType; note: string };
 
 export type Source = {
   name: string;
+  /** The feed itself — XML, not something to hand a reader. */
   url: string;
+  /** The site the feed belongs to: where a click on the source should land. */
+  siteUrl: string;
   tags: string[];
   status: 'active' | 'proposed' | 'no-rss' | 'retired';
   category: string;
@@ -80,6 +83,34 @@ function extractUrl(line: string): string {
   return match ? match[1] : '';
 }
 
+/** Path segments that exist only to serve the feed file. */
+const FEED_SEGMENT = /^(feeds?|rss|atom)$|\.(xml|rss|atom|json)$/i;
+
+/**
+ * The site behind a feed URL. The feed path is plumbing layered on top of the
+ * page a reader actually wants, so drop the feed-serving segments and keep the
+ * real path underneath: `https://tkdodo.eu/blog/rss.xml` is the blog,
+ * `https://astro.build/rss.xml` is the site root. A query string only ever
+ * selects a feed (`?channel_id=…`), so it goes too.
+ */
+export function siteUrlFromFeed(feedUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(feedUrl);
+  } catch {
+    return feedUrl;
+  }
+
+  const segments = parsed.pathname
+    .split('/')
+    .filter(Boolean)
+    .filter((segment) => !FEED_SEGMENT.test(segment));
+
+  return segments.length
+    ? `${parsed.origin}/${segments.join('/')}`
+    : parsed.origin;
+}
+
 export function parseSources(content: string): Source[] {
   const body = stripFrontmatter(content);
   const sources: Source[] = [];
@@ -113,6 +144,9 @@ export function parseSources(content: string): Source[] {
     const tags = extractTags(tagsText);
 
     let url = '';
+    // A `website:` line is already the site (those entries have no feed), so it
+    // is taken as-is instead of being run through the feed-path stripping.
+    let isWebsite = false;
     let proposedDate: string | undefined;
     let j = i + 1;
     while (j < lines.length && lines[j].trim() === '') j++;
@@ -121,6 +155,7 @@ export function parseSources(content: string): Source[] {
       if (nextLine.startsWith('http') || nextLine.startsWith('website:')) {
         if (nextLine.startsWith('http')) url = extractUrl(nextLine);
         else {
+          isWebsite = true;
           const urlMatch = nextLine.match(/https?:\/\/[^\s·]+/);
           url = urlMatch ? urlMatch[0] : '';
         }
@@ -140,6 +175,7 @@ export function parseSources(content: string): Source[] {
     sources.push({
       name,
       url,
+      siteUrl: isWebsite ? url : siteUrlFromFeed(url),
       tags,
       status,
       category,

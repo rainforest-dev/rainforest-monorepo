@@ -7,6 +7,7 @@ type StaleType = 'feed-dead' | 'delivery-gap' | 'low-value' | 'unspecified';
 type Source = {
   name: string;
   url: string;
+  siteUrl: string;
   tags: string[];
   status: 'active' | 'proposed' | 'no-rss' | 'retired';
   category: string;
@@ -183,18 +184,33 @@ export default function SourceTable() {
                 className="border-border hover:bg-muted/50 border-b"
               >
                 <td className="py-2 pr-4">
-                  {s.url ? (
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {s.name}
-                    </a>
-                  ) : (
-                    <span className="text-foreground">{s.name}</span>
-                  )}
+                  {/* The name goes to the site; the feed XML is a click no
+                      reader wants, so it gets its own small link instead. */}
+                  <div className="flex items-center gap-2">
+                    {s.siteUrl ? (
+                      <a
+                        href={s.siteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {s.name}
+                      </a>
+                    ) : (
+                      <span className="text-foreground">{s.name}</span>
+                    )}
+                    {s.url && s.url !== s.siteUrl && (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={s.url}
+                        className="text-muted-foreground hover:text-foreground text-xs"
+                      >
+                        RSS
+                      </a>
+                    )}
+                  </div>
                 </td>
                 <td className="text-muted-foreground py-2 pr-4">
                   {s.category || '—'}
