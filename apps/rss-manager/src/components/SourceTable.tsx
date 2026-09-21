@@ -1,18 +1,8 @@
 import { useEffect, useState } from 'react';
 
-// Re-declared locally rather than imported: registry.ts pulls in node:fs, which
-// would land in the client bundle for this island.
-type StaleType = 'feed-dead' | 'delivery-gap' | 'low-value' | 'unspecified';
-
-type Source = {
-  name: string;
-  url: string;
-  tags: string[];
-  status: 'active' | 'proposed' | 'no-rss' | 'retired';
-  category: string;
-  proposedDate?: string;
-  stale?: { type: StaleType; note: string };
-};
+import { patchRegistry } from '../lib/patchRegistry.js';
+import type { Source, StaleType } from '../lib/registry.types.js';
+import { READ_ONLY_NOTE } from '../lib/registry.types.js';
 
 /** Where Readwise manages feed subscriptions — the fix for a delivery gap. */
 const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';
@@ -65,6 +55,9 @@ export default function SourceTable() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [writable, setWritable] = useState(true);
   const [pending, setPending] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -73,8 +66,9 @@ export default function SourceTable() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data: Source[]) => {
-        setSources(data);
+      .then((data: { sources: Source[]; writable: boolean }) => {
+        setSources(data.sources);
+        setWritable(data.writable);
         setLoading(false);
       })
       .catch(() => {
@@ -85,13 +79,16 @@ export default function SourceTable() {
 
   async function doAction(name: string, action: 'activate' | 'retire') {
     setPending((p) => new Set(p).add(name));
+    setActionError(null);
     try {
-      const res = await fetch('/api/sources', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, action }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
+      const result = await patchRegistry('/api/sources', name, action);
+      if (!result.ok) {
+        // The banner above already states the read-only case; repeating it
+        // under the table would read as a second, separate problem.
+        if (result.readOnly) setWritable(false);
+        else setActionError(result.error);
+        return;
+      }
       // Optimistic update
       setSources((prev) =>
         prev.map((s) => {
@@ -102,13 +99,35 @@ export default function SourceTable() {
         }),
       );
     } catch (e) {
-      alert(`Action failed: ${e}`);
+      setActionError(e instanceof Error ? e.message : String(e));
     } finally {
       setPending((p) => {
         const n = new Set(p);
         n.delete(name);
         return n;
       });
+    }
+  }
+
+  /**
+   * Readwise has no URL that adds a given feed, so re-subscribing means pasting
+   * it into the Add feeds box (Shift + A). The click carries the URL over on
+   * the clipboard and lets the link open the subscriptions page as usual.
+   */
+  async function copyFeedUrl(name: string, url: string) {
+    if (!url) return;
+    setActionError(null);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(name);
+      window.setTimeout(
+        () => setCopied((current) => (current === name ? null : current)),
+        3000,
+      );
+    } catch {
+      // Denied, or no clipboard outside a secure context. The page still opens,
+      // so show the URL to copy by hand.
+      setActionError(`Could not copy the feed URL — paste it by hand: ${url}`);
     }
   }
 
@@ -136,6 +155,17 @@ export default function SourceTable() {
 
   return (
     <div className="space-y-4">
+      {!writable && (
+        <p className="bg-warning/15 text-warning rounded px-3 py-2 text-sm">
+          {READ_ONLY_NOTE} Activate and Retire are disabled.
+        </p>
+      )}
+      {actionError && (
+        <p className="bg-destructive/15 text-destructive rounded px-3 py-2 text-sm">
+          {actionError}
+        </p>
+      )}
+
       {/* Summary chips */}
       <div className="flex flex-wrap gap-2">
         {(['all', 'active', 'proposed', 'no-rss'] as const).map((s) => (
@@ -183,18 +213,35 @@ export default function SourceTable() {
                 className="border-border hover:bg-muted/50 border-b"
               >
                 <td className="py-2 pr-4">
-                  {s.url ? (
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {s.name}
-                    </a>
-                  ) : (
-                    <span className="text-foreground">{s.name}</span>
-                  )}
+                  {/* The name goes to the site; the feed XML is a click no
+                      reader wants, so it gets its own small link instead. When
+                      the feed URL does not say what the site is, the name is
+                      plain text rather than a link onto XML. */}
+                  <div className="flex items-center gap-2">
+                    {s.siteUrl ? (
+                      <a
+                        href={s.siteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {s.name}
+                      </a>
+                    ) : (
+                      <span className="text-foreground">{s.name}</span>
+                    )}
+                    {s.url && s.url !== s.siteUrl && (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={s.url}
+                        className="text-muted-foreground hover:text-foreground text-xs"
+                      >
+                        RSS
+                      </a>
+                    )}
+                  </div>
                 </td>
                 <td className="text-muted-foreground py-2 pr-4">
                   {s.category || '—'}
@@ -238,7 +285,8 @@ export default function SourceTable() {
                     {s.status === 'proposed' && (
                       <button
                         onClick={() => doAction(s.name, 'activate')}
-                        disabled={pending.has(s.name)}
+                        disabled={pending.has(s.name) || !writable}
+                        title={writable ? undefined : READ_ONLY_NOTE}
                         className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                       >
                         {pending.has(s.name) ? '…' : 'Activate'}
@@ -253,14 +301,17 @@ export default function SourceTable() {
                           href={READER_FEEDS_URL}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => copyFeedUrl(s.name, s.url)}
+                          title={`Copies ${s.url} and opens Readwise — paste it there with Shift + A`}
                           className="bg-warning text-warning-foreground hover:bg-warning/90 rounded px-3 py-1 text-xs transition-colors"
                         >
-                          Re-subscribe
+                          {copied === s.name ? 'Copied ✓' : 'Re-subscribe'}
                         </a>
                       ) : (
                         <button
                           onClick={() => doAction(s.name, 'retire')}
-                          disabled={pending.has(s.name)}
+                          disabled={pending.has(s.name) || !writable}
+                          title={writable ? undefined : READ_ONLY_NOTE}
                           className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                         >
                           {pending.has(s.name) ? '…' : 'Retire'}

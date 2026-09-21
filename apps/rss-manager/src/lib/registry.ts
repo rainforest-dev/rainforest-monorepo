@@ -1,35 +1,9 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-/**
- * `feed-dead` and `delivery-gap` have opposite remedies. A dead feed should be
- * retired; a delivery gap means the feed is alive and Readwise stopped
- * delivering, so retiring it destroys a working source to route around someone
- * else's bug. `unspecified` is a legacy flag written before the type existed.
- */
-export type StaleType =
-  'feed-dead' | 'delivery-gap' | 'low-value' | 'unspecified';
+import type { Source, Stale, StaleType, Topic } from './registry.types.js';
 
-export type Stale = { type: StaleType; note: string };
-
-export type Source = {
-  name: string;
-  url: string;
-  tags: string[];
-  status: 'active' | 'proposed' | 'no-rss' | 'retired';
-  category: string;
-  proposedDate?: string;
-  stale?: Stale;
-};
-
-export type Topic = {
-  name: string;
-  tags: string[];
-  description: string;
-  status: 'active' | 'proposed' | 'declined';
-  proposedDate?: string;
-  stale?: Stale;
-};
+export type { Source, Stale, StaleType, Topic } from './registry.types.js';
 
 function stripFrontmatter(content: string): string {
   const match = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
@@ -78,6 +52,42 @@ function extractStale(text: string): Stale | undefined {
 function extractUrl(line: string): string {
   const match = line.trim().match(/^(https?:\/\/[^\s·]+)/);
   return match ? match[1] : '';
+}
+
+/** Path segments that exist only to serve the feed file. */
+const FEED_SEGMENT = /^(feeds?|rss|atom)$|\.(xml|rss|atom|json)$/i;
+
+/**
+ * The site behind a feed URL, or `''` when the URL does not say.
+ *
+ * Only trailing segments are plumbing: `/blog/rss.xml` is the blog serving a
+ * feed, while `/atom/everything/` and `/feeds/posts/default` are routes that
+ * merely contain the word, so stripping those would invent a dead link. When
+ * nothing trailing matches, the feed path is indistinguishable from a page
+ * path — `medium.com/feed/@someone`, `hnrss.org/frontpage` — and a guess would
+ * land the reader on XML, which is what this whole thing is meant to avoid.
+ */
+export function siteUrlFromFeed(feedUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(feedUrl);
+  } catch {
+    return '';
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  const depth = segments.length;
+  while (segments.length && FEED_SEGMENT.test(segments[segments.length - 1]))
+    segments.pop();
+
+  if (segments.length === depth) return '';
+  if (segments.length) return `${parsed.origin}/${segments.join('/')}`;
+
+  // The path was plumbing all the way down, so the origin is the site — unless
+  // a query names which feed it is (`?channel_id=…`), where every such feed on
+  // the host would otherwise collapse onto one homepage.
+  return parsed.search ? '' : parsed.origin;
 }
 
 export function parseSources(content: string): Source[] {
@@ -140,6 +150,8 @@ export function parseSources(content: string): Source[] {
     sources.push({
       name,
       url,
+      // A no-RSS entry has no feed: its URL is already the site.
+      siteUrl: status === 'no-rss' ? url : siteUrlFromFeed(url),
       tags,
       status,
       category,
@@ -207,18 +219,37 @@ export function parseTopics(content: string): Topic[] {
   return topics;
 }
 
+export const SOURCES_FILE = 'RSS-Source-Registry.md';
+export const TOPICS_FILE = 'RSS-Topic-Registry.md';
+
 export function registryFilePath(filename: string): string {
   const base = process.env.VAULT_PATH ?? '/vault';
   return join(base, filename);
 }
 
+/**
+ * Whether a registry file can be written, for the flag a list response carries
+ * so the UI can disable edits that could only fail. It is asked right after the
+ * file has been read, so a false here means the mount is read-only rather than
+ * the file being absent; a write that fails anyway is classified from its own
+ * errno (see `registryApi.ts`), which no probe can race.
+ */
+export function isWritable(filename: string): boolean {
+  try {
+    accessSync(registryFilePath(filename), constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function readSources(): Source[] {
-  const path = registryFilePath('RSS-Source-Registry.md');
+  const path = registryFilePath(SOURCES_FILE);
   return parseSources(readFileSync(path, 'utf-8'));
 }
 
 export function readTopics(): Topic[] {
-  const path = registryFilePath('RSS-Topic-Registry.md');
+  const path = registryFilePath(TOPICS_FILE);
   return parseTopics(readFileSync(path, 'utf-8'));
 }
 
@@ -273,7 +304,7 @@ function insertAtSectionEnd(
 
 /** Promote a proposed source to active: checks [x] and moves to Active Sources. */
 export function activateSource(name: string): void {
-  const filePath = registryFilePath('RSS-Source-Registry.md');
+  const filePath = registryFilePath(SOURCES_FILE);
   const lines = readFileSync(filePath, 'utf-8').split('\n');
 
   const re = new RegExp(`^- \\[[ x]\\] \\*\\*${escapeRegex(name)}\\*\\*`);
@@ -304,7 +335,7 @@ export function activateSource(name: string): void {
 
 /** Move a proposed topic to Active, checking its box. */
 export function activateTopic(name: string): void {
-  const filePath = registryFilePath('RSS-Topic-Registry.md');
+  const filePath = registryFilePath(TOPICS_FILE);
   const lines = readFileSync(filePath, 'utf-8').split('\n');
 
   const entry = spliceEntry(lines, name);
@@ -316,7 +347,7 @@ export function activateTopic(name: string): void {
 
 /** Move a proposed topic to Declined, unchecking its box. */
 export function declineTopic(name: string): void {
-  const filePath = registryFilePath('RSS-Topic-Registry.md');
+  const filePath = registryFilePath(TOPICS_FILE);
   const lines = readFileSync(filePath, 'utf-8').split('\n');
 
   const entry = spliceEntry(lines, name);
@@ -333,7 +364,7 @@ export function declineTopic(name: string): void {
 
 /** Move an active source to Retired, unchecking its box. */
 export function retireSource(name: string): void {
-  const filePath = registryFilePath('RSS-Source-Registry.md');
+  const filePath = registryFilePath(SOURCES_FILE);
   const lines = readFileSync(filePath, 'utf-8').split('\n');
 
   const entry = spliceEntry(lines, name);
