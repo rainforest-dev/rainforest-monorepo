@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -243,18 +243,36 @@ export function parseTopics(content: string): Topic[] {
   return topics;
 }
 
+export const SOURCES_FILE = 'RSS-Source-Registry.md';
+export const TOPICS_FILE = 'RSS-Topic-Registry.md';
+
 export function registryFilePath(filename: string): string {
   const base = process.env.VAULT_PATH ?? '/vault';
   return join(base, filename);
 }
 
+/**
+ * Whether a registry file can be written. The vault is mounted read-only in
+ * some deployments, where every edit fails at `writeFileSync`; asking first
+ * lets the UI disable the buttons instead of offering a click that can only
+ * fail.
+ */
+export function isWritable(filename: string): boolean {
+  try {
+    accessSync(registryFilePath(filename), constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function readSources(): Source[] {
-  const path = registryFilePath('RSS-Source-Registry.md');
+  const path = registryFilePath(SOURCES_FILE);
   return parseSources(readFileSync(path, 'utf-8'));
 }
 
 export function readTopics(): Topic[] {
-  const path = registryFilePath('RSS-Topic-Registry.md');
+  const path = registryFilePath(TOPICS_FILE);
   return parseTopics(readFileSync(path, 'utf-8'));
 }
 
@@ -309,7 +327,7 @@ function insertAtSectionEnd(
 
 /** Promote a proposed source to active: checks [x] and moves to Active Sources. */
 export function activateSource(name: string): void {
-  const filePath = registryFilePath('RSS-Source-Registry.md');
+  const filePath = registryFilePath(SOURCES_FILE);
   const lines = readFileSync(filePath, 'utf-8').split('\n');
 
   const re = new RegExp(`^- \\[[ x]\\] \\*\\*${escapeRegex(name)}\\*\\*`);
@@ -340,7 +358,7 @@ export function activateSource(name: string): void {
 
 /** Move a proposed topic to Active, checking its box. */
 export function activateTopic(name: string): void {
-  const filePath = registryFilePath('RSS-Topic-Registry.md');
+  const filePath = registryFilePath(TOPICS_FILE);
   const lines = readFileSync(filePath, 'utf-8').split('\n');
 
   const entry = spliceEntry(lines, name);
@@ -352,7 +370,7 @@ export function activateTopic(name: string): void {
 
 /** Move a proposed topic to Declined, unchecking its box. */
 export function declineTopic(name: string): void {
-  const filePath = registryFilePath('RSS-Topic-Registry.md');
+  const filePath = registryFilePath(TOPICS_FILE);
   const lines = readFileSync(filePath, 'utf-8').split('\n');
 
   const entry = spliceEntry(lines, name);
@@ -369,7 +387,7 @@ export function declineTopic(name: string): void {
 
 /** Move an active source to Retired, unchecking its box. */
 export function retireSource(name: string): void {
-  const filePath = registryFilePath('RSS-Source-Registry.md');
+  const filePath = registryFilePath(SOURCES_FILE);
   const lines = readFileSync(filePath, 'utf-8').split('\n');
 
   const entry = spliceEntry(lines, name);

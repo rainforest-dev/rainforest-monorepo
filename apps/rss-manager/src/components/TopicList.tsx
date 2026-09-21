@@ -8,6 +8,9 @@ type Topic = {
   proposedDate?: string;
 };
 
+const READ_ONLY_NOTE =
+  'The vault is mounted read-only, so the registry cannot be edited from here.';
+
 const STATUS_COLORS: Record<Topic['status'], string> = {
   active: 'bg-success/15 text-success',
   proposed: 'bg-info/15 text-info',
@@ -27,6 +30,8 @@ export default function TopicList() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [writable, setWritable] = useState(true);
   const [pending, setPending] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -35,8 +40,9 @@ export default function TopicList() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data: Topic[]) => {
-        setTopics(data);
+      .then((data: { topics: Topic[]; writable: boolean }) => {
+        setTopics(data.topics);
+        setWritable(data.writable);
         setLoading(false);
       })
       .catch(() => {
@@ -47,13 +53,25 @@ export default function TopicList() {
 
   async function doAction(name: string, action: 'activate' | 'decline') {
     setPending((p) => new Set(p).add(name));
+    setActionError(null);
     try {
       const res = await fetch('/api/topics', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, action }),
       });
-      if (!res.ok) throw new Error((await res.json()).error);
+      // Success is read from the body, not the status: an auth proxy answers a
+      // redirected PATCH with its own 200 page, which would otherwise look like
+      // a write that landed.
+      const body = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        writable?: boolean;
+      } | null;
+      if (!res.ok || !body?.ok) {
+        if (body?.writable === false) setWritable(false);
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
       setTopics((prev) =>
         prev.map((t) => {
           if (t.name !== name) return t;
@@ -64,7 +82,7 @@ export default function TopicList() {
         }),
       );
     } catch (e) {
-      alert(`Action failed: ${e}`);
+      setActionError(e instanceof Error ? e.message : String(e));
     } finally {
       setPending((p) => {
         const n = new Set(p);
@@ -86,6 +104,17 @@ export default function TopicList() {
 
   return (
     <div className="space-y-6">
+      {!writable && (
+        <p className="bg-warning/15 text-warning rounded px-3 py-2 text-sm">
+          {READ_ONLY_NOTE} Activate and Decline are disabled.
+        </p>
+      )}
+      {actionError && (
+        <p className="bg-destructive/15 text-destructive rounded px-3 py-2 text-sm">
+          {actionError}
+        </p>
+      )}
+
       {(['active', 'proposed', 'declined'] as const).map((status) => {
         const group = byStatus(status);
         if (group.length === 0) return null;
@@ -132,14 +161,16 @@ export default function TopicList() {
                       )}
                       <button
                         onClick={() => doAction(t.name, 'activate')}
-                        disabled={pending.has(t.name)}
+                        disabled={pending.has(t.name) || !writable}
+                        title={writable ? undefined : READ_ONLY_NOTE}
                         className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                       >
                         {pending.has(t.name) ? '…' : 'Activate'}
                       </button>
                       <button
                         onClick={() => doAction(t.name, 'decline')}
-                        disabled={pending.has(t.name)}
+                        disabled={pending.has(t.name) || !writable}
+                        title={writable ? undefined : READ_ONLY_NOTE}
                         className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                       >
                         {pending.has(t.name) ? '…' : 'Decline'}

@@ -18,6 +18,9 @@ type Source = {
 /** Where Readwise manages feed subscriptions — the fix for a delivery gap. */
 const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';
 
+const READ_ONLY_NOTE =
+  'The vault is mounted read-only, so the registry cannot be edited from here.';
+
 const STALE_UI: Record<
   StaleType,
   { label: string; className: string; retirable: boolean }
@@ -66,6 +69,8 @@ export default function SourceTable() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [writable, setWritable] = useState(true);
   const [pending, setPending] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -74,8 +79,9 @@ export default function SourceTable() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data: Source[]) => {
-        setSources(data);
+      .then((data: { sources: Source[]; writable: boolean }) => {
+        setSources(data.sources);
+        setWritable(data.writable);
         setLoading(false);
       })
       .catch(() => {
@@ -86,13 +92,25 @@ export default function SourceTable() {
 
   async function doAction(name: string, action: 'activate' | 'retire') {
     setPending((p) => new Set(p).add(name));
+    setActionError(null);
     try {
       const res = await fetch('/api/sources', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, action }),
       });
-      if (!res.ok) throw new Error((await res.json()).error);
+      // Success is read from the body, not the status: an auth proxy answers a
+      // redirected PATCH with its own 200 page, which would otherwise look like
+      // a write that landed.
+      const body = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        writable?: boolean;
+      } | null;
+      if (!res.ok || !body?.ok) {
+        if (body?.writable === false) setWritable(false);
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
       // Optimistic update
       setSources((prev) =>
         prev.map((s) => {
@@ -103,7 +121,7 @@ export default function SourceTable() {
         }),
       );
     } catch (e) {
-      alert(`Action failed: ${e}`);
+      setActionError(e instanceof Error ? e.message : String(e));
     } finally {
       setPending((p) => {
         const n = new Set(p);
@@ -137,6 +155,17 @@ export default function SourceTable() {
 
   return (
     <div className="space-y-4">
+      {!writable && (
+        <p className="bg-warning/15 text-warning rounded px-3 py-2 text-sm">
+          {READ_ONLY_NOTE} Activate and Retire are disabled.
+        </p>
+      )}
+      {actionError && (
+        <p className="bg-destructive/15 text-destructive rounded px-3 py-2 text-sm">
+          {actionError}
+        </p>
+      )}
+
       {/* Summary chips */}
       <div className="flex flex-wrap gap-2">
         {(['all', 'active', 'proposed', 'no-rss'] as const).map((s) => (
@@ -254,7 +283,8 @@ export default function SourceTable() {
                     {s.status === 'proposed' && (
                       <button
                         onClick={() => doAction(s.name, 'activate')}
-                        disabled={pending.has(s.name)}
+                        disabled={pending.has(s.name) || !writable}
+                        title={writable ? undefined : READ_ONLY_NOTE}
                         className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                       >
                         {pending.has(s.name) ? '…' : 'Activate'}
@@ -276,7 +306,8 @@ export default function SourceTable() {
                       ) : (
                         <button
                           onClick={() => doAction(s.name, 'retire')}
-                          disabled={pending.has(s.name)}
+                          disabled={pending.has(s.name) || !writable}
+                          title={writable ? undefined : READ_ONLY_NOTE}
                           className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                         >
                           {pending.has(s.name) ? '…' : 'Retire'}

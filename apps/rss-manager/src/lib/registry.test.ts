@@ -1,6 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { parseSources, parseTopics, siteUrlFromFeed } from './registry.js';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import {
+  isWritable,
+  parseSources,
+  parseTopics,
+  siteUrlFromFeed,
+} from './registry.js';
 
 const SOURCES_FIXTURE = `---
 type: source-registry
@@ -196,6 +205,26 @@ describe('stale flags', () => {
       '## Active Sources\n\n- [x] **X** #domain/ai <!-- stale: low-value | see #frontend channel -->\n  https://e.com/f\n',
     )[0];
     expect(src.tags).toEqual(['domain/ai']);
+  });
+});
+
+describe('isWritable', () => {
+  const originalVaultPath = process.env.VAULT_PATH;
+
+  afterEach(() => {
+    process.env.VAULT_PATH = originalVaultPath;
+  });
+
+  it('is true for a registry file that exists and can be written', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rss-manager-'));
+    writeFileSync(join(dir, 'RSS-Source-Registry.md'), '# R\n', 'utf-8');
+    process.env.VAULT_PATH = dir;
+    expect(isWritable('RSS-Source-Registry.md')).toBe(true);
+  });
+
+  it('is false when the file is not there at all', () => {
+    process.env.VAULT_PATH = mkdtempSync(join(tmpdir(), 'rss-manager-'));
+    expect(isWritable('RSS-Source-Registry.md')).toBe(false);
   });
 });
 
