@@ -36,12 +36,15 @@ jobs:
       actions: read
 
     steps:
-      - name: Checkout the reviewed commit
+      # Deliberately NOT `ref: workflow_run.head_sha`. A workflow_run job holds
+      # secrets and write scope, so checking out the PR's own commit is
+      # CodeQL's actions/untrusted-checkout — a PR could then reach the token,
+      # and its contents enter the reviewing agent's context. The default
+      # branch supplies CLAUDE.md and repo layout; the diff itself comes from
+      # the action's PR context, not the working tree.
+      - name: Checkout the default branch for repo context
         uses: actions/checkout@v7
         with:
-          # A workflow_run checkout defaults to the default branch, which would
-          # have the review reading main's files while describing the PR's diff.
-          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 1
 
       - name: Run Claude Code Review
