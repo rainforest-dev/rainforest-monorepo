@@ -1,1 +1,18 @@
 @import 'tailwindcss';
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+
+/* Inter when the system has it — the album is local-only, so no webfont is
+   fetched; CJK falls through to the system stack either way. */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
