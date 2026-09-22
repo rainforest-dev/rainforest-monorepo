@@ -6,6 +6,15 @@
 
 **Architecture:** Astro SSR app (`@astrojs/node` standalone) with server-side registry parsing (reads markdown files via `VAULT_PATH` env var) and React islands for the interactive table and validator. No database — the markdown registry files are the source of truth. No writes back to Obsidian (the vault is mounted read-only).
 
+> **Partly superseded — 2026-09-21.** The last sentence no longer holds: the app
+> writes back. Activate, Retire and Decline edit the registry markdown in place
+> (`activateSource`, `retireSource`, `activateTopic`, `declineTopic` in
+> `src/lib/registry.ts`), and the homelab mounts the vault read-write
+> ([rainforest-homelab#59](https://github.com/rainforest-dev/rainforest-homelab/pull/59)).
+> A read-only mount is still handled: the list endpoints report `writable`, the
+> write buttons are disabled behind a banner, and a failed write is classified
+> from its errno. Everything else below still describes the app.
+
 **Tech Stack:** Astro 5, `@astrojs/node`, `@simplewebauthn/browser`, React islands, Tailwind CSS 4, Vitest (pure-function registry parser tests), pnpm, Nx
 
 **Spec:** `docs/superpowers/specs/2026-06-22-personal-tools-monorepo-design.md` §4 (rss-manager)
