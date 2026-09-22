@@ -92,7 +92,7 @@
     },
     "groups": {
       "docker-apps": {
-        "projects": ["personal-calibre", "rss-manager"],
+        "projects": ["personal-calibre", "personal-memories", "rss-manager"],
         "projectsRelationship": "independent",
         "version": {
           "specifierSource": "conventional-commits",

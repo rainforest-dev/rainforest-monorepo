@@ -21,18 +21,18 @@ const weeks =
     state.status === 'missing' ? (
       <EmptyState path={state.path} />
     ) : (
-      <ol class="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white">
+      <ol class="divide-border bg-card text-card-foreground divide-y rounded-lg border">
         {weeks.map(({ week, span, counts }) => (
           <li data-week={week}>
             <a
               href={`/week/${week}`}
-              class="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3 hover:bg-stone-100"
+              class="hover:bg-accent hover:text-accent-foreground flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3 transition-colors"
             >
               <span class="font-medium">{week}</span>
-              <span class="text-sm text-stone-500">
+              <span class="text-muted-foreground text-sm">
                 {span[0]} – {span[1]}
               </span>
-              <span class="ml-auto flex gap-3 text-sm tabular-nums text-stone-600">
+              <span class="text-muted-foreground ml-auto flex gap-3 text-sm tabular-nums">
                 <span>LINE {counts.line}</span>
                 <span>Slack {counts.slack}</span>
                 <span>照片 {counts.photo}</span>

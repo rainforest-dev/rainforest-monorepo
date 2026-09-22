@@ -1,8 +1,9 @@
 # personal-memories
 
-A local-only album that merges LINE chats, Slack DMs and the Photos library into one timeline.
-It runs on localhost (port 3004) and is never deployed. This slice is the data layer: three
-parsers, one `TimelineEvent` shape (`src/lib/timeline.ts`) and one CLI.
+An album that merges LINE chats, Slack DMs and the Photos library into one timeline. The dev
+server binds to 127.0.0.1 (port 3004); the homelab runs the published image behind the
+Cloudflare Access gate (see [Deployment](#deployment)). Either way the data stays on the host:
+nothing private is in this repository, and the container only ever reads.
 
 ## Data directory
 
@@ -68,3 +69,25 @@ For a synthetic data directory built from the parser fixtures (used by
 ```bash
 node apps/personal-memories/src/cli/fixture.ts /tmp/memories-fixture
 ```
+
+## Deployment
+
+The homelab runs `ghcr.io/rainforest-dev/personal-memories:latest`, published by
+`.github/workflows/release-personal-memories.yml` on every push to `main` that touches this app.
+The Terraform module lives in
+[rainforest-dev/rainforest-homelab](https://github.com/rainforest-dev/rainforest-homelab)
+(`modules/personal-memories`), and the hostname is gated by Cloudflare Access like the other
+tools.
+
+Two host paths are bind-mounted **read-only**, both at the same absolute path they have on the
+host:
+
+- the data directory (`MEMORIES_DATA_DIR`) — `timeline.json` plus the Slack export
+- whatever holds the photos, usually the Photos library
+
+The same-path requirement is not cosmetic: `ingest` records photo paths exactly as osxphotos
+reports them, and `/media/<id>` opens that path verbatim. A photo mounted somewhere else is a 404. Running the container needs Docker file sharing for those paths, and the Photos library
+also needs Full Disk Access for Docker.
+
+Re-run `ingest` on the host whenever you add sources; the server picks up the new
+`timeline.json` on the next request, without a restart.

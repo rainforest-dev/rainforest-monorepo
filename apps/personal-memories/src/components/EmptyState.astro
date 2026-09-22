@@ -4,7 +4,7 @@ type Props = { path: string | undefined };
 const { path } = Astro.props;
 ---
 
-<section class="space-y-3 rounded-lg border border-stone-200 bg-white p-6">
+<section class="bg-card text-card-foreground space-y-3 rounded-lg border p-6">
   <h2 class="text-lg font-semibold">還沒有時間軸</h2>
   <p>
     {
@@ -21,5 +21,5 @@ const { path } = Astro.props;
     先執行匯入：
   </p>
   <pre
-    class="overflow-x-auto rounded bg-stone-100 p-3 text-sm"><code>MEMORIES_DATA_DIR=… pnpm nx run personal-memories:ingest</code></pre>
+    class="bg-muted overflow-x-auto rounded p-3 text-sm"><code>MEMORIES_DATA_DIR=… pnpm nx run personal-memories:ingest</code></pre>
 </section>
