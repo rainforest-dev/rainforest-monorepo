@@ -378,6 +378,15 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.7)(@vitest/ui@4.1.4(vitest@4.1.4))(jiti@2.7.0)(jsdom@27.0.1)(less@4.5.1)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
 
+  apps/personal-memories-e2e:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.52.0
+        version: 1.63.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.7
+
   apps/personal-website:
     dependencies:
       '@astrojs/markdown-remark':

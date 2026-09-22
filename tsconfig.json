@@ -32,6 +32,9 @@
     },
     {
       "path": "./apps/personal-memories"
+    },
+    {
+      "path": "./apps/personal-memories-e2e"
     }
   ],
   "compilerOptions": {
