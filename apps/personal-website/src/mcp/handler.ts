@@ -67,7 +67,9 @@ export function createProfileMcpHandler(basePath?: string) {
       registerProfileMcp(server);
       registerPortfolioMcp(server, { getGallery: getProjectGallery });
     },
-    {},
+    // Without serverInfo, mcp-handler reports its own package default
+    // ("mcp-typescript server on vercel") to every client that connects.
+    { serverInfo: { name: 'rainforest-profile', version: '1.0.0' } },
     { basePath },
   );
 }
