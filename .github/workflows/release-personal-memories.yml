@@ -80,7 +80,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FIRST_RELEASE: ${{ inputs.first-release }}
         run: |
-          PROJECT='@rainforest-monorepo/personal-memories'
+          # nx project name, not package name: this app sets nx.name, so the scoped form matches nothing.
+          PROJECT='personal-memories'
           MANIFEST=./apps/personal-memories/package.json
           # --skip-publish, never --yes: nx rejects the pair as mutually exclusive.
           FLAGS=(--skip-publish --projects="$PROJECT")
