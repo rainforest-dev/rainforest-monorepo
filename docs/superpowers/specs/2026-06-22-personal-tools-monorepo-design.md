@@ -1,7 +1,7 @@
 # Personal Tools Monorepo — Architecture Design
 
 **Date:** 2026-06-22
-**Status:** approved
+**Status:** approved; §6 (deployment) superseded 2026-09-21 — see the note there
 **Scope:** Adding `rss-manager` and `auth-service` to `rainforest-monorepo`; defining the homelab deployment architecture for all personal tools
 
 ---
@@ -152,6 +152,19 @@ Subsequent visits to rss.rainforest.tools or any homelab subdomain:
 ---
 
 ## 6. Traefik & Docker Compose
+
+> **Superseded — 2026-09-21.** The homelab runs on Terraform, not this compose
+> file: services are modules in
+> [rainforest-dev/rainforest-homelab](https://github.com/rainforest-dev/rainforest-homelab)
+> (`modules/<service>/main.tf`, `kreuzwerker/docker` provider). Traefik and the
+> `homelab-auth` ForwardAuth middleware are gone, and with them `auth-service`
+> itself; ingress is a Cloudflare Zero Trust tunnel and access is gated by a
+> Cloudflare Access application (`modules/cloudflare-tunnel`), which routes to
+> each container's host port (`http://host.docker.internal:<port>`). Adding a
+> tool is now one module plus an entry in that repo's `locals.tf` service map,
+> where `enable_auth = true` puts it behind the gate. The hostname table in §2
+> reads "Traefik" for the same historical reason; the hostnames themselves still
+> hold.
 
 **ForwardAuth middleware (defined once):**
 
