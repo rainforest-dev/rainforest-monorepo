@@ -37,7 +37,9 @@ describe('parseSlackExport', () => {
   });
 
   it('attaches exported files relative to the root', () => {
-    expect(events[1].media).toEqual([{ path: join('dm-alice', 'map.png') }]);
+    expect(events[1].media).toEqual([
+      { path: join('dm-alice', 'map.png'), width: 1, height: 1 },
+    ]);
     expect(events[1].text).toBe('Here is the map');
   });
 
@@ -50,5 +52,13 @@ describe('parseSlackExport', () => {
 
   it('treats thread replies as ordinary events', () => {
     expect(events[4].text).toBe('Thread reply');
+  });
+
+  it('keeps exported file dimensions', () => {
+    const { events } = parseSlackExport(root);
+    const map = events.find((e) => e.text === 'Here is the map');
+    expect(map?.media).toEqual([
+      { path: join('dm-alice', 'map.png'), width: 1, height: 1 },
+    ]);
   });
 });

@@ -30,8 +30,12 @@ describe('parsePhotoIndex', () => {
   });
 
   it('points at the original in place, or the derivative when cloud-only', () => {
-    expect(result.events[0].media).toEqual([{ path: original }]);
-    expect(result.events[1].media).toEqual([{ path: derivative }]);
+    expect(result.events[0].media).toEqual([
+      { path: original, width: 1, height: 1 },
+    ]);
+    expect(result.events[1].media).toEqual([
+      { path: derivative, width: 4032, height: 3024 },
+    ]);
   });
 
   it('uses albums as text and "photo" as author', () => {
@@ -52,5 +56,62 @@ describe('parsePhotoIndex', () => {
       },
     ]);
     expect(events[0].media).toEqual([{ path: '/e.jpg' }]);
+  });
+
+  it('keeps dimensions and Photos signals', () => {
+    const { events } = parsePhotoIndex([
+      {
+        uuid: 'U1',
+        date: '2025-11-01T10:15:00+08:00',
+        path: '/lib/a.jpg',
+        width: 4032,
+        height: 3024,
+        favorite: true,
+        score: { overall: 0.82 },
+        persons: ['A', 'B'],
+        screenshot: false,
+        ismovie: false,
+        burst: true,
+        burst_selected: true,
+      },
+    ]);
+    expect(events[0].media).toEqual([
+      { path: '/lib/a.jpg', width: 4032, height: 3024 },
+    ]);
+    expect(events[0].photo).toEqual({
+      favorite: true,
+      score: 0.82,
+      people: 2,
+      screenshot: false,
+      movie: false,
+      burstPick: true,
+    });
+  });
+
+  it('defaults missing signals', () => {
+    const { events } = parsePhotoIndex([
+      { uuid: 'U2', date: '2025-11-01T10:15:00+08:00', path: '/lib/b.jpg' },
+    ]);
+    expect(events[0].media).toEqual([{ path: '/lib/b.jpg' }]);
+    expect(events[0].photo).toEqual({
+      favorite: false,
+      people: 0,
+      screenshot: false,
+      movie: false,
+      burstPick: true,
+    });
+  });
+
+  it('marks an unselected burst frame', () => {
+    const { events } = parsePhotoIndex([
+      {
+        uuid: 'U3',
+        date: '2025-11-01T10:15:00+08:00',
+        path: '/lib/c.jpg',
+        burst: true,
+        burst_selected: false,
+      },
+    ]);
+    expect(events[0].photo?.burstPick).toBe(false);
   });
 });

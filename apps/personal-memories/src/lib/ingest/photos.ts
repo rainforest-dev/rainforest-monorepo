@@ -1,4 +1,10 @@
-import { makeEvent, type TimelineEvent, toTaipeiIso } from '../timeline.ts';
+import {
+  makeEvent,
+  type PhotoSignals,
+  type TimelineEvent,
+  type TimelineMedia,
+  toTaipeiIso,
+} from '../timeline.ts';
 
 /** The subset of an `osxphotos query --json` item this parser reads. */
 type OsxPhoto = {
@@ -8,6 +14,15 @@ type OsxPhoto = {
   path_edited?: string | null;
   path_derivatives?: string[] | null;
   albums?: string[] | null;
+  width?: number | null;
+  height?: number | null;
+  favorite?: boolean | null;
+  score?: { overall?: number | null } | null;
+  persons?: string[] | null;
+  screenshot?: boolean | null;
+  ismovie?: boolean | null;
+  burst?: boolean | null;
+  burst_selected?: boolean | null;
 };
 
 export type PhotoIndex = {
@@ -43,6 +58,21 @@ export function parsePhotoIndex(items: unknown): PhotoIndex {
       continue;
     }
 
+    const media: TimelineMedia = { path };
+    if (item.width && item.height) {
+      media.width = item.width;
+      media.height = item.height;
+    }
+    const photo: PhotoSignals = {
+      favorite: item.favorite === true,
+      people: item.persons?.length ?? 0,
+      screenshot: item.screenshot === true,
+      movie: item.ismovie === true,
+      burstPick: item.burst !== true || item.burst_selected === true,
+    };
+    if (typeof item.score?.overall === 'number')
+      photo.score = item.score.overall;
+
     result.events.push(
       makeEvent({
         id: item.uuid,
@@ -50,7 +80,8 @@ export function parsePhotoIndex(items: unknown): PhotoIndex {
         at: toTaipeiIso(time),
         author: 'photo',
         text: item.albums?.length ? item.albums.join(', ') : undefined,
-        media: [{ path }],
+        media: [media],
+        photo,
       }),
     );
   }
