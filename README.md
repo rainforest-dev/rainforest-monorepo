@@ -10,21 +10,21 @@ project graph, pnpm manages the workspace.
 
 ## What is in here
 
-| App | What it does |
-| --- | --- |
-| [`personal-website`](./apps/personal-website/) | The Astro site: resume, blog, case studies, and an MCP server at `/mcp` that serves the same profile data to agents |
-| [`personal-liff`](./apps/personal-liff/) | A LINE mini-app, built on Next.js and the LIFF SDK |
-| [`personal-calibre`](./apps/personal-calibre/) | Ebook library service, with its own MCP endpoint |
-| [`personal-memories`](./apps/personal-memories/) | Photo album, deployed to the homelab as a container image |
-| [`rss-manager`](./apps/rss-manager/) | Feed collection and triage |
+| App                                              | What it does                                                                                                        |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| [`personal-website`](./apps/personal-website/)   | The Astro site: resume, blog, case studies, and an MCP server at `/mcp` that serves the same profile data to agents |
+| [`personal-liff`](./apps/personal-liff/)         | A LINE mini-app, built on Next.js and the LIFF SDK                                                                  |
+| [`personal-calibre`](./apps/personal-calibre/)   | Ebook library service, with its own MCP endpoint                                                                    |
+| [`personal-memories`](./apps/personal-memories/) | Photo album, deployed to the homelab as a container image                                                           |
+| [`rss-manager`](./apps/rss-manager/)             | Feed collection and triage                                                                                          |
 
 Each app has a sibling `*-e2e` project running Playwright against it.
 
-| Library | What it holds |
-| --- | --- |
-| [`@rainforest-dev/personal-data`](./libs/personal-data/) | Profile, work history and project data, typed once and read by both the site and the MCP tools |
-| [`@rainforest-dev/personal-portfolio`](./libs/personal-portfolio/) | Case study content and the MCP registrations that expose it |
-| [`@rainforest-dev/rainforest-ui`](./libs/rainforest-ui/) | Shared components, built with Lit and Tailwind, documented in Storybook |
+| Library                                                            | What it holds                                                                                  |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| [`@rainforest-dev/personal-data`](./libs/personal-data/)           | Profile, work history and project data, typed once and read by both the site and the MCP tools |
+| [`@rainforest-dev/personal-portfolio`](./libs/personal-portfolio/) | Case study content and the MCP registrations that expose it                                    |
+| [`@rainforest-dev/rainforest-ui`](./libs/rainforest-ui/)           | Shared components, built with Lit and Tailwind, documented in Storybook                        |
 
 ```mermaid
 graph LR
