@@ -136,13 +136,15 @@ Free Markdown body.
 ### 09:05 · LINE · Alice
 
 > first 40 characters of the message…
-> %% ev:3fa9c1d2 at:2025-11-01T09:05:00+08:00 %%
+
+%% ev:3fa9c1d2 at:2025-11-01T09:05:00+08:00 %%
 
 The annotation, any number of paragraphs.
 ```
 
 - Everything above `## 眉批` is the body, kept as an opaque string. Below it the app owns the
-  structure: one `###` block per annotation, anchor data in an Obsidian comment.
+  structure: one `###` block per annotation, anchor data in an Obsidian comment. The comment
+  must be separated from the excerpt by a blank line, or Markdown folds it into the quote.
 - Frontmatter round-trips through the `yaml` package; keys the app does not know are preserved.
 - A file is created on the first non-empty save and deleted only when body, annotations and
   `cover` are all empty.
