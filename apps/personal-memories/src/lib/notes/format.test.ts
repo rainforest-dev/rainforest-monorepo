@@ -105,7 +105,20 @@ describe('parseNote', () => {
       '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的\n\n隨手記\n';
     const [annotation] = parseNote(text, '2025-11-01').annotations;
     expect(annotation.eventId).toBe('');
+    expect(annotation.author).toBe('手寫的');
     expect(annotation.body).toBe('隨手記');
+  });
+
+  it('round-trips a hand-written annotation without losing its heading', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的\n\n隨手記\n';
+    const note = parseNote(text, '2025-11-01');
+    const serialized = serializeNote(note);
+    expect(serialized).toContain('### 手寫的');
+    expect(serialized).toContain('隨手記');
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual(note.annotations);
+    expect(serializeNote(reparsed)).toBe(serialized);
   });
 
   it('parses text without frontmatter', () => {

@@ -31,7 +31,6 @@ const trimBlankLines = (text: string) =>
 function parseAnnotation(block: string): Annotation {
   const lines = block.split('\n');
   const heading = lines[0].replace(/^### /, '');
-  const author = heading.split(' · ').slice(2).join(' · ');
   const quote: string[] = [];
   let anchor: RegExpExecArray | null = null;
   let i = 1;
@@ -48,6 +47,7 @@ function parseAnnotation(block: string): Annotation {
     }
     if (line.trim()) break;
   }
+  const author = anchor ? heading.split(' · ').slice(2).join(' · ') : heading;
   return {
     eventId: anchor?.[1] ?? '',
     at: anchor?.[2] ?? '',
@@ -88,10 +88,10 @@ export function parseNote(text: string, date: string): DayNote {
 }
 
 function serializeAnnotation(a: Annotation): string {
-  const time = a.at ? taipeiTime(a.at) : '';
-  const parts = [
-    `### ${[time, SOURCE_LABELS[a.source], a.author].join(' · ')}`,
-  ];
+  const heading = a.eventId
+    ? [taipeiTime(a.at), SOURCE_LABELS[a.source], a.author].join(' · ')
+    : a.author;
+  const parts = [`### ${heading}`];
   if (a.excerpt) parts.push(`> ${a.excerpt}`);
   if (a.eventId) parts.push(`%% ev:${a.eventId} at:${a.at} src:${a.source} %%`);
   if (a.body.trim()) parts.push(a.body.trim());
