@@ -18,7 +18,7 @@ const LEVEL = [
   'bg-primary/90',
 ];
 
-const GRID_COLS = 'grid-cols-[56px_repeat(31,24px)]';
+const GRID_COLS = 'grid-cols-[56px_repeat(31,24px)] gap-x-1.5';
 const PHONE_GRID_COLS = 'grid-cols-[28px_repeat(31,8px)]';
 
 const rangeLabel = (() => {
@@ -48,7 +48,7 @@ const firstNotedOrEvent = (row: MonthRow) =>
   <div
     class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6"
   >
-    <h2 class="text-title font-semibold tracking-[-0.015em]">{rangeLabel}</h2>
+    <h2 class="text-title font-semibold tracking-[-0.01em]">{rangeLabel}</h2>
     <div
       class="text-muted-foreground flex items-center justify-between gap-4 text-xs sm:justify-start"
     >
@@ -124,6 +124,9 @@ const firstNotedOrEvent = (row: MonthRow) =>
                       aria-label={label}
                       class={cellClass}
                     >
+                      {isNoted && (
+                        <span class="bg-foreground size-1.5 rounded-full" />
+                      )}
                       <div class="bg-popover text-popover-foreground border-border pointer-events-none absolute bottom-[36px] left-1/2 z-10 w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                         <div class="font-semibold tabular-nums">{tip.date}</div>
                         <div class="text-muted-foreground">{tip.detail}</div>
