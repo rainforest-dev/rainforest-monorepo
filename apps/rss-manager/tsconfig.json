@@ -13,6 +13,9 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../../libs/rainforest-react"
+    },
+    {
       "path": "../../libs/rainforest-ui"
     }
   ]

@@ -37,6 +37,9 @@
       "path": "../../libs/rainforest-ui"
     },
     {
+      "path": "../../libs/rainforest-react"
+    },
+    {
       "path": "../../libs/personal-portfolio"
     },
     {

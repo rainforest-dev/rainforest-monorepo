@@ -1,6 +1,7 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useEffect, useState } from 'react';
 
-import { button, segment } from '../../../shared/ui';
+import { segment } from '../../../shared/ui';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
 import {
   REAL_METRICS,
@@ -121,7 +122,7 @@ export function EnvDeploy(): JSX.Element {
         type="button"
         onClick={handleDeploy}
         disabled={stage === 'running'}
-        className={button({ className: 'mt-4' })}
+        className={buttonVariants({ size: 'lg', className: 'mt-4' })}
       >
         {deployLabel}
       </button>

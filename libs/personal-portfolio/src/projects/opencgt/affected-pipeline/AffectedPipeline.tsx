@@ -1,6 +1,7 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useEffect, useState } from 'react';
 
-import { button, segment } from '../../../shared/ui';
+import { segment } from '../../../shared/ui';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
 import {
   affectedFromFiles,
@@ -122,7 +123,7 @@ export function AffectedPipeline(): JSX.Element {
               type="button"
               onClick={runPipeline}
               disabled={running}
-              className={button({ size: 'sm', className: 'ml-auto' })}
+              className={buttonVariants({ className: 'ml-auto' })}
             >
               {running ? 'running…' : 'Run pipeline'}
             </button>

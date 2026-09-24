@@ -1,3 +1,4 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -6,7 +7,6 @@ import sanitizeHtml from 'sanitize-html';
 
 import { DeliveryTracker } from '@/components/DeliveryTracker';
 import { TagEditor } from '@/components/TagEditor';
-import { buttonVariants } from '@/components/ui/button-variants';
 import { listBookDeliveryEvents, listDeliveryPlatforms } from '@/lib/delivery';
 import { staticDownloadUrl } from '@/lib/files';
 import { getBook, getFilterOptions } from '@/lib/queries';

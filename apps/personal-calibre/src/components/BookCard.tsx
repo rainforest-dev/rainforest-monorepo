@@ -1,7 +1,6 @@
+import { Badge, Card, CardContent } from '@rainforest-dev/rainforest-react';
 import Link from 'next/link';
 
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import type { BookSummary } from '@/types/calibre';
 
 function platformAbbr(key: string): string {

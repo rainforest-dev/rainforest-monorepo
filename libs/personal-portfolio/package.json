@@ -14,7 +14,14 @@
   },
   "nx": {
     "sourceRoot": "libs/personal-portfolio/src",
-    "name": "personal-portfolio"
+    "name": "personal-portfolio",
+    "targets": {
+      "test": {
+        "dependsOn": [
+          "^build"
+        ]
+      }
+    }
   },
   "peerDependencies": {
     "react": "catalog:",
@@ -22,6 +29,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@rainforest-dev/rainforest-react": "workspace:*",
     "zod": "^3.25.76"
   },
   "devDependencies": {

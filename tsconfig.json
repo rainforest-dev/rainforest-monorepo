@@ -35,6 +35,9 @@
     },
     {
       "path": "./apps/personal-memories-e2e"
+    },
+    {
+      "path": "./libs/rainforest-react"
     }
   ],
   "compilerOptions": {

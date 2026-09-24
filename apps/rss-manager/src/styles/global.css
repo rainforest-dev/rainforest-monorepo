@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@rainforest-dev/rainforest-react/tailwind.css';
 @plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
 
 @theme {

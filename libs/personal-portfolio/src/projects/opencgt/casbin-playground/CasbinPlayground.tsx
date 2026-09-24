@@ -1,6 +1,6 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useEffect, useState } from 'react';
 
-import { button } from '../../../shared/ui';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
 import { DEFAULT_POLICIES, enforce, type PolicyRow } from './logic';
 
@@ -116,7 +116,7 @@ export function CasbinPlayground(): JSX.Element {
         <button
           type="button"
           onClick={handleEnforce}
-          className={button({ size: 'sm' })}
+          className={buttonVariants()}
         >
           Enforce
         </button>
