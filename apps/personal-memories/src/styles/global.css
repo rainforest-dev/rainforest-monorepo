@@ -32,15 +32,23 @@
 }
 
 [data-event-id]:target {
-  @apply ring-ring ring-2;
+  @apply bg-primary/15 ring-primary/45 ring-1 ring-inset ring-offset-0;
 }
 
-[data-event-id][data-annotated] {
-  @apply border-primary/40;
+[data-source='photo'][data-event-id]:target {
+  @apply bg-transparent ring-0;
 }
 
-[data-event-id][data-annotated] [data-annotate] {
-  @apply text-primary opacity-100;
+[data-source='photo'][data-event-id]:target > a {
+  @apply outline-primary outline-solid outline-2 outline-offset-2;
+}
+
+[data-event-id][data-annotated] [data-marker] {
+  @apply bg-primary;
+}
+
+[data-source='photo'][data-event-id][data-annotated] [data-marker] {
+  @apply ring-background ring-2;
 }
 
 [data-day] {
