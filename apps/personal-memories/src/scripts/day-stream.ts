@@ -34,7 +34,11 @@ function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
         loading.add(sentinel);
         void fetchDay(date).then((section) => {
           loading.delete(sentinel);
-          if (!section) return;
+          if (!section) {
+            delete sentinel.dataset['date'];
+            observer.unobserve(sentinel);
+            return;
+          }
           const direction = sentinel.dataset['load'];
           if (direction === 'prev') {
             const before = document.documentElement.scrollHeight;
@@ -46,12 +50,21 @@ function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
             sentinel.dataset['date'] = section.dataset['next'] ?? '';
           }
           onDay(section);
+          if (sentinel.dataset['date']) {
+            // Re-observe: IntersectionObserver only fires on crossings, so a sentinel still in range needs a fresh entry to keep loading.
+            observer.unobserve(sentinel);
+            observer.observe(sentinel);
+          } else {
+            observer.unobserve(sentinel);
+          }
         });
       }
     },
     { rootMargin: '200px 0px' },
   );
-  stream.querySelectorAll('[data-load]').forEach((s) => observer.observe(s));
+  stream.querySelectorAll<HTMLElement>('[data-load]').forEach((s) => {
+    if (s.dataset['date']) observer.observe(s);
+  });
 }
 
 function watchActiveDay() {
