@@ -1,0 +1,119 @@
+name: Release Docker apps
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/release.yml'
+      - '.github/actions/nx-affected-docker-apps/**'
+      - 'nx.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+env:
+  NX_NO_CLOUD: ${{ vars.NX_NO_CLOUD }}
+
+jobs:
+  release:
+    name: Release affected Docker apps
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve affected base
+        id: base
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = "push" ]; then
+            echo "base=$BEFORE" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=$(git merge-base origin/main HEAD || echo '')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve affected Docker apps
+        id: affected
+        uses: ./.github/actions/nx-affected-docker-apps
+        with:
+          base: ${{ steps.base.outputs.base }}
+
+      - name: Version, build and publish
+        id: release
+        env:
+          AFFECTED: ${{ steps.affected.outputs.affected }}
+          IS_DEPLOY: ${{ github.event_name == 'push' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          if [ -z "$AFFECTED" ]; then
+            echo "::notice::No Docker apps affected."
+            exit 0
+          fi
+          export NX_DOCKER_BUILD_PROJECTS="$AFFECTED"
+          # release.git.push=true pushes a created tag at once, so a verify run must not create one.
+          pnpm exec nx release version --projects="$AFFECTED" --dockerVersionScheme=prod \
+            --git-tag="$IS_DEPLOY" --git-commit=false --stage-changes=false --verbose 2>&1 | tee /tmp/nx-release.log
+          if [ "$IS_DEPLOY" != "true" ]; then
+            echo "::notice::Verify run: built $AFFECTED, published nothing."
+            exit 0
+          fi
+          pnpm exec nx release publish --projects="$AFFECTED" --verbose 2>&1 | tee -a /tmp/nx-release.log
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push latest
+        if: steps.release.outputs.published == 'true'
+        env:
+          AFFECTED: ${{ steps.affected.outputs.affected }}
+        run: |
+          set -o pipefail
+          echo "| Project | Image | Digest |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          IFS=',' read -ra PROJECTS <<< "$AFFECTED"
+          for PROJECT in "${PROJECTS[@]}"; do
+            TAG=$(git tag --points-at HEAD --list "${PROJECT}@*" | head -1)
+            if [ -z "$TAG" ]; then
+              echo "::error::No ${PROJECT}@<version> tag at HEAD; refusing to move :latest."
+              exit 1
+            fi
+            VERSION="${TAG##*@}"
+            REPO=$(node -p "require('./' + process.argv[1] + '/package.json').nx.release.docker.repositoryName" \
+              "$(pnpm exec nx show project "$PROJECT" --json | node -p 'JSON.parse(require("fs").readFileSync(0)).root')")
+            IMAGE="ghcr.io/${REPO}"
+            docker tag "${IMAGE}:${VERSION}" "${IMAGE}:latest"
+            docker push "${IMAGE}:latest"
+            DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --format '{{json .Manifest.Digest}}' | tr -d '"')
+            echo "| ${PROJECT} | \`${IMAGE}:${VERSION}\` | \`${DIGEST}\` |" >> "$GITHUB_STEP_SUMMARY"
+          done
