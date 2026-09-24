@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
@@ -108,4 +108,25 @@ test('an edit made in Obsidian meanwhile raises a conflict', async ({
   await expect(panel).toContainText('有衝突');
   await panel.getByRole('button', { name: '用 Obsidian 的版本' }).click();
   await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
+});
+
+test('a note typed just before scrolling stays on its own day', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  const body = panel.getByLabel('當天的回憶');
+  await expect(body).toBeEnabled();
+  await body.fill('十一月二日的筆記');
+
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  await page.locator('#day-2025-11-03').scrollIntoViewIfNeeded();
+  await expect(panel).toContainText('2025-11-03（週一）');
+  await expect(body).toHaveValue('');
+
+  const read = (date: string) =>
+    existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
+  await expect.poll(() => read('2025-11-02')).toContain('十一月二日的筆記');
+  expect(read('2025-11-03')).not.toContain('十一月二日的筆記');
 });

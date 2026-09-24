@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { flushSync } from 'react-dom';
 
 import type { NotePayload } from '../../lib/notes/payload.ts';
 import type { SaveStatus } from './useNoteDraft.ts';
@@ -39,7 +40,7 @@ export function useDaySync({ current, status, flush, replace }: Options) {
         }
         setLoadFailed(false);
         if (current.current.status !== 'saved') return;
-        if (wanted.current === date) replace(next);
+        if (wanted.current === date) flushSync(() => replace(next));
       }
     } finally {
       running.current = false;

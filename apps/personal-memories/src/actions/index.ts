@@ -3,7 +3,7 @@ import { ActionError, defineAction } from 'astro:actions';
 
 import { DATE_RE, indexDays } from '../lib/days.ts';
 import { notePayload, toPayload } from '../lib/notes/payload.ts';
-import { notesStore } from '../lib/notes/store.ts';
+import { notesStore, UnreadableNoteError } from '../lib/notes/store.ts';
 import { getTimeline } from '../lib/store.ts';
 
 const date = z.string().regex(DATE_RE);
@@ -45,7 +45,16 @@ export const server = {
           message: 'notes are read-only',
         });
       }
-      const result = store.write(d, edit, version);
+      let result;
+      try {
+        result = store.write(d, edit, version);
+      } catch (error) {
+        if (!(error instanceof UnreadableNoteError)) throw error;
+        throw new ActionError({
+          code: 'UNPROCESSABLE_CONTENT',
+          message: error.message,
+        });
+      }
       return result.ok
         ? { ok: true as const, version: result.version }
         : {

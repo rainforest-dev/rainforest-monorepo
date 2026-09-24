@@ -12,7 +12,7 @@ type Options = {
   draft: Draft;
   current: RefObject<{ draft: Draft; payload: { date: string } }>;
   readOnly: boolean;
-  edit: (next: (d: Draft) => Draft) => void;
+  edit: (date: string, next: (d: Draft) => Draft) => void;
   request: (date: string) => void;
   onAnnotate: () => void;
 };
@@ -33,8 +33,12 @@ export function useStreamBridge(o: Options) {
     setFocusTick((t) => t + 1);
   };
 
-  const setAnnotation = (i: number, patch: Partial<ResolvedAnnotation>) =>
-    o.edit((d) => ({
+  const setAnnotation = (
+    date: string,
+    i: number,
+    patch: Partial<ResolvedAnnotation>,
+  ) =>
+    latest.current.edit(date, (d) => ({
       ...d,
       annotations: d.annotations.map((a, j) =>
         j === i ? { ...a, ...patch } : a,
@@ -43,14 +47,15 @@ export function useStreamBridge(o: Options) {
 
   const annotate = (anchor: Anchor, target?: number) => {
     const { current, edit } = latest.current;
+    const { date } = current.current.payload;
     const annotations = current.current.draft.annotations;
     const existing = annotations.findIndex((a) => a.eventId === anchor.eventId);
     if (existing !== -1 && existing !== target) return focus(existing);
     if (target !== undefined) {
-      setAnnotation(target, { ...anchor, status: 'exact' });
+      setAnnotation(date, target, { ...anchor, status: 'exact' });
       return focus(target);
     }
-    edit((d) => ({
+    edit(date, (d) => ({
       ...d,
       annotations: [...d.annotations, { ...anchor, body: '', status: 'exact' }],
     }));

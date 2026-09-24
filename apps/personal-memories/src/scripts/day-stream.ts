@@ -72,7 +72,6 @@ function activeDayOf(sections: readonly HTMLElement[]): string | undefined {
   const atBottom =
     window.scrollY + window.innerHeight >=
     document.documentElement.scrollHeight - 4;
-  // A short final section may never cross the 40% line — there's no more content below it to scroll past — so max scroll always activates the last day.
   if (atBottom) return sections[sections.length - 1]?.dataset['day'];
   const threshold = window.innerHeight * 0.4;
   let current = sections[0];
@@ -133,11 +132,15 @@ function watchFilter(stream: HTMLElement) {
   boxes.forEach((box) => (box.checked = !hidden.has(box.value)));
   apply();
   filter.addEventListener('change', () => {
-    localStorage.setItem(
-      HIDDEN_KEY,
-      JSON.stringify(boxes.filter((b) => !b.checked).map((b) => b.value)),
-    );
     apply();
+    try {
+      localStorage.setItem(
+        HIDDEN_KEY,
+        JSON.stringify(boxes.filter((b) => !b.checked).map((b) => b.value)),
+      );
+    } catch {
+      return;
+    }
   });
 }
 

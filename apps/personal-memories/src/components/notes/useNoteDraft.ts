@@ -78,7 +78,8 @@ export function useNoteDraft(initial: NotePayload) {
   }, [setPayload, setStatus]);
 
   const edit = useCallback(
-    (next: (d: Draft) => Draft) => {
+    (date: string, next: (d: Draft) => Draft) => {
+      if (date !== current.current.payload.date) return;
       setDraft(next(current.current.draft));
       revision.current += 1;
       if (current.current.status === 'conflict') return;
@@ -126,9 +127,17 @@ export function useNoteDraft(initial: NotePayload) {
       e.preventDefault();
       e.returnValue = '';
     };
+    // iOS Safari never fires beforeunload, so save when the page is hidden.
+    const hide = () => {
+      if (document.visibilityState === 'hidden') void flush();
+    };
     window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, []);
+    document.addEventListener('visibilitychange', hide);
+    return () => {
+      window.removeEventListener('beforeunload', warn);
+      document.removeEventListener('visibilitychange', hide);
+    };
+  }, [flush]);
 
   return {
     payload,

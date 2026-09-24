@@ -10,10 +10,11 @@ export type NotePayload = {
   cover?: string;
   version: string;
   writable: boolean;
+  parseError?: true;
 };
 
 export function toPayload(
-  { note, version }: ReadResult,
+  { note, version, parseError }: ReadResult,
   writable: boolean,
   dayEvents: readonly TimelineEvent[],
 ): NotePayload {
@@ -22,9 +23,10 @@ export function toPayload(
     body: note.body,
     annotations: resolveAnnotations(note.annotations, dayEvents),
     version,
-    writable,
+    writable: writable && !parseError,
   };
   if (note.cover) payload.cover = note.cover;
+  if (parseError) payload.parseError = true;
   return payload;
 }
 

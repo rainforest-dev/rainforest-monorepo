@@ -26,9 +26,10 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   const readOnly = !payload.writable;
+  const { date } = payload;
   const locked = readOnly || !hydrated;
   const { reattach, setReattach, setAnnotation, refs } = useStreamBridge({
-    date: payload.date,
+    date,
     draft,
     current,
     readOnly,
@@ -64,16 +65,22 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
           </span>
         </button>
         <span className="text-muted-foreground text-xs">
-          {dayHeading(payload.date)}
+          {dayHeading(date)}
         </span>
       </div>
       <div
         className={`${open ? 'block' : 'hidden'} max-h-[70vh] space-y-4 overflow-y-auto p-4 pt-0 lg:block lg:max-h-none lg:overflow-visible`}
       >
-        {readOnly && (
-          <p className="bg-muted text-muted-foreground rounded-md p-2 text-xs">
-            筆記是唯讀的：未設定可寫入的 <code>MEMORIES_NOTES_DIR</code>。
+        {payload.parseError ? (
+          <p className="bg-destructive/10 text-destructive rounded-md p-2 text-xs">
+            這一天的筆記檔格式有誤，請在 Obsidian 修正後重新整理。
           </p>
+        ) : (
+          readOnly && (
+            <p className="bg-muted text-muted-foreground rounded-md p-2 text-xs">
+              筆記是唯讀的：未設定可寫入的 <code>MEMORIES_NOTES_DIR</code>。
+            </p>
+          )
         )}
         {conflict && (
           <ConflictView
@@ -87,7 +94,7 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
           value={draft.body}
           disabled={locked}
           rows={6}
-          onChange={(e) => edit((d) => ({ ...d, body: e.target.value }))}
+          onChange={(e) => edit(date, (d) => ({ ...d, body: e.target.value }))}
           className="border-input bg-background focus-visible:ring-ring w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60"
         />
         <ul className="space-y-3">
@@ -100,11 +107,11 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
               textareaRef={(el) => {
                 refs.current[i] = el;
               }}
-              onBody={(body) => setAnnotation(i, { body })}
+              onBody={(body) => setAnnotation(date, i, { body })}
               onReattach={() => setReattach(i)}
               onDelete={() => {
                 setReattach(undefined);
-                edit((d) => ({
+                edit(date, (d) => ({
                   ...d,
                   annotations: d.annotations.filter((_, j) => j !== i),
                 }));

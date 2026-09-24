@@ -22,6 +22,20 @@ export function isEmptyNote(
   return !note.body.trim() && note.annotations.length === 0 && !note.cover;
 }
 
+const OWN_KEYS = new Set(['date', 'daily', 'tags', 'cover']);
+
+const tagsOf = (tags: unknown): unknown[] =>
+  Array.isArray(tags) ? tags : typeof tags === 'string' ? [tags] : [];
+
+export function hasUserFrontmatter(
+  frontmatter: Record<string, unknown>,
+): boolean {
+  return (
+    Object.keys(frontmatter).some((key) => !OWN_KEYS.has(key)) ||
+    tagsOf(frontmatter['tags']).some((t) => t !== 'memories')
+  );
+}
+
 const trimBlankLines = (text: string) =>
   text
     .replace(/^\s*\n/, '')
@@ -61,9 +75,12 @@ function parseAnnotation(block: string): Annotation {
 export function parseNote(text: string, date: string): DayNote {
   const normalized = text.replace(/\r\n/g, '\n');
   const match = FRONTMATTER.exec(normalized);
-  const data = match
-    ? ((parse(match[1], { schema: 'core' }) ?? {}) as Record<string, unknown>)
+  const data: unknown = match
+    ? (parse(match[1], { schema: 'core' }) ?? {})
     : {};
+  if (typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('frontmatter is not a mapping');
+  }
   const rest = match ? normalized.slice(match[0].length) : normalized;
 
   const lines = rest.split('\n');
@@ -76,7 +93,7 @@ export function parseNote(text: string, date: string): DayNote {
     .filter((block) => block.startsWith('### '))
     .map(parseAnnotation);
 
-  const { cover, ...frontmatter } = data;
+  const { cover, ...frontmatter } = data as Record<string, unknown>;
   const note: DayNote = {
     date,
     frontmatter,
@@ -103,9 +120,7 @@ export function serializeNote(note: DayNote): string {
   const extra = Object.fromEntries(
     Object.entries(rest).filter(([key]) => key !== 'date' && key !== 'daily'),
   );
-  const otherTags = Array.isArray(tags)
-    ? tags.filter((t) => t !== 'memories')
-    : [];
+  const otherTags = tagsOf(tags).filter((t) => t !== 'memories');
   const data: Record<string, unknown> = {
     date: note.date,
     daily: `[[daily-notes/${note.date}]]`,

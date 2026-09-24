@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -18,6 +18,15 @@ it('is read-only and empty without a store', () => {
     version: '',
     writable: false,
   });
+});
+
+it('marks an unparseable file read-only', () => {
+  root = mkdtempSync(join(tmpdir(), 'notes-'));
+  mkdirSync(join(root, '2025'));
+  writeFileSync(join(root, '2025', '2025-11-01.md'), '---\nmood: [\n---\n');
+  const payload = notePayload(createNotesStore(root), '2025-11-01', []);
+  expect(payload.writable).toBe(false);
+  expect(payload.parseError).toBe(true);
 });
 
 it('resolves annotations against the day', () => {

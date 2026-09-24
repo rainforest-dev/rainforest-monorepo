@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { emptyNote, isEmptyNote, parseNote, serializeNote } from './format.ts';
+import {
+  emptyNote,
+  hasUserFrontmatter,
+  isEmptyNote,
+  parseNote,
+  serializeNote,
+} from './format.ts';
 import type { DayNote } from './types.ts';
 
 const NOTE: DayNote = {
@@ -71,6 +77,15 @@ describe('serializeNote', () => {
     );
   });
 
+  it('keeps a single string tag', () => {
+    const text = serializeNote({
+      ...NOTE,
+      frontmatter: { tags: 'trip' },
+      annotations: [],
+    });
+    expect(text).toContain('tags:\n  - memories\n  - trip\n');
+  });
+
   it('adds the memories tag when missing', () => {
     const text = serializeNote({ ...NOTE, frontmatter: {}, annotations: [] });
     expect(text).toContain('tags:\n  - memories\n');
@@ -121,10 +136,37 @@ describe('parseNote', () => {
     expect(serializeNote(reparsed)).toBe(serialized);
   });
 
+  it('throws on frontmatter that is not a mapping', () => {
+    expect(() => parseNote('---\njust text\n---\n', '2025-11-01')).toThrow();
+    expect(() => parseNote('---\nmood: [good\n---\n', '2025-11-01')).toThrow();
+  });
+
   it('parses text without frontmatter', () => {
     const note = parseNote('只有正文', '2025-11-01');
     expect(note.frontmatter).toEqual({});
     expect(note.body).toBe('只有正文');
+  });
+});
+
+describe('hasUserFrontmatter', () => {
+  it('ignores the keys the app writes and a memories-only tag list', () => {
+    expect(hasUserFrontmatter({})).toBe(false);
+    expect(
+      hasUserFrontmatter({
+        date: '2025-11-01',
+        daily: '[[daily-notes/2025-11-01]]',
+        tags: ['memories'],
+        cover: 'X',
+      }),
+    ).toBe(false);
+    expect(hasUserFrontmatter({ tags: 'memories' })).toBe(false);
+    expect(hasUserFrontmatter({ tags: [] })).toBe(false);
+  });
+
+  it('counts any other key or tag', () => {
+    expect(hasUserFrontmatter({ mood: 'good' })).toBe(true);
+    expect(hasUserFrontmatter({ tags: ['memories', 'trip'] })).toBe(true);
+    expect(hasUserFrontmatter({ tags: 'trip' })).toBe(true);
   });
 });
 

@@ -12,12 +12,22 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { emptyNote, isEmptyNote, parseNote, serializeNote } from './format.ts';
+import {
+  emptyNote,
+  hasUserFrontmatter,
+  isEmptyNote,
+  parseNote,
+  serializeNote,
+} from './format.ts';
 import type { DayNote } from './types.ts';
 
 export type NoteVersion = string;
 export type NoteEdit = Pick<DayNote, 'body' | 'annotations' | 'cover'>;
-export type ReadResult = { note: DayNote; version: NoteVersion };
+export type ReadResult = {
+  note: DayNote;
+  version: NoteVersion;
+  parseError?: true;
+};
 export type WriteResult =
   { ok: true; version: NoteVersion } | { ok: false; current: ReadResult };
 export type NotesStore = {
@@ -30,6 +40,13 @@ export type NotesStore = {
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const FILE = /^(\d{4}-\d{2}-\d{2})\.md$/;
+
+export class UnreadableNoteError extends Error {
+  constructor(date: string) {
+    super(`note for ${date} cannot be parsed`);
+    this.name = 'UnreadableNoteError';
+  }
+}
 
 const versionOf = (text: string) =>
   createHash('sha256').update(text).digest('hex').slice(0, 16);
@@ -53,7 +70,12 @@ export function createNotesStore(root: string): NotesStore {
     const path = pathOf(date);
     if (!existsSync(path)) return { note: emptyNote(date), version: '' };
     const text = readFileSync(path, 'utf8');
-    return { note: parseNote(text, date), version: versionOf(text) };
+    const version = versionOf(text);
+    try {
+      return { note: parseNote(text, date), version };
+    } catch {
+      return { note: emptyNote(date), version, parseError: true };
+    }
   };
 
   return {
@@ -62,11 +84,12 @@ export function createNotesStore(root: string): NotesStore {
     read,
     write(date, edit, expected) {
       const current = read(date);
+      if (current.parseError) throw new UnreadableNoteError(date);
       if (current.version !== expected) return { ok: false, current };
       const path = pathOf(date);
       const next: DayNote = { ...current.note, ...edit, date };
       if (!edit.cover) delete next.cover;
-      if (isEmptyNote(next)) {
+      if (isEmptyNote(next) && !hasUserFrontmatter(next.frontmatter)) {
         rmSync(path, { force: true });
         return { ok: true, version: '' };
       }

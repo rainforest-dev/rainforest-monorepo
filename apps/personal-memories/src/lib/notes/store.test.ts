@@ -10,7 +10,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { createNotesStore } from './store.ts';
+import { createNotesStore, UnreadableNoteError } from './store.ts';
 
 let root: string;
 beforeEach(() => {
@@ -83,6 +83,70 @@ describe('NotesStore', () => {
     );
     expect(result).toEqual({ ok: true, version: '' });
     expect(existsSync(join(root, '2025', '2025-11-01.md'))).toBe(false);
+  });
+
+  it('deletes an emptied file whose tags are only memories', () => {
+    const store = createNotesStore(root);
+    const path = join(root, '2025', '2025-11-01.md');
+    store.write('2025-11-01', { ...EDIT, cover: 'X' }, '');
+    writeFileSync(
+      path,
+      readFileSync(path, 'utf8').replace(
+        'tags:\n  - memories',
+        'tags: memories',
+      ),
+    );
+    const { version } = store.read('2025-11-01');
+    expect(
+      store.write('2025-11-01', { body: '', annotations: [] }, version),
+    ).toEqual({
+      ok: true,
+      version: '',
+    });
+    expect(existsSync(path)).toBe(false);
+  });
+
+  it('keeps a frontmatter-only file when user keys remain', () => {
+    const store = createNotesStore(root);
+    const path = join(root, '2025', '2025-11-01.md');
+    store.write('2025-11-01', { ...EDIT, cover: 'X' }, '');
+    writeFileSync(
+      path,
+      readFileSync(path, 'utf8').replace('tags:', 'mood: good\ntags:'),
+    );
+    const { version } = store.read('2025-11-01');
+    const result = store.write(
+      '2025-11-01',
+      { body: '', annotations: [] },
+      version,
+    );
+    expect(result.ok).toBe(true);
+    const text = readFileSync(path, 'utf8');
+    expect(text).toContain('mood: good');
+    expect(text).not.toContain('下雨');
+    expect(text).not.toContain('cover:');
+    expect(store.read('2025-11-01').version).toBe(
+      (result as { version: string }).version,
+    );
+  });
+
+  it('reads malformed frontmatter as a read-only empty day and never writes it', () => {
+    const store = createNotesStore(root);
+    const path = join(root, '2025', '2025-11-01.md');
+    store.write('2025-11-01', EDIT, '');
+    const broken = '---\nmood: [good\n---\n\n手寫的\n';
+    writeFileSync(path, broken);
+
+    const read = store.read('2025-11-01');
+    expect(read.parseError).toBe(true);
+    expect(read.note.body).toBe('');
+    expect(() =>
+      store.write('2025-11-01', { ...EDIT, body: '覆蓋' }, read.version),
+    ).toThrow(UnreadableNoteError);
+    expect(() =>
+      store.write('2025-11-01', { body: '', annotations: [] }, read.version),
+    ).toThrow(UnreadableNoteError);
+    expect(readFileSync(path, 'utf8')).toBe(broken);
   });
 
   it('rejects malformed dates', () => {
