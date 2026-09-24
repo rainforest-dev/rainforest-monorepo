@@ -8,7 +8,9 @@ import {
   cn,
   inputGroupAddonVariants,
   inputGroupButtonVariants,
+  sheetContentVariants,
   tabsListVariants,
+  toggleVariants,
 } from './index.js';
 
 const files = readdirSync(__dirname)
@@ -26,10 +28,19 @@ describe('recipes', () => {
       'order-last',
     );
     expect(inputGroupButtonVariants({ size: 'xs' })).toContain('h-6');
+    expect(toggleVariants({ variant: 'outline' })).toContain('border-input');
+    expect(sheetContentVariants({ side: 'bottom' })).toContain('rounded-t-xl');
   });
 
   it('merge conflicting Tailwind classes with the last one winning', () => {
     expect(cn('px-2 py-1', 'px-4')).toBe('py-1 px-4');
+  });
+
+  it('treat the type-scale sizes as font sizes, not text colours', () => {
+    expect(cn('text-meta', 'text-muted-foreground')).toBe(
+      'text-meta text-muted-foreground',
+    );
+    expect(cn('text-sm', 'text-meta')).toBe('text-meta');
   });
 
   it.each(files)('%s stays framework-free', (file) => {
