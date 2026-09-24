@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Monorepo Structure
 
-Nx 23.0.0 monorepo using pnpm workspaces (pnpm@11.7.0):
+Nx 23.1.0 monorepo using pnpm workspaces (pnpm@11.7.0):
 
 - **apps/personal-website** - Astro 6 + SSR personal website (primary app), deployed on Vercel
 - **apps/personal-liff** - Next.js 16 LINE LIFF app (dev port 9000, self-signed HTTPS via `--experimental-https`)
@@ -248,7 +248,7 @@ pnpm format:check
 pnpm nx affected -t lint test typecheck
 ```
 
-Uses Nx Cloud with 3 distributed agents (`linux-medium-js`) and caches the pnpm store via `actions/setup-node` with `cache: 'pnpm'`.
+Caches the pnpm store via `actions/setup-node` with `cache: 'pnpm'`. Nx Cloud distribution across 3 `linux-medium-js` agents is opt-in: it runs only when the repository variable `NX_CLOUD_ENABLED` is `true`, and no such variable is set, so CI runs without Nx Cloud.
 
 ## Common Workflows
 
