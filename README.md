@@ -54,9 +54,8 @@ graph LR
 ## How changes get in
 
 Most commits here are written by an agent. In the ninety days to 2026-09-22 that was 240 commits
-on `main`, 203 of them conventional, arriving through 159 merged pull requests. Volume like that is only
-reviewable if the gates are identical on every path in, so the hooks mirror CI rather than
-inventing rules of their own.
+on `main`, 203 of them conventional. Volume like that is only reviewable if the gates are
+identical on every path in, so the hooks mirror CI rather than inventing rules of their own.
 
 ```mermaid
 flowchart TD
