@@ -1,7 +1,8 @@
 # Shared React UI library — design spec
 
 Task: T-20260924120001, "rainforest-ui — one shared React component library, so /design-sync ships
-what the apps use". This spec covers phase 1 (design). Nothing here is implemented yet.
+what the apps use". Written as the phase 1 design, then updated to what was built on the same
+branch; §10 records the design-sync version it was checked against and §11 the decisions taken.
 
 The goal is one React component library that the apps render and that `/design-sync` can later
 upload to the "rainforest.tools Design System" Claude Design project. The sync accepts a React
@@ -12,24 +13,24 @@ and one compiled CSS with every token, class and font inside the package.
 
 ### 1.1 Component inventory
 
-| Component | personal-calibre (React, `@base-ui/react`) | personal-website (Vue, `reka-ui`) | Hand-rolled elsewhere |
-| --- | --- | --- | --- |
-| Button + `buttonVariants` | yes, 6 variants, 8 sizes, `h-8` default | yes, 4 variants, 2 sizes, `h-10` default | portfolio `button()` helper (5 variants incl. `danger`), rss-manager (3 places) |
-| Badge | yes | yes | rss-manager status pills |
-| Input | yes | yes | rss-manager (2 inputs) |
-| Textarea | yes | yes | |
-| Popover | yes | yes | |
-| Select | yes | yes | |
-| InputGroup | yes | | |
-| Card | yes | | |
-| Dialog | yes (used by Command) | | |
-| Command (`cmdk`) | yes | | |
-| Toaster (`sonner`) | yes | | |
-| DropdownMenu | | yes | |
-| Tabs | | yes | |
-| Switch | | | portfolio `Switch.tsx` |
-| Table | | | rss-manager `SourceTable` |
-| Alert (inline notice) | | | rss-manager `bg-warning/15`, `bg-destructive/15` notices |
+| Component                 | personal-calibre (React, `@base-ui/react`) | personal-website (Vue, `reka-ui`)        | Hand-rolled elsewhere                                                           |
+| ------------------------- | ------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------- |
+| Button + `buttonVariants` | yes, 6 variants, 8 sizes, `h-8` default    | yes, 4 variants, 2 sizes, `h-10` default | portfolio `button()` helper (5 variants incl. `danger`), rss-manager (3 places) |
+| Badge                     | yes                                        | yes                                      | rss-manager status pills                                                        |
+| Input                     | yes                                        | yes                                      | rss-manager (2 inputs)                                                          |
+| Textarea                  | yes                                        | yes                                      |                                                                                 |
+| Popover                   | yes                                        | yes                                      |                                                                                 |
+| Select                    | yes                                        | yes                                      |                                                                                 |
+| InputGroup                | yes                                        |                                          |                                                                                 |
+| Card                      | yes                                        |                                          |                                                                                 |
+| Dialog                    | yes (used by Command)                      |                                          |                                                                                 |
+| Command (`cmdk`)          | yes                                        |                                          |                                                                                 |
+| Toaster (`sonner`)        | yes                                        |                                          |                                                                                 |
+| DropdownMenu              |                                            | yes                                      |                                                                                 |
+| Tabs                      |                                            | yes                                      |                                                                                 |
+| Switch                    |                                            |                                          | portfolio `Switch.tsx`                                                          |
+| Table                     |                                            |                                          | rss-manager `SourceTable`                                                       |
+| Alert (inline notice)     |                                            |                                          | rss-manager `bg-warning/15`, `bg-destructive/15` notices                        |
 
 Facts that shape the design:
 
@@ -51,12 +52,12 @@ Facts that shape the design:
 
 ### 1.2 Theme and CSS per app
 
-| App | Tailwind entry | Extras |
-| --- | --- | --- |
-| personal-website | `src/app.css`, `@plugin .../shadcn` | `@source` on `libs/personal-portfolio/src`, forms + typography plugins, Lora + Inter from Google Fonts |
-| personal-calibre | `src/app/globals.css`, `@plugin .../shadcn` | `tw-animate-css`, `shadcn/tailwind.css` (the `data-open`/`data-closed`/... custom variants), `@theme inline` radius scale (`--radius * 0.6..2.6`), Inter via `next/font` |
-| rss-manager | `src/styles/global.css`, `@plugin .../shadcn` | Inter from Google Fonts |
-| personal-memories | `src/styles/global.css`, `@plugin .../shadcn` | system Inter, custom text scale |
+| App               | Tailwind entry                                | Extras                                                                                                                                                                   |
+| ----------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| personal-website  | `src/app.css`, `@plugin .../shadcn`           | `@source` on `libs/personal-portfolio/src`, forms + typography plugins, Lora + Inter from Google Fonts                                                                   |
+| personal-calibre  | `src/app/globals.css`, `@plugin .../shadcn`   | `tw-animate-css`, `shadcn/tailwind.css` (the `data-open`/`data-closed`/... custom variants), `@theme inline` radius scale (`--radius * 0.6..2.6`), Inter via `next/font` |
+| rss-manager       | `src/styles/global.css`, `@plugin .../shadcn` | Inter from Google Fonts                                                                                                                                                  |
+| personal-memories | `src/styles/global.css`, `@plugin .../shadcn` | system Inter, custom text scale                                                                                                                                          |
 
 The plugin's own radius scale is `sm = --radius - 4px`, `md = - 2px`, `lg = --radius`,
 `xl = + 4px`. Calibre overrides it with multipliers, so the same class yields a different radius in
@@ -83,13 +84,13 @@ All four apps and `libs/personal-portfolio` take `react`/`react-dom` from the pn
 Package `@rainforest-dev/rainforest-react`, Nx project `rainforest-react`. `libs/rainforest-ui`
 stays as it is, and the new lib consumes its token plugin at build time.
 
-| | React entry inside `rainforest-ui` | New lib `rainforest-react` (chosen) |
-| --- | --- | --- |
-| Storybook | One Storybook has one framework. Lit uses `web-components-vite`, React needs `react-vite`, so a second Storybook config or composition is needed in one project. | Its own `react-vite` Storybook. `/design-sync` can point at it directly. |
-| Published package | Adds React, Base UI, cmdk, sonner and lucide to a Lit package that `nx release` publishes. | Lit consumers are unaffected. |
-| Build | The glob-entry, CJS, `ssr: true` build has to be carved around a React entry that must preserve `'use client'`. | A build config written for this one purpose: ESM, per-module output, compiled CSS. |
-| Docker | Images would have to build the full Lit library to get React components. | Images build one small lib (see §7). |
-| Tokens | Same package, so no cross-package token reference. | Tokens come from `rainforest-ui` at build time and are compiled into `dist/styles.css`. The shipped CSS reaches outside nothing. |
+|                   | React entry inside `rainforest-ui`                                                                                                                               | New lib `rainforest-react` (chosen)                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Storybook         | One Storybook has one framework. Lit uses `web-components-vite`, React needs `react-vite`, so a second Storybook config or composition is needed in one project. | Its own `react-vite` Storybook. `/design-sync` can point at it directly.                                                         |
+| Published package | Adds React, Base UI, cmdk, sonner and lucide to a Lit package that `nx release` publishes.                                                                       | Lit consumers are unaffected.                                                                                                    |
+| Build             | The glob-entry, CJS, `ssr: true` build has to be carved around a React entry that must preserve `'use client'`.                                                  | A build config written for this one purpose: ESM, per-module output, compiled CSS.                                               |
+| Docker            | Images would have to build the full Lit library to get React components.                                                                                         | Images build one small lib (see §7).                                                                                             |
+| Tokens            | Same package, so no cross-package token reference.                                                                                                               | Tokens come from `rainforest-ui` at build time and are compiled into `dist/styles.css`. The shipped CSS reaches outside nothing. |
 
 The cost of the new lib is one more project, `tsconfig` and Storybook to maintain, plus a build
 dependency on `rainforest-ui` (`dependsOn: ["^build"]`).
@@ -127,17 +128,33 @@ libs/rainforest-react/
   "files": ["dist", "!**/*.tsbuildinfo"],
   "peerDependencies": { "react": "catalog:", "react-dom": "catalog:" },
   "dependencies": {
-    "@base-ui/react": "^1.4.0", "cmdk": "^1.1.1", "sonner": "^2.0.7", "lucide-react": "^1.8.0",
-    "class-variance-authority": "catalog:", "clsx": "^2.1.1", "tailwind-merge": "catalog:",
+    "@base-ui/react": "^1.4.0",
+    "cmdk": "^1.1.1",
+    "sonner": "^2.0.7",
+    "lucide-react": "^1.8.0",
+    "class-variance-authority": "catalog:",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "catalog:",
     "tw-animate-css": "^1.4.0"
   },
-  "devDependencies": { "@rainforest-dev/rainforest-ui": "workspace:*",
-    "@fontsource-variable/inter": "^5.3.0", "@fontsource-variable/lora": "^5.3.0",
-    "@fontsource-variable/jetbrains-mono": "^5.3.0" }
+  "devDependencies": {
+    "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/lora": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@storybook/react-vite": "10.5.3",
+    "@tailwindcss/vite": "catalog:",
+    "typescript": "catalog:",
+    "vite-plugin-dts": "~4.5.4",
+    "vitest": "4.1.4"
+  }
 }
 ```
 
-Ranges match calibre's `package.json`; the fontsource ones are the current 5.3.0 releases.
+Ranges match calibre's `package.json`; the fontsource ones are the current 5.3.0 releases. The
+build toolchain (`vite-plugin-dts`, `vitest`, `typescript`) is declared on the lib itself so the
+calibre and rss-manager Docker images, which install only the app's dependency closure, can run
+`vite build` in the lib. `conventions.md` at the lib root holds the brand and usage rules.
 
 Rules for the source:
 
@@ -158,7 +175,7 @@ Rules for the source:
   components (DropdownMenu, Tabs) are rebuilt from shadcn's `base-nova` React sources, and Switch,
   Table and Alert likewise.
 
-Component list for the first release (see Open decision 3): Button, Badge, Input, Textarea,
+Component list for the first release (decision 3): Button, Badge, Input, Textarea,
 InputGroup, Card, Dialog, Command, Popover, Select, Toaster, DropdownMenu, Tabs, Switch, Table,
 Alert. Sixteen components, each with its sub-parts (`CardHeader`, `SelectItem`, ...) exported.
 
@@ -176,158 +193,188 @@ without Tailwind. It is built from `src/styles.css`:
 @import '@fontsource-variable/jetbrains-mono';
 @import './tailwind.css';
 @plugin '@rainforest-dev/rainforest-ui/tailwindcss/shadcn';
-@source './';
 
 @theme {
   --radius: 0.625rem;
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Lora Variable', serif;
+  --font-serif: 'Lora Variable', ui-serif, Georgia, serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 }
 ```
 
 The output holds the `:root`, `[data-scheme='light'|'dark']` and `@supports` fallback blocks with
-`--seed` as plain custom properties, every utility the components use, the preflight, and
-`@font-face` rules whose `woff2` files Vite copies into `dist/assets/`. It has no `@import` and no
-URL outside `dist/`. It is emitted as a separate Vite CSS entry so `index.js` never imports it.
+`--seed` as plain custom properties, every utility the components use, the preflight, and the
+`@font-face` rules for the three families. Vite's library mode inlines every asset, so the `woff2`
+files land in the CSS as `data:` URIs (about 690 KB in total, all subsets). It has no `@import` and
+no URL outside the file. It is a separate Vite CSS entry, so `index.js` never imports it.
 
 `dist/tailwind.css` is a Tailwind source partial for apps that already compile Tailwind with the
 shadcn plugin. It is copied verbatim and contains:
 
-- `@source './';`, which resolves relative to the file, so the app's Tailwind scans the lib's
-  `dist/*.js` for classes with no path in the app;
-- the `data-open`, `data-closed`, `data-checked`, `data-unchecked`, `data-selected` (and the other
-  `shadcn/tailwind.css`) custom variants, and the `tw-animate-css` import, which is why
-  `tw-animate-css` is a runtime dependency of the lib.
+- `@source './components';`, which resolves relative to the file, so the app's Tailwind scans the
+  lib's `dist/components/*.js` for classes with no path in the app (and `src/components` when
+  `styles.css` compiles);
+- the `data-open`, `data-closed`, `data-checked`, `data-unchecked`, `data-selected`,
+  `data-disabled`, `data-active`, `data-horizontal`, `data-vertical` custom variants and the
+  `no-scrollbar` utility from `shadcn/tailwind.css`, plus the `tw-animate-css` import, which is why
+  `tw-animate-css` is a runtime dependency of the lib;
+- `--font-heading: var(--font-sans)` (used by `CardTitle` and `DialogTitle`);
+- the radius scale as `@theme static` (`sm`/`md`/`lg`/`xl` on the plugin's `-4px/-2px/0/+4px`
+  offsets). Components write `rounded-[min(var(--radius-md),12px)]`, and Tailwind only emits theme
+  variables a utility asks for, so without `static` that arbitrary value resolved to nothing and
+  the compact buttons rendered square.
 
-Apps `@import '@rainforest-dev/rainforest-react/tailwind.css'` after their `@plugin` line and do not
-import `styles.css`. That avoids a second preflight and a second copy of every token. Apps keep
-loading fonts their own way.
+Apps `@import '@rainforest-dev/rainforest-react/tailwind.css'` directly after
+`@import 'tailwindcss'` and do not import `styles.css`. That avoids a second preflight and a second
+copy of every token. Apps keep loading fonts their own way.
 
 Radius: the lib uses the plugin's scale. Calibre drops its `@theme inline` radius multipliers so a
-component renders the same radius in every app (Open decision 4).
+component renders the same radius in every app (decision 4).
 
 ## 5. Storybook
 
-- `libs/rainforest-react/.storybook/main.ts` uses `@storybook/react-vite`, pinned to the root
-  `storybook` version (10.5.3) and added at the workspace root next to
-  `@storybook/web-components-vite`, and `@storybook/addon-docs`, both wrapped
-  in `getAbsolutePath()` as the repo requires. The `@nx/storybook` plugin infers `storybook`,
+- `libs/rainforest-react/.storybook/main.ts` uses `@storybook/react-vite` 10.5.3 (a devDependency
+  of the lib, pinned to the root `storybook` version) and `@storybook/addon-docs`, both wrapped in
+  `getAbsolutePath()` as the repo requires. It points the builder at a minimal
+  `.storybook/vite.config.ts` (just `@tailwindcss/vite`) so Storybook does not inherit the library
+  build's `dts` and `preserveModules` settings. The `@nx/storybook` plugin infers `storybook`,
   `build-storybook` and `test-storybook`.
-- `preview.ts` imports `../src/styles.css`. A global `scheme` toolbar item (`light`, `dark`,
-  `side-by-side`, initial `side-by-side`) drives a decorator that renders the story inside
-  `<div data-scheme="light">` and/or `<div data-scheme="dark">` with `bg-background
-  text-foreground`. Every story therefore renders in both schemes by default on the shared seed.
-- A second global, `seed`, sets `--shadcn-seed-override` on the wrapper so a reviewer can check
-  that a component re-themes. It defaults to unset, which is the `#66b2b2` teal.
-- One `stories/<Name>.stories.tsx` per component: a `Default` story, one story per `variant` and
-  `size` value, and the states that change styling (disabled, invalid, open for overlays). Overlay
-  stories render open (`defaultOpen`) so a static render shows them. Types come from
-  `@storybook/react-vite`.
+- `preview.tsx` imports `../src/styles.css`. One scheme at a time: a global `scheme` toolbar item
+  (`light` | `dark`, initial `light`) drives a decorator that renders the story inside one
+  `<div data-scheme>` with `bg-background text-foreground`, and mirrors the scheme onto `<html>` so
+  portalled overlays (Popover, Select, Dialog, DropdownMenu, toasts) pick it up too. Side by side
+  was dropped: `/design-sync` grades each story as one render and a Claude Design card shows one
+  story full-bleed, so a two-panel frame would be graded and shipped as the component.
+- Every story file also exports a `Dark` story (`globals: { scheme: 'dark' }`), so both schemes are
+  reachable as stories, not only through the toolbar.
+- A second global, `seed`, sets `--shadcn-seed-override` so a reviewer can check that a component
+  re-themes. It defaults to unset, which is the `#66b2b2` teal.
+- One `stories/<Name>.stories.tsx` per component, titled `<Group>/<ExportName>` (`Actions/Button`,
+  `Forms/Select`, `Overlays/Dialog`, ...), because the sync maps a story title's last segment to the
+  export name and the one before it to the card group. Each has a `Default` story, stories for the
+  variants and sizes, and the states that change styling. Overlay stories render open
+  (`defaultOpen`) so a static render shows them. Stories import from `../src`, which the sync
+  redirects to its bundle.
 - No `@dsCard` comments. Preview cards are generated by `/design-sync`, which is out of scope here.
 
 ## 6. Tests
 
 - Vitest 4 with jsdom and `@testing-library/react`, as `libs/personal-portfolio` does. Behaviour
-  tests only where there is behaviour: Switch toggles `aria-checked`, Command filters items, Dialog
-  and Popover open and close, Select picks a value, `Toaster` follows `data-scheme`.
-- A contract test (`src/contract.test.ts`) that reads the source tree and fails if:
-  - a component exported from `index.ts` has no matching story file;
-  - any file under `src/` imports `next`, `next-themes`, `astro`, `vue` or `@astrojs/*`;
-  - any class string contains `dark:`, a raw palette colour (`gray-`, `zinc-`, `black`, `white`,
-    ...) or a hex literal.
-- A dist test (`src/dist.test.ts`, the lib's `test` target gains `dependsOn: ["build"]`) that fails
-  if `dist/styles.css` lacks `--seed`, `[data-scheme=dark]` or an `@font-face` for each of the three
-  families, or contains `@import` or a URL outside `dist/`; and if `dist/index.js` does not export
-  every component.
-- `test-storybook` renders every story. It is not in CI's `affected` targets; run it locally before
-  each PR.
-- Apps: calibre's Playwright suite (filter, tag editing, search, bulk delivery) exercises Popover,
-  Command, Select, Dialog and Toaster and must pass unchanged. personal-website's CLAUDE.md rule
-  applies: load a page from `pnpm nx dev personal-website` after the portfolio migration.
+  tests only where there is behaviour: Switch toggles `aria-checked`, Command filters by the typed
+  query, Dialog opens from its trigger, `Toaster` follows a forced `data-scheme` on `<html>`.
+  `src/test-setup.ts` stubs `ResizeObserver` and `matchMedia`, which jsdom lacks and cmdk and
+  sonner call.
+- A contract test (`src/contract.test.ts`) that fails if one of the sixteen components is missing
+  from the single entry or has no story file, if any component file imports `next`, `next-themes`,
+  `astro`, `vue` or `@astrojs/*`, or if any class string contains `dark:`, a raw palette colour
+  (`gray-500`, `black`, `white`, ...) or a hex literal.
+- A dist test (`src/dist.test.ts`; the lib's `test` target has `dependsOn: ["build"]`) that fails if
+  `dist/styles.css` lacks `--seed`, the override hook, either `[data-scheme]` scope or an
+  `@font-face` for each of the three families, or contains `@import` or a non-`data:` URL; and if
+  `'use client'` is missing from `components/button.js` or present on the variant recipes or
+  `index.js`.
+- `build-storybook` must pass. `test-storybook` is not in CI's `affected` targets and was not run.
+- Apps: calibre's Playwright suite exercises Popover, Command, Select, Dialog and Toaster. On
+  `origin/main` 7 of its 29 tests already fail in this environment (the author/tag combobox tests
+  type a name, but the items' cmdk `value` is the numeric id; bulk delivery; platform filter; back
+  navigation; tag removal; existing tags). The migrated app fails the same 7 and passes the other 22. personal-website's CLAUDE.md rule applies: pages were loaded from
+  `pnpm nx dev personal-website`, not only built.
 
-Gate for every PR: `pnpm nx affected -t lint test typecheck build` green.
+Gate: `pnpm nx affected -t lint test typecheck build` green, plus `build-storybook` for the lib.
 
 ## 7. Migration order
 
-Each step is its own PR off `main`, so a regression is isolated to one app.
+The owner asked for one draft PR, so the steps below are commits on one branch rather than
+separate PRs. Each commit leaves the workspace green.
 
-1. Lib: scaffold `libs/rainforest-react` (Nx generator for a Vite React library, then trimmed), port
-   the sixteen components, stories, tests, both CSS files. No app changes. Evidence: Storybook
-   screenshots, light and dark.
-2. personal-calibre: replace `@/components/ui/*` imports with `@rainforest-dev/rainforest-react`,
-   delete `src/components/ui/` (keep `lib/utils.ts`, app code uses its `cn`), drop
-   `next-themes`, `shadcn`, `@base-ui/react`, `cmdk`, `sonner` and `tw-animate-css` from the app when
-   they become unused, swap `shadcn/tailwind.css` for the lib's `tailwind.css`, drop the radius
-   override. Dockerfile: copy and build `libs/rainforest-react` (`vite build` in the lib) after the
-   `shadcn.ts` step. Calibre goes first because its copies are the lib's source, so the visual diff
-   is near zero.
-3. rss-manager: replace the hand-rolled buttons, inputs, table, status pills and notices in the four
-   islands. The segmented filters become `Button` with `aria-pressed` and the `secondary`/`ghost`
-   variants. Dockerfile as in step 2.
-4. personal-website: the portfolio islands in `libs/personal-portfolio` take Button and Switch from
-   the lib. `shared/ui.ts` keeps only `segment()` and `avatar()` if still used, `Switch.tsx` is
-   deleted. The portfolio's `danger` button becomes Button `variant="destructive"` if its look is
-   accepted, otherwise a new `destructive-outline` variant in the lib. The Vue components follow
-   Open decision 1.
-
-personal-memories is not in scope; it can adopt the lib in a later task (Open decision 5).
+1. Lib: `libs/rainforest-react` with the sixteen components, stories, tests, both CSS files and
+   `conventions.md`. No app changes.
+2. personal-calibre: imports move to `@rainforest-dev/rainforest-react`; `src/components/ui/` and
+   `components.json` are deleted (`lib/utils.ts` stays, app code uses its `cn`); `@base-ui/react`,
+   `cmdk`, `sonner`, `next-themes`, `shadcn`, `tw-animate-css` and `class-variance-authority` leave
+   the app; `shadcn/tailwind.css` gives way to the lib's partial; the radius multipliers go. The
+   Dockerfile builds the lib (`vite build`) after the `shadcn.ts` step.
+3. rss-manager: the four islands use Button, Input, Table, Badge and Alert. Status colours map to
+   the `success` / `info` / `warning` / `muted` / `destructive` variants; the segmented filters are
+   Buttons with `aria-pressed`. The Re-subscribe link keeps its warning fill through
+   `buttonVariants` plus token classes. Dockerfile as in step 2.
+4. personal-website: the portfolio islands in `libs/personal-portfolio` take `buttonVariants` and
+   `Switch` from the lib. `Switch.tsx` is deleted; `shared/ui.ts` keeps `cx`, `segment` and
+   `avatar`. The old sizes map `default → lg`, `sm → default`, `icon → icon-lg` so the islands keep
+   their height; `danger` maps to `destructive`. The Vue components stay (decision 1).
 
 ## 8. Visual evidence
 
-Captured with the `capture-evidence` skill and attached with `attach-pr-media`; captures are not
+Captured with Playwright into the session scratchpad and attached to the PR; captures are not
 committed.
 
-| PR | Before / after screens | Viewports | Schemes |
-| --- | --- | --- | --- |
-| Lib | Storybook, every component (after only, new feature) | 1280 | light, dark |
-| calibre | library grid, filter bar with Popover, Command and Select open, book detail, tag editor, a toast | 1280, 390 | light, dark |
-| rss-manager | source table, feed validator (valid and invalid), reading queue, topic list | 1280, 390 | light, dark |
-| personal-website | two case-study pages with buttons and a Switch | 1280, 390 | light, dark |
+| Surface               | Screens                                                           | Viewport  | Schemes     |
+| --------------------- | ----------------------------------------------------------------- | --------- | ----------- |
+| Lib (after only, new) | Storybook, every story                                            | 900 × 600 | light, dark |
+| calibre               | library grid, author filter open (Popover + Command), book detail | 1280      | light, dark |
+| rss-manager           | sources, topics, validate, queue                                  | 1280      | light, dark |
+| personal-website      | OfferState, ZapLiquidity (Switch), WalletStateMachine islands     | element   | light, dark |
 
-Calibre runs on the e2e fixture library (`apps/personal-calibre-e2e/src/fixtures`), rss-manager on a
-local registry copy. No private data leaves the machine.
+Calibre runs on the e2e fixture library, rss-manager on a scratch vault built from its own test
+fixtures. Mobile viewports were not captured.
 
 ## 9. Risks
 
-- `'use client'` lost in bundling. Vite drops module-level directives when it merges modules.
-  `preserveModules` avoids the merge; the dist test checks that `dist/components/button.js` starts
-  with the directive and `dist/components/button-variants.js` does not.
-- Tailwind class scanning. If the app's Tailwind misses the lib's `dist/`, components render
-  unstyled with no error. The `@source './'` in `tailwind.css` covers it; calibre's Playwright run
-  and the screenshots confirm it.
-- Look changes in personal-website and rss-manager. The shared recipes are `base-nova` (`h-8`
-  buttons, `rounded-lg`), while the website and portfolio use the older `h-10`, `rounded-md` look.
-  The migration changes those sizes unless Open decision 2 goes the other way.
-- Removing `dark:` from the calibre copies can shift dark-mode contrast of outline and destructive
-  buttons and inputs. The dark screenshots are the check.
-- Docker images: calibre and rss-manager must build the new lib inside the image, which adds its
-  `node_modules` install to the image build.
-- `/design-sync` is not exercised in this task. A first sync may still hit issues this spec cannot
-  test (secondary sources report React version mismatches and class-scanning gaps).
+- `'use client'` lost in bundling. `preserveModules` keeps it per file; the dist test guards it.
+- Tailwind class scanning. If an app's Tailwind misses the lib's `dist/`, components render
+  unstyled with no error. The `@source './components'` in the partial covers it; the screenshots
+  confirm it for all three apps.
+- Look changes. The shared recipes are `base-nova` (`h-8`, `rounded-lg`); rss-manager's hand-rolled
+  controls change shape, and calibre loses the `dark:` fills on inputs and outline buttons, so
+  those read slightly flatter in dark mode.
+- Docker images now build the lib inside the image. Neither image was built locally.
+- The release workflows for calibre and rss-manager trigger on their app paths only, so a
+  lib-only change does not rebuild their images.
+- `/design-sync` is not exercised here. The first sync may still hit issues this task cannot see.
 
-## 10. Open decisions
+## 10. Alignment with `/design-sync` (bundled skill 2.1.281)
 
-1. **personal-website's Vue components.** They cannot import React components, so the task's
-   "import from the library, delete local copies" cannot hold for them as written. Options: (a) keep
-   the Vue copies and scope the task to React consumers; (b) keep them but point them at recipes from
-   a framework-free `@rainforest-dev/rainforest-react/variants` entry so the look stays in one place;
-   (c) port the 12 Vue consumers to React islands. Recommendation: (a) in this task, and (b) as a
-   follow-up once the recipes settle. (c) is a redesign-sized change and the research note already
-   plans it per island after the Claude Design redraw.
-2. **Which look wins for shared recipes.** calibre's `base-nova` (compact, `h-8`) or the website's
-   `new-york` v3 (`h-10`). Recommendation: `base-nova`. It is current shadcn, matches Base UI, and
-   calibre is the densest app. The portfolio islands get a `size="lg"` where the taller button reads
-   better.
-3. **Scope beyond the existing copies.** Switch, Table and Alert are not copies today. Recommendation:
-   include them. rss-manager has nothing to swap without them, and the research note flags Table as
-   needed for the rss-manager redesign.
-4. **Radius scale.** Plugin scale (`-4px/-2px/0/+4px`) or calibre's multipliers.
-   Recommendation: plugin scale, since three of four apps already use it and it lives with the tokens.
-5. **personal-memories.** Recommendation: leave it out of this task and adopt the lib when the
-   memories v2 redesign is built, since that work rewrites its components anyway.
-6. **Package name.** `@rainforest-dev/rainforest-react` or `@rainforest-dev/rainforest-ui-react`.
-   Recommendation: `rainforest-react`, short and clearly separate from the Lit package.
-7. **Publishing.** Mark the new lib `private: true` or release it with `nx release` next to
-   `rainforest-ui`. Recommendation: `private: true` until after the first `/design-sync`; nothing
-   outside the monorepo consumes it.
+Checked against the design-sync skill bundled with Claude Code 2.1.281 (its `storybook/` and
+`non-storybook/` sub-skills and the converter scripts), not only the research note. What that
+version consumes, and how the lib meets it:
+
+- Source shape `storybook`: the converter bundles the package's built `dist/` entry into
+  `_ds_bundle.js` and uses the reference Storybook as the fidelity oracle. The lib has both, in
+  the package directory, with `.storybook/` next to `package.json`.
+- Entry: `exports['.']` and `module` point at `dist/index.js`; every component is a PascalCase value
+  export there. The `.d.ts` tree ships next to it.
+- Props: the converter looks up `<Name>Props` across the package's files for each component's API
+  contract. Every component exports one (`ButtonProps`, `SelectProps`, ...), and each has a one-line
+  JSDoc that feeds the synthesized `.prompt.md`.
+- CSS: the converter picks up `dist/styles.css` by default and rendered designs only receive the
+  `styles.css` import closure, so the file is self-contained: tokens, utilities and fonts, no
+  `@import`.
+- Fonts: `[FONT_MISSING]` fires for any family the CSS references without an `@font-face`. All three
+  are shipped inline.
+- Tokens: no sibling tokens package is needed (`tokensPkg` stays unset); the token plugin is compiled
+  into the stylesheet.
+- Storybook: one scheme per render, the scheme decorator bundles as the preview wrapper, story
+  titles resolve to export names without a `titleMap`, overlays render open. Overlay components
+  will likely want `cardMode: "single"` in the sync config.
+- Conventions: `libs/rainforest-react/conventions.md` is written so a later
+  `.design-sync/config.json` can point `readmeHeader` at it. `.design-sync/` itself is not created.
+- React: all consumers resolve React 19.2.3 from the catalog, and the lib keeps `react` and
+  `react-dom` as peers, so the bundle does not carry a second copy.
+
+## 11. Decisions
+
+The owner asked for every open decision to be resolved with the recommendation. Recorded here:
+
+1. **personal-website's Vue components** stay as Vue. They cannot render React components, and the
+   12 Vue consumers are a redesign-sized port. The website's React surface (the portfolio islands)
+   uses the lib. Follow-up: share the class recipes with the Vue copies, or port islands to React
+   after the Claude Design redraw.
+2. **Shared look**: calibre's `base-nova` (compact, `h-8`). The portfolio islands use `size="lg"`
+   where they were `h-10`.
+3. **Scope**: Switch, Table and Alert are included, plus `success` / `warning` / `info` / `muted`
+   variants on Badge and Alert for rss-manager's status colours.
+4. **Radius**: the token plugin's scale everywhere; calibre's multipliers are gone.
+5. **personal-memories** is out of scope. The lib has no app-specific assumptions, so it can adopt
+   it by adding the dependency and the partial import.
+6. **Package name**: `@rainforest-dev/rainforest-react`.
+7. **Publishing**: `private: true` until after the first `/design-sync`.
