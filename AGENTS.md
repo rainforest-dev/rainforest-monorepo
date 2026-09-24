@@ -36,15 +36,20 @@ PR #342 — the first PR this repo's loop opened unattended, which failed CI on
 `Check formatting` while `pnpm prettier --write` sat documented in CLAUDE.md,
 unrun. Formatting on the way in means that failure cannot be authored.
 
-`build` is deliberately absent from pre-push: CI runs it authoritatively, and
-building inside a git worktree corrupts the shared `.nx` cache. The hook also
+`build` is deliberately absent from the pre-push targets, because building
+inside a git worktree corrupts the shared `.nx` cache. `personal-website`'s
+`test` and `typecheck` depend on `^build`, so a push that affects it still
+builds its libraries. CI has no build step either; app builds run in the Vercel
+previews and the release workflows. The hook also
 hands over to the worktree's own copy of itself before running, because agent
 worktrees inherit an absolute `core.hooksPath` pointing at the main clone — the
 loop executor runs in worktrees here, so that is the normal case, not an edge
 one.
 
-To skip them for a genuine emergency: `git commit --no-verify`. Say so in the PR
-if you do; a silent skip and an absent gate look identical afterwards.
+In a genuine emergency, `git push --no-verify` skips the pre-push checks, which
+are the heavy gate; `git commit --no-verify` only skips the pre-commit
+formatter. Say so in the PR if you use either; a silent skip and an absent gate
+look identical afterwards.
 
 ## Attaching screenshots to a PR
 

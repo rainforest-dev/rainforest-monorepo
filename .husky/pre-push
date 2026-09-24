@@ -2,9 +2,7 @@
 # Mirror CI's checks against the whole push range, so commits that each pass
 # individually cannot collectively fail CI.
 #
-# `build` is deliberately not here: CI runs it authoritatively, and building
-# inside a git worktree corrupts the shared .nx cache. lint + typecheck + test
-# catch nearly everything before a push burns a runner.
+# No build target: building inside a git worktree corrupts the shared .nx cache.
 
 set -e
 
