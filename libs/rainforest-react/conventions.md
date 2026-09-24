@@ -16,7 +16,8 @@ Claude Design. A later `.design-sync/config.json` can point `readmeHeader` at th
 - Tints use opacity on a token: `bg-primary/10` for a selected row, `bg-success/15` for a status
   pill, `ring-foreground/10` for a hairline on an overlay.
 - The shipped stylesheet has `bg-`, `text-`, `border-` and `ring-` for every token above, plain and
-  at `/10`, `/15`, `/20`, `/50`, `/80` and `/90`. Other opacity steps are not in it.
+  at `/10`, `/15`, `/20`, `/50`, `/80` and `/90`. Other opacity steps are not in it. For SVG
+  charts it also has `fill-chart-1..5` and `stroke-chart-1..5`.
 
 ## Light and dark
 
@@ -67,7 +68,7 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
 - spacing: `gap`, `gap-x`, `gap-y`, `space-x`, `space-y`, `p*` and `m*` on steps 0, 0.5, 1, 1.5,
   2, 2.5, 3 to 12, 14, 16, 20, 24 and 32, plus `mx-auto`;
 - sizing: `w-`, `h-`, `size-`, `min-w-`, `min-h-` on steps 0 to 6, 8, 10, 12, 16, 20, 24,
-  32, 40, 48, 56, 64, 72, 80 and 96, `full`, `auto`, `fit`, `screen`,
+  32, 40, 48, 56, 64, 72, 80 and 96, `full`, `auto`, `fit`, plus `screen` for all but `size-`,
   `w-1/2`, `w-1/3`, `w-2/3`, `w-1/4`, `w-3/4`, and `max-w-xs` to `max-w-7xl`, `max-w-prose`;
 - shape: `rounded` to `rounded-4xl`, `rounded-full`, `border`, `border-t|b|l|r`, `ring-1`,
   `ring-2`, `shadow-xs` to `shadow-lg`.
