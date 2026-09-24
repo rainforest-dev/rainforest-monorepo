@@ -103,9 +103,12 @@ libs/rainforest-react/
   vite.config.ts
   src/
     index.ts                 re-exports every component, variant recipe and `cn`
-    lib/cn.ts
+    lib/cn.ts                re-export of `cn` from the recipes entry
     components/<name>.tsx    one file per component, `'use client'` where it needs the client
-    components/<name>-variants.ts   cva recipes, never `'use client'`
+    components/<name>-variants.ts   re-exports of the recipes, never `'use client'`
+
+libs/rainforest-ui/src/recipes/     React-free cva recipes and `cn`
+  button.ts badge.ts alert.ts tabs.ts input-group.ts cn.ts index.ts
     styles.css               Tailwind source for the compiled bundle CSS
     tailwind.css             Tailwind partial for apps that compile their own CSS
   stories/<Name>.stories.tsx
@@ -132,13 +135,10 @@ libs/rainforest-react/
     "cmdk": "^1.1.1",
     "sonner": "^2.0.7",
     "lucide-react": "^1.8.0",
-    "class-variance-authority": "catalog:",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "catalog:",
+    "@rainforest-dev/rainforest-ui": "workspace:*",
     "tw-animate-css": "^1.4.0"
   },
   "devDependencies": {
-    "@rainforest-dev/rainforest-ui": "workspace:*",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/lora": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
@@ -155,6 +155,15 @@ Ranges match calibre's `package.json`; the fontsource ones are the current 5.3.0
 build toolchain (`vite-plugin-dts`, `vitest`, `typescript`) is declared on the lib itself so the
 calibre and rss-manager Docker images, which install only the app's dependency closure, can run
 `vite build` in the lib. `conventions.md` at the lib root holds the brand and usage rules.
+
+The class recipes (`buttonVariants`, `badgeVariants`, `alertVariants`, `tabsListVariants`,
+`inputGroupAddonVariants`, `inputGroupButtonVariants`) and `cn` live in
+`libs/rainforest-ui/src/recipes`, exported as `@rainforest-dev/rainforest-ui/recipes`. That entry
+imports only `class-variance-authority`, `clsx` and `tailwind-merge`, so the website's Vue
+components can use it without pulling React (owner decision, 2026-09-25). It follows
+rainforest-ui's multi-entry glob (`src/{lit,utils,recipes}/**`). rainforest-react imports the
+recipes from there and keeps re-exporting them, so existing imports keep working. The calibre and
+rss-manager images emit the entry with `tsc`, the same way they emit the token plugin.
 
 Rules for the source:
 
@@ -205,15 +214,23 @@ without Tailwind. It is built from `src/styles.css`:
 The output holds the `:root`, `[data-scheme='light'|'dark']` and `@supports` fallback blocks with
 `--seed` as plain custom properties, every utility the components use, the preflight, and the
 `@font-face` rules for the three families. Vite's library mode inlines every asset, so the `woff2`
-files land in the CSS as `data:` URIs (about 690 KB in total, all subsets). It has no `@import` and
-no URL outside the file. It is a separate Vite CSS entry, so `index.js` never imports it.
+files land in the CSS as `data:` URIs (about 618 KB, all subsets). It has no `@import` and no URL
+outside the file. It is a separate Vite CSS entry, so `index.js` never imports it.
+
+Designs built in Claude Design receive only this file, so it also carries an `@source inline(...)`
+safelist of the utilities `conventions.md` tells designers to use: `bg`/`text`/`border`/`ring` for
+every semantic token (plain and `/10 /15 /20 /50 /80 /90`), the type scale, flex and grid with
+`grid-cols-1..12` (also `sm:`/`md:`/`lg:`), `col-span`, the spacing and sizing scales, max
+widths, radii, borders and shadows. That took the file from 690.8 kB to 917.1 kB; the non-font
+CSS went from about 73 kB to 299 kB. `conventions.md` lists exactly what is in it.
 
 `dist/tailwind.css` is a Tailwind source partial for apps that already compile Tailwind with the
 shadcn plugin. It is copied verbatim and contains:
 
 - `@source './components';`, which resolves relative to the file, so the app's Tailwind scans the
   lib's `dist/components/*.js` for classes with no path in the app (and `src/components` when
-  `styles.css` compiles);
+  `styles.css` compiles), plus `@source '../node_modules/@rainforest-dev/rainforest-ui/dist/recipes'`
+  so the recipe classes, which now live in rainforest-ui, are scanned too;
 - the `data-open`, `data-closed`, `data-checked`, `data-unchecked`, `data-selected`,
   `data-disabled`, `data-active`, `data-horizontal`, `data-vertical` custom variants and the
   `no-scrollbar` utility from `shadcn/tailwind.css`, plus the `tw-animate-css` import, which is why
@@ -264,6 +281,11 @@ component renders the same radius in every app (decision 4).
   query, Dialog opens from its trigger, `Toaster` follows a forced `data-scheme` on `<html>`.
   `src/test-setup.ts` stubs `ResizeObserver` and `matchMedia`, which jsdom lacks and cmdk and
   sonner call.
+- `src/overlays.test.tsx`: a vertical Tabs reports `aria-orientation="vertical"` and ArrowDown
+  moves focus; Dialog closes and returns focus to its trigger; Select picks a value, closes and
+  returns focus (driven with `@testing-library/user-event`).
+- `libs/rainforest-ui/src/recipes/recipes.test.ts`: every recipe resolves, `cn` merges, and no
+  recipe file imports React, Vue, Next, Astro or Base UI or uses raw colours or `dark:`.
 - A contract test (`src/contract.test.ts`) that fails if one of the sixteen components is missing
   from the single entry or has no story file, if any component file imports `next`, `next-themes`,
   `astro`, `vue` or `@astrojs/*`, or if any class string contains `dark:`, a raw palette colour
@@ -332,6 +354,24 @@ fixtures. Mobile viewports were not captured.
   lib-only change does not rebuild their images.
 - `/design-sync` is not exercised here. The first sync may still hit issues this task cannot see.
 
+## 9a. Status colour contrast
+
+Status text sits on its own tint (`text-warning` on `bg-warning/15`) in badges and alerts, at
+12px, so it needs 4.5:1. Measured with the default teal seed, tint composited over the page
+background (`/15`), and the solid fill against its `-foreground`:
+
+| Token       | Light before | Light after | Solid fill, light after | Dark (unchanged unless noted) |
+| ----------- | ------------ | ----------- | ----------------------- | ----------------------------- |
+| success     | 3.60         | 4.73        | 5.86                    | 7.18                          |
+| warning     | 2.99         | 4.71        | 5.80                    | 7.72                          |
+| info        | 3.79         | 4.78        | 5.91                    | 6.70                          |
+| destructive | 3.45         | 4.85        | 6.23                    | 3.28 → 5.53                   |
+
+Light success, warning, info and destructive moved to L 0.48–0.50 in `shadcn.ts`; dark
+destructive moved to L 0.70 with a dark foreground, like the other dark status tokens. On `/15`
+over `card` the light values are 4.89–5.04. The static hex fallbacks were recomputed from the same
+values.
+
 ## 10. Alignment with `/design-sync` (bundled skill 2.1.281)
 
 Checked against the design-sync skill bundled with Claude Code 2.1.281 (its `storybook/` and
@@ -365,10 +405,10 @@ version consumes, and how the lib meets it:
 
 The owner asked for every open decision to be resolved with the recommendation. Recorded here:
 
-1. **personal-website's Vue components** stay as Vue. They cannot render React components, and the
-   12 Vue consumers are a redesign-sized port. The website's React surface (the portfolio islands)
-   uses the lib. Follow-up: share the class recipes with the Vue copies, or port islands to React
-   after the Claude Design redraw.
+1. **personal-website's Vue components** stay as Vue, on purpose: the owner wants to keep a Vue
+   feel in places, and Astro mixes React and Vue islands. The recipes moved to the React-free
+   `@rainforest-dev/rainforest-ui/recipes` entry so those components can share them later; they are
+   not migrated in this task.
 2. **Shared look**: calibre's `base-nova` (compact, `h-8`). The portfolio islands use `size="lg"`
    where they were `h-10`.
 3. **Scope**: Switch, Table and Alert are included, plus `success` / `warning` / `info` / `muted`
