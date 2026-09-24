@@ -200,6 +200,35 @@ describe('parseNote', () => {
     expect(serializeNote(reparsed)).toBe(serialized);
   });
 
+  it('keeps a "## " line in the last annotation\'s body when it follows a non-blank line, but still splits off a later blank-preceded "## " as trailing', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的三\n\n內文\n## 小標\n更多內文\n\n## 其他\n\n保留這段\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(1);
+    expect(note.annotations[0].body).toBe('內文\n## 小標\n更多內文');
+    expect(note.trailing).toBe('## 其他\n\n保留這段');
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual(note.annotations);
+    expect(reparsed.trailing).toBe(note.trailing);
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
+  it('treats a "## " preceded by a blank line inside the last annotation as trailing', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的\n\n內文\n\n## 其他\n\n保留這段\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(1);
+    expect(note.annotations[0].body).toBe('內文');
+    expect(note.trailing).toBe('## 其他\n\n保留這段');
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.trailing).toBe(note.trailing);
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
   it('throws on frontmatter that is not a mapping', () => {
     expect(() => parseNote('---\njust text\n---\n', '2025-11-01')).toThrow();
     expect(() => parseNote('---\nmood: [good\n---\n', '2025-11-01')).toThrow();

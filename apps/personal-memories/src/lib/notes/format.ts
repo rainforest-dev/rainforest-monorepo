@@ -102,11 +102,13 @@ export function parseNote(text: string, date: string): DayNote {
     -1,
   );
   const trailingSearchStart = lastBlockStart === -1 ? 0 : lastBlockStart + 1;
-  const trailingOffset = sectionLines
-    .slice(trailingSearchStart)
-    .findIndex((line) => line.startsWith('## '));
-  const trailingAt =
-    trailingOffset === -1 ? -1 : trailingSearchStart + trailingOffset;
+  let trailingAt = -1;
+  for (let i = trailingSearchStart; i < sectionLines.length; i++) {
+    if (!sectionLines[i].startsWith('## ')) continue;
+    if ((sectionLines[i - 1] ?? '').trim() !== '') continue;
+    trailingAt = i;
+    break;
+  }
   const annotationLines =
     trailingAt === -1 ? sectionLines : sectionLines.slice(0, trailingAt);
   const trailingLines = trailingAt === -1 ? [] : sectionLines.slice(trailingAt);
