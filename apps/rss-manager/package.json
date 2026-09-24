@@ -9,6 +9,9 @@
     "preview": "astro preview --port 3002"
   },
   "nx": {
+    "tags": [
+      "docker"
+    ],
     "targets": {
       "dev": {
         "dependsOn": [
@@ -20,6 +23,11 @@
           "^build"
         ],
         "cache": true
+      }
+    },
+    "release": {
+      "docker": {
+        "repositoryName": "rainforest-dev/rss-manager"
       }
     }
   },
