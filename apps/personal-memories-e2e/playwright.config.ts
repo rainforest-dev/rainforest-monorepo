@@ -19,7 +19,8 @@ export default defineConfig({
     command:
       `node apps/personal-memories/src/cli/fixture.ts "${dataDir}" && ` +
       `rm -rf "${notesDir}" && mkdir -p "${notesDir}" && ` +
-      `pnpm --dir apps/personal-memories exec astro dev --host 127.0.0.1 --port ${port}`,
+      // Astro 7.3 backgrounds `astro dev` when it detects an agent; --ignore-lock keeps it in the foreground.
+      `pnpm --dir apps/personal-memories exec astro dev --host 127.0.0.1 --port ${port} --ignore-lock`,
     url: baseURL,
     reuseExistingServer: false,
     cwd: workspaceRoot,
