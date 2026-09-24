@@ -148,6 +148,30 @@ function measureRealHeight(section: HTMLElement): number {
   return height;
 }
 
+function findVisibleAnchor(
+  stream: HTMLElement,
+  exclude: HTMLElement,
+): HTMLElement | undefined {
+  for (const item of stream.querySelectorAll<HTMLElement>('[data-event-id]')) {
+    if (!exclude.contains(item) && item.getBoundingClientRect().bottom > 0)
+      return item;
+  }
+  return undefined;
+}
+
+// scrollHeight is page-wide and any concurrent layout change pollutes it; an untouched element's own rect isolates just this swap.
+function compensateSwap(
+  stream: HTMLElement,
+  exclude: HTMLElement,
+  perform: () => void,
+) {
+  const anchor = findVisibleAnchor(stream, exclude);
+  const before = anchor?.getBoundingClientRect().top;
+  perform();
+  if (anchor && before !== undefined)
+    compensateScroll(anchor.getBoundingClientRect().top - before);
+}
+
 function createWindowManager(stream: HTMLElement): WindowManager {
   const restoring = new WeakSet<HTMLElement>();
   const retired = new WeakSet<HTMLElement>();
@@ -220,13 +244,10 @@ function createWindowManager(stream: HTMLElement): WindowManager {
       const placeholderHeight = parseFloat(placeholder.style.height);
       if (!Number.isNaN(placeholderHeight))
         section.style.containIntrinsicSize = `auto ${placeholderHeight}px`;
-      const rect = placeholder.getBoundingClientRect();
-      const above = rect.top < 0;
-      const before = document.documentElement.scrollHeight;
-      placeholder.replaceWith(section);
-      track(section);
-      if (above)
-        compensateScroll(document.documentElement.scrollHeight - before);
+      compensateSwap(stream, placeholder, () => {
+        placeholder.replaceWith(section);
+        track(section);
+      });
       notifyDayRestored(date);
     });
   };
@@ -234,15 +255,13 @@ function createWindowManager(stream: HTMLElement): WindowManager {
   const collapse = (section: HTMLElement, date: string) => {
     untrack(section);
     const height = measureRealHeight(section);
-    const rect = section.getBoundingClientRect();
     const placeholder = document.createElement('div');
     placeholder.dataset['dayPlaceholder'] = date;
     placeholder.className = section.className;
     placeholder.style.height = `${height}px`;
-    const above = rect.top < 0;
-    const before = document.documentElement.scrollHeight;
-    section.replaceWith(placeholder);
-    if (above) compensateScroll(document.documentElement.scrollHeight - before);
+    compensateSwap(stream, section, () => {
+      section.replaceWith(placeholder);
+    });
   };
 
   return {
