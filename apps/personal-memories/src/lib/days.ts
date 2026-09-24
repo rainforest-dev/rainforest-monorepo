@@ -69,3 +69,31 @@ export function heatLevels(totals: readonly number[]) {
   return (total: number): 0 | 1 | 2 | 3 | 4 =>
     total <= 0 ? 0 : total <= p25 ? 1 : total <= p50 ? 2 : total <= p75 ? 3 : 4;
 }
+
+const DAY_MS = 86_400_000;
+const utc = (date: string) => Date.parse(`${date}T00:00:00Z`);
+const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+export type CalendarCell = { date: string; total: number } | null;
+
+export function calendarWeeks(
+  first: string,
+  last: string,
+  totals: Map<string, number>,
+): CalendarCell[][] {
+  const start = utc(first);
+  const end = utc(last);
+  const monday = start - ((new Date(start).getUTCDay() + 6) % 7) * DAY_MS;
+  const weeks: CalendarCell[][] = [];
+  for (let week = monday; week <= end; week += 7 * DAY_MS) {
+    weeks.push(
+      Array.from({ length: 7 }, (_, i) => {
+        const t = week + i * DAY_MS;
+        if (t < start || t > end) return null;
+        const date = iso(t);
+        return { date, total: totals.get(date) ?? 0 };
+      }),
+    );
+  }
+  return weeks;
+}

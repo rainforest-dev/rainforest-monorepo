@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  calendarWeeks,
   dayForWeek,
   heatLevels,
   indexDays,
@@ -63,5 +64,19 @@ describe('days', () => {
   it('buckets totals by quartile', () => {
     const level = heatLevels([0, 1, 2, 3, 4, 100]);
     expect([0, 1, 2, 3, 4, 100].map(level)).toEqual([0, 1, 1, 2, 3, 4]);
+  });
+
+  it('lays out Monday-first weeks with padding', () => {
+    const weeks = calendarWeeks(
+      '2025-11-01',
+      '2025-11-03',
+      new Map([['2025-11-01', 3]]),
+    );
+    expect(weeks).toHaveLength(2);
+    expect(weeks[0].slice(0, 5)).toEqual([null, null, null, null, null]);
+    expect(weeks[0][5]).toEqual({ date: '2025-11-01', total: 3 });
+    expect(weeks[0][6]).toEqual({ date: '2025-11-02', total: 0 });
+    expect(weeks[1][0]).toEqual({ date: '2025-11-03', total: 0 });
+    expect(weeks[1][1]).toBeNull();
   });
 });
