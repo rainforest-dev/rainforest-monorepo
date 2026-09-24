@@ -16,6 +16,8 @@ declare global {
 }
 
 const RETRY_DELAY_MS = 2000;
+const WINDOW_RADIUS = 7;
+const RESTORE_MARGIN_VIEWPORTS = 2;
 
 type DayFetchResult =
   | { status: 'ok'; section: HTMLElement }
@@ -86,29 +88,103 @@ function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
   });
 }
 
-function activeDayOf(sections: readonly HTMLElement[]): string | undefined {
-  if (!sections.length) return undefined;
+function dayDateOf(el: HTMLElement): string | undefined {
+  return el.dataset['day'] ?? el.dataset['dayPlaceholder'];
+}
+
+function dayNodesOf(stream: HTMLElement): HTMLElement[] {
+  return [
+    ...stream.querySelectorAll<HTMLElement>(
+      '[data-day], [data-day-placeholder]',
+    ),
+  ];
+}
+
+function activeDayOf(nodes: readonly HTMLElement[]): string | undefined {
+  if (!nodes.length) return undefined;
   const atBottom =
     window.scrollY + window.innerHeight >=
     document.documentElement.scrollHeight - 4;
-  if (atBottom) return sections[sections.length - 1]?.dataset['day'];
+  if (atBottom) return dayDateOf(nodes[nodes.length - 1]);
   const threshold = window.innerHeight * 0.4;
-  let current = sections[0];
-  for (const section of sections) {
-    if (section.getBoundingClientRect().top > threshold) break;
-    current = section;
+  let current = nodes[0];
+  for (const node of nodes) {
+    if (node.getBoundingClientRect().top > threshold) break;
+    current = node;
   }
-  return current.dataset['day'];
+  return dayDateOf(current);
+}
+
+function collapseToPlaceholder(section: HTMLElement, date: string) {
+  const rect = section.getBoundingClientRect();
+  const placeholder = document.createElement('div');
+  placeholder.dataset['dayPlaceholder'] = date;
+  placeholder.className = section.className;
+  placeholder.style.height = `${rect.height}px`;
+  const above = rect.top < 0;
+  const before = document.documentElement.scrollHeight;
+  section.replaceWith(placeholder);
+  if (above) window.scrollBy(0, document.documentElement.scrollHeight - before);
+}
+
+function restoreFromPlaceholder(
+  placeholder: HTMLElement,
+  section: HTMLElement,
+) {
+  const rect = placeholder.getBoundingClientRect();
+  const above = rect.top < 0;
+  const before = document.documentElement.scrollHeight;
+  placeholder.replaceWith(section);
+  if (above) window.scrollBy(0, document.documentElement.scrollHeight - before);
+}
+
+function watchWindow() {
+  const restoring = new WeakSet<HTMLElement>();
+
+  const restore = (placeholder: HTMLElement, date: string) => {
+    if (restoring.has(placeholder)) return;
+    restoring.add(placeholder);
+    void fetchDay(date).then((result) => {
+      restoring.delete(placeholder);
+      if (result.status === 'ok') {
+        restoreFromPlaceholder(placeholder, result.section);
+        return;
+      }
+      if (result.status === 'error')
+        setTimeout(() => restore(placeholder, date), RETRY_DELAY_MS);
+    });
+  };
+
+  return (nodes: readonly HTMLElement[], activeDate: string) => {
+    const activeIndex = nodes.findIndex((el) => dayDateOf(el) === activeDate);
+    if (activeIndex < 0) return;
+    const margin = window.innerHeight * RESTORE_MARGIN_VIEWPORTS;
+    nodes.forEach((el, index) => {
+      const date = dayDateOf(el);
+      if (!date) return;
+      if (el.dataset['dayPlaceholder'] !== undefined) {
+        const rect = el.getBoundingClientRect();
+        const near =
+          rect.bottom > -margin && rect.top < window.innerHeight + margin;
+        if (near) restore(el, date);
+        return;
+      }
+      if (Math.abs(index - activeIndex) > WINDOW_RADIUS)
+        collapseToPlaceholder(el, date);
+    });
+  };
 }
 
 function watchActiveDay(stream: HTMLElement) {
   let active = '';
   let queued = false;
+  const manageWindow = watchWindow();
 
   const apply = () => {
     queued = false;
-    const sections = [...stream.querySelectorAll<HTMLElement>('[data-day]')];
-    const date = activeDayOf(sections);
+    const nodes = dayNodesOf(stream);
+    const date = activeDayOf(nodes);
+    if (date) manageWindow(nodes, date);
     if (!date || date === active) return;
     active = date;
     history.replaceState(history.state, '', `/day/${date}${location.hash}`);
