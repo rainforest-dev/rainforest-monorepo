@@ -16,14 +16,15 @@ Claude Design. A later `.design-sync/config.json` can point `readmeHeader` at th
 - Tints use opacity on a token: `bg-primary/10` for a selected row, `bg-success/15` for a status
   pill, `ring-foreground/10` for a hairline on an overlay.
 - The shipped stylesheet has `bg-`, `text-`, `border-` and `ring-` for every token above, plain and
-  at `/10`, `/15`, `/20`, `/50`, `/80` and `/90`. Other opacity steps are not in it. For SVG
+  at `/10`, `/15`, `/20`, `/35`, `/40`, `/45`, `/50`, `/65`, `/80` and `/90`. Other opacity steps
+  are not in it. For SVG
   charts it also has `fill-chart-1..5` and `stroke-chart-1..5`.
 
 ## Light and dark
 
 - The tokens follow `prefers-color-scheme` unless an ancestor sets `data-scheme="light"` or
   `data-scheme="dark"`, which always wins.
-- Overlays (Popover, Select, DropdownMenu, Dialog) and toasts render in a portal on `<body>`, so
+- Overlays (Popover, Select, DropdownMenu, Dialog, Sheet, Tooltip) and toasts render in a portal on `<body>`, so
   they only see a `data-scheme` set on `<html>`. Force a scheme on `<html>`, not on a wrapper.
 - Do not use Tailwind's `dark:` variant. It follows the OS only and disagrees with a forced
   `data-scheme`. Reach for a token that already switches instead.
@@ -48,13 +49,17 @@ Status colour is never the only signal: pair it with a word or an icon.
 - JetBrains Mono (`font-mono`) for code, identifiers and tabular technical values.
 - Sizes come from the Tailwind scale. UI stays within `text-xs` to `text-2xl`; `text-3xl` to
   `text-6xl` are for page titles. Controls use `text-sm`.
+- Reading screens (long lists, diaries, message streams) use the theme's type scale instead:
+  `text-meta` 13px for timestamps and labels, `text-body` 15px for running text, `text-heading`
+  17px for section headings and `text-title` 28px for the page title. Each carries its own line
+  height.
 
 ## Shape and density
 
 - Radius comes from `--radius` (0.625rem): `rounded-lg` for controls and cards' inner parts,
   `rounded-xl` for cards and dialogs, `rounded-4xl` for pills.
 - Controls are compact: 32px (`h-8`) by default, `size="sm"` 28px, `size="lg"` 36px.
-- Overlays (Popover, Select, DropdownMenu, Dialog) use `bg-popover`, a `ring-1 ring-foreground/10`
+- Overlays (Popover, Select, DropdownMenu, Dialog, Sheet) use `bg-popover`, a `ring-1 ring-foreground/10`
   hairline and `shadow-md`.
 
 ## Layout utilities
@@ -87,3 +92,10 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
   The recipes and `cn` also ship React-free as `@rainforest-dev/rainforest-ui/recipes` for Vue
   and Astro components.
 - Mount `<Toaster />` once per app and call `toast()` from anywhere.
+- Wrap an app, or a region with many tooltips, in one `<TooltipProvider>` so moving between
+  triggers skips the open delay.
+- A bottom `Sheet` with a peek: pass `snapPoints={[peekHeight, 1]}` and control `snapPoint`.
+  Keep `open` true, map `onOpenChange(false)` (Escape) to the peek snap point, and set
+  `modal={snapPoint === 1}` so focus is only trapped when the sheet is expanded.
+- Loading states use `Skeleton` blocks sized like the content they stand for, never a spinner
+  alone.

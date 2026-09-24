@@ -5,10 +5,10 @@
 @import './tailwind.css';
 @plugin '@rainforest-dev/rainforest-ui/tailwindcss/shadcn';
 
-@source inline('{bg,text,border,ring}-{background,foreground,card,card-foreground,popover,popover-foreground,primary,primary-foreground,secondary,secondary-foreground,muted,muted-foreground,accent,accent-foreground,destructive,destructive-foreground,border,input,ring,success,success-foreground,warning,warning-foreground,info,info-foreground,chart-1,chart-2,chart-3,chart-4,chart-5,sidebar,sidebar-foreground,sidebar-primary,sidebar-primary-foreground,sidebar-accent,sidebar-accent-foreground,sidebar-border,sidebar-ring}{,/10,/15,/20,/50,/80,/90}');
+@source inline('{bg,text,border,ring}-{background,foreground,card,card-foreground,popover,popover-foreground,primary,primary-foreground,secondary,secondary-foreground,muted,muted-foreground,accent,accent-foreground,destructive,destructive-foreground,border,input,ring,success,success-foreground,warning,warning-foreground,info,info-foreground,chart-1,chart-2,chart-3,chart-4,chart-5,sidebar,sidebar-foreground,sidebar-primary,sidebar-primary-foreground,sidebar-accent,sidebar-accent-foreground,sidebar-border,sidebar-ring}{,/10,/15,/20,/35,/40,/45,/50,/65,/80,/90}');
 @source inline('{fill,stroke}-chart-{1..5}');
 @source inline('hover:bg-{primary,secondary,muted,accent,destructive,success,warning,info,sidebar-accent}{,/10,/20,/80,/90}');
-@source inline('text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl,6xl,left,center,right,balance,pretty}');
+@source inline('text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl,6xl,meta,body,heading,title,left,center,right,balance,pretty}');
 @source inline('font-{sans,serif,mono,normal,medium,semibold,bold}');
 @source inline('{leading-{none,tight,snug,normal,relaxed,loose},tracking-{tighter,tight,normal,wide,wider,widest},uppercase,italic,underline,truncate,tabular-nums,whitespace-nowrap}');
 @source inline('{block,inline-block,inline,flex,inline-flex,grid,hidden,contents,relative,absolute,fixed,sticky,inset-0,top-0,z-10,z-50,overflow-hidden,overflow-auto,overflow-x-auto,overflow-y-auto}');
