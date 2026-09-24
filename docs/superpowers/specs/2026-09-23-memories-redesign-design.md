@@ -73,7 +73,7 @@ write:  src/actions/index.ts → Astro Actions → NotesStore
   Pure `parseNote` / `serializeNote` live beside it and are unit-tested without the filesystem.
 - **`memoryNotes` live loader.** `NotesStore.read` behind the live collection API.
 - **Actions.** `saveNote({ date, body, annotations, cover, version })`, validated with `astro/zod`.
-  Returns the new `version` or an `ActionError` with code `CONFLICT` carrying the file's content.
+  Returns `{ ok: true, version }` or `{ ok: false, current }` with the file's content.
 - **`day-stream.ts`.** Appends or prepends a day's partial when a sentinel intersects, keeps at
   most ~7 days either side of the viewport (farther days collapse to a placeholder of their
   measured height and are re-fetched on return), `history.replaceState` to the day in view, and
@@ -170,7 +170,7 @@ has no cover; the calendar cell shows the note's first line, else a message exce
 
 ## Errors and edge cases
 
-- **Conflict.** `version` is mtime + content hash. A save against a stale version returns
+- **Conflict.** `version` is a content hash. A save against a stale version returns
   `CONFLICT` with the file's current content; the panel shows both and lets you keep either.
   Nothing is overwritten silently.
 - **Notes dir not configured or not writable.** Reading works; the panel shows a read-only

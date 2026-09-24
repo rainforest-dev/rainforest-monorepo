@@ -47,5 +47,6 @@ EXPOSE 3004
 
 # MEMORIES_DATA_DIR is supplied at run time and the timeline is read from it.
 # Photo paths inside timeline.json are absolute host paths, so whatever holds
-# them must be mounted at those same paths — read-only; this app never writes.
+# them must be mounted at those same paths — read-only, except MEMORIES_NOTES_DIR,
+# which must be writable.
 CMD ["node", "./dist/server/entry.mjs"]

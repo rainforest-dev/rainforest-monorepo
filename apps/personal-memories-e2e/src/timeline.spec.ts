@@ -1,54 +1,111 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { expect, test } from '@playwright/test';
 
-test('index lists the fixture weeks, newest first', async ({ page }) => {
-  await page.goto('/');
+const NOTES = path.join(__dirname, '..', 'test-output', 'notes');
+const noteFile = (date: string) =>
+  path.join(NOTES, date.slice(0, 4), `${date}.md`);
 
-  const weeks = page.locator('[data-week]');
-  await expect(weeks).toHaveCount(2);
-  await expect(weeks.nth(0)).toContainText('2025-W45');
-  await expect(weeks.nth(0)).toContainText('2025-11-03 – 2025-11-09');
-  await expect(weeks.nth(1)).toContainText('2025-W44');
-  await expect(weeks.nth(1)).toContainText('照片 2');
+test.describe.configure({ mode: 'serial' });
+
+test.beforeEach(async ({ page }) => {
+  // The dev toolbar overlays clicks near the bottom of the page in dev mode.
+  await page.addStyleTag({ content: 'astro-dev-toolbar { display: none; }' });
 });
 
-test('a week page shows messages and photos in chronological order', async ({
+test('home is a heatmap of the fixture days', async ({ page }) => {
+  await page.goto('/');
+  const days = page.locator('a[data-date]');
+  await expect(days).toHaveCount(3);
+  await expect(page.locator('a[data-date="2025-11-01"]')).toHaveAttribute(
+    'href',
+    '/day/2025-11-01',
+  );
+});
+
+test('old week links redirect to their first day', async ({ page }) => {
+  await page.goto('/week/2025-W44');
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  const response = await page.goto('/day/1999-01-01');
+  expect(response?.status()).toBe(404);
+});
+
+test('a day shows messages and photos in order, with the source filter', async ({
   page,
 }) => {
-  await page.goto('/week/2025-W44');
-
-  const saturday = page.locator('#day-2025-11-01');
-  await expect(saturday.getByRole('heading')).toHaveText('2025-11-01（週六）');
-
-  const events = saturday.locator('[data-event-id]');
-  const texts = await events.allInnerTexts();
+  await page.goto('/day/2025-11-01');
+  const day = page.locator('#day-2025-11-01');
+  await expect(day.getByRole('heading')).toHaveText('2025-11-01（週六）');
+  const texts = await day.locator('[data-event-id]').allInnerTexts();
   const indexOf = (needle: string) =>
-    texts.findIndex((text) => text.includes(needle));
+    texts.findIndex((t) => t.includes(needle));
+  expect(indexOf('Morning @Alice')).toBeLessThan(indexOf('Lunch plan'));
 
-  const message = events.nth(indexOf('Morning @Alice'));
-  await expect(message).toContainText('09:00');
-  await expect(message).toContainText('Bob');
-
-  const photo = saturday.getByRole('img', { name: 'Weekend, Food' });
-  await expect(photo).toHaveAttribute('loading', 'lazy');
+  const photo = day.getByRole('img', { name: 'Weekend, Food' });
   expect(
     await photo.evaluate((img: HTMLImageElement) => img.naturalWidth),
   ).toBeGreaterThan(0);
 
-  const photoIndex = await events.evaluateAll((els) =>
-    els.findIndex((el) => el.querySelector('img[alt="Weekend, Food"]')),
-  );
-  expect(indexOf('Morning @Alice')).toBeLessThan(photoIndex);
-  expect(photoIndex).toBeLessThan(indexOf('Lunch plan'));
-
-  const photoEvent = events.nth(photoIndex);
   await page.getByLabel('照片').uncheck();
-  await expect(photoEvent).toBeHidden();
+  await expect(photo).toBeHidden();
   await page.reload();
   await expect(page.getByLabel('照片')).not.toBeChecked();
-  await expect(photoEvent).toBeHidden();
+  await page.getByLabel('照片').check();
 });
 
-test('an unknown week is a 404', async ({ page }) => {
-  const response = await page.goto('/week/1999-W01');
-  expect(response?.status()).toBe(404);
+test('scrolling loads neighbouring days and follows the URL', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  await expect(page.locator('#day-2025-11-01')).toBeAttached();
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  await page.locator('#day-2025-11-03').scrollIntoViewIfNeeded();
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+});
+
+test('a day note and an annotation are saved to the vault folder', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await panel.getByLabel('當天的回憶').fill('那天下雨。');
+  await expect(panel).toContainText('已儲存');
+
+  const message = page.locator('[data-event-id]', { hasText: 'Lunch plan' });
+  await message.hover();
+  await message.getByRole('button', { name: '眉批' }).click();
+  await panel
+    .getByLabel(/^眉批：/)
+    .last()
+    .fill('後來那家店關了');
+  await expect(panel).toContainText('已儲存');
+  await expect(message).toHaveAttribute('data-annotated', '');
+
+  const text = readFileSync(noteFile('2025-11-01'), 'utf8');
+  expect(text).toContain('那天下雨。');
+  expect(text).toContain('## 眉批');
+  expect(text).toContain('後來那家店關了');
+
+  await page.reload();
+  await expect(panel.getByLabel('當天的回憶')).toHaveValue('那天下雨。');
+});
+
+test('an edit made in Obsidian meanwhile raises a conflict', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel.getByLabel('當天的回憶')).toHaveValue('那天下雨。');
+  const file = noteFile('2025-11-01');
+  writeFileSync(
+    file,
+    readFileSync(file, 'utf8').replace('那天下雨。', 'Obsidian 改的'),
+  );
+
+  await panel.getByLabel('當天的回憶').fill('app 改的');
+  await expect(panel).toContainText('有衝突');
+  await panel.getByRole('button', { name: '用 Obsidian 的版本' }).click();
+  await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
 });

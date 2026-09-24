@@ -39,7 +39,7 @@ const SOURCES = [
       <p>找不到 {date} 這一天。</p>
     ) : (
       <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
-        <div data-stream>
+        <div data-stream class="pb-24 lg:pb-0">
           <fieldset class="mb-4 flex gap-4 text-sm" data-source-filter>
             <legend class="sr-only">來源</legend>
             {SOURCES.map(({ source, label }) => (
