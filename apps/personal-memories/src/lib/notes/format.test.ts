@@ -185,6 +185,21 @@ describe('parseNote', () => {
     expect(serializeNote(note)).toBe(text);
   });
 
+  it('keeps a "## " line inside an annotation body, without cutting off the next annotation', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的一\n\n內文\n## 小標\n更多內文\n\n### 手寫的二\n\n第二段\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(2);
+    expect(note.annotations[0].body).toBe('內文\n## 小標\n更多內文');
+    expect(note.annotations[1].body).toBe('第二段');
+    expect(note.trailing).toBeUndefined();
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual(note.annotations);
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
   it('throws on frontmatter that is not a mapping', () => {
     expect(() => parseNote('---\njust text\n---\n', '2025-11-01')).toThrow();
     expect(() => parseNote('---\nmood: [good\n---\n', '2025-11-01')).toThrow();

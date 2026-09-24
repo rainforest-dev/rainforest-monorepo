@@ -96,10 +96,10 @@ export function useStreamBridge(o: Options) {
   useEffect(() => {
     setReattach(undefined);
     if (queued.current && taipeiDate(queued.current.at) === o.date) {
-      annotate(queued.current);
+      if (!o.readOnly) annotate(queued.current);
       queued.current = undefined;
     }
-  }, [o.date]);
+  }, [o.date, o.readOnly]);
 
   useEffect(() => {
     document

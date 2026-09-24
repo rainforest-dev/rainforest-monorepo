@@ -91,6 +91,10 @@ export function createNotesStore(root: string): NotesStore {
       if (!edit.cover) delete next.cover;
       if (isEmptyNote(next) && !hasUserFrontmatter(next.frontmatter)) {
         rmSync(path, { force: true });
+        const yearDir = join(root, date.slice(0, 4));
+        if (existsSync(yearDir) && readdirSync(yearDir).length === 0) {
+          rmSync(yearDir, { recursive: true, force: true });
+        }
         return { ok: true, version: '' };
       }
       const text = serializeNote(next);

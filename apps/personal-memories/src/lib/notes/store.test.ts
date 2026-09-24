@@ -149,6 +149,36 @@ describe('NotesStore', () => {
     expect(readFileSync(path, 'utf8')).toBe(broken);
   });
 
+  it('removes the year directory once its last note is deleted', () => {
+    const store = createNotesStore(root);
+    const created = store.write('2025-11-01', EDIT, '');
+    const yearDir = join(root, '2025');
+    expect(existsSync(yearDir)).toBe(true);
+
+    const result = store.write(
+      '2025-11-01',
+      { body: '', annotations: [] },
+      (created as { version: string }).version,
+    );
+    expect(result).toEqual({ ok: true, version: '' });
+    expect(existsSync(yearDir)).toBe(false);
+  });
+
+  it('keeps the year directory when another note in it still exists', () => {
+    const store = createNotesStore(root);
+    const created = store.write('2025-11-01', EDIT, '');
+    store.write('2025-11-02', EDIT, '');
+    const yearDir = join(root, '2025');
+
+    store.write(
+      '2025-11-01',
+      { body: '', annotations: [] },
+      (created as { version: string }).version,
+    );
+    expect(existsSync(yearDir)).toBe(true);
+    expect(existsSync(join(yearDir, '2025-11-02.md'))).toBe(true);
+  });
+
   it('keeps a hand-written preamble and trailing section through a panel save', () => {
     const store = createNotesStore(root);
     store.write('2025-11-01', EDIT, '');
