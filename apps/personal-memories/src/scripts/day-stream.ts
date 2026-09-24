@@ -67,24 +67,48 @@ function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
   });
 }
 
-function watchActiveDay() {
+function activeDayOf(sections: readonly HTMLElement[]): string | undefined {
+  if (!sections.length) return undefined;
+  const atBottom =
+    window.scrollY + window.innerHeight >=
+    document.documentElement.scrollHeight - 4;
+  // A short final section may never cross the 40% line — there's no more content below it to scroll past — so max scroll always activates the last day.
+  if (atBottom) return sections[sections.length - 1]?.dataset['day'];
+  const threshold = window.innerHeight * 0.4;
+  let current = sections[0];
+  for (const section of sections) {
+    if (section.getBoundingClientRect().top > threshold) break;
+    current = section;
+  }
+  return current.dataset['day'];
+}
+
+function watchActiveDay(stream: HTMLElement) {
   let active = '';
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const { target, isIntersecting } of entries) {
-        const date = (target as HTMLElement).dataset['day'];
-        if (!isIntersecting || !date || date === active) continue;
-        active = date;
-        history.replaceState(history.state, '', `/day/${date}${location.hash}`);
-        document.title = `${date} · Memories`;
-        document.dispatchEvent(
-          new CustomEvent('memories:day', { detail: { date } }),
-        );
-      }
-    },
-    { rootMargin: '-40% 0px -55% 0px' },
-  );
-  return (section: HTMLElement) => observer.observe(section);
+  let queued = false;
+
+  const apply = () => {
+    queued = false;
+    const sections = [...stream.querySelectorAll<HTMLElement>('[data-day]')];
+    const date = activeDayOf(sections);
+    if (!date || date === active) return;
+    active = date;
+    history.replaceState(history.state, '', `/day/${date}${location.hash}`);
+    document.title = `${date} · Memories`;
+    document.dispatchEvent(
+      new CustomEvent('memories:day', { detail: { date } }),
+    );
+  };
+
+  const schedule = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(apply);
+  };
+
+  window.addEventListener('scroll', schedule, { passive: true });
+  schedule();
+  return schedule;
 }
 
 function watchFilter(stream: HTMLElement) {
@@ -140,9 +164,8 @@ function watchAnnotate(stream: HTMLElement) {
 export function startDayStream() {
   const stream = document.querySelector<HTMLElement>('[data-stream]');
   if (!stream) return;
-  const observeDay = watchActiveDay();
-  stream.querySelectorAll<HTMLElement>('[data-day]').forEach(observeDay);
-  watchLoaders(stream, observeDay);
+  const notifyDay = watchActiveDay(stream);
+  watchLoaders(stream, notifyDay);
   watchFilter(stream);
   watchAnnotate(stream);
 }
