@@ -25,6 +25,13 @@ RUN pnpm --filter @rainforest-monorepo/rss-manager exec tsc \
     --outDir ../../libs/rainforest-ui/dist/tailwindcss \
     --module esnext --target es2022 --moduleResolution bundler --skipLibCheck
 
+COPY libs/rainforest-ui/src/recipes libs/rainforest-ui/src/recipes
+RUN pnpm --filter @rainforest-monorepo/rss-manager exec tsc \
+    ../../libs/rainforest-ui/src/recipes/index.ts \
+    --rootDir ../../libs/rainforest-ui/src/recipes \
+    --outDir ../../libs/rainforest-ui/dist/recipes \
+    --declaration --module esnext --target es2022 --moduleResolution bundler --skipLibCheck
+
 COPY libs/rainforest-react libs/rainforest-react
 RUN pnpm --filter @rainforest-dev/rainforest-react exec vite build
 

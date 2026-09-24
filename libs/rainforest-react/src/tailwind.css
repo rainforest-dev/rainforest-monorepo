@@ -1,6 +1,7 @@
 @import 'tw-animate-css';
 
 @source './components';
+@source '../node_modules/@rainforest-dev/rainforest-ui/dist/recipes';
 
 @theme inline {
   --font-heading: var(--font-sans);
