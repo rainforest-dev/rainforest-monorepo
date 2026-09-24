@@ -65,6 +65,7 @@ MEMORIES_DATA_DIR="$HOME/.local/share/memories" pnpm nx dev personal-memories
   before the heatmap replaced the weekly view.
 - `/media/<event id>` streams an event's file. The path comes only from `timeline.json`; photos
   are read in place from the Photos library and Slack files from the export.
+- `/thumb/<event id>?n=<index>&w=<240|480|960>` serves a cached WebP thumbnail from `MEMORIES_CACHE_DIR` (default: `memories-thumbs` under the OS temp dir).
 
 Without a `timeline.json` the pages show how to run `ingest` instead of failing.
 

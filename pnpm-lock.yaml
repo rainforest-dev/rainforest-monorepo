@@ -358,6 +358,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.2.3(react@19.2.3)
+      sharp:
+        specifier: ^0.35.4
+        version: 0.35.4(@types/node@25.9.7)
       tailwindcss:
         specifier: 'catalog:'
         version: 4.2.2
@@ -27977,7 +27980,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.4
       '@img/sharp-win32-x64': 0.35.4
       '@types/node': 25.9.7
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:
