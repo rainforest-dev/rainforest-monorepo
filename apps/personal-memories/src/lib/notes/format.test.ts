@@ -136,6 +136,55 @@ describe('parseNote', () => {
     expect(serializeNote(reparsed)).toBe(serialized);
   });
 
+  it('keeps hand-written text between the heading and the first annotation', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n手寫的開場白\n\n### 手寫的\n\n隨手記\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotationsPreamble).toBe('手寫的開場白');
+    expect(note.annotations).toHaveLength(1);
+    expect(note.annotations[0].body).toBe('隨手記');
+    const serialized = serializeNote(note);
+    expect(serialized).toContain('## 眉批\n\n手寫的開場白\n\n### 手寫的');
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotationsPreamble).toBe('手寫的開場白');
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
+  it('keeps a later level-2 section after the annotations, without folding it into the last annotation', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的\n\n隨手記\n\n## 其他\n\n保留這段\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(1);
+    expect(note.annotations[0].body).toBe('隨手記');
+    expect(note.annotations[0].body).not.toContain('保留這段');
+    expect(note.trailing).toBe('## 其他\n\n保留這段');
+    const serialized = serializeNote(note);
+    expect(serialized).toContain('隨手記\n\n## 其他\n\n保留這段');
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.trailing).toBe('## 其他\n\n保留這段');
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
+  it('round-trips both a preamble and a trailing section together with real annotations', () => {
+    const withExtras: DayNote = {
+      ...NOTE,
+      annotationsPreamble: '手寫的開場白',
+      trailing: '## 其他\n\n保留這段的內容',
+    };
+    const text = serializeNote(withExtras);
+    expect(text).toContain('## 眉批\n\n手寫的開場白\n\n### 09:05');
+    expect(text).toContain('這張拍得最好\n\n## 其他\n\n保留這段的內容');
+
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotationsPreamble).toBe('手寫的開場白');
+    expect(note.trailing).toBe('## 其他\n\n保留這段的內容');
+    expect(note.annotations).toEqual(NOTE.annotations);
+    for (const annotation of note.annotations) {
+      expect(annotation.body).not.toContain('保留這段的內容');
+    }
+    expect(serializeNote(note)).toBe(text);
+  });
+
   it('throws on frontmatter that is not a mapping', () => {
     expect(() => parseNote('---\njust text\n---\n', '2025-11-01')).toThrow();
     expect(() => parseNote('---\nmood: [good\n---\n', '2025-11-01')).toThrow();
@@ -175,5 +224,22 @@ describe('isEmptyNote', () => {
     expect(isEmptyNote(emptyNote('2025-11-01'))).toBe(true);
     expect(isEmptyNote({ body: ' \n', annotations: [] })).toBe(true);
     expect(isEmptyNote({ body: '', annotations: [], cover: 'X' })).toBe(false);
+  });
+
+  it('is not empty when only a hand-written preamble or trailing section remains', () => {
+    expect(
+      isEmptyNote({
+        body: '',
+        annotations: [],
+        annotationsPreamble: '手寫的開場白',
+      }),
+    ).toBe(false);
+    expect(
+      isEmptyNote({
+        body: '',
+        annotations: [],
+        trailing: '## 其他\n\n保留這段',
+      }),
+    ).toBe(false);
   });
 });

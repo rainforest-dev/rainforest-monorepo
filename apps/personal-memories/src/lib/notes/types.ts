@@ -15,6 +15,8 @@ export type DayNote = {
   body: string;
   annotations: Annotation[];
   cover?: string;
+  annotationsPreamble?: string;
+  trailing?: string;
 };
 
 export const ANNOTATIONS_HEADING = '## 眉批';

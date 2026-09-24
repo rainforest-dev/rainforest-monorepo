@@ -149,6 +149,32 @@ describe('NotesStore', () => {
     expect(readFileSync(path, 'utf8')).toBe(broken);
   });
 
+  it('keeps a hand-written preamble and trailing section through a panel save', () => {
+    const store = createNotesStore(root);
+    store.write('2025-11-01', EDIT, '');
+    const path = join(root, '2025', '2025-11-01.md');
+    const original = readFileSync(path, 'utf8').trimEnd();
+    writeFileSync(
+      path,
+      `${original}\n\n## 眉批\n\n手寫的開場白\n\n### 手寫的\n\n隨手記\n\n## 其他\n\n保留這段\n`,
+    );
+
+    const { note, version } = store.read('2025-11-01');
+    expect(note.annotationsPreamble).toBe('手寫的開場白');
+    expect(note.trailing).toBe('## 其他\n\n保留這段');
+
+    const result = store.write(
+      '2025-11-01',
+      { body: '面板編輯', annotations: note.annotations },
+      version,
+    );
+    expect(result.ok).toBe(true);
+    const saved = readFileSync(path, 'utf8');
+    expect(saved).toContain('面板編輯');
+    expect(saved).toContain('手寫的開場白');
+    expect(saved).toContain('## 其他\n\n保留這段');
+  });
+
   it('rejects malformed dates', () => {
     expect(() => createNotesStore(root).read('../../etc/passwd')).toThrow(
       'invalid date',

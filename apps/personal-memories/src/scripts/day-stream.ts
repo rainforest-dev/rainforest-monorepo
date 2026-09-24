@@ -15,12 +15,25 @@ declare global {
   }
 }
 
-async function fetchDay(date: string): Promise<HTMLElement | undefined> {
-  const response = await fetch(`/day/${date}/partial`);
-  if (!response.ok) return undefined;
-  const template = document.createElement('template');
-  template.innerHTML = await response.text();
-  return template.content.querySelector<HTMLElement>('[data-day]') ?? undefined;
+const RETRY_DELAY_MS = 2000;
+
+type DayFetchResult =
+  | { status: 'ok'; section: HTMLElement }
+  | { status: 'not-found' }
+  | { status: 'error' };
+
+async function fetchDay(date: string): Promise<DayFetchResult> {
+  try {
+    const response = await fetch(`/day/${date}/partial`);
+    if (response.status === 404) return { status: 'not-found' };
+    if (!response.ok) return { status: 'error' };
+    const template = document.createElement('template');
+    template.innerHTML = await response.text();
+    const section = template.content.querySelector<HTMLElement>('[data-day]');
+    return section ? { status: 'ok', section } : { status: 'error' };
+  } catch {
+    return { status: 'error' };
+  }
 }
 
 function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
@@ -32,13 +45,19 @@ function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
         const date = sentinel.dataset['date'];
         if (!isIntersecting || !date || loading.has(sentinel)) continue;
         loading.add(sentinel);
-        void fetchDay(date).then((section) => {
+        void fetchDay(date).then((result) => {
           loading.delete(sentinel);
-          if (!section) {
+          if (result.status === 'not-found') {
             delete sentinel.dataset['date'];
             observer.unobserve(sentinel);
             return;
           }
+          if (result.status === 'error') {
+            observer.unobserve(sentinel);
+            setTimeout(() => observer.observe(sentinel), RETRY_DELAY_MS);
+            return;
+          }
+          const { section } = result;
           const direction = sentinel.dataset['load'];
           if (direction === 'prev') {
             const before = document.documentElement.scrollHeight;

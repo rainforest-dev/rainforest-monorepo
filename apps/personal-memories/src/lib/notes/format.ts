@@ -17,9 +17,18 @@ export function emptyNote(date: string): DayNote {
 }
 
 export function isEmptyNote(
-  note: Pick<DayNote, 'body' | 'annotations' | 'cover'>,
+  note: Pick<
+    DayNote,
+    'body' | 'annotations' | 'cover' | 'annotationsPreamble' | 'trailing'
+  >,
 ): boolean {
-  return !note.body.trim() && note.annotations.length === 0 && !note.cover;
+  return (
+    !note.body.trim() &&
+    note.annotations.length === 0 &&
+    !note.cover &&
+    !note.annotationsPreamble &&
+    !note.trailing
+  );
 }
 
 const OWN_KEYS = new Set(['date', 'daily', 'tags', 'cover']);
@@ -86,12 +95,31 @@ export function parseNote(text: string, date: string): DayNote {
   const lines = rest.split('\n');
   const split = lines.indexOf(ANNOTATIONS_HEADING);
   const bodyLines = split === -1 ? lines : lines.slice(0, split);
-  const section = split === -1 ? '' : lines.slice(split + 1).join('\n');
+  const sectionLines = split === -1 ? [] : lines.slice(split + 1);
 
-  const annotations = section
+  const trailingAt = sectionLines.findIndex((line) => line.startsWith('## '));
+  const annotationLines =
+    trailingAt === -1 ? sectionLines : sectionLines.slice(0, trailingAt);
+  const trailingLines = trailingAt === -1 ? [] : sectionLines.slice(trailingAt);
+
+  const firstAnnotationAt = annotationLines.findIndex((line) =>
+    line.startsWith('### '),
+  );
+  const preambleLines =
+    firstAnnotationAt === -1
+      ? annotationLines
+      : annotationLines.slice(0, firstAnnotationAt);
+  const blockLines =
+    firstAnnotationAt === -1 ? [] : annotationLines.slice(firstAnnotationAt);
+
+  const annotations = blockLines
+    .join('\n')
     .split(/^(?=### )/m)
     .filter((block) => block.startsWith('### '))
     .map(parseAnnotation);
+
+  const preamble = trimBlankLines(preambleLines.join('\n'));
+  const trailing = trimBlankLines(trailingLines.join('\n'));
 
   const { cover, ...frontmatter } = data as Record<string, unknown>;
   const note: DayNote = {
@@ -101,6 +129,8 @@ export function parseNote(text: string, date: string): DayNote {
     annotations,
   };
   if (typeof cover === 'string' && cover) note.cover = cover;
+  if (preamble) note.annotationsPreamble = preamble;
+  if (trailing) note.trailing = trailing;
   return note;
 }
 
@@ -135,9 +165,11 @@ export function serializeNote(note: DayNote): string {
   }).trimEnd();
   const sections = [`---\n${frontmatterYaml}\n---`];
   if (note.body.trim()) sections.push(note.body.trim());
-  if (note.annotations.length) {
+  if (note.annotations.length || note.annotationsPreamble || note.trailing) {
     sections.push(ANNOTATIONS_HEADING);
+    if (note.annotationsPreamble) sections.push(note.annotationsPreamble);
     sections.push(...note.annotations.map(serializeAnnotation));
+    if (note.trailing) sections.push(note.trailing);
   }
   return `${sections.join('\n\n')}\n`;
 }
