@@ -65,6 +65,16 @@ export function withEncodeSlot<T>(fn: () => Promise<T>): Promise<T> {
 const inFlight = new Map<string, Promise<void>>();
 const failedDests = new Set<string>();
 
+const UNDECODABLE_SOURCE =
+  /unsupported image format|input (file|buffer)|heif|bad seek|vipsjpeg/i;
+
+// fs/OS errors (ENOSPC, EMFILE…) carry a `code`; sharp's own decode errors don't.
+function isUndecodableSource(err: unknown): boolean {
+  if (err && typeof err === 'object' && 'code' in err) return false;
+  const message = err instanceof Error ? err.message : String(err);
+  return UNDECODABLE_SOURCE.test(message);
+}
+
 export function ensureThumb(
   src: string,
   dest: string,
@@ -90,7 +100,7 @@ export function ensureThumb(
       renameSync(tmp, dest);
     } catch (err) {
       rmSync(tmp, { force: true });
-      failedDests.add(dest);
+      if (isUndecodableSource(err)) failedDests.add(dest);
       throw err;
     }
   }).finally(() => inFlight.delete(dest));

@@ -147,6 +147,34 @@ describe('ensureThumb', () => {
     expect(mockedSharp.mock.calls.length).toBe(callsBefore);
     expect(existsSync(dest)).toBe(false);
   });
+
+  it('does not cache a transient filesystem error, so a later call retries', async () => {
+    const src = join(root, 'transient.png');
+    await sharp({
+      create: { width: 4, height: 4, channels: 3, background: '#ffffff' },
+    })
+      .png()
+      .toFile(src);
+    const dest = join(root, 'transient-480.webp');
+
+    const mockedSharp = vi.mocked(sharp);
+    const enospc = Object.assign(new Error('no space left on device'), {
+      code: 'ENOSPC',
+    });
+    mockedSharp.mockImplementationOnce(() => {
+      throw enospc;
+    });
+
+    await expect(ensureThumb(src, dest, 480)).rejects.toThrow(
+      'no space left on device',
+    );
+
+    const callsBefore = mockedSharp.mock.calls.length;
+    await expect(ensureThumb(src, dest, 480)).resolves.toBeUndefined();
+
+    expect(mockedSharp.mock.calls.length).toBe(callsBefore + 1);
+    expect(existsSync(dest)).toBe(true);
+  });
 });
 
 describe('withEncodeSlot', () => {
