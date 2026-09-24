@@ -34,29 +34,47 @@ Exports from `@rainforest-dev/rainforest-react` that this design may use:
   `CardFooter` (size `sm`)
 - `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle`,
   `DialogDescription`, `DialogFooter`, `DialogClose`
+- `Sheet` (`side` `right`, `left`, `bottom`; peek through `snapPoints`), `SheetContent`
+  (`closeLabel`, `initialFocus`), `SheetHeader`, `SheetTitle`, `SheetDescription`, `SheetBody`,
+  `SheetFooter`, `SheetClose`
 - `Command`, `CommandDialog`, `CommandInput`, `CommandList`, `CommandEmpty`, `CommandGroup`,
   `CommandItem`, `CommandSeparator`, `CommandShortcut`
 - `DropdownMenu`, `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem`,
   `DropdownMenuShortcut`
 - `Popover`, `PopoverTrigger`, `PopoverContent`, `PopoverHeader`, `PopoverTitle`
+- `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider`
 - `Tabs`, `TabsList` (`default`, `line`), `TabsTrigger`, `TabsContent`
+- `ToggleGroup`, `ToggleGroupItem` (`default`, `outline`; sizes `sm`, `default`, `lg`), `Checkbox`
 - `Textarea`, `Input`, `InputGroup`, `InputGroupAddon`, `InputGroupInput`, `InputGroupText`
+- `Kbd`, `KbdGroup`, `Skeleton`, `Separator`, `ScrollArea`, `ScrollBar`
 - `Switch`, `Toaster` with `toast` (the `Table` and `Select` families are not needed here)
 
 Rules from `libs/rainforest-react/conventions.md` that bind the design:
 
 - Colour from semantic tokens only; no hex, raw palette or `dark:`. Schemes switch through
   `data-scheme` on `<html>`, because overlays portal to `<body>`.
-- The shipped stylesheet has token opacity steps `/10 /15 /20 /50 /80 /90` only. v2a uses
-  `/40 /65 /35 /45`; the design should move to shipped steps (heat scale `/20 /50 /80 /90`) or
-  name each extra step so the lib's safelist grows before re-sync.
+- Token opacity steps: `/10 /15 /20 /35 /40 /45 /50 /65 /80 /90`. Other steps do not render in
+  the canvas.
+- Type: `text-meta` 13px, `text-body` 15px, `text-heading` 17px and `text-title` 28px from the
+  shared theme plugin, plus the Tailwind scale.
 - Sizes come from the shipped scale. Arbitrary values (`w-[400px]`, `text-[15px]`) do not render
   in the canvas. Use `w-96` for the notes column and `max-w-2xl` for the stream.
-- Inter only; lucide icons at `size-4`; controls `h-8`.
+- Inter only; lucide icons at `size-4`; controls `h-8`. Loading is `Skeleton`, never a spinner
+  alone.
 
 The page shells (heatmap, month grid, stream, scrubber) are app layout, not library components.
 They are drawn with tokens and layout utilities, and server-rendered Astro reuses the recipes
-through `@rainforest-dev/rainforest-ui/recipes`.
+through `@rainforest-dev/rainforest-ui/recipes`. Where a server-rendered part shows a library
+component (a heatmap `Tooltip`, a `Kbd` hint), the implementation decides case by case between a
+React island and the same classes in Astro.
+
+## Decisions already made
+
+- The heatmap keeps its current scale: `bg-muted`, then `bg-primary/20`, `/40`, `/65`, `/90`.
+- The lightbox is the library's `Dialog`, not a native `<dialog>`.
+- `Escape` closes the top overlay; with none open, it zooms out one level (day to month, month to
+  year).
+- The v2a type sizes use the shared `text-meta`, `text-body`, `text-heading`, `text-title`.
 
 ## Screens
 
@@ -69,42 +87,54 @@ messages; photo bursts of several hundred).
 1. Month calendar (`/month/YYYY-MM`). Desktop 7-column grid; phone list rows. Cell precedence:
    cover, then first memory line, then a quoted message excerpt. Days without events stay visible
    with only the number. Components: `Badge variant="muted"` for counts, `Button variant="ghost"
-size="icon"` for previous and next month, `Tabs` for the 年/月/日 switch. Tokens: `card`,
-   `muted`, `border`, `ring`, noted-day dot in `foreground`. States: a month with no events, a
-   month with no photos at all, covers loading (skeleton blocks in `muted`).
+size="icon"` with a `Tooltip` for previous and next month, `Tabs` for the 年/月/日 switch.
+   Tokens: `card`, `muted`, `border`, `ring`, noted-day dot in `foreground`. States: a month with
+   no events, a month with no photos at all, covers loading as `Skeleton` blocks.
 2. Lightbox. `Dialog` with `DialogContent`, `DialogTitle` (timestamp), `DialogClose`; previous
    and next as `Button variant="outline" size="icon-lg"`; 設為封面 as a two-state `Button`
-   (`outline`, then `secondary` with a check icon). Filmstrip for bursts of hundreds must
-   scroll and keep the active thumb in view with a `ring` outline. States: image loading, failed
-   image, a video item, the current cover.
+   (`outline`, then `secondary` with a check icon). The filmstrip for bursts of hundreds is a
+   `ScrollArea` with a horizontal `ScrollBar` that keeps the active thumb in view with a `ring`
+   outline. States: image loading (`Skeleton`), failed image, a video item, the current cover.
 3. Zoom transitions, year to month to day. Draw the start and end frame of each step and mark the
    element that morphs (heat cell, month cell, day heading).
-4. Month scrubber. A thin rail beside the stream; current month in `primary`. Show it with 18
-   months and with years crossing.
+4. Month scrubber. A thin rail beside the stream in a `ScrollArea`; current month in `primary`,
+   each month with a `Tooltip` giving its event count. Show it with 18 months and with years
+   crossing.
 5. Date jump. `CommandDialog` with `CommandInput`; days grouped by month in `CommandGroup`, the
    count as `CommandShortcut`. States: partial date, no match (jumps to the nearest day). The
-   top-bar trigger is an `InputGroup` with a `/` hint.
-6. Keyboard shortcuts overlay. `Dialog` listing shortcuts grouped by screen, opened with `?`.
+   top-bar trigger is an `InputGroup` whose `InputGroupAddon` holds `<Kbd>/</Kbd>`.
+6. Keyboard shortcuts overlay. `Dialog` opened with `?`; groups per screen split by `Separator`,
+   each shortcut as `Kbd` or `KbdGroup` (`j` `k`, `←` `→`).
 
 ### v2a, restyle on synced components
 
-7. Year heatmap (home). Keep month rows. Tooltip is currently a hand-built popover; draw it with
-   `Popover` styling. States: first-run `Alert` in place of the current `EmptyState` card, and a
-   range of one month.
+7. Year heatmap (home). Keep month rows and the current opacity scale. The hand-built cell
+   popover becomes `Tooltip` under one `TooltipProvider`; the footer hints use `Kbd` (`Enter`,
+   `←` `→`). States: first-run `Alert` in place of the current `EmptyState` card, a range of one
+   month, loading as a `Skeleton` grid.
 8. Day stream. Quote rows, owner indented, head row only on speaker change, photo bursts as a
    4-tile grid with a `+N` tile. The 眉批 hover action becomes `Button size="xs" variant="outline"`
    on a `popover` surface; the phone long-press menu is `DropdownMenu` with 眉批 and 複製. Source
-   filter (LINE, Slack, 照片) as `Switch` or toggle chips. States: busiest day with the hour
-   strip, burst expanded after `:target`, highlighted message from a link, partial load failed.
+   filter (LINE, Slack, 照片) as a multiple `ToggleGroup variant="outline" size="sm"`, with a
+   `Checkbox` row side by side as the other option. States: busiest day with the hour strip,
+   burst expanded after `:target`, highlighted message from a link, the next day loading as
+   `Skeleton` rows, partial load failed.
 9. Notes panel. `bg-sidebar`; `Textarea` for the memory; save status as `Badge variant="muted"`
    (已儲存), `muted` with a pulsing dot (儲存中…), `warning` (未儲存); annotations as
    `Card size="sm"`, selected card at `bg-primary/10`; unattached annotation as a dashed `Card`
    with `Button variant="secondary" size="sm"` 重新連結; read-only and parse error as
-   `Alert variant="warning"`; 刪除 as `Button variant="ghost" size="xs"`.
-10. Phone bottom sheet. Peek (title, status, 眉批 count, two-line clamp) and open states, drag
-    handle, sheet over the stream.
+   `Alert variant="warning"`; 刪除 as `Button variant="ghost" size="xs"`; a `Separator` between
+   the memory and the 眉批 list; the panel body in a `ScrollArea`.
+10. Phone bottom sheet. `Sheet side="bottom"` with `snapPoints={[peek, 1]}`, `SheetContent` with
+    `initialFocus={false}` and `closeLabel="關閉"`, `SheetHeader` with `SheetTitle` (這一天的回憶),
+    `SheetBody` holding the panel. Draw the peek (title, status, 眉批 count, two-line clamp) and
+    the open state, with the drag handle and the sheet over the stream.
 11. Conflict view. Two version `Card`s, stacked on phone and side by side on desktop, changed lines
     at `bg-info/15`, one `保留這個版本` `Button` each, the banner as `Alert variant="info"`.
+
+If the design turns out to need a component the library still lacks, it draws a labelled
+placeholder, not a hand-rolled lookalike. The component goes into the library and is re-synced
+before implementation.
 
 ## Copy
 
@@ -130,33 +160,16 @@ New, proposed for the owner to confirm: 鍵盤快速鍵 (overlay title), 這個�
 - Zoom uses cross-document view transitions. One `view-transition-name` per day ties the heat
   cell, month cell and day heading. 300 ms, `cubic-bezier(0.2, 0, 0, 1)`. Under
   `prefers-reduced-motion` it becomes a 150 ms cross-fade, and the pulsing save dot stops.
-- Phone gestures: swipe left or right in the lightbox, drag the sheet handle between peek and
-  open, long-press (450 ms) a message for the menu, and pinch-out on the day stream to zoom to
-  the month. Every gesture has a visible button equivalent.
+- Phone gestures: swipe left or right in the lightbox, drag the sheet between its peek and open
+  snap points, long-press (450 ms) a message for the menu, and pinch-out on the day stream to
+  zoom to the month. Every gesture has a visible button equivalent.
 - Keys: `j`/`k` previous or next day, `n` focus the memory, `/` date jump, `?` shortcuts, arrow
-  keys across heatmap cells and lightbox photos, `Enter` opens, `Esc` closes the top overlay.
-  Keys are ignored while typing in a field.
-- Focus: opening the lightbox, date jump or overlay traps focus and returns it to the trigger;
-  a zoom lands focus on the day heading or month cell that morphed; the sheet moves focus to its
-  handle when opened and back to the peek when closed. Focus rings use `ring`.
-
-## Component gaps
-
-The library lacks these. Each is added to `libs/rainforest-react` with a story, re-synced, and only
-then used in the design:
-
-- `Sheet` or `Drawer` for the phone notes sheet (a bottom side with a peek height).
-- `Tooltip` for heatmap cells and icon buttons.
-- `Kbd` for shortcut hints and the overlay.
-- `Skeleton` for loading covers, thumbs and partial days.
-- `ToggleGroup` or `Checkbox` for the source filter.
-- `Separator` for panel and menu dividers.
-- `ScrollArea`, if the lightbox filmstrip and scrubber need styled scrollbars.
-- Type-scale tokens: v2a's `text-meta`, `text-body`, `text-heading`, `text-title` (13, 15, 17 and
-  28 px) are app-local. Either move them into the lib theme or map them to `text-sm`, `text-base`,
-  `text-lg`, `text-3xl`.
-
-Until then the design draws a labelled placeholder, not a hand-rolled lookalike.
+  keys across heatmap cells and lightbox photos, `Enter` opens, `Escape` closes the top overlay
+  or, with none open, zooms out one level. Keys are ignored while typing in a field.
+- Focus: the lightbox, date jump and shortcuts overlay trap focus and return it to the trigger;
+  a zoom lands focus on the day heading or month cell that morphed. The bottom sheet traps focus
+  only when fully open (`modal` at the top snap point); `Escape` in the sheet returns it to the
+  peek. Focus rings use `ring`.
 
 ## Handoff contract
 
@@ -182,22 +195,18 @@ After implementation:
 
 ## Open questions for the owner
 
-- Heat scale: accept `/20 /50 /80 /90`, or safelist `/40 /65`?
-- Lightbox: the React `Dialog` as a second island, or native `<dialog>` styled with the same
-  classes, as the redesign spec planned?
-- Type scale: lib tokens or the default Tailwind steps?
 - Should the invited viewer's view stay identical to the owner's, or become read-only without the
   notes panel?
-- Zoom out by key: `Esc` from day to month to year, or a dedicated key?
 
 ## First prompt for Claude Design
 
 ```text
 Use the synced "rainforest.tools Design System" for everything. Build from its components by
-export name (Button, Badge, Alert, Card, Dialog, CommandDialog, DropdownMenu, Popover, Tabs,
-Textarea, InputGroup, Switch). Use semantic tokens only, shipped opacity steps only (/10 /15 /20
-/50 /80 /90), no arbitrary values, Inter only. If you need a component the system lacks (Sheet,
-Tooltip, Kbd, Skeleton, ToggleGroup, Separator), draw a labelled placeholder and list it.
+export name (Button, Badge, Alert, Card, Dialog, CommandDialog, DropdownMenu, Tabs, Textarea,
+InputGroup, Sheet, Tooltip, Kbd, Skeleton, ToggleGroup, Checkbox, Separator, ScrollArea). Use
+semantic tokens only, shipped opacity steps only (/10 /15 /20 /35 /40 /45 /50 /65 /80 /90), the
+text-meta/body/heading/title sizes, no arbitrary values, Inter only. If you need a component the
+system lacks, draw a labelled placeholder and list it.
 
 The product is "回憶", a private diary-like album that merges LINE, Slack and photos into one
 timeline and lets the owner write about each day. UI copy is Traditional Chinese. Use fixture
@@ -208,13 +217,15 @@ several hundred.
 Draw a .dc.html canvas with these screens, each at 1280x800 and 390x844, light and dark via
 data-scheme on <html>:
 1. Month calendar with cover photos (fallback: memory line, then a message excerpt).
-2. Lightbox with previous/next, filmstrip and a two-state 設為封面 button.
+2. Lightbox as a Dialog with previous/next, a filmstrip and a two-state 設為封面 button.
 3. Zoom transitions year -> month -> day: start and end frames, morphing element marked.
+   Escape zooms out one level when no overlay is open.
 4. Month scrubber beside the day stream.
-5. Date jump (CommandDialog) and a keyboard-shortcuts overlay.
-6. Restyle of the year heatmap (month rows), day stream (quote rows, owner indented, photo
-   bursts with +N), notes panel with 眉批 annotation cards, phone bottom sheet (peek and open),
-   and the conflict view (two version cards with changed lines highlighted).
+5. Date jump (CommandDialog) and a keyboard-shortcuts overlay (Dialog with Kbd).
+6. Restyle of the year heatmap (month rows, keep bg-primary/20 /40 /65 /90), day stream (quote
+   rows, owner indented, photo bursts with +N), notes panel with 眉批 annotation cards, phone
+   bottom Sheet (peek and open), and the conflict view (two version cards with changed lines
+   highlighted).
 
 For each screen include empty, loading, error and busiest-day states. Name artboards
 "screen / state / viewport / scheme". Where a choice is open, show two options side by side and
