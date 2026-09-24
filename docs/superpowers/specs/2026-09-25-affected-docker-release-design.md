@@ -74,10 +74,10 @@ selects for local runs. The pushed references stay the ones the old workflows us
 `ghcr.io/rainforest-dev/rss-manager`, all public.
 
 Top-level `release.git` becomes `{ "commit": false, "tag": true, "push": false, "stageChanges": false }`.
-nx's version step force-pushes the current branch whenever `release.git.push` is true, even on a
-run that passes `--git-tag=false`, so pushing stays out of nx's hands: nx only tags locally, and
-the workflow pushes each tag itself once that project's image and `:latest` are already on the
-registry.
+nx's version step pushes the current branch (`git push --follow-tags --no-verify --atomic`)
+whenever `release.git.push` is true, even on a run that passes `--git-tag=false`, so pushing
+stays out of nx's hands: nx only tags locally, and the workflow pushes each tag itself once that
+project's image and `:latest` are already on the registry.
 `release.version.preVersionCommand` (the `rainforest-ui` build) is removed: every Dockerfile
 builds the library inside the image. The `version` block of the group (conventional commits,
 git-tag resolver) is removed with it. The `changelog` block is removed too: with
@@ -99,9 +99,15 @@ One job on `ubuntu-24.04-arm`, so arm64 builds natively without QEMU.
 1. Checkout with `fetch-depth: 0`, set the bot git identity, `pnpm/action-setup`, Node 22 with
    the pnpm cache, `pnpm install --frozen-lockfile`.
 2. Log in to GHCR with `GITHUB_TOKEN` (`packages: write`).
-3. Resolve the base. On `push`: the commit of the newest CalVer release tag reachable from
-   `HEAD` (`git describe --tags --abbrev=0 --match '*@YYYY.MM.DD.*' HEAD`, then `git rev-list -n1`
-   on that tag); before any such tag exists, `github.event.before`. On `workflow_dispatch` and
+3. Resolve the base. On `push`: for every Docker project (read fresh from
+   `nx show projects --withTarget=docker:build --json`, never hardcoded), find the commit of its
+   newest reachable CalVer tag with `git describe --match '<project>@YYYY.MM.DD.*'` and
+   `git rev-list -n1`, then take the oldest of those commits as the base. The oldest one is the
+   commit that `git merge-base --is-ancestor` finds is an ancestor of every other candidate. Using
+   the newest tag per project, not the newest tag across all projects, matters when a run releases
+   two projects and one push fails after the other's tag and image already landed: the failed
+   project's last release stays the floor for the next run's affected diff. If any project has no
+   CalVer tag yet, the base falls back to `github.event.before`. On `workflow_dispatch` and
    `pull_request`: `git merge-base origin/main HEAD`. Either branch logs a notice naming the
    resolved base and where it came from; a manual run from `main` itself notes that it is
    comparing `main` with itself.
@@ -119,12 +125,13 @@ One job on `ubuntu-24.04-arm`, so arm64 builds natively without QEMU.
    tag at all; with `release.git.push: false`, nx itself never pushes on either kind of run.
 7. Verify run: a notice, and the job ends here.
 8. `pnpm exec nx release publish --projects="$AFFECTED" --verbose` pushes each versioned image.
-9. For each affected project, read its version from the `<project>@<version>` tag nx created
-   locally at `HEAD`, then `docker tag` and `docker push` `:latest`. Only once `:latest` is on the
-   registry does the workflow push that project's own tag
-   (`git push origin refs/tags/<project>@<version>`), one project at a time, so a tag never
-   reaches origin ahead of its image and `:latest`. The homelab follows `:latest`. A project
-   without a tag at `HEAD` fails the job before any push.
+9. Two passes over the affected projects. First, a validation pass resolves every project's
+   `<project>@<version>` tag at `HEAD` and fails the job before any `docker` or `git push` if one
+   is missing, so a partial release never starts pushing. Second, a push pass: for each project,
+   `docker tag` and `docker push` `:latest`, then, only once `:latest` is on the registry, push
+   that project's own tag (`git push origin refs/tags/<project>@<version>`), one project at a
+   time, so a tag never reaches origin ahead of its image and `:latest`. The homelab follows
+   `:latest`.
 10. A step summary table per project: version, image reference, digest.
 
 Every `run:` step that pipes into `tee` uses `set -o pipefail`; the old workflows shipped a
