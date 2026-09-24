@@ -34,6 +34,34 @@ describe('dist/styles.css', () => {
       expect(css).toContain(`.${cls}`);
     }
   });
+
+  it.each(['text-meta', 'text-body', 'text-heading', 'text-title'])(
+    'ships the %s type-scale step from the shared theme',
+    (cls) => {
+      expect(css).toMatch(new RegExp(`\\.${cls}\\{[^}]*font-size:`));
+    },
+  );
+
+  it.each(['35', '40', '45', '65'])(
+    'ships the /%s opacity step on the tokens',
+    (step) => {
+      for (const cls of [`bg-primary\\/${step}`, `ring-ring\\/${step}`]) {
+        expect(css).toContain(`.${cls}`);
+      }
+    },
+  );
+
+  it('includes the classes the new components use', () => {
+    for (const cls of [
+      'animate-pulse',
+      'data-pressed\\:bg-muted',
+      'data-checked\\:bg-primary',
+      'bg-muted-foreground\\/30',
+      'rounded-t-xl',
+    ]) {
+      expect(css).toContain(`.${cls}`);
+    }
+  });
 });
 
 describe('dist modules', () => {

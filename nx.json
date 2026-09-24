@@ -125,6 +125,14 @@
       "dependsOn": ["^build"],
       "outputs": ["{projectRoot}/dist"],
       "cache": true
+    },
+    "build-storybook": {
+      "inputs": [
+        "default",
+        "^production",
+        { "externalDependencies": ["storybook"] }
+      ],
+      "dependsOn": ["^build"]
     }
   },
   "generators": {

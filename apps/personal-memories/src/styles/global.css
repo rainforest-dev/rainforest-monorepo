@@ -6,14 +6,6 @@
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --radius: 0.625rem;
-  --text-meta: 0.8125rem;
-  --text-meta--line-height: 1.4;
-  --text-body: 0.9375rem;
-  --text-body--line-height: 1.7;
-  --text-heading: 1.0625rem;
-  --text-heading--line-height: 1.3;
-  --text-title: 1.75rem;
-  --text-title--line-height: 1.2;
 }
 
 @layer base {

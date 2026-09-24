@@ -26,3 +26,6 @@ window.matchMedia ??= (query: string) =>
   }) as MediaQueryList;
 
 Element.prototype.scrollIntoView ??= () => undefined;
+
+// jsdom has no Web Animations API; Base UI's ScrollArea calls getAnimations() after a scroll check.
+Element.prototype.getAnimations ??= () => [];

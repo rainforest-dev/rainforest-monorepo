@@ -229,6 +229,12 @@ export default plugin.withOptions(
           'sidebar-border': 'var(--sidebar-border)',
           'sidebar-ring': 'var(--sidebar-ring)',
         },
+        fontSize: {
+          meta: ['0.8125rem', { lineHeight: '1.4' }],
+          body: ['0.9375rem', { lineHeight: '1.7' }],
+          heading: ['1.0625rem', { lineHeight: '1.3' }],
+          title: ['1.75rem', { lineHeight: '1.2' }],
+        },
         borderRadius: {
           sm: 'calc(var(--radius) - 4px)',
           md: 'calc(var(--radius) - 2px)',
