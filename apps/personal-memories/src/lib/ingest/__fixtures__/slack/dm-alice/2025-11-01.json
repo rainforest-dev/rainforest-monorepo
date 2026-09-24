@@ -12,7 +12,14 @@
     "ts": "1761959100.000200",
     "subtype": "file_share",
     "files": [
-      { "id": "F01", "name": "map.png", "mimetype": "image/png", "size": 68 }
+      {
+        "id": "F01",
+        "name": "map.png",
+        "mimetype": "image/png",
+        "size": 68,
+        "original_w": 1,
+        "original_h": 1
+      }
     ]
   },
   {

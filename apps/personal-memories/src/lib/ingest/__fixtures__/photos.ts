@@ -39,6 +39,10 @@ export function writePhotoFixture(root: string) {
       favorite: true,
       width: 1,
       height: 1,
+      score: { overall: 0.82 },
+      screenshot: false,
+      ismovie: false,
+      burst: false,
       some_future_field: { ignored: true },
     },
     {
@@ -54,6 +58,11 @@ export function writePhotoFixture(root: string) {
       favorite: false,
       width: 4032,
       height: 3024,
+      score: { overall: 0.4 },
+      screenshot: true,
+      ismovie: false,
+      burst: true,
+      burst_selected: false,
     },
     {
       uuid: 'CCCCCCCC-0000-0000-0000-000000000003',
