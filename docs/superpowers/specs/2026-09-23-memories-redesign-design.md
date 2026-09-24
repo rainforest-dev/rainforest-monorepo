@@ -214,11 +214,22 @@ not in Safari, so the lightbox gets a few lines of light-dismiss fallback.
 Known v1 limit: without windowing and thumbnails, scrolling across many photo-heavy days loads
 full-size originals and grows the DOM. Jumping is by heatmap, so this is acceptable until v2.
 
-**v2 — with the Claude Design visuals**
+**v2 — with the Claude Design visuals**, split on 2026-09-24. The Claude Design screens were
+drawn on the pre-/design-sync "rainforest.tools Design System", and that system is being rebuilt
+from real components, so the new screens wait for it. Visual spec extracted from the handoff:
+[2026-09-24-memories-v2-visual-spec.md](2026-09-24-memories-v2-visual-spec.md).
 
-Thumbnails (WebP, HEIC converted, cached in a writable cache dir), day windowing, `/month`
-calendar with covers, zoom view transitions and pinch/`-`/`=` gestures, lightbox with
-「設為封面」, keyboard shortcuts, and the visual design applied across all three levels.
+- **v2a — the screens used every day, on real data.** Thumbnails, day windowing, the year heatmap
+  rebuilt as month rows, messages as quote rows with photo bursts, the notes panel and phone sheet
+  restyled, the conflict view as version cards with line highlights, the type-scale tokens, and
+  the known issues left by v1.
+- **v2b — after the design-system rebuild.** The `/month` calendar with covers, lightbox with
+  「設為封面」, zoom view transitions and gestures, the month scrubber, date jump, and keyboard
+  shortcuts.
+
+Decisions for v2a: speakers are told apart by indenting the owner's messages (the design's
+`align` variant is not built); the conflict view always shows exactly two versions; the 13/15/17/28 px
+sizes become `@theme` tokens; the noted-day marker is the design's dot, not a ring.
 
 ## Testing
 
