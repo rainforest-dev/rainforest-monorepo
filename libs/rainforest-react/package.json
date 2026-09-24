@@ -59,6 +59,9 @@
     "@types/react-dom": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "tailwindcss": "catalog:"
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite-plugin-dts": "~4.5.4",
+    "vitest": "4.1.4"
   }
 }

@@ -2,6 +2,10 @@
 
 @source './components';
 
+@theme inline {
+  --font-heading: var(--font-sans);
+}
+
 @custom-variant data-open {
   &:where([data-state='open']),
   &:where([data-open]:not([data-open='false'])) {

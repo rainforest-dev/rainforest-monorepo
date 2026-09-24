@@ -9,6 +9,7 @@ WORKDIR /app
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
 COPY apps/personal-calibre/package.json apps/personal-calibre/
 COPY libs/rainforest-ui/package.json libs/rainforest-ui/
+COPY libs/rainforest-react/package.json libs/rainforest-react/
 
 # Install only personal-calibre's dependencies
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
@@ -26,6 +27,9 @@ RUN pnpm --filter @rainforest-monorepo/personal-calibre exec tsc \
     --rootDir ../../libs/rainforest-ui/src/tailwindcss \
     --outDir ../../libs/rainforest-ui/dist/tailwindcss \
     --module esnext --target es2022 --moduleResolution bundler --skipLibCheck
+
+COPY libs/rainforest-react libs/rainforest-react
+RUN pnpm --filter @rainforest-dev/rainforest-react exec vite build
 
 COPY apps/personal-calibre apps/personal-calibre
 RUN pnpm --filter @rainforest-monorepo/personal-calibre exec next build

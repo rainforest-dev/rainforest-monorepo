@@ -1,8 +1,8 @@
 import './globals.css';
 
+import { Toaster } from '@rainforest-dev/rainforest-react';
 import { Inter } from 'next/font/google';
 
-import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });

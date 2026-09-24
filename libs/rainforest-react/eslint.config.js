@@ -8,6 +8,9 @@ import baseConfig from '../../eslint.config.js';
 export default [
   ...baseConfig,
   {
+    ignores: ['storybook-static/**'],
+  },
+  {
     files: ['**/*.tsx'],
     plugins: {
       'react-hooks': reactHooks,
