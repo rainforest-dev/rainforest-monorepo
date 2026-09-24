@@ -17,6 +17,18 @@ type Options = {
   onAnnotate: () => void;
 };
 
+function markAnnotated(annotations: readonly ResolvedAnnotation[]) {
+  document
+    .querySelectorAll('[data-annotated]')
+    .forEach((el) => el.removeAttribute('data-annotated'));
+  for (const a of annotations) {
+    if (a.status === 'unattached' || !a.eventId) continue;
+    document
+      .getElementById(`ev-${a.eventId}`)
+      ?.setAttribute('data-annotated', '');
+  }
+}
+
 export function useStreamBridge(o: Options) {
   const [reattach, setReattach] = useState<number>();
   const [focusTick, setFocusTick] = useState(0);
@@ -101,17 +113,18 @@ export function useStreamBridge(o: Options) {
     }
   }, [o.date, o.readOnly]);
 
+  useEffect(() => markAnnotated(o.draft.annotations), [o.draft.annotations]);
+
   useEffect(() => {
-    document
-      .querySelectorAll('[data-annotated]')
-      .forEach((el) => el.removeAttribute('data-annotated'));
-    for (const a of o.draft.annotations) {
-      if (a.status === 'unattached' || !a.eventId) continue;
-      document
-        .getElementById(`ev-${a.eventId}`)
-        ?.setAttribute('data-annotated', '');
-    }
-  }, [o.draft.annotations]);
+    const onRestored = (e: Event) => {
+      const { draft, payload } = latest.current.current.current;
+      const { date } = (e as CustomEvent<{ date: string }>).detail;
+      if (date === payload.date) markAnnotated(draft.annotations);
+    };
+    document.addEventListener('memories:day-restored', onRestored);
+    return () =>
+      document.removeEventListener('memories:day-restored', onRestored);
+  }, []);
 
   useEffect(() => {
     if (focusNext.current === undefined) return;
