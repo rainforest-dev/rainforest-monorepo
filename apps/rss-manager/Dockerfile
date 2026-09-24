@@ -8,6 +8,7 @@ WORKDIR /app
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
 COPY apps/rss-manager/package.json apps/rss-manager/
 COPY libs/rainforest-ui/package.json libs/rainforest-ui/
+COPY libs/rainforest-react/package.json libs/rainforest-react/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --filter @rainforest-monorepo/rss-manager... --frozen-lockfile
@@ -23,6 +24,9 @@ RUN pnpm --filter @rainforest-monorepo/rss-manager exec tsc \
     --rootDir ../../libs/rainforest-ui/src/tailwindcss \
     --outDir ../../libs/rainforest-ui/dist/tailwindcss \
     --module esnext --target es2022 --moduleResolution bundler --skipLibCheck
+
+COPY libs/rainforest-react libs/rainforest-react
+RUN pnpm --filter @rainforest-dev/rainforest-react exec vite build
 
 COPY apps/rss-manager apps/rss-manager
 RUN pnpm --filter @rainforest-monorepo/rss-manager run build

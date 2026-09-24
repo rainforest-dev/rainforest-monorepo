@@ -1,3 +1,4 @@
+import { Badge, Button } from '@rainforest-dev/rainforest-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -59,9 +60,9 @@ function QueueRow({
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex items-baseline gap-2">
           {showTier && (
-            <span className="bg-muted text-muted-foreground shrink-0 rounded px-2 py-0.5 text-xs">
+            <Badge variant="muted">
               {TIER_LABELS[item.tier] ?? `Tier ${item.tier}`}
-            </span>
+            </Badge>
           )}
           <a
             href={item.readerUrl}
@@ -149,17 +150,15 @@ export default function ReadingQueue() {
         </p>
         <div className="flex flex-wrap gap-1">
           {SORT_MODES.map(({ mode: m, label }) => (
-            <button
+            <Button
               key={m}
+              size="xs"
+              variant={mode === m ? 'default' : 'secondary'}
+              aria-pressed={mode === m}
               onClick={() => setMode(m)}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                mode === m
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              }`}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -223,9 +222,9 @@ export default function ReadingQueue() {
                             {item.title}
                           </a>
                           {DECAY_LABEL[item.decay] && (
-                            <span className="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-xs">
+                            <Badge variant="muted">
                               {DECAY_LABEL[item.decay]}
-                            </span>
+                            </Badge>
                           )}
                           <span className="text-muted-foreground ml-auto shrink-0 text-xs">
                             {item.savedAt}

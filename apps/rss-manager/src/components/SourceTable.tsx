@@ -1,3 +1,19 @@
+import {
+  Alert,
+  AlertTitle,
+  Badge,
+  type BadgeProps,
+  Button,
+  buttonVariants,
+  cn,
+  Input,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@rainforest-dev/rainforest-react';
 import { useEffect, useState } from 'react';
 
 import { patchRegistry } from '../lib/patchRegistry.js';
@@ -9,26 +25,26 @@ const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';
 
 const STALE_UI: Record<
   StaleType,
-  { label: string; className: string; retirable: boolean }
+  { label: string; variant: BadgeProps['variant']; retirable: boolean }
 > = {
   'feed-dead': {
     label: 'feed dead',
-    className: 'bg-destructive/15 text-destructive',
+    variant: 'destructive',
     retirable: true,
   },
   'delivery-gap': {
     label: 'delivery gap',
-    className: 'bg-warning/15 text-warning',
+    variant: 'warning',
     retirable: false,
   },
   'low-value': {
     label: 'low value',
-    className: 'bg-warning/15 text-warning',
+    variant: 'warning',
     retirable: true,
   },
   unspecified: {
     label: 'flagged',
-    className: 'bg-muted text-muted-foreground',
+    variant: 'muted',
     retirable: true,
   },
 };
@@ -42,11 +58,11 @@ function daysAgo(dateStr: string): string {
   return `${diff}d ago`;
 }
 
-const STATUS_COLORS: Record<Source['status'], string> = {
-  active: 'bg-success/15 text-success',
-  proposed: 'bg-info/15 text-info',
-  'no-rss': 'bg-muted text-muted-foreground',
-  retired: 'bg-destructive/15 text-destructive',
+const STATUS_VARIANT: Record<Source['status'], BadgeProps['variant']> = {
+  active: 'success',
+  proposed: 'info',
+  'no-rss': 'muted',
+  retired: 'destructive',
 };
 
 export default function SourceTable() {
@@ -156,63 +172,62 @@ export default function SourceTable() {
   return (
     <div className="space-y-4">
       {!writable && (
-        <p className="bg-warning/15 text-warning rounded px-3 py-2 text-sm">
-          {READ_ONLY_NOTE} Activate and Retire are disabled.
-        </p>
+        <Alert variant="warning">
+          <AlertTitle>
+            {READ_ONLY_NOTE} Activate and Retire are disabled.
+          </AlertTitle>
+        </Alert>
       )}
       {actionError && (
-        <p className="bg-destructive/15 text-destructive rounded px-3 py-2 text-sm">
-          {actionError}
-        </p>
+        <Alert variant="destructive">
+          <AlertTitle>{actionError}</AlertTitle>
+        </Alert>
       )}
 
       {/* Summary chips */}
       <div className="flex flex-wrap gap-2">
         {(['all', 'active', 'proposed', 'no-rss'] as const).map((s) => (
-          <button
+          <Button
             key={s}
+            size="sm"
+            variant={statusFilter === s ? 'default' : 'secondary'}
+            aria-pressed={statusFilter === s}
             onClick={() => setStatusFilter(s)}
-            className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-              statusFilter === s
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            }`}
           >
             {s === 'all'
               ? `All (${sources.length})`
               : `${s} (${counts[s] ?? 0})`}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Search */}
-      <input
+      <Input
         type="search"
+        aria-label="Filter sources"
         placeholder="Filter by name, tag, or category…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="border-input bg-card text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/30 w-full rounded border px-4 py-2 text-sm focus:outline-none focus:ring-2"
       />
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-border text-muted-foreground border-b text-left">
-              <th className="py-2 pr-4 font-medium">Source</th>
-              <th className="py-2 pr-4 font-medium">Category</th>
-              <th className="py-2 pr-4 font-medium">Tags</th>
-              <th className="py-2 pr-4 font-medium">Status</th>
-              <th className="py-2 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Source</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Tags</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((s) => (
-              <tr
-                key={s.url || s.name}
-                className="border-border hover:bg-muted/50 border-b"
-              >
-                <td className="py-2 pr-4">
+              <TableRow key={s.url || s.name}>
+                <TableCell>
                   {/* The name goes to the site; the feed XML is a click no
                       reader wants, so it gets its own small link instead. When
                       the feed URL does not say what the site is, the name is
@@ -242,40 +257,33 @@ export default function SourceTable() {
                       </a>
                     )}
                   </div>
-                </td>
-                <td className="text-muted-foreground py-2 pr-4">
+                </TableCell>
+                <TableCell className="text-muted-foreground">
                   {s.category || '—'}
-                </td>
-                <td className="py-2 pr-4">
+                </TableCell>
+                <TableCell className="whitespace-normal">
                   <div className="flex flex-wrap gap-1">
                     {s.tags.map((t) => (
-                      <span
-                        key={t}
-                        className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs"
-                      >
+                      <Badge key={t} variant="muted">
                         #{t}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
-                </td>
-                <td className="py-2 pr-4">
+                </TableCell>
+                <TableCell>
                   <div className="flex flex-wrap items-center gap-1">
-                    <span
-                      className={`rounded px-2 py-0.5 text-xs ${STATUS_COLORS[s.status]}`}
-                    >
-                      {s.status}
-                    </span>
+                    <Badge variant={STATUS_VARIANT[s.status]}>{s.status}</Badge>
                     {s.stale && (
-                      <span
+                      <Badge
                         title={s.stale.note}
-                        className={`rounded px-2 py-0.5 text-xs ${STALE_UI[s.stale.type].className}`}
+                        variant={STALE_UI[s.stale.type].variant}
                       >
                         {STALE_UI[s.stale.type].label}
-                      </span>
+                      </Badge>
                     )}
                   </div>
-                </td>
-                <td className="py-2 text-right">
+                </TableCell>
+                <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
                     {s.proposedDate && s.status === 'proposed' && (
                       <span className="text-muted-foreground text-xs">
@@ -283,14 +291,14 @@ export default function SourceTable() {
                       </span>
                     )}
                     {s.status === 'proposed' && (
-                      <button
+                      <Button
+                        size="xs"
                         onClick={() => doAction(s.name, 'activate')}
                         disabled={pending.has(s.name) || !writable}
                         title={writable ? undefined : READ_ONLY_NOTE}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                       >
                         {pending.has(s.name) ? '…' : 'Activate'}
-                      </button>
+                      </Button>
                     )}
                     {s.status === 'active' &&
                       (s.stale && !STALE_UI[s.stale.type].retirable ? (
@@ -303,26 +311,30 @@ export default function SourceTable() {
                           rel="noopener noreferrer"
                           onClick={() => copyFeedUrl(s.name, s.url)}
                           title={`Copies ${s.url} and opens Readwise — paste it there with Shift + A`}
-                          className="bg-warning text-warning-foreground hover:bg-warning/90 rounded px-3 py-1 text-xs transition-colors"
+                          className={cn(
+                            buttonVariants({ size: 'xs' }),
+                            'bg-warning text-warning-foreground hover:bg-warning/90',
+                          )}
                         >
                           {copied === s.name ? 'Copied ✓' : 'Re-subscribe'}
                         </a>
                       ) : (
-                        <button
+                        <Button
+                          size="xs"
+                          variant="secondary"
                           onClick={() => doAction(s.name, 'retire')}
                           disabled={pending.has(s.name) || !writable}
                           title={writable ? undefined : READ_ONLY_NOTE}
-                          className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                         >
                           {pending.has(s.name) ? '…' : 'Retire'}
-                        </button>
+                        </Button>
                       ))}
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         {filtered.length === 0 && (
           <p className="text-muted-foreground py-8 text-center">
             No sources match the current filter.

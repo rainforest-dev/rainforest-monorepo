@@ -1,13 +1,20 @@
+import {
+  Alert,
+  AlertTitle,
+  Badge,
+  type BadgeProps,
+  Button,
+} from '@rainforest-dev/rainforest-react';
 import { useEffect, useState } from 'react';
 
 import { patchRegistry } from '../lib/patchRegistry.js';
 import type { Topic } from '../lib/registry.types.js';
 import { READ_ONLY_NOTE } from '../lib/registry.types.js';
 
-const STATUS_COLORS: Record<Topic['status'], string> = {
-  active: 'bg-success/15 text-success',
-  proposed: 'bg-info/15 text-info',
-  declined: 'bg-muted text-muted-foreground',
+const STATUS_VARIANT: Record<Topic['status'], BadgeProps['variant']> = {
+  active: 'success',
+  proposed: 'info',
+  declined: 'muted',
 };
 
 function daysAgo(dateStr: string): string {
@@ -89,14 +96,16 @@ export default function TopicList() {
   return (
     <div className="space-y-6">
       {!writable && (
-        <p className="bg-warning/15 text-warning rounded px-3 py-2 text-sm">
-          {READ_ONLY_NOTE} Activate and Decline are disabled.
-        </p>
+        <Alert variant="warning">
+          <AlertTitle>
+            {READ_ONLY_NOTE} Activate and Decline are disabled.
+          </AlertTitle>
+        </Alert>
       )}
       {actionError && (
-        <p className="bg-destructive/15 text-destructive rounded px-3 py-2 text-sm">
-          {actionError}
-        </p>
+        <Alert variant="destructive">
+          <AlertTitle>{actionError}</AlertTitle>
+        </Alert>
       )}
 
       {(['active', 'proposed', 'declined'] as const).map((status) => {
@@ -113,11 +122,9 @@ export default function TopicList() {
                   key={t.name}
                   className="bg-muted/50 flex items-start gap-3 rounded-lg p-3"
                 >
-                  <span
-                    className={`mt-0.5 shrink-0 rounded px-2 py-0.5 text-xs ${STATUS_COLORS[status]}`}
-                  >
+                  <Badge variant={STATUS_VARIANT[status]} className="mt-0.5">
                     {status}
-                  </span>
+                  </Badge>
                   <div className="flex-1">
                     <p className="text-foreground font-medium">{t.name}</p>
                     {t.description && (
@@ -143,22 +150,23 @@ export default function TopicList() {
                           {daysAgo(t.proposedDate)}
                         </span>
                       )}
-                      <button
+                      <Button
+                        size="xs"
                         onClick={() => doAction(t.name, 'activate')}
                         disabled={pending.has(t.name) || !writable}
                         title={writable ? undefined : READ_ONLY_NOTE}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                       >
                         {pending.has(t.name) ? '…' : 'Activate'}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="secondary"
                         onClick={() => doAction(t.name, 'decline')}
                         disabled={pending.has(t.name) || !writable}
                         title={writable ? undefined : READ_ONLY_NOTE}
-                        className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded px-3 py-1 text-xs transition-colors disabled:opacity-50"
                       >
                         {pending.has(t.name) ? '…' : 'Decline'}
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
