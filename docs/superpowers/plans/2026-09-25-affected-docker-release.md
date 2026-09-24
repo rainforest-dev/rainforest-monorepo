@@ -1,5 +1,7 @@
 # Affected Docker Release Implementation Plan
 
+Superseded where it differs by the spec and the fix rounds recorded in PR #406; this plan is kept as written.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the three per-app release workflows with one `release.yml` that versions, builds and pushes only the Docker apps `nx affected` reports, with CalVer tags and native arm64 builds.

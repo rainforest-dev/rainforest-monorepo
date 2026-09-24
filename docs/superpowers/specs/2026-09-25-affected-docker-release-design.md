@@ -1,6 +1,6 @@
 # One release workflow for the Docker apps, driven by `nx affected`
 
-Status: approved in chat 2026-09-25, pending spec review.
+Status: approved; implemented in PR #406.
 
 ## Why
 
@@ -124,22 +124,28 @@ One job on `ubuntu-24.04-arm`, so arm64 builds natively without QEMU.
    caring which.
 5. Nothing affected: a notice, and the job ends green.
 6. `export NX_DOCKER_BUILD_PROJECTS="$AFFECTED"`, then
-   `pnpm exec nx release version --projects="$AFFECTED" --dockerVersionScheme=prod
---git-tag="$IS_DEPLOY" --git-commit=false --stage-changes=false --verbose`. This builds the
-   images through `groupPreVersionCommand` and tags them with the CalVer reference.
+   `pnpm exec nx release version --projects="$AFFECTED" --dockerVersionScheme=prod --git-tag="$IS_DEPLOY" --git-commit=false --stage-changes=false --verbose`.
+   This builds the images through `groupPreVersionCommand` and tags them with the CalVer reference.
    `IS_DEPLOY` is true only for `push`, so a verify run passes `--git-tag=false` and creates no
    tag at all; with `release.git.push: false`, nx itself never pushes on either kind of run.
 7. Verify run: a notice, and the job ends here.
 8. `pnpm exec nx release publish --projects="$AFFECTED" --verbose` pushes each versioned image.
-9. Two passes over the affected projects. First, a validation pass resolves every project's
-   `<project>@<version>` tag at `HEAD` and its GHCR repository (`nx.release.docker.repositoryName`
-   from the project's `package.json`), and fails the job before any `docker` or `git push` if
-   either is missing, so a partial release never starts pushing and a later resolution failure
-   cannot strand a push half done. Second, a push pass: for each project, `docker tag` and
-   `docker push` `:latest`, then, only once `:latest` is on the registry, push that project's own
-   tag (`git push origin refs/tags/<project>@<version>`), one project at a time, so a tag never
-   reaches origin ahead of its image and `:latest`. The homelab follows `:latest`.
-10. A step summary table per project: version, image reference, digest.
+9. Two passes over the affected projects. Before either pass runs, on a `push` event the
+   workflow fetches `origin/main` and fails with a clear error unless `HEAD` is at or ahead of
+   it, so a manual re-run of an older push cannot move `:latest` backwards. First, a validation
+   pass resolves every project's `<project>@<version>` tag at `HEAD` and its GHCR repository
+   (`nx.release.docker.repositoryName` from the project's `package.json`), and fails the job
+   before any `docker` or `git push` if either is missing, so a partial release never starts
+   pushing and a later resolution failure cannot strand a push half done. The repository lookup
+   parses the `nx show project` JSON output tolerantly, taking the last line that starts with
+   `{`, since CI stdout can carry warnings ahead of the JSON document. Second, a push pass: for
+   each project, `docker tag` and `docker push` `:latest`, then, only once `:latest` is on the
+   registry, push that project's own tag (`git push origin refs/tags/<project>@<version>`), one
+   project at a time, so a tag never reaches origin ahead of its image and `:latest`. The
+   homelab follows `:latest`.
+10. A step summary table per project: version, image reference, digest. The digest lookup is
+    non-fatal: a failed `docker buildx imagetools inspect` records the digest as `(unavailable)`
+    instead of aborting the run after that project's tag has already been pushed.
 
 Every `run:` step that pipes into `tee` uses `set -o pipefail`; the old workflows shipped a
 silent-green release through exactly that.
@@ -196,7 +202,8 @@ local override and follow the registry.
   (checked 2026-09-25), so no `registry_auth` is needed.
 - `nx show projects --affected` computes against the project graph. A change outside every
   project's inputs, such as a workflow file alone, affects nothing and releases nothing. That is
-  intended; a manual dispatch covers pipeline changes.
+  intended for app and library changes; see the pipeline-only-PR risk below for what a change to
+  the workflow or the composite action itself still needs.
 - The private `ghcr.io/rainforest-dev/rainforest-monorepo/personal-calibre` package is stale.
   It is left in place and can be deleted by hand later.
 - A pull request that touches only the workflow file or the composite action, without touching

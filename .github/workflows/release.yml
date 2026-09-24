@@ -59,10 +59,14 @@ jobs:
           BEFORE: ${{ github.event.before }}
         run: |
           set -o pipefail
-          if ! APPS=$(pnpm exec nx show projects --withTarget=docker:build --json 2>/dev/null | node .github/actions/nx-affected-docker-apps/parse-affected.mjs); then
+          NX_ERR=$(mktemp)
+          if ! APPS=$(pnpm exec nx show projects --withTarget=docker:build --json 2>"$NX_ERR" | node .github/actions/nx-affected-docker-apps/parse-affected.mjs); then
             echo "::error::could not resolve the Docker app list"
+            cat "$NX_ERR" >&2
+            rm -f "$NX_ERR"
             exit 1
           fi
+          rm -f "$NX_ERR"
           KEPT=()
           IFS=',' read -ra APP_LIST <<< "$APPS"
           for APP in "${APP_LIST[@]}"; do
@@ -136,7 +140,7 @@ jobs:
             exit 0
           fi
           export NX_DOCKER_BUILD_PROJECTS="$AFFECTED"
-          # nx pushes the current branch whenever release.git.push is true, even with --git-tag=false, so nx.json sets push to false; this workflow pushes each tag itself, after its image.
+          # nx pushes the current branch whenever release.git.push is true, even with --git-tag=false.
           pnpm exec nx release version --projects="$AFFECTED" --dockerVersionScheme=prod \
             --git-tag="$IS_DEPLOY" --git-commit=false --stage-changes=false --verbose 2>&1 | tee /tmp/nx-release.log
           if [ "$IS_DEPLOY" != "true" ]; then
@@ -150,8 +154,16 @@ jobs:
         if: steps.release.outputs.published == 'true'
         env:
           AFFECTED: ${{ steps.affected_push.outputs.affected || steps.affected.outputs.affected }}
+          EVENT: ${{ github.event_name }}
         run: |
           set -o pipefail
+          if [ "$EVENT" = "push" ]; then
+            git fetch --no-tags origin main
+            if ! git merge-base --is-ancestor origin/main HEAD; then
+              echo "::error::HEAD is behind origin/main; refusing to move :latest from a stale re-run."
+              exit 1
+            fi
+          fi
           IFS=',' read -ra PROJECTS <<< "$AFFECTED"
           declare -A TAGS
           declare -A REPOS
@@ -161,8 +173,8 @@ jobs:
               echo "::error::No ${PROJECT}@<version> tag at HEAD; refusing to move :latest."
               exit 1
             fi
-            REPO=$(node -p "require('./' + process.argv[1] + '/package.json').nx.release.docker.repositoryName" \
-              "$(pnpm exec nx show project "$PROJECT" --json | node -p 'JSON.parse(require("fs").readFileSync(0)).root')")
+            ROOT=$(pnpm exec nx show project "$PROJECT" --json 2>/dev/null | grep '^{' | tail -1 | node -p 'JSON.parse(require("fs").readFileSync(0)).root')
+            REPO=$(node -p "require('./' + process.argv[1] + '/package.json').nx.release.docker.repositoryName" "$ROOT")
             if [ -z "$REPO" ] || [ "$REPO" = "undefined" ]; then
               echo "::error::No nx.release.docker.repositoryName resolved for ${PROJECT}; refusing to move :latest."
               exit 1
@@ -179,6 +191,6 @@ jobs:
             docker tag "${IMAGE}:${VERSION}" "${IMAGE}:latest"
             docker push "${IMAGE}:latest"
             git push origin "refs/tags/${TAG}"
-            DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --format '{{json .Manifest.Digest}}' | tr -d '"')
+            DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --format '{{json .Manifest.Digest}}' | tr -d '"') || DIGEST="(unavailable)"
             echo "| ${PROJECT} | \`${IMAGE}:${VERSION}\` | \`${DIGEST}\` |" >> "$GITHUB_STEP_SUMMARY"
           done
