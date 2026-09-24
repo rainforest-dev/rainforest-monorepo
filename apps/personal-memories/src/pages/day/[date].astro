@@ -1,0 +1,70 @@
+---
+import { getLiveEntry } from 'astro:content';
+
+import DaySection from '../../components/DaySection.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { NotePanel } from '../../components/NotePanel.tsx';
+import Layout from '../../layouts/Layout.astro';
+import { notePayload } from '../../lib/notes/payload.ts';
+import { notesStore } from '../../lib/notes/store.ts';
+import { getTimeline } from '../../lib/store.ts';
+
+const { date = '' } = Astro.params;
+const state = getTimeline();
+const { entry } =
+  state.status === 'ready'
+    ? await getLiveEntry('days', { date })
+    : { entry: undefined };
+const day = entry?.data;
+if (state.status === 'ready' && !day?.events) Astro.response.status = 404;
+const initial = day?.events
+  ? notePayload(notesStore(), date, day.events)
+  : undefined;
+
+const SOURCES = [
+  { source: 'line', label: 'LINE' },
+  { source: 'slack', label: 'Slack' },
+  { source: 'photo', label: '照片' },
+] as const;
+---
+
+<Layout title={`${date} · Memories`} wide>
+  <nav class="mb-4 text-sm">
+    <a href="/" class="text-muted-foreground hover:underline">← 全部日子</a>
+  </nav>
+  {
+    state.status === 'missing' ? (
+      <EmptyState path={state.path} />
+    ) : !day?.events || !initial ? (
+      <p>找不到 {date} 這一天。</p>
+    ) : (
+      <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
+        <div data-stream>
+          <fieldset class="mb-4 flex gap-4 text-sm" data-source-filter>
+            <legend class="sr-only">來源</legend>
+            {SOURCES.map(({ source, label }) => (
+              <label class="flex items-center gap-1.5">
+                <input type="checkbox" value={source} checked />
+                {label}
+              </label>
+            ))}
+          </fieldset>
+          <div data-load="prev" data-date={day.prev} />
+          <DaySection
+            date={date}
+            events={day.events}
+            prev={day.prev}
+            next={day.next}
+          />
+          <div data-load="next" data-date={day.next} />
+        </div>
+        <NotePanel client:load initial={initial} />
+      </div>
+    )
+  }
+</Layout>
+
+<script>
+  import { startDayStream } from '../../scripts/day-stream.ts';
+  startDayStream();
+</script>

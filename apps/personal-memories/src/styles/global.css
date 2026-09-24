@@ -16,3 +16,26 @@
     @apply bg-background text-foreground font-sans;
   }
 }
+
+[data-stream][data-hide-line] [data-source='line'],
+[data-stream][data-hide-slack] [data-source='slack'],
+[data-stream][data-hide-photo] [data-source='photo'] {
+  display: none;
+}
+
+[data-event-id]:target {
+  @apply ring-ring ring-2;
+}
+
+[data-event-id][data-annotated] {
+  @apply border-primary/40;
+}
+
+[data-event-id][data-annotated] [data-annotate] {
+  @apply text-primary opacity-100;
+}
+
+[data-day] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
