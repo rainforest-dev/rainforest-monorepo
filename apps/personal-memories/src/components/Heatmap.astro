@@ -38,7 +38,7 @@ const tooltip = (date: string, total: number, isNoted: boolean) => ({
   detail: `${total} 則${isNoted ? ' · 已寫回憶' : ''}`,
 });
 
-const firstNotedOrEvent = (row: MonthRow) =>
+const firstDayWithEvents = (row: MonthRow) =>
   row.cells.find(
     (c): c is { date: string; total: number } => c !== null && c.total > 0,
   )?.date;
@@ -118,7 +118,7 @@ const firstNotedOrEvent = (row: MonthRow) =>
                     </a>
                   ) : (
                     <span
-                      tabindex="0"
+                      role="img"
                       data-date={cell.date}
                       data-noted={isNoted}
                       aria-label={label}
@@ -127,10 +127,14 @@ const firstNotedOrEvent = (row: MonthRow) =>
                       {isNoted && (
                         <span class="bg-foreground size-1.5 rounded-full" />
                       )}
-                      <div class="bg-popover text-popover-foreground border-border pointer-events-none absolute bottom-[36px] left-1/2 z-10 w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                        <div class="font-semibold tabular-nums">{tip.date}</div>
-                        <div class="text-muted-foreground">{tip.detail}</div>
-                      </div>
+                      <span class="bg-popover text-popover-foreground border-border pointer-events-none absolute bottom-[36px] left-1/2 z-10 block w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                        <span class="block font-semibold tabular-nums">
+                          {tip.date}
+                        </span>
+                        <span class="text-muted-foreground block">
+                          {tip.detail}
+                        </span>
+                      </span>
                     </span>
                   );
                 })}
@@ -146,7 +150,7 @@ const firstNotedOrEvent = (row: MonthRow) =>
     {
       rows.map((row, i) => {
         const showYear = i === 0 || row.year !== rows[i - 1].year;
-        const target = firstNotedOrEvent(row);
+        const target = firstDayWithEvents(row);
         const bars = row.cells.map((cell) => {
           if (!cell) return <span class="h-4 w-2" />;
           const isNoted = noted.has(cell.date);
@@ -196,19 +200,6 @@ const firstNotedOrEvent = (row: MonthRow) =>
   </div>
 
   <div class="text-muted-foreground hidden gap-5 text-xs sm:flex">
-    <span class="flex items-center gap-1.5">
-      <kbd
-        class="border-border bg-muted text-muted-foreground inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border px-1 text-xs"
-      >
-        ←
-      </kbd>
-      <kbd
-        class="border-border bg-muted text-muted-foreground inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border px-1 text-xs"
-      >
-        →
-      </kbd>
-      在日子間移動
-    </span>
     <span class="flex items-center gap-1.5">
       <kbd
         class="border-border bg-muted text-muted-foreground inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border px-1 text-xs"

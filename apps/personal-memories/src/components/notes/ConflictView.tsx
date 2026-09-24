@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 import { lineDiff } from '../../lib/diff.ts';
 import type { NotePayload } from '../../lib/notes/payload.ts';
 import type { Draft } from './useNoteDraft.ts';
@@ -57,9 +59,19 @@ export function ConflictView({ theirs, mine, onResolve }: Props) {
   const diff = lineDiff(theirs.body, mine.body);
   const annotationCountChanged =
     theirs.annotations.length !== mine.annotations.length;
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    sectionRef.current?.focus();
+  }, []);
 
   return (
-    <section role="alert" className="bg-info/10 space-y-3 rounded-lg p-3">
+    <section
+      ref={sectionRef}
+      tabIndex={-1}
+      role="alert"
+      className="bg-info/10 space-y-3 rounded-lg p-3"
+    >
       <div>
         <h2 className="text-heading font-medium">
           這一天在 Obsidian 裡也改過了

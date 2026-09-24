@@ -77,11 +77,11 @@ test("the owner's rows are indented from everyone else's", async ({ page }) => {
   const ownerRow = day
     .locator('[data-event-id][data-author="Bob"]')
     .first()
-    .locator('div.min-w-0');
+    .locator('[data-row-body]');
   const otherRow = day
     .locator('[data-event-id][data-author="Alice 🌷"]')
     .first()
-    .locator('div.min-w-0');
+    .locator('[data-row-body]');
   const [ownerPadding, otherPadding] = await Promise.all([
     ownerRow.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft)),
     otherRow.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft)),

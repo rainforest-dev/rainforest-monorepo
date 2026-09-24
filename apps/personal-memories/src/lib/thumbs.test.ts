@@ -1,4 +1,10 @@
-import { mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -124,6 +130,22 @@ describe('ensureThumb', () => {
       (name) => name.startsWith('dedup-480.webp.') && name.endsWith('.tmp'),
     );
     expect(leftoverTmp).toHaveLength(0);
+  });
+
+  it('rejects once on an undecodable source, then short-circuits without calling sharp again', async () => {
+    const src = join(root, 'undecodable.heic');
+    writeFileSync(src, Buffer.from('not actually a heic file'));
+    const dest = join(root, 'undecodable-480.webp');
+
+    await expect(ensureThumb(src, dest, 480)).rejects.toThrow();
+
+    const mockedSharp = vi.mocked(sharp);
+    const callsBefore = mockedSharp.mock.calls.length;
+
+    await expect(ensureThumb(src, dest, 480)).rejects.toThrow();
+
+    expect(mockedSharp.mock.calls.length).toBe(callsBefore);
+    expect(existsSync(dest)).toBe(false);
   });
 });
 

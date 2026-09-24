@@ -229,6 +229,22 @@ describe('parseNote', () => {
     expect(serializeNote(reparsed)).toBe(serialized);
   });
 
+  it('finds the trailing section after the first annotation block, not the last', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 09:05 · LINE · a\n\n%% ev:3fa9c1d2 at:2025-11-01T09:05:00+08:00 src:line %%\n\nbody\n\n## 其他\n\n### 子標題\n\n內容\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(1);
+    expect(note.annotations[0].author).toBe('a');
+    expect(note.annotations[0].body).toBe('body');
+    expect(note.trailing).toBe('## 其他\n\n### 子標題\n\n內容');
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual(note.annotations);
+    expect(reparsed.trailing).toBe(note.trailing);
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
   it('throws on frontmatter that is not a mapping', () => {
     expect(() => parseNote('---\njust text\n---\n', '2025-11-01')).toThrow();
     expect(() => parseNote('---\nmood: [good\n---\n', '2025-11-01')).toThrow();

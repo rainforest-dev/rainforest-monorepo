@@ -63,6 +63,7 @@ export function withEncodeSlot<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 const inFlight = new Map<string, Promise<void>>();
+const failedDests = new Set<string>();
 
 export function ensureThumb(
   src: string,
@@ -70,6 +71,9 @@ export function ensureThumb(
   w: ThumbWidth,
 ): Promise<void> {
   if (existsSync(dest)) return Promise.resolve();
+  if (failedDests.has(dest)) {
+    return Promise.reject(new Error('thumbnail encode previously failed'));
+  }
 
   const running = inFlight.get(dest);
   if (running) return running;
@@ -86,6 +90,7 @@ export function ensureThumb(
       renameSync(tmp, dest);
     } catch (err) {
       rmSync(tmp, { force: true });
+      failedDests.add(dest);
       throw err;
     }
   }).finally(() => inFlight.delete(dest));

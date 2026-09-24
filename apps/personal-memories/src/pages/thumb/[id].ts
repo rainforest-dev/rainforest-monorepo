@@ -31,14 +31,22 @@ export const GET: APIRoute = async ({ params, url }) => {
     width,
     statSync(src).mtimeMs,
   );
-  await ensureThumb(src, dest, width);
+  try {
+    await ensureThumb(src, dest, width);
+  } catch {
+    const suffix = index > 0 ? `?n=${index}` : '';
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `/media/${params.id}${suffix}` },
+    });
+  }
 
   const stream = Readable.toWeb(createReadStream(dest)) as ReadableStream;
   return new Response(stream, {
     headers: {
       'Content-Type': 'image/webp',
       'Content-Length': String(statSync(dest).size),
-      'Cache-Control': 'private, max-age=31536000, immutable',
+      'Cache-Control': 'private, max-age=86400',
     },
   });
 };

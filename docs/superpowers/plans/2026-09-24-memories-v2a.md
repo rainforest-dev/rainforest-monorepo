@@ -184,8 +184,10 @@ ring-primary/45` via `:target`.
 ### Task 8: Owner and cache config in the homelab (controller, other repo)
 
 - [ ] `rainforest-homelab`: module env `MEMORIES_OWNER=${var.owner_names}` (value from
-      `terraform.tfvars`, which is gitignored) and `MEMORIES_CACHE_DIR` pointing inside the container
-      (tmpfs is fine; thumbnails regenerate). PR, plan, apply after the monorepo PR merges.
+      `terraform.tfvars`, which is gitignored) and `MEMORIES_CACHE_DIR` pointing at a disk path,
+      not tmpfs (tmpfs counts against the container's memory limit and the cache is unbounded); a
+      disk path on the container's writable layer, like the default, works and can be deleted any
+      time. PR, plan, apply after the monorepo PR merges.
 
 ### Task 9: E2E, README, PR
 

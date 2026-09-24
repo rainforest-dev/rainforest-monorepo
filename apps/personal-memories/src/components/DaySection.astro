@@ -33,7 +33,7 @@ const GUTTER =
   'text-muted-foreground pl-1 text-xs leading-[25px] tabular-nums sm:pl-2';
 const INDENT = 'pl-7 sm:pl-12';
 const PILL =
-  'bg-popover text-popover-foreground absolute z-1 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-md opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:pointer-events-none pointer-coarse:group-focus-within:pointer-events-auto';
+  'bg-popover text-popover-foreground absolute z-1 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-md opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto';
 
 const runs = groupRuns(events, ownersFromEnv());
 const hours = events.length >= BUSY_DAY ? hourCounts(events) : undefined;
@@ -132,7 +132,10 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                       <time datetime={event.at}>{taipeiTime(event.at)}</time>
                     )}
                   </span>
-                  <div class:list={['min-w-0', run.isOwner && INDENT]}>
+                  <div
+                    data-row-body
+                    class:list={['min-w-0', run.isOwner && INDENT]}
+                  >
                     {event.text && (
                       <p
                         class="text-body whitespace-pre-wrap text-pretty break-words"

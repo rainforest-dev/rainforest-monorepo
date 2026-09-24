@@ -82,20 +82,21 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
           </Notice>
         </div>
       )}
-      {conflict ? (
+      {conflict && (
         <ConflictView
           theirs={conflict}
           mine={draft}
           onResolve={note.resolveConflict}
         />
-      ) : readOnly ? (
+      )}
+      {readOnly ? (
         draft.body && (
           <div className="bg-muted/55 text-body whitespace-pre-wrap rounded-lg px-4 py-3.5">
             {draft.body}
           </div>
         )
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2" hidden={!!conflict}>
           <textarea
             aria-label="當天的回憶"
             placeholder={PLACEHOLDER}

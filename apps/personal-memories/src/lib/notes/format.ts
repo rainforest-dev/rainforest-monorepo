@@ -97,11 +97,10 @@ export function parseNote(text: string, date: string): DayNote {
   const bodyLines = split === -1 ? lines : lines.slice(0, split);
   const sectionLines = split === -1 ? [] : lines.slice(split + 1);
 
-  const lastBlockStart = sectionLines.reduce(
-    (last, line, i) => (line.startsWith('### ') ? i : last),
-    -1,
+  const firstBlockStart = sectionLines.findIndex((line) =>
+    line.startsWith('### '),
   );
-  const trailingSearchStart = lastBlockStart === -1 ? 0 : lastBlockStart + 1;
+  const trailingSearchStart = firstBlockStart === -1 ? 0 : firstBlockStart + 1;
   let trailingAt = -1;
   for (let i = trailingSearchStart; i < sectionLines.length; i++) {
     if (!sectionLines[i].startsWith('## ')) continue;

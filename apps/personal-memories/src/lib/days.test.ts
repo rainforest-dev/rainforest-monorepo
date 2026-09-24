@@ -74,13 +74,13 @@ describe('days', () => {
     );
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ year: 2025, month: 12 });
-    expect(rows[0].cells[18]).toBeNull(); // Dec 19, before the range
+    expect(rows[0].cells[18]).toBeNull();
     expect(rows[0].cells[19]).toEqual({ date: '2025-12-20', total: 0 });
     expect(rows[0].cells[24]).toEqual({ date: '2025-12-25', total: 2 });
     expect(rows[0].cells[30]).toEqual({ date: '2025-12-31', total: 0 });
     expect(rows[1]).toMatchObject({ year: 2026, month: 1 });
     expect(rows[1].cells[9]).toEqual({ date: '2026-01-10', total: 0 });
-    expect(rows[1].cells[10]).toBeNull(); // Jan 11, after the range
+    expect(rows[1].cells[10]).toBeNull();
   });
 
   it('keeps all 29 February slots in a leap year and nulls the rest', () => {
@@ -88,8 +88,8 @@ describe('days', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].cells[27]).toEqual({ date: '2024-02-28', total: 0 });
     expect(rows[0].cells[28]).toEqual({ date: '2024-02-29', total: 0 });
-    expect(rows[0].cells[29]).toBeNull(); // the month has no day 30
-    expect(rows[0].cells[30]).toBeNull(); // nor day 31
+    expect(rows[0].cells[29]).toBeNull();
+    expect(rows[0].cells[30]).toBeNull();
   });
 
   it('nulls the days before a mid-month start', () => {
