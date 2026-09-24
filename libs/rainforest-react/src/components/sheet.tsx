@@ -21,7 +21,7 @@ const SWIPE_DIRECTION = {
 
 const SheetSideContext = React.createContext<SheetSide>('right');
 
-/** A panel that slides in from an edge; on `side="bottom"`, `snapPoints` add a peek height. */
+/** A panel that slides in from an edge. A bottom sheet with snap points can rest at a peek height. */
 function Sheet({
   side = 'right',
   swipeDirection,
@@ -69,11 +69,13 @@ function SheetContent({
   showOverlay = true,
   showCloseButton = true,
   showHandle,
+  closeLabel = 'Close',
   ...props
 }: SheetPrimitive.Popup.Props & {
   showOverlay?: boolean;
   showCloseButton?: boolean;
   showHandle?: boolean;
+  closeLabel?: string;
 }) {
   const side = React.useContext(SheetSideContext);
   return (
@@ -113,7 +115,7 @@ function SheetContent({
               }
             >
               <XIcon />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{closeLabel}</span>
             </SheetPrimitive.Close>
           )}
         </SheetPrimitive.Popup>

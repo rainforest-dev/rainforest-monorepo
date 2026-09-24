@@ -66,12 +66,28 @@ describe('Sheet', () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
-  it('lets a controlled bottom sheet turn Escape into a collapse to its peek', async () => {
+  it('labels its close button with closeLabel', async () => {
+    render(
+      <Sheet defaultOpen>
+        <SheetContent closeLabel="關閉">
+          <SheetTitle>這一天的回憶</SheetTitle>
+        </SheetContent>
+      </Sheet>,
+    );
+    expect(await screen.findByRole('button', { name: '關閉' })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+  });
+
+  it('mounts a peek sheet without taking focus, expands with focus inside and collapses on Escape', async () => {
     const PEEK = '156px';
     function Notes() {
       const [snap, setSnap] = useState<string | number | null>(PEEK);
       return (
         <>
+          {/* eslint-disable-next-line jsx-a11y/no-autofocus -- the test needs focus on the page before the sheet mounts */}
+          <button type="button" autoFocus>
+            Stream
+          </button>
           <output data-testid="snap">{String(snap)}</output>
           <Sheet
             side="bottom"
@@ -85,9 +101,17 @@ describe('Sheet', () => {
             modal={snap === 1}
             disablePointerDismissal
           >
-            <SheetContent showOverlay={false} showCloseButton={false}>
+            <SheetContent
+              initialFocus={false}
+              showOverlay={false}
+              showCloseButton={false}
+            >
               <SheetTitle>這一天的回憶</SheetTitle>
-              <button type="button" onClick={() => setSnap(1)}>
+              <button
+                type="button"
+                aria-expanded={snap === 1}
+                onClick={() => setSnap(snap === 1 ? PEEK : 1)}
+              >
                 展開筆記
               </button>
             </SheetContent>
@@ -97,22 +121,30 @@ describe('Sheet', () => {
     }
     const user = userEvent.setup();
     render(<Notes />);
+    const stream = screen.getByRole('button', { name: 'Stream' });
     const dialog = await screen.findByRole('dialog');
     expect(dialog.getAttribute('data-side')).toBe('bottom');
     expect(dialog.querySelector('[data-slot="sheet-handle"]')).not.toBeNull();
-    await user.click(screen.getByRole('button', { name: '展開筆記' }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.activeElement).toBe(stream);
+
+    const expand = screen.getByRole('button', { name: '展開筆記' });
+    await user.click(expand);
     expect(screen.getByTestId('snap').textContent).toBe('1');
-    screen.getByRole('button', { name: '展開筆記' }).focus();
+    await waitFor(() => expect(document.activeElement).toBe(expand));
+
     await user.keyboard('{Escape}');
     await waitFor(() =>
       expect(screen.getByTestId('snap').textContent).toBe(PEEK),
     );
     expect(screen.getByRole('dialog')).not.toBeNull();
+    expect(expand.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(expand);
   });
 });
 
 describe('Tooltip', () => {
-  it('shows on keyboard focus, labels the trigger and hides on Escape', async () => {
+  it('shows on keyboard focus and hides on Escape with focus kept on the trigger', async () => {
     const user = userEvent.setup();
     render(
       <TooltipProvider>
@@ -198,6 +230,20 @@ describe('Checkbox', () => {
     expect(box.getAttribute('aria-checked')).toBe('true');
     await user.click(box);
     expect(box.getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('takes its name from a wrapping label', async () => {
+    const user = userEvent.setup();
+    render(
+      // eslint-disable-next-line jsx-a11y/label-has-associated-control -- Checkbox renders a hidden native input the rule cannot see through the component
+      <label>
+        <Checkbox />
+        Slack
+      </label>,
+    );
+    const box = screen.getByRole('checkbox', { name: 'Slack' });
+    await user.click(screen.getByText('Slack'));
+    expect(box.getAttribute('aria-checked')).toBe('true');
   });
 
   it('reports the indeterminate state', () => {

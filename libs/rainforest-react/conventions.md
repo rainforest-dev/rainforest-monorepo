@@ -92,10 +92,16 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
   The recipes and `cn` also ship React-free as `@rainforest-dev/rainforest-ui/recipes` for Vue
   and Astro components.
 - Mount `<Toaster />` once per app and call `toast()` from anywhere.
-- Wrap an app, or a region with many tooltips, in one `<TooltipProvider>` so moving between
-  triggers skips the open delay.
+- Tooltips open after Base UI's default hover delay. Wrap an app, or a region with many
+  tooltips, in one `<TooltipProvider>`: once one tooltip has shown, moving to the next trigger
+  within the provider's `timeout` opens it without waiting again.
 - A bottom `Sheet` with a peek: pass `snapPoints={[peekHeight, 1]}` and control `snapPoint`.
   Keep `open` true, map `onOpenChange(false)` (Escape) to the peek snap point, and set
-  `modal={snapPoint === 1}` so focus is only trapped when the sheet is expanded.
+  `modal={snapPoint === 1}` so focus is only trapped when the sheet is expanded. Pass
+  `initialFocus={false}` to `SheetContent`: a sheet that is open on mount otherwise takes focus
+  from the page as it loads. The control that expands the sheet sits inside it, so focus is
+  already there when it grows.
+- `SheetContent` labels its close button "Close" for screen readers; pass `closeLabel` (for
+  example `closeLabel="關閉"`) in apps whose UI is not English.
 - Loading states use `Skeleton` blocks sized like the content they stand for, never a spinner
   alone.

@@ -81,6 +81,7 @@ function PeekSheet() {
         disablePointerDismissal
       >
         <SheetContent
+          initialFocus={false}
           showOverlay={expanded}
           showCloseButton={false}
           className="bg-sidebar"

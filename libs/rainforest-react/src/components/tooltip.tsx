@@ -5,17 +5,8 @@ import type * as React from 'react';
 
 import { cn } from '../lib/cn';
 
-function TooltipProvider({
-  delay = 0,
-  ...props
-}: TooltipPrimitive.Provider.Props) {
-  return (
-    <TooltipPrimitive.Provider
-      data-slot="tooltip-provider"
-      delay={delay}
-      {...props}
-    />
-  );
+function TooltipProvider({ ...props }: TooltipPrimitive.Provider.Props) {
+  return <TooltipPrimitive.Provider data-slot="tooltip-provider" {...props} />;
 }
 
 /** A short label shown on hover or focus. Compose TooltipTrigger with TooltipContent. */
