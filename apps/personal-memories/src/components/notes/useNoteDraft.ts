@@ -3,62 +3,69 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
 import type { NotePayload } from '../../lib/notes/payload.ts';
+import type { Annotation } from '../../lib/notes/types.ts';
 
 export type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict';
 export type Draft = { body: string; annotations: ResolvedAnnotation[] };
 
 const SAVE_DELAY_MS = 1000;
+const UNSAFE: readonly SaveStatus[] = ['dirty', 'saving', 'error', 'conflict'];
 
 const toDraft = (p: NotePayload): Draft => ({
   body: p.body,
   annotations: p.annotations,
 });
 
+const toAnnotation = (a: ResolvedAnnotation): Annotation => ({
+  eventId: a.eventId,
+  at: a.at,
+  source: a.source,
+  author: a.author,
+  excerpt: a.excerpt,
+  body: a.body,
+});
+
 export function useNoteDraft(initial: NotePayload) {
-  const [payload, setPayload] = useState(initial);
-  const [draft, setDraft] = useState(() => toDraft(initial));
+  const [payload, setPayloadState] = useState(initial);
+  const [draft, setDraftState] = useState(() => toDraft(initial));
   const [status, setStatusState] = useState<SaveStatus>('saved');
   const [conflict, setConflict] = useState<NotePayload>();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pending = useRef<Promise<void>>(Promise.resolve());
-  const statusRef = useRef<SaveStatus>('saved');
-  const versionRef = useRef(initial.version);
   const revision = useRef(0);
-  const latest = useRef({ payload, draft });
-  latest.current = { payload, draft };
+  const current = useRef({ payload, draft, status });
 
+  const setPayload = useCallback((p: NotePayload) => {
+    current.current.payload = p;
+    setPayloadState(p);
+  }, []);
+  const setDraft = useCallback((d: Draft) => {
+    current.current.draft = d;
+    setDraftState(d);
+  }, []);
   const setStatus = useCallback((s: SaveStatus) => {
-    statusRef.current = s;
+    current.current.status = s;
     setStatusState(s);
   }, []);
 
   const save = useCallback(() => {
     const run = async () => {
-      const { payload: p, draft: d } = latest.current;
+      const { payload: p, draft: d } = current.current;
       const rev = revision.current;
       setStatus('saving');
       try {
         const result = await actions.saveNote.orThrow({
           date: p.date,
           body: d.body,
-          annotations: d.annotations.map(
-            ({ eventId, at, source, author, excerpt, body }) => ({
-              eventId,
-              at,
-              source,
-              author,
-              excerpt,
-              body,
-            }),
-          ),
+          annotations: d.annotations.map(toAnnotation),
           cover: p.cover,
-          version: versionRef.current,
+          version: p.version,
         });
         if (result.ok) {
-          versionRef.current = result.version;
-          setPayload((prev) => ({ ...prev, version: result.version }));
+          setPayload({ ...current.current.payload, version: result.version });
           if (revision.current === rev) setStatus('saved');
         } else {
+          clearTimeout(timer.current);
           setConflict(result.current);
           setStatus('conflict');
         }
@@ -68,66 +75,70 @@ export function useNoteDraft(initial: NotePayload) {
     };
     pending.current = pending.current.then(run);
     return pending.current;
-  }, [setStatus]);
+  }, [setPayload, setStatus]);
 
   const edit = useCallback(
     (next: (d: Draft) => Draft) => {
-      setDraft(next);
+      setDraft(next(current.current.draft));
       revision.current += 1;
-      if (statusRef.current === 'conflict') return;
+      if (current.current.status === 'conflict') return;
       setStatus('dirty');
       clearTimeout(timer.current);
       timer.current = setTimeout(() => void save(), SAVE_DELAY_MS);
     },
-    [save, setStatus],
+    [save, setDraft, setStatus],
   );
 
   const flush = useCallback(async () => {
     clearTimeout(timer.current);
-    const s = statusRef.current;
+    const s = current.current.status;
     if (s === 'dirty' || s === 'error') await save();
     else await pending.current;
   }, [save]);
 
-  const load = useCallback(
-    async (date: string) => {
-      await flush();
-      if (statusRef.current !== 'saved') return;
-      const next = await actions.getNote.orThrow({ date });
-      if (statusRef.current !== 'saved') return;
-      versionRef.current = next.version;
+  const replace = useCallback(
+    (next: NotePayload) => {
       setPayload(next);
       setDraft(toDraft(next));
       setConflict(undefined);
     },
-    [flush],
+    [setDraft, setPayload],
   );
 
   const resolveConflict = useCallback(
     (keep: 'theirs' | 'mine') => {
       if (!conflict) return;
-      versionRef.current = conflict.version;
       setConflict(undefined);
       if (keep === 'theirs') {
-        setPayload(conflict);
-        setDraft(toDraft(conflict));
+        replace(conflict);
         setStatus('saved');
       } else {
-        setPayload((prev) => ({ ...prev, version: conflict.version }));
+        setPayload({ ...current.current.payload, version: conflict.version });
         void save();
       }
     },
-    [conflict, save, setStatus],
+    [conflict, replace, save, setPayload, setStatus],
   );
 
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
-      const s = statusRef.current;
-      if (s === 'dirty' || s === 'saving' || s === 'error') e.preventDefault();
+      if (!UNSAFE.includes(current.current.status)) return;
+      e.preventDefault();
+      e.returnValue = '';
     };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, []);
 
-  return { payload, draft, status, conflict, edit, load, resolveConflict };
+  return {
+    payload,
+    draft,
+    status,
+    conflict,
+    current,
+    edit,
+    flush,
+    replace,
+    resolveConflict,
+  };
 }

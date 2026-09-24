@@ -1,8 +1,10 @@
 import { useState } from 'react';
 
 import type { NotePayload } from '../lib/notes/payload.ts';
+import { dayHeading } from '../lib/weeks.ts';
 import { AnnotationItem } from './notes/AnnotationItem.tsx';
 import { ConflictView } from './notes/ConflictView.tsx';
+import { useDaySync } from './notes/useDaySync.ts';
 import { type SaveStatus, useNoteDraft } from './notes/useNoteDraft.ts';
 import { useStreamBridge } from './notes/useStreamBridge.ts';
 
@@ -14,42 +16,54 @@ const STATUS_LABELS: Record<SaveStatus, string> = {
   conflict: '有衝突',
 };
 
+const LOAD_FAILED = '載入失敗，捲動時會再試';
+
 export function NotePanel({ initial }: { initial: NotePayload }) {
-  const { payload, draft, status, conflict, edit, load, resolveConflict } =
-    useNoteDraft(initial);
+  const note = useNoteDraft(initial);
+  const { payload, draft, status, conflict, current, edit } = note;
+  const { request, loadFailed } = useDaySync({ ...note, current });
   const [open, setOpen] = useState(false);
   const readOnly = !payload.writable;
   const { reattach, setReattach, setAnnotation, refs } = useStreamBridge({
     date: payload.date,
     draft,
+    current,
     readOnly,
     edit,
-    load,
+    request,
     onAnnotate: () => setOpen(true),
   });
+  const failed = status === 'error' || (loadFailed && status === 'saved');
 
   return (
     <aside
       aria-label="筆記"
       className="border-border bg-card fixed inset-x-0 bottom-0 z-20 border-t lg:sticky lg:top-4 lg:z-auto lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:rounded-lg lg:border lg:bg-transparent"
     >
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        className="focus-visible:ring-ring w-full px-4 py-3 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 lg:pointer-events-none"
-      >
-        筆記 ·{' '}
-        <span
-          className={
-            status === 'error'
-              ? 'bg-destructive/10 text-destructive rounded px-1.5 py-0.5'
-              : 'text-muted-foreground'
-          }
+      <div className="flex items-center gap-2 px-4 py-3 text-sm">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+          className="focus-visible:ring-ring flex-1 text-left font-medium focus-visible:outline-none focus-visible:ring-2 lg:pointer-events-none"
         >
-          {STATUS_LABELS[status]}
+          筆記 ·{' '}
+          <span
+            className={
+              failed
+                ? 'bg-destructive/10 text-destructive rounded px-1.5 py-0.5'
+                : 'text-muted-foreground'
+            }
+          >
+            {loadFailed && status === 'saved'
+              ? LOAD_FAILED
+              : STATUS_LABELS[status]}
+          </span>
+        </button>
+        <span className="text-muted-foreground text-xs">
+          {dayHeading(payload.date)}
         </span>
-      </button>
+      </div>
       <div
         className={`${open ? 'block' : 'hidden'} max-h-[70vh] space-y-4 overflow-y-auto p-4 pt-0 lg:block lg:max-h-none lg:overflow-visible`}
       >
@@ -62,7 +76,7 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
           <ConflictView
             theirs={conflict}
             mine={draft}
-            onResolve={resolveConflict}
+            onResolve={note.resolveConflict}
           />
         )}
         <textarea
