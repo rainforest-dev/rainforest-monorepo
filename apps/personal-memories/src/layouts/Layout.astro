@@ -1,9 +1,9 @@
 ---
 import '../styles/global.css';
 
-type Props = { title: string };
+type Props = { title: string; wide?: boolean };
 
-const { title } = Astro.props;
+const { title, wide = false } = Astro.props;
 ---
 
 <html lang="zh-TW">
@@ -13,7 +13,7 @@ const { title } = Astro.props;
     <title>{title}</title>
   </head>
   <body class="antialiased">
-    <main class="mx-auto max-w-2xl px-4 py-8">
+    <main class:list={['mx-auto px-4 py-8', wide ? 'max-w-6xl' : 'max-w-2xl']}>
       <slot />
     </main>
   </body>

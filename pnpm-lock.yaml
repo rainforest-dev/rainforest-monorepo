@@ -361,6 +361,9 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.2.2
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
     devDependencies:
       '@rainforest-dev/rainforest-ui':
         specifier: workspace:*

@@ -1,0 +1,14 @@
+---
+import { getLiveEntry } from 'astro:content';
+
+import DaySection from '../../../components/DaySection.astro';
+
+export const partial = true;
+
+const { date = '' } = Astro.params;
+const { entry } = await getLiveEntry('days', { date });
+if (!entry?.data.events) return new Response(null, { status: 404 });
+const { events, prev, next } = entry.data;
+---
+
+<DaySection date={date} events={events} prev={prev} next={next} />

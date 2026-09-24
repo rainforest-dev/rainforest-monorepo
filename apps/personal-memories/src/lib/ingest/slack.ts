@@ -1,7 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
-import { makeEvent, type TimelineEvent, toTaipeiIso } from '../timeline.ts';
+import {
+  makeEvent,
+  type TimelineEvent,
+  type TimelineMedia,
+  toTaipeiIso,
+} from '../timeline.ts';
 
 type SlackUser = {
   id: string;
@@ -16,7 +21,7 @@ type SlackMessage = {
   user?: string;
   text?: string;
   ts?: string;
-  files?: { name?: string }[];
+  files?: { name?: string; original_w?: number; original_h?: number }[];
 };
 
 export type SlackExport = {
@@ -86,13 +91,20 @@ export function parseSlackExport(root: string): SlackExport {
           (mention, id: string) =>
             users.has(id) ? `@${users.get(id)}` : mention,
         );
-        const media: { path: string }[] = [];
+        const media: TimelineMedia[] = [];
         const missing: string[] = [];
-        for (const { name } of message.files ?? []) {
+        for (const { name, original_w, original_h } of message.files ?? []) {
           if (!name) continue;
           const path = findMedia(root, channel, name);
-          if (path) media.push({ path });
-          else missing.push(`[file] ${name}`);
+          if (!path) {
+            missing.push(`[file] ${name}`);
+            continue;
+          }
+          media.push(
+            original_w && original_h
+              ? { path, width: original_w, height: original_h }
+              : { path },
+          );
         }
         const body = [text, ...missing].filter(Boolean).join('\n');
 

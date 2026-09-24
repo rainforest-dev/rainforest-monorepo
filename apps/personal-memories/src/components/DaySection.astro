@@ -1,0 +1,78 @@
+---
+import { excerptOf } from '../lib/notes/attach.ts';
+import type { TimelineEvent } from '../lib/timeline.ts';
+import { dayHeading, taipeiTime } from '../lib/weeks.ts';
+
+type Props = {
+  date: string;
+  events: TimelineEvent[];
+  prev?: string | undefined;
+  next?: string | undefined;
+};
+
+const { date, events, prev, next } = Astro.props;
+
+const IMAGE = /\.(avif|gif|jpe?g|png|webp)$/i;
+const fileName = (path: string) => path.split(/[\\/]/).pop();
+---
+
+<section
+  id={`day-${date}`}
+  data-day={date}
+  data-prev={prev}
+  data-next={next}
+  class="mb-10"
+>
+  <h2 class="bg-background/95 sticky top-0 z-10 mb-3 py-1 font-semibold">
+    <a href={`/day/${date}`}>{dayHeading(date)}</a>
+  </h2>
+  <ol class="space-y-3">
+    {
+      events.map((event) => (
+        <li
+          id={`ev-${event.id}`}
+          data-event-id={event.id}
+          data-source={event.source}
+          data-at={event.at}
+          data-author={event.author}
+          data-excerpt={excerptOf(event)}
+          class="bg-card text-card-foreground group relative scroll-mt-12 rounded-lg border p-3"
+        >
+          <div class="text-muted-foreground mb-1 flex gap-2 text-xs">
+            <time datetime={event.at} class="tabular-nums">
+              {taipeiTime(event.at)}
+            </time>
+            <span>{event.source === 'photo' ? '照片' : event.author}</span>
+            <button
+              type="button"
+              data-annotate
+              class="text-muted-foreground hover:text-foreground ml-auto opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+            >
+              眉批
+            </button>
+          </div>
+          {event.text && (
+            <p class="whitespace-pre-wrap break-words">{event.text}</p>
+          )}
+          {event.media?.map(({ path, width, height }, n) => {
+            const src = `/media/${encodeURIComponent(event.id)}${n ? `?n=${n}` : ''}`;
+            return event.source === 'photo' || IMAGE.test(path) ? (
+              <img
+                src={src}
+                alt={event.text ?? `照片 ${taipeiTime(event.at)}`}
+                width={width}
+                height={height}
+                loading="lazy"
+                class="mt-2 h-auto w-full max-w-[480px] rounded"
+              />
+            ) : (
+              <a href={src} class="mt-2 block text-sm underline">
+                {fileName(path)}
+              </a>
+            );
+          })}
+        </li>
+      ))
+    }
+  </ol>
+</section>
