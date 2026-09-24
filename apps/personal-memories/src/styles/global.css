@@ -51,6 +51,20 @@
   @apply ring-background ring-2;
 }
 
+[data-burst]:has(:target) > [data-overflow] {
+  display: block;
+}
+
+[data-burst]:has(:target) [data-scrim] {
+  display: none;
+}
+
+[data-burst]:not(:has(:target)):has(> [data-overflow][data-annotated])
+  > [data-more]
+  [data-marker] {
+  @apply bg-primary ring-background ring-2;
+}
+
 [data-day] {
   content-visibility: auto;
   contain-intrinsic-size: auto 800px;
