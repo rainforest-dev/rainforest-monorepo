@@ -99,23 +99,29 @@ One job on `ubuntu-24.04-arm`, so arm64 builds natively without QEMU.
 1. Checkout with `fetch-depth: 0`, set the bot git identity, `pnpm/action-setup`, Node 22 with
    the pnpm cache, `pnpm install --frozen-lockfile`.
 2. Log in to GHCR with `GITHUB_TOKEN` (`packages: write`).
-3. Resolve the base. On `push`: for every Docker project (read fresh from
-   `nx show projects --withTarget=docker:build --json`, never hardcoded), find the commit of its
-   newest reachable CalVer tag with `git describe --match '<project>@YYYY.MM.DD.*'` and
-   `git rev-list -n1`, then take the oldest of those commits as the base. The oldest one is the
-   commit that `git merge-base --is-ancestor` finds is an ancestor of every other candidate. Using
-   the newest tag per project, not the newest tag across all projects, matters when a run releases
-   two projects and one push fails after the other's tag and image already landed: the failed
-   project's last release stays the floor for the next run's affected diff. If any project has no
-   CalVer tag yet, the base falls back to `github.event.before`. On `workflow_dispatch` and
-   `pull_request`: `git merge-base origin/main HEAD`. Either branch logs a notice naming the
-   resolved base and where it came from; a manual run from `main` itself notes that it is
-   comparing `main` with itself.
-4. Resolve affected projects with a composite action,
-   `.github/actions/nx-affected-docker-apps`: an empty, all-zero or unreachable base falls back to `HEAD~1`; it runs
-   `nx show projects --affected --base --head --withTarget=docker:build --json` with stderr
-   captured separately; it fails loudly when no JSON array can be parsed, and outputs a
-   comma-separated list, empty when nothing is affected.
+3. On `push`, decide each Docker app's affected status on its own, in one step. List the Docker
+   apps fresh from `nx show projects --withTarget=docker:build --json` (never hardcoded). For
+   each app, resolve its own base: the commit of its newest reachable CalVer tag
+   (`git describe --match '<app>@YYYY.MM.DD.*' HEAD`, then `git rev-list -n1` on that tag), or
+   `github.event.before` if the app has no such tag yet, or `HEAD~1` if that value is still
+   empty, all zero, or not a reachable commit. Log a notice per app naming its base and where it
+   came from, then run `nx show projects --affected --withTarget=docker:build --json` from that
+   base to `HEAD` and keep the app only if it appears in the result. Basing each app's diff on its
+   own last release, instead of a single base shared by all three, is what
+   stops one app's successful release from hiding another app's outstanding changes: with a
+   shared base, whichever app releases last keeps resetting the floor for the other two, so a
+   change to an app that keeps missing a release (a flaky build, say) can sit unreleased
+   indefinitely once a sibling app releases again.
+4. On `workflow_dispatch` and `pull_request`, keep the original shared path: resolve one base
+   with `git merge-base origin/main HEAD` (a manual run from `main` itself logs that it is
+   comparing `main` with itself), then resolve affected projects with a composite action,
+   `.github/actions/nx-affected-docker-apps`: an empty, all-zero or unreachable base falls back to
+   `HEAD~1`; it runs `nx show projects --affected --base --head --withTarget=docker:build --json`
+   with stderr captured separately; it fails loudly when no JSON array can be parsed, and outputs
+   a comma-separated list, empty when nothing is affected. Both paths produce the same output
+   contract (comma-separated project names, empty when none), so the later steps read whichever
+   one ran (`steps.affected_push.outputs.affected || steps.affected.outputs.affected`) without
+   caring which.
 5. Nothing affected: a notice, and the job ends green.
 6. `export NX_DOCKER_BUILD_PROJECTS="$AFFECTED"`, then
    `pnpm exec nx release version --projects="$AFFECTED" --dockerVersionScheme=prod
@@ -126,12 +132,13 @@ One job on `ubuntu-24.04-arm`, so arm64 builds natively without QEMU.
 7. Verify run: a notice, and the job ends here.
 8. `pnpm exec nx release publish --projects="$AFFECTED" --verbose` pushes each versioned image.
 9. Two passes over the affected projects. First, a validation pass resolves every project's
-   `<project>@<version>` tag at `HEAD` and fails the job before any `docker` or `git push` if one
-   is missing, so a partial release never starts pushing. Second, a push pass: for each project,
-   `docker tag` and `docker push` `:latest`, then, only once `:latest` is on the registry, push
-   that project's own tag (`git push origin refs/tags/<project>@<version>`), one project at a
-   time, so a tag never reaches origin ahead of its image and `:latest`. The homelab follows
-   `:latest`.
+   `<project>@<version>` tag at `HEAD` and its GHCR repository (`nx.release.docker.repositoryName`
+   from the project's `package.json`), and fails the job before any `docker` or `git push` if
+   either is missing, so a partial release never starts pushing and a later resolution failure
+   cannot strand a push half done. Second, a push pass: for each project, `docker tag` and
+   `docker push` `:latest`, then, only once `:latest` is on the registry, push that project's own
+   tag (`git push origin refs/tags/<project>@<version>`), one project at a time, so a tag never
+   reaches origin ahead of its image and `:latest`. The homelab follows `:latest`.
 10. A step summary table per project: version, image reference, digest.
 
 Every `run:` step that pipes into `tee` uses `set -o pipefail`; the old workflows shipped a
