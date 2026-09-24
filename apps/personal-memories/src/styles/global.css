@@ -65,6 +65,10 @@
   @apply bg-primary ring-background ring-2;
 }
 
+[data-stream] {
+  overflow-anchor: none;
+}
+
 [data-day] {
   content-visibility: auto;
   contain-intrinsic-size: auto 800px;

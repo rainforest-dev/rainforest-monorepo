@@ -78,10 +78,10 @@ function watchLoaders(
           const { section } = result;
           const direction = sentinel.dataset['load'];
           if (direction === 'prev') {
-            const before = document.documentElement.scrollHeight;
-            sentinel.after(section);
-            windowManager.track(section);
-            compensateScroll(document.documentElement.scrollHeight - before);
+            compensateSwap(stream, section, () => {
+              sentinel.after(section);
+              windowManager.track(section);
+            });
             sentinel.dataset['date'] = section.dataset['prev'] ?? '';
           } else {
             sentinel.before(section);
@@ -152,14 +152,11 @@ function findVisibleAnchor(
   stream: HTMLElement,
   exclude: HTMLElement,
 ): HTMLElement | undefined {
-  for (const item of stream.querySelectorAll<HTMLElement>('[data-event-id]')) {
-    if (!exclude.contains(item) && item.getBoundingClientRect().bottom > 0)
-      return item;
-  }
-  return undefined;
+  return dayNodesOf(stream).find(
+    (node) => node !== exclude && node.getBoundingClientRect().bottom > 0,
+  );
 }
 
-// scrollHeight is page-wide and any concurrent layout change pollutes it; an untouched element's own rect isolates just this swap.
 function compensateSwap(
   stream: HTMLElement,
   exclude: HTMLElement,
@@ -180,7 +177,7 @@ function createWindowManager(stream: HTMLElement): WindowManager {
   const settled = new WeakSet<HTMLElement>();
   let activeDate = '';
 
-  // Safari has no scroll anchoring, so an above-viewport resize needs manual scrollY compensation.
+  // Safari has no scroll anchoring, so the stream opts out of Chrome's too (overflow-anchor: none) and every above-viewport resize is compensated here.
   const heightObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       const section = entry.target as HTMLElement;
@@ -194,7 +191,7 @@ function createWindowManager(stream: HTMLElement): WindowManager {
       const previous = liveHeight.get(section) ?? rect.height;
       liveHeight.set(section, rect.height);
       const delta = rect.height - previous;
-      if (delta !== 0 && rect.bottom <= 0) compensateScroll(delta);
+      if (delta !== 0 && rect.top + previous <= 0) compensateScroll(delta);
     }
   });
 
@@ -283,7 +280,8 @@ function createWindowManager(stream: HTMLElement): WindowManager {
           if (near) restore(el, day);
           return;
         }
-        if (distance > WINDOW_RADIUS) collapse(el, day);
+        if (distance > WINDOW_RADIUS && !el.contains(document.activeElement))
+          collapse(el, day);
       });
     },
   };
