@@ -67,6 +67,10 @@ MEMORIES_DATA_DIR="$HOME/.local/share/memories" pnpm nx dev personal-memories
   are read in place from the Photos library and Slack files from the export.
 - `/thumb/<event id>?n=<index>&w=<240|480|960>` serves a cached WebP thumbnail from `MEMORIES_CACHE_DIR` (default: `memories-thumbs` under the OS temp dir).
 
+Set `MEMORIES_OWNER` to a comma-separated list of author names (as they appear in the LINE or
+Slack export) to indent that person's own messages in the day stream, the way a chat app sets
+your own bubbles apart from the other side's.
+
 Without a `timeline.json` the pages show how to run `ingest` instead of failing.
 
 For a synthetic data directory built from the parser fixtures (used by

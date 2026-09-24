@@ -23,7 +23,11 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: false,
     cwd: workspaceRoot,
-    env: { MEMORIES_DATA_DIR: dataDir, MEMORIES_NOTES_DIR: notesDir },
+    env: {
+      MEMORIES_DATA_DIR: dataDir,
+      MEMORIES_NOTES_DIR: notesDir,
+      MEMORIES_OWNER: 'Bob',
+    },
   },
   projects: [
     {

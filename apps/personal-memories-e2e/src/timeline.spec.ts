@@ -37,12 +37,18 @@ test('a day shows messages and photos in order, with the source filter', async (
   await page.goto('/day/2025-11-01');
   const day = page.locator('#day-2025-11-01');
   await expect(day.getByRole('heading')).toHaveText('2025-11-01（週六）');
-  const texts = await day.locator('[data-event-id]').allInnerTexts();
+  // content-visibility:auto defers layout until the section is in view.
+  await expect(day).toContainText('照片 7 張');
+  // content-visibility:auto blanks innerText pre-render; textContent needs no layout.
+  const texts = await day
+    .locator('[data-event-id]')
+    .evaluateAll((els) => els.map((el) => el.textContent ?? ''));
   const indexOf = (needle: string) =>
     texts.findIndex((t) => t.includes(needle));
   expect(indexOf('Morning @Alice')).toBeLessThan(indexOf('Lunch plan'));
 
   const photo = day.getByRole('img', { name: 'Weekend, Food' });
+  await expect(photo).toBeVisible();
   expect(
     await photo.evaluate((img: HTMLImageElement) => img.naturalWidth),
   ).toBeGreaterThan(0);
@@ -52,6 +58,43 @@ test('a day shows messages and photos in order, with the source filter', async (
   await page.reload();
   await expect(page.getByLabel('照片')).not.toBeChecked();
   await page.getByLabel('照片').check();
+});
+
+test('a photo run longer than 4 collapses the rest behind a +N tile', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const day = page.locator('#day-2025-11-01');
+  const burst = day.locator('[data-burst]').first();
+  await expect(burst.locator('li[data-event-id]')).toHaveCount(7);
+  await expect(burst.locator('li[data-overflow]')).toHaveCount(3);
+  await expect(burst.locator('[data-more] [data-scrim]')).toHaveText('+4');
+});
+
+test("the owner's rows are indented from everyone else's", async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const day = page.locator('#day-2025-11-01');
+  const ownerRow = day
+    .locator('[data-event-id][data-author="Bob"]')
+    .first()
+    .locator('div.min-w-0');
+  const otherRow = day
+    .locator('[data-event-id][data-author="Alice 🌷"]')
+    .first()
+    .locator('div.min-w-0');
+  const [ownerPadding, otherPadding] = await Promise.all([
+    ownerRow.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft)),
+    otherRow.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft)),
+  ]);
+  expect(ownerPadding).toBeGreaterThan(otherPadding);
+});
+
+test('a thumbnail request returns a webp image', async ({ request }) => {
+  const response = await request.get(
+    '/thumb/AAAAAAAA-0000-0000-0000-000000000001?w=480',
+  );
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toBe('image/webp');
 });
 
 test('scrolling loads neighbouring days and follows the URL', async ({
@@ -106,7 +149,10 @@ test('an edit made in Obsidian meanwhile raises a conflict', async ({
 
   await panel.getByLabel('當天的回憶').fill('app 改的');
   await expect(panel).toContainText('有衝突');
-  await panel.getByRole('button', { name: '用 Obsidian 的版本' }).click();
+  const obsidianCard = panel
+    .getByRole('heading', { name: 'Obsidian 的版本' })
+    .locator('..');
+  await obsidianCard.getByRole('button', { name: '保留這個版本' }).click();
   await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
 });
 
