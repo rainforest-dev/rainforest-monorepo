@@ -56,13 +56,24 @@ jobs:
         id: base
         env:
           EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
           BEFORE: ${{ github.event.before }}
         run: |
           if [ "$EVENT" = "push" ]; then
-            echo "base=$BEFORE" >> "$GITHUB_OUTPUT"
+            if TAG=$(git describe --tags --abbrev=0 --match '*@[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9].*' HEAD 2>/dev/null); then
+              BASE=$(git rev-list -n1 "$TAG")
+              echo "::notice::Base is $BASE, the commit of the latest release tag $TAG."
+            else
+              BASE="$BEFORE"
+              echo "::notice::No release tag reachable from HEAD; base is github.event.before ($BASE)."
+            fi
           else
-            echo "base=$(git merge-base origin/main HEAD || echo '')" >> "$GITHUB_OUTPUT"
+            BASE=$(git merge-base origin/main HEAD || echo '')
+            if [ "$EVENT" = "workflow_dispatch" ] && [ "$REF" = "refs/heads/main" ]; then
+              echo "::notice::Manual run from main; comparing main with itself."
+            fi
           fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
 
       - name: Resolve affected Docker apps
         id: affected
@@ -83,7 +94,7 @@ jobs:
             exit 0
           fi
           export NX_DOCKER_BUILD_PROJECTS="$AFFECTED"
-          # release.git.push=true pushes a created tag at once, so a verify run must not create one.
+          # nx force-pushes the branch whenever release.git.push is true, even with --git-tag=false, so nx.json sets push to false; this workflow pushes each tag itself, after its image.
           pnpm exec nx release version --projects="$AFFECTED" --dockerVersionScheme=prod \
             --git-tag="$IS_DEPLOY" --git-commit=false --stage-changes=false --verbose 2>&1 | tee /tmp/nx-release.log
           if [ "$IS_DEPLOY" != "true" ]; then
@@ -114,6 +125,7 @@ jobs:
             IMAGE="ghcr.io/${REPO}"
             docker tag "${IMAGE}:${VERSION}" "${IMAGE}:latest"
             docker push "${IMAGE}:latest"
+            git push origin "refs/tags/${TAG}"
             DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --format '{{json .Manifest.Digest}}' | tr -d '"')
             echo "| ${PROJECT} | \`${IMAGE}:${VERSION}\` | \`${DIGEST}\` |" >> "$GITHUB_STEP_SUMMARY"
           done

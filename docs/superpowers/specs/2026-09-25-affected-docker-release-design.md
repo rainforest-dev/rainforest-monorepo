@@ -73,7 +73,11 @@ selects for local runs. The pushed references stay the ones the old workflows us
 `ghcr.io/rainforest-dev/personal-calibre`, `ghcr.io/rainforest-dev/personal-memories` and
 `ghcr.io/rainforest-dev/rss-manager`, all public.
 
-Top-level `release.git` becomes `{ "commit": false, "tag": true, "push": true, "stageChanges": false }`.
+Top-level `release.git` becomes `{ "commit": false, "tag": true, "push": false, "stageChanges": false }`.
+nx's version step force-pushes the current branch whenever `release.git.push` is true, even on a
+run that passes `--git-tag=false`, so pushing stays out of nx's hands: nx only tags locally, and
+the workflow pushes each tag itself once that project's image and `:latest` are already on the
+registry.
 `release.version.preVersionCommand` (the `rainforest-ui` build) is removed: every Dockerfile
 builds the library inside the image. The `version` block of the group (conventional commits,
 git-tag resolver) is removed with it. The `changelog` block is removed too: with
@@ -95,8 +99,12 @@ One job on `ubuntu-24.04-arm`, so arm64 builds natively without QEMU.
 1. Checkout with `fetch-depth: 0`, set the bot git identity, `pnpm/action-setup`, Node 22 with
    the pnpm cache, `pnpm install --frozen-lockfile`.
 2. Log in to GHCR with `GITHUB_TOKEN` (`packages: write`).
-3. Resolve the base. On `push`: `github.event.before`. On `workflow_dispatch` and
-   `pull_request`: `git merge-base origin/main HEAD`.
+3. Resolve the base. On `push`: the commit of the newest CalVer release tag reachable from
+   `HEAD` (`git describe --tags --abbrev=0 --match '*@YYYY.MM.DD.*' HEAD`, then `git rev-list -n1`
+   on that tag); before any such tag exists, `github.event.before`. On `workflow_dispatch` and
+   `pull_request`: `git merge-base origin/main HEAD`. Either branch logs a notice naming the
+   resolved base and where it came from; a manual run from `main` itself notes that it is
+   comparing `main` with itself.
 4. Resolve affected projects with a composite action,
    `.github/actions/nx-affected-docker-apps`: an empty, all-zero or unreachable base falls back to `HEAD~1`; it runs
    `nx show projects --affected --base --head --withTarget=docker:build --json` with stderr
@@ -107,14 +115,16 @@ One job on `ubuntu-24.04-arm`, so arm64 builds natively without QEMU.
    `pnpm exec nx release version --projects="$AFFECTED" --dockerVersionScheme=prod
 --git-tag="$IS_DEPLOY" --git-commit=false --stage-changes=false --verbose`. This builds the
    images through `groupPreVersionCommand` and tags them with the CalVer reference.
-   `IS_DEPLOY` is true only for `push`. A verify run must pass `--git-tag=false` because
-   `git.push: true` would otherwise push tags from a feature branch immediately.
+   `IS_DEPLOY` is true only for `push`, so a verify run passes `--git-tag=false` and creates no
+   tag at all; with `release.git.push: false`, nx itself never pushes on either kind of run.
 7. Verify run: a notice, and the job ends here.
-8. `pnpm exec nx release publish --projects="$AFFECTED" --verbose` pushes each CalVer reference.
-9. For each affected project, read its version from the `<project>@<version>` tag that points
-   at `HEAD`, then `docker tag` and `docker push` `:latest`. `nx release publish` pushes only the
-   versioned reference, and the homelab follows `:latest`. A project without such a tag fails
-   the job.
+8. `pnpm exec nx release publish --projects="$AFFECTED" --verbose` pushes each versioned image.
+9. For each affected project, read its version from the `<project>@<version>` tag nx created
+   locally at `HEAD`, then `docker tag` and `docker push` `:latest`. Only once `:latest` is on the
+   registry does the workflow push that project's own tag
+   (`git push origin refs/tags/<project>@<version>`), one project at a time, so a tag never
+   reaches origin ahead of its image and `:latest`. The homelab follows `:latest`. A project
+   without a tag at `HEAD` fails the job before any push.
 10. A step summary table per project: version, image reference, digest.
 
 Every `run:` step that pipes into `tee` uses `set -o pipefail`; the old workflows shipped a
@@ -175,3 +185,8 @@ local override and follow the registry.
   intended; a manual dispatch covers pipeline changes.
 - The private `ghcr.io/rainforest-dev/rainforest-monorepo/personal-calibre` package is stale.
   It is left in place and can be deleted by hand later.
+- A pull request that touches only the workflow file or the composite action, without touching
+  `nx.json` or any project, is not an input to any project's build. `nx show projects --affected`
+  resolves an empty set and the verify run ends at step 5, so it never exercises the version,
+  publish or tag-push steps. Reading the diff by hand, or making a change that also touches
+  `nx.json`, stays necessary to cover those steps before merge.
