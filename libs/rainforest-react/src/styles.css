@@ -1,0 +1,22 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/lora';
+@import '@fontsource-variable/jetbrains-mono';
+@import './tailwind.css';
+@plugin '@rainforest-dev/rainforest-ui/tailwindcss/shadcn';
+
+@theme {
+  --radius: 0.625rem;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Lora Variable', ui-serif, Georgia, serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
