@@ -1,0 +1,48 @@
+name: Resolve affected Docker apps
+description: Comma-separated nx projects with a docker:build target affected between base and head.
+
+inputs:
+  base:
+    description: Base ref. Empty, all zeros or unreachable falls back to HEAD~1.
+    required: false
+    default: ''
+  head:
+    description: Head ref.
+    required: false
+    default: HEAD
+
+outputs:
+  affected:
+    description: Comma-separated project names, empty when none.
+    value: ${{ steps.resolve.outputs.affected }}
+
+runs:
+  using: composite
+  steps:
+    - id: resolve
+      shell: bash
+      env:
+        BASE_IN: ${{ inputs.base }}
+        HEAD_IN: ${{ inputs.head }}
+      run: |
+        set -o pipefail
+        BASE="$BASE_IN"
+        if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+          BASE="HEAD~1"
+        fi
+        NX_ERR=$(mktemp)
+        trap 'rm -f "$NX_ERR"' EXIT
+        if ! NX_OUT=$(pnpm exec nx show projects --affected --base="$BASE" --head="$HEAD_IN" --withTarget=docker:build --json 2>"$NX_ERR"); then
+          echo "::error::nx show projects --affected failed"
+          cat "$NX_ERR" >&2
+          exit 1
+        fi
+        echo "::group::nx affected stdout"
+        printf '%s\n' "$NX_OUT"
+        echo "::endgroup::"
+        AFFECTED=$(printf '%s' "$NX_OUT" | node "$GITHUB_ACTION_PATH/parse-affected.mjs") || {
+          echo "::error::could not find the affected-projects JSON array in nx output"
+          exit 1
+        }
+        echo "affected=$AFFECTED" >> "$GITHUB_OUTPUT"
+        echo "::notice::Affected Docker apps since $BASE: ${AFFECTED:-<none>}"

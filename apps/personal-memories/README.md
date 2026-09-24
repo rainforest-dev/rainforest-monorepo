@@ -108,7 +108,7 @@ nothing is overwritten silently.
 ## Deployment
 
 The homelab runs `ghcr.io/rainforest-dev/personal-memories:latest`, published by
-`.github/workflows/release-personal-memories.yml` on every push to `main` that touches this app.
+`.github/workflows/release.yml` on every push to `main` that affects this app.
 The Terraform module lives in
 [rainforest-dev/rainforest-homelab](https://github.com/rainforest-dev/rainforest-homelab)
 (`modules/personal-memories`), and the hostname is gated by Cloudflare Access like the other

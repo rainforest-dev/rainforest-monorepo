@@ -14,6 +14,9 @@
     "name": "personal-memories",
     "projectType": "application",
     "sourceRoot": "apps/personal-memories/src",
+    "tags": [
+      "docker"
+    ],
     "targets": {
       "dev": {
         "dependsOn": [
@@ -33,6 +36,11 @@
           "cwd": "apps/personal-memories",
           "command": "tsc --noEmit -p tsconfig.json"
         }
+      }
+    },
+    "release": {
+      "docker": {
+        "repositoryName": "rainforest-dev/personal-memories"
       }
     }
   },

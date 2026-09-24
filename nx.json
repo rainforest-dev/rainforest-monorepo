@@ -77,30 +77,42 @@
       "options": {
         "testTargetName": "test"
       }
+    },
+    {
+      "plugin": "@nx/docker",
+      "options": {
+        "buildTarget": {
+          "name": "docker:build",
+          "cwd": ".",
+          "args": ["--file {projectRoot}/Dockerfile", "--platform linux/arm64"]
+        },
+        "runTarget": "docker:run"
+      }
     }
   ],
   "release": {
-    "version": {
-      "preVersionCommand": "pnpm exec nx build rainforest-ui"
-    },
-    "changelog": {
-      "automaticFromRef": true
-    },
     "git": {
+      "commit": false,
+      "tag": true,
       "push": false,
-      "commit": false
+      "stageChanges": false
     },
     "groups": {
       "docker-apps": {
-        "projects": ["personal-calibre", "personal-memories", "rss-manager"],
+        "projects": [
+          "personal-calibre",
+          "personal-memories",
+          "@rainforest-monorepo/rss-manager"
+        ],
         "projectsRelationship": "independent",
-        "version": {
-          "specifierSource": "conventional-commits",
-          "currentVersionResolver": "git-tag",
-          "fallbackCurrentVersionResolver": "disk"
-        },
-        "releaseTag": {
-          "pattern": "{projectName}@{version}"
+        "releaseTag": { "pattern": "{projectName}@{version}" },
+        "docker": {
+          "groupPreVersionCommand": "pnpm exec nx run-many -t docker:build -p \"${NX_DOCKER_BUILD_PROJECTS:-tag:docker}\"",
+          "versionSchemes": {
+            "prod": "{currentDate|YYYY.MM.DD}.{shortCommitSha}"
+          },
+          "skipVersionActions": true,
+          "registryUrl": "ghcr.io"
         }
       }
     }

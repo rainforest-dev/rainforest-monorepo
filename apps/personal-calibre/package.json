@@ -39,6 +39,9 @@
     "name": "personal-calibre",
     "projectType": "application",
     "sourceRoot": "apps/personal-calibre/src",
+    "tags": [
+      "docker"
+    ],
     "targets": {
       "dev": {
         "options": {
@@ -56,6 +59,11 @@
         "dependsOn": [
           "^build"
         ]
+      }
+    },
+    "release": {
+      "docker": {
+        "repositoryName": "rainforest-dev/personal-calibre"
       }
     }
   }
