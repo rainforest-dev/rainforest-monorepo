@@ -1,6 +1,7 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useEffect, useState } from 'react';
 
-import { button, cx } from '../../../shared/ui';
+import { cx } from '../../../shared/ui';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
 import {
   advanceEncryptStage,
@@ -181,7 +182,10 @@ export function PhiEncrypt(): JSX.Element {
                 onClick={() => removeOrg(i)}
                 disabled={orgs.length <= 1}
                 aria-label={`Remove ${org.name || 'org'}`}
-                className={button({ variant: 'outline', size: 'icon' })}
+                className={buttonVariants({
+                  variant: 'outline',
+                  size: 'icon-lg',
+                })}
               >
                 ✕
               </button>
@@ -192,7 +196,7 @@ export function PhiEncrypt(): JSX.Element {
             type="button"
             onClick={handleEncrypt}
             disabled={stage !== 'idle' && stage !== 'done'}
-            className={button({ className: 'mt-4' })}
+            className={buttonVariants({ size: 'lg', className: 'mt-4' })}
           >
             {encrypted ? 'Re-encrypt & submit' : 'Encrypt & submit'}
           </button>

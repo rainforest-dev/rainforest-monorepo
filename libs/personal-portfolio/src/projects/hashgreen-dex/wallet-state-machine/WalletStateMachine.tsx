@@ -1,6 +1,7 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useEffect, useState } from 'react';
 
-import { avatar, button } from '../../../shared/ui';
+import { avatar } from '../../../shared/ui';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
 import { nextWalletStage, type WalletStage } from './logic';
 
@@ -67,7 +68,7 @@ export function WalletStateMachine(): JSX.Element {
               <button
                 type="button"
                 onClick={() => dispatch({ type: 'connect' })}
-                className={button()}
+                className={buttonVariants({ size: 'lg' })}
               >
                 Connect wallet
               </button>
@@ -116,14 +117,14 @@ export function WalletStateMachine(): JSX.Element {
                 <button
                   type="button"
                   onClick={() => dispatch({ type: 'reject' })}
-                  className={button({ variant: 'danger', size: 'sm' })}
+                  className={buttonVariants({ variant: 'destructive' })}
                 >
                   reject pairing
                 </button>
                 <button
                   type="button"
                   onClick={() => dispatch({ type: 'timeout' })}
-                  className={button({ variant: 'outline', size: 'sm' })}
+                  className={buttonVariants({ variant: 'outline' })}
                 >
                   pairing timeout
                 </button>
@@ -155,7 +156,7 @@ export function WalletStateMachine(): JSX.Element {
               <button
                 type="button"
                 onClick={handleReset}
-                className={button({ variant: 'outline', size: 'sm' })}
+                className={buttonVariants({ variant: 'outline' })}
               >
                 disconnect
               </button>
@@ -174,14 +175,14 @@ export function WalletStateMachine(): JSX.Element {
                 <button
                   type="button"
                   onClick={() => dispatch({ type: 'connect' })}
-                  className={button({ size: 'sm' })}
+                  className={buttonVariants()}
                 >
                   try again
                 </button>
                 <button
                   type="button"
                   onClick={handleReset}
-                  className={button({ variant: 'outline', size: 'sm' })}
+                  className={buttonVariants({ variant: 'outline' })}
                 >
                   reset
                 </button>

@@ -1,6 +1,6 @@
+import { Switch } from '@rainforest-dev/rainforest-react';
 import { type JSX, useState } from 'react';
 
-import { Switch } from '../../../shared/Switch';
 import {
   type AssetSide,
   pairedAmount,
@@ -60,8 +60,8 @@ export function ZapLiquidity(): JSX.Element {
         </span>
         <Switch
           checked={zap}
-          onChange={setZap}
-          label="Zap · single-sided deposit"
+          onCheckedChange={(v) => setZap(v)}
+          aria-label="Zap · single-sided deposit"
         />
       </div>
 

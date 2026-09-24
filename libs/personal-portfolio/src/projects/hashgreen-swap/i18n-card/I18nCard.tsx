@@ -1,6 +1,6 @@
+import { Switch } from '@rainforest-dev/rainforest-react';
 import { type JSX, useState } from 'react';
 
-import { Switch } from '../../../shared/Switch';
 import { segment } from '../../../shared/ui';
 import { formatSwapSummary, SWAP_LOCALES, type SwapLocale } from './logic';
 
@@ -58,8 +58,8 @@ export function I18nCard(): JSX.Element {
           </span>
           <Switch
             checked={!dark}
-            onChange={(v) => setDark(!v)}
-            label="Toggle light theme"
+            onCheckedChange={(v) => setDark(!v)}
+            aria-label="Toggle light theme"
           />
         </div>
       </div>

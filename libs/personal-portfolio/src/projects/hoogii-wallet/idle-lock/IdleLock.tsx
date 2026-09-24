@@ -1,6 +1,6 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useEffect, useState } from 'react';
 
-import { button } from '../../../shared/ui';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
 import { nextLockState } from './logic';
 
@@ -93,7 +93,7 @@ export function IdleLock(): JSX.Element {
         <button
           type="button"
           onClick={resetActivity}
-          className={button({ size: 'sm' })}
+          className={buttonVariants()}
         >
           reset activity
         </button>

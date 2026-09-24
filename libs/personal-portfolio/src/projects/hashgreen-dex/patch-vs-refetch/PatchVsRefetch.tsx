@@ -1,6 +1,6 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useState } from 'react';
 
-import { button } from '../../../shared/ui';
 import {
   matchesDateRange,
   matchesFilters,
@@ -290,7 +290,7 @@ export function PatchVsRefetch(): JSX.Element {
           onClick={() => setPage((prev) => Math.max(0, prev - 1))}
           disabled={clampedPage === 0}
           aria-label="Previous page"
-          className={button({ variant: 'outline', size: 'icon' })}
+          className={buttonVariants({ variant: 'outline', size: 'icon-lg' })}
         >
           ←
         </button>
@@ -302,14 +302,18 @@ export function PatchVsRefetch(): JSX.Element {
           onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
           disabled={clampedPage >= totalPages - 1}
           aria-label="Next page"
-          className={button({ variant: 'outline', size: 'icon' })}
+          className={buttonVariants({ variant: 'outline', size: 'icon-lg' })}
         >
           →
         </button>
       </div>
 
       <div className="border-border mt-5 flex flex-wrap items-center gap-3 border-t pt-4">
-        <button type="button" onClick={handleSimulateFill} className={button()}>
+        <button
+          type="button"
+          onClick={handleSimulateFill}
+          className={buttonVariants({ size: 'lg' })}
+        >
           simulate a fill
         </button>
         <span className="text-muted-foreground text-sm">

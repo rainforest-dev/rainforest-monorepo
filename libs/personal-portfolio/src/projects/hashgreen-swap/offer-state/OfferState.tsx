@@ -1,6 +1,7 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useEffect, useState } from 'react';
 
-import { avatar, button } from '../../../shared/ui';
+import { avatar } from '../../../shared/ui';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
 import {
   INITIAL_OFFER_STATE,
@@ -159,14 +160,14 @@ export function OfferState(): JSX.Element {
             <button
               type="button"
               onClick={() => dispatch({ type: 'review' })}
-              className={button({ className: 'flex-1' })}
+              className={buttonVariants({ size: 'lg', className: 'flex-1' })}
             >
               Review swap
             </button>
             <button
               type="button"
               onClick={handleReset}
-              className={button({ variant: 'outline' })}
+              className={buttonVariants({ variant: 'outline', size: 'lg' })}
             >
               Disconnect
             </button>
@@ -212,14 +213,14 @@ export function OfferState(): JSX.Element {
             <button
               type="button"
               onClick={() => dispatch({ type: 'approve' })}
-              className={button({ className: 'flex-1' })}
+              className={buttonVariants({ size: 'lg', className: 'flex-1' })}
             >
               Approve &amp; sign
             </button>
             <button
               type="button"
               onClick={() => dispatch({ type: 'reject' })}
-              className={button({ variant: 'danger' })}
+              className={buttonVariants({ variant: 'destructive', size: 'lg' })}
             >
               Reject
             </button>
@@ -324,7 +325,7 @@ export function OfferState(): JSX.Element {
             <button
               type="button"
               onClick={handleReset}
-              className={button({ variant: 'outline', size: 'sm' })}
+              className={buttonVariants({ variant: 'outline' })}
             >
               New swap
             </button>

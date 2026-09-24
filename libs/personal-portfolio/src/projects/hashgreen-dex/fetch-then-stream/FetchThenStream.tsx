@@ -1,6 +1,6 @@
+import { Switch } from '@rainforest-dev/rainforest-react';
 import { type JSX, useEffect, useRef, useState } from 'react';
 
-import { Switch } from '../../../shared/Switch';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
 import { channelFor, lifecycleLog, pushTrade } from './logic';
 
@@ -144,8 +144,8 @@ export function FetchThenStream(): JSX.Element {
           Live
           <Switch
             checked={live}
-            onChange={setLive}
-            label="Toggle live subscription"
+            onCheckedChange={(v) => setLive(v)}
+            aria-label="Toggle live subscription"
           />
         </div>
       </div>

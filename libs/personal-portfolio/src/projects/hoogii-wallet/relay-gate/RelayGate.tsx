@@ -1,6 +1,6 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useState } from 'react';
 
-import { button } from '../../../shared/ui';
 import { evaluateRelay, type RelayOutcome } from './logic';
 
 interface LogEntry {
@@ -82,7 +82,7 @@ export function RelayGate(): JSX.Element {
       <button
         type="button"
         onClick={handleRequest}
-        className={button({ className: 'mb-4' })}
+        className={buttonVariants({ size: 'lg', className: 'mb-4' })}
       >
         dApp requests signing
       </button>

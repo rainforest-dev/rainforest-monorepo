@@ -437,6 +437,9 @@ importers:
       '@rainforest-dev/personal-portfolio':
         specifier: workspace:*
         version: link:../../libs/personal-portfolio
+      '@rainforest-dev/rainforest-react':
+        specifier: workspace:*
+        version: link:../../libs/rainforest-react
       '@rainforest-dev/rainforest-ui':
         specifier: workspace:*
         version: link:../../libs/rainforest-ui
@@ -656,6 +659,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.30.0(zod@3.25.76)
+      '@rainforest-dev/rainforest-react':
+        specifier: workspace:*
+        version: link:../rainforest-react
       react:
         specifier: 'catalog:'
         version: 19.2.3
