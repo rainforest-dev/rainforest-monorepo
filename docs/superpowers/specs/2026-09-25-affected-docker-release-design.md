@@ -84,15 +84,19 @@ Old semver tags (`personal-memories@0.x.y` and the like) stay. CalVer tags use t
 
 ## Workflow (`.github/workflows/release.yml`)
 
-Triggers: `push` to `main`, and `workflow_dispatch` on any branch.
+Triggers: `push` to `main`; `workflow_dispatch` on any branch; and `pull_request` to `main`
+when the PR touches `.github/workflows/release.yml`, `.github/actions/nx-affected-docker-apps/**`
+or `nx.json`. GitHub only dispatches workflows that already exist on the default branch, so the
+`pull_request` trigger is how a change to the pipeline itself gets verified before merge. Both
+non-push events are verify runs.
 
 One job on `ubuntu-24.04-arm`, so arm64 builds natively without QEMU.
 
 1. Checkout with `fetch-depth: 0`, set the bot git identity, `pnpm/action-setup`, Node 22 with
    the pnpm cache, `pnpm install --frozen-lockfile`.
 2. Log in to GHCR with `GITHUB_TOKEN` (`packages: write`).
-3. Resolve the base. On `push`: `github.event.before`. On `workflow_dispatch`:
-   `git merge-base origin/main HEAD`.
+3. Resolve the base. On `push`: `github.event.before`. On `workflow_dispatch` and
+   `pull_request`: `git merge-base origin/main HEAD`.
 4. Resolve affected projects with a composite action,
    `.github/actions/nx-affected-docker-apps`: an empty, all-zero or unreachable base falls back to `HEAD~1`; it runs
    `nx show projects --affected --base --head --withTarget=docker:build --json` with stderr
@@ -149,7 +153,7 @@ local override and follow the registry.
 
 ## Verification
 
-- Before merge: dispatch `release.yml` on the branch. The affected list must name the apps the
+- Before merge: the `pull_request` verify run on this PR. The affected list must name the apps the
   branch touches (the change to `nx.json` affects all three), all three images must build on
   the arm runner, and no tag or image may be pushed.
 - Measure the build time of the verify run. If a cold build of one app exceeds 15 minutes, add
