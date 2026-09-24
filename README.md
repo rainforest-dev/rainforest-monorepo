@@ -18,7 +18,8 @@ project graph, pnpm manages the workspace.
 | [`personal-memories`](./apps/personal-memories/) | Photo album, deployed to the homelab as a container image                                                           |
 | [`rss-manager`](./apps/rss-manager/)             | Feed collection and triage                                                                                          |
 
-Each app has a sibling `*-e2e` project running Playwright against it.
+`personal-calibre`, `personal-liff` and `personal-memories` each have a sibling `*-e2e` project
+running Playwright against them.
 
 | Library                                                            | What it holds                                                                                  |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
@@ -43,10 +44,9 @@ graph LR
   W --> PD
   W --> PP
   W --> UI
-  PP --> PD
-  L --> UI
   M --> UI
   C --> UI
+  R --> UI
   W -. serves .-> MCP([MCP at rainforest.tools/mcp])
   C -. serves .-> MCP2([MCP endpoint])
 ```
@@ -54,7 +54,7 @@ graph LR
 ## How changes get in
 
 Most commits here are written by an agent. In the ninety days to 2026-09-22 that was 240 commits
-on `main`, 203 of them conventional, arriving through 18 pull requests. Volume like that is only
+on `main`, 203 of them conventional, arriving through 159 merged pull requests. Volume like that is only
 reviewable if the gates are identical on every path in, so the hooks mirror CI rather than
 inventing rules of their own.
 
@@ -65,7 +65,7 @@ flowchart TD
   C --> D[pre-push: pnpm format:check]
   D --> E[pre-push: nx affected lint + typecheck + test across the push range]
   E --> F[pull request]
-  F --> G[CI: format:check, then nx affected on Nx Cloud]
+  F --> G[CI: format:check, then nx affected lint + test + typecheck]
   F --> H[CodeQL and GitGuardian]
   F --> I[Vercel preview]
   F --> J[Claude Code Review]
@@ -73,14 +73,14 @@ flowchart TD
   H --> K
   I --> K
   J --> K
-  K --> L[per-app release workflow]
+  K --> L[Vercel deploy, or a release workflow for container apps]
 ```
 
 Two decisions in there are deliberate and easy to undo by accident.
 
-`build` is not in the pre-push hook. CI runs it authoritatively, and building inside a git
-worktree corrupts the shared `.nx` cache. Lint, typecheck and test catch nearly everything before
-a push spends a runner.
+`build` is not in the pre-push hook, because building inside a git worktree corrupts the shared
+`.nx` cache. Builds happen in the Vercel previews and the release workflows instead. Lint,
+typecheck and test catch nearly everything before a push spends a runner.
 
 `pnpm format:check` is a CI step of its own, separate from `nx affected`, because prettier covers
 files that no Nx project owns. It is also the step that failed on PR #342, the first pull request
