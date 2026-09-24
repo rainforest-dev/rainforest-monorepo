@@ -54,8 +54,12 @@ graph LR
 ## How changes get in
 
 Most commits here are written by an agent. In the ninety days to 2026-09-22 that was 240 commits
-on `main`, 203 of them conventional. Volume like that is only reviewable if the gates are
-identical on every path in, so the hooks mirror CI rather than inventing rules of their own.
+on `main`, 203 of them conventional. Volume like that is only reviewable if the local hooks and CI
+check the same things, so the hooks mirror CI rather than inventing rules of their own.
+
+Every check after the push is advisory. The only ruleset on `main` blocks deletion and force
+pushes. No check has to pass, no pull request is required, and direct pushes to `main` are
+allowed. The Claude Code Review workflow is disabled in this repository.
 
 ```mermaid
 flowchart TD
@@ -67,19 +71,22 @@ flowchart TD
   F --> G[CI: format:check, then nx affected lint + test + typecheck]
   F --> H[CodeQL and GitGuardian]
   F --> I[Vercel preview]
-  F --> J[Claude Code Review]
-  G --> K[merge to main]
-  H --> K
-  I --> K
-  J --> K
+  F -.-> J[Claude Code Review: workflow disabled]
+  G -. advisory .-> K[merge to main]
+  H -. advisory .-> K
+  I -. advisory .-> K
+  E -. direct push .-> K
   K --> L[Vercel deploy, or a release workflow for container apps]
 ```
 
 Two decisions in there are deliberate and easy to undo by accident.
 
-`build` is not in the pre-push hook, because building inside a git worktree corrupts the shared
-`.nx` cache. Builds happen in the Vercel previews and the release workflows instead. Lint,
-typecheck and test catch nearly everything before a push spends a runner.
+`build` is not one of the pre-push targets, because building inside a git worktree corrupts the
+shared `.nx` cache. That does not keep every build out of pre-push: `personal-website`'s `test` and
+`typecheck` targets depend on `^build`, so a push that affects the site still builds
+`personal-data`, `personal-portfolio` and `rainforest-ui` first. App builds happen in the Vercel
+previews and the release workflows, not in CI. Lint, typecheck and test catch nearly everything
+before a push spends a runner.
 
 `pnpm format:check` is a CI step of its own, separate from `nx affected`, because prettier covers
 files that no Nx project owns. It is also the step that failed on PR #342, the first pull request
@@ -91,8 +98,9 @@ inherit an absolute `core.hooksPath` pointing at the main clone, so without the 
 check this worktree's files using whatever branch that other checkout happens to have. Worktrees
 are the normal case here, not an edge one.
 
-To skip the hooks in a genuine emergency, use `git commit --no-verify`, and say so in the pull
-request. A silent skip and an absent gate look the same afterwards.
+In a genuine emergency, `git push --no-verify` skips the pre-push checks, which are the heavy gate.
+`git commit --no-verify` only skips the pre-commit formatter. Say so in the pull request if you use
+either. A silent skip and an absent gate look the same afterwards.
 
 ## Running it locally
 

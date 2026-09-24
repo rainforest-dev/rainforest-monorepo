@@ -10,8 +10,12 @@ Nx 23.0.0 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-liff** - Next.js 16 LINE LIFF app (dev port 9000, self-signed HTTPS via `--experimental-https`)
 - **apps/personal-liff-e2e** - Playwright e2e tests
 - **apps/personal-calibre** - Next.js Calibre library browser, shipped as a Docker image
+- **apps/personal-calibre-e2e** - Playwright e2e tests
 - **apps/rss-manager** - Astro + React RSS registry manager, shipped as a Docker image
 - **apps/personal-memories** - Astro + React memories album (dev port 3004, bound to 127.0.0.1); private data stays outside the repo, and the homelab image mounts it read-only behind the Cloudflare Access gate
+- **apps/personal-memories-e2e** - Playwright e2e tests
+- **libs/personal-data** - Profile, work history and project data, read by the website and its MCP tools
+- **libs/personal-portfolio** - Case study content and the MCP registrations that expose it
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
 
 ## Essential Commands
@@ -237,9 +241,10 @@ Astro markdown configured with:
 
 ## CI/CD
 
-[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on Node 20:
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on Node 22:
 
 ```bash
+pnpm format:check
 pnpm nx affected -t lint test typecheck
 ```
 
