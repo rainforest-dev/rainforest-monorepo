@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  calendarWeeks,
   dayForWeek,
   heatLevels,
   indexDays,
+  monthRows,
   neighbours,
   summarize,
 } from './days.ts';
@@ -66,17 +66,38 @@ describe('days', () => {
     expect([0, 1, 2, 3, 4, 100].map(level)).toEqual([0, 1, 1, 2, 3, 4]);
   });
 
-  it('lays out Monday-first weeks with padding', () => {
-    const weeks = calendarWeeks(
-      '2025-11-01',
-      '2025-11-03',
-      new Map([['2025-11-01', 3]]),
+  it('lays out one row per month across a year boundary', () => {
+    const rows = monthRows(
+      '2025-12-20',
+      '2026-01-10',
+      new Map([['2025-12-25', 2]]),
     );
-    expect(weeks).toHaveLength(2);
-    expect(weeks[0].slice(0, 5)).toEqual([null, null, null, null, null]);
-    expect(weeks[0][5]).toEqual({ date: '2025-11-01', total: 3 });
-    expect(weeks[0][6]).toEqual({ date: '2025-11-02', total: 0 });
-    expect(weeks[1][0]).toEqual({ date: '2025-11-03', total: 0 });
-    expect(weeks[1][1]).toBeNull();
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ year: 2025, month: 12 });
+    expect(rows[0].cells[18]).toBeNull(); // Dec 19, before the range
+    expect(rows[0].cells[19]).toEqual({ date: '2025-12-20', total: 0 });
+    expect(rows[0].cells[24]).toEqual({ date: '2025-12-25', total: 2 });
+    expect(rows[0].cells[30]).toEqual({ date: '2025-12-31', total: 0 });
+    expect(rows[1]).toMatchObject({ year: 2026, month: 1 });
+    expect(rows[1].cells[9]).toEqual({ date: '2026-01-10', total: 0 });
+    expect(rows[1].cells[10]).toBeNull(); // Jan 11, after the range
+  });
+
+  it('keeps all 29 February slots in a leap year and nulls the rest', () => {
+    const rows = monthRows('2024-02-01', '2024-02-29', new Map());
+    expect(rows).toHaveLength(1);
+    expect(rows[0].cells[27]).toEqual({ date: '2024-02-28', total: 0 });
+    expect(rows[0].cells[28]).toEqual({ date: '2024-02-29', total: 0 });
+    expect(rows[0].cells[29]).toBeNull(); // the month has no day 30
+    expect(rows[0].cells[30]).toBeNull(); // nor day 31
+  });
+
+  it('nulls the days before a mid-month start', () => {
+    const rows = monthRows('2025-11-15', '2025-11-20', new Map());
+    expect(rows).toHaveLength(1);
+    expect(rows[0].cells.slice(0, 14)).toEqual(Array(14).fill(null));
+    expect(rows[0].cells[14]).toEqual({ date: '2025-11-15', total: 0 });
+    expect(rows[0].cells[19]).toEqual({ date: '2025-11-20', total: 0 });
+    expect(rows[0].cells.slice(20)).toEqual(Array(11).fill(null));
   });
 });

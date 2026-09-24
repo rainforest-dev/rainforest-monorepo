@@ -70,30 +70,47 @@ export function heatLevels(totals: readonly number[]) {
     total <= 0 ? 0 : total <= p25 ? 1 : total <= p50 ? 2 : total <= p75 ? 3 : 4;
 }
 
-const DAY_MS = 86_400_000;
 const utc = (date: string) => Date.parse(`${date}T00:00:00Z`);
 const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 export type CalendarCell = { date: string; total: number } | null;
 
-export function calendarWeeks(
+export type MonthRow = {
+  year: number;
+  month: number;
+  cells: CalendarCell[];
+};
+
+export function monthRows(
   first: string,
   last: string,
   totals: Map<string, number>,
-): CalendarCell[][] {
+): MonthRow[] {
   const start = utc(first);
   const end = utc(last);
-  const monday = start - ((new Date(start).getUTCDay() + 6) % 7) * DAY_MS;
-  const weeks: CalendarCell[][] = [];
-  for (let week = monday; week <= end; week += 7 * DAY_MS) {
-    weeks.push(
-      Array.from({ length: 7 }, (_, i) => {
-        const t = week + i * DAY_MS;
-        if (t < start || t > end) return null;
-        const date = iso(t);
-        return { date, total: totals.get(date) ?? 0 };
-      }),
-    );
+  let year = new Date(start).getUTCFullYear();
+  let month = new Date(start).getUTCMonth();
+  const endDate = new Date(end);
+  const endYear = endDate.getUTCFullYear();
+  const endMonth = endDate.getUTCMonth();
+
+  const rows: MonthRow[] = [];
+  while (year < endYear || (year === endYear && month <= endMonth)) {
+    const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    const cells: CalendarCell[] = Array.from({ length: 31 }, (_, i) => {
+      const day = i + 1;
+      if (day > daysInMonth) return null;
+      const t = Date.UTC(year, month, day);
+      if (t < start || t > end) return null;
+      const date = iso(t);
+      return { date, total: totals.get(date) ?? 0 };
+    });
+    rows.push({ year, month: month + 1, cells });
+    month++;
+    if (month > 11) {
+      month = 0;
+      year++;
+    }
   }
-  return weeks;
+  return rows;
 }
