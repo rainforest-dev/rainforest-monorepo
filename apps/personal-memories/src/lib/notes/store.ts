@@ -7,6 +7,7 @@ import {
   readdirSync,
   readFileSync,
   renameSync,
+  rmdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -91,6 +92,12 @@ export function createNotesStore(root: string): NotesStore {
       if (!edit.cover) delete next.cover;
       if (isEmptyNote(next) && !hasUserFrontmatter(next.frontmatter)) {
         rmSync(path, { force: true });
+        try {
+          rmdirSync(join(root, date.slice(0, 4)));
+        } catch (err) {
+          const code = (err as NodeJS.ErrnoException).code;
+          if (code !== 'ENOTEMPTY' && code !== 'ENOENT') throw err;
+        }
         return { ok: true, version: '' };
       }
       const text = serializeNote(next);

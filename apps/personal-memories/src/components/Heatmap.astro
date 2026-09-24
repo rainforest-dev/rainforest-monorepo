@@ -1,102 +1,212 @@
 ---
-import type { CalendarCell } from '../lib/days.ts';
+import type { MonthRow } from '../lib/days.ts';
+import { dayHeading } from '../lib/weeks.ts';
 
 type Props = {
-  weeks: CalendarCell[][];
+  rows: MonthRow[];
   level: (total: number) => 0 | 1 | 2 | 3 | 4;
   noted: Set<string>;
 };
 
-const { weeks, level, noted } = Astro.props;
+const { rows, level, noted } = Astro.props;
 
 const LEVEL = [
   'bg-muted',
-  'bg-primary/25',
-  'bg-primary/50',
-  'bg-primary/75',
-  'bg-primary',
+  'bg-primary/20',
+  'bg-primary/40',
+  'bg-primary/65',
+  'bg-primary/90',
 ];
 
-const WEEKDAY_LABEL: Record<number, string> = { 0: '一', 2: '三', 4: '五' };
+const GRID_COLS = 'grid-cols-[56px_repeat(31,24px)] gap-x-1.5';
+const PHONE_GRID_COLS = 'grid-cols-[28px_repeat(31,8px)]';
 
-const mondayMonth = (week: CalendarCell[]): string | null => {
-  for (let i = 0; i < week.length; i++) {
-    const cell = week[i];
-    if (cell) {
-      const ms = Date.parse(`${cell.date}T00:00:00Z`) - i * 86_400_000;
-      return new Date(ms).toISOString().slice(0, 7);
-    }
-  }
-  return null;
-};
+const rangeLabel = (() => {
+  if (rows.length === 0) return '';
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  const a = `${first.year} 年 ${first.month} 月`;
+  if (first.year === last.year && first.month === last.month) return a;
+  return `${a} – ${last.year} 年 ${last.month} 月`;
+})();
 
-const monthLabels = weeks.map((week, i) => {
-  const month = mondayMonth(week);
-  const prevMonth = i > 0 ? mondayMonth(weeks[i - 1]) : null;
-  if (month === null || month === prevMonth) return null;
-  return i === 0 ? month : month.slice(5);
+const dotClass = (lvl: 0 | 1 | 2 | 3 | 4) =>
+  lvl >= 3 ? 'bg-primary-foreground' : 'bg-foreground';
+
+const tooltip = (date: string, total: number, isNoted: boolean) => ({
+  date: dayHeading(date),
+  detail: `${total} 則${isNoted ? ' · 已寫回憶' : ''}`,
 });
+
+const firstDayWithEvents = (row: MonthRow) =>
+  row.cells.find(
+    (c): c is { date: string; total: number } => c !== null && c.total > 0,
+  )?.date;
 ---
 
-<div class="overflow-x-auto">
-  <div class="flex w-max gap-[3px]">
-    <div class="flex shrink-0 flex-col gap-[3px]">
-      <div class="size-3"></div>
+<section class="flex flex-col gap-7">
+  <div
+    class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6"
+  >
+    <h2 class="text-title font-semibold tracking-[-0.01em]">{rangeLabel}</h2>
+    <div
+      class="text-muted-foreground flex items-center justify-between gap-4 text-xs sm:justify-start"
+    >
+      <div class="flex items-center gap-1">
+        <span>少</span>
+        {LEVEL.map((cls) => <span class={`size-3.5 rounded-sm ${cls}`} />)}
+        <span>多</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="bg-foreground inline-block size-1.5 rounded-full"></span>
+        已寫回憶
+      </div>
+    </div>
+  </div>
+
+  <div class="hidden overflow-x-auto pt-14 sm:block">
+    <div class="flex w-max flex-col">
+      <div
+        aria-hidden="true"
+        class={`text-muted-foreground grid h-[18px] text-xs tabular-nums ${GRID_COLS}`}
+      >
+        <span></span>
+        {
+          Array.from({ length: 31 }, (_, i) => (
+            <span class="text-center">{i + 1}</span>
+          ))
+        }
+      </div>
       {
-        Array.from({ length: 7 }, (_, dayIndex) => (
-          <div class="text-muted-foreground flex size-3 items-center justify-end pr-1 text-[10px] leading-none">
-            {WEEKDAY_LABEL[dayIndex] ?? ''}
-          </div>
-        ))
+        rows.map((row, i) => {
+          const showYear = i === 0 || row.year !== rows[i - 1].year;
+          return (
+            <>
+              {showYear && (
+                <div class="text-meta mt-2.5 font-semibold tabular-nums first:mt-0">
+                  {row.year}
+                </div>
+              )}
+              <div class={`grid h-[30px] items-center ${GRID_COLS}`}>
+                <span class="text-meta text-muted-foreground tabular-nums">
+                  {row.month} 月
+                </span>
+                {row.cells.map((cell) => {
+                  if (!cell) return <span class="size-6" />;
+                  const isNoted = noted.has(cell.date);
+                  const lvl = level(cell.total);
+                  const tip = tooltip(cell.date, cell.total, isNoted);
+                  const label = `${tip.date}，${tip.detail}`;
+                  const cellClass = `group focus-visible:ring-ring focus-visible:ring-offset-background relative flex size-6 items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${LEVEL[lvl]}`;
+                  return cell.total > 0 ? (
+                    <a
+                      href={`/day/${cell.date}`}
+                      data-date={cell.date}
+                      data-noted={isNoted}
+                      aria-label={label}
+                      class={cellClass}
+                    >
+                      {isNoted && (
+                        <span
+                          class={`size-1.5 rounded-full ${dotClass(lvl)}`}
+                        />
+                      )}
+                      <div class="bg-popover text-popover-foreground border-border pointer-events-none absolute bottom-[36px] left-1/2 z-10 w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                        <div class="font-semibold tabular-nums">{tip.date}</div>
+                        <div class="text-muted-foreground">{tip.detail}</div>
+                      </div>
+                    </a>
+                  ) : (
+                    <span
+                      role="img"
+                      data-date={cell.date}
+                      data-noted={isNoted}
+                      aria-label={label}
+                      class={cellClass}
+                    >
+                      {isNoted && (
+                        <span class="bg-foreground size-1.5 rounded-full" />
+                      )}
+                      <span class="bg-popover text-popover-foreground border-border pointer-events-none absolute bottom-[36px] left-1/2 z-10 block w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                        <span class="block font-semibold tabular-nums">
+                          {tip.date}
+                        </span>
+                        <span class="text-muted-foreground block">
+                          {tip.detail}
+                        </span>
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            </>
+          );
+        })
       }
     </div>
-    {
-      weeks.map((week, weekIndex) => (
-        <div class="flex shrink-0 flex-col gap-[3px]">
-          <div class="text-muted-foreground w-3 whitespace-nowrap text-[10px] leading-none">
-            {monthLabels[weekIndex]}
-          </div>
-          {week.map((cell) => {
-            if (!cell) return <span class="size-3" />;
-            const isNoted = noted.has(cell.date);
-            const classes = [
-              'block size-3 rounded-[2px]',
-              LEVEL[level(cell.total)],
-              isNoted
-                ? 'ring-1 ring-foreground ring-offset-1 ring-offset-background'
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' ');
-            return cell.total > 0 ? (
-              <a
-                href={`/day/${cell.date}`}
-                data-date={cell.date}
-                data-noted={isNoted}
-                aria-label={`${cell.date}，${cell.total} 則`}
-                class={classes}
-              />
-            ) : (
-              <span
-                data-date={cell.date}
-                data-noted={isNoted}
-                aria-label={cell.date}
-                class={classes}
-              />
-            );
-          })}
-        </div>
-      ))
-    }
   </div>
-</div>
 
-<div class="text-muted-foreground mt-3 flex items-center gap-2 text-xs">
-  <span>少</span>
-  {LEVEL.map((cls) => <span class={`size-3 rounded-[2px] ${cls}`} />)}
-  <span>多</span>
-  <span
-    class="ring-foreground ring-offset-background bg-muted ml-3 size-3 rounded-[2px] ring-1 ring-offset-1"
-  ></span>
-  <span>已寫回憶</span>
-</div>
+  <div class="flex flex-col sm:hidden">
+    {
+      rows.map((row, i) => {
+        const showYear = i === 0 || row.year !== rows[i - 1].year;
+        const target = firstDayWithEvents(row);
+        const bars = row.cells.map((cell) => {
+          if (!cell) return <span class="h-4 w-2" />;
+          const isNoted = noted.has(cell.date);
+          const lvl = level(cell.total);
+          return (
+            <span
+              class={`flex h-4 w-2 items-end justify-center rounded-[2px] pb-px ${LEVEL[lvl]}`}
+            >
+              {isNoted && (
+                <span class={`size-1 rounded-full ${dotClass(lvl)}`} />
+              )}
+            </span>
+          );
+        });
+        const rowLabel = (
+          <>
+            <span class="text-muted-foreground text-xs tabular-nums">
+              {row.month}月
+            </span>
+            {bars}
+          </>
+        );
+        return (
+          <>
+            {showYear && (
+              <div class="text-meta mt-2.5 font-semibold tabular-nums first:mt-0">
+                {row.year}
+              </div>
+            )}
+            {target ? (
+              <a
+                href={`/day/${target}`}
+                class={`grid h-7 items-center ${PHONE_GRID_COLS}`}
+              >
+                {rowLabel}
+              </a>
+            ) : (
+              <div class={`grid h-7 items-center ${PHONE_GRID_COLS}`}>
+                {rowLabel}
+              </div>
+            )}
+          </>
+        );
+      })
+    }
+    <p class="text-muted-foreground mt-3 text-xs">點一列，打開那個月。</p>
+  </div>
+
+  <div class="text-muted-foreground hidden gap-5 text-xs sm:flex">
+    <span class="flex items-center gap-1.5">
+      <kbd
+        class="border-border bg-muted text-muted-foreground inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border px-1 text-xs"
+      >
+        Enter
+      </kbd>
+      打開那一天
+    </span>
+  </div>
+</section>

@@ -25,7 +25,7 @@ export function writePhotoFixture(root: string) {
     writeFileSync(path, PIXEL_PNG);
   }
 
-  const items = [
+  const items: Record<string, unknown>[] = [
     {
       uuid: 'AAAAAAAA-0000-0000-0000-000000000001',
       date: '2025-11-01T10:15:00.250000+08:00',
@@ -79,6 +79,33 @@ export function writePhotoFixture(root: string) {
       height: 3024,
     },
   ];
+
+  const burstIds = [
+    'DDDDDDDD-0000-0000-0000-000000000004',
+    'EEEEEEEE-0000-0000-0000-000000000005',
+    'FFFFFFFF-0000-0000-0000-000000000006',
+    '11111111-0000-0000-0000-000000000007',
+    '22222222-0000-0000-0000-000000000008',
+  ];
+  burstIds.forEach((uuid, i) => {
+    const burstPath = join(library, 'originals', 'C', `IMG_000${i + 4}.png`);
+    mkdirSync(join(burstPath, '..'), { recursive: true });
+    writeFileSync(burstPath, PIXEL_PNG);
+    items.push({
+      uuid,
+      date: `2025-11-01T10:${(31 + i).toString().padStart(2, '0')}:00+08:00`,
+      original_filename: `IMG_000${i + 4}.png`,
+      path: burstPath,
+      path_edited: null,
+      path_derivatives: [],
+      ismissing: false,
+      albums: [],
+      persons: [],
+      favorite: false,
+      width: 1,
+      height: 1,
+    });
+  });
 
   mkdirSync(join(root, 'photos'), { recursive: true });
   writeFileSync(

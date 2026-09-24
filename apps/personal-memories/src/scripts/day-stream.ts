@@ -11,11 +11,25 @@ type AnnotateDetail = {
 declare global {
   interface DocumentEventMap {
     'memories:day': CustomEvent<{ date: string }>;
+    'memories:day-restored': CustomEvent<{ date: string }>;
     'memories:annotate': CustomEvent<AnnotateDetail>;
   }
 }
 
 const RETRY_DELAY_MS = 2000;
+const WINDOW_RADIUS = 7;
+const RESTORE_MARGIN_VIEWPORTS = 2;
+
+function notifyDayRestored(date: string) {
+  document.dispatchEvent(
+    new CustomEvent('memories:day-restored', { detail: { date } }),
+  );
+}
+
+function compensateScroll(delta: number) {
+  if (delta === 0) return;
+  window.scrollBy(0, delta);
+}
 
 type DayFetchResult =
   | { status: 'ok'; section: HTMLElement }
@@ -36,7 +50,11 @@ async function fetchDay(date: string): Promise<DayFetchResult> {
   }
 }
 
-function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
+function watchLoaders(
+  stream: HTMLElement,
+  onDay: (el: HTMLElement) => void,
+  windowManager: WindowManager,
+) {
   const loading = new WeakSet<Element>();
   const observer = new IntersectionObserver(
     (entries) => {
@@ -60,15 +78,18 @@ function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
           const { section } = result;
           const direction = sentinel.dataset['load'];
           if (direction === 'prev') {
-            const before = document.documentElement.scrollHeight;
-            sentinel.after(section);
-            window.scrollBy(0, document.documentElement.scrollHeight - before);
+            compensateSwap(stream, section, () => {
+              sentinel.after(section);
+              windowManager.track(section);
+            });
             sentinel.dataset['date'] = section.dataset['prev'] ?? '';
           } else {
             sentinel.before(section);
+            windowManager.track(section);
             sentinel.dataset['date'] = section.dataset['next'] ?? '';
           }
           onDay(section);
+          notifyDayRestored(date);
           if (sentinel.dataset['date']) {
             // Re-observe: IntersectionObserver only fires on crossings, so a sentinel still in range needs a fresh entry to keep loading.
             observer.unobserve(sentinel);
@@ -86,29 +107,195 @@ function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
   });
 }
 
-function activeDayOf(sections: readonly HTMLElement[]): string | undefined {
-  if (!sections.length) return undefined;
-  const atBottom =
-    window.scrollY + window.innerHeight >=
-    document.documentElement.scrollHeight - 4;
-  if (atBottom) return sections[sections.length - 1]?.dataset['day'];
-  const threshold = window.innerHeight * 0.4;
-  let current = sections[0];
-  for (const section of sections) {
-    if (section.getBoundingClientRect().top > threshold) break;
-    current = section;
-  }
-  return current.dataset['day'];
+function dayDateOf(el: HTMLElement): string | undefined {
+  return el.dataset['day'] ?? el.dataset['dayPlaceholder'];
 }
 
-function watchActiveDay(stream: HTMLElement) {
+function dayNodesOf(stream: HTMLElement): HTMLElement[] {
+  return [
+    ...stream.querySelectorAll<HTMLElement>(
+      '[data-day], [data-day-placeholder]',
+    ),
+  ];
+}
+
+function activeDayOf(nodes: readonly HTMLElement[]): string | undefined {
+  if (!nodes.length) return undefined;
+  const last = nodes[nodes.length - 1];
+  const atBottom =
+    last.getBoundingClientRect().bottom <= window.innerHeight + 4;
+  if (atBottom) return dayDateOf(last);
+  const threshold = window.innerHeight * 0.4;
+  let current = nodes[0];
+  for (const node of nodes) {
+    if (node.getBoundingClientRect().top > threshold) break;
+    current = node;
+  }
+  return dayDateOf(current);
+}
+
+type WindowManager = {
+  manage(nodes: readonly HTMLElement[], activeDate: string): void;
+  track(section: HTMLElement): void;
+};
+
+// content-visibility:auto reports the contain-intrinsic-size fallback, not real height, while skipped off-screen.
+function measureRealHeight(section: HTMLElement): number {
+  const previousVisibility = section.style.contentVisibility;
+  section.style.contentVisibility = 'visible';
+  const height = section.getBoundingClientRect().height;
+  section.style.contentVisibility = previousVisibility;
+  return height;
+}
+
+function findVisibleAnchor(
+  stream: HTMLElement,
+  exclude: HTMLElement,
+): HTMLElement | undefined {
+  return dayNodesOf(stream).find(
+    (node) => node !== exclude && node.getBoundingClientRect().bottom > 0,
+  );
+}
+
+function compensateSwap(
+  stream: HTMLElement,
+  exclude: HTMLElement,
+  perform: () => void,
+) {
+  const anchor = findVisibleAnchor(stream, exclude);
+  const before = anchor?.getBoundingClientRect().top;
+  perform();
+  if (anchor && before !== undefined)
+    compensateScroll(anchor.getBoundingClientRect().top - before);
+}
+
+function createWindowManager(stream: HTMLElement): WindowManager {
+  const restoring = new WeakSet<HTMLElement>();
+  const retired = new WeakSet<HTMLElement>();
+  const liveHeight = new WeakMap<HTMLElement, number>();
+  // ResizeObserver.observe() always echoes one initial callback that isn't a real change.
+  const settled = new WeakSet<HTMLElement>();
+  let activeDate = '';
+
+  // Safari has no scroll anchoring, so the stream opts out of Chrome's too (overflow-anchor: none) and every above-viewport resize is compensated here.
+  const heightObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const section = entry.target as HTMLElement;
+      const rect = section.getBoundingClientRect();
+      section.style.containIntrinsicSize = `auto ${rect.height}px`;
+      if (!settled.has(section)) {
+        settled.add(section);
+        liveHeight.set(section, rect.height);
+        continue;
+      }
+      const previous = liveHeight.get(section) ?? rect.height;
+      liveHeight.set(section, rect.height);
+      const delta = rect.height - previous;
+      if (delta !== 0 && rect.top + previous <= 0) compensateScroll(delta);
+    }
+  });
+
+  const track = (section: HTMLElement) => {
+    const height = measureRealHeight(section);
+    liveHeight.set(section, height);
+    settled.delete(section);
+    section.style.containIntrinsicSize = `auto ${height}px`;
+    heightObserver.observe(section);
+  };
+
+  const untrack = (section: HTMLElement) => {
+    heightObserver.unobserve(section);
+    liveHeight.delete(section);
+    settled.delete(section);
+  };
+
+  const withinWindow = (el: HTMLElement) => {
+    const nodes = dayNodesOf(stream);
+    const activeIndex = nodes.findIndex((n) => dayDateOf(n) === activeDate);
+    const index = nodes.indexOf(el);
+    return (
+      activeIndex >= 0 &&
+      index >= 0 &&
+      Math.abs(index - activeIndex) <= WINDOW_RADIUS
+    );
+  };
+
+  const restore = (placeholder: HTMLElement, date: string) => {
+    if (retired.has(placeholder) || restoring.has(placeholder)) return;
+    restoring.add(placeholder);
+    void fetchDay(date).then((result) => {
+      restoring.delete(placeholder);
+      if (!placeholder.isConnected || !withinWindow(placeholder)) return;
+      if (result.status === 'not-found') {
+        retired.add(placeholder);
+        return;
+      }
+      if (result.status === 'error') {
+        setTimeout(() => {
+          if (!placeholder.isConnected || !withinWindow(placeholder)) return;
+          restore(placeholder, date);
+        }, RETRY_DELAY_MS);
+        return;
+      }
+      const { section } = result;
+      const placeholderHeight = parseFloat(placeholder.style.height);
+      if (!Number.isNaN(placeholderHeight))
+        section.style.containIntrinsicSize = `auto ${placeholderHeight}px`;
+      compensateSwap(stream, placeholder, () => {
+        placeholder.replaceWith(section);
+        track(section);
+      });
+      notifyDayRestored(date);
+    });
+  };
+
+  const collapse = (section: HTMLElement, date: string) => {
+    untrack(section);
+    const height = measureRealHeight(section);
+    const placeholder = document.createElement('div');
+    placeholder.dataset['dayPlaceholder'] = date;
+    placeholder.className = section.className;
+    placeholder.style.height = `${height}px`;
+    compensateSwap(stream, section, () => {
+      section.replaceWith(placeholder);
+    });
+  };
+
+  return {
+    track,
+    manage(nodes, date) {
+      activeDate = date;
+      const activeIndex = nodes.findIndex((el) => dayDateOf(el) === date);
+      if (activeIndex < 0) return;
+      const margin = window.innerHeight * RESTORE_MARGIN_VIEWPORTS;
+      nodes.forEach((el, index) => {
+        const day = dayDateOf(el);
+        if (!day) return;
+        const distance = Math.abs(index - activeIndex);
+        if (el.dataset['dayPlaceholder'] !== undefined) {
+          if (retired.has(el) || distance > WINDOW_RADIUS) return;
+          const rect = el.getBoundingClientRect();
+          const near =
+            rect.bottom > -margin && rect.top < window.innerHeight + margin;
+          if (near) restore(el, day);
+          return;
+        }
+        if (distance > WINDOW_RADIUS && !el.contains(document.activeElement))
+          collapse(el, day);
+      });
+    },
+  };
+}
+
+function watchActiveDay(stream: HTMLElement, windowManager: WindowManager) {
   let active = '';
   let queued = false;
 
   const apply = () => {
     queued = false;
-    const sections = [...stream.querySelectorAll<HTMLElement>('[data-day]')];
-    const date = activeDayOf(sections);
+    const nodes = dayNodesOf(stream);
+    const date = activeDayOf(nodes);
+    if (date) windowManager.manage(nodes, date);
     if (!date || date === active) return;
     active = date;
     history.replaceState(history.state, '', `/day/${date}${location.hash}`);
@@ -186,8 +373,12 @@ function watchAnnotate(stream: HTMLElement) {
 export function startDayStream() {
   const stream = document.querySelector<HTMLElement>('[data-stream]');
   if (!stream) return;
-  const notifyDay = watchActiveDay(stream);
-  watchLoaders(stream, notifyDay);
+  const windowManager = createWindowManager(stream);
+  stream
+    .querySelectorAll<HTMLElement>('[data-day]')
+    .forEach((section) => windowManager.track(section));
+  const notifyDay = watchActiveDay(stream, windowManager);
+  watchLoaders(stream, notifyDay, windowManager);
   watchFilter(stream);
   watchAnnotate(stream);
 }

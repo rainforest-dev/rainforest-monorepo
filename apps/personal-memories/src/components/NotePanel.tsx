@@ -2,21 +2,21 @@ import { useEffect, useState } from 'react';
 
 import type { NotePayload } from '../lib/notes/payload.ts';
 import { dayHeading } from '../lib/weeks.ts';
-import { AnnotationItem } from './notes/AnnotationItem.tsx';
+import { AnnotationList } from './notes/AnnotationItem.tsx';
+import {
+  BottomSheet,
+  CHIPS,
+  LOAD_FAILED,
+  Notice,
+  StatusChip,
+} from './notes/BottomSheet.tsx';
 import { ConflictView } from './notes/ConflictView.tsx';
 import { useDaySync } from './notes/useDaySync.ts';
-import { type SaveStatus, useNoteDraft } from './notes/useNoteDraft.ts';
+import { useNoteDraft } from './notes/useNoteDraft.ts';
 import { useStreamBridge } from './notes/useStreamBridge.ts';
 
-const STATUS_LABELS: Record<SaveStatus, string> = {
-  saved: '已儲存',
-  dirty: '儲存中',
-  saving: '儲存中',
-  error: '未儲存',
-  conflict: '有衝突',
-};
-
-const LOAD_FAILED = '載入失敗，捲動時會再試';
+const PLACEHOLDER = '這一天想起了什麼？';
+const TITLE = 'text-meta font-semibold';
 
 export function NotePanel({ initial }: { initial: NotePayload }) {
   const note = useNoteDraft(initial);
@@ -37,89 +37,95 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
     request,
     onAnnotate: () => setOpen(true),
   });
-  const failed = status === 'error' || (loadFailed && status === 'saved');
+  const chip =
+    loadFailed && status === 'saved'
+      ? LOAD_FAILED
+      : readOnly
+        ? undefined
+        : CHIPS[status];
+  const count = draft.annotations.length;
+
+  const peek = (
+    <>
+      <span className="flex items-center justify-between gap-3">
+        <span className={TITLE}>這一天的回憶</span>
+        {chip && <StatusChip chip={chip} />}
+      </span>
+      <span className="text-muted-foreground text-xs tabular-nums">
+        眉批 {count}
+      </span>
+      <span
+        className={`text-meta line-clamp-2 whitespace-pre-line ${draft.body ? '' : 'text-muted-foreground'}`}
+      >
+        {draft.body || (readOnly ? '' : PLACEHOLDER)}
+      </span>
+    </>
+  );
 
   return (
-    <aside
-      aria-label="筆記"
-      className="border-border bg-card fixed inset-x-0 bottom-0 z-20 border-t lg:sticky lg:top-4 lg:z-auto lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:rounded-lg lg:border lg:bg-transparent"
-    >
-      <div className="flex items-center gap-2 px-4 py-3 text-sm">
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
-          className="focus-visible:ring-ring flex-1 text-left font-medium focus-visible:outline-none focus-visible:ring-2 lg:pointer-events-none"
-        >
-          筆記 ·{' '}
-          <span
-            className={
-              failed
-                ? 'bg-destructive/10 text-destructive rounded px-1.5 py-0.5'
-                : 'text-muted-foreground'
-            }
-          >
-            {loadFailed && status === 'saved'
-              ? LOAD_FAILED
-              : STATUS_LABELS[status]}
+    <BottomSheet open={open} onOpenChange={setOpen} peek={peek}>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h2 className={TITLE}>這一天的回憶</h2>
+          <span className="text-muted-foreground truncate text-xs tabular-nums">
+            {dayHeading(date)}
           </span>
-        </button>
-        <span className="text-muted-foreground text-xs">
-          {dayHeading(date)}
-        </span>
+        </div>
+        {chip && <StatusChip chip={chip} />}
       </div>
-      <div
-        className={`${open ? 'block' : 'hidden'} max-h-[70vh] space-y-4 overflow-y-auto p-4 pt-0 lg:block lg:max-h-none lg:overflow-visible`}
-      >
-        {payload.parseError ? (
-          <p className="bg-destructive/10 text-destructive rounded-md p-2 text-xs">
-            這一天的筆記檔格式有誤，請在 Obsidian 修正後重新整理。
-          </p>
-        ) : (
-          readOnly && (
-            <p className="bg-muted text-muted-foreground rounded-md p-2 text-xs">
-              筆記是唯讀的：未設定可寫入的 <code>MEMORIES_NOTES_DIR</code>。
-            </p>
-          )
-        )}
-        {conflict && (
-          <ConflictView
-            theirs={conflict}
-            mine={draft}
-            onResolve={note.resolveConflict}
-          />
-        )}
-        <textarea
-          aria-label="當天的回憶"
-          value={draft.body}
-          disabled={locked}
-          rows={6}
-          onChange={(e) => edit(date, (d) => ({ ...d, body: e.target.value }))}
-          className="border-input bg-background focus-visible:ring-ring w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60"
+      {(payload.parseError || readOnly) && (
+        <div className="mb-3">
+          <Notice>
+            {payload.parseError
+              ? '這一天的筆記檔格式有誤，請在 Obsidian 修正後重新整理。'
+              : '唯讀。尚未設定儲存位置，回憶和眉批暫時無法寫入。'}
+          </Notice>
+        </div>
+      )}
+      {conflict && (
+        <ConflictView
+          theirs={conflict}
+          mine={draft}
+          onResolve={note.resolveConflict}
         />
-        <ul className="space-y-3">
-          {draft.annotations.map((a, i) => (
-            <AnnotationItem
-              key={`${i}-${a.eventId}`}
-              annotation={a}
-              disabled={locked}
-              reattaching={reattach === i}
-              textareaRef={(el) => {
-                refs.current[i] = el;
-              }}
-              onBody={(body) => setAnnotation(date, i, { body })}
-              onReattach={() => setReattach(i)}
-              onDelete={() => {
-                setReattach(undefined);
-                edit(date, (d) => ({
-                  ...d,
-                  annotations: d.annotations.filter((_, j) => j !== i),
-                }));
-              }}
-            />
-          ))}
-        </ul>
-      </div>
-    </aside>
+      )}
+      {readOnly ? (
+        draft.body && (
+          <div className="bg-muted/55 text-body whitespace-pre-wrap rounded-lg px-4 py-3.5">
+            {draft.body}
+          </div>
+        )
+      ) : (
+        <div className="flex flex-col gap-2" hidden={!!conflict}>
+          <textarea
+            aria-label="當天的回憶"
+            placeholder={PLACEHOLDER}
+            value={draft.body}
+            disabled={locked}
+            onChange={(e) =>
+              edit(date, (d) => ({ ...d, body: e.target.value }))
+            }
+            className="border-input bg-background text-body focus-visible:border-ring focus-visible:ring-ring/35 focus-visible:ring-3 placeholder:text-muted-foreground min-h-[180px] w-full resize-none rounded-lg border px-4 py-3.5 outline-none disabled:opacity-60 lg:min-h-[232px]"
+          />
+          <p className="text-muted-foreground text-xs">Markdown · 自動儲存</p>
+        </div>
+      )}
+      <AnnotationList
+        annotations={draft.annotations}
+        disabled={locked}
+        readOnly={readOnly}
+        reattach={reattach}
+        refs={refs}
+        onBody={(i, body) => setAnnotation(date, i, { body })}
+        onReattach={setReattach}
+        onDelete={(i) => {
+          setReattach(undefined);
+          edit(date, (d) => ({
+            ...d,
+            annotations: d.annotations.filter((_, j) => j !== i),
+          }));
+        }}
+      />
+    </BottomSheet>
   );
 }

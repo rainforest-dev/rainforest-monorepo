@@ -7,6 +7,8 @@ import type { Draft } from './useNoteDraft.ts';
 
 type Anchor = Omit<Annotation, 'body'>;
 
+const DAY_PATH = /^\/day\/(\d{4}-\d{2}-\d{2})$/;
+
 type Options = {
   date: string;
   draft: Draft;
@@ -16,6 +18,18 @@ type Options = {
   request: (date: string) => void;
   onAnnotate: () => void;
 };
+
+function markAnnotated(annotations: readonly ResolvedAnnotation[]) {
+  document
+    .querySelectorAll('[data-annotated]')
+    .forEach((el) => el.removeAttribute('data-annotated'));
+  for (const a of annotations) {
+    if (a.status === 'unattached' || !a.eventId) continue;
+    document
+      .getElementById(`ev-${a.eventId}`)
+      ?.setAttribute('data-annotated', '');
+  }
+}
 
 export function useStreamBridge(o: Options) {
   const [reattach, setReattach] = useState<number>();
@@ -87,6 +101,10 @@ export function useStreamBridge(o: Options) {
     };
     document.addEventListener('memories:day', onDay);
     document.addEventListener('memories:annotate', onAnnotate);
+    const shown = DAY_PATH.exec(location.pathname)?.[1];
+    if (shown && shown !== latest.current.current.current.payload.date) {
+      latest.current.request(shown);
+    }
     return () => {
       document.removeEventListener('memories:day', onDay);
       document.removeEventListener('memories:annotate', onAnnotate);
@@ -96,22 +114,23 @@ export function useStreamBridge(o: Options) {
   useEffect(() => {
     setReattach(undefined);
     if (queued.current && taipeiDate(queued.current.at) === o.date) {
-      annotate(queued.current);
+      if (!o.readOnly) annotate(queued.current);
       queued.current = undefined;
     }
-  }, [o.date]);
+  }, [o.date, o.readOnly]);
+
+  useEffect(() => markAnnotated(o.draft.annotations), [o.draft.annotations]);
 
   useEffect(() => {
-    document
-      .querySelectorAll('[data-annotated]')
-      .forEach((el) => el.removeAttribute('data-annotated'));
-    for (const a of o.draft.annotations) {
-      if (a.status === 'unattached' || !a.eventId) continue;
-      document
-        .getElementById(`ev-${a.eventId}`)
-        ?.setAttribute('data-annotated', '');
-    }
-  }, [o.draft.annotations]);
+    const onRestored = (e: Event) => {
+      const { draft, payload } = latest.current.current.current;
+      const date = (e as CustomEvent<{ date?: string } | null>).detail?.date;
+      if (date === payload.date) markAnnotated(draft.annotations);
+    };
+    document.addEventListener('memories:day-restored', onRestored);
+    return () =>
+      document.removeEventListener('memories:day-restored', onRestored);
+  }, []);
 
   useEffect(() => {
     if (focusNext.current === undefined) return;

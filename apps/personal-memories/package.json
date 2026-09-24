@@ -43,6 +43,7 @@
     "astro": "^7.3.3",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "sharp": "^0.35.4",
     "tailwindcss": "catalog:",
     "yaml": "^2.9.1"
   },

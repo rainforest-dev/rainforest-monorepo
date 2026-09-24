@@ -4,27 +4,27 @@ import { getLiveCollection } from 'astro:content';
 import EmptyState from '../components/EmptyState.astro';
 import Heatmap from '../components/Heatmap.astro';
 import Layout from '../layouts/Layout.astro';
-import { calendarWeeks, heatLevels } from '../lib/days.ts';
+import { heatLevels, monthRows } from '../lib/days.ts';
 import { getTimeline } from '../lib/store.ts';
 
 const state = getTimeline();
 const { entries: days = [] } = await getLiveCollection('days');
 const { entries: notes = [] } = await getLiveCollection('memoryNotes');
 const totals = new Map(days.map((d) => [d.id, d.data.summary.total]));
-const weeks = days.length
-  ? calendarWeeks(days[0].id, days[days.length - 1].id, totals)
+const rows = days.length
+  ? monthRows(days[0].id, days[days.length - 1].id, totals)
   : [];
 const level = heatLevels([...totals.values()]);
 const noted = new Set(notes.map((n) => n.id));
 ---
 
 <Layout title="Memories" wide>
-  <h1 class="mb-6 text-2xl font-semibold">Memories</h1>
+  <h1 class="sr-only">回憶</h1>
   {
     state.status === 'missing' ? (
       <EmptyState path={state.path} />
     ) : (
-      <Heatmap weeks={weeks} level={level} noted={noted} />
+      <Heatmap rows={rows} level={level} noted={noted} />
     )
   }
 </Layout>

@@ -97,7 +97,27 @@ export function parseNote(text: string, date: string): DayNote {
   const bodyLines = split === -1 ? lines : lines.slice(0, split);
   const sectionLines = split === -1 ? [] : lines.slice(split + 1);
 
-  const trailingAt = sectionLines.findIndex((line) => line.startsWith('## '));
+  const blockStarts: number[] = [];
+  sectionLines.forEach((line, i) => {
+    if (line.startsWith('### ')) blockStarts.push(i);
+  });
+  let lastAnchoredBlockStart = -1;
+  blockStarts.forEach((start, i) => {
+    const end = blockStarts[i + 1] ?? sectionLines.length;
+    if (sectionLines.slice(start, end).some((line) => ANCHOR.test(line))) {
+      lastAnchoredBlockStart = start;
+    }
+  });
+  const trailingSearchStart =
+    lastAnchoredBlockStart === -1 ? 0 : lastAnchoredBlockStart + 1;
+
+  let trailingAt = -1;
+  for (let i = trailingSearchStart; i < sectionLines.length; i++) {
+    if (!sectionLines[i].startsWith('## ')) continue;
+    if ((sectionLines[i - 1] ?? '').trim() !== '') continue;
+    trailingAt = i;
+    break;
+  }
   const annotationLines =
     trailingAt === -1 ? sectionLines : sectionLines.slice(0, trailingAt);
   const trailingLines = trailingAt === -1 ? [] : sectionLines.slice(trailingAt);

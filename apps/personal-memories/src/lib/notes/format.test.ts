@@ -185,6 +185,116 @@ describe('parseNote', () => {
     expect(serializeNote(note)).toBe(text);
   });
 
+  it('keeps a "## " line inside an annotation body, without cutting off the next annotation', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的一\n\n內文\n## 小標\n更多內文\n\n### 手寫的二\n\n第二段\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(2);
+    expect(note.annotations[0].body).toBe('內文\n## 小標\n更多內文');
+    expect(note.annotations[1].body).toBe('第二段');
+    expect(note.trailing).toBeUndefined();
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual(note.annotations);
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
+  it('keeps a "## " line in the last annotation\'s body when it follows a non-blank line, but still splits off a later blank-preceded "## " as trailing', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的三\n\n內文\n## 小標\n更多內文\n\n## 其他\n\n保留這段\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(1);
+    expect(note.annotations[0].body).toBe('內文\n## 小標\n更多內文');
+    expect(note.trailing).toBe('## 其他\n\n保留這段');
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual(note.annotations);
+    expect(reparsed.trailing).toBe(note.trailing);
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
+  it('treats a "## " preceded by a blank line inside the last annotation as trailing', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的\n\n內文\n\n## 其他\n\n保留這段\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(1);
+    expect(note.annotations[0].body).toBe('內文');
+    expect(note.trailing).toBe('## 其他\n\n保留這段');
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.trailing).toBe(note.trailing);
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
+  it('finds the trailing section after the first annotation block, not the last', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 09:05 · LINE · a\n\n%% ev:3fa9c1d2 at:2025-11-01T09:05:00+08:00 src:line %%\n\nbody\n\n## 其他\n\n### 子標題\n\n內容\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(1);
+    expect(note.annotations[0].author).toBe('a');
+    expect(note.annotations[0].body).toBe('body');
+    expect(note.trailing).toBe('## 其他\n\n### 子標題\n\n內容');
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual(note.annotations);
+    expect(reparsed.trailing).toBe(note.trailing);
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
+  it('does not resurrect a deleted annotation as a fake preamble and heading when its trailing section has its own "### "', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 手寫的\n\n隨手記\n\n## 其他\n\n### 小標\n\ntext\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(1);
+    expect(note.trailing).toBe('## 其他\n\n### 小標\n\ntext');
+
+    const afterDelete = { ...note, annotations: [] };
+    const serialized = serializeNote(afterDelete);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual([]);
+    expect(reparsed.annotationsPreamble).toBeUndefined();
+    expect(reparsed.trailing).toBe('## 其他\n\n### 小標\n\ntext');
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
+  it('keeps a "## " inside an earlier anchored annotation\'s body, even with a later anchored annotation', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n### 09:05 · LINE · Alice 🌷\n\n%% ev:3fa9c1d2 at:2025-11-01T09:05:00+08:00 src:line %%\n\n第一段\n\n## 小標\n\nmore\n\n### 10:15 · 照片 · photo\n\n%% ev:AAAAAAAA-0000-0000-0000-000000000001 at:2025-11-01T10:15:00+08:00 src:photo %%\n\n第二段\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toHaveLength(2);
+    expect(note.annotations[0].author).toBe('Alice 🌷');
+    expect(note.annotations[0].body).toBe('第一段\n\n## 小標\n\nmore');
+    expect(note.annotations[1].author).toBe('photo');
+    expect(note.annotations[1].body).toBe('第二段');
+    expect(note.trailing).toBeUndefined();
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual(note.annotations);
+    expect(reparsed.trailing).toBeUndefined();
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
+  it('keeps a trailing section with its own "### " heading when there are no annotations at all', () => {
+    const text =
+      '---\ndate: 2025-11-01\n---\n\n## 眉批\n\n## 其他\n\n### 小標\n\n內容\n';
+    const note = parseNote(text, '2025-11-01');
+    expect(note.annotations).toEqual([]);
+    expect(note.annotationsPreamble).toBeUndefined();
+    expect(note.trailing).toBe('## 其他\n\n### 小標\n\n內容');
+
+    const serialized = serializeNote(note);
+    const reparsed = parseNote(serialized, '2025-11-01');
+    expect(reparsed.annotations).toEqual([]);
+    expect(reparsed.annotationsPreamble).toBeUndefined();
+    expect(reparsed.trailing).toBe(note.trailing);
+    expect(serializeNote(reparsed)).toBe(serialized);
+  });
+
   it('throws on frontmatter that is not a mapping', () => {
     expect(() => parseNote('---\njust text\n---\n', '2025-11-01')).toThrow();
     expect(() => parseNote('---\nmood: [good\n---\n', '2025-11-01')).toThrow();

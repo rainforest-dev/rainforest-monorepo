@@ -17,13 +17,13 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 describe('parsePhotoIndex', () => {
   it('keeps items with local media and counts the rest', () => {
-    expect(result.events).toHaveLength(2);
+    expect(result.events).toHaveLength(7);
     expect(result.skippedNoMedia).toBe(1);
     expect(result.skippedInvalid).toBe(0);
   });
 
   it('uses the uuid as id and normalises dates to +08:00', () => {
-    expect(result.events.map((e) => [e.id, e.at])).toEqual([
+    expect(result.events.slice(0, 2).map((e) => [e.id, e.at])).toEqual([
       ['AAAAAAAA-0000-0000-0000-000000000001', '2025-11-01T10:15:00+08:00'],
       ['BBBBBBBB-0000-0000-0000-000000000002', '2025-11-01T10:30:00+08:00'],
     ]);
