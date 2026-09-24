@@ -11,6 +11,7 @@ type AnnotateDetail = {
 declare global {
   interface DocumentEventMap {
     'memories:day': CustomEvent<{ date: string }>;
+    'memories:day-restored': CustomEvent<{ date: string }>;
     'memories:annotate': CustomEvent<AnnotateDetail>;
   }
 }
@@ -18,6 +19,25 @@ declare global {
 const RETRY_DELAY_MS = 2000;
 const WINDOW_RADIUS = 7;
 const RESTORE_MARGIN_VIEWPORTS = 2;
+
+function notifyDayRestored(date: string) {
+  document.dispatchEvent(
+    new CustomEvent('memories:day-restored', { detail: { date } }),
+  );
+}
+
+let ignoreNextScrollEvent = false;
+
+// scrollBy() fires its own 'scroll' event, which would otherwise re-trigger this same compensation.
+function compensateScroll(delta: number) {
+  if (delta === 0) return;
+  ignoreNextScrollEvent = true;
+  window.scrollBy(0, delta);
+  // A sub-pixel delta may not fire a 'scroll' event at all; don't let the flag stick forever.
+  requestAnimationFrame(() => {
+    ignoreNextScrollEvent = false;
+  });
+}
 
 type DayFetchResult =
   | { status: 'ok'; section: HTMLElement }
@@ -38,7 +58,11 @@ async function fetchDay(date: string): Promise<DayFetchResult> {
   }
 }
 
-function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
+function watchLoaders(
+  stream: HTMLElement,
+  onDay: (el: HTMLElement) => void,
+  windowManager: WindowManager,
+) {
   const loading = new WeakSet<Element>();
   const observer = new IntersectionObserver(
     (entries) => {
@@ -64,13 +88,15 @@ function watchLoaders(stream: HTMLElement, onDay: (el: HTMLElement) => void) {
           if (direction === 'prev') {
             const before = document.documentElement.scrollHeight;
             sentinel.after(section);
-            window.scrollBy(0, document.documentElement.scrollHeight - before);
+            compensateScroll(document.documentElement.scrollHeight - before);
             sentinel.dataset['date'] = section.dataset['prev'] ?? '';
           } else {
             sentinel.before(section);
             sentinel.dataset['date'] = section.dataset['next'] ?? '';
           }
+          windowManager.track(section);
           onDay(section);
+          notifyDayRestored(date);
           if (sentinel.dataset['date']) {
             // Re-observe: IntersectionObserver only fires on crossings, so a sentinel still in range needs a fresh entry to keep loading.
             observer.unobserve(sentinel);
@@ -102,10 +128,11 @@ function dayNodesOf(stream: HTMLElement): HTMLElement[] {
 
 function activeDayOf(nodes: readonly HTMLElement[]): string | undefined {
   if (!nodes.length) return undefined;
+  const last = nodes[nodes.length - 1];
+  // scrollHeight flips this on any frontier append below, even with the viewport unmoved.
   const atBottom =
-    window.scrollY + window.innerHeight >=
-    document.documentElement.scrollHeight - 4;
-  if (atBottom) return dayDateOf(nodes[nodes.length - 1]);
+    last.getBoundingClientRect().bottom <= window.innerHeight + 4;
+  if (atBottom) return dayDateOf(last);
   const threshold = window.innerHeight * 0.4;
   let current = nodes[0];
   for (const node of nodes) {
@@ -115,76 +142,149 @@ function activeDayOf(nodes: readonly HTMLElement[]): string | undefined {
   return dayDateOf(current);
 }
 
-function collapseToPlaceholder(section: HTMLElement, date: string) {
-  const rect = section.getBoundingClientRect();
-  const placeholder = document.createElement('div');
-  placeholder.dataset['dayPlaceholder'] = date;
-  placeholder.className = section.className;
-  placeholder.style.height = `${rect.height}px`;
-  const above = rect.top < 0;
-  const before = document.documentElement.scrollHeight;
-  section.replaceWith(placeholder);
-  if (above) window.scrollBy(0, document.documentElement.scrollHeight - before);
-}
+type WindowManager = {
+  manage(nodes: readonly HTMLElement[], activeDate: string): void;
+  track(section: HTMLElement): void;
+};
 
-function restoreFromPlaceholder(
-  placeholder: HTMLElement,
-  section: HTMLElement,
-) {
-  const rect = placeholder.getBoundingClientRect();
-  const above = rect.top < 0;
-  const before = document.documentElement.scrollHeight;
-  placeholder.replaceWith(section);
-  if (above) window.scrollBy(0, document.documentElement.scrollHeight - before);
-}
-
-function watchWindow() {
+function createWindowManager(stream: HTMLElement): WindowManager {
   const restoring = new WeakSet<HTMLElement>();
+  const retired = new WeakSet<HTMLElement>();
+  const liveHeight = new WeakMap<HTMLElement, number>();
+  // ResizeObserver.observe() always echoes one initial callback that isn't a real change.
+  const settled = new WeakSet<HTMLElement>();
+  let activeDate = '';
+
+  // Safari has no scroll anchoring, so an above-viewport resize needs manual scrollY compensation.
+  const heightObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const section = entry.target as HTMLElement;
+      const rect = section.getBoundingClientRect();
+      section.style.containIntrinsicSize = `auto ${rect.height}px`;
+      if (!settled.has(section)) {
+        settled.add(section);
+        liveHeight.set(section, rect.height);
+        continue;
+      }
+      const previous = liveHeight.get(section) ?? rect.height;
+      liveHeight.set(section, rect.height);
+      const delta = rect.height - previous;
+      if (delta !== 0 && rect.top < 0) compensateScroll(delta);
+    }
+  });
+
+  const track = (section: HTMLElement) => {
+    // A section inserted while already far from the viewport can read as skipped on its very first layout too.
+    const previousVisibility = section.style.contentVisibility;
+    section.style.contentVisibility = 'visible';
+    const height = section.getBoundingClientRect().height;
+    section.style.contentVisibility = previousVisibility;
+    liveHeight.set(section, height);
+    settled.delete(section);
+    // Primes contain-intrinsic-size so a later content-visibility skip reports this height, not the CSS fallback.
+    section.style.containIntrinsicSize = `auto ${height}px`;
+    heightObserver.observe(section);
+  };
+
+  const untrack = (section: HTMLElement) => {
+    heightObserver.unobserve(section);
+    liveHeight.delete(section);
+    settled.delete(section);
+  };
+
+  const withinWindow = (el: HTMLElement) => {
+    const nodes = dayNodesOf(stream);
+    const activeIndex = nodes.findIndex((n) => dayDateOf(n) === activeDate);
+    const index = nodes.indexOf(el);
+    return (
+      activeIndex >= 0 &&
+      index >= 0 &&
+      Math.abs(index - activeIndex) <= WINDOW_RADIUS
+    );
+  };
 
   const restore = (placeholder: HTMLElement, date: string) => {
-    if (restoring.has(placeholder)) return;
+    if (retired.has(placeholder) || restoring.has(placeholder)) return;
     restoring.add(placeholder);
     void fetchDay(date).then((result) => {
       restoring.delete(placeholder);
-      if (result.status === 'ok') {
-        restoreFromPlaceholder(placeholder, result.section);
+      if (!placeholder.isConnected) return;
+      if (result.status === 'not-found') {
+        retired.add(placeholder);
         return;
       }
-      if (result.status === 'error')
-        setTimeout(() => restore(placeholder, date), RETRY_DELAY_MS);
+      if (result.status === 'error') {
+        if (withinWindow(placeholder))
+          setTimeout(() => restore(placeholder, date), RETRY_DELAY_MS);
+        return;
+      }
+      const { section } = result;
+      const placeholderHeight = parseFloat(placeholder.style.height);
+      if (!Number.isNaN(placeholderHeight))
+        section.style.containIntrinsicSize = `auto ${placeholderHeight}px`;
+      const rect = placeholder.getBoundingClientRect();
+      const above = rect.top < 0;
+      const before = document.documentElement.scrollHeight;
+      placeholder.replaceWith(section);
+      if (above)
+        compensateScroll(document.documentElement.scrollHeight - before);
+      track(section);
+      notifyDayRestored(date);
     });
   };
 
-  return (nodes: readonly HTMLElement[], activeDate: string) => {
-    const activeIndex = nodes.findIndex((el) => dayDateOf(el) === activeDate);
-    if (activeIndex < 0) return;
-    const margin = window.innerHeight * RESTORE_MARGIN_VIEWPORTS;
-    nodes.forEach((el, index) => {
-      const date = dayDateOf(el);
-      if (!date) return;
-      if (el.dataset['dayPlaceholder'] !== undefined) {
-        const rect = el.getBoundingClientRect();
-        const near =
-          rect.bottom > -margin && rect.top < window.innerHeight + margin;
-        if (near) restore(el, date);
-        return;
-      }
-      if (Math.abs(index - activeIndex) > WINDOW_RADIUS)
-        collapseToPlaceholder(el, date);
-    });
+  const collapse = (section: HTMLElement, date: string) => {
+    untrack(section);
+    // content-visibility:auto reports the contain-intrinsic-size fallback, not real height, while skipped off-screen.
+    const previousVisibility = section.style.contentVisibility;
+    section.style.contentVisibility = 'visible';
+    const height = section.getBoundingClientRect().height;
+    section.style.contentVisibility = previousVisibility;
+    const rect = section.getBoundingClientRect();
+    const placeholder = document.createElement('div');
+    placeholder.dataset['dayPlaceholder'] = date;
+    placeholder.className = section.className;
+    placeholder.style.height = `${height}px`;
+    const above = rect.top < 0;
+    const before = document.documentElement.scrollHeight;
+    section.replaceWith(placeholder);
+    if (above) compensateScroll(document.documentElement.scrollHeight - before);
+  };
+
+  return {
+    track,
+    manage(nodes, date) {
+      activeDate = date;
+      const activeIndex = nodes.findIndex((el) => dayDateOf(el) === date);
+      if (activeIndex < 0) return;
+      const margin = window.innerHeight * RESTORE_MARGIN_VIEWPORTS;
+      nodes.forEach((el, index) => {
+        const day = dayDateOf(el);
+        if (!day) return;
+        const distance = Math.abs(index - activeIndex);
+        if (el.dataset['dayPlaceholder'] !== undefined) {
+          if (retired.has(el) || distance > WINDOW_RADIUS) return;
+          const rect = el.getBoundingClientRect();
+          const near =
+            rect.bottom > -margin && rect.top < window.innerHeight + margin;
+          if (near) restore(el, day);
+          return;
+        }
+        if (distance > WINDOW_RADIUS) collapse(el, day);
+      });
+    },
   };
 }
 
-function watchActiveDay(stream: HTMLElement) {
+function watchActiveDay(stream: HTMLElement, windowManager: WindowManager) {
   let active = '';
   let queued = false;
-  const manageWindow = watchWindow();
 
   const apply = () => {
     queued = false;
     const nodes = dayNodesOf(stream);
     const date = activeDayOf(nodes);
-    if (date) manageWindow(nodes, date);
+    if (date) windowManager.manage(nodes, date);
     if (!date || date === active) return;
     active = date;
     history.replaceState(history.state, '', `/day/${date}${location.hash}`);
@@ -200,7 +300,17 @@ function watchActiveDay(stream: HTMLElement) {
     requestAnimationFrame(apply);
   };
 
-  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (ignoreNextScrollEvent) {
+        ignoreNextScrollEvent = false;
+        return;
+      }
+      schedule();
+    },
+    { passive: true },
+  );
   schedule();
   return schedule;
 }
@@ -262,8 +372,12 @@ function watchAnnotate(stream: HTMLElement) {
 export function startDayStream() {
   const stream = document.querySelector<HTMLElement>('[data-stream]');
   if (!stream) return;
-  const notifyDay = watchActiveDay(stream);
-  watchLoaders(stream, notifyDay);
+  const windowManager = createWindowManager(stream);
+  stream
+    .querySelectorAll<HTMLElement>('[data-day]')
+    .forEach((section) => windowManager.track(section));
+  const notifyDay = watchActiveDay(stream, windowManager);
+  watchLoaders(stream, notifyDay, windowManager);
   watchFilter(stream);
   watchAnnotate(stream);
 }
