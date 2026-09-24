@@ -1,11 +1,24 @@
-import { mkdtempSync, statSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import sharp from 'sharp';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { ensureThumb, parseWidth, thumbPath } from './thumbs.ts';
+import {
+  ensureThumb,
+  MAX_CONCURRENT_ENCODES,
+  parseWidth,
+  thumbPath,
+  withEncodeSlot,
+} from './thumbs.ts';
+
+vi.mock('sharp', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('sharp')>();
+  const mocked = vi.fn(actual.default);
+  Object.assign(mocked, actual.default);
+  return { ...actual, default: mocked as unknown as typeof actual.default };
+});
 
 const PIXEL_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -80,5 +93,55 @@ describe('ensureThumb', () => {
     await ensureThumb(src, dest, 480);
 
     expect(statSync(dest).mtimeMs).toBe(before);
+  });
+
+  it('de-duplicates concurrent calls for the same destination and leaves no tmp file', async () => {
+    const src = join(root, 'dedup.png');
+    await sharp({
+      create: { width: 600, height: 400, channels: 3, background: '#000000' },
+    })
+      .png()
+      .toFile(src);
+    const dest = join(root, 'dedup-480.webp');
+
+    const mockedSharp = vi.mocked(sharp);
+    const callsBefore = mockedSharp.mock.calls.length;
+
+    await Promise.all([
+      ensureThumb(src, dest, 480),
+      ensureThumb(src, dest, 480),
+      ensureThumb(src, dest, 480),
+      ensureThumb(src, dest, 480),
+    ]);
+
+    expect(mockedSharp.mock.calls.length - callsBefore).toBe(1);
+
+    const meta = await sharp(dest).metadata();
+    expect(meta.format).toBe('webp');
+    expect(meta.width).toBe(480);
+
+    const leftoverTmp = readdirSync(root).filter(
+      (name) => name.startsWith('dedup-480.webp.') && name.endsWith('.tmp'),
+    );
+    expect(leftoverTmp).toHaveLength(0);
+  });
+});
+
+describe('withEncodeSlot', () => {
+  it('bounds concurrent workers to MAX_CONCURRENT_ENCODES', async () => {
+    let active = 0;
+    let maxActive = 0;
+
+    const worker = () =>
+      withEncodeSlot(async () => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        active--;
+      });
+
+    await Promise.all([worker(), worker(), worker(), worker(), worker()]);
+
+    expect(maxActive).toBe(MAX_CONCURRENT_ENCODES);
   });
 });

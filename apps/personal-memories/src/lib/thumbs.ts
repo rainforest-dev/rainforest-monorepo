@@ -1,9 +1,13 @@
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, renameSync } from 'node:fs';
+import { createHash, randomUUID } from 'node:crypto';
+import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import sharp from 'sharp';
+
+// The homelab container's 512 MiB limit is smaller than libvips' default thread pool + cache.
+sharp.concurrency(1);
+sharp.cache(false);
 
 export const THUMB_WIDTHS = [240, 480, 960] as const;
 
@@ -31,17 +35,61 @@ export function thumbPath(
   return join(cacheDir, `${hash}-${w}.webp`);
 }
 
-export async function ensureThumb(
+export const MAX_CONCURRENT_ENCODES = 2;
+
+let activeEncodes = 0;
+const encodeQueue: Array<() => void> = [];
+
+function acquireEncodeSlot(): Promise<void> {
+  if (activeEncodes < MAX_CONCURRENT_ENCODES) {
+    activeEncodes++;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    encodeQueue.push(() => {
+      activeEncodes++;
+      resolve();
+    });
+  });
+}
+
+function releaseEncodeSlot(): void {
+  activeEncodes--;
+  encodeQueue.shift()?.();
+}
+
+export function withEncodeSlot<T>(fn: () => Promise<T>): Promise<T> {
+  return acquireEncodeSlot().then(() => fn().finally(releaseEncodeSlot));
+}
+
+const inFlight = new Map<string, Promise<void>>();
+
+export function ensureThumb(
   src: string,
   dest: string,
   w: ThumbWidth,
 ): Promise<void> {
-  if (existsSync(dest)) return;
-  mkdirSync(dirname(dest), { recursive: true });
-  const tmp = `${dest}.${process.pid}.tmp`;
-  await sharp(src)
-    .resize({ width: w, withoutEnlargement: true })
-    .webp()
-    .toFile(tmp);
-  renameSync(tmp, dest);
+  if (existsSync(dest)) return Promise.resolve();
+
+  const running = inFlight.get(dest);
+  if (running) return running;
+
+  const task = withEncodeSlot(async () => {
+    if (existsSync(dest)) return;
+    mkdirSync(dirname(dest), { recursive: true });
+    const tmp = `${dest}.${randomUUID()}.tmp`;
+    try {
+      await sharp(src)
+        .resize({ width: w, withoutEnlargement: true })
+        .webp()
+        .toFile(tmp);
+      renameSync(tmp, dest);
+    } catch (err) {
+      rmSync(tmp, { force: true });
+      throw err;
+    }
+  }).finally(() => inFlight.delete(dest));
+
+  inFlight.set(dest, task);
+  return task;
 }
