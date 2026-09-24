@@ -15,18 +15,26 @@ const componentNames = [
   'Badge',
   'Button',
   'Card',
+  'Checkbox',
   'Command',
   'Dialog',
   'DropdownMenu',
   'Input',
   'InputGroup',
+  'Kbd',
   'Popover',
+  'ScrollArea',
   'Select',
+  'Separator',
+  'Sheet',
+  'Skeleton',
   'Switch',
   'Table',
   'Tabs',
   'Textarea',
   'Toaster',
+  'ToggleGroup',
+  'Tooltip',
 ];
 
 describe('public surface', () => {
@@ -41,6 +49,8 @@ describe('public surface', () => {
   it('exports the variant recipes for server-side callers', () => {
     expect(typeof lib.buttonVariants).toBe('function');
     expect(typeof lib.badgeVariants).toBe('function');
+    expect(typeof lib.toggleVariants).toBe('function');
+    expect(typeof lib.sheetContentVariants).toBe('function');
     expect(typeof lib.cn).toBe('function');
   });
 });
