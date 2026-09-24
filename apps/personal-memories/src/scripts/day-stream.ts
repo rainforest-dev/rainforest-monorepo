@@ -26,17 +26,9 @@ function notifyDayRestored(date: string) {
   );
 }
 
-let ignoreNextScrollEvent = false;
-
-// scrollBy() fires its own 'scroll' event, which would otherwise re-trigger this same compensation.
 function compensateScroll(delta: number) {
   if (delta === 0) return;
-  ignoreNextScrollEvent = true;
   window.scrollBy(0, delta);
-  // A sub-pixel delta may not fire a 'scroll' event at all; don't let the flag stick forever.
-  requestAnimationFrame(() => {
-    ignoreNextScrollEvent = false;
-  });
 }
 
 type DayFetchResult =
@@ -88,13 +80,14 @@ function watchLoaders(
           if (direction === 'prev') {
             const before = document.documentElement.scrollHeight;
             sentinel.after(section);
+            windowManager.track(section);
             compensateScroll(document.documentElement.scrollHeight - before);
             sentinel.dataset['date'] = section.dataset['prev'] ?? '';
           } else {
             sentinel.before(section);
+            windowManager.track(section);
             sentinel.dataset['date'] = section.dataset['next'] ?? '';
           }
-          windowManager.track(section);
           onDay(section);
           notifyDayRestored(date);
           if (sentinel.dataset['date']) {
@@ -129,7 +122,6 @@ function dayNodesOf(stream: HTMLElement): HTMLElement[] {
 function activeDayOf(nodes: readonly HTMLElement[]): string | undefined {
   if (!nodes.length) return undefined;
   const last = nodes[nodes.length - 1];
-  // scrollHeight flips this on any frontier append below, even with the viewport unmoved.
   const atBottom =
     last.getBoundingClientRect().bottom <= window.innerHeight + 4;
   if (atBottom) return dayDateOf(last);
@@ -146,6 +138,15 @@ type WindowManager = {
   manage(nodes: readonly HTMLElement[], activeDate: string): void;
   track(section: HTMLElement): void;
 };
+
+// content-visibility:auto reports the contain-intrinsic-size fallback, not real height, while skipped off-screen.
+function measureRealHeight(section: HTMLElement): number {
+  const previousVisibility = section.style.contentVisibility;
+  section.style.contentVisibility = 'visible';
+  const height = section.getBoundingClientRect().height;
+  section.style.contentVisibility = previousVisibility;
+  return height;
+}
 
 function createWindowManager(stream: HTMLElement): WindowManager {
   const restoring = new WeakSet<HTMLElement>();
@@ -169,19 +170,14 @@ function createWindowManager(stream: HTMLElement): WindowManager {
       const previous = liveHeight.get(section) ?? rect.height;
       liveHeight.set(section, rect.height);
       const delta = rect.height - previous;
-      if (delta !== 0 && rect.top < 0) compensateScroll(delta);
+      if (delta !== 0 && rect.bottom <= 0) compensateScroll(delta);
     }
   });
 
   const track = (section: HTMLElement) => {
-    // A section inserted while already far from the viewport can read as skipped on its very first layout too.
-    const previousVisibility = section.style.contentVisibility;
-    section.style.contentVisibility = 'visible';
-    const height = section.getBoundingClientRect().height;
-    section.style.contentVisibility = previousVisibility;
+    const height = measureRealHeight(section);
     liveHeight.set(section, height);
     settled.delete(section);
-    // Primes contain-intrinsic-size so a later content-visibility skip reports this height, not the CSS fallback.
     section.style.containIntrinsicSize = `auto ${height}px`;
     heightObserver.observe(section);
   };
@@ -208,14 +204,16 @@ function createWindowManager(stream: HTMLElement): WindowManager {
     restoring.add(placeholder);
     void fetchDay(date).then((result) => {
       restoring.delete(placeholder);
-      if (!placeholder.isConnected) return;
+      if (!placeholder.isConnected || !withinWindow(placeholder)) return;
       if (result.status === 'not-found') {
         retired.add(placeholder);
         return;
       }
       if (result.status === 'error') {
-        if (withinWindow(placeholder))
-          setTimeout(() => restore(placeholder, date), RETRY_DELAY_MS);
+        setTimeout(() => {
+          if (!placeholder.isConnected || !withinWindow(placeholder)) return;
+          restore(placeholder, date);
+        }, RETRY_DELAY_MS);
         return;
       }
       const { section } = result;
@@ -226,20 +224,16 @@ function createWindowManager(stream: HTMLElement): WindowManager {
       const above = rect.top < 0;
       const before = document.documentElement.scrollHeight;
       placeholder.replaceWith(section);
+      track(section);
       if (above)
         compensateScroll(document.documentElement.scrollHeight - before);
-      track(section);
       notifyDayRestored(date);
     });
   };
 
   const collapse = (section: HTMLElement, date: string) => {
     untrack(section);
-    // content-visibility:auto reports the contain-intrinsic-size fallback, not real height, while skipped off-screen.
-    const previousVisibility = section.style.contentVisibility;
-    section.style.contentVisibility = 'visible';
-    const height = section.getBoundingClientRect().height;
-    section.style.contentVisibility = previousVisibility;
+    const height = measureRealHeight(section);
     const rect = section.getBoundingClientRect();
     const placeholder = document.createElement('div');
     placeholder.dataset['dayPlaceholder'] = date;
@@ -300,17 +294,7 @@ function watchActiveDay(stream: HTMLElement, windowManager: WindowManager) {
     requestAnimationFrame(apply);
   };
 
-  window.addEventListener(
-    'scroll',
-    () => {
-      if (ignoreNextScrollEvent) {
-        ignoreNextScrollEvent = false;
-        return;
-      }
-      schedule();
-    },
-    { passive: true },
-  );
+  window.addEventListener('scroll', schedule, { passive: true });
   schedule();
   return schedule;
 }

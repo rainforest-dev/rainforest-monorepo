@@ -121,7 +121,9 @@ test('a note typed just before scrolling stays on its own day', async ({
 
   await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
   await expect(page.locator('#day-2025-11-03')).toBeAttached();
-  await page.locator('#day-2025-11-03').scrollIntoViewIfNeeded();
+  await page
+    .locator('#day-2025-11-03')
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await expect(panel).toContainText('2025-11-03（週一）');
   await expect(body).toHaveValue('');
 
