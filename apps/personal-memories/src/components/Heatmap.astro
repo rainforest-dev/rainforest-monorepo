@@ -39,8 +39,8 @@ const monthLabels = weeks.map((week, i) => {
 ---
 
 <div class="overflow-x-auto">
-  <div class="flex gap-[3px]">
-    <div class="flex flex-col gap-[3px]">
+  <div class="flex w-max gap-[3px]">
+    <div class="flex shrink-0 flex-col gap-[3px]">
       <div class="size-3"></div>
       {
         Array.from({ length: 7 }, (_, dayIndex) => (
@@ -52,7 +52,7 @@ const monthLabels = weeks.map((week, i) => {
     </div>
     {
       weeks.map((week, weekIndex) => (
-        <div class="flex flex-col gap-[3px]">
+        <div class="flex shrink-0 flex-col gap-[3px]">
           <div class="text-muted-foreground w-3 whitespace-nowrap text-[10px] leading-none">
             {monthLabels[weekIndex]}
           </div>
