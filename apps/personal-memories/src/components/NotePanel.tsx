@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { NotePayload } from '../lib/notes/payload.ts';
 import { dayHeading } from '../lib/weeks.ts';
@@ -23,7 +23,10 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
   const { payload, draft, status, conflict, current, edit } = note;
   const { request, loadFailed } = useDaySync({ ...note, current });
   const [open, setOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const readOnly = !payload.writable;
+  const locked = readOnly || !hydrated;
   const { reattach, setReattach, setAnnotation, refs } = useStreamBridge({
     date: payload.date,
     draft,
@@ -82,7 +85,7 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
         <textarea
           aria-label="當天的回憶"
           value={draft.body}
-          disabled={readOnly}
+          disabled={locked}
           rows={6}
           onChange={(e) => edit((d) => ({ ...d, body: e.target.value }))}
           className="border-input bg-background focus-visible:ring-ring w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60"
@@ -92,7 +95,7 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
             <AnnotationItem
               key={`${i}-${a.eventId}`}
               annotation={a}
-              disabled={readOnly}
+              disabled={locked}
               reattaching={reattach === i}
               textareaRef={(el) => {
                 refs.current[i] = el;
