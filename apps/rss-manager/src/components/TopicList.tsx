@@ -96,7 +96,7 @@ export default function TopicList() {
   return (
     <div className="space-y-6">
       {!writable && (
-        <Alert variant="warning">
+        <Alert variant="warning" role="status">
           <AlertTitle>
             {READ_ONLY_NOTE} Activate and Decline are disabled.
           </AlertTitle>

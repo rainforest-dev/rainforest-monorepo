@@ -5,7 +5,6 @@ import {
   type BadgeProps,
   Button,
   buttonVariants,
-  cn,
   Input,
   Table,
   TableBody,
@@ -172,7 +171,7 @@ export default function SourceTable() {
   return (
     <div className="space-y-4">
       {!writable && (
-        <Alert variant="warning">
+        <Alert variant="warning" role="status">
           <AlertTitle>
             {READ_ONLY_NOTE} Activate and Retire are disabled.
           </AlertTitle>
@@ -311,10 +310,10 @@ export default function SourceTable() {
                           rel="noopener noreferrer"
                           onClick={() => copyFeedUrl(s.name, s.url)}
                           title={`Copies ${s.url} and opens Readwise — paste it there with Shift + A`}
-                          className={cn(
-                            buttonVariants({ size: 'xs' }),
-                            'bg-warning text-warning-foreground hover:bg-warning/90',
-                          )}
+                          className={buttonVariants({
+                            size: 'xs',
+                            variant: 'warning',
+                          })}
                         >
                           {copied === s.name ? 'Copied ✓' : 'Re-subscribe'}
                         </a>
