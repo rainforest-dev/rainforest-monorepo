@@ -39,7 +39,7 @@ unrun. Formatting on the way in means that failure cannot be authored.
 `build` is deliberately absent from the pre-push targets, because building
 inside a git worktree corrupts the shared `.nx` cache. `personal-website`'s
 `test` and `typecheck` depend on `^build`, so a push that affects it still
-builds its libraries. CI has no build step either; builds run in the Vercel
+builds its libraries. CI has no build step either; app builds run in the Vercel
 previews and the release workflows. The hook also
 hands over to the worktree's own copy of itself before running, because agent
 worktrees inherit an absolute `core.hooksPath` pointing at the main clone — the
