@@ -7,6 +7,8 @@ import type { Draft } from './useNoteDraft.ts';
 
 type Anchor = Omit<Annotation, 'body'>;
 
+const DAY_PATH = /^\/day\/(\d{4}-\d{2}-\d{2})$/;
+
 type Options = {
   date: string;
   draft: Draft;
@@ -99,6 +101,10 @@ export function useStreamBridge(o: Options) {
     };
     document.addEventListener('memories:day', onDay);
     document.addEventListener('memories:annotate', onAnnotate);
+    const shown = DAY_PATH.exec(location.pathname)?.[1];
+    if (shown && shown !== latest.current.current.current.payload.date) {
+      latest.current.request(shown);
+    }
     return () => {
       document.removeEventListener('memories:day', onDay);
       document.removeEventListener('memories:annotate', onAnnotate);
@@ -118,7 +124,7 @@ export function useStreamBridge(o: Options) {
   useEffect(() => {
     const onRestored = (e: Event) => {
       const { draft, payload } = latest.current.current.current;
-      const { date } = (e as CustomEvent<{ date: string }>).detail;
+      const date = (e as CustomEvent<{ date?: string } | null>).detail?.date;
       if (date === payload.date) markAnnotated(draft.annotations);
     };
     document.addEventListener('memories:day-restored', onRestored);

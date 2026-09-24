@@ -1,4 +1,4 @@
-import { type ReactNode, useRef } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
 import type { SaveStatus } from './useNoteDraft.ts';
 
@@ -10,6 +10,7 @@ type Props = {
 };
 
 const DRAG_PX = 24;
+const DESKTOP = '(min-width: 64rem)';
 
 type Chip = { label: string; mark: 'check' | 'pulse' | 'warn' };
 
@@ -75,16 +76,45 @@ export function Notice({ children }: { children: ReactNode }) {
 export function BottomSheet({ open, onOpenChange, peek, children }: Props) {
   const startY = useRef(0);
   const dragged = useRef(false);
+  const handleRef = useRef<HTMLButtonElement>(null);
+  const peekRef = useRef<HTMLButtonElement>(null);
+  const focusAfter = useRef<'handle' | 'peek'>(undefined);
+
+  const change = (next: boolean) => {
+    if (next === open) return;
+    const phone = !matchMedia(DESKTOP).matches;
+    const inside = handleRef.current?.parentElement?.contains(
+      document.activeElement,
+    );
+    if (phone && (next || inside))
+      focusAfter.current = next ? 'handle' : 'peek';
+    onOpenChange(next);
+  };
+
+  useEffect(() => {
+    const target = focusAfter.current === 'handle' ? handleRef : peekRef;
+    if (!focusAfter.current) return;
+    focusAfter.current = undefined;
+    target.current?.focus({ preventScroll: true });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || matchMedia(DESKTOP).matches) return;
+      change(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  });
 
   return (
     <aside
       aria-label="筆記"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape' && open) onOpenChange(false);
-      }}
       className={`bg-sidebar border-sidebar-border fixed inset-x-0 bottom-0 z-20 flex flex-col rounded-t-xl border-t shadow-lg transition-[top] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:duration-150 lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-4 lg:z-auto lg:max-h-[calc(100vh-2rem)] lg:self-start lg:rounded-lg lg:border lg:shadow-none ${open ? 'top-[88px]' : 'top-[calc(100dvh-156px)]'}`}
     >
       <button
+        ref={handleRef}
         type="button"
         aria-label={open ? '收合筆記' : '展開筆記'}
         aria-expanded={open}
@@ -96,10 +126,10 @@ export function BottomSheet({ open, onOpenChange, peek, children }: Props) {
         onPointerUp={(e) => {
           const dy = e.clientY - startY.current;
           dragged.current = Math.abs(dy) > DRAG_PX;
-          if (dragged.current) onOpenChange(dy < 0);
+          if (dragged.current) change(dy < 0);
         }}
         onClick={() => {
-          if (!dragged.current) onOpenChange(!open);
+          if (!dragged.current) change(!open);
           dragged.current = false;
         }}
       >
@@ -107,9 +137,10 @@ export function BottomSheet({ open, onOpenChange, peek, children }: Props) {
       </button>
       {!open && (
         <button
+          ref={peekRef}
           type="button"
           aria-expanded={false}
-          onClick={() => onOpenChange(true)}
+          onClick={() => change(true)}
           className="focus-visible:ring-ring flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-5 pb-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset lg:hidden"
         >
           {peek}
