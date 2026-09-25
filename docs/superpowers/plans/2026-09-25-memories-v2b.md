@@ -5298,6 +5298,7 @@ git commit -m "feat(personal-memories): add the month scrubber beside the stream
 - Modify: `apps/personal-memories/src/components/Heatmap.astro` (preview replaces the CSS tooltip; `Kbd` hints)
 - Modify: `apps/personal-memories/src/pages/index.astro` (build previews)
 - Modify: `apps/personal-memories/src/styles/global.css` (preview positioning and fallback)
+- Create: `apps/personal-memories/src/styles/preview-css.test.ts`
 - Test: `apps/personal-memories-e2e/src/timeline.spec.ts`
 
 **Interfaces:**
@@ -5363,7 +5364,87 @@ export function dayCells(
 Run: `pnpm nx test personal-memories -- src/lib/month-view.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: The preview.** `src/components/year/DayPreview.astro`:
+- [ ] **Step 5: Write the failing fallback checks.** The browser test later in this task can
+      skip, so two checks that always run pin the fallback. The first is a unit test on the
+      stylesheet source (`src/styles/preview-css.test.ts`, matched by the existing
+      `include: ['src/**/*.test.ts']`). The preview rules are plain CSS in `global.css`, not
+      generated utilities, so the source is what ships:
+
+```ts
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { describe, expect, it } from 'vitest';
+
+const css = readFileSync(join(import.meta.dirname, 'global.css'), 'utf8');
+
+const block = (condition: string) => {
+  const start = css.indexOf(`@supports ${condition} {`);
+  if (start === -1) return '';
+  let depth = 0;
+  for (let i = css.indexOf('{', start); i < css.length; i++) {
+    if (css[i] === '{') depth++;
+    if (css[i] === '}' && --depth === 0) return css.slice(start, i + 1);
+  }
+  return '';
+};
+
+describe('heat cell preview CSS', () => {
+  it('anchors the preview where position-area is supported', () => {
+    const anchored = block('(position-area: top)');
+    expect(anchored).toMatch(/\[data-preview\]/);
+    expect(anchored).toMatch(/position:\s*fixed/);
+    expect(anchored).toMatch(/position-area:\s*top center/);
+    expect(anchored).toMatch(/position-try-fallbacks:[^;]*flip-block/);
+  });
+
+  it('falls back to an absolute position above the cell everywhere else', () => {
+    const fallback = block('not (position-area: top)');
+    expect(fallback).toMatch(/\[data-preview\]/);
+    expect(fallback).toMatch(/position:\s*absolute/);
+    expect(fallback).toMatch(/bottom:\s*calc\(100% \+ 0\.5rem\)/);
+    expect(fallback).toMatch(/left:\s*50%/);
+    expect(fallback).toMatch(/translate:\s*-50% 0/);
+  });
+});
+```
+
+The second is an e2e check on the CSS the dev server serves after Tailwind and Vite have
+processed it. It reads the `CSSSupportsRule`s from `document.styleSheets` and has no skip path:
+
+```ts
+test('the served CSS keeps both the anchored preview and its fallback', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const rules = await page.evaluate(() =>
+    [...document.styleSheets]
+      .flatMap((sheet) => [...sheet.cssRules])
+      .filter(
+        (rule): rule is CSSSupportsRule => rule instanceof CSSSupportsRule,
+      )
+      .map((rule) => ({ condition: rule.conditionText, text: rule.cssText })),
+  );
+  const anchored = rules.find((r) => r.condition === '(position-area: top)');
+  const fallback = rules.find(
+    (r) => r.condition === 'not (position-area: top)',
+  );
+  expect(anchored?.text).toMatch(/position: fixed/);
+  expect(anchored?.text).toMatch(/position-area: top center/);
+  expect(fallback?.text).toMatch(/position: absolute/);
+  expect(fallback?.text).toMatch(/bottom: calc\(100% \+ 0\.5rem\)/);
+  expect(fallback?.text).toMatch(/translate: -50% 0/);
+});
+```
+
+- [ ] **Step 6: Run to verify they fail**
+
+Run: `pnpm nx test personal-memories -- src/styles/preview-css.test.ts`, then
+`pnpm nx e2e personal-memories-e2e -- --grep "served CSS"`.
+Expected: both FAIL, since neither `@supports` block exists yet. Both pass once the next step
+adds the CSS.
+
+- [ ] **Step 7: The preview.** `src/components/year/DayPreview.astro`:
 
 ```astro
 ---
@@ -5451,7 +5532,7 @@ In `global.css`:
 `position-try-fallbacks` flips it below, or shifts it sideways, near the viewport edges. A lazy
 image inside a `display: none` preview loads only when the preview first shows.
 
-- [ ] **Step 6: Use it in `Heatmap.astro`.** Add `previews: Map<string, MonthCell>` to `Props`,
+- [ ] **Step 8: Use it in `Heatmap.astro`.** Add `previews: Map<string, MonthCell>` to `Props`,
       import `DayPreview`, `Kbd` and `KbdGroup` (from `@rainforest-dev/rainforest-react`, rendered
       statically). In the desktop grid, replace the per-cell `<a>`/`<span>` and their tooltip
       markup with:
@@ -5540,7 +5621,7 @@ const previews = index
 
 and pass `previews={previews}` to `Heatmap`.
 
-- [ ] **Step 7: E2E**
+- [ ] **Step 9: E2E**
 
 ```ts
 test('a heat cell previews its day above it on hover and on keyboard focus', async ({
@@ -5567,7 +5648,7 @@ test('a heat cell previews its day above it on hover and on keyboard focus', asy
 });
 ```
 
-- [ ] **Step 8: E2E for the fallback.** Chromium can switch the feature off at launch, so the
+- [ ] **Step 10: E2E for the fallback.** Chromium can switch the feature off at launch, so the
       fallback gets an automated test. The test checks its own precondition and skips with a
       reason if the flag has no effect in the installed Chromium:
 
@@ -5601,19 +5682,19 @@ test.describe('without anchor positioning', () => {
 });
 ```
 
-- [ ] **Step 9: Run and check in browsers**
+- [ ] **Step 11: Run and check in browsers**
 
 Run: `pnpm nx e2e personal-memories-e2e` → PASS (or the fallback test reports its skip reason;
 then say so in the PR).
 Browser: Safari 26 and Chrome at 1280: the preview sits above the cell and flips below for a cell
 near the top of the viewport. On iOS Safari a tap opens the day and no preview sticks.
 
-- [ ] **Step 10: Commit (controller)**
+- [ ] **Step 12: Commit (controller)**
 
 ```bash
 git add apps/personal-memories/src/lib/month-view.ts apps/personal-memories/src/lib/month-view.test.ts \
   apps/personal-memories/src/components/year apps/personal-memories/src/components/Heatmap.astro \
-  apps/personal-memories/src/pages/index.astro apps/personal-memories/src/styles/global.css \
+  apps/personal-memories/src/pages/index.astro apps/personal-memories/src/styles \
   apps/personal-memories-e2e/src/timeline.spec.ts
 git commit -m "feat(personal-memories): preview a day from the heatmap with anchor positioning"
 ```
@@ -6845,7 +6926,8 @@ gitignored `terraform.tfvars`.
   `NotePayload.viewer` (T7 → T14).
 - Plan review of PR #410, applied: the week-redirect expectation moves to 2025-10-31 (T1);
   `stampAuthors` signs new annotations only, with a legacy-unsigned test (T7, D12); the preview
-  gates on `position-area` and its fallback has an automated test (T13, D9); the T7, T8 and T11
+  gates on `position-area`, and its fallback is pinned by a source unit test and a
+  served-CSS e2e check that cannot skip, besides the flag-based browser test (T13, D9); the T7, T8 and T11
   snippets are complete elements; `.astro` files take recipes from rainforest-react, and T2 adds
   a container smoke test; the scrubber's current month is `primary`; the long-press test waits
   for hydration; T16 stops at a reviewed plan; T6 lists its imports.
