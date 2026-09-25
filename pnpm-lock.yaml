@@ -331,12 +331,18 @@ importers:
       '@astrojs/react':
         specifier: ^6.0.6
         version: 6.0.6(@types/node@25.9.7)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
+      '@rainforest-dev/rainforest-react':
+        specifier: workspace:*
+        version: link:../../libs/rainforest-react
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.2.2(vite@8.0.16(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
       astro:
         specifier: ^7.3.3
         version: 7.3.3(@astrojs/markdown-remark@7.3.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@types/node@25.9.7)(@vercel/functions@3.9.8(ws@8.21.3))(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
+      lucide-react:
+        specifier: ^1.8.0
+        version: 1.46.0(react@19.2.3)
       react:
         specifier: 'catalog:'
         version: 19.2.3
@@ -370,7 +376,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.7)(@vitest/ui@4.1.4(vitest@4.1.4))(jiti@2.7.0)(jsdom@27.0.1)(less@4.5.1)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.7)(@vitest/ui@4.1.4)(jiti@2.7.0)(jsdom@27.0.1)(less@4.5.1)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
 
   apps/personal-memories-e2e:
     devDependencies:
@@ -636,7 +642,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.7)(@vitest/ui@4.1.4(vitest@4.1.4))(jiti@2.7.0)(jsdom@27.0.1)(less@4.5.1)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.7)(@vitest/ui@4.1.4)(jiti@2.7.0)(jsdom@27.0.1)(less@4.5.1)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
 
   libs/personal-data:
     dependencies:
@@ -20025,7 +20031,7 @@ snapshots:
       obug: 2.2.1
       std-env: 4.2.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.9.7)(@vitest/coverage-v8@4.1.4)(@vitest/ui@4.1.4)(jsdom@27.0.1)(vite@8.0.16(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
+      vitest: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@22.20.3)(@vitest/coverage-v8@4.1.4)(@vitest/ui@4.1.4)(jsdom@27.0.1)(vite@8.0.16(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -20131,7 +20137,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.1
-      vitest: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@25.9.7)(@vitest/coverage-v8@4.1.4)(@vitest/ui@4.1.4)(jsdom@27.0.1)(vite@8.0.16(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
+      vitest: 4.1.4(@opentelemetry/api@1.9.1)(@types/node@22.20.3)(@vitest/coverage-v8@4.1.4)(@vitest/ui@4.1.4)(jsdom@27.0.1)(vite@8.0.16(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -28935,7 +28941,7 @@ snapshots:
     optionalDependencies:
       vite: 8.3.0(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
 
-  vitest@3.2.7(@types/debug@4.1.13)(@types/node@25.9.7)(@vitest/ui@4.1.4(vitest@4.1.4))(jiti@2.7.0)(jsdom@27.0.1)(less@4.5.1)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1):
+  vitest@3.2.7(@types/debug@4.1.13)(@types/node@25.9.7)(@vitest/ui@4.1.4)(jiti@2.7.0)(jsdom@27.0.1)(less@4.5.1)(lightningcss@1.33.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.7
