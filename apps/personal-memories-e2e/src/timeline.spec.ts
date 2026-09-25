@@ -353,6 +353,24 @@ test('the hour strip works on a day loaded while scrolling', async ({
   ).toBeInViewport();
 });
 
+test('the month scrubber marks the month in view and jumps to another', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  const rail = page.getByRole('navigation', { name: '月份' });
+  await expect(rail.locator('[aria-current="date"]')).toHaveAttribute(
+    'data-month',
+    '2025-11',
+  );
+  await expect(rail).toContainText('2025');
+  await rail.getByRole('link', { name: /10 月/ }).click();
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
+  await expect(rail.locator('[aria-current="date"]')).toHaveAttribute(
+    'data-month',
+    '2025-10',
+  );
+});
+
 test.describe('an annotation signed through Access', () => {
   test.use({
     extraHTTPHeaders: {

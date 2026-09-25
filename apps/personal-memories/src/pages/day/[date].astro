@@ -3,11 +3,12 @@ import { Alert, AlertDescription } from '@rainforest-dev/rainforest-react';
 import { getLiveEntry } from 'astro:content';
 
 import DaySection from '../../components/DaySection.astro';
+import { MonthScrubber } from '../../components/day/MonthScrubber.tsx';
 import EmptyState from '../../components/EmptyState.astro';
 import { NotePanel } from '../../components/NotePanel.tsx';
 import Layout from '../../layouts/Layout.astro';
-import { indexDays } from '../../lib/days.ts';
-import { nearestDate } from '../../lib/months.ts';
+import { indexDays, summarize } from '../../lib/days.ts';
+import { nearestDate, scrubberMonths } from '../../lib/months.ts';
 import { levelHrefs } from '../../lib/nav.ts';
 import { viewerName } from '../../lib/notes/authors.ts';
 import { notePayload } from '../../lib/notes/payload.ts';
@@ -36,6 +37,10 @@ const initial = day?.events
 
 const dates =
   state.status === 'ready' ? indexDays(state.timeline.events).dates : [];
+const months =
+  state.status === 'ready'
+    ? scrubberMonths(summarize(indexDays(state.timeline.events)))
+    : [];
 const nearest = !day?.events ? nearestDate(dates, date) : undefined;
 const jumped = Astro.url.searchParams.has('nearest') && !!day?.events;
 const bar = {
@@ -76,7 +81,10 @@ const SOURCES = [
             </AlertDescription>
           </Alert>
         )}
-        <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
+        <div class="lg:grid lg:grid-cols-[56px_minmax(0,1fr)_400px] lg:gap-8">
+          <aside class="hidden lg:sticky lg:top-[72px] lg:block lg:max-h-[calc(100vh-88px)]">
+            <MonthScrubber client:idle months={months} date={date} />
+          </aside>
           <div data-stream class="pb-[172px] lg:pb-0">
             <fieldset class="mb-4 flex gap-4 text-sm" data-source-filter>
               <legend class="sr-only">來源</legend>
