@@ -1,4 +1,5 @@
 {
+  "projectId": "4c25a390-c3db-43c1-af89-b0504a180625",
   "shape": "storybook",
   "storybookConfigDir": "libs/rainforest-react/.storybook",
   "pkg": "@rainforest-dev/rainforest-react",

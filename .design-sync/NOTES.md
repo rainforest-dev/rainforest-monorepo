@@ -1,6 +1,6 @@
 # design-sync notes — libs/rainforest-react
 
-Synced with the bundled design-sync skill 2.1.281 (Claude Code 2.1.281), storybook shape, into a NEW design-system project (owner decision 2026-09-25: leave the hand-authored "rainforest.tools Design System" b6041f7f untouched). The new project is created at upload time; its projectId is recorded in config.json then.
+Synced with the bundled design-sync skill 2.1.281 (Claude Code 2.1.281), storybook shape, into a NEW design-system project (owner decision 2026-09-25: leave the hand-authored "rainforest.tools Design System" b6041f7f untouched). Uploaded 2026-09-26 to "rainforest.tools React Design System" (4c25a390, pinned in config.json): 24 components, 70 stories graded match, report_validate bad/thin/variantsIdentical = 0.
 
 ## Fixes
 
@@ -14,6 +14,7 @@ Synced with the bundled design-sync skill 2.1.281 (Claude Code 2.1.281), storybo
 
 ## Environment
 
+- Run the driver with `--node-modules apps/rss-manager/node_modules` (or any app that depends on the package). `libs/rainforest-react/node_modules` has no self-link, so the converter reports `[NO_DIST]` there. Changing this path clears every grade once (`contract changed`), even with the library source untouched.
 - Built on Node 26 (the repo pins 22.x; no version manager on this machine). CI runs 22.
 - Select `Open`: the cropped storybook canvas also changes overlay _positioning_. `SelectContent` uses Base UI's `alignItemWithTrigger`, which measures room above the trigger; with the reference cropped, it swaps the group label for the scroll-up arrow, while the preview (with room) shows the label. Graded `match` on the preview's own render. Reproduces deterministically.
 
