@@ -62,13 +62,12 @@ MEMORIES_DATA_DIR="$HOME/.local/share/memories" pnpm nx dev personal-memories
   anchor positioning (`position-anchor`/`position-area`; Chrome/Edge 129+, Safari 26+, Firefox
   147+). Elsewhere it falls back to a fixed position, on a best-effort basis.
 - `/month/<YYYY-MM>` is a calendar for that month, each day showing its cover photo where one
-  exists. An out-of-range or unparsable month 404s to the calendar for the nearest month that has
-  events.
+  exists. An out-of-range or unparsable month 404s to a page linking the nearest day with events.
 - `/day/<YYYY-MM-DD>` shows that day's events in reading order, with photos inline, a LINE /
   Slack / 照片 filter remembered per browser in `localStorage`, and infinite scroll to neighbouring
-  days. An unknown day 404s to the nearest day with events. The note panel sits alongside it on
-  desktop and as a bottom sheet on phone, which peeks a preview and expands to full height by
-  dragging or tapping.
+  days. An unknown day 404s the same way, to a page linking the nearest day with events. The note
+  panel sits alongside it on desktop and as a bottom sheet on phone, which peeks a preview and
+  expands to full height by dragging or tapping.
 - The app bar is sticky at every level, with 年/月/日 tabs, a date jump (`/` or the search icon),
   and, on `/day/<date>`, ‹ › buttons (`k`/`j`) to step to the neighbouring day.
 - Zooming between year, month and day is a cross-document View Transition that morphs the clicked
