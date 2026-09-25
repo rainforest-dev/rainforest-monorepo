@@ -1,5 +1,7 @@
 import {
   Button,
+  buttonVariants,
+  cn,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -17,7 +19,7 @@ import {
   KeyboardIcon,
   SearchIcon,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import type { Level } from '../../lib/nav.ts';
 
@@ -33,18 +35,22 @@ type Props = {
   onJump: () => void;
   onKeys: () => void;
   onStep?: ((delta: -1 | 1) => void) | undefined;
+  stepHrefs?:
+    { prev?: string | undefined; next?: string | undefined } | undefined;
 };
 
 function IconTip({
   label,
   tip,
   onClick,
+  href,
   className,
   children,
 }: {
   label: string;
   tip: ReactNode;
-  onClick: () => void;
+  onClick: (e: MouseEvent) => void;
+  href?: string | undefined;
   className?: string;
   children: ReactNode;
 }) {
@@ -52,13 +58,25 @@ function IconTip({
     <Tooltip>
       <TooltipTrigger
         render={
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={label}
-            className={className}
-            onClick={onClick}
-          />
+          href ? (
+            <a
+              href={href}
+              aria-label={label}
+              onClick={onClick}
+              className={cn(
+                buttonVariants({ variant: 'ghost', size: 'icon' }),
+                className,
+              )}
+            />
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={label}
+              className={className}
+              onClick={onClick}
+            />
+          )
         }
       >
         {children}
@@ -68,9 +86,16 @@ function IconTip({
   );
 }
 
-export function TopBar({ level, hrefs, onJump, onKeys, onStep }: Props) {
+export function TopBar({
+  level,
+  hrefs,
+  onJump,
+  onKeys,
+  onStep,
+  stepHrefs,
+}: Props) {
   return (
-    <header className="border-border mb-6 flex h-14 items-center gap-3 border-b">
+    <header className="border-border bg-background/90 sticky top-0 z-[15] -mx-4 mb-6 flex h-14 items-center gap-3 border-b px-4 backdrop-blur-md">
       <a href="/" className="text-heading font-semibold">
         回憶
       </a>
@@ -97,7 +122,11 @@ export function TopBar({ level, hrefs, onJump, onKeys, onStep }: Props) {
                 前一天 <Kbd>k</Kbd>
               </>
             }
-            onClick={() => onStep(-1)}
+            href={stepHrefs?.prev && `/day/${stepHrefs.prev}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onStep(-1);
+            }}
           >
             <ChevronLeftIcon />
           </IconTip>
@@ -108,7 +137,11 @@ export function TopBar({ level, hrefs, onJump, onKeys, onStep }: Props) {
                 後一天 <Kbd>j</Kbd>
               </>
             }
-            onClick={() => onStep(1)}
+            href={stepHrefs?.next && `/day/${stepHrefs.next}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onStep(1);
+            }}
           >
             <ChevronRightIcon />
           </IconTip>

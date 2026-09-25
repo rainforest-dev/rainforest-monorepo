@@ -7,8 +7,8 @@ import EmptyState from '../../components/EmptyState.astro';
 import { NotePanel } from '../../components/NotePanel.tsx';
 import Layout from '../../layouts/Layout.astro';
 import { indexDays } from '../../lib/days.ts';
-import { levelHrefs } from '../../lib/nav.ts';
 import { nearestDate } from '../../lib/months.ts';
+import { levelHrefs } from '../../lib/nav.ts';
 import { viewerName } from '../../lib/notes/authors.ts';
 import { notePayload } from '../../lib/notes/payload.ts';
 import { notesStore } from '../../lib/notes/store.ts';
@@ -39,6 +39,7 @@ const jumped = Astro.url.searchParams.has('nearest') && !!day?.events;
 const bar = {
   place: { level: 'day' as const, date },
   hrefs: levelHrefs({ level: 'day', date }, dates),
+  step: { prev: day?.prev, next: day?.next },
 };
 
 const SOURCES = [

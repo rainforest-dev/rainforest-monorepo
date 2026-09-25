@@ -16,6 +16,10 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+  html {
+    /* Clears the sticky app bar for #ev- deep links and scroll-mt rows. */
+    scroll-padding-top: 3.5rem;
+  }
 }
 
 [data-stream][data-hide-line] [data-source='line'],

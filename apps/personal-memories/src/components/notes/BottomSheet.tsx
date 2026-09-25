@@ -111,7 +111,7 @@ export function BottomSheet({ open, onOpenChange, peek, children }: Props) {
   return (
     <aside
       aria-label="筆記"
-      className={`bg-sidebar border-sidebar-border fixed inset-x-0 bottom-0 z-20 flex flex-col rounded-t-xl border-t shadow-lg transition-[top] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:duration-150 lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-4 lg:z-auto lg:max-h-[calc(100vh-2rem)] lg:self-start lg:rounded-lg lg:border lg:shadow-none ${open ? 'top-[88px]' : 'top-[calc(100dvh-156px)]'}`}
+      className={`bg-sidebar border-sidebar-border fixed inset-x-0 bottom-0 z-20 flex flex-col rounded-t-xl border-t shadow-lg transition-[top] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:duration-150 lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-[72px] lg:z-auto lg:max-h-[calc(100vh-88px)] lg:self-start lg:rounded-lg lg:border lg:shadow-none ${open ? 'top-[88px]' : 'top-[calc(100dvh-156px)]'}`}
     >
       <button
         ref={handleRef}
