@@ -97,10 +97,6 @@ export function Lightbox({
         showCloseButton={false}
         finalFocus={finalFocus}
         className="gap-3 p-3 sm:max-w-5xl"
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowLeft') onStep(-1);
-          if (e.key === 'ArrowRight') onStep(1);
-        }}
       >
         {item && (
           <>

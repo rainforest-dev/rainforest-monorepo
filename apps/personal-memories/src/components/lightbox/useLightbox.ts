@@ -34,6 +34,18 @@ export function useLightbox() {
       ),
     [],
   );
+  const open = request !== undefined;
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (e.key === 'ArrowLeft') step(-1);
+      else if (e.key === 'ArrowRight') step(1);
+    };
+    // Capture phase: Base UI's Popup stops bubble-phase composite keys (the arrows included).
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [open, step]);
   const select = useCallback(
     (index: number) =>
       setRequest(
