@@ -262,9 +262,9 @@ test('an edit made in Obsidian meanwhile raises a conflict', async ({
 
   await panel.getByLabel('當天的回憶').fill('app 改的');
   await expect(panel).toContainText('有衝突');
-  const obsidianCard = panel
-    .getByRole('heading', { name: 'Obsidian 的版本' })
-    .locator('..');
+  const obsidianCard = panel.locator('[data-slot="card"]', {
+    has: page.getByRole('heading', { name: 'Obsidian 的版本' }),
+  });
   await obsidianCard.getByRole('button', { name: '保留這個版本' }).click();
   await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
 });
@@ -464,9 +464,9 @@ test.describe('an annotation signed through Access', () => {
     );
     await panel.getByLabel('當天的回憶').fill('app 又改了');
     await expect(panel).toContainText('有衝突');
-    const obsidianCard = panel
-      .getByRole('heading', { name: 'Obsidian 的版本' })
-      .locator('..');
+    const obsidianCard = panel.locator('[data-slot="card"]', {
+      has: page.getByRole('heading', { name: 'Obsidian 的版本' }),
+    });
     await obsidianCard.getByRole('button', { name: '保留這個版本' }).click();
     await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
     await expect(panel.getByPlaceholder('你的名字')).toHaveCount(0);
@@ -733,4 +733,26 @@ test('a transient view-transition name is cleared once the transition finishes, 
     .first()
     .evaluate((el) => getComputedStyle(el).viewTransitionName);
   expect(headerName).toBe('app-bar');
+});
+
+test.describe('on a phone', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  test('the notes sheet peeks, expands, and Escape returns it to the peek', async ({
+    page,
+  }) => {
+    await page.goto('/day/2025-11-02');
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await expect(sheet).toContainText('已儲存');
+    await expect(sheet.getByLabel('當天的回憶')).toHaveCount(0);
+    await sheet.getByRole('button', { name: '展開筆記' }).click();
+    await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(sheet.getByLabel('當天的回憶')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  });
 });
