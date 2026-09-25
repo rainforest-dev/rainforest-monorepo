@@ -33,9 +33,14 @@ const { title, wide = false, bar } = Astro.props;
         }
       }
       window.addEventListener('pagereveal', (event) => {
-        (event.viewTransition?.finished ?? Promise.resolve()).finally(
-          clearMorphNames,
-        );
+        (event.viewTransition?.finished ?? Promise.resolve()).finally(() => {
+          clearMorphNames();
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', clearMorphNames, {
+              once: true,
+            });
+          }
+        });
       });
       window.addEventListener('pageshow', (event) => {
         if (event.persisted) clearMorphNames();

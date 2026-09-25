@@ -823,6 +823,42 @@ test('a transient view-transition name is cleared once the transition finishes, 
   expect(headerName).toBe('app-bar');
 });
 
+test('a morph name on an element parsed after the page is revealed is cleared too', async ({
+  page,
+}) => {
+  await page.route('**/__slow.js', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await route.fulfill({ contentType: 'text/javascript', body: '' });
+  });
+  await page.route('**/month/2025-11', async (route) => {
+    const response = await route.fetch();
+    const late =
+      '<script src="/__slow.js"></script>' +
+      '<div id="late-morph" data-morph style="view-transition-name: late"></div>';
+    await route.fulfill({
+      response,
+      body: (await response.text()).replace('</body>', `${late}</body>`),
+    });
+  });
+  await page.addInitScript(() => {
+    window.addEventListener('pagereveal', () => {
+      document.documentElement.dataset['revealedWhile'] = document.readyState;
+    });
+  });
+  await page.goto('/month/2025-11');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-revealed-while',
+    'loading',
+  );
+  await expect
+    .poll(() =>
+      page
+        .locator('#late-morph')
+        .evaluate((el) => getComputedStyle(el).viewTransitionName),
+    )
+    .toBe('none');
+});
+
 test.describe('on a phone', () => {
   test.use({
     viewport: { width: 390, height: 844 },
