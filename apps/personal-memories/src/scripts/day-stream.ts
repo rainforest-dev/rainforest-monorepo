@@ -1,22 +1,12 @@
+import type { AnnotateDetail } from '../lib/client/events.ts';
+import {
+  DATA_LIGHTBOX_READY,
+  itemFromDataset,
+  type LightboxItem,
+} from '../lib/lightbox.ts';
 import { taipeiHour } from '../lib/weeks.ts';
 
 const HIDDEN_KEY = 'memories:hidden-sources';
-
-type AnnotateDetail = {
-  eventId: string;
-  at: string;
-  source: string;
-  author: string;
-  excerpt: string;
-};
-
-declare global {
-  interface DocumentEventMap {
-    'memories:day': CustomEvent<{ date: string }>;
-    'memories:day-restored': CustomEvent<{ date: string }>;
-    'memories:annotate': CustomEvent<AnnotateDetail>;
-  }
-}
 
 const RETRY_DELAY_MS = 2000;
 const WINDOW_RADIUS = 7;
@@ -386,9 +376,41 @@ function watchAnnotate(stream: HTMLElement) {
       author = '',
       excerpt = '',
     } = item.dataset;
+    const detail: AnnotateDetail = { eventId, at, source, author, excerpt };
+    document.dispatchEvent(new CustomEvent('memories:annotate', { detail }));
+  });
+}
+
+function watchLightbox(stream: HTMLElement) {
+  stream.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      return;
+    if (!document.documentElement.hasAttribute(DATA_LIGHTBOX_READY)) return;
+    const link = (event.target as Element).closest<HTMLElement>(
+      'a[data-lightbox]',
+    );
+    const tile = link?.closest<HTMLElement>('li[data-event-id]');
+    const burst = tile?.closest<HTMLElement>('[data-burst]');
+    const section = tile?.closest<HTMLElement>('[data-day]');
+    const date = section?.dataset['day'];
+    if (!link || !tile || !burst || !date) return;
+    const tiles = [
+      ...burst.querySelectorAll<HTMLElement>(':scope > li[data-event-id]'),
+    ];
+    const items = tiles
+      .map((t) => itemFromDataset(t.dataset))
+      .filter((i): i is LightboxItem => i !== undefined);
+    event.preventDefault();
     document.dispatchEvent(
-      new CustomEvent('memories:annotate', {
-        detail: { eventId, at, source, author, excerpt },
+      new CustomEvent('memories:lightbox', {
+        detail: {
+          date,
+          items,
+          index: Math.max(0, tiles.indexOf(tile)),
+          autoCover: section?.dataset['autoCover'],
+          trigger: link,
+        },
       }),
     );
   });
@@ -405,4 +427,5 @@ export function startDayStream() {
   watchLoaders(stream, notifyDay, windowManager);
   watchFilter(stream);
   watchAnnotate(stream);
+  watchLightbox(stream);
 }

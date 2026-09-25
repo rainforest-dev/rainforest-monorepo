@@ -190,6 +190,37 @@ test('an edit made in Obsidian meanwhile raises a conflict', async ({
   await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
 });
 
+test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  await page.locator('#day-2025-11-01 [data-burst] [data-more] a').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('照片 · 4 / 7');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  await expect(dialog).toContainText('照片 · 7 / 7');
+  await expect(dialog.getByRole('button', { name: '下一張' })).toBeDisabled();
+
+  await dialog.getByRole('button', { name: '照片 · 1 / 7' }).click();
+  await expect(dialog.getByText('目前的封面')).toBeVisible();
+  await dialog.getByRole('button', { name: '照片 · 3 / 7' }).click();
+  await dialog.getByRole('button', { name: '設為封面' }).click();
+  await expect(
+    dialog.getByRole('button', { name: '已設為封面' }),
+  ).toBeVisible();
+  await expect
+    .poll(() => readFileSync(noteFile('2025-11-01'), 'utf8'))
+    .toMatch(/^cover: DDDDDDDD-0000-0000-0000-000000000004$/m);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await page.goto('/month/2025-11');
+  await expect(
+    page.locator('a[data-date="2025-11-01"]:visible img'),
+  ).toHaveAttribute('src', /DDDDDDDD/);
+});
+
 test('a note typed just before scrolling stays on its own day', async ({
   page,
 }) => {

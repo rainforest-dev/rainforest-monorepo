@@ -1,4 +1,5 @@
 ---
+import { pickCover } from '../lib/cover.ts';
 import { excerptOf } from '../lib/notes/attach.ts';
 import {
   firstEventPerHour,
@@ -55,6 +56,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
   data-day={date}
   data-prev={prev}
   data-next={next}
+  data-auto-cover={pickCover(events)?.id}
   class="mx-auto mb-10 max-w-[660px]"
 >
   <header
@@ -260,6 +262,9 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                       data-at={event.at}
                       data-author={event.author}
                       data-excerpt={excerptOf(event)}
+                      data-width={media?.width}
+                      data-height={media?.height}
+                      data-video={event.photo?.movie ? '' : undefined}
                       data-overflow={index >= TILES ? '' : undefined}
                       data-more={more > 0 ? '' : undefined}
                       class:list={[
@@ -269,6 +274,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                     >
                       <a
                         href={mediaUrl(event.id, 0)}
+                        data-lightbox
                         class="bg-muted relative block aspect-square overflow-hidden rounded-sm outline-none"
                       >
                         {media && (
