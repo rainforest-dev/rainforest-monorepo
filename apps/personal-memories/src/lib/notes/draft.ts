@@ -61,14 +61,18 @@ const withStamp = (
 });
 
 export const applyStamps = (
-  sent: readonly Pick<ResolvedAnnotation, 'eventId' | 'at'>[],
+  sent: readonly Pick<ResolvedAnnotation, 'eventId' | 'at' | 'origin'>[],
   now: readonly ResolvedAnnotation[],
   stamps: readonly Stamp[],
 ): ResolvedAnnotation[] =>
   now.map((a, i) => {
     const stamp = stamps[i];
     const was = sent[i];
-    return stamp && was && was.eventId === a.eventId && was.at === a.at
+    return stamp &&
+      was &&
+      was.eventId === a.eventId &&
+      was.at === a.at &&
+      was.origin === a.origin
       ? withStamp(a, stamp)
       : a;
   });

@@ -106,4 +106,11 @@ describe('applyStamps', () => {
     expect(replaced).toBe(third);
     expect(added).not.toHaveProperty('origin');
   });
+
+  it('does not sign a 眉批 re-added in the slot of a deleted one', () => {
+    const stored = { ...annotation, by: 'Alice', origin: 'e:e1' };
+    const readded = { ...annotation, body: 'mine now' };
+    const [result] = applyStamps([stored], [readded], stamps.slice(0, 1));
+    expect(result).toBe(readded);
+  });
 });
