@@ -369,6 +369,28 @@ describe('annotation authors', () => {
     });
     expect(text).toContain('src:line by:Eve x y %%');
   });
+
+  it('round-trips a name that truncates cleanly at 40 characters without a trailing space', () => {
+    const raw = `${'x'.repeat(39)} more text that gets cut off`;
+    const text = serializeNote({
+      ...note,
+      annotations: [{ ...note.annotations[0]!, by: raw }],
+    });
+    const parsed = parseNote(text, '2025-11-01');
+    expect(parsed.annotations[0]?.by).toBe('x'.repeat(39));
+    expect(serializeNote(parsed)).toBe(text);
+  });
+
+  it('round-trips a name that truncates at an emoji code-point boundary without splitting it', () => {
+    const raw = `${'y'.repeat(39)}🌷more text`;
+    const text = serializeNote({
+      ...note,
+      annotations: [{ ...note.annotations[0]!, by: raw }],
+    });
+    const parsed = parseNote(text, '2025-11-01');
+    expect(parsed.annotations[0]?.by).toBe(`${'y'.repeat(39)}🌷`);
+    expect(serializeNote(parsed)).toBe(text);
+  });
 });
 
 describe('isEmptyNote', () => {

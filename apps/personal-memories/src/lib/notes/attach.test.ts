@@ -62,4 +62,21 @@ describe('resolveAnnotations', () => {
     );
     expect(out.map((r) => r.status)).toEqual(['unattached', 'exact']);
   });
+
+  it('keeps the on-disk eventId as the origin even when the id is recovered', () => {
+    const [r] = resolveAnnotations(
+      [note({ eventId: 'old', excerpt: 'Lunch plan: 1. no…' })],
+      [event({ id: 'new' })],
+    );
+    expect(r.eventId).toBe('new');
+    expect(r.origin).toBe('old');
+  });
+
+  it('derives an origin from the anchor tuple for a hand-written annotation with no eventId', () => {
+    const [r] = resolveAnnotations(
+      [note({ eventId: '', excerpt: '', body: 'hand' })],
+      [event({})],
+    );
+    expect(r.origin).toBeTruthy();
+  });
 });

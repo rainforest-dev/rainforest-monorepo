@@ -2,7 +2,7 @@ import { z } from 'astro/zod';
 import { ActionError, defineAction } from 'astro:actions';
 
 import { DATE_RE, indexDays } from '../lib/days.ts';
-import { stampAuthors, viewerName } from '../lib/notes/authors.ts';
+import { originOf, stampAuthors, viewerName } from '../lib/notes/authors.ts';
 import { notePayload, toPayload } from '../lib/notes/payload.ts';
 import { notesStore, UnreadableNoteError } from '../lib/notes/store.ts';
 import { getTimeline } from '../lib/store.ts';
@@ -17,6 +17,7 @@ const annotation = z.object({
   excerpt: z.string(),
   body: z.string(),
   by: z.string().max(80).optional(),
+  origin: z.string().max(200).optional(),
 });
 
 const dayEvents = (d: string) => {
@@ -54,14 +55,12 @@ export const server = {
         });
       }
       const viewer = viewerName(context.request.headers);
-      const signed = {
-        ...edit,
-        annotations: stampAuthors(
-          edit.annotations,
-          store.read(d).note.annotations,
-          viewer,
-        ),
-      };
+      const signedAnnotations = stampAuthors(
+        edit.annotations,
+        store.read(d).note.annotations,
+        viewer,
+      );
+      const signed = { ...edit, annotations: signedAnnotations };
       let result;
       try {
         result = store.write(d, signed, version);
@@ -72,7 +71,16 @@ export const server = {
           message: error.message,
         });
       }
-      if (result.ok) return { ok: true as const, version: result.version };
+      if (result.ok) {
+        return {
+          ok: true as const,
+          version: result.version,
+          annotations: signedAnnotations.map((a) => ({
+            by: a.by,
+            origin: originOf(a),
+          })),
+        };
+      }
       const current = toPayload(result.current, true, dayEvents(d));
       if (viewer) current.viewer = viewer;
       return { ok: false as const, current };

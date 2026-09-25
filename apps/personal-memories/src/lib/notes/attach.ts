@@ -1,8 +1,12 @@
 import type { TimelineEvent } from '../timeline.ts';
+import { originOf } from './authors.ts';
 import type { Annotation } from './types.ts';
 
 export type AttachStatus = 'exact' | 'recovered' | 'unattached';
-export type ResolvedAnnotation = Annotation & { status: AttachStatus };
+export type ResolvedAnnotation = Annotation & {
+  status: AttachStatus;
+  origin?: string;
+};
 
 const collapse = (text: string) => text.replace(/\s+/g, ' ').trim();
 
@@ -19,9 +23,12 @@ function resolveOne(
   annotation: Annotation,
   events: readonly TimelineEvent[],
 ): ResolvedAnnotation {
-  if (!annotation.eventId) return { ...annotation, status: 'unattached' };
+  const origin = originOf(annotation);
+  if (!annotation.eventId) {
+    return { ...annotation, status: 'unattached', origin };
+  }
   if (events.some((e) => e.id === annotation.eventId)) {
-    return { ...annotation, status: 'exact' };
+    return { ...annotation, status: 'exact', origin };
   }
   const stem = annotation.excerpt.replace(/…$/, '');
   const match = events.find(
@@ -32,8 +39,8 @@ function resolveOne(
       (e.source === 'photo' ? true : collapse(e.text ?? '').startsWith(stem)),
   );
   return match
-    ? { ...annotation, eventId: match.id, status: 'recovered' }
-    : { ...annotation, status: 'unattached' };
+    ? { ...annotation, eventId: match.id, status: 'recovered', origin }
+    : { ...annotation, status: 'unattached', origin };
 }
 
 export function resolveAnnotations(

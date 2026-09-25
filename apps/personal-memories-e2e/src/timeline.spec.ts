@@ -405,3 +405,36 @@ test('without an identity, the name set once in the panel signs 眉批', async (
     .poll(() => readFileSync(noteFile('2025-11-03'), 'utf8'))
     .toMatch(/ by:Bob %%$/m);
 });
+
+test('a brand-new annotation keeps its established author across a second save, even if the viewer identity changes meanwhile', async ({
+  page,
+  context,
+}) => {
+  await context.setExtraHTTPHeaders({
+    'Cf-Access-Authenticated-User-Email': 'alice@example.com',
+  });
+  await page.goto('/day/2025-10-31');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+
+  const message = page.locator('[data-event-id]', {
+    hasText: 'Busy message 90',
+  });
+  await message.hover();
+  await message.getByRole('button', { name: '眉批' }).click();
+  const textarea = panel.getByLabel(/^眉批：/).last();
+  await textarea.fill('第一次寫的');
+  await expect(panel).toContainText('已儲存');
+  await expect
+    .poll(() => readFileSync(noteFile('2025-10-31'), 'utf8'))
+    .toMatch(/ by:Alice %%$/m);
+
+  await context.setExtraHTTPHeaders({
+    'Cf-Access-Authenticated-User-Email': 'bob@example.com',
+  });
+  await textarea.fill('第一次寫的，補充一些');
+  await expect(panel).toContainText('已儲存');
+  expect(readFileSync(noteFile('2025-10-31'), 'utf8')).toMatch(
+    / by:Alice %%$/m,
+  );
+});

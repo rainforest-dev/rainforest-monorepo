@@ -42,7 +42,23 @@ export function useNoteDraft(initial: NotePayload) {
         const result = await actions.saveNote.orThrow(saveInput(p, d));
         if (result.ok) {
           setPayload({ ...current.current.payload, version: result.version });
-          if (revision.current === rev) setStatus('saved');
+          if (revision.current === rev) {
+            setDraft({
+              ...current.current.draft,
+              annotations: current.current.draft.annotations.map((a, i) => {
+                const stamped = result.annotations[i];
+                if (!stamped) return a;
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripped so a stale `by` doesn't linger when the server left it unsigned
+                const { by, ...rest } = a;
+                return {
+                  ...rest,
+                  ...(stamped.by ? { by: stamped.by } : {}),
+                  origin: stamped.origin,
+                };
+              }),
+            });
+            setStatus('saved');
+          }
         } else {
           clearTimeout(timer.current);
           setConflict(result.current);
@@ -54,7 +70,7 @@ export function useNoteDraft(initial: NotePayload) {
     };
     pending.current = pending.current.then(run);
     return pending.current;
-  }, [setPayload, setStatus]);
+  }, [setDraft, setPayload, setStatus]);
 
   const edit = useCallback(
     (date: string, next: (d: Draft) => Draft) => {

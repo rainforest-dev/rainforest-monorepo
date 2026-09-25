@@ -57,4 +57,17 @@ describe('draft', () => {
       by: 'Bob',
     });
   });
+
+  it('keeps the annotation origin when saving', () => {
+    const withOrigin = {
+      ...payload,
+      annotations: [{ ...annotation, origin: 'e1' }],
+    };
+    expect(
+      saveInput(withOrigin, toDraft(withOrigin)).annotations[0],
+    ).toMatchObject({ origin: 'e1' });
+    expect(
+      saveInput(payload, toDraft(payload)).annotations[0],
+    ).not.toHaveProperty('origin');
+  });
 });

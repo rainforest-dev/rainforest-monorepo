@@ -5,11 +5,12 @@ export const IDENTITY_HEADER = 'cf-access-authenticated-user-email';
 const MAX_NAME = 40;
 
 export function cleanName(raw: string): string {
-  return raw
+  const collapsed = raw
     .replace(/%%|[\r\n]+/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, MAX_NAME);
+    .trim();
+  // Array.from splits by code point, so a truncation never cuts a surrogate pair in half.
+  return Array.from(collapsed).slice(0, MAX_NAME).join('').trim();
 }
 
 export function parseAuthors(raw: string | undefined): Map<string, string> {
@@ -35,7 +36,15 @@ export function viewerName(
 export type Signable = Pick<
   Annotation,
   'eventId' | 'at' | 'source' | 'author' | 'excerpt'
-> & { by?: string | undefined };
+> & { by?: string | undefined; origin?: string | undefined };
+
+const ORIGIN_SEP = '\u0000';
+
+export function originOf(
+  a: Pick<Signable, 'eventId' | 'at' | 'source' | 'author' | 'excerpt'>,
+): string {
+  return a.eventId || [a.at, a.source, a.author, a.excerpt].join(ORIGIN_SEP);
+}
 
 const sameAnchor = (a: Signable, b: Signable) =>
   (!!a.eventId && a.eventId === b.eventId) ||
@@ -50,9 +59,15 @@ export function stampAuthors<T extends Signable>(
   viewer: string | undefined,
 ): T[] {
   return annotations.map((a) => {
-    const { by: sent, ...rest } = a;
-    const before = stored.find((s) => sameAnchor(a, s));
-    const by = before ? before.by : cleanName(sent ?? '') || viewer;
+    const { by: sent, origin, ...rest } = a;
+    const before =
+      origin === undefined
+        ? undefined
+        : (stored.find((s) => originOf(s) === origin) ??
+          stored.find((s) => sameAnchor(a, s)));
+    const by = before
+      ? before.by
+      : (viewer ?? (cleanName(sent ?? '') || undefined));
     return (by ? { ...rest, by } : rest) as T;
   });
 }

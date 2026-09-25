@@ -14,7 +14,9 @@ export const toDraft = (p: NotePayload): Draft => ({
   cover: p.cover,
 });
 
-export const toAnnotation = (a: ResolvedAnnotation): Annotation => ({
+export type SaveAnnotation = Annotation & { origin?: string };
+
+export const toAnnotation = (a: ResolvedAnnotation): SaveAnnotation => ({
   eventId: a.eventId,
   at: a.at,
   source: a.source,
@@ -22,6 +24,7 @@ export const toAnnotation = (a: ResolvedAnnotation): Annotation => ({
   excerpt: a.excerpt,
   body: a.body,
   ...(a.by ? { by: a.by } : {}),
+  ...(a.origin ? { origin: a.origin } : {}),
 });
 
 export const saveInput = (
