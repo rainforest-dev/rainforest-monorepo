@@ -923,9 +923,15 @@ test.describe('on a phone', () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/day/2025-11-02');
     await waitForAppBarReady(page);
-    await page.evaluate(() =>
-      document.dispatchEvent(new Event('memories:focus-note')),
-    );
+    const memory = page
+      .getByRole('complementary', { name: '筆記' })
+      .getByLabel('當天的回憶');
+    await expect(async () => {
+      await page.evaluate(() =>
+        document.dispatchEvent(new Event('memories:focus-note')),
+      );
+      await expect(memory).toBeFocused({ timeout: 500 });
+    }).toPass();
     await page.setViewportSize({ width: 390, height: 844 });
     const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
     await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
