@@ -1,14 +1,16 @@
 ---
 import type { MonthRow } from '../lib/days.ts';
 import { dayHeading } from '../lib/weeks.ts';
+import { morphAttrs } from '../lib/zoom.ts';
 
 type Props = {
   rows: MonthRow[];
   level: (total: number) => 0 | 1 | 2 | 3 | 4;
   noted: Set<string>;
+  morph?: string | undefined;
 };
 
-const { rows, level, noted } = Astro.props;
+const { rows, level, noted, morph } = Astro.props;
 
 const LEVEL = [
   'bg-muted',
@@ -38,10 +40,8 @@ const tooltip = (date: string, total: number, isNoted: boolean) => ({
   detail: `${total} 則${isNoted ? ' · 已寫回憶' : ''}`,
 });
 
-const firstDayWithEvents = (row: MonthRow) =>
-  row.cells.find(
-    (c): c is { date: string; total: number } => c !== null && c.total > 0,
-  )?.date;
+const monthKey = (row: MonthRow) =>
+  `${row.year}-${String(row.month).padStart(2, '0')}`;
 ---
 
 <section class="flex flex-col gap-7">
@@ -88,9 +88,14 @@ const firstDayWithEvents = (row: MonthRow) =>
                 </div>
               )}
               <div class={`grid h-[30px] items-center ${GRID_COLS}`}>
-                <span class="text-meta text-muted-foreground tabular-nums">
+                <a
+                  href={`/month/${monthKey(row)}`}
+                  data-morph={`month-${monthKey(row)}`}
+                  {...morphAttrs(`month-${monthKey(row)}`, morph)}
+                  class="text-meta text-muted-foreground hover:text-foreground tabular-nums"
+                >
                   {row.month} 月
-                </span>
+                </a>
                 {row.cells.map((cell) => {
                   if (!cell) return <span class="size-6" />;
                   const isNoted = noted.has(cell.date);
@@ -103,6 +108,8 @@ const firstDayWithEvents = (row: MonthRow) =>
                       href={`/day/${cell.date}`}
                       data-date={cell.date}
                       data-noted={isNoted}
+                      data-morph={`day-${cell.date}`}
+                      {...morphAttrs(`day-${cell.date}`, morph)}
                       aria-label={label}
                       class={cellClass}
                     >
@@ -121,6 +128,8 @@ const firstDayWithEvents = (row: MonthRow) =>
                       role="img"
                       data-date={cell.date}
                       data-noted={isNoted}
+                      data-morph={`day-${cell.date}`}
+                      {...morphAttrs(`day-${cell.date}`, morph)}
                       aria-label={label}
                       class={cellClass}
                     >
@@ -150,7 +159,7 @@ const firstDayWithEvents = (row: MonthRow) =>
     {
       rows.map((row, i) => {
         const showYear = i === 0 || row.year !== rows[i - 1].year;
-        const target = firstDayWithEvents(row);
+        const hasEvents = row.cells.some((c) => c !== null && c.total > 0);
         const bars = row.cells.map((cell) => {
           if (!cell) return <span class="h-4 w-2" />;
           const isNoted = noted.has(cell.date);
@@ -180,9 +189,11 @@ const firstDayWithEvents = (row: MonthRow) =>
                 {row.year}
               </div>
             )}
-            {target ? (
+            {hasEvents ? (
               <a
-                href={`/day/${target}`}
+                href={`/month/${monthKey(row)}`}
+                data-morph={`month-${monthKey(row)}`}
+                {...morphAttrs(`month-${monthKey(row)}`, morph)}
                 class={`grid h-7 items-center ${PHONE_GRID_COLS}`}
               >
                 {rowLabel}

@@ -605,3 +605,42 @@ test('Escape collapses an expanded phone note sheet before it zooms out', async 
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/\/month\/2025-11$/);
 });
+
+test('zooming out after scrolling into a different month lands on the day in view', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  await waitForAppBarReady(page);
+  await expect(page.locator('#day-2025-10-31')).toBeAttached();
+  await page
+    .locator('[data-event-id]', { hasText: 'Busy message 31' })
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
+
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/month\/2025-10$/);
+  await waitForAppBarReady(page);
+  await expect(page.getByRole('tablist', { name: '縮放' })).toBeVisible();
+
+  const cell = page.locator('a[data-date="2025-10-31"]:visible');
+  await expect(cell).toHaveAttribute(
+    'style',
+    /view-transition-name: day-2025-10-31/,
+  );
+  await expect(cell).toBeFocused();
+
+  await cell.click();
+  await expect(
+    page.locator('#day-2025-10-31 [data-morph="day-2025-10-31"]'),
+  ).toHaveAttribute('style', /view-transition-name: day-2025-10-31/);
+});
+
+test('under reduced motion no element morphs', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/month/2025-11');
+  await page.locator('a[data-date="2025-11-01"]:visible').click();
+  const name = await page
+    .locator('#day-2025-11-01 [data-morph="day-2025-11-01"]')
+    .evaluate((el) => getComputedStyle(el).viewTransitionName);
+  expect(name).toBe('none');
+});

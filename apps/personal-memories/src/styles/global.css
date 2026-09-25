@@ -74,3 +74,26 @@
 [data-hour-strip] [aria-current='time'] [data-bar] {
   @apply bg-primary ring-ring ring-offset-background ring-2 ring-offset-1;
 }
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 150ms;
+  }
+
+  [data-morph] {
+    view-transition-name: none !important;
+  }
+}

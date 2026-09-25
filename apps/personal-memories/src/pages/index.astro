@@ -7,6 +7,7 @@ import Layout from '../layouts/Layout.astro';
 import { heatLevels, monthRows } from '../lib/days.ts';
 import { levelHrefs } from '../lib/nav.ts';
 import { getTimeline } from '../lib/store.ts';
+import { morphFromRequest } from '../lib/zoom.ts';
 
 const state = getTimeline();
 const { entries: days = [] } = await getLiveCollection('days');
@@ -17,6 +18,7 @@ const rows = days.length
   : [];
 const level = heatLevels([...totals.values()]);
 const noted = new Set(notes.map((n) => n.id));
+const morph = morphFromRequest(Astro.request, Astro.url);
 ---
 
 <Layout
@@ -35,7 +37,7 @@ const noted = new Set(notes.map((n) => n.id));
     state.status === 'missing' ? (
       <EmptyState path={state.path} />
     ) : (
-      <Heatmap rows={rows} level={level} noted={noted} />
+      <Heatmap rows={rows} level={level} noted={noted} morph={morph} />
     )
   }
 </Layout>

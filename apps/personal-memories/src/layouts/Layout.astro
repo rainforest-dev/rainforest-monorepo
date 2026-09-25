@@ -41,7 +41,9 @@ const { title, wide = false, bar } = Astro.props;
     </main>
     <script>
       import { startShortcuts } from '../scripts/shortcuts.ts';
+      import { startZoom } from '../scripts/zoom.ts';
       startShortcuts();
+      startZoom();
     </script>
   </body>
 </html>

@@ -1,6 +1,7 @@
 ---
 import type { MonthCell, MonthView } from '../../lib/month-view.ts';
 import { dayHeading, WEEKDAYS_ZH } from '../../lib/weeks.ts';
+import { morphAttrs } from '../../lib/zoom.ts';
 import MonthCellBody from './MonthCellBody.astro';
 
 type Props = { view: MonthView; morph?: string | undefined };
@@ -12,10 +13,6 @@ const label = (c: MonthCell) =>
   `${dayHeading(c.date)}，${c.total} 則${c.noted ? ' · 已寫回憶' : ''}`;
 const days = view.weeks.flat().filter((c): c is MonthCell => c !== null);
 const monthKey = `month-${view.month}`;
-const morphAttrs = (key: string) =>
-  morph === key
-    ? { style: `view-transition-name: ${key}`, 'data-morph-target': '' }
-    : {};
 ---
 
 <section
@@ -23,7 +20,7 @@ const morphAttrs = (key: string) =>
   data-morph={monthKey}
   tabindex="-1"
   class="outline-none"
-  {...morphAttrs(monthKey)}
+  {...morphAttrs(monthKey, morph)}
 >
   <div class="hidden sm:block">
     <div
@@ -49,7 +46,7 @@ const morphAttrs = (key: string) =>
                     'bg-card ring-border hover:bg-accent/65 flex h-[104px] flex-col gap-1.5 overflow-hidden rounded-lg p-2 ring-1',
                     FOCUS,
                   ]}
-                  {...morphAttrs(`day-${cell.date}`)}
+                  {...morphAttrs(`day-${cell.date}`, morph)}
                 >
                   <MonthCellBody cell={cell} layout="cell" />
                 </a>
@@ -81,7 +78,7 @@ const morphAttrs = (key: string) =>
                 'grid h-16 grid-cols-[40px_52px_1fr_auto] items-center gap-2',
                 FOCUS,
               ]}
-              {...morphAttrs(`day-${cell.date}`)}
+              {...morphAttrs(`day-${cell.date}`, morph)}
             >
               <MonthCellBody cell={cell} layout="row" />
             </a>

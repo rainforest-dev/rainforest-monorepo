@@ -15,15 +15,17 @@ import {
 } from '../lib/stream.ts';
 import type { TimelineEvent, TimelineSource } from '../lib/timeline.ts';
 import { dayHeading, taipeiTime } from '../lib/weeks.ts';
+import { morphAttrs } from '../lib/zoom.ts';
 
 type Props = {
   date: string;
   events: TimelineEvent[];
   prev?: string | undefined;
   next?: string | undefined;
+  morph?: string | undefined;
 };
 
-const { date, events, prev, next } = Astro.props;
+const { date, events, prev, next, morph } = Astro.props;
 
 const BUSY_DAY = 100;
 const TILES = 4;
@@ -88,7 +90,13 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
   >
     <div class="flex items-baseline gap-3">
       <h2 class="text-heading font-semibold tabular-nums tracking-[-0.01em]">
-        <a href={`/day/${date}`}>{dayHeading(date)}</a>
+        <a
+          href={`/day/${date}`}
+          data-morph={`day-${date}`}
+          {...morphAttrs(`day-${date}`, morph)}
+        >
+          {dayHeading(date)}
+        </a>
       </h2>
       <span class="text-meta text-muted-foreground tabular-nums">
         {events.length} 則
