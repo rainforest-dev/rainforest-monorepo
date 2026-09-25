@@ -1,10 +1,14 @@
 ---
 import { pickCover } from '../lib/cover.ts';
 import { excerptOf } from '../lib/notes/attach.ts';
+import { getTimeline } from '../lib/store.ts';
 import {
+  type Accent,
+  authorAccents,
   firstEventPerHour,
   groupRuns,
   hourCounts,
+  initialOf,
   ownersFromEnv,
   thumbSrcset,
   thumbUrl,
@@ -33,13 +37,33 @@ const ROW =
   'grid grid-cols-[42px_minmax(0,1fr)_12px] sm:grid-cols-[52px_minmax(0,1fr)_20px]';
 const GUTTER =
   'text-muted-foreground pl-1 text-xs leading-[25px] tabular-nums sm:pl-2';
-const INDENT = 'pl-7 sm:pl-12';
+const INDENT = 'ml-7 sm:ml-12';
 const PILL_BASE =
   'bg-popover text-popover-foreground absolute z-1 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-md opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100';
 const PILL = `${PILL_BASE} pointer-coarse:pointer-events-none pointer-coarse:group-focus-within:pointer-events-auto`;
 const PHOTO_PILL = `${PILL_BASE} pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto`;
 
 const runs = groupRuns(events, ownersFromEnv());
+const timeline = getTimeline();
+const accents =
+  timeline.status === 'ready'
+    ? authorAccents(timeline.timeline.events)
+    : new Map<string, Accent>();
+const accentOf = (author: string): Accent => accents.get(author) ?? 1;
+const ACCENT_RULE: Record<Accent, string> = {
+  1: 'border-chart-1/65',
+  2: 'border-chart-2/65',
+  3: 'border-chart-3/65',
+  4: 'border-chart-4/65',
+  5: 'border-chart-5/65',
+};
+const ACCENT_CHIP: Record<Accent, string> = {
+  1: 'bg-chart-1/15',
+  2: 'bg-chart-2/15',
+  3: 'bg-chart-3/15',
+  4: 'bg-chart-4/15',
+  5: 'bg-chart-5/15',
+};
 const hours = events.length >= BUSY_DAY ? hourCounts(events) : undefined;
 const firsts = hours ? firstEventPerHour(events) : undefined;
 const peak = Math.max(1, ...(hours ?? []));
@@ -125,16 +149,26 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
     {
       runs.map((run) =>
         run.kind === 'text' ? (
-          <li data-source={run.source} class="mt-[22px] first:mt-1.5">
-            <div class:list={[ROW, 'items-baseline py-0.5']}>
+          <li
+            data-source={run.source}
+            data-accent={accentOf(run.author)}
+            class="mt-[22px] first:mt-1.5"
+          >
+            <div class:list={[ROW, 'items-center py-0.5']}>
               <span />
               <div
-                class:list={[
-                  'flex items-baseline gap-1.5',
-                  run.isOwner && INDENT,
-                ]}
+                class:list={['flex items-center gap-2', run.isOwner && INDENT]}
               >
-                <span class="text-meta font-medium">{run.author}</span>
+                <span
+                  aria-hidden="true"
+                  class:list={[
+                    'text-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold',
+                    ACCENT_CHIP[accentOf(run.author)],
+                  ]}
+                >
+                  {initialOf(run.author)}
+                </span>
+                <span class="text-meta font-semibold">{run.author}</span>
                 <span class="text-muted-foreground text-xs">
                   {' '}
                   {SOURCE_LABEL[run.source]}
@@ -164,7 +198,11 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                   </span>
                   <div
                     data-row-body
-                    class:list={['min-w-0', run.isOwner && INDENT]}
+                    class:list={[
+                      'min-w-0 border-l-2 pl-3',
+                      ACCENT_RULE[accentOf(run.author)],
+                      run.isOwner && INDENT,
+                    ]}
                   >
                     {event.text && (
                       <p

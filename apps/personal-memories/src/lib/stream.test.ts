@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  authorAccents,
   firstEventPerHour,
   groupRuns,
   hourCounts,
+  initialOf,
   ownersFromEnv,
   thumbSrcset,
 } from './stream.ts';
@@ -132,6 +134,39 @@ describe('firstEventPerHour', () => {
     expect(
       firstEventPerHour([ev('x', 'Bob', 'line', '2025-11-01T01:30:00Z')])[9],
     ).toBe('x');
+  });
+});
+
+describe('authorAccents', () => {
+  it('ranks authors by message count, alphabetically on ties, ignoring photos', () => {
+    const accents = authorAccents([
+      ev('1', 'Bob'),
+      ev('2', 'Bob'),
+      ev('3', 'Alice'),
+      ev('4', 'Carol'),
+      ev('5', 'photo', 'photo'),
+    ]);
+    expect([...accents]).toEqual([
+      ['Bob', 1],
+      ['Alice', 2],
+      ['Carol', 3],
+    ]);
+  });
+
+  it('cycles after five authors and returns the same map for the same events', () => {
+    const events = ['A', 'B', 'C', 'D', 'E', 'F'].map((a, i) =>
+      ev(String(i), a),
+    );
+    const accents = authorAccents(events);
+    expect(accents.get('F')).toBe(1);
+    expect(authorAccents(events)).toBe(accents);
+  });
+});
+
+describe('initialOf', () => {
+  it('takes the first character, upper-cased', () => {
+    expect(initialOf('alice 🌷')).toBe('A');
+    expect(initialOf('  ')).toBe('?');
   });
 });
 

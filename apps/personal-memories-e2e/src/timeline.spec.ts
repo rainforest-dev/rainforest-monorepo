@@ -125,11 +125,29 @@ test("the owner's rows are indented from everyone else's", async ({ page }) => {
     .locator('[data-event-id][data-author="Alice 🌷"]')
     .first()
     .locator('[data-row-body]');
-  const [ownerPadding, otherPadding] = await Promise.all([
-    ownerRow.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft)),
-    otherRow.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft)),
+  const [ownerLeft, otherLeft] = await Promise.all([
+    ownerRow.evaluate((el) => el.getBoundingClientRect().left),
+    otherRow.evaluate((el) => el.getBoundingClientRect().left),
   ]);
-  expect(ownerPadding).toBeGreaterThan(otherPadding);
+  expect(ownerLeft).toBeGreaterThan(otherLeft);
+});
+
+test('each speaker keeps an accent on every row', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const day = page.locator('#day-2025-11-01');
+  const accentOf = (author: string) =>
+    day
+      .locator('li[data-accent]', {
+        has: page.locator(`[data-author="${author}"]`),
+      })
+      .first()
+      .getAttribute('data-accent');
+  expect(await accentOf('Alice 🌷')).not.toBe(await accentOf('Bob'));
+  const width = await day
+    .locator('[data-event-id][data-author="Bob"] [data-row-body]')
+    .first()
+    .evaluate((el) => getComputedStyle(el).borderLeftWidth);
+  expect(width).toBe('2px');
 });
 
 test('a thumbnail request returns a webp image', async ({ request }) => {

@@ -78,6 +78,35 @@ export function firstEventPerHour(
   return firsts;
 }
 
+export type Accent = 1 | 2 | 3 | 4 | 5;
+
+const accentCache = new WeakMap<
+  readonly TimelineEvent[],
+  Map<string, Accent>
+>();
+
+export function authorAccents(
+  events: readonly TimelineEvent[],
+): Map<string, Accent> {
+  const hit = accentCache.get(events);
+  if (hit) return hit;
+  const counts = new Map<string, number>();
+  for (const e of events)
+    if (e.source !== 'photo')
+      counts.set(e.author, (counts.get(e.author) ?? 0) + 1);
+  const ranked = [...counts].sort(
+    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+  );
+  const accents = new Map(
+    ranked.map(([author], i) => [author, ((i % 5) + 1) as Accent]),
+  );
+  accentCache.set(events, accents);
+  return accents;
+}
+
+export const initialOf = (author: string) =>
+  [...author.trim()][0]?.toUpperCase() ?? '?';
+
 const THUMB_WIDTHS = [240, 480, 960] as const;
 
 export const thumbUrl = (id: string, n: number, w: number) =>
