@@ -6,7 +6,7 @@ import { useOverlay } from '../useOverlay.ts';
 
 export type DayCount = { date: string; total: number };
 
-export const DATA_APPBAR_READY = 'data-appbar-ready';
+const DATA_APPBAR_READY = 'data-appbar-ready';
 
 export function useChrome(place: Place, initial: Record<Level, string>) {
   const active = useActiveDay(place.level === 'day' ? place.date : undefined);
@@ -23,7 +23,7 @@ export function useChrome(place: Place, initial: Record<Level, string>) {
     const onKeys = () => setKeysOpen(true);
     document.addEventListener('memories:open-jump', onJump);
     document.addEventListener('memories:open-shortcuts', onKeys);
-    // Lets e2e tests wait past the client:load hydration delay before clicking.
+    // A click before client:load hydration attaches these listeners lands on inert SSR markup and is dropped.
     document.documentElement.setAttribute(DATA_APPBAR_READY, '');
     return () => {
       document.removeEventListener('memories:open-jump', onJump);
