@@ -50,7 +50,7 @@ export function startShortcuts() {
           !!active?.closest(TYPING) ||
           event.isComposing ||
           event.keyCode === 229,
-        overlayOpen: isOverlayOpen() || event.defaultPrevented,
+        overlayOpen: isOverlayOpen(),
         onCell: !!active?.matches(CELL),
         place: placeOf(location.pathname),
       });
