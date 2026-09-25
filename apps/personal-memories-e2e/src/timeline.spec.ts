@@ -1,18 +1,27 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 const NOTES = path.join(__dirname, '..', 'test-output', 'notes');
 const noteFile = (date: string) =>
   path.join(NOTES, date.slice(0, 4), `${date}.md`);
 
-test.describe.configure({ mode: 'serial' });
+const waitForLightboxReady = (page: Page) =>
+  expect(page.locator('html[data-lightbox-ready]')).toHaveCount(1);
 
-test.beforeEach(async ({ page }) => {
-  // The dev toolbar overlays clicks near the bottom of the page in dev mode.
-  await page.addStyleTag({ content: 'astro-dev-toolbar { display: none; }' });
-});
+const readNote = (date: string) =>
+  existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
+
+const stripCover = (date: string) => {
+  const file = noteFile(date);
+  if (!existsSync(file)) return;
+  const text = readFileSync(file, 'utf8');
+  const stripped = text.replace(/^cover: .*\n/m, '');
+  if (stripped !== text) writeFileSync(file, stripped);
+};
+
+test.describe.configure({ mode: 'serial' });
 
 test('home is a heatmap of the fixture days', async ({ page }) => {
   await page.goto('/');
@@ -193,10 +202,15 @@ test('an edit made in Obsidian meanwhile raises a conflict', async ({
 test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   page,
 }) => {
+  stripCover('2025-11-01');
   await page.goto('/day/2025-11-01');
+  await waitForLightboxReady(page);
   await page.locator('#day-2025-11-01 [data-burst] [data-more] a').click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('照片 · 4 / 7');
+  await expect(
+    dialog.getByRole('button', { name: '設為封面', exact: true }),
+  ).toBeFocused();
   for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
   await expect(dialog).toContainText('照片 · 7 / 7');
   await expect(dialog.getByRole('button', { name: '下一張' })).toBeDisabled();
@@ -204,12 +218,12 @@ test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   await dialog.getByRole('button', { name: '照片 · 1 / 7' }).click();
   await expect(dialog.getByText('目前的封面')).toBeVisible();
   await dialog.getByRole('button', { name: '照片 · 3 / 7' }).click();
-  await dialog.getByRole('button', { name: '設為封面' }).click();
+  await dialog.getByRole('button', { name: '設為封面', exact: true }).click();
   await expect(
     dialog.getByRole('button', { name: '已設為封面' }),
   ).toBeVisible();
   await expect
-    .poll(() => readFileSync(noteFile('2025-11-01'), 'utf8'))
+    .poll(() => readNote('2025-11-01'), { timeout: 15_000 })
     .toMatch(/^cover: DDDDDDDD-0000-0000-0000-000000000004$/m);
 
   await page.keyboard.press('Escape');
@@ -218,7 +232,39 @@ test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   await page.goto('/month/2025-11');
   await expect(
     page.locator('a[data-date="2025-11-01"]:visible img'),
-  ).toHaveAttribute('src', /DDDDDDDD/);
+  ).toHaveAttribute('src', /DDDDDDDD-0000-0000-0000-000000000004/);
+});
+
+test('a video in a burst plays and cannot be set as cover', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  await waitForLightboxReady(page);
+  await page
+    .locator('#day-2025-11-02 [data-burst] a[data-lightbox]')
+    .first()
+    .click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.locator('video')).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: '設為封面', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole('button', { name: '已設為封面', exact: true }),
+  ).toHaveCount(0);
+});
+
+test('media supports HTTP range requests for video playback', async ({
+  request,
+}) => {
+  const response = await request.get(
+    '/media/99999999-0000-0000-0000-000000000009',
+    { headers: { Range: 'bytes=0-9' } },
+  );
+  expect(response.status()).toBe(206);
+  expect(response.headers()['content-range']).toMatch(/^bytes 0-9\/\d+$/);
+  expect(response.headers()['accept-ranges']).toBe('bytes');
+  expect(response.headers()['content-length']).toBe('10');
 });
 
 test('a note typed just before scrolling stays on its own day', async ({

@@ -10,4 +10,5 @@ export default defineConfig({
   server: { host: '127.0.0.1', port: 3004 },
   vite: { plugins: [tailwindcss()] },
   integrations: [react()],
+  devToolbar: { enabled: process.env.MEMORIES_E2E !== '1' },
 });
