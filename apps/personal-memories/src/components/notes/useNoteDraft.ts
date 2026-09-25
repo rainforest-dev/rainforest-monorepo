@@ -1,29 +1,14 @@
 import { actions } from 'astro:actions';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
+import { type Draft, saveInput, toDraft } from '../../lib/notes/draft.ts';
 import type { NotePayload } from '../../lib/notes/payload.ts';
-import type { Annotation } from '../../lib/notes/types.ts';
 
+export type { Draft } from '../../lib/notes/draft.ts';
 export type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict';
-export type Draft = { body: string; annotations: ResolvedAnnotation[] };
 
 const SAVE_DELAY_MS = 1000;
 const UNSAFE: readonly SaveStatus[] = ['dirty', 'saving', 'error', 'conflict'];
-
-const toDraft = (p: NotePayload): Draft => ({
-  body: p.body,
-  annotations: p.annotations,
-});
-
-const toAnnotation = (a: ResolvedAnnotation): Annotation => ({
-  eventId: a.eventId,
-  at: a.at,
-  source: a.source,
-  author: a.author,
-  excerpt: a.excerpt,
-  body: a.body,
-});
 
 export function useNoteDraft(initial: NotePayload) {
   const [payload, setPayloadState] = useState(initial);
@@ -54,13 +39,7 @@ export function useNoteDraft(initial: NotePayload) {
       const rev = revision.current;
       setStatus('saving');
       try {
-        const result = await actions.saveNote.orThrow({
-          date: p.date,
-          body: d.body,
-          annotations: d.annotations.map(toAnnotation),
-          cover: p.cover,
-          version: p.version,
-        });
+        const result = await actions.saveNote.orThrow(saveInput(p, d));
         if (result.ok) {
           setPayload({ ...current.current.payload, version: result.version });
           if (revision.current === rev) setStatus('saved');
