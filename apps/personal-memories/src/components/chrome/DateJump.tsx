@@ -53,7 +53,13 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
           onValueChange={setQuery}
           placeholder="YYYY-MM-DD"
           onKeyDown={(e) => {
-            if (e.key !== 'Enter' || !target) return;
+            if (
+              e.key !== 'Enter' ||
+              e.nativeEvent.isComposing ||
+              e.keyCode === 229 ||
+              !target
+            )
+              return;
             e.preventDefault();
             onGo(target.date, !target.exact);
           }}
