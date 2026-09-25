@@ -575,8 +575,6 @@ test('the keyboard button opens the shortcuts overlay', async ({ page }) => {
 test('the 年/月/日 tabs follow the day in view', async ({ page }) => {
   await page.goto('/day/2025-11-01');
   await waitForAppBarReady(page);
-  // 2025-10-31 loads eagerly above 2025-11-01 (Task 1 step 7); scrolling up
-  // into it must move the active day, and the tabs, to October.
   await expect(page.locator('#day-2025-10-31')).toBeAttached();
   await page
     .locator('[data-event-id]', { hasText: 'Busy message 31' })
@@ -584,7 +582,6 @@ test('the 年/月/日 tabs follow the day in view', async ({ page }) => {
   await expect(page).toHaveURL(/\/day\/2025-10-31$/);
   const monthTab = page.getByRole('tab', { name: '月' });
   await expect(monthTab).toHaveAttribute('href', '/month/2025-10');
-  // The bar is sticky, so the tab must still be reachable without scrolling up.
   await expect(monthTab).toBeInViewport();
   await monthTab.click();
   await expect(page).toHaveURL(/\/month\/2025-10$/);
