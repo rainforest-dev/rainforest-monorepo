@@ -4,6 +4,7 @@ import {
   cleanName,
   originOf,
   parseAuthors,
+  type Signable,
   stampAuthors,
   viewerName,
 } from './authors.ts';
@@ -63,19 +64,34 @@ describe('cleanName', () => {
 });
 
 describe('originOf', () => {
-  it('uses the eventId when present, else the anchor tuple', () => {
-    const withId = {
-      eventId: 'abc',
-      at: '2025-11-01T09:00:00+08:00',
-      source: 'line' as const,
-      author: 'Alice',
-      excerpt: 'hi',
-    };
-    expect(originOf(withId)).toBe('abc');
-    expect(originOf({ ...withId, eventId: '' })).not.toBe('');
+  const withId = {
+    eventId: 'abc',
+    at: '2025-11-01T09:00:00+08:00',
+    source: 'line' as const,
+    author: 'Alice',
+    excerpt: 'hi',
+  };
+
+  it('prefixes an eventId-based origin distinctly from a hashed anchor-tuple one', () => {
+    expect(originOf(withId)).toBe('e:abc');
+    expect(originOf({ ...withId, eventId: '' })).toMatch(/^t:[0-9a-f]{8}$/);
+  });
+
+  it('is deterministic for the same anchor tuple', () => {
     expect(originOf({ ...withId, eventId: '' })).toBe(
       originOf({ ...withId, eventId: '' }),
     );
+  });
+
+  it('stays short and bounded no matter how long the heading and quote are', () => {
+    const handWritten = {
+      eventId: '',
+      at: '',
+      source: 'line' as const,
+      author: 'x'.repeat(1000),
+      excerpt: 'y'.repeat(1000),
+    };
+    expect(originOf(handWritten).length).toBeLessThan(20);
   });
 });
 
@@ -100,7 +116,7 @@ describe('stampAuthors', () => {
 
   it('signs only the annotations that are new in this save', () => {
     const [old, added] = stampAuthors(
-      [ann('old', { origin: 'old' }), ann('new')],
+      [ann('old', { origin: originOf(ann('old')) }), ann('new')],
       [ann('old')],
       'Bob',
     );
@@ -110,7 +126,7 @@ describe('stampAuthors', () => {
 
   it('leaves a legacy unsigned annotation unsigned when another user saves', () => {
     const [legacy] = stampAuthors(
-      [ann('legacy', { origin: 'legacy' })],
+      [ann('legacy', { origin: originOf(ann('legacy')) })],
       [ann('legacy')],
       'Bob',
     );
@@ -119,7 +135,7 @@ describe('stampAuthors', () => {
 
   it('keeps the stored author even if the client sends another', () => {
     const [kept] = stampAuthors(
-      [ann('e', { origin: 'e', by: 'Bob' })],
+      [ann('e', { origin: originOf(ann('e')), by: 'Bob' })],
       [ann('e', { by: 'Alice' })],
       'Bob',
     );
@@ -131,7 +147,7 @@ describe('stampAuthors', () => {
       at: '2025-11-01T10:00:00+08:00',
       author: 'Bob',
       excerpt: 'hi',
-      origin: 'x',
+      origin: originOf(ann('x')),
     });
 
     const [legacyStaysUnsigned] = stampAuthors([reattached], [ann('x')], 'Bob');
@@ -161,5 +177,45 @@ describe('stampAuthors', () => {
     );
     const [unsigned] = stampAuthors([ann('n', { by: ' %% ' })], [], undefined);
     expect(unsigned && 'by' in unsigned).toBe(false);
+  });
+
+  it('keep-mine restores an annotation as new when its origin matches nothing, even if a same-anchor annotation exists under a recovered eventId', () => {
+    const mineFromBeforeTheConflict = ann('pre-conflict-event-id', {
+      origin: originOf(ann('pre-conflict-event-id')),
+      excerpt: 'same message',
+    });
+    const carolsAddedUnderRecoveredEventId = ann('recovered-event-id', {
+      by: 'Carol',
+      excerpt: 'same message',
+    });
+    const [result] = stampAuthors(
+      [mineFromBeforeTheConflict],
+      [carolsAddedUnderRecoveredEventId],
+      'Bob',
+    );
+    expect(result?.by).toBe('Bob');
+  });
+
+  it('keeps a hand-written annotation with a 1,000-char heading and quote signed across a re-save', () => {
+    const handWritten: Signable = {
+      eventId: '',
+      at: '',
+      source: 'line' as const,
+      author: 'x'.repeat(1000),
+      excerpt: 'y'.repeat(1000),
+    };
+    const origin = originOf(handWritten);
+    expect(origin.length).toBeLessThan(20);
+
+    const [firstSave] = stampAuthors([handWritten], [], 'Alice');
+    expect(firstSave?.by).toBe('Alice');
+
+    const reSent = { ...handWritten, origin };
+    const [reSaved] = stampAuthors(
+      [reSent],
+      [{ ...handWritten, by: 'Alice' }],
+      'Bob',
+    );
+    expect(reSaved?.by).toBe('Alice');
   });
 });

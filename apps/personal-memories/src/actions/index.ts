@@ -17,7 +17,7 @@ const annotation = z.object({
   excerpt: z.string(),
   body: z.string(),
   by: z.string().max(80).optional(),
-  origin: z.string().max(200).optional(),
+  origin: z.string().max(64).optional(),
 });
 
 const dayEvents = (d: string) => {

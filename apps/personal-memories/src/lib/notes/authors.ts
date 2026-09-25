@@ -40,18 +40,22 @@ export type Signable = Pick<
 
 const ORIGIN_SEP = '\u0000';
 
+function fnv1aHex(str: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
 export function originOf(
   a: Pick<Signable, 'eventId' | 'at' | 'source' | 'author' | 'excerpt'>,
 ): string {
-  return a.eventId || [a.at, a.source, a.author, a.excerpt].join(ORIGIN_SEP);
+  if (a.eventId) return `e:${a.eventId}`;
+  const tuple = [a.at, a.source, a.author, a.excerpt].join(ORIGIN_SEP);
+  return `t:${fnv1aHex(tuple)}`;
 }
-
-const sameAnchor = (a: Signable, b: Signable) =>
-  (!!a.eventId && a.eventId === b.eventId) ||
-  (a.at === b.at &&
-    a.source === b.source &&
-    a.author === b.author &&
-    a.excerpt === b.excerpt);
 
 export function stampAuthors<T extends Signable>(
   annotations: readonly T[],
@@ -63,8 +67,7 @@ export function stampAuthors<T extends Signable>(
     const before =
       origin === undefined
         ? undefined
-        : (stored.find((s) => originOf(s) === origin) ??
-          stored.find((s) => sameAnchor(a, s)));
+        : stored.find((s) => originOf(s) === origin);
     const by = before
       ? before.by
       : (viewer ?? (cleanName(sent ?? '') || undefined));

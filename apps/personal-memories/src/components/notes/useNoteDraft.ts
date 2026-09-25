@@ -1,6 +1,7 @@
 import { actions } from 'astro:actions';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
 import { type Draft, saveInput, toDraft } from '../../lib/notes/draft.ts';
 import type { NotePayload } from '../../lib/notes/payload.ts';
 
@@ -9,6 +10,23 @@ export type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict';
 
 const SAVE_DELAY_MS = 1000;
 const UNSAFE: readonly SaveStatus[] = ['dirty', 'saving', 'error', 'conflict'];
+
+function withStamp(
+  a: ResolvedAnnotation,
+  stamped: { by?: string; origin: string },
+): ResolvedAnnotation {
+  return {
+    eventId: a.eventId,
+    at: a.at,
+    source: a.source,
+    author: a.author,
+    excerpt: a.excerpt,
+    body: a.body,
+    status: a.status,
+    ...(stamped.by ? { by: stamped.by } : {}),
+    origin: stamped.origin,
+  };
+}
 
 export function useNoteDraft(initial: NotePayload) {
   const [payload, setPayloadState] = useState(initial);
@@ -47,14 +65,7 @@ export function useNoteDraft(initial: NotePayload) {
               ...current.current.draft,
               annotations: current.current.draft.annotations.map((a, i) => {
                 const stamped = result.annotations[i];
-                if (!stamped) return a;
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripped so a stale `by` doesn't linger when the server left it unsigned
-                const { by, ...rest } = a;
-                return {
-                  ...rest,
-                  ...(stamped.by ? { by: stamped.by } : {}),
-                  origin: stamped.origin,
-                };
+                return stamped ? withStamp(a, stamped) : a;
               }),
             });
             setStatus('saved');

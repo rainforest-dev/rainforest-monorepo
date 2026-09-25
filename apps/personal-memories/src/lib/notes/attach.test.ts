@@ -69,14 +69,29 @@ describe('resolveAnnotations', () => {
       [event({ id: 'new' })],
     );
     expect(r.eventId).toBe('new');
-    expect(r.origin).toBe('old');
+    expect(r.origin).toBe('e:old');
   });
 
-  it('derives an origin from the anchor tuple for a hand-written annotation with no eventId', () => {
+  it('derives a hashed origin from the anchor tuple for a hand-written annotation with no eventId', () => {
     const [r] = resolveAnnotations(
       [note({ eventId: '', excerpt: '', body: 'hand' })],
       [event({})],
     );
-    expect(r.origin).toBeTruthy();
+    expect(r.origin).toMatch(/^t:[0-9a-f]{8}$/);
+  });
+
+  it('keeps the hashed origin short even for a very long hand-written heading and quote', () => {
+    const [r] = resolveAnnotations(
+      [
+        note({
+          eventId: '',
+          author: 'x'.repeat(1000),
+          excerpt: 'y'.repeat(1000),
+          body: 'hand',
+        }),
+      ],
+      [event({})],
+    );
+    expect(r.origin?.length).toBeLessThan(20);
   });
 });
