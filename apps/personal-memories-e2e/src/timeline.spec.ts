@@ -1,32 +1,119 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { expect, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 const NOTES = path.join(__dirname, '..', 'test-output', 'notes');
 const noteFile = (date: string) =>
   path.join(NOTES, date.slice(0, 4), `${date}.md`);
 
-test.describe.configure({ mode: 'serial' });
+const waitForLightboxReady = (page: Page) =>
+  expect(page.locator('html[data-lightbox-ready]')).toHaveCount(1);
 
-test.beforeEach(async ({ page }) => {
-  // The dev toolbar overlays clicks near the bottom of the page in dev mode.
-  await page.addStyleTag({ content: 'astro-dev-toolbar { display: none; }' });
-});
+const waitForAppBarReady = (page: Page) =>
+  expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
+
+const readNote = (date: string) =>
+  existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
+
+const stripCover = (date: string) => {
+  const file = noteFile(date);
+  if (!existsSync(file)) return;
+  const text = readFileSync(file, 'utf8');
+  const stripped = text.replace(/^cover: .*\n/m, '');
+  if (stripped !== text) writeFileSync(file, stripped);
+};
+
+test.describe.configure({ mode: 'serial' });
 
 test('home is a heatmap of the fixture days', async ({ page }) => {
   await page.goto('/');
   const days = page.locator('a[data-date]');
-  await expect(days).toHaveCount(3);
+  await expect(days).toHaveCount(4);
   await expect(page.locator('a[data-date="2025-11-01"]')).toHaveAttribute(
     'href',
     '/day/2025-11-01',
   );
 });
 
+test('the served CSS keeps both the anchored preview and its fallback', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const rules = await page.evaluate(() =>
+    [...document.styleSheets]
+      .flatMap((sheet) => [...sheet.cssRules])
+      .filter(
+        (rule): rule is CSSSupportsRule => rule instanceof CSSSupportsRule,
+      )
+      .map((rule) => ({ condition: rule.conditionText, text: rule.cssText })),
+  );
+  const anchored = rules.find((r) => r.condition === '(position-area: top)');
+  const fallback = rules.find(
+    (r) => r.condition === 'not (position-area: top)',
+  );
+  expect(anchored?.text).toMatch(/position: fixed/);
+  expect(anchored?.text).toMatch(/position-area: top;/);
+  expect(fallback?.text).toMatch(/position: absolute/);
+  expect(fallback?.text).toMatch(/bottom: calc\(100% \+ 0\.5rem\)/);
+  expect(fallback?.text).toMatch(/left: 50%/);
+  expect(fallback?.text).toMatch(/translate: -50%( 0)?;/);
+});
+
+test('a heat cell previews its day above it on hover and on keyboard focus', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  const cell = page.locator('a[data-date="2025-11-03"]');
+  const preview = cell.locator('[data-preview]');
+  await expect(preview).toBeHidden();
+  await cell.hover();
+  await expect(preview).toBeVisible();
+  await expect(preview).toBeInViewport({ ratio: 1 });
+  await expect(preview).toContainText('2025-11-03（週一）');
+  await expect(preview).toContainText('「New week, new plans」');
+  const [c, p] = await Promise.all([cell.boundingBox(), preview.boundingBox()]);
+  expect(p && c && p.y + p.height <= c.y).toBe(true);
+
+  await page.mouse.move(0, 0);
+  await expect(preview).toBeHidden();
+  await page.locator('a[data-date="2025-11-02"]').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(preview).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(preview).toBeHidden();
+});
+
+test('the month calendar shows each day with its cover or a line', async ({
+  page,
+}) => {
+  const response = await page.goto('/month/2025-11');
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    '2025 年 11 月',
+  );
+  const cell = (date: string) => page.locator(`a[data-date="${date}"]:visible`);
+  await expect(cell('2025-11-01').locator('img')).toHaveAttribute(
+    'src',
+    /AAAAAAAA-0000-0000-0000-000000000001/,
+  );
+  await expect(cell('2025-11-03')).toContainText('「New week, new plans」');
+  await expect(page.locator('[data-date="2025-11-05"]:visible')).toHaveText(
+    '5',
+  );
+  await cell('2025-11-03').click();
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+
+  expect((await page.goto('/month/1999-01'))?.status()).toBe(404);
+  await expect(
+    page.getByRole('link', { name: '2025-10-31（週五）' }),
+  ).toBeVisible();
+});
+
 test('old week links redirect to their first day', async ({ page }) => {
   await page.goto('/week/2025-W44');
-  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
   const response = await page.goto('/day/1999-01-01');
   expect(response?.status()).toBe(404);
 });
@@ -39,6 +126,7 @@ test('a day shows messages and photos in order, with the source filter', async (
   await expect(day.getByRole('heading')).toHaveText('2025-11-01（週六）');
   // content-visibility:auto defers layout until the section is in view.
   await expect(day).toContainText('照片 7 張');
+  await expect(day).toContainText('Alice 🌷 LINE');
   // content-visibility:auto blanks innerText pre-render; textContent needs no layout.
   const texts = await day
     .locator('[data-event-id]')
@@ -49,15 +137,30 @@ test('a day shows messages and photos in order, with the source filter', async (
 
   const photo = day.getByRole('img', { name: 'Weekend, Food' });
   await expect(photo).toBeVisible();
-  expect(
-    await photo.evaluate((img: HTMLImageElement) => img.naturalWidth),
-  ).toBeGreaterThan(0);
+  // toBeVisible() checks layout, not decode; poll past a cold /thumb encode.
+  await expect
+    .poll(
+      () =>
+        photo.evaluate((img: HTMLImageElement) =>
+          img.complete ? img.naturalWidth : 0,
+        ),
+      { timeout: 15_000 },
+    )
+    .toBeGreaterThan(0);
 
-  await page.getByLabel('照片').uncheck();
+  const filterReady = () =>
+    page
+      .locator('astro-island[component-url*="SourceFilter"]:not([ssr])')
+      .waitFor({ state: 'attached' });
+  await filterReady();
+  const toggle = page.getByRole('button', { name: '照片', exact: true });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   await expect(photo).toBeHidden();
   await page.reload();
-  await expect(page.getByLabel('照片')).not.toBeChecked();
-  await page.getByLabel('照片').check();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await filterReady();
+  await toggle.click();
 });
 
 test('a photo run longer than 4 collapses the rest behind a +N tile', async ({
@@ -82,11 +185,29 @@ test("the owner's rows are indented from everyone else's", async ({ page }) => {
     .locator('[data-event-id][data-author="Alice 🌷"]')
     .first()
     .locator('[data-row-body]');
-  const [ownerPadding, otherPadding] = await Promise.all([
-    ownerRow.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft)),
-    otherRow.evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft)),
+  const [ownerLeft, otherLeft] = await Promise.all([
+    ownerRow.evaluate((el) => el.getBoundingClientRect().left),
+    otherRow.evaluate((el) => el.getBoundingClientRect().left),
   ]);
-  expect(ownerPadding).toBeGreaterThan(otherPadding);
+  expect(ownerLeft).toBeGreaterThan(otherLeft);
+});
+
+test('each speaker keeps an accent on every row', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const day = page.locator('#day-2025-11-01');
+  const accentOf = (author: string) =>
+    day
+      .locator('li[data-accent]', {
+        has: page.locator(`[data-author="${author}"]`),
+      })
+      .first()
+      .getAttribute('data-accent');
+  expect(await accentOf('Alice 🌷')).not.toBe(await accentOf('Bob'));
+  const width = await day
+    .locator('[data-event-id][data-author="Bob"] [data-row-body]')
+    .first()
+    .evaluate((el) => getComputedStyle(el).borderLeftWidth);
+  expect(width).toBe('2px');
 });
 
 test('a thumbnail request returns a webp image', async ({ request }) => {
@@ -149,11 +270,122 @@ test('an edit made in Obsidian meanwhile raises a conflict', async ({
 
   await panel.getByLabel('當天的回憶').fill('app 改的');
   await expect(panel).toContainText('有衝突');
-  const obsidianCard = panel
-    .getByRole('heading', { name: 'Obsidian 的版本' })
-    .locator('..');
+  const obsidianCard = panel.locator('[data-slot="card"]', {
+    has: page.getByRole('heading', { name: 'Obsidian 的版本' }),
+  });
   await obsidianCard.getByRole('button', { name: '保留這個版本' }).click();
   await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
+});
+
+test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
+  page,
+}) => {
+  stripCover('2025-11-01');
+  await page.goto('/day/2025-11-01');
+  await waitForLightboxReady(page);
+  await page.locator('#day-2025-11-01 [data-burst] [data-more] a').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('照片 · 4 / 7');
+  await expect(
+    dialog.getByRole('button', { name: '設為封面', exact: true }),
+  ).toBeFocused();
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  await expect(dialog).toContainText('照片 · 7 / 7');
+  await expect(dialog.getByRole('button', { name: '下一張' })).toBeDisabled();
+
+  await dialog.getByRole('button', { name: '照片 · 1 / 7' }).click();
+  await expect(dialog.getByText('目前的封面')).toBeVisible();
+  await dialog.getByRole('button', { name: '照片 · 3 / 7' }).click();
+  await dialog.getByRole('button', { name: '設為封面', exact: true }).click();
+  await expect(
+    dialog.getByRole('button', { name: '已設為封面' }),
+  ).toBeVisible();
+  await expect
+    .poll(() => readNote('2025-11-01'), { timeout: 15_000 })
+    .toMatch(/^cover: DDDDDDDD-0000-0000-0000-000000000004$/m);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await page.goto('/month/2025-11');
+  await expect(
+    page.locator('a[data-date="2025-11-01"]:visible img'),
+  ).toHaveAttribute('src', /DDDDDDDD-0000-0000-0000-000000000004/);
+});
+
+test('a video in a burst plays and cannot be set as cover', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  await waitForLightboxReady(page);
+  await page
+    .locator('#day-2025-11-02 [data-burst] a[data-lightbox]')
+    .first()
+    .click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.locator('video')).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: '設為封面', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole('button', { name: '已設為封面', exact: true }),
+  ).toHaveCount(0);
+});
+
+test('arrow keys seek a focused video instead of changing the photo', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  await waitForLightboxReady(page);
+  await page
+    .locator('#day-2025-11-02 [data-burst] a[data-lightbox]')
+    .first()
+    .evaluate((trigger) => {
+      const at = '2025-11-02T20:50:00+08:00';
+      const items = [
+        {
+          id: '99999999-0000-0000-0000-000000000009',
+          at,
+          alt: '',
+          video: true,
+        },
+        {
+          id: 'DDDDDDDD-0000-0000-0000-000000000004',
+          at,
+          alt: '',
+          video: false,
+        },
+      ];
+      document.dispatchEvent(
+        new CustomEvent('memories:lightbox', {
+          detail: { trigger, date: '2025-11-02', items, index: 0 },
+        }),
+      );
+    });
+  const dialog = page.getByRole('dialog');
+  const video = dialog.locator('video');
+  await expect(dialog).toContainText('照片 · 1 / 2');
+  await video.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(video).toBeFocused();
+  await expect(dialog).toContainText('照片 · 1 / 2');
+  await dialog.getByRole('button', { name: '下一張' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(dialog).toContainText('照片 · 2 / 2');
+});
+
+test('media supports HTTP range requests for video playback', async ({
+  request,
+}) => {
+  const response = await request.get(
+    '/media/99999999-0000-0000-0000-000000000009',
+    { headers: { Range: 'bytes=0-9' } },
+  );
+  expect(response.status()).toBe(206);
+  expect(response.headers()['content-range']).toMatch(/^bytes 0-9\/\d+$/);
+  expect(response.headers()['accept-ranges']).toBe('bytes');
+  expect(response.headers()['content-length']).toBe('10');
 });
 
 test('a note typed just before scrolling stays on its own day', async ({
@@ -177,4 +409,801 @@ test('a note typed just before scrolling stays on its own day', async ({
     existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
   await expect.poll(() => read('2025-11-02')).toContain('十一月二日的筆記');
   expect(read('2025-11-03')).not.toContain('十一月二日的筆記');
+});
+
+test('the hour strip jumps to an hour and follows the scroll', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-10-31');
+  const strip = page.locator('#day-2025-10-31 [data-hour-strip]');
+  await expect(strip).toBeVisible();
+  await strip.getByRole('link', { name: '15 點，10 則' }).click();
+  await expect(
+    page.getByText('Busy message 81', { exact: true }),
+  ).toBeInViewport();
+  await expect(strip.locator('[aria-current="time"]')).toHaveAttribute(
+    'data-hour',
+    '15',
+  );
+  await page
+    .locator('[data-event-id]', { hasText: 'Busy message 101' })
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(strip.locator('[aria-current="time"]')).toHaveAttribute(
+    'data-hour',
+    '17',
+  );
+});
+
+test('the hour strip works on a day loaded while scrolling', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  await expect(page.locator('#day-2025-10-31')).toBeAttached();
+  await page
+    .locator('[data-event-id]', { hasText: 'Busy message 31' })
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  const strip = page.locator('#day-2025-10-31 [data-hour-strip]');
+  await expect(strip.locator('[aria-current="time"]')).toHaveAttribute(
+    'data-hour',
+    '10',
+  );
+  await strip.getByRole('link', { name: '08 點，10 則' }).click();
+  await expect(
+    page.getByText('Busy message 11', { exact: true }),
+  ).toBeInViewport();
+});
+
+test('the month scrubber marks the month in view and jumps to another', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  const rail = page.getByRole('navigation', { name: '月份' });
+  await expect(rail.locator('[aria-current="date"]')).toHaveAttribute(
+    'data-month',
+    '2025-11',
+  );
+  await expect(rail).toContainText('2025');
+  await rail.getByRole('link', { name: /10 月/ }).click();
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
+  await expect(rail.locator('[aria-current="date"]')).toHaveAttribute(
+    'data-month',
+    '2025-10',
+  );
+});
+
+test.describe('an annotation signed through Access', () => {
+  test.use({
+    extraHTTPHeaders: {
+      'Cf-Access-Authenticated-User-Email': 'alice@example.com',
+    },
+  });
+
+  test('carries the signed-in author', async ({ page }) => {
+    await page.goto('/day/2025-11-02');
+    const panel = page.getByRole('complementary', { name: '筆記' });
+    await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+    const message = page.locator('[data-event-id]', {
+      hasText: 'Thread reply',
+    });
+    await message.hover();
+    await message.getByRole('button', { name: '眉批' }).click();
+    await panel
+      .getByLabel(/^眉批：/)
+      .last()
+      .fill('Alice 寫的眉批');
+    await expect(panel).toContainText('已儲存');
+    await expect
+      .poll(() => readFileSync(noteFile('2025-11-02'), 'utf8'))
+      .toMatch(/ src:slack by:Alice %%$/m);
+    await expect(panel.getByText('Alice', { exact: true })).toBeVisible();
+    await expect(panel.getByPlaceholder('你的名字')).toHaveCount(0);
+  });
+
+  test('resolving a conflict does not re-prompt a signed-in user for a name', async ({
+    page,
+  }) => {
+    await page.goto('/day/2025-10-31');
+    const panel = page.getByRole('complementary', { name: '筆記' });
+    await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+    await panel.getByLabel('當天的回憶').fill('Alice 的版本');
+    await expect(panel).toContainText('已儲存');
+
+    const file = noteFile('2025-10-31');
+    writeFileSync(
+      file,
+      readFileSync(file, 'utf8').replace('Alice 的版本', 'Obsidian 改的'),
+    );
+    await panel.getByLabel('當天的回憶').fill('app 又改了');
+    await expect(panel).toContainText('有衝突');
+    const obsidianCard = panel.locator('[data-slot="card"]', {
+      has: page.getByRole('heading', { name: 'Obsidian 的版本' }),
+    });
+    await obsidianCard.getByRole('button', { name: '保留這個版本' }).click();
+    await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
+    await expect(panel.getByPlaceholder('你的名字')).toHaveCount(0);
+  });
+});
+
+test('without an identity, the name set once in the panel signs 眉批', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-03');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+  await panel.getByPlaceholder('你的名字').fill('Bob');
+  await panel.getByPlaceholder('你的名字').press('Enter');
+  const message = page.locator('[data-event-id]', { hasText: 'Coffee first' });
+  await message.hover();
+  await message.getByRole('button', { name: '眉批' }).click();
+  await panel
+    .getByLabel(/^眉批：/)
+    .last()
+    .fill('Bob 的眉批');
+  await expect(panel).toContainText('已儲存');
+  await expect
+    .poll(() => readFileSync(noteFile('2025-11-03'), 'utf8'))
+    .toMatch(/ by:Bob %%$/m);
+});
+
+test('a brand-new annotation keeps its established author across a second save, even if the viewer identity changes meanwhile', async ({
+  page,
+  context,
+}) => {
+  await context.setExtraHTTPHeaders({
+    'Cf-Access-Authenticated-User-Email': 'alice@example.com',
+  });
+  await page.goto('/day/2025-10-31');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+
+  const message = page.locator('[data-event-id]', {
+    hasText: 'Busy message 90',
+  });
+  await message.hover();
+  await message.getByRole('button', { name: '眉批' }).click();
+  const textarea = panel.getByLabel(/^眉批：/).last();
+  await textarea.fill('第一次寫的');
+  await expect(panel).toContainText('已儲存');
+  await expect
+    .poll(() => readFileSync(noteFile('2025-10-31'), 'utf8'))
+    .toMatch(/ by:Alice %%$/m);
+
+  await context.setExtraHTTPHeaders({
+    'Cf-Access-Authenticated-User-Email': 'bob@example.com',
+  });
+  await textarea.fill('第一次寫的，補充一些');
+  await expect(panel).toContainText('已儲存');
+  expect(readFileSync(noteFile('2025-10-31'), 'utf8')).toMatch(
+    / by:Alice %%$/m,
+  );
+});
+
+test('the date jump opens a typed day, or the nearest one', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  await input.fill('2025-11-0');
+  await expect(page.getByRole('dialog').getByRole('option')).toHaveCount(3);
+  await input.fill('2025/11/2');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/day\/2025-11-02/);
+
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  await page
+    .getByRole('dialog')
+    .getByPlaceholder('YYYY-MM-DD')
+    .fill('2025-11-20');
+  await expect(page.getByRole('dialog')).toContainText(
+    '沒有這一天，按 Enter 跳到最近的 2025-11-03',
+  );
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('alert')).toContainText(
+    '沒有這一天，已跳到最近的 2025-11-03（週一）',
+  );
+});
+
+test('the keyboard button opens the shortcuts overlay', async ({ page }) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '鍵盤快速鍵' }).click();
+  const dialog = page.getByRole('dialog', { name: '鍵盤快速鍵' });
+  await expect(dialog).toContainText('在日子間移動');
+  await dialog.getByRole('button', { name: '關閉' }).click();
+  await expect(dialog).toBeHidden();
+});
+
+test('the 年/月/日 tabs follow the day in view', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  await waitForAppBarReady(page);
+  await expect(page.locator('#day-2025-10-31')).toBeAttached();
+  await page
+    .locator('[data-event-id]', { hasText: 'Busy message 31' })
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
+  const monthTab = page.getByRole('tab', { name: '月' });
+  await expect(monthTab).toHaveAttribute('href', '/month/2025-10');
+  await expect(monthTab).toBeInViewport();
+  await monthTab.click();
+  await expect(page).toHaveURL(/\/month\/2025-10$/);
+});
+
+test('the ‹ › links point at the neighbours of the day in view', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  const prev = page.getByRole('link', { name: '前一天' });
+  const next = page.getByRole('link', { name: '後一天' });
+  await expect(prev).toHaveAttribute('href', '/day/2025-11-01');
+  await expect(next).toHaveAttribute('href', '/day/2025-11-03');
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  const day = page.locator('[data-day="2025-11-03"]');
+  await expect(day).toBeAttached();
+  await expect(day).not.toHaveAttribute('data-next', /./);
+  await day.scrollIntoViewIfNeeded();
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await expect(prev).toHaveAttribute('href', '/day/2025-11-02');
+  await expect(next).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '後一天' })).toBeVisible();
+});
+
+test('the sticky day header and month scrubber sit below the app bar', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const style = (selector: string) =>
+    page
+      .locator(selector)
+      .first()
+      .evaluate((el) => {
+        const { top, maxHeight } = getComputedStyle(el);
+        return { top, maxHeight };
+      });
+  expect((await style('[data-day="2025-11-01"] > header')).top).toBe('56px');
+  const viewport = page.viewportSize()?.height ?? 0;
+  expect(await style('aside:has(+ [data-stream])')).toEqual({
+    top: '72px',
+    maxHeight: `${viewport - 88}px`,
+  });
+});
+
+test('the date jump ignores an Enter fired mid-IME composition', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  // An exact match selects through cmdk's own Enter, not this onKeyDown guard.
+  await input.fill('2025-11-20');
+  await expect(page.getByRole('dialog')).toContainText(
+    '沒有這一天，按 Enter 跳到最近的 2025-11-03',
+  );
+  await input.dispatchEvent('keydown', {
+    key: 'Enter',
+    keyCode: 229,
+    isComposing: true,
+  });
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/day\/2025-11-03/);
+});
+
+test('keys: j and k, n, ? and /, and Escape only when nothing else claims it', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  await page.keyboard.press('j');
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await waitForAppBarReady(page);
+  await page.keyboard.press('k');
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  await waitForAppBarReady(page);
+
+  const memory = page.getByLabel('當天的回憶');
+  const before = await memory.inputValue();
+  await page.keyboard.press('n');
+  await expect(memory).toBeFocused();
+  await page.keyboard.type('jk');
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  await expect(memory).toHaveValue(`${before}jk`);
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Backspace');
+  await memory.evaluate((el) => (el as HTMLElement).blur());
+
+  await page.keyboard.press('?');
+  await expect(page.getByRole('dialog', { name: '鍵盤快速鍵' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+
+  await page.keyboard.press('/');
+  await expect(
+    page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD'),
+  ).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  await waitForAppBarReady(page);
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+  await waitForAppBarReady(page);
+
+  await page.locator('a[data-date="2025-11-01"]').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('a[data-date="2025-11-02"]')).toBeFocused();
+});
+
+test('Escape collapses an expanded phone note sheet before it zooms out', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  const collapsed = page.getByRole('button', { name: '展開筆記' });
+  await collapsed.click();
+  const expanded = page.getByRole('button', { name: '收合筆記' });
+  await expect(expanded).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  await expect(collapsed).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+});
+
+test('zooming out after scrolling into a different month lands on the day in view', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  await waitForAppBarReady(page);
+  await expect(page.locator('#day-2025-10-31')).toBeAttached();
+  await page
+    .locator('[data-event-id]', { hasText: 'Busy message 31' })
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
+
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/month\/2025-10$/);
+  await waitForAppBarReady(page);
+  await expect(page.getByRole('tablist', { name: '縮放' })).toBeInViewport();
+
+  const cell = page.locator('a[data-date="2025-10-31"]:visible');
+  await expect(cell).toHaveAttribute(
+    'style',
+    /view-transition-name: day-2025-10-31/,
+  );
+  await expect(cell).toBeFocused();
+
+  await cell.click();
+  await expect(
+    page.locator('#day-2025-10-31 [data-morph="day-2025-10-31"]'),
+  ).toHaveAttribute('style', /view-transition-name: day-2025-10-31/);
+});
+
+test('under reduced motion no element morphs', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/month/2025-11');
+  await page.locator('a[data-date="2025-11-01"]:visible').click();
+  const name = await page
+    .locator('#day-2025-11-01 [data-morph="day-2025-11-01"]')
+    .evaluate((el) => getComputedStyle(el).viewTransitionName);
+  expect(name).toBe('none');
+});
+
+test('a transient view-transition name is cleared once the transition finishes, and the app bar keeps its own', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.locator('a[data-morph="month-2025-11"]:visible').click();
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  await waitForAppBarReady(page);
+
+  const monthSection = page.locator('section[data-morph="month-2025-11"]');
+  await expect
+    .poll(() =>
+      monthSection.evaluate((el) => getComputedStyle(el).viewTransitionName),
+    )
+    .toBe('none');
+
+  const headerName = await page
+    .locator('header')
+    .first()
+    .evaluate((el) => getComputedStyle(el).viewTransitionName);
+  expect(headerName).toBe('app-bar');
+});
+
+test('a morph name on an element parsed after the page is revealed is cleared too', async ({
+  page,
+}) => {
+  await page.route('**/__slow.js', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await route.fulfill({ contentType: 'text/javascript', body: '' });
+  });
+  await page.route('**/month/2025-11', async (route) => {
+    const response = await route.fetch();
+    const late =
+      '<script src="/__slow.js"></script>' +
+      '<div id="late-morph" data-morph style="view-transition-name: late"></div>';
+    await route.fulfill({
+      response,
+      body: (await response.text()).replace('</body>', `${late}</body>`),
+    });
+  });
+  await page.addInitScript(() => {
+    window.addEventListener('pagereveal', () => {
+      document.documentElement.dataset['revealedWhile'] = document.readyState;
+    });
+  });
+  await page.goto('/month/2025-11');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-revealed-while',
+    'loading',
+  );
+  await expect
+    .poll(() =>
+      page
+        .locator('#late-morph')
+        .evaluate((el) => getComputedStyle(el).viewTransitionName),
+    )
+    .toBe('none');
+});
+
+test.describe('on a phone', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  test('the notes sheet peeks, expands, and Escape returns it to the peek', async ({
+    page,
+  }) => {
+    await page.goto('/day/2025-11-02');
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await expect(sheet).toContainText('已儲存');
+    await expect(sheet.getByLabel('當天的回憶')).toHaveCount(0);
+    await sheet.getByRole('button', { name: '展開筆記' }).click();
+    await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(sheet.getByLabel('當天的回憶')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  });
+
+  test('rapid Tab presses stay inside the expanded sheet', async ({ page }) => {
+    await page.goto('/day/2025-11-02');
+    await waitForAppBarReady(page);
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await sheet.getByRole('button', { name: '展開筆記' }).click();
+    await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
+    const url = page.url();
+    await page.evaluate(() => {
+      const w = window as Window & { leaks?: number };
+      w.leaks = 0;
+      document.addEventListener('focusin', (e) => {
+        if ((e.target as Element).closest('main')) w.leaks = (w.leaks ?? 0) + 1;
+      });
+    });
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press('Tab', { delay: 0 });
+      expect(
+        await page.evaluate(
+          () => (window as Window & { leaks?: number }).leaks,
+        ),
+      ).toBe(0);
+    }
+    expect(page.url()).toBe(url);
+  });
+
+  test('closing the expanded sheet returns focus to its toggle', async ({
+    page,
+  }) => {
+    await page.goto('/day/2025-11-02');
+    await waitForAppBarReady(page);
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await sheet.getByRole('button', { name: '展開筆記' }).click();
+    await sheet.getByRole('button', { name: '關閉' }).click();
+    await expect(sheet.getByLabel('當天的回憶')).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: '展開筆記' })).toBeFocused();
+  });
+
+  test('a note opened on desktop keeps the page inert after shrinking to a phone', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/day/2025-11-02');
+    await waitForAppBarReady(page);
+    const memory = page
+      .getByRole('complementary', { name: '筆記' })
+      .getByLabel('當天的回憶');
+    await expect(async () => {
+      await page.evaluate(() =>
+        document.dispatchEvent(new Event('memories:focus-note')),
+      );
+      await expect(memory).toBeFocused({ timeout: 500 });
+    }).toPass();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (document.querySelector('body > main') as HTMLElement).inert,
+        ),
+      )
+      .toBe(true);
+  });
+});
+
+test('a long press on a message opens 眉批 and 複製', async ({ page }) => {
+  await page.goto('/day/2025-11-03');
+  await page
+    .locator('astro-island[component-url*="StreamMenu"]:not([ssr])')
+    .waitFor({ state: 'attached' });
+  const row = page.locator('[data-event-id]', { hasText: 'Coffee first' });
+  const box = await row.boundingBox();
+  await row.dispatchEvent('pointerdown', {
+    pointerType: 'touch',
+    pointerId: 1,
+    isPrimary: true,
+    bubbles: true,
+    clientX: (box?.x ?? 0) + 20,
+    clientY: (box?.y ?? 0) + 10,
+  });
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitem')).toHaveText(['眉批', '複製']);
+  await menu.getByRole('menuitem', { name: '眉批' }).click();
+  await expect(
+    page
+      .getByRole('complementary', { name: '筆記' })
+      .getByLabel(/^眉批：Coffee first/),
+  ).toBeFocused();
+});
+
+test('the next day shows skeleton rows while it loads', async ({ page }) => {
+  let requests = 0;
+  await page.route('**/day/2025-11-03/partial', async (route) => {
+    requests += 1;
+    await new Promise((r) => setTimeout(r, 800));
+    await route.continue();
+  });
+  await page.goto('/day/2025-11-02');
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(
+    page.locator('[data-load="next"] [data-skeleton]'),
+  ).toBeVisible();
+  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  await expect(page.locator('[data-load="next"] [data-skeleton]')).toBeHidden();
+  expect(requests).toBe(1);
+});
+
+test.describe('touch gestures on a phone', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  const touch = async (page: Page) => {
+    const cdp = await page.context().newCDPSession(page);
+    return (
+      type: 'touchStart' | 'touchMove' | 'touchEnd',
+      touchPoints: { x: number; y: number; id: number }[],
+    ) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+  };
+
+  const centreOf = async (page: Page, target: Locator) => {
+    await page.waitForLoadState('networkidle');
+    let at: { x: number; y: number } | undefined;
+    await expect
+      .poll(async () => {
+        at = await target.evaluate((el) => {
+          el.scrollIntoView({ block: 'center' });
+          const box = el.getBoundingClientRect();
+          const point = { x: box.x + 24, y: box.y + box.height / 2 };
+          return el.contains(document.elementFromPoint(point.x, point.y))
+            ? point
+            : undefined;
+        });
+        return at;
+      })
+      .toBeDefined();
+    if (!at) throw new Error('the target cannot be hit');
+    return at;
+  };
+
+  const ready = async (page: Page, date: string) => {
+    await page.goto(`/day/${date}`);
+    await waitForAppBarReady(page);
+    await page
+      .locator('astro-island[component-url*="StreamMenu"]:not([ssr])')
+      .waitFor({ state: 'attached' });
+  };
+
+  test('holding a message opens the menu and the release neither closes it nor clicks', async ({
+    page,
+  }) => {
+    await ready(page, '2025-11-01');
+    await waitForLightboxReady(page);
+    const send = await touch(page);
+    const at = await centreOf(
+      page,
+      page.locator('#day-2025-11-01 [data-burst] > li[data-event-id]').first(),
+    );
+    await send('touchStart', [{ ...at, id: 1 }]);
+    await page.waitForTimeout(700);
+    await send('touchEnd', []);
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+    await page.waitForTimeout(300);
+    await expect(menu).toBeVisible();
+    await expect(
+      page.getByRole('dialog').filter({ hasText: '照片 · ' }),
+    ).toHaveCount(0);
+    await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+    await expect(page.locator('html[data-overlays]')).toHaveCount(1);
+
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+
+    await page.touchscreen.tap(at.x, at.y);
+    await expect(
+      page.getByRole('dialog').filter({ hasText: '照片 · ' }),
+    ).toBeVisible();
+    await expect(page.getByRole('menu')).toHaveCount(0);
+  });
+
+  test('複製 in the long-press menu copies the message text', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await ready(page, '2025-11-03');
+    const send = await touch(page);
+    const at = await centreOf(
+      page,
+      page.locator('[data-event-id]', { hasText: 'Coffee first' }),
+    );
+    await send('touchStart', [{ ...at, id: 1 }]);
+    await page.waitForTimeout(700);
+    await send('touchEnd', []);
+    const copy = page.getByRole('menuitem', { name: '複製' });
+    await expect(copy).toBeVisible();
+    const box = await copy.boundingBox();
+    await page.touchscreen.tap(
+      (box?.x ?? 0) + (box?.width ?? 0) / 2,
+      (box?.y ?? 0) + (box?.height ?? 0) / 2,
+    );
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toBe('Coffee first');
+    await expect(page.locator('html[data-overlays]')).toHaveCount(0);
+  });
+
+  test('a finger that moves or lifts early does not open the menu', async ({
+    page,
+  }) => {
+    await ready(page, '2025-11-03');
+    const send = await touch(page);
+    const at = await centreOf(
+      page,
+      page.locator('[data-event-id]', { hasText: 'Coffee first' }),
+    );
+    await send('touchStart', [{ ...at, id: 1 }]);
+    await send('touchMove', [{ x: at.x, y: at.y + 30, id: 1 }]);
+    await page.waitForTimeout(700);
+    await send('touchEnd', []);
+    await send('touchStart', [{ ...at, id: 1 }]);
+    await page.waitForTimeout(150);
+    await send('touchEnd', []);
+    await page.waitForTimeout(500);
+    await expect(page.getByRole('menu')).toHaveCount(0);
+  });
+
+  test('pinching two fingers together zooms out to the month', async ({
+    page,
+  }) => {
+    await ready(page, '2025-11-03');
+    const send = await touch(page);
+    const at = await centreOf(
+      page,
+      page.locator('[data-event-id]', { hasText: 'Coffee first' }),
+    );
+    const pinch = async (from: number, to: number) => {
+      const pair = (d: number) => [
+        { x: 195 - d / 2, y: at.y, id: 1 },
+        { x: 195 + d / 2, y: at.y, id: 2 },
+      ];
+      await send('touchStart', pair(from));
+      for (const d of [from - (from - to) / 2, to])
+        await send('touchMove', pair(d));
+      await send('touchEnd', []);
+    };
+
+    await page.evaluate(() =>
+      document.documentElement.setAttribute('data-overlays', '1'),
+    );
+    await pinch(200, 100);
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+    await page.evaluate(() =>
+      document.documentElement.removeAttribute('data-overlays'),
+    );
+
+    await pinch(200, 170);
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+
+    await pinch(200, 100);
+    await expect(page).toHaveURL(/\/month\/2025-11$/);
+  });
+});
+
+test('a failed next day keeps its notice until the reader scrolls again', async ({
+  page,
+}) => {
+  let requests = 0;
+  let fail = true;
+  await page.route('**/day/2025-11-03/partial', async (route) => {
+    requests += 1;
+    if (fail) await route.abort();
+    else await route.continue();
+  });
+  await page.goto('/day/2025-11-02');
+  await page.waitForLoadState('networkidle');
+  const notice = page.locator('[data-load="next"] [data-failed]');
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(notice).toBeVisible();
+  await page.waitForTimeout(2500);
+  await expect(notice).toBeVisible();
+  await expect(page.locator('[data-load="next"] [data-skeleton]')).toBeHidden();
+  expect(requests).toBe(1);
+
+  fail = false;
+  await page.mouse.wheel(0, 40);
+  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  await expect(notice).toBeHidden();
+  expect(requests).toBe(2);
+});
+
+test('a hidden source stays hidden from the first paint', async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem('memories:hidden-sources', '["photo"]'),
+  );
+  await page.goto('/day/2025-11-01', { waitUntil: 'domcontentloaded' });
+  const early = await page.evaluate(() => {
+    const photo = document.querySelector(
+      '#day-2025-11-01 [data-source="photo"]',
+    );
+    return {
+      hidden: document.documentElement.hasAttribute('data-hide-photo'),
+      display: photo && getComputedStyle(photo).display,
+    };
+  });
+  expect(early).toEqual({ hidden: true, display: 'none' });
+
+  await page
+    .locator('astro-island[component-url*="SourceFilter"]:not([ssr])')
+    .waitFor({ state: 'attached' });
+  const toggle = page.getByRole('button', { name: '照片', exact: true });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(
+    page.getByRole('button', { name: 'LINE', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('html[data-hide-photo]')).toHaveCount(1);
+  await toggle.click();
+  await expect(page.locator('html[data-hide-photo]')).toHaveCount(0);
 });

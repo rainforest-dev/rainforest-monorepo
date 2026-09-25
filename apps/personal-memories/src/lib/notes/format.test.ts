@@ -7,7 +7,7 @@ import {
   parseNote,
   serializeNote,
 } from './format.ts';
-import type { DayNote } from './types.ts';
+import type { Annotation, DayNote } from './types.ts';
 
 const NOTE: DayNote = {
   date: '2025-11-01',
@@ -326,6 +326,69 @@ describe('hasUserFrontmatter', () => {
     expect(hasUserFrontmatter({ mood: 'good' })).toBe(true);
     expect(hasUserFrontmatter({ tags: ['memories', 'trip'] })).toBe(true);
     expect(hasUserFrontmatter({ tags: 'trip' })).toBe(true);
+  });
+});
+
+describe('annotation authors', () => {
+  const signed: Annotation = {
+    eventId: 'abc',
+    at: '2025-11-01T09:05:00+08:00',
+    source: 'line',
+    author: 'Alice',
+    excerpt: 'hi',
+    body: '寫的',
+    by: 'Bob 🌷',
+  };
+  const note: DayNote = {
+    ...emptyNote('2025-11-01'),
+    annotations: [signed],
+  };
+
+  it('writes by: last in the anchor and reads it back byte for byte', () => {
+    const text = serializeNote(note);
+    expect(text).toContain(
+      '%% ev:abc at:2025-11-01T09:05:00+08:00 src:line by:Bob 🌷 %%',
+    );
+    const parsed = parseNote(text, '2025-11-01');
+    expect(parsed.annotations[0]?.by).toBe('Bob 🌷');
+    expect(serializeNote(parsed)).toBe(text);
+  });
+
+  it('still reads anchors written before by: existed', () => {
+    const old = serializeNote(note).replace(' by:Bob 🌷', '');
+    const [annotation] = parseNote(old, '2025-11-01').annotations;
+    expect(annotation && 'by' in annotation).toBe(false);
+    expect(annotation?.eventId).toBe('abc');
+  });
+
+  it('never lets a name break the comment', () => {
+    const text = serializeNote({
+      ...note,
+      annotations: [{ ...signed, by: 'Eve %% x\ny' }],
+    });
+    expect(text).toContain('src:line by:Eve x y %%');
+  });
+
+  it('round-trips a name that truncates cleanly at 40 characters without a trailing space', () => {
+    const raw = `${'x'.repeat(39)} more text that gets cut off`;
+    const text = serializeNote({
+      ...note,
+      annotations: [{ ...signed, by: raw }],
+    });
+    const parsed = parseNote(text, '2025-11-01');
+    expect(parsed.annotations[0]?.by).toBe('x'.repeat(39));
+    expect(serializeNote(parsed)).toBe(text);
+  });
+
+  it('round-trips a name that truncates at an emoji code-point boundary without splitting it', () => {
+    const raw = `${'y'.repeat(39)}🌷more text`;
+    const text = serializeNote({
+      ...note,
+      annotations: [{ ...signed, by: raw }],
+    });
+    const parsed = parseNote(text, '2025-11-01');
+    expect(parsed.annotations[0]?.by).toBe(`${'y'.repeat(39)}🌷`);
+    expect(serializeNote(parsed)).toBe(text);
   });
 });
 

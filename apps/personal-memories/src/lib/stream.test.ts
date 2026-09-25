@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { groupRuns, hourCounts, ownersFromEnv, thumbSrcset } from './stream.ts';
+import {
+  authorAccents,
+  firstEventPerHour,
+  groupRuns,
+  hourCounts,
+  initialOf,
+  ownersFromEnv,
+  thumbSrcset,
+} from './stream.ts';
 import type { TimelineEvent } from './timeline.ts';
 
 const ev = (
@@ -106,6 +114,59 @@ describe('hourCounts', () => {
     expect(counts).toHaveLength(24);
     expect(counts[0]).toBe(1);
     expect(counts[9]).toBe(2);
+  });
+});
+
+describe('firstEventPerHour', () => {
+  it('maps each hour to its first event and leaves empty hours undefined', () => {
+    const firsts = firstEventPerHour([
+      ev('a', 'Alice', 'line', '2025-11-01T09:05:00+08:00'),
+      ev('b', 'Bob', 'line', '2025-11-01T09:40:00+08:00'),
+      ev('c', 'Alice', 'line', '2025-11-01T13:00:00+08:00'),
+    ]);
+    expect(firsts).toHaveLength(24);
+    expect(firsts[9]).toBe('a');
+    expect(firsts[13]).toBe('c');
+    expect(firsts[10]).toBeUndefined();
+  });
+
+  it('buckets by the Taipei hour whatever offset the event carries', () => {
+    expect(
+      firstEventPerHour([ev('x', 'Bob', 'line', '2025-11-01T01:30:00Z')])[9],
+    ).toBe('x');
+  });
+});
+
+describe('authorAccents', () => {
+  it('ranks authors by message count, alphabetically on ties, ignoring photos', () => {
+    const accents = authorAccents([
+      ev('1', 'Bob'),
+      ev('2', 'Bob'),
+      ev('3', 'Alice'),
+      ev('4', 'Carol'),
+      ev('5', 'photo', 'photo'),
+    ]);
+    expect([...accents]).toEqual([
+      ['Bob', 1],
+      ['Alice', 2],
+      ['Carol', 3],
+    ]);
+  });
+
+  it('cycles after five authors and returns the same map for the same events', () => {
+    const events = ['A', 'B', 'C', 'D', 'E', 'F'].map((a, i) =>
+      ev(String(i), a),
+    );
+    const accents = authorAccents(events);
+    expect(accents.get('F')).toBe(1);
+    expect(authorAccents(events)).toBe(accents);
+  });
+});
+
+describe('initialOf', () => {
+  it('takes the first character, upper-cased', () => {
+    expect(initialOf('alice 🌷')).toBe('A');
+    expect(initialOf('  ')).toBe('?');
   });
 });
 

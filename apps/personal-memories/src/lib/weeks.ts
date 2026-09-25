@@ -3,7 +3,7 @@ import type { TimelineEvent, TimelineSource } from './timeline.ts';
 const TAIPEI_OFFSET_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const WEEKDAYS_ZH = ['日', '一', '二', '三', '四', '五', '六'];
+export const WEEKDAYS_ZH = ['日', '一', '二', '三', '四', '五', '六'];
 
 export const ISO_WEEK = /^(\d{4})-W(\d{2})$/;
 
@@ -33,6 +33,10 @@ export function taipeiDate(at: string): string {
 export function taipeiTime(at: string): string {
   const shifted = new Date(Date.parse(at) + TAIPEI_OFFSET_MS);
   return `${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}`;
+}
+
+export function taipeiHour(at: string): number {
+  return new Date(Date.parse(at) + TAIPEI_OFFSET_MS).getUTCHours();
 }
 
 /** ISO 8601 week (`2026-W38`) of the instant in Asia/Taipei. */

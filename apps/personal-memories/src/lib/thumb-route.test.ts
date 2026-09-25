@@ -4,13 +4,13 @@ import { join } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../lib/store.ts', () => ({
+vi.mock('./store.ts', () => ({
   dataDir: () => '/data',
   getTimeline: () => ({ status: 'ready' }),
   mediaFile: () => srcPath,
 }));
 
-vi.mock('../../lib/thumbs.ts', () => ({
+vi.mock('./thumbs.ts', () => ({
   ensureThumb: () => Promise.reject(new Error('sharp cannot decode source')),
   parseWidth: () => 480,
   thumbCacheDir: () => '/cache',
@@ -21,7 +21,7 @@ const root = mkdtempSync(join(tmpdir(), 'memories-thumb-route-'));
 const srcPath = join(root, 'undecodable.heic');
 writeFileSync(srcPath, Buffer.from('not a real image'));
 
-const { GET } = await import('./[id].ts');
+const { GET } = await import('../pages/thumb/[id].ts');
 
 describe('GET /thumb/[id]', () => {
   it('redirects to /media/<id> when the source cannot be encoded', async () => {

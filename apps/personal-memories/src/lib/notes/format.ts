@@ -2,6 +2,7 @@ import { parse, stringify } from 'yaml';
 
 import type { TimelineSource } from '../timeline.ts';
 import { taipeiTime } from '../weeks.ts';
+import { cleanName } from './authors.ts';
 import {
   type Annotation,
   ANNOTATIONS_HEADING,
@@ -10,7 +11,7 @@ import {
 } from './types.ts';
 
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n?/;
-const ANCHOR = /^%% ev:(\S+) at:(\S+) src:(line|slack|photo) %%$/;
+const ANCHOR = /^%% ev:(\S+) at:(\S+) src:(line|slack|photo)(?: by:(.+?))? %%$/;
 
 export function emptyNote(date: string): DayNote {
   return { date, frontmatter: {}, body: '', annotations: [] };
@@ -71,7 +72,7 @@ function parseAnnotation(block: string): Annotation {
     if (line.trim()) break;
   }
   const author = anchor ? heading.split(' · ').slice(2).join(' · ') : heading;
-  return {
+  const annotation: Annotation = {
     eventId: anchor?.[1] ?? '',
     at: anchor?.[2] ?? '',
     source: (anchor?.[3] as TimelineSource | undefined) ?? 'line',
@@ -79,6 +80,8 @@ function parseAnnotation(block: string): Annotation {
     excerpt: quote.join(' '),
     body: trimBlankLines(lines.slice(i).join('\n')),
   };
+  if (anchor?.[4]) annotation.by = anchor[4];
+  return annotation;
 }
 
 export function parseNote(text: string, date: string): DayNote {
@@ -160,7 +163,11 @@ function serializeAnnotation(a: Annotation): string {
     : a.author;
   const parts = [`### ${heading}`];
   if (a.excerpt) parts.push(`> ${a.excerpt}`);
-  if (a.eventId) parts.push(`%% ev:${a.eventId} at:${a.at} src:${a.source} %%`);
+  const by = a.by ? cleanName(a.by) : '';
+  if (a.eventId)
+    parts.push(
+      `%% ev:${a.eventId} at:${a.at} src:${a.source}${by ? ` by:${by}` : ''} %%`,
+    );
   if (a.body.trim()) parts.push(a.body.trim());
   return parts.join('\n\n');
 }

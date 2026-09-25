@@ -1,0 +1,41 @@
+---
+import type { MonthCell } from '../../lib/month-view.ts';
+import { thumbUrl } from '../../lib/stream.ts';
+import { dayHeading } from '../../lib/weeks.ts';
+
+type Props = {
+  date: string;
+  detail: string;
+  anchor: string;
+  cell?: MonthCell | undefined;
+};
+
+const { date, detail, anchor, cell } = Astro.props;
+---
+
+<span
+  data-preview
+  aria-hidden="true"
+  style={`position-anchor: ${anchor}`}
+  class="bg-popover text-popover-foreground ring-foreground/10 pointer-events-none z-50 w-56 flex-col gap-1.5 rounded-xl p-3 text-left text-xs shadow-md ring-1"
+>
+  <span class="font-semibold tabular-nums">{dayHeading(date)}</span>
+  <span class="text-muted-foreground">{detail}</span>
+  {
+    cell?.cover ? (
+      <img
+        src={thumbUrl(cell.cover, 0, 240)}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        class="bg-muted mt-1 aspect-video w-full rounded-sm object-cover"
+      />
+    ) : cell?.memory ? (
+      <span class="text-meta line-clamp-2">{cell.memory}</span>
+    ) : cell?.excerpt ? (
+      <span class="text-meta text-muted-foreground line-clamp-2">
+        「{cell.excerpt}」
+      </span>
+    ) : null
+  }
+</span>

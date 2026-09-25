@@ -1,25 +1,33 @@
 ---
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@rainforest-dev/rainforest-react';
+
 type Props = { path: string | undefined };
 
 const { path } = Astro.props;
 ---
 
-<section class="bg-card text-card-foreground space-y-3 rounded-lg border p-6">
-  <h2 class="text-lg font-semibold">還沒有時間軸</h2>
-  <p>
-    {
-      path ? (
-        <>
-          找不到 <code>{path}</code>。
-        </>
-      ) : (
-        <>
-          尚未設定 <code>MEMORIES_DATA_DIR</code>。
-        </>
-      )
-    }
-    先執行匯入：
-  </p>
-  <pre
-    class="bg-muted overflow-x-auto rounded p-3 text-sm"><code>MEMORIES_DATA_DIR=… pnpm nx run personal-memories:ingest</code></pre>
-</section>
+<Alert>
+  <AlertTitle>還沒有時間軸</AlertTitle>
+  <AlertDescription>
+    <p>
+      {
+        path ? (
+          <>
+            找不到 <code>{path}</code>。
+          </>
+        ) : (
+          <>
+            尚未設定 <code>MEMORIES_DATA_DIR</code>。
+          </>
+        )
+      }
+      先執行匯入：
+    </p>
+    <pre
+      class="bg-muted mt-2 overflow-x-auto rounded-md p-3 text-xs"><code>MEMORIES_DATA_DIR=… pnpm nx run personal-memories:ingest</code></pre>
+  </AlertDescription>
+</Alert>

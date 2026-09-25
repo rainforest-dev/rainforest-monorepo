@@ -1,0 +1,70 @@
+---
+import EmptyState from '../../components/EmptyState.astro';
+import MonthCalendar from '../../components/month/MonthCalendar.astro';
+import { MonthNav } from '../../components/month/MonthNav.tsx';
+import Layout from '../../layouts/Layout.astro';
+import { indexDays } from '../../lib/days.ts';
+import { monthView } from '../../lib/month-view.ts';
+import { MONTH_RE, monthLabel, nearestDate } from '../../lib/months.ts';
+import { levelHrefs } from '../../lib/nav.ts';
+import { notesStore } from '../../lib/notes/store.ts';
+import { getTimeline } from '../../lib/store.ts';
+import { dayHeading } from '../../lib/weeks.ts';
+import { morphFromRequest } from '../../lib/zoom.ts';
+
+const { month = '' } = Astro.params;
+const morph = morphFromRequest(Astro.request, Astro.url);
+const state = getTimeline();
+const index =
+  state.status === 'ready' ? indexDays(state.timeline.events) : undefined;
+const store = notesStore();
+const view = index
+  ? monthView(index, month, store?.dates() ?? new Set(), (d) => store?.read(d))
+  : undefined;
+const nearest =
+  index && !view
+    ? MONTH_RE.test(month)
+      ? nearestDate(index.dates, `${month}-01`)
+      : index.dates.at(-1)
+    : undefined;
+if (index && !view) Astro.response.status = 404;
+const bar = MONTH_RE.test(month)
+  ? {
+      place: { level: 'month' as const, month },
+      hrefs: levelHrefs({ level: 'month', month }, index?.dates ?? []),
+    }
+  : {
+      place: { level: 'year' as const },
+      hrefs: levelHrefs({ level: 'year' }, index?.dates ?? []),
+    };
+---
+
+<Layout title={`${month} · Memories`} wide bar={bar}>
+  {
+    state.status === 'missing' ? (
+      <EmptyState path={state.path} />
+    ) : !view ? (
+      <p class="text-body">
+        這個月沒有紀錄。
+        {nearest && (
+          <a class="underline" href={`/day/${nearest}`}>
+            {dayHeading(nearest)}
+          </a>
+        )}
+      </p>
+    ) : (
+      <>
+        <header class="mb-6 flex items-center justify-between gap-4">
+          <h1 class="text-title font-semibold tracking-[-0.01em]">
+            {monthLabel(view.month)}
+          </h1>
+          <MonthNav client:idle prev={view.prev} next={view.next} />
+        </header>
+        {view.total === 0 && (
+          <p class="text-muted-foreground text-meta mb-4">這個月沒有紀錄</p>
+        )}
+        <MonthCalendar view={view} morph={morph} />
+      </>
+    )
+  }
+</Layout>

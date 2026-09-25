@@ -210,4 +210,30 @@ describe('NotesStore', () => {
       'invalid date',
     );
   });
+
+  it('writes a cover-only note and deletes it once the cover is cleared', () => {
+    const store = createNotesStore(root);
+    const first = store.write(
+      '2025-11-01',
+      { body: '', annotations: [], cover: 'DDDD' },
+      '',
+    );
+    const path = join(root, '2025', '2025-11-01.md');
+    expect(readFileSync(path, 'utf8')).toMatch(/^cover: DDDD$/m);
+    const v1 = (first as { version: string }).version;
+    expect(
+      store.write('2025-11-01', { body: '', annotations: [] }, v1),
+    ).toEqual({
+      ok: true,
+      version: '',
+    });
+    expect(existsSync(path)).toBe(false);
+  });
+
+  it('drops the cover when an edit omits it', () => {
+    const store = createNotesStore(root);
+    const first = store.write('2025-11-01', { ...EDIT, cover: 'DDDD' }, '');
+    store.write('2025-11-01', EDIT, (first as { version: string }).version);
+    expect(store.read('2025-11-01').note.cover).toBeUndefined();
+  });
 });

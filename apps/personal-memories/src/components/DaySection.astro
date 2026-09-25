@@ -1,23 +1,33 @@
 ---
+import { buttonVariants, cn } from '@rainforest-dev/rainforest-react';
+
+import { pickCover } from '../lib/cover.ts';
 import { excerptOf } from '../lib/notes/attach.ts';
+import { getTimeline } from '../lib/store.ts';
 import {
+  type Accent,
+  authorAccents,
+  firstEventPerHour,
   groupRuns,
   hourCounts,
+  initialOf,
   ownersFromEnv,
   thumbSrcset,
   thumbUrl,
 } from '../lib/stream.ts';
 import type { TimelineEvent, TimelineSource } from '../lib/timeline.ts';
 import { dayHeading, taipeiTime } from '../lib/weeks.ts';
+import { morphAttrs } from '../lib/zoom.ts';
 
 type Props = {
   date: string;
   events: TimelineEvent[];
   prev?: string | undefined;
   next?: string | undefined;
+  morph?: string | undefined;
 };
 
-const { date, events, prev, next } = Astro.props;
+const { date, events, prev, next, morph } = Astro.props;
 
 const BUSY_DAY = 100;
 const TILES = 4;
@@ -31,15 +41,39 @@ const ROW =
   'grid grid-cols-[42px_minmax(0,1fr)_12px] sm:grid-cols-[52px_minmax(0,1fr)_20px]';
 const GUTTER =
   'text-muted-foreground pl-1 text-xs leading-[25px] tabular-nums sm:pl-2';
-const INDENT = 'pl-7 sm:pl-12';
-const PILL_BASE =
-  'bg-popover text-popover-foreground absolute z-1 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-md opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100';
+const INDENT = 'ml-7 sm:ml-12';
+const PILL_BASE = cn(
+  buttonVariants({ variant: 'outline', size: 'xs' }),
+  'bg-popover absolute z-1 shadow-md opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100',
+);
 const PILL = `${PILL_BASE} pointer-coarse:pointer-events-none pointer-coarse:group-focus-within:pointer-events-auto`;
 const PHOTO_PILL = `${PILL_BASE} pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto`;
 
 const runs = groupRuns(events, ownersFromEnv());
+const timeline = getTimeline();
+const accents =
+  timeline.status === 'ready'
+    ? authorAccents(timeline.timeline.events)
+    : new Map<string, Accent>();
+const accentOf = (author: string): Accent => accents.get(author) ?? 1;
+const ACCENT_RULE: Record<Accent, string> = {
+  1: 'border-chart-1/65',
+  2: 'border-chart-2/65',
+  3: 'border-chart-3/65',
+  4: 'border-chart-4/65',
+  5: 'border-chart-5/65',
+};
+const ACCENT_CHIP: Record<Accent, string> = {
+  1: 'bg-chart-1/15',
+  2: 'bg-chart-2/15',
+  3: 'bg-chart-3/15',
+  4: 'bg-chart-4/15',
+  5: 'bg-chart-5/15',
+};
 const hours = events.length >= BUSY_DAY ? hourCounts(events) : undefined;
+const firsts = hours ? firstEventPerHour(events) : undefined;
 const peak = Math.max(1, ...(hours ?? []));
+const pad2 = (n: number) => String(n).padStart(2, '0');
 
 const fileName = (path: string) => path.split(/[\\/]/).pop();
 const mediaUrl = (id: string, n: number) =>
@@ -52,45 +86,75 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
   data-day={date}
   data-prev={prev}
   data-next={next}
+  data-auto-cover={pickCover(events)?.id}
   class="mx-auto mb-10 max-w-[660px]"
 >
   <header
-    class="bg-background/90 border-border sticky top-0 z-10 mb-2 flex flex-col gap-2.5 border-b pb-2.5 pt-4 backdrop-blur-md sm:pb-3 sm:pt-[22px]"
+    class="bg-background/90 border-border top-(--app-bar-h) sticky z-10 mb-2 flex flex-col gap-2.5 border-b pb-2.5 pt-4 backdrop-blur-md sm:pb-3 sm:pt-[22px]"
   >
     <div class="flex items-baseline gap-3">
       <h2 class="text-heading font-semibold tabular-nums tracking-[-0.01em]">
-        <a href={`/day/${date}`}>{dayHeading(date)}</a>
+        <a
+          href={`/day/${date}`}
+          data-morph={`day-${date}`}
+          class="inline-block"
+          {...morphAttrs(`day-${date}`, morph)}
+        >
+          {dayHeading(date)}
+        </a>
       </h2>
       <span class="text-meta text-muted-foreground tabular-nums">
         {events.length} 則
       </span>
     </div>
     {
-      hours && (
-        <div class="flex flex-col gap-1" aria-hidden="true">
-          <div class="flex h-6 items-end gap-0.5">
-            {hours.map((count) => (
-              <div
-                class:list={[
-                  'min-h-0.5 flex-1 rounded-[1px]',
-                  count === 0
-                    ? 'bg-border'
-                    : count === peak
-                      ? 'bg-primary'
-                      : 'bg-primary/35',
-                ]}
-                style={`height: ${Math.max(8, (count / peak) * 100)}%`}
-              />
-            ))}
-          </div>
-          <div class="text-muted-foreground flex justify-between text-xs tabular-nums">
+      hours && firsts && (
+        <nav
+          aria-label="這一天的時段"
+          data-hour-strip
+          class="flex flex-col gap-1"
+        >
+          <ol class="flex h-6 items-end gap-0.5">
+            {hours.map((count, hour) => {
+              const first = firsts[hour];
+              const bar = [
+                'block w-full rounded-[1px]',
+                count === 0
+                  ? 'bg-border'
+                  : count === peak
+                    ? 'bg-primary'
+                    : 'bg-primary/35',
+              ];
+              const height = `height: ${Math.max(8, (count / peak) * 100)}%`;
+              return (
+                <li class="flex h-full flex-1 items-end">
+                  {first ? (
+                    <a
+                      href={`#ev-${first}`}
+                      data-hour={hour}
+                      aria-label={`${pad2(hour)} 點，${count} 則`}
+                      class="focus-visible:ring-ring flex h-full w-full items-end rounded-[1px] outline-none focus-visible:ring-2"
+                    >
+                      <span data-bar class:list={bar} style={height} />
+                    </a>
+                  ) : (
+                    <span class:list={bar} style={height} />
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          <div
+            aria-hidden="true"
+            class="text-muted-foreground flex justify-between text-xs tabular-nums"
+          >
             <span>00</span>
             <span>06</span>
             <span>12</span>
             <span>18</span>
             <span>24</span>
           </div>
-        </div>
+        </nav>
       )
     }
   </header>
@@ -98,17 +162,28 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
     {
       runs.map((run) =>
         run.kind === 'text' ? (
-          <li data-source={run.source} class="mt-[22px] first:mt-1.5">
-            <div class:list={[ROW, 'items-baseline py-0.5']}>
+          <li
+            data-source={run.source}
+            data-accent={accentOf(run.author)}
+            class="mt-[22px] first:mt-1.5"
+          >
+            <div class:list={[ROW, 'items-center py-0.5']}>
               <span />
               <div
-                class:list={[
-                  'flex items-baseline gap-1.5',
-                  run.isOwner && INDENT,
-                ]}
+                class:list={['flex items-center gap-2', run.isOwner && INDENT]}
               >
-                <span class="text-meta font-medium">{run.author}</span>
+                <span
+                  aria-hidden="true"
+                  class:list={[
+                    'text-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold',
+                    ACCENT_CHIP[accentOf(run.author)],
+                  ]}
+                >
+                  {initialOf(run.author)}
+                </span>
+                <span class="text-meta font-semibold">{run.author}</span>
                 <span class="text-muted-foreground text-xs">
+                  {' '}
                   {SOURCE_LABEL[run.source]}
                 </span>
               </div>
@@ -136,7 +211,11 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                   </span>
                   <div
                     data-row-body
-                    class:list={['min-w-0', run.isOwner && INDENT]}
+                    class:list={[
+                      'min-w-0 border-l-2 pl-3',
+                      ACCENT_RULE[accentOf(run.author)],
+                      run.isOwner && INDENT,
+                    ]}
                   >
                     {event.text && (
                       <p
@@ -207,6 +286,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
               <div class="flex items-baseline gap-1.5">
                 <span class="text-meta font-medium">照片</span>
                 <span class="text-muted-foreground text-xs tabular-nums">
+                  {' '}
                   {run.events.length} 張
                 </span>
               </div>
@@ -233,6 +313,9 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                       data-at={event.at}
                       data-author={event.author}
                       data-excerpt={excerptOf(event)}
+                      data-width={media?.width}
+                      data-height={media?.height}
+                      data-video={event.photo?.movie ? '' : undefined}
                       data-overflow={index >= TILES ? '' : undefined}
                       data-more={more > 0 ? '' : undefined}
                       class:list={[
@@ -242,6 +325,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                     >
                       <a
                         href={mediaUrl(event.id, 0)}
+                        data-lightbox
                         class="bg-muted relative block aspect-square overflow-hidden rounded-sm outline-none"
                       >
                         {media && (

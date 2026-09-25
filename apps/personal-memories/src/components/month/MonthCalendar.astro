@@ -1,0 +1,97 @@
+---
+import type { MonthCell, MonthView } from '../../lib/month-view.ts';
+import { dayHeading, WEEKDAYS_ZH } from '../../lib/weeks.ts';
+import { morphAttrs } from '../../lib/zoom.ts';
+import MonthCellBody from './MonthCellBody.astro';
+
+type Props = { view: MonthView; morph?: string | undefined };
+
+const { view, morph } = Astro.props;
+const FOCUS =
+  'focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
+const label = (c: MonthCell) =>
+  `${dayHeading(c.date)}，${c.total} 則${c.noted ? ' · 已寫回憶' : ''}`;
+const days = view.weeks.flat().filter((c): c is MonthCell => c !== null);
+const monthKey = `month-${view.month}`;
+---
+
+<section
+  data-month={view.month}
+  data-morph={monthKey}
+  tabindex="-1"
+  class="outline-none"
+  {...morphAttrs(monthKey, morph)}
+>
+  <div class="hidden sm:block">
+    <div
+      aria-hidden="true"
+      class="text-muted-foreground mb-2 grid grid-cols-7 gap-2 text-xs"
+    >
+      {WEEKDAYS_ZH.map((d) => <span class="px-2">{d}</span>)}
+    </div>
+    <ol class="grid grid-cols-7 gap-2">
+      {
+        view.weeks.flat().map((cell) =>
+          !cell ? (
+            <li aria-hidden="true" />
+          ) : (
+            <li>
+              {cell.total > 0 ? (
+                <a
+                  href={`/day/${cell.date}`}
+                  data-date={cell.date}
+                  data-morph={`day-${cell.date}`}
+                  aria-label={label(cell)}
+                  class:list={[
+                    'bg-card ring-border hover:bg-accent/65 flex h-[104px] flex-col gap-1.5 overflow-hidden rounded-lg p-2 ring-1',
+                    FOCUS,
+                  ]}
+                  {...morphAttrs(`day-${cell.date}`, morph)}
+                >
+                  <MonthCellBody cell={cell} layout="cell" />
+                </a>
+              ) : (
+                <div
+                  data-date={cell.date}
+                  class="ring-border text-muted-foreground text-meta h-[104px] rounded-lg p-2 tabular-nums ring-1 ring-inset"
+                >
+                  {cell.day}
+                </div>
+              )}
+            </li>
+          ),
+        )
+      }
+    </ol>
+  </div>
+  <ol class="divide-border flex flex-col divide-y sm:hidden">
+    {
+      days.map((cell) =>
+        cell.total > 0 ? (
+          <li>
+            <a
+              href={`/day/${cell.date}`}
+              data-date={cell.date}
+              data-morph={`day-${cell.date}`}
+              aria-label={label(cell)}
+              class:list={[
+                'grid h-16 grid-cols-[40px_52px_1fr_auto] items-center gap-2',
+                FOCUS,
+              ]}
+              {...morphAttrs(`day-${cell.date}`, morph)}
+            >
+              <MonthCellBody cell={cell} layout="row" />
+            </a>
+          </li>
+        ) : (
+          <li
+            data-date={cell.date}
+            class="text-muted-foreground text-meta flex h-10 items-center tabular-nums"
+          >
+            {cell.day}
+          </li>
+        ),
+      )
+    }
+  </ol>
+</section>
