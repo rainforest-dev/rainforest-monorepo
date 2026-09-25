@@ -39,6 +39,7 @@ test('a day shows messages and photos in order, with the source filter', async (
   await expect(day.getByRole('heading')).toHaveText('2025-11-01（週六）');
   // content-visibility:auto defers layout until the section is in view.
   await expect(day).toContainText('照片 7 張');
+  await expect(day).toContainText('Alice 🌷 LINE');
   // content-visibility:auto blanks innerText pre-render; textContent needs no layout.
   const texts = await day
     .locator('[data-event-id]')
@@ -53,8 +54,8 @@ test('a day shows messages and photos in order, with the source filter', async (
   await expect
     .poll(
       () =>
-        photo.evaluate(
-          (img: HTMLImageElement) => img.complete && img.naturalWidth,
+        photo.evaluate((img: HTMLImageElement) =>
+          img.complete ? img.naturalWidth : 0,
         ),
       { timeout: 15_000 },
     )
