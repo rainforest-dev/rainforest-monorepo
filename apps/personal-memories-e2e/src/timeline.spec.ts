@@ -763,15 +763,21 @@ test.describe('on a phone', () => {
     await sheet.getByRole('button', { name: '展開筆記' }).click();
     await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
     const url = page.url();
-    for (let i = 0; i < 12; i++) await page.keyboard.press('Tab', { delay: 0 });
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            !!document.activeElement?.closest('[data-slot="sheet-content"]'),
+    await page.evaluate(() => {
+      const w = window as Window & { leaks?: number };
+      w.leaks = 0;
+      document.addEventListener('focusin', (e) => {
+        if ((e.target as Element).closest('main')) w.leaks = (w.leaks ?? 0) + 1;
+      });
+    });
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press('Tab', { delay: 0 });
+      expect(
+        await page.evaluate(
+          () => (window as Window & { leaks?: number }).leaks,
         ),
-      )
-      .toBe(true);
+      ).toBe(0);
+    }
     expect(page.url()).toBe(url);
   });
 
@@ -785,5 +791,26 @@ test.describe('on a phone', () => {
     await sheet.getByRole('button', { name: '關閉' }).click();
     await expect(sheet.getByLabel('當天的回憶')).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: '展開筆記' })).toBeFocused();
+  });
+
+  test('a note opened on desktop keeps the page inert after shrinking to a phone', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/day/2025-11-02');
+    await waitForAppBarReady(page);
+    await page.evaluate(() =>
+      document.dispatchEvent(new Event('memories:focus-note')),
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (document.querySelector('body > main') as HTMLElement).inert,
+        ),
+      )
+      .toBe(true);
   });
 });

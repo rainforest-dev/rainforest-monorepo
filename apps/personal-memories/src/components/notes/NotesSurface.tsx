@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@rainforest-dev/rainforest-react';
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { useMediaQuery } from '../useMediaQuery.ts';
 import { useOverlay } from '../useOverlay.ts';
@@ -37,12 +37,11 @@ export function NotesSurface({
   const desktop = useMediaQuery(DESKTOP);
   const modal = !desktop && expanded;
   useOverlay(modal);
-  const popupRef = useRef<HTMLDivElement>(null);
+  const [popup, setPopup] = useState<HTMLDivElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const wasModal = useRef(false);
 
   useEffect(() => {
-    const popup = popupRef.current;
     if (!modal || !popup) return;
     let root: Element = popup;
     while (root.parentElement && root.parentElement !== document.body)
@@ -55,16 +54,16 @@ export function NotesSurface({
     return () => {
       for (const el of others) el.inert = false;
     };
-  }, [modal]);
+  }, [modal, popup]);
 
   useEffect(() => {
     const collapsed = wasModal.current && !modal;
     wasModal.current = modal;
     if (!collapsed) return;
     const active = document.activeElement;
-    if (active === document.body || popupRef.current?.contains(active))
+    if (active === document.body || popup?.contains(active))
       toggleRef.current?.focus({ preventScroll: true });
-  }, [modal]);
+  }, [modal, popup]);
 
   if (desktop) {
     return (
@@ -100,7 +99,7 @@ export function NotesSurface({
       disablePointerDismissal
     >
       <SheetContent
-        ref={popupRef}
+        ref={setPopup}
         initialFocus={false}
         showOverlay={expanded}
         showCloseButton={expanded}
