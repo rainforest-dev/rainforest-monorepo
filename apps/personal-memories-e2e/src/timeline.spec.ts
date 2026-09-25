@@ -498,18 +498,41 @@ test('the keyboard button opens the shortcuts overlay', async ({ page }) => {
 });
 
 test('the 年/月/日 tabs follow the day in view', async ({ page }) => {
-  await page.goto('/day/2025-11-02');
+  await page.goto('/day/2025-11-01');
   await waitForAppBarReady(page);
-  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
-  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  // 2025-10-31 loads eagerly above 2025-11-01 (Task 1 step 7); scrolling up
+  // into it must move the active day, and the tabs, to October.
+  await expect(page.locator('#day-2025-10-31')).toBeAttached();
   await page
-    .locator('#day-2025-11-03')
+    .locator('[data-event-id]', { hasText: 'Busy message 31' })
     .evaluate((el) => el.scrollIntoView({ block: 'start' }));
-  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
-  await expect(page.getByRole('tab', { name: '日' })).toHaveAttribute(
-    'href',
-    '/day/2025-11-03',
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
+  const monthTab = page.getByRole('tab', { name: '月' });
+  await expect(monthTab).toHaveAttribute('href', '/month/2025-10');
+  // The bar is sticky, so the tab must still be reachable without scrolling up.
+  await expect(monthTab).toBeInViewport();
+  await monthTab.click();
+  await expect(page).toHaveURL(/\/month\/2025-10$/);
+});
+
+test('the date jump ignores an Enter fired mid-IME composition', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  // An exact match selects through cmdk's own Enter, not this onKeyDown guard.
+  await input.fill('2025-11-20');
+  await expect(page.getByRole('dialog')).toContainText(
+    '沒有這一天，按 Enter 跳到最近的 2025-11-03',
   );
-  await page.getByRole('tab', { name: '月' }).click();
-  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  await input.dispatchEvent('keydown', {
+    key: 'Enter',
+    keyCode: 229,
+    isComposing: true,
+  });
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/day\/2025-11-03/);
 });
