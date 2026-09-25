@@ -33,18 +33,29 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   const memoryRef = useRef<HTMLTextAreaElement>(null);
-  const [focusTick, setFocusTick] = useState(0);
+  const pendingFocus = useRef(false);
+  const focusMemory = () => {
+    const el = memoryRef.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  };
   useEffect(() => {
     const onFocus = () => {
-      setOpen(true);
-      setFocusTick((n) => n + 1);
+      if (open) focusMemory();
+      else {
+        pendingFocus.current = true;
+        setOpen(true);
+      }
     };
     document.addEventListener('memories:focus-note', onFocus);
     return () => document.removeEventListener('memories:focus-note', onFocus);
-  }, []);
+  }, [open]);
   useEffect(() => {
-    if (focusTick) memoryRef.current?.focus();
-  }, [focusTick, open]);
+    if (!pendingFocus.current) return;
+    pendingFocus.current = false;
+    focusMemory();
+  }, [open]);
   const readOnly = !payload.writable;
   const { date } = payload;
   const locked = readOnly || !hydrated;

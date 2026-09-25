@@ -46,7 +46,10 @@ export function startShortcuts() {
       const action = resolveShortcut({
         key: event.key,
         modified: event.metaKey || event.ctrlKey || event.altKey,
-        typing: !!active?.closest(TYPING) || event.isComposing,
+        typing:
+          !!active?.closest(TYPING) ||
+          event.isComposing ||
+          event.keyCode === 229,
         overlayOpen: isOverlayOpen() || event.defaultPrevented,
         onCell: !!active?.matches(CELL),
         place: placeOf(location.pathname),

@@ -1,5 +1,6 @@
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
+import { useOverlay } from '../useOverlay.ts';
 import type { SaveStatus } from './useNoteDraft.ts';
 
 type Props = {
@@ -79,10 +80,21 @@ export function BottomSheet({ open, onOpenChange, peek, children }: Props) {
   const handleRef = useRef<HTMLButtonElement>(null);
   const peekRef = useRef<HTMLButtonElement>(null);
   const focusAfter = useRef<'handle' | 'peek'>(undefined);
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  useEffect(() => {
+    const mql = matchMedia(DESKTOP);
+    setIsDesktop(mql.matches);
+    const onChange = () => setIsDesktop(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  useOverlay(open && !isDesktop);
 
   const change = (next: boolean) => {
     if (next === open) return;
-    const phone = !matchMedia(DESKTOP).matches;
+    const phone = !isDesktop;
     const inside = handleRef.current?.parentElement?.contains(
       document.activeElement,
     );
@@ -101,7 +113,7 @@ export function BottomSheet({ open, onOpenChange, peek, children }: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || matchMedia(DESKTOP).matches) return;
+      if (e.key !== 'Escape' || isDesktop) return;
       change(false);
     };
     document.addEventListener('keydown', onKey);

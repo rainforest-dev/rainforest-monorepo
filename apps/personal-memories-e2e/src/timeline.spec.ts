@@ -13,9 +13,6 @@ const waitForLightboxReady = (page: Page) =>
 const waitForAppBarReady = (page: Page) =>
   expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
 
-// macOS Chromium maps Home/End to page scroll, not caret movement; Cmd+Arrow moves the caret there.
-const END = process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End';
-
 const readNote = (date: string) =>
   existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
 
@@ -556,7 +553,6 @@ test('keys: j and k, n, ? and /, and Escape only when nothing else claims it', a
   const before = await memory.inputValue();
   await page.keyboard.press('n');
   await expect(memory).toBeFocused();
-  await page.keyboard.press(END);
   await page.keyboard.type('jk');
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/\/day\/2025-11-02$/);
@@ -589,4 +585,23 @@ test('keys: j and k, n, ? and /, and Escape only when nothing else claims it', a
   await page.locator('a[data-date="2025-11-01"]').focus();
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('a[data-date="2025-11-02"]')).toBeFocused();
+});
+
+test('Escape collapses an expanded phone note sheet before it zooms out', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  const collapsed = page.getByRole('button', { name: '展開筆記' });
+  await collapsed.click();
+  const expanded = page.getByRole('button', { name: '收合筆記' });
+  await expect(expanded).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  await expect(collapsed).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
 });
