@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState.astro';
 import Heatmap from '../components/Heatmap.astro';
 import Layout from '../layouts/Layout.astro';
 import { heatLevels, monthRows } from '../lib/days.ts';
+import { levelHrefs } from '../lib/nav.ts';
 import { getTimeline } from '../lib/store.ts';
 
 const state = getTimeline();
@@ -18,7 +19,17 @@ const level = heatLevels([...totals.values()]);
 const noted = new Set(notes.map((n) => n.id));
 ---
 
-<Layout title="Memories" wide>
+<Layout
+  title="Memories"
+  wide
+  bar={{
+    place: { level: 'year' },
+    hrefs: levelHrefs(
+      { level: 'year' },
+      days.map((d) => d.id),
+    ),
+  }}
+>
   <h1 class="sr-only">回憶</h1>
   {
     state.status === 'missing' ? (

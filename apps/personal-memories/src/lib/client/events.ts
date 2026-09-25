@@ -16,5 +16,7 @@ declare global {
     'memories:day-restored': CustomEvent<{ date: string }>;
     'memories:annotate': CustomEvent<AnnotateDetail>;
     'memories:lightbox': CustomEvent<LightboxDetail>;
+    'memories:open-jump': CustomEvent<undefined>;
+    'memories:open-shortcuts': CustomEvent<undefined>;
   }
 }

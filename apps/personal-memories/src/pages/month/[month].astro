@@ -6,6 +6,7 @@ import Layout from '../../layouts/Layout.astro';
 import { indexDays } from '../../lib/days.ts';
 import { monthView } from '../../lib/month-view.ts';
 import { MONTH_RE, monthLabel, nearestDate } from '../../lib/months.ts';
+import { levelHrefs } from '../../lib/nav.ts';
 import { notesStore } from '../../lib/notes/store.ts';
 import { getTimeline } from '../../lib/store.ts';
 import { dayHeading } from '../../lib/weeks.ts';
@@ -25,9 +26,18 @@ const nearest =
       : index.dates.at(-1)
     : undefined;
 if (index && !view) Astro.response.status = 404;
+const bar = MONTH_RE.test(month)
+  ? {
+      place: { level: 'month' as const, month },
+      hrefs: levelHrefs({ level: 'month', month }, index?.dates ?? []),
+    }
+  : {
+      place: { level: 'year' as const },
+      hrefs: levelHrefs({ level: 'year' }, index?.dates ?? []),
+    };
 ---
 
-<Layout title={`${month} · Memories`} wide>
+<Layout title={`${month} · Memories`} wide bar={bar}>
   {
     state.status === 'missing' ? (
       <EmptyState path={state.path} />

@@ -1,14 +1,19 @@
 ---
+import { Alert, AlertDescription } from '@rainforest-dev/rainforest-react';
 import { getLiveEntry } from 'astro:content';
 
 import DaySection from '../../components/DaySection.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import { NotePanel } from '../../components/NotePanel.tsx';
 import Layout from '../../layouts/Layout.astro';
+import { indexDays } from '../../lib/days.ts';
+import { levelHrefs } from '../../lib/nav.ts';
+import { nearestDate } from '../../lib/months.ts';
 import { viewerName } from '../../lib/notes/authors.ts';
 import { notePayload } from '../../lib/notes/payload.ts';
 import { notesStore } from '../../lib/notes/store.ts';
 import { getTimeline } from '../../lib/store.ts';
+import { dayHeading } from '../../lib/weeks.ts';
 
 const { date = '' } = Astro.params;
 const state = getTimeline();
@@ -27,6 +32,15 @@ const initial = day?.events
     )
   : undefined;
 
+const dates =
+  state.status === 'ready' ? indexDays(state.timeline.events).dates : [];
+const nearest = !day?.events ? nearestDate(dates, date) : undefined;
+const jumped = Astro.url.searchParams.has('nearest') && !!day?.events;
+const bar = {
+  place: { level: 'day' as const, date },
+  hrefs: levelHrefs({ level: 'day', date }, dates),
+};
+
 const SOURCES = [
   { source: 'line', label: 'LINE' },
   { source: 'slack', label: 'Slack' },
@@ -34,7 +48,7 @@ const SOURCES = [
 ] as const;
 ---
 
-<Layout title={`${date} · Memories`} wide>
+<Layout title={`${date} · Memories`} wide bar={bar}>
   <nav class="mb-4 text-sm">
     <a href="/" class="text-muted-foreground hover:underline">← 全部日子</a>
   </nav>
@@ -42,30 +56,46 @@ const SOURCES = [
     state.status === 'missing' ? (
       <EmptyState path={state.path} />
     ) : !day?.events || !initial ? (
-      <p>找不到 {date} 這一天。</p>
+      <p>
+        找不到 {date} 這一天。
+        {nearest && (
+          <a class="underline" href={`/day/${nearest}`}>
+            {dayHeading(nearest)}
+          </a>
+        )}
+      </p>
     ) : (
-      <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
-        <div data-stream class="pb-[172px] lg:pb-0">
-          <fieldset class="mb-4 flex gap-4 text-sm" data-source-filter>
-            <legend class="sr-only">來源</legend>
-            {SOURCES.map(({ source, label }) => (
-              <label class="flex items-center gap-1.5">
-                <input type="checkbox" value={source} checked />
-                {label}
-              </label>
-            ))}
-          </fieldset>
-          <div data-load="prev" data-date={day.prev} />
-          <DaySection
-            date={date}
-            events={day.events}
-            prev={day.prev}
-            next={day.next}
-          />
-          <div data-load="next" data-date={day.next} />
+      <>
+        {jumped && (
+          <Alert variant="info" className="mb-4">
+            <AlertDescription>
+              沒有這一天，已跳到最近的 {dayHeading(date)}
+            </AlertDescription>
+          </Alert>
+        )}
+        <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
+          <div data-stream class="pb-[172px] lg:pb-0">
+            <fieldset class="mb-4 flex gap-4 text-sm" data-source-filter>
+              <legend class="sr-only">來源</legend>
+              {SOURCES.map(({ source, label }) => (
+                <label class="flex items-center gap-1.5">
+                  <input type="checkbox" value={source} checked />
+                  {label}
+                </label>
+              ))}
+            </fieldset>
+            <div data-load="prev" data-date={day.prev} />
+            <DaySection
+              date={date}
+              events={day.events}
+              prev={day.prev}
+              next={day.next}
+            />
+            <div data-load="next" data-date={day.next} />
+          </div>
+          <NotePanel client:load initial={initial} />
         </div>
-        <NotePanel client:load initial={initial} />
-      </div>
+      </>
     )
   }
 </Layout>

@@ -1,2 +1,6 @@
-export const dayInUrl = () =>
-  /^\/day\/(\d{4}-\d{2}-\d{2})\/?$/.exec(location.pathname)?.[1];
+import { placeOf } from '../nav.ts';
+
+export function dayInUrl(): string | undefined {
+  const place = placeOf(location.pathname);
+  return place?.level === 'day' ? place.date : undefined;
+}

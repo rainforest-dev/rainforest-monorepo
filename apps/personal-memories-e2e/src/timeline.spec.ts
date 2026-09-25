@@ -10,6 +10,9 @@ const noteFile = (date: string) =>
 const waitForLightboxReady = (page: Page) =>
   expect(page.locator('html[data-lightbox-ready]')).toHaveCount(1);
 
+const waitForAppBarReady = (page: Page) =>
+  expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
+
 const readNote = (date: string) =>
   existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
 
@@ -455,4 +458,58 @@ test('a brand-new annotation keeps its established author across a second save, 
   expect(readFileSync(noteFile('2025-10-31'), 'utf8')).toMatch(
     / by:Alice %%$/m,
   );
+});
+
+test('the date jump opens a typed day, or the nearest one', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  await input.fill('2025-11-0');
+  await expect(page.getByRole('dialog').getByRole('option')).toHaveCount(3);
+  await input.fill('2025/11/2');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/day\/2025-11-02/);
+
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  await page
+    .getByRole('dialog')
+    .getByPlaceholder('YYYY-MM-DD')
+    .fill('2025-11-20');
+  await expect(page.getByRole('dialog')).toContainText(
+    '沒有這一天，按 Enter 跳到最近的 2025-11-03',
+  );
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('alert')).toContainText(
+    '沒有這一天，已跳到最近的 2025-11-03（週一）',
+  );
+});
+
+test('the keyboard button opens the shortcuts overlay', async ({ page }) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '鍵盤快速鍵' }).click();
+  const dialog = page.getByRole('dialog', { name: '鍵盤快速鍵' });
+  await expect(dialog).toContainText('在日子間移動');
+  await dialog.getByRole('button', { name: '關閉' }).click();
+  await expect(dialog).toBeHidden();
+});
+
+test('the 年/月/日 tabs follow the day in view', async ({ page }) => {
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  await page
+    .locator('#day-2025-11-03')
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await expect(page.getByRole('tab', { name: '日' })).toHaveAttribute(
+    'href',
+    '/day/2025-11-03',
+  );
+  await page.getByRole('tab', { name: '月' }).click();
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
 });
