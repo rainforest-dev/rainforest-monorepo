@@ -24,6 +24,32 @@ test('home is a heatmap of the fixture days', async ({ page }) => {
   );
 });
 
+test('the month calendar shows each day with its cover or a line', async ({
+  page,
+}) => {
+  const response = await page.goto('/month/2025-11');
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    '2025 年 11 月',
+  );
+  const cell = (date: string) => page.locator(`a[data-date="${date}"]:visible`);
+  await expect(cell('2025-11-01').locator('img')).toHaveAttribute(
+    'src',
+    /AAAAAAAA-0000-0000-0000-000000000001/,
+  );
+  await expect(cell('2025-11-03')).toContainText('「New week, new plans」');
+  await expect(page.locator('[data-date="2025-11-05"]:visible')).toHaveText(
+    '5',
+  );
+  await cell('2025-11-03').click();
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+
+  expect((await page.goto('/month/1999-01'))?.status()).toBe(404);
+  await expect(
+    page.getByRole('link', { name: '2025-10-31（週五）' }),
+  ).toBeVisible();
+});
+
 test('old week links redirect to their first day', async ({ page }) => {
   await page.goto('/week/2025-W44');
   await expect(page).toHaveURL(/\/day\/2025-10-31$/);

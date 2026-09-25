@@ -1,0 +1,68 @@
+---
+import { badgeVariants, Skeleton } from '@rainforest-dev/rainforest-react';
+
+import type { MonthCell } from '../../lib/month-view.ts';
+import { thumbSrcset, thumbUrl } from '../../lib/stream.ts';
+
+type Props = { cell: MonthCell; layout: 'cell' | 'row' };
+
+const { cell, layout } = Astro.props;
+const row = layout === 'row';
+const showText = row || !cell.cover;
+---
+
+<span
+  class:list={[
+    'text-meta flex items-center gap-1.5 font-medium tabular-nums',
+    !row && 'justify-between',
+  ]}
+>
+  <span class="flex items-center gap-1.5">
+    {cell.day}
+    {cell.noted && <span class="bg-foreground size-1.5 rounded-full" />}
+  </span>
+  {
+    !row && (
+      <span class={badgeVariants({ variant: 'muted' })}>{cell.total} 則</span>
+    )
+  }
+</span>
+{
+  cell.cover ? (
+    <span
+      class:list={[
+        'relative block overflow-hidden rounded-md',
+        row ? 'size-12' : 'min-h-10 flex-1',
+      ]}
+    >
+      <Skeleton className="absolute inset-0" />
+      <img
+        src={thumbUrl(cell.cover, 0, 240)}
+        srcset={thumbSrcset(cell.cover, 0)}
+        sizes="(min-width: 640px) 160px, 52px"
+        alt=""
+        loading="lazy"
+        class="absolute inset-0 size-full object-cover"
+      />
+    </span>
+  ) : (
+    row && <span />
+  )
+}
+{
+  showText &&
+    (cell.memory ? (
+      <span class="text-meta line-clamp-3">{cell.memory}</span>
+    ) : cell.excerpt ? (
+      <span class="text-meta text-muted-foreground line-clamp-3">
+        「{cell.excerpt}」
+      </span>
+    ) : (
+      row && <span />
+    ))
+}
+{
+  row && (
+    <span class={badgeVariants({ variant: 'muted' })}>{cell.total} 則</span>
+  )
+}

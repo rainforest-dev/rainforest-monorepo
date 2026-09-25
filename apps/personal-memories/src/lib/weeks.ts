@@ -3,7 +3,7 @@ import type { TimelineEvent, TimelineSource } from './timeline.ts';
 const TAIPEI_OFFSET_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const WEEKDAYS_ZH = ['日', '一', '二', '三', '四', '五', '六'];
+export const WEEKDAYS_ZH = ['日', '一', '二', '三', '四', '五', '六'];
 
 export const ISO_WEEK = /^(\d{4})-W(\d{2})$/;
 
