@@ -49,9 +49,16 @@ test('a day shows messages and photos in order, with the source filter', async (
 
   const photo = day.getByRole('img', { name: 'Weekend, Food' });
   await expect(photo).toBeVisible();
-  expect(
-    await photo.evaluate((img: HTMLImageElement) => img.naturalWidth),
-  ).toBeGreaterThan(0);
+  // toBeVisible() checks layout, not decode; poll past a cold /thumb encode.
+  await expect
+    .poll(
+      () =>
+        photo.evaluate(
+          (img: HTMLImageElement) => img.complete && img.naturalWidth,
+        ),
+      { timeout: 15_000 },
+    )
+    .toBeGreaterThan(0);
 
   await page.getByLabel('照片').uncheck();
   await expect(photo).toBeHidden();
