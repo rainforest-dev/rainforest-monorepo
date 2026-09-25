@@ -165,7 +165,7 @@ export function Lightbox({
                         aria-label={positionLabel(i, count)}
                         aria-current={i === index}
                         onClick={() => onSelect(i)}
-                        className={`bg-muted focus-visible:ring-ring block size-14 overflow-hidden rounded-md outline-none focus-visible:ring-2 ${i === index ? 'ring-ring ring-2' : 'opacity-70'}`}
+                        className={`bg-muted focus-visible:ring-ring block size-14 overflow-hidden rounded-md outline-none focus-visible:ring-2 ${i === index ? 'ring-ring ring-2' : 'opacity-65'}`}
                       >
                         <img
                           src={thumbUrl(it.id, 0, 240)}
