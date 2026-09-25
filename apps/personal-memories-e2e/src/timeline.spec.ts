@@ -332,6 +332,49 @@ test('a video in a burst plays and cannot be set as cover', async ({
   ).toHaveCount(0);
 });
 
+test('arrow keys seek a focused video instead of changing the photo', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  await waitForLightboxReady(page);
+  await page
+    .locator('#day-2025-11-02 [data-burst] a[data-lightbox]')
+    .first()
+    .evaluate((trigger) => {
+      const at = '2025-11-02T20:50:00+08:00';
+      const items = [
+        {
+          id: '99999999-0000-0000-0000-000000000009',
+          at,
+          alt: '',
+          video: true,
+        },
+        {
+          id: 'DDDDDDDD-0000-0000-0000-000000000004',
+          at,
+          alt: '',
+          video: false,
+        },
+      ];
+      document.dispatchEvent(
+        new CustomEvent('memories:lightbox', {
+          detail: { trigger, date: '2025-11-02', items, index: 0 },
+        }),
+      );
+    });
+  const dialog = page.getByRole('dialog');
+  const video = dialog.locator('video');
+  await expect(dialog).toContainText('照片 · 1 / 2');
+  await video.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(video).toBeFocused();
+  await expect(dialog).toContainText('照片 · 1 / 2');
+  await dialog.getByRole('button', { name: '下一張' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(dialog).toContainText('照片 · 2 / 2');
+});
+
 test('media supports HTTP range requests for video playback', async ({
   request,
 }) => {

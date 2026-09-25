@@ -38,6 +38,7 @@ export function useLightbox() {
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLMediaElement) return;
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       if (e.key === 'ArrowLeft') step(-1);
       else if (e.key === 'ArrowRight') step(1);
