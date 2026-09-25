@@ -7,7 +7,7 @@ import {
   parseNote,
   serializeNote,
 } from './format.ts';
-import type { DayNote } from './types.ts';
+import type { Annotation, DayNote } from './types.ts';
 
 const NOTE: DayNote = {
   date: '2025-11-01',
@@ -330,19 +330,18 @@ describe('hasUserFrontmatter', () => {
 });
 
 describe('annotation authors', () => {
+  const signed: Annotation = {
+    eventId: 'abc',
+    at: '2025-11-01T09:05:00+08:00',
+    source: 'line',
+    author: 'Alice',
+    excerpt: 'hi',
+    body: '寫的',
+    by: 'Bob 🌷',
+  };
   const note: DayNote = {
     ...emptyNote('2025-11-01'),
-    annotations: [
-      {
-        eventId: 'abc',
-        at: '2025-11-01T09:05:00+08:00',
-        source: 'line',
-        author: 'Alice',
-        excerpt: 'hi',
-        body: '寫的',
-        by: 'Bob 🌷',
-      },
-    ],
+    annotations: [signed],
   };
 
   it('writes by: last in the anchor and reads it back byte for byte', () => {
@@ -365,7 +364,7 @@ describe('annotation authors', () => {
   it('never lets a name break the comment', () => {
     const text = serializeNote({
       ...note,
-      annotations: [{ ...note.annotations[0]!, by: 'Eve %% x\ny' }],
+      annotations: [{ ...signed, by: 'Eve %% x\ny' }],
     });
     expect(text).toContain('src:line by:Eve x y %%');
   });
@@ -374,7 +373,7 @@ describe('annotation authors', () => {
     const raw = `${'x'.repeat(39)} more text that gets cut off`;
     const text = serializeNote({
       ...note,
-      annotations: [{ ...note.annotations[0]!, by: raw }],
+      annotations: [{ ...signed, by: raw }],
     });
     const parsed = parseNote(text, '2025-11-01');
     expect(parsed.annotations[0]?.by).toBe('x'.repeat(39));
@@ -385,7 +384,7 @@ describe('annotation authors', () => {
     const raw = `${'y'.repeat(39)}🌷more text`;
     const text = serializeNote({
       ...note,
-      annotations: [{ ...note.annotations[0]!, by: raw }],
+      annotations: [{ ...signed, by: raw }],
     });
     const parsed = parseNote(text, '2025-11-01');
     expect(parsed.annotations[0]?.by).toBe(`${'y'.repeat(39)}🌷`);
