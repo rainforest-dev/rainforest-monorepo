@@ -1,16 +1,21 @@
 ---
+import { Kbd, KbdGroup } from '@rainforest-dev/rainforest-react';
+
 import type { MonthRow } from '../lib/days.ts';
+import type { MonthCell } from '../lib/month-view.ts';
 import { dayHeading } from '../lib/weeks.ts';
 import { morphAttrs } from '../lib/zoom.ts';
+import DayPreview from './year/DayPreview.astro';
 
 type Props = {
   rows: MonthRow[];
   level: (total: number) => 0 | 1 | 2 | 3 | 4;
   noted: Set<string>;
   morph?: string | undefined;
+  previews: Map<string, MonthCell>;
 };
 
-const { rows, level, noted, morph } = Astro.props;
+const { rows, level, noted, morph, previews } = Astro.props;
 
 const LEVEL = [
   'bg-muted',
@@ -101,49 +106,56 @@ const monthKey = (row: MonthRow) =>
                   const isNoted = noted.has(cell.date);
                   const lvl = level(cell.total);
                   const tip = tooltip(cell.date, cell.total, isNoted);
-                  const label = `${tip.date}，${tip.detail}`;
-                  const cellClass = `group focus-visible:ring-ring focus-visible:ring-offset-background relative flex size-6 items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${LEVEL[lvl]}`;
+                  const anchor = `--d${cell.date.replaceAll('-', '')}`;
+                  const key = `day-${cell.date}`;
+                  const { style: morphStyle, ...morphRest } = morphAttrs(
+                    key,
+                    morph,
+                  );
+                  const style = [`anchor-name: ${anchor}`, morphStyle]
+                    .filter(Boolean)
+                    .join('; ');
+                  const cellClass = `focus-visible:ring-ring focus-visible:ring-offset-background relative flex size-6 items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${LEVEL[lvl]}`;
+                  const preview = (
+                    <DayPreview
+                      date={cell.date}
+                      detail={tip.detail}
+                      anchor={anchor}
+                      cell={previews.get(cell.date)}
+                    />
+                  );
+                  const dot = isNoted && (
+                    <span class={`size-1.5 rounded-full ${dotClass(lvl)}`} />
+                  );
                   return cell.total > 0 ? (
                     <a
                       href={`/day/${cell.date}`}
                       data-date={cell.date}
                       data-noted={isNoted}
-                      data-morph={`day-${cell.date}`}
-                      {...morphAttrs(`day-${cell.date}`, morph)}
-                      aria-label={label}
+                      data-heat-cell
+                      data-morph={key}
+                      aria-label={`${tip.date}，${tip.detail}`}
                       class={cellClass}
+                      style={style}
+                      {...morphRest}
                     >
-                      {isNoted && (
-                        <span
-                          class={`size-1.5 rounded-full ${dotClass(lvl)}`}
-                        />
-                      )}
-                      <div class="bg-popover text-popover-foreground border-border pointer-events-none absolute bottom-[36px] left-1/2 z-10 w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                        <div class="font-semibold tabular-nums">{tip.date}</div>
-                        <div class="text-muted-foreground">{tip.detail}</div>
-                      </div>
+                      {dot}
+                      {preview}
                     </a>
                   ) : (
                     <span
                       role="img"
                       data-date={cell.date}
                       data-noted={isNoted}
-                      data-morph={`day-${cell.date}`}
-                      {...morphAttrs(`day-${cell.date}`, morph)}
-                      aria-label={label}
+                      data-heat-cell
+                      data-morph={key}
+                      aria-label={`${tip.date}，${tip.detail}`}
                       class={cellClass}
+                      style={style}
+                      {...morphRest}
                     >
-                      {isNoted && (
-                        <span class="bg-foreground size-1.5 rounded-full" />
-                      )}
-                      <span class="bg-popover text-popover-foreground border-border pointer-events-none absolute bottom-[36px] left-1/2 z-10 block w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                        <span class="block font-semibold tabular-nums">
-                          {tip.date}
-                        </span>
-                        <span class="text-muted-foreground block">
-                          {tip.detail}
-                        </span>
-                      </span>
+                      {dot}
+                      {preview}
                     </span>
                   );
                 })}
@@ -212,12 +224,8 @@ const monthKey = (row: MonthRow) =>
 
   <div class="text-muted-foreground hidden gap-5 text-xs sm:flex">
     <span class="flex items-center gap-1.5">
-      <kbd
-        class="border-border bg-muted text-muted-foreground inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border px-1 text-xs"
-      >
-        Enter
-      </kbd>
-      打開那一天
+      <KbdGroup><Kbd>←</Kbd><Kbd>→</Kbd></KbdGroup>在日子間移動
     </span>
+    <span class="flex items-center gap-1.5"><Kbd>Enter</Kbd>打開那一天</span>
   </div>
 </section>

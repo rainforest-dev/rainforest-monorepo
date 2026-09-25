@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { indexDays } from './days.ts';
-import { firstLine, monthView, type NoteReader } from './month-view.ts';
+import {
+  dayCells,
+  firstLine,
+  monthView,
+  type NoteReader,
+} from './month-view.ts';
 import { emptyNote } from './notes/format.ts';
 import type { TimelineEvent } from './timeline.ts';
 
@@ -139,5 +144,20 @@ describe('firstLine', () => {
     expect(firstLine('> 引用')).toBe('引用');
     expect(firstLine('1. 第一')).toBe('第一');
     expect(firstLine('  \n')).toBeUndefined();
+  });
+});
+
+describe('dayCells', () => {
+  it('builds one preview per day with events', () => {
+    const cells = dayCells(index, noted, read);
+    expect([...cells.keys()]).toEqual([
+      '2025-11-01',
+      '2025-11-03',
+      '2025-12-02',
+    ]);
+    expect(cells.get('2025-11-03')).toMatchObject({
+      memory: '咖啡',
+      excerpt: 'Coffee first',
+    });
   });
 });

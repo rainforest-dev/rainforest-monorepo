@@ -36,6 +36,87 @@ test('home is a heatmap of the fixture days', async ({ page }) => {
   );
 });
 
+test('the served CSS keeps both the anchored preview and its fallback', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const rules = await page.evaluate(() =>
+    [...document.styleSheets]
+      .flatMap((sheet) => [...sheet.cssRules])
+      .filter(
+        (rule): rule is CSSSupportsRule => rule instanceof CSSSupportsRule,
+      )
+      .map((rule) => ({ condition: rule.conditionText, text: rule.cssText })),
+  );
+  const anchored = rules.find((r) => r.condition === '(position-area: top)');
+  const fallback = rules.find(
+    (r) => r.condition === 'not (position-area: top)',
+  );
+  expect(anchored?.text).toMatch(/position: fixed/);
+  expect(anchored?.text).toMatch(/position-area: top;/);
+  expect(fallback?.text).toMatch(/position: absolute/);
+  expect(fallback?.text).toMatch(/bottom: calc\(100% \+ 0\.5rem\)/);
+  expect(fallback?.text).toMatch(/translate: -50%( 0)?;/);
+});
+
+test('a heat cell previews its day above it on hover and on keyboard focus', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  const cell = page.locator('a[data-date="2025-11-03"]');
+  const preview = cell.locator('[data-preview]');
+  await expect(preview).toBeHidden();
+  await cell.hover();
+  await expect(preview).toBeVisible();
+  await expect(preview).toBeInViewport({ ratio: 1 });
+  await expect(preview).toContainText('2025-11-03（週一）');
+  await expect(preview).toContainText('「New week, new plans」');
+  const [c, p] = await Promise.all([cell.boundingBox(), preview.boundingBox()]);
+  expect(p && c && p.y + p.height <= c.y).toBe(true);
+
+  await page.mouse.move(0, 0);
+  await expect(preview).toBeHidden();
+  await page.locator('a[data-date="2025-11-02"]').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(preview).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(preview).toBeHidden();
+});
+
+test.describe('without anchor positioning', () => {
+  test('the heat cell preview falls back to sitting above the cell', async ({
+    playwright,
+    baseURL,
+  }) => {
+    const browser = await playwright.chromium.launch({
+      args: ['--disable-blink-features=CSSAnchorPositioning'],
+    });
+    try {
+      const page = await browser.newPage({ baseURL });
+      await page.goto('/');
+      const supported = await page.evaluate(() =>
+        CSS.supports('position-area: top'),
+      );
+      test.skip(
+        supported,
+        'this Chromium ignores the flag; the fallback is not reachable',
+      );
+      const cell = page.locator('a[data-date="2025-11-03"]');
+      await cell.hover();
+      const preview = cell.locator('[data-preview]');
+      await expect(preview).toBeVisible();
+      const [c, p] = await Promise.all([
+        cell.boundingBox(),
+        preview.boundingBox(),
+      ]);
+      expect(p && c && p.y + p.height <= c.y).toBe(true);
+    } finally {
+      await browser.close();
+    }
+  });
+});
+
 test('the month calendar shows each day with its cover or a line', async ({
   page,
 }) => {

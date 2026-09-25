@@ -97,3 +97,48 @@
     view-transition-name: none !important;
   }
 }
+
+[data-preview] {
+  display: none;
+}
+
+@media (hover: hover) {
+  [data-heat-cell]:hover > [data-preview] {
+    display: flex;
+  }
+}
+
+[data-heat-cell]:focus-visible > [data-preview] {
+  display: flex;
+}
+
+@supports (position-area: top) {
+  [data-preview] {
+    position: fixed;
+    position-area: top;
+    margin-block: 3.5rem 0.5rem;
+    position-try-fallbacks:
+      flip-block,
+      --preview-right,
+      --preview-right flip-block,
+      --preview-left,
+      --preview-left flip-block;
+  }
+
+  @position-try --preview-right {
+    position-area: top span-right;
+  }
+
+  @position-try --preview-left {
+    position-area: top span-left;
+  }
+}
+
+@supports not (position-area: top) {
+  [data-preview] {
+    position: absolute;
+    bottom: calc(100% + 0.5rem);
+    left: 50%;
+    translate: -50% 0;
+  }
+}

@@ -84,3 +84,16 @@ export function monthView(
   if (month < monthOf(last)) view.next = shiftMonth(month, 1);
   return view;
 }
+
+export function dayCells(
+  index: DayIndex,
+  noted: ReadonlySet<string>,
+  read: NoteReader,
+): Map<string, MonthCell> {
+  return new Map(
+    index.dates.map((date) => [
+      date,
+      dayCell(date, index.byDate.get(date) ?? [], noted.has(date), read),
+    ]),
+  );
+}
