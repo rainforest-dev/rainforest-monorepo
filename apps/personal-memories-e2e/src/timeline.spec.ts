@@ -13,6 +13,9 @@ const waitForLightboxReady = (page: Page) =>
 const waitForAppBarReady = (page: Page) =>
   expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
 
+// macOS Chromium maps Home/End to page scroll, not caret movement; Cmd+Arrow moves the caret there.
+const END = process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End';
+
 const readNote = (date: string) =>
   existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
 
@@ -535,4 +538,55 @@ test('the date jump ignores an Enter fired mid-IME composition', async ({
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/day\/2025-11-03/);
+});
+
+test('keys: j and k, n, ? and /, and Escape only when nothing else claims it', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  await page.keyboard.press('j');
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await waitForAppBarReady(page);
+  await page.keyboard.press('k');
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  await waitForAppBarReady(page);
+
+  const memory = page.getByLabel('當天的回憶');
+  const before = await memory.inputValue();
+  await page.keyboard.press('n');
+  await expect(memory).toBeFocused();
+  await page.keyboard.press(END);
+  await page.keyboard.type('jk');
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  await expect(memory).toHaveValue(`${before}jk`);
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Backspace');
+  await memory.evaluate((el) => (el as HTMLElement).blur());
+
+  await page.keyboard.press('?');
+  await expect(page.getByRole('dialog', { name: '鍵盤快速鍵' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+
+  await page.keyboard.press('/');
+  await expect(
+    page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD'),
+  ).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  await waitForAppBarReady(page);
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+  await waitForAppBarReady(page);
+
+  await page.locator('a[data-date="2025-11-01"]').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('a[data-date="2025-11-02"]')).toBeFocused();
 });

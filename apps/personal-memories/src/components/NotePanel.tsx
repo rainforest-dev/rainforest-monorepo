@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { dayInUrl } from '../lib/client/day-url.ts';
 import { toggleCover } from '../lib/cover.ts';
@@ -32,6 +32,19 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
   const [open, setOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
+  const memoryRef = useRef<HTMLTextAreaElement>(null);
+  const [focusTick, setFocusTick] = useState(0);
+  useEffect(() => {
+    const onFocus = () => {
+      setOpen(true);
+      setFocusTick((n) => n + 1);
+    };
+    document.addEventListener('memories:focus-note', onFocus);
+    return () => document.removeEventListener('memories:focus-note', onFocus);
+  }, []);
+  useEffect(() => {
+    if (focusTick) memoryRef.current?.focus();
+  }, [focusTick, open]);
   const readOnly = !payload.writable;
   const { date } = payload;
   const locked = readOnly || !hydrated;
@@ -135,6 +148,7 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
         ) : (
           <div className="flex flex-col gap-2" hidden={!!conflict}>
             <textarea
+              ref={memoryRef}
               aria-label="當天的回憶"
               placeholder={PLACEHOLDER}
               value={draft.body}

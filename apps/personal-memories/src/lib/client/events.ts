@@ -18,5 +18,6 @@ declare global {
     'memories:lightbox': CustomEvent<LightboxDetail>;
     'memories:open-jump': CustomEvent<undefined>;
     'memories:open-shortcuts': CustomEvent<undefined>;
+    'memories:focus-note': CustomEvent<undefined>;
   }
 }
