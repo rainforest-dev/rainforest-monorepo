@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 const NOTES = path.join(__dirname, '..', 'test-output', 'notes');
 const noteFile = (date: string) =>
@@ -148,11 +148,19 @@ test('a day shows messages and photos in order, with the source filter', async (
     )
     .toBeGreaterThan(0);
 
-  await page.getByLabel('照片').uncheck();
+  const filterReady = () =>
+    page
+      .locator('astro-island[component-url*="SourceFilter"]:not([ssr])')
+      .waitFor({ state: 'attached' });
+  await filterReady();
+  const toggle = page.getByRole('button', { name: '照片', exact: true });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   await expect(photo).toBeHidden();
   await page.reload();
-  await expect(page.getByLabel('照片')).not.toBeChecked();
-  await page.getByLabel('照片').check();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await filterReady();
+  await toggle.click();
 });
 
 test('a photo run longer than 4 collapses the rest behind a +N tile', async ({
@@ -812,5 +820,212 @@ test.describe('on a phone', () => {
         ),
       )
       .toBe(true);
+  });
+});
+
+test('a long press on a message opens 眉批 and 複製', async ({ page }) => {
+  await page.goto('/day/2025-11-03');
+  await page
+    .locator('astro-island[component-url*="StreamMenu"]:not([ssr])')
+    .waitFor({ state: 'attached' });
+  const row = page.locator('[data-event-id]', { hasText: 'Coffee first' });
+  const box = await row.boundingBox();
+  await row.dispatchEvent('pointerdown', {
+    pointerType: 'touch',
+    pointerId: 1,
+    isPrimary: true,
+    bubbles: true,
+    clientX: (box?.x ?? 0) + 20,
+    clientY: (box?.y ?? 0) + 10,
+  });
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitem')).toHaveText(['眉批', '複製']);
+  await menu.getByRole('menuitem', { name: '眉批' }).click();
+  await expect(
+    page
+      .getByRole('complementary', { name: '筆記' })
+      .getByLabel(/^眉批：Coffee first/),
+  ).toBeFocused();
+});
+
+test('the next day shows skeleton rows while it loads', async ({ page }) => {
+  let requests = 0;
+  await page.route('**/day/2025-11-03/partial', async (route) => {
+    requests += 1;
+    await new Promise((r) => setTimeout(r, 800));
+    await route.continue();
+  });
+  await page.goto('/day/2025-11-02');
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(
+    page.locator('[data-load="next"] [data-skeleton]'),
+  ).toBeVisible();
+  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  await expect(page.locator('[data-load="next"] [data-skeleton]')).toBeHidden();
+  expect(requests).toBe(1);
+});
+
+test.describe('touch gestures on a phone', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  const touch = async (page: Page) => {
+    const cdp = await page.context().newCDPSession(page);
+    return (
+      type: 'touchStart' | 'touchMove' | 'touchEnd',
+      touchPoints: { x: number; y: number; id: number }[],
+    ) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+  };
+
+  const centreOf = async (page: Page, target: Locator) => {
+    await page.waitForLoadState('networkidle');
+    let at: { x: number; y: number } | undefined;
+    await expect
+      .poll(async () => {
+        at = await target.evaluate((el) => {
+          el.scrollIntoView({ block: 'center' });
+          const box = el.getBoundingClientRect();
+          const point = { x: box.x + 24, y: box.y + box.height / 2 };
+          return el.contains(document.elementFromPoint(point.x, point.y))
+            ? point
+            : undefined;
+        });
+        return at;
+      })
+      .toBeDefined();
+    if (!at) throw new Error('the target cannot be hit');
+    return at;
+  };
+
+  const ready = async (page: Page, date: string) => {
+    await page.goto(`/day/${date}`);
+    await waitForAppBarReady(page);
+    await page
+      .locator('astro-island[component-url*="StreamMenu"]:not([ssr])')
+      .waitFor({ state: 'attached' });
+  };
+
+  test('holding a message opens the menu and the release neither closes it nor clicks', async ({
+    page,
+  }) => {
+    await ready(page, '2025-11-01');
+    await waitForLightboxReady(page);
+    const send = await touch(page);
+    const at = await centreOf(
+      page,
+      page.locator('#day-2025-11-01 [data-burst] > li[data-event-id]').first(),
+    );
+    await send('touchStart', [{ ...at, id: 1 }]);
+    await page.waitForTimeout(700);
+    await send('touchEnd', []);
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+    await page.waitForTimeout(300);
+    await expect(menu).toBeVisible();
+    await expect(
+      page.getByRole('dialog').filter({ hasText: '照片 · ' }),
+    ).toHaveCount(0);
+    await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+    await expect(page.locator('html[data-overlays]')).toHaveCount(1);
+
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+
+    await page.touchscreen.tap(at.x, at.y);
+    await expect(
+      page.getByRole('dialog').filter({ hasText: '照片 · ' }),
+    ).toBeVisible();
+    await expect(page.getByRole('menu')).toHaveCount(0);
+  });
+
+  test('複製 in the long-press menu copies the message text', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await ready(page, '2025-11-03');
+    const send = await touch(page);
+    const at = await centreOf(
+      page,
+      page.locator('[data-event-id]', { hasText: 'Coffee first' }),
+    );
+    await send('touchStart', [{ ...at, id: 1 }]);
+    await page.waitForTimeout(700);
+    await send('touchEnd', []);
+    const copy = page.getByRole('menuitem', { name: '複製' });
+    await expect(copy).toBeVisible();
+    const box = await copy.boundingBox();
+    await page.touchscreen.tap(
+      (box?.x ?? 0) + (box?.width ?? 0) / 2,
+      (box?.y ?? 0) + (box?.height ?? 0) / 2,
+    );
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toBe('Coffee first');
+    await expect(page.locator('html[data-overlays]')).toHaveCount(0);
+  });
+
+  test('a finger that moves or lifts early does not open the menu', async ({
+    page,
+  }) => {
+    await ready(page, '2025-11-03');
+    const send = await touch(page);
+    const at = await centreOf(
+      page,
+      page.locator('[data-event-id]', { hasText: 'Coffee first' }),
+    );
+    await send('touchStart', [{ ...at, id: 1 }]);
+    await send('touchMove', [{ x: at.x, y: at.y + 30, id: 1 }]);
+    await page.waitForTimeout(700);
+    await send('touchEnd', []);
+    await send('touchStart', [{ ...at, id: 1 }]);
+    await page.waitForTimeout(150);
+    await send('touchEnd', []);
+    await page.waitForTimeout(500);
+    await expect(page.getByRole('menu')).toHaveCount(0);
+  });
+
+  test('pinching two fingers together zooms out to the month', async ({
+    page,
+  }) => {
+    await ready(page, '2025-11-03');
+    const send = await touch(page);
+    const at = await centreOf(
+      page,
+      page.locator('[data-event-id]', { hasText: 'Coffee first' }),
+    );
+    const pinch = async (from: number, to: number) => {
+      const pair = (d: number) => [
+        { x: 195 - d / 2, y: at.y, id: 1 },
+        { x: 195 + d / 2, y: at.y, id: 2 },
+      ];
+      await send('touchStart', pair(from));
+      for (const d of [from - (from - to) / 2, to])
+        await send('touchMove', pair(d));
+      await send('touchEnd', []);
+    };
+
+    await page.evaluate(() =>
+      document.documentElement.setAttribute('data-overlays', '1'),
+    );
+    await pinch(200, 100);
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+    await page.evaluate(() =>
+      document.documentElement.removeAttribute('data-overlays'),
+    );
+
+    await pinch(200, 170);
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+
+    await pinch(200, 100);
+    await expect(page).toHaveURL(/\/month\/2025-11$/);
   });
 });

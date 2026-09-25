@@ -4,6 +4,9 @@ import { getLiveEntry } from 'astro:content';
 
 import DaySection from '../../components/DaySection.astro';
 import { MonthScrubber } from '../../components/day/MonthScrubber.tsx';
+import Sentinel from '../../components/day/Sentinel.astro';
+import { SourceFilter } from '../../components/day/SourceFilter.tsx';
+import { StreamMenu } from '../../components/day/StreamMenu.tsx';
 import EmptyState from '../../components/EmptyState.astro';
 import { NotePanel } from '../../components/NotePanel.tsx';
 import Layout from '../../layouts/Layout.astro';
@@ -48,12 +51,6 @@ const bar = {
   hrefs: levelHrefs({ level: 'day', date }, dates),
   step: { prev: day?.prev, next: day?.next },
 };
-
-const SOURCES = [
-  { source: 'line', label: 'LINE' },
-  { source: 'slack', label: 'Slack' },
-  { source: 'photo', label: '照片' },
-] as const;
 ---
 
 <Layout title={`${date} · Memories`} wide bar={bar}>
@@ -86,16 +83,10 @@ const SOURCES = [
             <MonthScrubber client:idle months={months} date={date} />
           </aside>
           <div data-stream class="pb-[172px] lg:pb-0">
-            <fieldset class="mb-4 flex gap-4 text-sm" data-source-filter>
-              <legend class="sr-only">來源</legend>
-              {SOURCES.map(({ source, label }) => (
-                <label class="flex items-center gap-1.5">
-                  <input type="checkbox" value={source} checked />
-                  {label}
-                </label>
-              ))}
-            </fieldset>
-            <div data-load="prev" data-date={day.prev} />
+            <div class="mb-4">
+              <SourceFilter client:load />
+            </div>
+            <Sentinel direction="prev" date={day.prev} />
             <DaySection
               date={date}
               events={day.events}
@@ -103,9 +94,10 @@ const SOURCES = [
               next={day.next}
               morph={morph}
             />
-            <div data-load="next" data-date={day.next} />
+            <Sentinel direction="next" date={day.next} />
           </div>
           <NotePanel client:load initial={initial} />
+          <StreamMenu client:idle />
         </div>
       </>
     )

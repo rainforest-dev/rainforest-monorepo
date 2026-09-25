@@ -1,4 +1,6 @@
 ---
+import { buttonVariants, cn } from '@rainforest-dev/rainforest-ui/recipes';
+
 import { pickCover } from '../lib/cover.ts';
 import { excerptOf } from '../lib/notes/attach.ts';
 import { getTimeline } from '../lib/store.ts';
@@ -40,8 +42,10 @@ const ROW =
 const GUTTER =
   'text-muted-foreground pl-1 text-xs leading-[25px] tabular-nums sm:pl-2';
 const INDENT = 'ml-7 sm:ml-12';
-const PILL_BASE =
-  'bg-popover text-popover-foreground absolute z-1 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-md opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100';
+const PILL_BASE = cn(
+  buttonVariants({ variant: 'outline', size: 'xs' }),
+  'bg-popover absolute z-1 shadow-md opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100',
+);
 const PILL = `${PILL_BASE} pointer-coarse:pointer-events-none pointer-coarse:group-focus-within:pointer-events-auto`;
 const PHOTO_PILL = `${PILL_BASE} pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto`;
 

@@ -31,6 +31,20 @@
   display: none;
 }
 
+[data-load='next'][data-state='loading'] [data-skeleton] {
+  display: flex;
+}
+
+[data-load='next'][data-state='error'] [data-failed] {
+  display: block;
+}
+
+@media (pointer: coarse) {
+  [data-stream] li[data-event-id] {
+    -webkit-touch-callout: none;
+  }
+}
+
 [data-event-id]:target {
   @apply bg-primary/15 ring-primary/45 ring-1 ring-inset ring-offset-0;
 }

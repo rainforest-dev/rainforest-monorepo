@@ -8,6 +8,13 @@ export type AnnotateDetail = {
   excerpt: string;
 };
 
+export type LongPressDetail = {
+  x: number;
+  y: number;
+  anchor: AnnotateDetail;
+  text: string;
+};
+
 export type LightboxDetail = LightboxRequest & { trigger: HTMLElement };
 
 declare global {
@@ -15,6 +22,7 @@ declare global {
     'memories:day': CustomEvent<{ date: string }>;
     'memories:day-restored': CustomEvent<{ date: string }>;
     'memories:annotate': CustomEvent<AnnotateDetail>;
+    'memories:longpress': CustomEvent<LongPressDetail>;
     'memories:lightbox': CustomEvent<LightboxDetail>;
     'memories:open-jump': CustomEvent<undefined>;
     'memories:open-shortcuts': CustomEvent<undefined>;
