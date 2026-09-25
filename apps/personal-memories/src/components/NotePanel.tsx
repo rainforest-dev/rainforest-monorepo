@@ -17,6 +17,7 @@ import {
   StatusChip,
 } from './notes/BottomSheet.tsx';
 import { ConflictView } from './notes/ConflictView.tsx';
+import { useAuthorName } from './notes/useAuthorName.ts';
 import { useDaySync } from './notes/useDaySync.ts';
 import { useNoteDraft } from './notes/useNoteDraft.ts';
 import { useStreamBridge } from './notes/useStreamBridge.ts';
@@ -34,6 +35,7 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
   const readOnly = !payload.writable;
   const { date } = payload;
   const locked = readOnly || !hydrated;
+  const author = useAuthorName(payload.viewer);
   const { reattach, setReattach, setAnnotation, refs } = useStreamBridge({
     date,
     draft,
@@ -42,6 +44,7 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
     edit,
     request,
     onAnnotate: () => setOpen(true),
+    author: author.name,
   });
   const lightbox = useLightbox();
   const shown = lightbox.request;
@@ -150,6 +153,8 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
           readOnly={readOnly}
           reattach={reattach}
           refs={refs}
+          needsName={author.needsName}
+          onName={author.save}
           onBody={(i, body) => setAnnotation(date, i, { body })}
           onReattach={setReattach}
           onDelete={(i) => {

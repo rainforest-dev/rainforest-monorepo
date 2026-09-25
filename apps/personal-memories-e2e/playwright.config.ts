@@ -29,6 +29,7 @@ export default defineConfig({
       MEMORIES_NOTES_DIR: notesDir,
       MEMORIES_OWNER: 'Bob',
       MEMORIES_E2E: '1',
+      MEMORIES_AUTHORS: 'alice@example.com=Alice,bob@example.com=Bob',
     },
   },
   projects: [

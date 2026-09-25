@@ -50,4 +50,11 @@ describe('draft', () => {
       saveInput(payload, withCover(toDraft(payload), undefined)).cover,
     ).toBeUndefined();
   });
+
+  it('keeps the annotation author when saving', () => {
+    const signed = { ...payload, annotations: [{ ...annotation, by: 'Bob' }] };
+    expect(saveInput(signed, toDraft(signed)).annotations[0]).toMatchObject({
+      by: 'Bob',
+    });
+  });
 });

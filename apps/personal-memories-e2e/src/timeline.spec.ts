@@ -331,3 +331,77 @@ test('the hour strip works on a day loaded while scrolling', async ({
     page.getByText('Busy message 11', { exact: true }),
   ).toBeInViewport();
 });
+
+test.describe('an annotation signed through Access', () => {
+  test.use({
+    extraHTTPHeaders: {
+      'Cf-Access-Authenticated-User-Email': 'alice@example.com',
+    },
+  });
+
+  test('carries the signed-in author', async ({ page }) => {
+    await page.goto('/day/2025-11-02');
+    const panel = page.getByRole('complementary', { name: '筆記' });
+    await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+    const message = page.locator('[data-event-id]', {
+      hasText: 'Thread reply',
+    });
+    await message.hover();
+    await message.getByRole('button', { name: '眉批' }).click();
+    await panel
+      .getByLabel(/^眉批：/)
+      .last()
+      .fill('Alice 寫的眉批');
+    await expect(panel).toContainText('已儲存');
+    await expect
+      .poll(() => readFileSync(noteFile('2025-11-02'), 'utf8'))
+      .toMatch(/ src:slack by:Alice %%$/m);
+    await expect(panel.getByText('Alice', { exact: true })).toBeVisible();
+    await expect(panel.getByPlaceholder('你的名字')).toHaveCount(0);
+  });
+
+  test('resolving a conflict does not re-prompt a signed-in user for a name', async ({
+    page,
+  }) => {
+    await page.goto('/day/2025-10-31');
+    const panel = page.getByRole('complementary', { name: '筆記' });
+    await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+    await panel.getByLabel('當天的回憶').fill('Alice 的版本');
+    await expect(panel).toContainText('已儲存');
+
+    const file = noteFile('2025-10-31');
+    writeFileSync(
+      file,
+      readFileSync(file, 'utf8').replace('Alice 的版本', 'Obsidian 改的'),
+    );
+    await panel.getByLabel('當天的回憶').fill('app 又改了');
+    await expect(panel).toContainText('有衝突');
+    const obsidianCard = panel
+      .getByRole('heading', { name: 'Obsidian 的版本' })
+      .locator('..');
+    await obsidianCard.getByRole('button', { name: '保留這個版本' }).click();
+    await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
+    await expect(panel.getByPlaceholder('你的名字')).toHaveCount(0);
+  });
+});
+
+test('without an identity, the name set once in the panel signs 眉批', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-03');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+  await panel.getByPlaceholder('你的名字').fill('Bob');
+  await panel.getByPlaceholder('你的名字').press('Enter');
+  const message = page.locator('[data-event-id]', { hasText: 'Coffee first' });
+  await message.hover();
+  await message.getByRole('button', { name: '眉批' }).click();
+  await panel
+    .getByLabel(/^眉批：/)
+    .last()
+    .fill('Bob 的眉批');
+  await expect(panel).toContainText('已儲存');
+  await expect
+    .poll(() => readFileSync(noteFile('2025-11-03'), 'utf8'))
+    .toMatch(/ by:Bob %%$/m);
+});

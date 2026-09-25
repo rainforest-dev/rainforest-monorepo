@@ -1,3 +1,5 @@
+import { Input } from '@rainforest-dev/rainforest-react';
+import { PenLineIcon } from 'lucide-react';
 import type { Ref, RefObject } from 'react';
 
 import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
@@ -64,6 +66,12 @@ export function AnnotationItem({
           {!attached && <UnlinkIcon />}
           {attached ? meta : `找不到原本的訊息 · 原為 ${meta}`}
         </span>
+        {a.by ? (
+          <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
+            <PenLineIcon className="size-3" aria-hidden />
+            {a.by}
+          </span>
+        ) : null}
         {!readOnly && (
           <button
             type="button"
@@ -126,6 +134,8 @@ type ListProps = {
   readOnly: boolean;
   reattach: number | undefined;
   refs: RefObject<(HTMLTextAreaElement | null)[]>;
+  needsName: boolean;
+  onName: (raw: string) => void;
   onBody: (i: number, body: string) => void;
   onReattach: (i: number) => void;
   onDelete: (i: number) => void;
@@ -135,6 +145,8 @@ export function AnnotationList({
   annotations,
   reattach,
   refs,
+  needsName,
+  onName,
   onBody,
   onReattach,
   onDelete,
@@ -158,6 +170,19 @@ export function AnnotationList({
           </span>
         )}
       </div>
+      {needsName && !rest.readOnly && (
+        <label className="mb-3 flex flex-col gap-1.5">
+          <span className="text-muted-foreground text-xs">眉批署名</span>
+          <Input
+            placeholder="你的名字"
+            className="h-8"
+            onBlur={(e) => onName(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onName(e.currentTarget.value);
+            }}
+          />
+        </label>
+      )}
       {annotations.length === 0 ? (
         <p className="text-muted-foreground text-meta leading-[1.6]">
           還沒有眉批。把游標移到訊息上，按「眉批」就能加一則。

@@ -329,6 +329,48 @@ describe('hasUserFrontmatter', () => {
   });
 });
 
+describe('annotation authors', () => {
+  const note: DayNote = {
+    ...emptyNote('2025-11-01'),
+    annotations: [
+      {
+        eventId: 'abc',
+        at: '2025-11-01T09:05:00+08:00',
+        source: 'line',
+        author: 'Alice',
+        excerpt: 'hi',
+        body: '寫的',
+        by: 'Bob 🌷',
+      },
+    ],
+  };
+
+  it('writes by: last in the anchor and reads it back byte for byte', () => {
+    const text = serializeNote(note);
+    expect(text).toContain(
+      '%% ev:abc at:2025-11-01T09:05:00+08:00 src:line by:Bob 🌷 %%',
+    );
+    const parsed = parseNote(text, '2025-11-01');
+    expect(parsed.annotations[0]?.by).toBe('Bob 🌷');
+    expect(serializeNote(parsed)).toBe(text);
+  });
+
+  it('still reads anchors written before by: existed', () => {
+    const old = serializeNote(note).replace(' by:Bob 🌷', '');
+    const [annotation] = parseNote(old, '2025-11-01').annotations;
+    expect(annotation && 'by' in annotation).toBe(false);
+    expect(annotation?.eventId).toBe('abc');
+  });
+
+  it('never lets a name break the comment', () => {
+    const text = serializeNote({
+      ...note,
+      annotations: [{ ...note.annotations[0]!, by: 'Eve %% x\ny' }],
+    });
+    expect(text).toContain('src:line by:Eve x y %%');
+  });
+});
+
 describe('isEmptyNote', () => {
   it('is empty only with no body, annotations or cover', () => {
     expect(isEmptyNote(emptyNote('2025-11-01'))).toBe(true);

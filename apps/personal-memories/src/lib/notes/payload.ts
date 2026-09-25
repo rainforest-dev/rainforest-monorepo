@@ -11,6 +11,7 @@ export type NotePayload = {
   version: string;
   writable: boolean;
   parseError?: true;
+  viewer?: string;
 };
 
 export function toPayload(
@@ -34,9 +35,12 @@ export function notePayload(
   store: NotesStore | undefined,
   date: string,
   dayEvents: readonly TimelineEvent[],
+  viewer?: string,
 ): NotePayload {
   const result = store
     ? store.read(date)
     : { note: emptyNote(date), version: '' };
-  return toPayload(result, store?.writable ?? false, dayEvents);
+  const payload = toPayload(result, store?.writable ?? false, dayEvents);
+  if (viewer) payload.viewer = viewer;
+  return payload;
 }

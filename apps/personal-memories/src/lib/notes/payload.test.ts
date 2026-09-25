@@ -53,3 +53,10 @@ it('resolves annotations against the day', () => {
   expect(payload.writable).toBe(true);
   expect(payload.annotations[0].status).toBe('unattached');
 });
+
+it('passes the resolved viewer name to the panel', () => {
+  expect(notePayload(undefined, '2025-11-01', [], 'Alice').viewer).toBe(
+    'Alice',
+  );
+  expect('viewer' in notePayload(undefined, '2025-11-01', [])).toBe(false);
+});

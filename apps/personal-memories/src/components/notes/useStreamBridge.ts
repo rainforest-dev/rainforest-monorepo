@@ -17,6 +17,7 @@ type Options = {
   edit: (date: string, next: (d: Draft) => Draft) => void;
   request: (date: string) => void;
   onAnnotate: () => void;
+  author: string | undefined;
 };
 
 function markAnnotated(annotations: readonly ResolvedAnnotation[]) {
@@ -71,7 +72,15 @@ export function useStreamBridge(o: Options) {
     }
     edit(date, (d) => ({
       ...d,
-      annotations: [...d.annotations, { ...anchor, body: '', status: 'exact' }],
+      annotations: [
+        ...d.annotations,
+        {
+          ...anchor,
+          body: '',
+          status: 'exact',
+          ...(latest.current.author ? { by: latest.current.author } : {}),
+        },
+      ],
     }));
     focus(annotations.length);
   };

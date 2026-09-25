@@ -21,6 +21,7 @@ export const toAnnotation = (a: ResolvedAnnotation): Annotation => ({
   author: a.author,
   excerpt: a.excerpt,
   body: a.body,
+  ...(a.by ? { by: a.by } : {}),
 });
 
 export const saveInput = (

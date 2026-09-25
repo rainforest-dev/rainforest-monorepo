@@ -5,6 +5,7 @@ import DaySection from '../../components/DaySection.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import { NotePanel } from '../../components/NotePanel.tsx';
 import Layout from '../../layouts/Layout.astro';
+import { viewerName } from '../../lib/notes/authors.ts';
 import { notePayload } from '../../lib/notes/payload.ts';
 import { notesStore } from '../../lib/notes/store.ts';
 import { getTimeline } from '../../lib/store.ts';
@@ -18,7 +19,12 @@ const { entry } =
 const day = entry?.data;
 if (state.status === 'ready' && !day?.events) Astro.response.status = 404;
 const initial = day?.events
-  ? notePayload(notesStore(), date, day.events)
+  ? notePayload(
+      notesStore(),
+      date,
+      day.events,
+      viewerName(Astro.request.headers),
+    )
   : undefined;
 
 const SOURCES = [

@@ -7,6 +7,7 @@ export type Annotation = {
   author: string;
   excerpt: string;
   body: string;
+  by?: string;
 };
 
 export type DayNote = {
