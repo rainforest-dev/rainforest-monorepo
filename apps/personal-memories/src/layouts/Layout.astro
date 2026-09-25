@@ -24,6 +24,23 @@ const { title, wide = false, bar } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    <script is:inline>
+      // pagereveal fires before any deferred/module script can attach a
+      // listener, so this one has to be a blocking classic script in <head>.
+      function clearMorphNames() {
+        for (const el of document.querySelectorAll('[data-morph]')) {
+          el.style.viewTransitionName = '';
+        }
+      }
+      window.addEventListener('pagereveal', (event) => {
+        (event.viewTransition?.finished ?? Promise.resolve()).finally(
+          clearMorphNames,
+        );
+      });
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) clearMorphNames();
+      });
+    </script>
   </head>
   <body class="antialiased">
     <main class:list={['mx-auto px-4 py-8', wide ? 'max-w-6xl' : 'max-w-2xl']}>

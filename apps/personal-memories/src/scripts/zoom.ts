@@ -19,5 +19,7 @@ export function startZoom() {
     const el = key ? firstVisible(`[data-morph="${key}"]`) : undefined;
     if (key && el) el.style.viewTransitionName = key;
   });
-  firstVisible('[data-morph-target]')?.focus({ preventScroll: true });
+  const target = firstVisible('[data-morph-target]');
+  target?.focus({ preventScroll: true });
+  target?.scrollIntoView({ block: 'nearest' });
 }

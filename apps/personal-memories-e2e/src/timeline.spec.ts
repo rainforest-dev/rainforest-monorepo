@@ -620,7 +620,7 @@ test('zooming out after scrolling into a different month lands on the day in vie
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/\/month\/2025-10$/);
   await waitForAppBarReady(page);
-  await expect(page.getByRole('tablist', { name: '縮放' })).toBeVisible();
+  await expect(page.getByRole('tablist', { name: '縮放' })).toBeInViewport();
 
   const cell = page.locator('a[data-date="2025-10-31"]:visible');
   await expect(cell).toHaveAttribute(
@@ -643,4 +643,27 @@ test('under reduced motion no element morphs', async ({ page }) => {
     .locator('#day-2025-11-01 [data-morph="day-2025-11-01"]')
     .evaluate((el) => getComputedStyle(el).viewTransitionName);
   expect(name).toBe('none');
+});
+
+test('a transient view-transition name is cleared once the transition finishes, and the app bar keeps its own', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.locator('a[data-morph="month-2025-11"]:visible').click();
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  await waitForAppBarReady(page);
+
+  const monthSection = page.locator('section[data-morph="month-2025-11"]');
+  await expect
+    .poll(() =>
+      monthSection.evaluate((el) => getComputedStyle(el).viewTransitionName),
+    )
+    .toBe('none');
+
+  const headerName = await page
+    .locator('header')
+    .first()
+    .evaluate((el) => getComputedStyle(el).viewTransitionName);
+  expect(headerName).toBe('app-bar');
 });

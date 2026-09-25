@@ -40,8 +40,7 @@ export function morphFromRequest(
   request: Request,
   url: URL,
 ): string | undefined {
-  // Behind the Cloudflare tunnel, url.origin is the server's own origin, not
-  // the public one the browser puts in Referer — the Host header is.
+  // Behind the Cloudflare tunnel only the host, not the scheme, matches the browser's Referer.
   const from = refererPath(
     request.headers.get('referer'),
     request.headers.get('host') ?? url.host,
