@@ -1,8 +1,12 @@
 import { actions } from 'astro:actions';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
-import { type Draft, saveInput, toDraft } from '../../lib/notes/draft.ts';
+import {
+  applyStamps,
+  type Draft,
+  saveInput,
+  toDraft,
+} from '../../lib/notes/draft.ts';
 import type { NotePayload } from '../../lib/notes/payload.ts';
 
 export type { Draft } from '../../lib/notes/draft.ts';
@@ -10,23 +14,6 @@ export type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict';
 
 const SAVE_DELAY_MS = 1000;
 const UNSAFE: readonly SaveStatus[] = ['dirty', 'saving', 'error', 'conflict'];
-
-function withStamp(
-  a: ResolvedAnnotation,
-  stamped: { by?: string; origin: string },
-): ResolvedAnnotation {
-  return {
-    eventId: a.eventId,
-    at: a.at,
-    source: a.source,
-    author: a.author,
-    excerpt: a.excerpt,
-    body: a.body,
-    status: a.status,
-    ...(stamped.by ? { by: stamped.by } : {}),
-    origin: stamped.origin,
-  };
-}
 
 export function useNoteDraft(initial: NotePayload) {
   const [payload, setPayloadState] = useState(initial);
@@ -60,16 +47,15 @@ export function useNoteDraft(initial: NotePayload) {
         const result = await actions.saveNote.orThrow(saveInput(p, d));
         if (result.ok) {
           setPayload({ ...current.current.payload, version: result.version });
-          if (revision.current === rev) {
-            setDraft({
-              ...current.current.draft,
-              annotations: current.current.draft.annotations.map((a, i) => {
-                const stamped = result.annotations[i];
-                return stamped ? withStamp(a, stamped) : a;
-              }),
-            });
-            setStatus('saved');
-          }
+          setDraft({
+            ...current.current.draft,
+            annotations: applyStamps(
+              d.annotations,
+              current.current.draft.annotations,
+              result.annotations,
+            ),
+          });
+          if (revision.current === rev) setStatus('saved');
         } else {
           clearTimeout(timer.current);
           setConflict(result.current);

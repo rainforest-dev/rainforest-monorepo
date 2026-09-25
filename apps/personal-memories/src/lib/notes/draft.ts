@@ -42,3 +42,33 @@ export const withCover = (d: Draft, cover: string | undefined): Draft => ({
   ...d,
   cover,
 });
+
+export type Stamp = { by?: string | undefined; origin: string };
+
+const withStamp = (
+  a: ResolvedAnnotation,
+  stamp: Stamp,
+): ResolvedAnnotation => ({
+  eventId: a.eventId,
+  at: a.at,
+  source: a.source,
+  author: a.author,
+  excerpt: a.excerpt,
+  body: a.body,
+  status: a.status,
+  ...(stamp.by ? { by: stamp.by } : {}),
+  origin: stamp.origin,
+});
+
+export const applyStamps = (
+  sent: readonly Pick<ResolvedAnnotation, 'eventId' | 'at'>[],
+  now: readonly ResolvedAnnotation[],
+  stamps: readonly Stamp[],
+): ResolvedAnnotation[] =>
+  now.map((a, i) => {
+    const stamp = stamps[i];
+    const was = sent[i];
+    return stamp && was && was.eventId === a.eventId && was.at === a.at
+      ? withStamp(a, stamp)
+      : a;
+  });

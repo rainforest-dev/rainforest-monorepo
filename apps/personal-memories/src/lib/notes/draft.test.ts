@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ResolvedAnnotation } from './attach.ts';
-import { saveInput, toDraft, withCover } from './draft.ts';
+import { applyStamps, saveInput, toDraft, withCover } from './draft.ts';
 import type { NotePayload } from './payload.ts';
 
 const annotation: ResolvedAnnotation = {
@@ -70,5 +70,40 @@ describe('draft', () => {
     expect(saveInput(payload, toDraft(payload)).annotations[0]?.origin).toBe(
       'new',
     );
+  });
+});
+
+describe('applyStamps', () => {
+  const second: ResolvedAnnotation = {
+    ...annotation,
+    eventId: 'e2',
+    at: '2025-11-01T10:00:00+08:00',
+  };
+  const stamps = [
+    { by: 'Alice', origin: 'e:e1' },
+    { by: 'Bob', origin: 'e:e2' },
+  ];
+
+  it('stamps annotations the user kept typing into after the save was sent', () => {
+    const typed = [
+      { ...annotation, body: 'note, and more' },
+      { ...second, body: 'later' },
+    ];
+    expect(applyStamps([annotation, second], typed, stamps)).toEqual([
+      { ...typed[0], by: 'Alice', origin: 'e:e1' },
+      { ...typed[1], by: 'Bob', origin: 'e:e2' },
+    ]);
+  });
+
+  it('leaves a slot alone once a different annotation occupies it', () => {
+    const third: ResolvedAnnotation = { ...annotation, eventId: 'e3' };
+    const [first, replaced, added] = applyStamps(
+      [annotation, second],
+      [annotation, third, { ...second, eventId: 'e4' }],
+      stamps,
+    );
+    expect(first).toMatchObject({ by: 'Alice', origin: 'e:e1' });
+    expect(replaced).toBe(third);
+    expect(added).not.toHaveProperty('origin');
   });
 });
