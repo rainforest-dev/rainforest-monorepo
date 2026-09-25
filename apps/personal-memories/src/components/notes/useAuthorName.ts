@@ -6,12 +6,14 @@ const KEY = 'memories:author-name';
 
 export function useAuthorName(viewer: string | undefined) {
   const [stored, setStored] = useState<string>();
+  const [resolved, setResolved] = useState(false);
   useEffect(() => {
     try {
       setStored(localStorage.getItem(KEY) ?? undefined);
     } catch {
       setStored(undefined);
     }
+    setResolved(true);
   }, []);
   const save = useCallback((raw: string) => {
     const name = cleanName(raw);
@@ -23,5 +25,9 @@ export function useAuthorName(viewer: string | undefined) {
       return;
     }
   }, []);
-  return { name: viewer ?? stored, needsName: !viewer && !stored, save };
+  return {
+    name: viewer ?? stored,
+    needsName: resolved && !viewer && !stored,
+    save,
+  };
 }

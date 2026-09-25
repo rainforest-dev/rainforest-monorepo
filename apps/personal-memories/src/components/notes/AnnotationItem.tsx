@@ -176,6 +176,7 @@ export function AnnotationList({
           <Input
             placeholder="你的名字"
             className="h-8"
+            disabled={rest.disabled}
             onBlur={(e) => onName(e.currentTarget.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') onName(e.currentTarget.value);
