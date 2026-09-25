@@ -64,10 +64,8 @@ export function stampAuthors<T extends Signable>(
 ): T[] {
   return annotations.map((a) => {
     const { by: sent, origin, ...rest } = a;
-    const before =
-      origin === undefined
-        ? undefined
-        : stored.find((s) => originOf(s) === origin);
+    const key = origin ?? originOf(rest);
+    const before = stored.find((s) => originOf(s) === key);
     const by = before
       ? before.by
       : (viewer ?? (cleanName(sent ?? '') || undefined));

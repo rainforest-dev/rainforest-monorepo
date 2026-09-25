@@ -41,6 +41,7 @@ describe('draft', () => {
           author: 'Alice',
           excerpt: 'hi',
           body: 'note',
+          origin: 'new',
         },
       ],
       cover: 'P2',
@@ -58,7 +59,7 @@ describe('draft', () => {
     });
   });
 
-  it('keeps the annotation origin when saving', () => {
+  it('keeps the annotation origin when saving, and marks one without an origin as new', () => {
     const withOrigin = {
       ...payload,
       annotations: [{ ...annotation, origin: 'e1' }],
@@ -66,8 +67,8 @@ describe('draft', () => {
     expect(
       saveInput(withOrigin, toDraft(withOrigin)).annotations[0],
     ).toMatchObject({ origin: 'e1' });
-    expect(
-      saveInput(payload, toDraft(payload)).annotations[0],
-    ).not.toHaveProperty('origin');
+    expect(saveInput(payload, toDraft(payload)).annotations[0]?.origin).toBe(
+      'new',
+    );
   });
 });

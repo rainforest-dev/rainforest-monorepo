@@ -116,7 +116,10 @@ describe('stampAuthors', () => {
 
   it('signs only the annotations that are new in this save', () => {
     const [old, added] = stampAuthors(
-      [ann('old', { origin: originOf(ann('old')) }), ann('new')],
+      [
+        ann('old', { origin: originOf(ann('old')) }),
+        ann('new', { origin: 'new' }),
+      ],
       [ann('old')],
       'Bob',
     );
@@ -163,19 +166,24 @@ describe('stampAuthors', () => {
 
   it("signs a brand-new annotation on the same event as a just-deleted one with the viewer, not the deleted one's author", () => {
     const staleOnDisk = ann('E', { by: 'Alice' });
-    const freshlyCreated = ann('E');
+    const freshlyCreated = ann('E', { origin: 'new' });
     const [stamped] = stampAuthors([freshlyCreated], [staleOnDisk], 'Bob');
     expect(stamped?.by).toBe('Bob');
   });
 
   it('lets the mapped viewer override a client-sent name on a new annotation, and only falls back to the client name when the viewer is unmapped', () => {
-    expect(stampAuthors([ann('n', { by: 'Eve' })], [], 'Bob')[0]?.by).toBe(
-      'Bob',
+    expect(
+      stampAuthors([ann('n', { by: 'Eve', origin: 'new' })], [], 'Bob')[0]?.by,
+    ).toBe('Bob');
+    expect(
+      stampAuthors([ann('n', { by: 'Eve ', origin: 'new' })], [], undefined)[0]
+        ?.by,
+    ).toBe('Eve');
+    const [unsigned] = stampAuthors(
+      [ann('n', { by: ' %% ', origin: 'new' })],
+      [],
+      undefined,
     );
-    expect(stampAuthors([ann('n', { by: 'Eve ' })], [], undefined)[0]?.by).toBe(
-      'Eve',
-    );
-    const [unsigned] = stampAuthors([ann('n', { by: ' %% ' })], [], undefined);
     expect(unsigned && 'by' in unsigned).toBe(false);
   });
 
@@ -217,5 +225,72 @@ describe('stampAuthors', () => {
       'Bob',
     );
     expect(reSaved?.by).toBe('Alice');
+  });
+});
+
+describe('stampAuthors with a client that sends no origin', () => {
+  const ann = (
+    eventId: string,
+    extra: { by?: string; origin?: string } = {},
+  ) => ({
+    eventId,
+    at: '2025-11-01T09:00:00+08:00',
+    source: 'line' as const,
+    author: 'Alice',
+    excerpt: eventId,
+    ...extra,
+  });
+
+  it('keeps every stored author, whether the viewer is mapped or not', () => {
+    const stored = [ann('a', { by: 'Alice' }), ann('b', { by: 'Bob' })];
+    const sent = [ann('a'), ann('b', { by: 'Mallory' })];
+    for (const viewer of ['Bob', undefined]) {
+      expect(stampAuthors(sent, stored, viewer).map((a) => a.by)).toEqual([
+        'Alice',
+        'Bob',
+      ]);
+    }
+  });
+
+  it('does not sign a stored unsigned annotation', () => {
+    const [legacy] = stampAuthors([ann('legacy')], [ann('legacy')], 'Bob');
+    expect(legacy && 'by' in legacy).toBe(false);
+  });
+
+  it('signs an annotation that matches nothing on disk with the viewer', () => {
+    const [added] = stampAuthors([ann('added')], [ann('other')], 'Bob');
+    expect(added?.by).toBe('Bob');
+  });
+});
+
+describe('stampAuthors with an explicit new origin', () => {
+  const ann = (
+    eventId: string,
+    extra: { by?: string; origin?: string } = {},
+  ) => ({
+    eventId,
+    at: '2025-11-01T09:00:00+08:00',
+    source: 'line' as const,
+    author: 'Alice',
+    excerpt: eventId,
+    ...extra,
+  });
+
+  it('signs it with the viewer even when it sits on an event already signed by someone else', () => {
+    const [added] = stampAuthors(
+      [ann('E', { origin: 'new', by: 'Alice' })],
+      [ann('E', { by: 'Alice' })],
+      'Bob',
+    );
+    expect(added?.by).toBe('Bob');
+  });
+
+  it("cannot take over another user's annotation by claiming its origin", () => {
+    const [claimed] = stampAuthors(
+      [ann('x', { origin: originOf(ann('E')), by: 'Bob' })],
+      [ann('E', { by: 'Alice' })],
+      'Bob',
+    );
+    expect(claimed?.by).toBe('Alice');
   });
 });
