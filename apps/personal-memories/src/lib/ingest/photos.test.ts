@@ -17,7 +17,7 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 describe('parsePhotoIndex', () => {
   it('keeps items with local media and counts the rest', () => {
-    expect(result.events).toHaveLength(7);
+    expect(result.events).toHaveLength(8);
     expect(result.skippedNoMedia).toBe(1);
     expect(result.skippedInvalid).toBe(0);
   });
