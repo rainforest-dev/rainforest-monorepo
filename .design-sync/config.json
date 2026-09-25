@@ -1,0 +1,98 @@
+{
+  "shape": "storybook",
+  "storybookConfigDir": "libs/rainforest-react/.storybook",
+  "pkg": "@rainforest-dev/rainforest-react",
+  "storybookStatic": ".design-sync/sb-reference",
+  "buildCmd": "pnpm nx build rainforest-react",
+  "extraEntries": ["lucide-react"],
+  "overrides": {
+    "Alert": {
+      "skip": ["feedback-alert--dark"]
+    },
+    "Badge": {
+      "skip": ["display-badge--dark"]
+    },
+    "Button": {
+      "skip": ["actions-button--dark"]
+    },
+    "Card": {
+      "skip": ["display-card--dark"]
+    },
+    "Checkbox": {
+      "skip": ["forms-checkbox--dark"]
+    },
+    "Command": {
+      "skip": ["overlays-command--dark"],
+      "cardMode": "single"
+    },
+    "Dialog": {
+      "skip": ["overlays-dialog--dark"],
+      "cardMode": "single"
+    },
+    "DropdownMenu": {
+      "skip": ["overlays-dropdownmenu--dark"],
+      "cardMode": "single"
+    },
+    "Input": {
+      "skip": ["forms-input--dark"]
+    },
+    "InputGroup": {
+      "skip": ["forms-inputgroup--dark"]
+    },
+    "Kbd": {
+      "skip": ["display-kbd--dark"]
+    },
+    "Popover": {
+      "skip": ["overlays-popover--dark"],
+      "cardMode": "single"
+    },
+    "ScrollArea": {
+      "skip": ["display-scrollarea--dark"],
+      "cardMode": "column"
+    },
+    "Select": {
+      "skip": ["forms-select--dark"],
+      "cardMode": "single"
+    },
+    "Separator": {
+      "skip": ["display-separator--dark"]
+    },
+    "Sheet": {
+      "skip": ["overlays-sheet--dark"],
+      "cardMode": "single"
+    },
+    "Skeleton": {
+      "skip": ["feedback-skeleton--dark"]
+    },
+    "Switch": {
+      "skip": ["forms-switch--dark"]
+    },
+    "Table": {
+      "skip": ["display-table--dark"]
+    },
+    "Tabs": {
+      "skip": ["navigation-tabs--dark"]
+    },
+    "Textarea": {
+      "skip": ["forms-textarea--dark"]
+    },
+    "Toaster": {
+      "skip": ["feedback-toaster--dark"],
+      "cardMode": "single"
+    },
+    "ToggleGroup": {
+      "skip": ["forms-togglegroup--dark"]
+    },
+    "Tooltip": {
+      "skip": ["overlays-tooltip--dark"],
+      "cardMode": "single"
+    }
+  },
+  "storyImports": {
+    "bundle": ["lucide-react"]
+  },
+  "libOverrides": {
+    "source-storybook.mjs": "decorator bundle: .storybook/preview imports the Tailwind v4 source css, which esbuild cannot resolve; stub .css as empty there"
+  },
+  "readmeHeader": "libs/rainforest-react/conventions.md"
+}

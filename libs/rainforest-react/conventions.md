@@ -1,7 +1,17 @@
 # rainforest.tools design conventions
 
 These rules apply to every screen built with `@rainforest-dev/rainforest-react`, in the apps and in
-Claude Design. A later `.design-sync/config.json` can point `readmeHeader` at this file.
+Claude Design. `.design-sync/config.json` points `readmeHeader` at this file.
+
+## In Claude Design
+
+- No provider or root wrapper is needed. The design system's `styles.css` carries the tokens, the
+  three fonts and every class listed below; set `data-scheme="light"` or `"dark"` on `<html>` to
+  pick a scheme.
+- Before styling, read the bound `styles.css` (and the `_ds_bundle.css` it imports) for the exact
+  class list, and each component's `.prompt.md` for its props and examples.
+- Draw with fixture data only: made-up names, dates and text. Never real people, photos or
+  messages.
 
 ## Colour
 
