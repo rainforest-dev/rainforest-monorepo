@@ -79,7 +79,7 @@ const bar = {
           </Alert>
         )}
         <div class="lg:grid lg:grid-cols-[56px_minmax(0,1fr)_400px] lg:gap-8">
-          <aside class="hidden lg:sticky lg:top-[72px] lg:block lg:max-h-[calc(100vh-88px)]">
+          <aside class="hidden lg:sticky lg:top-[calc(var(--app-bar-h)+1rem)] lg:block lg:max-h-[calc(100vh-var(--app-bar-h)-2rem)]">
             <MonthScrubber client:idle months={months} date={date} />
           </aside>
           <div data-stream class="pb-[172px] lg:pb-0">

@@ -650,6 +650,26 @@ test('the ‹ › links point at the neighbours of the day in view', async ({
   await expect(page.getByRole('button', { name: '後一天' })).toBeVisible();
 });
 
+test('the sticky day header and month scrubber sit below the app bar', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const style = (selector: string) =>
+    page
+      .locator(selector)
+      .first()
+      .evaluate((el) => {
+        const { top, maxHeight } = getComputedStyle(el);
+        return { top, maxHeight };
+      });
+  expect((await style('[data-day="2025-11-01"] > header')).top).toBe('56px');
+  const viewport = page.viewportSize()?.height ?? 0;
+  expect(await style('aside:has(+ [data-stream])')).toEqual({
+    top: '72px',
+    maxHeight: `${viewport - 88}px`,
+  });
+});
+
 test('the date jump ignores an Enter fired mid-IME composition', async ({
   page,
 }) => {
