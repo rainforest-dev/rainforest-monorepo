@@ -25,8 +25,7 @@ const { title, wide = false, bar } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <script is:inline>
-      // pagereveal fires before any deferred/module script can attach a
-      // listener, so this one has to be a blocking classic script in <head>.
+      // pagereveal fires before deferred or module scripts can listen, so this must be a blocking head script.
       function clearMorphNames() {
         for (const el of document.querySelectorAll('[data-morph]')) {
           el.style.viewTransitionName = '';
