@@ -16,9 +16,12 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+  :root {
+    --app-bar-h: 3.5rem;
+  }
   html {
     /* Clears the sticky app bar for #ev- deep links and scroll-mt rows. */
-    scroll-padding-top: 3.5rem;
+    scroll-padding-top: var(--app-bar-h);
   }
 }
 
@@ -116,21 +119,32 @@
   [data-preview] {
     position: fixed;
     position-area: top;
-    margin-block: 3.5rem 0.5rem;
+    margin-block: var(--app-bar-h) 0.5rem;
     position-try-fallbacks:
-      flip-block,
-      --preview-right,
-      --preview-right flip-block,
-      --preview-left,
-      --preview-left flip-block;
+      --below, --above-right, --below-right, --above-left, --below-left;
   }
 
-  @position-try --preview-right {
+  @position-try --below {
+    position-area: bottom;
+    margin-block: 0.5rem 0;
+  }
+
+  @position-try --above-right {
     position-area: top span-right;
   }
 
-  @position-try --preview-left {
+  @position-try --below-right {
+    position-area: bottom span-right;
+    margin-block: 0.5rem 0;
+  }
+
+  @position-try --above-left {
     position-area: top span-left;
+  }
+
+  @position-try --below-left {
+    position-area: bottom span-left;
+    margin-block: 0.5rem 0;
   }
 }
 

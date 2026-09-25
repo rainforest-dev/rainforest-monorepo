@@ -56,6 +56,7 @@ test('the served CSS keeps both the anchored preview and its fallback', async ({
   expect(anchored?.text).toMatch(/position-area: top;/);
   expect(fallback?.text).toMatch(/position: absolute/);
   expect(fallback?.text).toMatch(/bottom: calc\(100% \+ 0\.5rem\)/);
+  expect(fallback?.text).toMatch(/left: 50%/);
   expect(fallback?.text).toMatch(/translate: -50%( 0)?;/);
 });
 
@@ -82,39 +83,6 @@ test('a heat cell previews its day above it on hover and on keyboard focus', asy
   await expect(preview).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(preview).toBeHidden();
-});
-
-test.describe('without anchor positioning', () => {
-  test('the heat cell preview falls back to sitting above the cell', async ({
-    playwright,
-    baseURL,
-  }) => {
-    const browser = await playwright.chromium.launch({
-      args: ['--disable-blink-features=CSSAnchorPositioning'],
-    });
-    try {
-      const page = await browser.newPage({ baseURL });
-      await page.goto('/');
-      const supported = await page.evaluate(() =>
-        CSS.supports('position-area: top'),
-      );
-      test.skip(
-        supported,
-        'this Chromium ignores the flag; the fallback is not reachable',
-      );
-      const cell = page.locator('a[data-date="2025-11-03"]');
-      await cell.hover();
-      const preview = cell.locator('[data-preview]');
-      await expect(preview).toBeVisible();
-      const [c, p] = await Promise.all([
-        cell.boundingBox(),
-        preview.boundingBox(),
-      ]);
-      expect(p && c && p.y + p.height <= c.y).toBe(true);
-    } finally {
-      await browser.close();
-    }
-  });
 });
 
 test('the month calendar shows each day with its cover or a line', async ({

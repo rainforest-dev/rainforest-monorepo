@@ -22,7 +22,10 @@ describe('heat cell preview CSS', () => {
     expect(anchored).toMatch(/\[data-preview\]/);
     expect(anchored).toMatch(/position:\s*fixed/);
     expect(anchored).toMatch(/position-area:\s*top;/);
-    expect(anchored).toMatch(/position-try-fallbacks:[^;]*flip-block/);
+    expect(anchored).toMatch(/position-try-fallbacks:[^;]*--below/);
+    expect(anchored).toMatch(
+      /@position-try --below \{\s*position-area:\s*bottom;/,
+    );
   });
 
   it('falls back to an absolute position above the cell everywhere else', () => {

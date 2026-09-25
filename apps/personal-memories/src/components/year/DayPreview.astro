@@ -27,6 +27,7 @@ const { date, detail, anchor, cell } = Astro.props;
         src={thumbUrl(cell.cover, 0, 240)}
         alt=""
         loading="lazy"
+        decoding="async"
         class="bg-muted mt-1 aspect-video w-full rounded-sm object-cover"
       />
     ) : cell?.memory ? (

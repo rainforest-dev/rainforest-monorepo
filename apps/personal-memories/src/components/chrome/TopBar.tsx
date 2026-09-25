@@ -96,7 +96,7 @@ export function TopBar({
 }: Props) {
   return (
     <header
-      className="border-border bg-background/90 sticky top-0 z-[15] -mx-4 mb-6 flex h-14 items-center gap-3 border-b px-4 backdrop-blur-md"
+      className="border-border bg-background/90 h-(--app-bar-h) sticky top-0 z-[15] -mx-4 mb-6 flex items-center gap-3 border-b px-4 backdrop-blur-md"
       style={{ viewTransitionName: 'app-bar' }}
     >
       <a href="/" className="text-heading font-semibold">
