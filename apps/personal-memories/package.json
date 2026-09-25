@@ -8,7 +8,8 @@
     "build": "astro check && astro build",
     "preview": "astro preview --port 3004 --host 127.0.0.1",
     "ingest": "node src/cli/ingest.ts",
-    "fixture": "node src/cli/fixture.ts"
+    "fixture": "node src/cli/fixture.ts",
+    "docker-smoke": "node src/cli/docker-smoke.ts"
   },
   "nx": {
     "name": "personal-memories",
@@ -55,6 +56,7 @@
     "react-dom": "catalog:",
     "sharp": "^0.35.4",
     "tailwindcss": "catalog:",
+    "tslib": "^2.3.0",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
