@@ -8,7 +8,11 @@ export default defineConfig({
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   server: { host: '127.0.0.1', port: 3004 },
-  vite: { plugins: [tailwindcss()] },
+  vite: {
+    plugins: [tailwindcss()],
+    cacheDir:
+      process.env.MEMORIES_E2E === '1' ? 'node_modules/.vite-e2e' : undefined,
+  },
   integrations: [react()],
   devToolbar: { enabled: process.env.MEMORIES_E2E !== '1' },
 });
