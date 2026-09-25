@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@rainforest-dev/rainforest-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
 import { useMediaQuery } from '../useMediaQuery.ts';
 import { useOverlay } from '../useOverlay.ts';
@@ -35,7 +35,36 @@ export function NotesSurface({
   children,
 }: Props) {
   const desktop = useMediaQuery(DESKTOP);
-  useOverlay(!desktop && expanded);
+  const modal = !desktop && expanded;
+  useOverlay(modal);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const wasModal = useRef(false);
+
+  useEffect(() => {
+    const popup = popupRef.current;
+    if (!modal || !popup) return;
+    let root: Element = popup;
+    while (root.parentElement && root.parentElement !== document.body)
+      root = root.parentElement;
+    const others = [...document.body.children].filter(
+      (el): el is HTMLElement =>
+        el instanceof HTMLElement && el !== root && !el.inert,
+    );
+    for (const el of others) el.inert = true;
+    return () => {
+      for (const el of others) el.inert = false;
+    };
+  }, [modal]);
+
+  useEffect(() => {
+    const collapsed = wasModal.current && !modal;
+    wasModal.current = modal;
+    if (!collapsed) return;
+    const active = document.activeElement;
+    if (active === document.body || popupRef.current?.contains(active))
+      toggleRef.current?.focus({ preventScroll: true });
+  }, [modal]);
 
   if (desktop) {
     return (
@@ -71,6 +100,7 @@ export function NotesSurface({
       disablePointerDismissal
     >
       <SheetContent
+        ref={popupRef}
         initialFocus={false}
         showOverlay={expanded}
         showCloseButton={expanded}
@@ -85,6 +115,7 @@ export function NotesSurface({
         </SheetHeader>
         <SheetBody className="flex flex-col gap-2 pb-6">
           <Button
+            ref={toggleRef}
             variant="ghost"
             size="sm"
             className="self-start"

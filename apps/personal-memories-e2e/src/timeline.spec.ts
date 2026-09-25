@@ -755,4 +755,35 @@ test.describe('on a phone', () => {
     await expect(sheet.getByLabel('當天的回憶')).toHaveCount(0);
     await expect(page).toHaveURL(/\/day\/2025-11-02$/);
   });
+
+  test('rapid Tab presses stay inside the expanded sheet', async ({ page }) => {
+    await page.goto('/day/2025-11-02');
+    await waitForAppBarReady(page);
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await sheet.getByRole('button', { name: '展開筆記' }).click();
+    await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
+    const url = page.url();
+    for (let i = 0; i < 12; i++) await page.keyboard.press('Tab', { delay: 0 });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            !!document.activeElement?.closest('[data-slot="sheet-content"]'),
+        ),
+      )
+      .toBe(true);
+    expect(page.url()).toBe(url);
+  });
+
+  test('closing the expanded sheet returns focus to its toggle', async ({
+    page,
+  }) => {
+    await page.goto('/day/2025-11-02');
+    await waitForAppBarReady(page);
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await sheet.getByRole('button', { name: '展開筆記' }).click();
+    await sheet.getByRole('button', { name: '關閉' }).click();
+    await expect(sheet.getByLabel('當天的回憶')).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: '展開筆記' })).toBeFocused();
+  });
 });

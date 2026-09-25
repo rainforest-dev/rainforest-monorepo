@@ -37,7 +37,7 @@ function VersionCard({
   onKeep: () => void;
 }) {
   return (
-    <Card size="sm" className="min-w-0">
+    <Card size="sm" className="h-full min-w-0">
       <CardHeader>
         <CardTitle role="heading" aria-level={3}>
           {title}
@@ -64,7 +64,7 @@ function VersionCard({
           {annotations} 則眉批
         </p>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="mt-auto">
         <Button variant="outline" size="sm" onClick={onKeep}>
           保留這個版本
         </Button>
@@ -86,7 +86,7 @@ export function ConflictView({ theirs, mine, onResolve }: Props) {
     <section
       ref={sectionRef}
       tabIndex={-1}
-      className="mb-4 flex flex-col gap-3 outline-none"
+      className="@container mb-4 flex flex-col gap-3 outline-none"
     >
       <Alert variant="info">
         <AlertTitle>這一天在 Obsidian 裡也改過了</AlertTitle>
@@ -94,7 +94,7 @@ export function ConflictView({ theirs, mine, onResolve }: Props) {
           兩個版本都在下面，不同的地方已標出。選一個保留。
         </AlertDescription>
       </Alert>
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="@md:grid-cols-2 grid gap-3">
         <VersionCard
           title="Obsidian 的版本"
           lines={diff.a}
