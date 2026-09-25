@@ -3,6 +3,7 @@ import '../styles/global.css';
 
 import { AppBar } from '../components/chrome/AppBar.tsx';
 import type { Level, Place } from '../lib/nav.ts';
+import { HIDDEN_KEY, SOURCES } from '../lib/sources.ts';
 
 type Props = {
   title: string;
@@ -39,6 +40,19 @@ const { title, wide = false, bar } = Astro.props;
       window.addEventListener('pageshow', (event) => {
         if (event.persisted) clearMorphNames();
       });
+    </script>
+    <script
+      is:inline
+      define:vars={{ key: HIDDEN_KEY, sources: SOURCES.map((s) => s.source) }}
+    >
+      // Module scripts run after first paint, so hidden sources would flash in; this one blocks.
+      try {
+        const hidden = JSON.parse(localStorage.getItem(key) ?? '[]');
+        if (Array.isArray(hidden))
+          for (const source of hidden)
+            if (typeof source === 'string' && sources.includes(source))
+              document.documentElement.setAttribute('data-hide-' + source, '');
+      } catch {}
     </script>
   </head>
   <body class="antialiased">

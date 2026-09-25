@@ -25,9 +25,9 @@
   }
 }
 
-[data-stream][data-hide-line] [data-source='line'],
-[data-stream][data-hide-slack] [data-source='slack'],
-[data-stream][data-hide-photo] [data-source='photo'] {
+:root[data-hide-line] [data-stream] [data-source='line'],
+:root[data-hide-slack] [data-stream] [data-source='slack'],
+:root[data-hide-photo] [data-stream] [data-source='photo'] {
   display: none;
 }
 

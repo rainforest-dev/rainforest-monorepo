@@ -64,7 +64,8 @@ function watchLoaders(
         const date = sentinel.dataset['date'];
         if (!isIntersecting || !date || loading.has(sentinel)) continue;
         loading.add(sentinel);
-        sentinel.dataset['state'] = 'loading';
+        if (sentinel.dataset['state'] !== 'error')
+          sentinel.dataset['state'] = 'loading';
         void fetchDay(date).then((result) => {
           loading.delete(sentinel);
           if (result.status === 'error') sentinel.dataset['state'] = 'error';
@@ -76,7 +77,14 @@ function watchLoaders(
           }
           if (result.status === 'error') {
             observer.unobserve(sentinel);
-            setTimeout(() => observer.observe(sentinel), RETRY_DELAY_MS);
+            window.addEventListener(
+              'scroll',
+              () => observer.observe(sentinel),
+              {
+                once: true,
+                passive: true,
+              },
+            );
             return;
           }
           const { section } = result;
@@ -448,7 +456,11 @@ function watchLongPress(stream: HTMLElement) {
   stream.addEventListener('pointercancel', cancel);
   // The compatibility mousedown a released touch emits would close the menu as an outside press.
   stream.addEventListener('touchend', (e) => {
-    if (fired && e.cancelable) e.preventDefault();
+    if (!fired) return;
+    if (e.cancelable) e.preventDefault();
+    setTimeout(() => {
+      fired = false;
+    });
   });
   stream.addEventListener('keydown', () => (fired = false), true);
   stream.addEventListener(

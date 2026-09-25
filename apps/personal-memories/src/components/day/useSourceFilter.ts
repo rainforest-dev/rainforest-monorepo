@@ -1,38 +1,30 @@
 import { useEffect, useState } from 'react';
 
-import {
-  HIDDEN_KEY,
-  hiddenFrom,
-  parseHidden,
-  SOURCES,
-  visibleFrom,
-} from '../../lib/sources.ts';
+import { HIDDEN_KEY, hiddenFrom, SOURCES } from '../../lib/sources.ts';
+
+const ALL = SOURCES.map((s) => s.source);
 
 export function useSourceFilter() {
-  const [visible, setVisible] = useState<string[]>(() =>
-    SOURCES.map((s) => s.source),
-  );
+  const [stored, setStored] = useState<string[]>();
   useEffect(() => {
-    let raw: string | null = null;
-    try {
-      raw = localStorage.getItem(HIDDEN_KEY);
-    } catch {
-      raw = null;
-    }
-    setVisible(visibleFrom(parseHidden(raw)));
+    const root = document.documentElement;
+    setStored(ALL.filter((s) => !root.hasAttribute(`data-hide-${s}`)));
   }, []);
   useEffect(() => {
-    const stream = document.querySelector('[data-stream]');
-    for (const { source } of SOURCES)
-      stream?.toggleAttribute(`data-hide-${source}`, !visible.includes(source));
-  }, [visible]);
+    if (!stored) return;
+    for (const source of ALL)
+      document.documentElement.toggleAttribute(
+        `data-hide-${source}`,
+        !stored.includes(source),
+      );
+  }, [stored]);
   const change = (next: string[]) => {
-    setVisible(next);
+    setStored(next);
     try {
       localStorage.setItem(HIDDEN_KEY, JSON.stringify(hiddenFrom(next)));
     } catch {
       return;
     }
   };
-  return { visible, change };
+  return { visible: stored ?? ALL, change };
 }

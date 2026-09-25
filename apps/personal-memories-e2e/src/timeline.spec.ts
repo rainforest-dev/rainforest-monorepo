@@ -1029,3 +1029,59 @@ test.describe('touch gestures on a phone', () => {
     await expect(page).toHaveURL(/\/month\/2025-11$/);
   });
 });
+
+test('a failed next day keeps its notice until the reader scrolls again', async ({
+  page,
+}) => {
+  let requests = 0;
+  let fail = true;
+  await page.route('**/day/2025-11-03/partial', async (route) => {
+    requests += 1;
+    if (fail) await route.abort();
+    else await route.continue();
+  });
+  await page.goto('/day/2025-11-02');
+  await page.waitForLoadState('networkidle');
+  const notice = page.locator('[data-load="next"] [data-failed]');
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(notice).toBeVisible();
+  await page.waitForTimeout(2500);
+  await expect(notice).toBeVisible();
+  await expect(page.locator('[data-load="next"] [data-skeleton]')).toBeHidden();
+  expect(requests).toBe(1);
+
+  fail = false;
+  await page.mouse.wheel(0, 40);
+  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  await expect(notice).toBeHidden();
+  expect(requests).toBe(2);
+});
+
+test('a hidden source stays hidden from the first paint', async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem('memories:hidden-sources', '["photo"]'),
+  );
+  await page.goto('/day/2025-11-01', { waitUntil: 'domcontentloaded' });
+  const early = await page.evaluate(() => {
+    const photo = document.querySelector(
+      '#day-2025-11-01 [data-source="photo"]',
+    );
+    return {
+      hidden: document.documentElement.hasAttribute('data-hide-photo'),
+      display: photo && getComputedStyle(photo).display,
+    };
+  });
+  expect(early).toEqual({ hidden: true, display: 'none' });
+
+  await page
+    .locator('astro-island[component-url*="SourceFilter"]:not([ssr])')
+    .waitFor({ state: 'attached' });
+  const toggle = page.getByRole('button', { name: '照片', exact: true });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(
+    page.getByRole('button', { name: 'LINE', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('html[data-hide-photo]')).toHaveCount(1);
+  await toggle.click();
+  await expect(page.locator('html[data-hide-photo]')).toHaveCount(0);
+});
