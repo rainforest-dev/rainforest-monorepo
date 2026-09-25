@@ -243,7 +243,7 @@ describe('stampAuthors with a client that sends no origin', () => {
 
   it('keeps every stored author, whether the viewer is mapped or not', () => {
     const stored = [ann('a', { by: 'Alice' }), ann('b', { by: 'Bob' })];
-    const sent = [ann('a'), ann('b', { by: 'Mallory' })];
+    const sent = [ann('a'), ann('b', { by: 'Alice' })];
     for (const viewer of ['Bob', undefined]) {
       expect(stampAuthors(sent, stored, viewer).map((a) => a.by)).toEqual([
         'Alice',
