@@ -57,10 +57,29 @@ MEMORIES_DATA_DIR="$HOME/.local/share/memories" pnpm nx dev personal-memories
 ```
 
 - `/` is a heatmap of every day (Asia/Taipei) that has events, one cell per day, darker for more
-  events; a dot marks days with a note.
+  events; a dot marks days with a note. Hovering or focusing a cell shows a preview — the cover
+  photo where there is one, otherwise the note or an excerpt — anchored above the cell with CSS
+  anchor positioning (`position-anchor`/`position-area`; Chrome/Edge 129+, Safari 26+, Firefox
+  147+). Elsewhere it falls back to a fixed position, on a best-effort basis.
+- `/month/<YYYY-MM>` is a calendar for that month, each day showing its cover photo where one
+  exists. An out-of-range or unparsable month 404s to the calendar for the nearest month that has
+  events.
 - `/day/<YYYY-MM-DD>` shows that day's events in reading order, with photos inline, a LINE /
-  Slack / 照片 filter remembered in `localStorage`, and infinite scroll to neighbouring days. The
-  note panel sits alongside it on desktop and as a bottom sheet on phone.
+  Slack / 照片 filter remembered per browser in `localStorage`, and infinite scroll to neighbouring
+  days. An unknown day 404s to the nearest day with events. The note panel sits alongside it on
+  desktop and as a bottom sheet on phone, which peeks a preview and expands to full height by
+  dragging or tapping.
+- The app bar is sticky at every level, with 年/月/日 tabs, a date jump (`/` or the search icon),
+  and, on `/day/<date>`, ‹ › buttons (`k`/`j`) to step to the neighbouring day.
+- Zooming between year, month and day is a cross-document View Transition that morphs the clicked
+  cell or tab into its destination; under `prefers-reduced-motion: reduce` it falls back to a
+  plain cross-fade.
+- A month scrubber runs down the day view on `lg` screens and wider, for jumping straight to a
+  month.
+- Clicking a photo opens the lightbox, where 設為封面 marks it as the day's cover — stored as the
+  `cover:` key in that day's note (see [Notes](#notes)). Only photos qualify, not videos or Slack
+  files. Without a manual pick, the app auto-selects a cover, favourites first and screenshots or
+  burst also-rans last.
 - `/week/<YYYY-Www>` 301-redirects to `/day/<first day in that week with events>`, for links from
   before the heatmap replaced the weekly view.
 - `/media/<event id>` streams an event's file. The path comes only from `timeline.json`; photos
@@ -69,6 +88,15 @@ MEMORIES_DATA_DIR="$HOME/.local/share/memories" pnpm nx dev personal-memories
   `MEMORIES_CACHE_DIR`: a disk path; the default is under the OS temp dir inside the container,
   which lives on the container's writable layer; it grows with photos viewed and can be deleted
   any time.
+- `/days.json` lists every day with events as `{ date, total }`; the date jump dialog reads it.
+- `?` lists the keyboard shortcuts, which include stepping days, opening the date jump, and
+  zooming out a level with `Escape`.
+- Gestures: long-press a row for the 眉批 / 複製 menu, which also suppresses the row's native
+  text-selection callout so the press doesn't fight the browser; pinching in zooms out one level
+  (day → month → year) as long as the page itself isn't already browser-zoomed; the lightbox
+  supports swiping between photos.
+- A day whose content fails to load while scrolling shows an error placeholder and retries on the
+  next scroll.
 
 Set `MEMORIES_OWNER` to a comma-separated list of author names (as they appear in the LINE or
 Slack export) to indent that person's own messages in the day stream, the way a chat app sets
@@ -105,6 +133,18 @@ disk since the panel last read it — an edit made directly in Obsidian, say —
 back as a conflict: the panel shows both versions side by side and lets you keep either, so
 nothing is overwritten silently.
 
+Each annotation block can carry a `by:` field naming its author. Behind Cloudflare Access, the
+app trusts the `Cf-Access-Authenticated-User-Email` header Access sets on every request, and maps
+it to a name through `MEMORIES_AUTHORS`, a comma-separated `email=Name` list:
+
+```bash
+MEMORIES_AUTHORS="alice@example.com=Alice,bob@example.com=Bob"
+```
+
+Names containing a comma are not supported. A signed-in email with no entry in that map, or no
+Access header at all — running locally, say — gets a one-time name prompt in the panel instead;
+the name is remembered for that browser from then on.
+
 ## Deployment
 
 The homelab runs `ghcr.io/rainforest-dev/personal-memories:latest`, published by
@@ -112,7 +152,9 @@ The homelab runs `ghcr.io/rainforest-dev/personal-memories:latest`, published by
 The Terraform module lives in
 [rainforest-dev/rainforest-homelab](https://github.com/rainforest-dev/rainforest-homelab)
 (`modules/personal-memories`), and the hostname is gated by Cloudflare Access like the other
-tools.
+tools. The Cloudflare Access application must be the only route to the container, which is why
+the homelab binds the published port to 127.0.0.1: nothing else on the box can reach the
+container directly to forge the identity header `MEMORIES_AUTHORS` maps (see [Notes](#notes)).
 
 Three host paths are bind-mounted at the same absolute path they have on the host:
 
