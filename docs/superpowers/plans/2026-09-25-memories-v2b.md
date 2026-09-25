@@ -16,7 +16,7 @@ components that take plain props. A cover is the `cover:` frontmatter key of the
 travels through the same draft, autosave and conflict path as the body.
 
 **Tech Stack:** Astro 7.3.3 (installed; the v2a plan still said 6.4.8), React 19,
-`@rainforest-dev/rainforest-react` (Base UI 1.4, cmdk, lucide-react), Tailwind v4 with the shared
+`@rainforest-dev/rainforest-react` (Base UI 1.8.0, cmdk, lucide-react), Tailwind v4 with the shared
 seed theme, cross-document View Transitions, CSS anchor positioning, Vitest 3.2 (the app's own
 pin; the library's Vitest 4 does not apply here), Playwright.
 
@@ -79,8 +79,10 @@ Feedback from using v2a on 2026-09-24, each tied to a task:
 - D8 Date-jump data. The day list comes from `GET /days.json` on first open, not from page
   props on every page.
 - D9 Heatmap preview (owner #3). CSS anchor positioning replaces the brief's `Tooltip` for
-  heat cells, and the heatmap stays zero-JS. Support: Chrome/Edge 125+ and Safari 26+ on macOS and
-  iOS. Elsewhere `@supports not (anchor-name: --a)` falls back to v2a's absolute position above
+  heat cells, and the heatmap stays zero-JS. Support: Chrome/Edge 129+, Safari 26+ on macOS and
+  iOS, Firefox 147+. The gate is `@supports (position-area: top)`, because Chrome 125–128 shipped
+  `anchor-name` with the older `inset-area` name. Elsewhere
+  `@supports not (position-area: top)` falls back to v2a's absolute position above
   the cell. No polyfill, per the spec's "No polyfills". Touch devices get no preview: a tap
   follows the link, and phones use the month rows anyway. Keyboard focus shows it
   (`:focus-visible`).
@@ -98,8 +100,12 @@ Feedback from using v2a on 2026-09-24, each tied to a task:
   `%% ev:<id> at:<iso> src:<source> by:<name> %%`. Older notes without `by:` still parse. The
   server resolves the name from `Cf-Access-Authenticated-User-Email` through
   `MEMORIES_AUTHORS="email=Name,…"` (set in the homelab, never in the repo). Without a mapping, the
-  panel asks once for a name and keeps it in `localStorage`. The server fills `by` on any
-  annotation that arrives without one. The header is trusted only because the app is reachable
+  panel asks once for a name and keeps it in `localStorage`. The server signs only annotations
+  that are new in a save, meaning none in the note on disk has the same `eventId` or the same
+  anchor fields (`at`, source, author, excerpt), which covers a re-attached one. An existing
+  annotation keeps what the file says, so the invited viewer's first save never relabels the
+  owner's older 眉批; unsigned legacy annotations stay unsigned and render without an author. The
+  header is trusted only because the app is reachable
   solely behind Cloudflare Access; JWT verification is out of scope.
 - D13 Pinch. Two fingers moving together (distance ratio ≤ 0.75) zoom out one level.
   Confirm with the owner, since "pinch-out" can also mean spreading the fingers.
@@ -129,8 +135,10 @@ screen-reader labels 這一天的時段, {HH} 點，{N} 則, 月份, 縮放.
   "New copy that needs the owner".
 - Components are imported by export name from the `@rainforest-dev/rainforest-react` root, and
   icons come from `lucide-react`. An Astro file renders a library component statically (no
-  `client:` directive) when it needs no interaction. Otherwise it uses the recipes from
-  `@rainforest-dev/rainforest-ui/recipes`.
+  `client:` directive) when it needs no interaction. Otherwise it uses the class recipes
+  `badgeVariants`, `buttonVariants` and `cn`, imported from `@rainforest-dev/rainforest-react`,
+  which re-exports them. `.astro` files never import `@rainforest-dev/rainforest-ui/recipes`
+  directly: rainforest-ui is only a devDependency of the app.
 - Token opacity steps are limited to `/10 /15 /20 /35 /40 /45 /50 /65 /80 /90`.
 - Layer split: presentation components take plain props and never call `fetch`, actions,
   `localStorage` or `document.addEventListener`; hooks (`use*.ts`) and `src/scripts/*.ts` hold
@@ -172,8 +180,8 @@ screen-reader labels 這一天的時段, {HH} 點，{N} 則, 月份, 縮放.
 4. `Escape` while typing or with an overlay open. It must never navigate away. The memory
    textarea may hold unsaved text, and a dialog's own `Escape` must win. Test: Task 10 step 7.
 5. Stale or odd stored values. A `cover:` id no longer on its day, an annotation `by:` name
-   with spaces, emoji or `%%`, and a request with no identity header must each fall back
-   gracefully. Tests: Task 3 step 1 (dangling cover), Task 4 step 1 (month view), Task 7 steps 1
+   with spaces, emoji or `%%`, a request with no identity header, and an unsigned legacy 眉批
+   saved again by the other user must each fall back gracefully; the legacy one stays unsigned. Tests: Task 3 step 1 (dangling cover), Task 4 step 1 (month view), Task 7 steps 1
    and 8 (names, no header).
 
 ## Execution waves
@@ -443,6 +451,9 @@ and in `writeFixtureDataDir`, after the `second-week.txt` line:
 `writeFileSync(join(root, 'line', 'busy-day.txt'), BUSY_DAY);`
 
 In `timeline.spec.ts`, the home test now expects four days: `await expect(days).toHaveCount(4);`.
+2025-10-31 is in ISO week 2025-W44, so `/week/2025-W44` now redirects there. In the test
+"old week links redirect to their first day", change the expectation to
+`await expect(page).toHaveURL(/\/day\/2025-10-31$/);`.
 Append:
 
 ```ts
@@ -522,8 +533,7 @@ git commit -m "fix(personal-memories): make the hour strip navigate and follow t
 **Interfaces:**
 
 - Produces: `import { … } from '@rainforest-dev/rainforest-react'` works in `.tsx` islands and in
-  `.astro` (static render); `import { badgeVariants, buttonVariants } from
-'@rainforest-dev/rainforest-ui/recipes'` works in `.astro`; `lucide-react` is a dependency; the
+  `.astro` (static render), including `badgeVariants`, `buttonVariants` and `cn`; `lucide-react` is a dependency; the
   brief's rule "tokens only, checked the way `libs/rainforest-react/src/contract.test.ts` checks
   the library" is enforced for `apps/personal-memories/src`.
 
@@ -641,10 +651,26 @@ const { path } = Astro.props;
 Run: `pnpm nx build personal-memories` → succeeds.
 Run: `MEMORIES_DATA_DIR= pnpm nx dev personal-memories`, open `/` → the Alert renders in both
 schemes (repo rule: dev, not only the build).
-Run: `docker build -f apps/personal-memories/Dockerfile .` → completes.
 Run: `pnpm nx run-many -t lint test typecheck -p personal-memories` → PASS.
 
-- [ ] **Step 8: Commit (controller)**
+- [ ] **Step 8: Container smoke test.** This checks that the image resolves the new dependency,
+      now rather than in Task 17:
+
+```bash
+node apps/personal-memories/src/cli/fixture.ts /tmp/memories-smoke
+docker build -f apps/personal-memories/Dockerfile -t memories-smoke .
+docker run -d --rm --name memories-smoke -p 3099:3004 \
+  -e MEMORIES_DATA_DIR=/tmp/memories-smoke -v /tmp/memories-smoke:/tmp/memories-smoke:ro \
+  memories-smoke
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3099/               # 200
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3099/day/2025-11-01 # 200
+docker stop memories-smoke
+```
+
+The fixture's photo paths are absolute paths under `/tmp/memories-smoke`, so mounting that
+directory at the same path keeps them valid inside the container.
+
+- [ ] **Step 9: Commit (controller)**
 
 ```bash
 git add apps/personal-memories/package.json pnpm-lock.yaml apps/personal-memories/tsconfig.json \
@@ -1303,8 +1329,7 @@ Expected: PASS.
 
 ```astro
 ---
-import { Skeleton } from '@rainforest-dev/rainforest-react';
-import { badgeVariants } from '@rainforest-dev/rainforest-ui/recipes';
+import { badgeVariants, Skeleton } from '@rainforest-dev/rainforest-react';
 
 import type { MonthCell } from '../../lib/month-view.ts';
 import { thumbSrcset, thumbUrl } from '../../lib/stream.ts';
@@ -2124,7 +2149,8 @@ declare global {
       `data-lightbox`. The `+N` tile is one of these tiles, so it opens the lightbox at its own
       index, and the filmstrip reaches every hidden overflow photo.
 
-In `day-stream.ts` add, and call from `startDayStream()`:
+In `day-stream.ts` add `import { itemFromDataset, type LightboxItem } from '../lib/lightbox.ts';`
+and the following, and call `watchLightbox(stream)` from `startDayStream()`:
 
 ```ts
 const LIGHTBOX_READY = 'data-lightbox-ready';
@@ -2599,7 +2625,9 @@ git commit -m "feat(personal-memories): open bursts in a lightbox with 設為封
   - `cleanName(raw: string): string` (no `%%`, no newlines, whitespace collapsed, at most 40 chars)
   - `parseAuthors(raw: string | undefined): Map<string, string>` (lower-cased email → name)
   - `viewerName(headers: Headers, env?: Record<string, string | undefined>): string | undefined`
-  - `stampAuthors<T extends { by?: string | undefined }>(annotations: readonly T[], viewer: string | undefined): T[]`
+  - `type Signable = Pick<Annotation, 'eventId' | 'at' | 'source' | 'author' | 'excerpt'> & { by?: string | undefined }`
+  - `stampAuthors<T extends Signable>(annotations: readonly T[], stored: readonly Signable[], viewer: string | undefined): T[]`
+    (signs new annotations only; existing ones keep the stored `by`, or none)
   - `NotePayload.viewer?: string`; `notePayload(store, date, dayEvents, viewer?)`
   - `useAuthorName(viewer: string | undefined)` → `{ name: string | undefined; needsName: boolean; save(raw: string): void }`
   - Anchor comment `%% ev:<id> at:<iso> src:<source> by:<name> %%`, with `by:` optional and last
@@ -2659,19 +2687,60 @@ describe('cleanName', () => {
 });
 
 describe('stampAuthors', () => {
-  it('keeps an author, fills a missing one, and leaves it absent without a viewer', () => {
-    expect(
-      stampAuthors([{ eventId: 'e', by: 'Bob' }, { eventId: 'f' }], 'Alice'),
-    ).toEqual([
-      { eventId: 'e', by: 'Bob' },
-      { eventId: 'f', by: 'Alice' },
-    ]);
-    expect(stampAuthors([{ eventId: 'f' }], undefined)).toEqual([
-      { eventId: 'f' },
-    ]);
-    expect(stampAuthors([{ eventId: 'g', by: ' %% ' }], undefined)).toEqual([
-      { eventId: 'g' },
-    ]);
+  const ann = (
+    eventId: string,
+    extra: { by?: string; excerpt?: string } = {},
+  ) => ({
+    eventId,
+    at: '2025-11-01T09:00:00+08:00',
+    source: 'line' as const,
+    author: 'Alice',
+    excerpt: eventId,
+    ...extra,
+  });
+
+  it('signs only the annotations that are new in this save', () => {
+    const [old, added] = stampAuthors(
+      [ann('old'), ann('new')],
+      [ann('old')],
+      'Bob',
+    );
+    expect(old && 'by' in old).toBe(false);
+    expect(added?.by).toBe('Bob');
+  });
+
+  it('leaves a legacy unsigned annotation unsigned when another user saves', () => {
+    const [legacy] = stampAuthors([ann('legacy')], [ann('legacy')], 'Bob');
+    expect(legacy && 'by' in legacy).toBe(false);
+  });
+
+  it('keeps the stored author even if the client sends another', () => {
+    const [kept] = stampAuthors(
+      [ann('e', { by: 'Bob' })],
+      [ann('e', { by: 'Alice' })],
+      'Bob',
+    );
+    expect(kept?.by).toBe('Alice');
+  });
+
+  it('treats a re-attached annotation (new id, same anchor) as existing', () => {
+    const [moved] = stampAuthors(
+      [ann('y', { excerpt: 'hi' })],
+      [ann('x', { excerpt: 'hi' })],
+      'Bob',
+    );
+    expect(moved && 'by' in moved).toBe(false);
+  });
+
+  it('cleans a client-sent name on a new annotation and falls back to the viewer', () => {
+    expect(stampAuthors([ann('n', { by: 'Eve ' })], [], 'Bob')[0]?.by).toBe(
+      'Eve',
+    );
+    expect(stampAuthors([ann('n', { by: ' %% ' })], [], 'Bob')[0]?.by).toBe(
+      'Bob',
+    );
+    const [unsigned] = stampAuthors([ann('n', { by: ' %% ' })], [], undefined);
+    expect(unsigned && 'by' in unsigned).toBe(false);
   });
 });
 ```
@@ -2783,17 +2852,33 @@ export function viewerName(
   return email ? parseAuthors(env['MEMORIES_AUTHORS']).get(email) : undefined;
 }
 
-export function stampAuthors<T extends { by?: string | undefined }>(
+export type Signable = Pick<
+  Annotation,
+  'eventId' | 'at' | 'source' | 'author' | 'excerpt'
+> & { by?: string | undefined };
+
+const sameAnchor = (a: Signable, b: Signable) =>
+  (!!a.eventId && a.eventId === b.eventId) ||
+  (a.at === b.at &&
+    a.source === b.source &&
+    a.author === b.author &&
+    a.excerpt === b.excerpt);
+
+export function stampAuthors<T extends Signable>(
   annotations: readonly T[],
+  stored: readonly Signable[],
   viewer: string | undefined,
 ): T[] {
   return annotations.map((a) => {
-    const { by: raw, ...rest } = a;
-    const by = cleanName(raw ?? '') || viewer;
+    const { by: sent, ...rest } = a;
+    const before = stored.find((s) => sameAnchor(a, s));
+    const by = before ? before.by : cleanName(sent ?? '') || viewer;
     return (by ? { ...rest, by } : rest) as T;
   });
 }
 ```
+
+Add `import type { Annotation } from './types.ts';` at the top of `authors.ts`.
 
 `types.ts`: add `by?: string;` to `Annotation`.
 
@@ -2841,7 +2926,11 @@ handler: ({ date: d, version, ...edit }, context) => {
   }
   const signed = {
     ...edit,
-    annotations: stampAuthors(edit.annotations, viewerName(context.request.headers)),
+    annotations: stampAuthors(
+      edit.annotations,
+      store.read(d).note.annotations,
+      viewerName(context.request.headers),
+    ),
   };
   let result;
   try {
@@ -2899,18 +2988,33 @@ export function useAuthorName(viewer: string | undefined) {
 annotation becomes
 `{ ...anchor, body: '', status: 'exact', ...(latest.current.author ? { by: latest.current.author } : {}) }`.
 
-`AnnotationItem.tsx`: import `PenLineIcon` from `lucide-react`; in the header row, between the
-meta span and the 刪除 button, add:
+`AnnotationItem.tsx`: import `PenLineIcon` from `lucide-react`, and replace the header row (the
+`<div className="flex items-center justify-between gap-2">` that holds the meta span and the 刪除
+button) with:
 
 ```tsx
-{
-  a.by && (
+<div className="flex items-center justify-between gap-2">
+  <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs tabular-nums">
+    {!attached && <UnlinkIcon />}
+    {attached ? meta : `找不到原本的訊息 · 原為 ${meta}`}
+  </span>
+  {a.by ? (
     <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
       <PenLineIcon className="size-3" aria-hidden />
       {a.by}
     </span>
-  );
-}
+  ) : null}
+  {!readOnly && (
+    <button
+      type="button"
+      className={`text-muted-foreground hover:bg-muted -my-0.5 shrink-0 rounded-md px-2 py-0.5 text-xs disabled:opacity-50 ${FOCUS}`}
+      disabled={disabled}
+      onClick={onDelete}
+    >
+      刪除
+    </button>
+  )}
+</div>
 ```
 
 `AnnotationList` gets two props, `needsName: boolean` and `onName: (raw: string) => void`, and
@@ -3135,8 +3239,11 @@ const ACCENT_CHIP: Record<Accent, string> = {
 };
 ```
 
-Change `const INDENT = 'pl-7 sm:pl-12';` to `const INDENT = 'ml-7 sm:ml-12';`. For text runs,
-replace the run's `<li>` opening tag and head row with:
+Change `const INDENT = 'pl-7 sm:pl-12';` to `const INDENT = 'ml-7 sm:ml-12';`. In the markup,
+the text-run branch is everything between `run.kind === 'text' ? (` and the `) : (` that opens the
+photo-run branch. Replace that whole branch, one `<li>` element, with the block below. The head
+row gains the chip, the run's `<li>` gains `data-accent`, and `[data-row-body]` gains the rule.
+Everything else is today's markup unchanged.
 
 ```astro
 <li
@@ -3163,21 +3270,98 @@ replace the run's `<li>` opening tag and head row with:
     </div>
     <span></span>
   </div>
+  <ol>
+    {
+      run.events.map((event) => (
+        <li
+          id={`ev-${event.id}`}
+          data-event-id={event.id}
+          data-source={event.source}
+          data-at={event.at}
+          data-author={event.author}
+          data-excerpt={excerptOf(event)}
+          tabindex="0"
+          class:list={[
+            ROW,
+            'hover:bg-accent/60 focus-visible:ring-ring focus-visible:ring-offset-background group relative scroll-mt-32 items-start rounded-md py-[5px] outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+          ]}
+        >
+          <span class={GUTTER}>
+            {event.showTime && (
+              <time datetime={event.at}>{taipeiTime(event.at)}</time>
+            )}
+          </span>
+          <div
+            data-row-body
+            class:list={[
+              'min-w-0 border-l-2 pl-3',
+              ACCENT_RULE[accentOf(run.author)],
+              run.isOwner && INDENT,
+            ]}
+          >
+            {event.text && (
+              <p
+                class="text-body whitespace-pre-wrap text-pretty break-words"
+                set:text={event.text}
+              />
+            )}
+            {event.media?.map(({ path, width, height }, n) =>
+              IMAGE.test(path) ? (
+                <a
+                  href={mediaUrl(event.id, n)}
+                  class="bg-muted mt-1.5 block aspect-square w-[calc(25%-3px)] overflow-hidden rounded-sm"
+                >
+                  <img
+                    src={thumbUrl(event.id, n, 480)}
+                    srcset={thumbSrcset(event.id, n, width)}
+                    sizes={TILE_SIZES}
+                    alt={fileName(path)}
+                    width={width}
+                    height={height}
+                    loading="lazy"
+                    class="size-full object-cover"
+                  />
+                </a>
+              ) : (
+                <a
+                  href={mediaUrl(event.id, n)}
+                  class="text-meta mt-1 block underline"
+                >
+                  {fileName(path)}
+                </a>
+              ),
+            )}
+          </div>
+          <span
+            data-marker
+            class="mt-2.5 size-1.5 justify-self-center rounded-full"
+          />
+          <button
+            type="button"
+            data-annotate
+            class:list={[PILL, '-top-4 right-6']}
+          >
+            <svg
+              aria-hidden="true"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 20h9" />
+              <path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z" />
+            </svg>
+            眉批
+          </button>
+        </li>
+      ))
+    }
+  </ol>
 </li>
-```
-
-and give each row body the rule:
-
-```astro
-<div
-  data-row-body
-  class:list={[
-    'min-w-0 border-l-2 pl-3',
-    ACCENT_RULE[accentOf(run.author)],
-    run.isOwner && INDENT,
-  ]}
->
-</div>
 ```
 
 - [ ] **Step 6: E2E.** The owner test now compares left edges, since the indent is margin:
@@ -4785,12 +4969,54 @@ const monthKey = (row: MonthRow) =>
   `${row.year}-${String(row.month).padStart(2, '0')}`;
 ```
 
-Each desktop cell, the `<a>` and the `<span>`, gets these two attributes:
+Each desktop cell, the `<a>` and the `<span>`, gets `data-morph` and the `morphAttrs` spread.
+The cell's `return` expression becomes:
 
 ```astro
-data-morph={`day-${cell.date}`}
-{morphAttrs(`day-${cell.date}`, morph)}
+return cell.total > 0 ? (
+<a
+  href={`/day/${cell.date}`}
+  data-date={cell.date}
+  data-noted={isNoted}
+  data-morph={`day-${cell.date}`}
+  {...morphAttrs(`day-${cell.date}`, morph)}
+  aria-label={label}
+  class={cellClass}
+>
+  {isNoted && <span class={`size-1.5 rounded-full ${dotClass(lvl)}`} />}
+  <div
+    class="bg-popover text-popover-foreground border-border pointer-events-none absolute bottom-[36px] left-1/2 z-10 w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+  >
+    <div class="font-semibold tabular-nums">{tip.date}</div>
+    <div class="text-muted-foreground">{tip.detail}</div>
+  </div>
+</a>
+) : (
+<span
+  role="img"
+  data-date={cell.date}
+  data-noted={isNoted}
+  data-morph={`day-${cell.date}`}
+  {...morphAttrs(`day-${cell.date}`, morph)}
+  aria-label={label}
+  class={cellClass}
+>
+  {isNoted && <span class="bg-foreground size-1.5 rounded-full" />}
+  <span
+    class="bg-popover text-popover-foreground border-border pointer-events-none absolute bottom-[36px] left-1/2 z-10 block w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+  >
+    <span class="block font-semibold tabular-nums">
+      {tip.date}
+    </span>
+    <span class="text-muted-foreground block">
+      {tip.detail}
+    </span>
+  </span>
+</span>
+);
 ```
+
+Task 13 replaces the tooltip markup inside these cells and keeps both attributes.
 
 The desktop month label becomes a link:
 
@@ -5010,7 +5236,7 @@ export function MonthScrubber({ months, date }: Props) {
                           href={`/day/${m.first}`}
                           data-month={m.month}
                           aria-current={isActive ? 'date' : undefined}
-                          className={`focus-visible:ring-ring text-meta flex h-9 items-center gap-2 rounded-md px-2 tabular-nums outline-none focus-visible:ring-2 ${isActive ? 'text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+                          className={`focus-visible:ring-ring text-meta flex h-9 items-center gap-2 rounded-md px-2 tabular-nums outline-none focus-visible:ring-2 ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
                         />
                       }
                     >
@@ -5083,8 +5309,10 @@ git commit -m "feat(personal-memories): add the month scrubber beside the stream
   `[data-heat-cell]` with `anchor-name: --d<yyyymmdd>` and a child `[data-preview]` with the
   matching `position-anchor`. Task 11's `data-morph` attributes stay on every cell.
 
-Support (D9): anchor positioning ships in Chrome/Edge 125+ and Safari 26+ (macOS and iOS). In
-browsers without it, `@supports not (anchor-name: --a)` puts the preview absolutely above the cell,
+Support (D9): Chrome/Edge 129+, Safari 26+ (macOS and iOS) and Firefox 147+. The gate is
+`@supports (position-area: top)`: Chrome 125–128 had `anchor-name` but called the property
+`inset-area`, so testing `anchor-name` would pick a browser that ignores `position-area`. In other
+browsers, `@supports not (position-area: top)` puts the preview absolutely above the cell,
 as v2a's tooltip did. No polyfill. The preview opens on hover only where `(hover: hover)`, and on
 keyboard focus (`:focus-visible`); a tap on a touch screen follows the link. The cell's
 `aria-label` already carries the date and count, so the preview is `aria-hidden`.
@@ -5197,7 +5425,7 @@ In `global.css`:
   display: flex;
 }
 
-@supports (anchor-name: --a) {
+@supports (position-area: top) {
   [data-preview] {
     position: fixed;
     position-area: top center;
@@ -5209,7 +5437,7 @@ In `global.css`:
   }
 }
 
-@supports not (anchor-name: --a) {
+@supports not (position-area: top) {
   [data-preview] {
     position: absolute;
     bottom: calc(100% + 0.5rem);
@@ -5339,15 +5567,48 @@ test('a heat cell previews its day above it on hover and on keyboard focus', asy
 });
 ```
 
-- [ ] **Step 8: Run and check support**
+- [ ] **Step 8: E2E for the fallback.** Chromium can switch the feature off at launch, so the
+      fallback gets an automated test. The test checks its own precondition and skips with a
+      reason if the flag has no effect in the installed Chromium:
 
-Run: `pnpm nx e2e personal-memories-e2e` → PASS.
+```ts
+test.describe('without anchor positioning', () => {
+  test.use({
+    launchOptions: { args: ['--disable-blink-features=CSSAnchorPositioning'] },
+  });
+
+  test('the heat cell preview falls back to sitting above the cell', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const supported = await page.evaluate(() =>
+      CSS.supports('position-area: top'),
+    );
+    test.skip(
+      supported,
+      'this Chromium ignores the flag; the fallback is not reachable',
+    );
+    const cell = page.locator('a[data-date="2025-11-03"]');
+    await cell.hover();
+    const preview = cell.locator('[data-preview]');
+    await expect(preview).toBeVisible();
+    const [c, p] = await Promise.all([
+      cell.boundingBox(),
+      preview.boundingBox(),
+    ]);
+    expect(p && c && p.y + p.height <= c.y).toBe(true);
+  });
+});
+```
+
+- [ ] **Step 9: Run and check in browsers**
+
+Run: `pnpm nx e2e personal-memories-e2e` → PASS (or the fallback test reports its skip reason;
+then say so in the PR).
 Browser: Safari 26 and Chrome at 1280: the preview sits above the cell and flips below for a cell
-near the top of the viewport. Force the fallback by testing in a browser without anchor
-positioning (Firefox, or Chrome with the feature disabled in `chrome://flags`): the preview still
-shows above the cell. On iOS Safari a tap opens the day and no preview sticks.
+near the top of the viewport. On iOS Safari a tap opens the day and no preview sticks.
 
-- [ ] **Step 9: Commit (controller)**
+- [ ] **Step 10: Commit (controller)**
 
 ```bash
 git add apps/personal-memories/src/lib/month-view.ts apps/personal-memories/src/lib/month-view.test.ts \
@@ -6208,7 +6469,7 @@ in the result handler, set it to `'error'` on `status === 'error'`, and `delete
 sentinel.dataset['state']` on the other outcomes.
 
 - [ ] **Step 7: 眉批 button from the recipe.** In `DaySection.astro` import
-      `buttonVariants` and `cn` from `@rainforest-dev/rainforest-ui/recipes` and replace
+      `buttonVariants` and `cn` from `@rainforest-dev/rainforest-react` and replace
       `PILL_BASE` with:
 
 ```ts
@@ -6451,6 +6712,9 @@ Append:
 ```ts
 test('a long press on a message opens 眉批 and 複製', async ({ page }) => {
   await page.goto('/day/2025-11-03');
+  await page
+    .locator('astro-island[component-url*="StreamMenu"]:not([ssr])')
+    .waitFor({ state: 'attached' });
   const row = page.locator('[data-event-id]', { hasText: 'Coffee first' });
   const box = await row.boundingBox();
   await row.dispatchEvent('pointerdown', {
@@ -6513,14 +6777,19 @@ gitignored `terraform.tfvars`.
 
 - [ ] **Step 1:** Add a sensitive variable `memories_authors` (string, default `""`) and pass it
       as `MEMORIES_AUTHORS=${var.memories_authors}` to the container, next to `MEMORIES_OWNER`.
-- [ ] **Step 2:** Set the real `email=Name` pairs only in `terraform.tfvars`, which is gitignored.
+- [ ] **Step 2:** The owner sets the real `email=Name` pairs in `terraform.tfvars`, which is
+      gitignored. Nobody else reads or writes that file, including the agent doing this task.
       Neither emails nor names go into either repo.
 - [ ] **Step 3:** Confirm the Cloudflare Access application in front of the app is the only route
       to the container: no LAN port published to other hosts. The app trusts
       `Cf-Access-Authenticated-User-Email` because of that.
-- [ ] **Step 4:** Open a PR, `terraform plan`, and apply after the monorepo PR merges and the
-      image is released. Check: open a day as each Google account, add a 眉批, and see the right
-      name on the card and as `by:` in the vault file.
+- [ ] **Step 4:** Open the PR, run `terraform plan -out=v2b.plan`, and put the plan's summary
+      (from `terraform show v2b.plan`, with the sensitive value redacted) in the PR for review.
+      Stop there.
+- [ ] **Step 5 (owner):** After the monorepo PR merges and the image is released, and after the
+      owner has set `MEMORIES_AUTHORS` in `terraform.tfvars` and approved the plan, apply it.
+      Check: open a day as each Google account, add a 眉批, and see the right name on the card
+      and as `by:` in the vault file.
 
 ### Task 17: README, full verification, PR
 
@@ -6574,5 +6843,11 @@ gitignored `terraform.tfvars`.
   (T4 → T13); `useActiveDay` (T9 → T12); `AnnotateDetail`/`LightboxDetail`/`LongPressDetail` in
   `events.ts` (T6 → T9, T10, T15); `useOverlay` (T6 → T9, T14, T15); `Annotation.by`,
   `NotePayload.viewer` (T7 → T14).
+- Plan review of PR #410, applied: the week-redirect expectation moves to 2025-10-31 (T1);
+  `stampAuthors` signs new annotations only, with a legacy-unsigned test (T7, D12); the preview
+  gates on `position-area` and its fallback has an automated test (T13, D9); the T7, T8 and T11
+  snippets are complete elements; `.astro` files take recipes from rainforest-react, and T2 adds
+  a container smoke test; the scrubber's current month is `primary`; the long-press test waits
+  for hydration; T16 stops at a reviewed plan; T6 lists its imports.
 - Review Focus. Each of the five lines has its test in the owning task (T1 step 7, T6 step 9
   and step 1, T9 step 12 and T11 step 8, T10 step 7, T3 step 1, T4 step 1, T7 steps 1 and 8).
