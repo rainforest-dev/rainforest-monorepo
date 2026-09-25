@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { hiddenFrom, parseHidden, visibleFrom } from './sources.ts';
+import { hiddenFrom, SOURCES } from './sources.ts';
 
 describe('sources', () => {
-  it('reads the stored hidden list defensively', () => {
-    expect(parseHidden('["photo","nope",3]')).toEqual(['photo']);
-    expect(parseHidden('{')).toEqual([]);
-    expect(parseHidden('"photo"')).toEqual([]);
-    expect(parseHidden(null)).toEqual([]);
+  it('lists every source in order with its shared label', () => {
+    expect(SOURCES).toEqual([
+      { source: 'line', label: 'LINE' },
+      { source: 'slack', label: 'Slack' },
+      { source: 'photo', label: '照片' },
+    ]);
   });
 
-  it('converts between hidden and visible', () => {
-    expect(visibleFrom(['photo'])).toEqual(['line', 'slack']);
+  it('turns the visible list into the hidden one', () => {
     expect(hiddenFrom(['line'])).toEqual(['slack', 'photo']);
   });
 });
