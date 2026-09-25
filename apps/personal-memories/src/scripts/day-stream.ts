@@ -1,3 +1,5 @@
+import { taipeiHour } from '../lib/weeks.ts';
+
 const HIDDEN_KEY = 'memories:hidden-sources';
 
 type AnnotateDetail = {
@@ -287,6 +289,25 @@ function createWindowManager(stream: HTMLElement): WindowManager {
   };
 }
 
+function markHour(stream: HTMLElement, date: string) {
+  const section = stream.querySelector<HTMLElement>(`[data-day="${date}"]`);
+  const strip = section?.querySelector('[data-hour-strip]');
+  if (!section || !strip) return;
+  const threshold = window.innerHeight * 0.4;
+  let at: string | undefined;
+  for (const row of section.querySelectorAll<HTMLElement>('[data-event-id]')) {
+    if (!row.checkVisibility()) continue;
+    if (row.getBoundingClientRect().top > threshold) break;
+    at = row.dataset['at'];
+  }
+  const hour = at === undefined ? undefined : taipeiHour(at);
+  for (const link of strip.querySelectorAll<HTMLElement>('[data-hour]')) {
+    if (Number(link.dataset['hour']) === hour)
+      link.setAttribute('aria-current', 'time');
+    else link.removeAttribute('aria-current');
+  }
+}
+
 function watchActiveDay(stream: HTMLElement, windowManager: WindowManager) {
   let active = '';
   let queued = false;
@@ -295,7 +316,10 @@ function watchActiveDay(stream: HTMLElement, windowManager: WindowManager) {
     queued = false;
     const nodes = dayNodesOf(stream);
     const date = activeDayOf(nodes);
-    if (date) windowManager.manage(nodes, date);
+    if (date) {
+      windowManager.manage(nodes, date);
+      markHour(stream, date);
+    }
     if (!date || date === active) return;
     active = date;
     history.replaceState(history.state, '', `/day/${date}${location.hash}`);

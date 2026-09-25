@@ -65,3 +65,7 @@
   content-visibility: auto;
   contain-intrinsic-size: auto 800px;
 }
+
+[data-hour-strip] [aria-current='time'] [data-bar] {
+  @apply bg-primary ring-ring ring-offset-background ring-2 ring-offset-1;
+}

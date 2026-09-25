@@ -1,6 +1,7 @@
 ---
 import { excerptOf } from '../lib/notes/attach.ts';
 import {
+  firstEventPerHour,
   groupRuns,
   hourCounts,
   ownersFromEnv,
@@ -39,7 +40,9 @@ const PHOTO_PILL = `${PILL_BASE} pointer-coarse:opacity-100 pointer-coarse:point
 
 const runs = groupRuns(events, ownersFromEnv());
 const hours = events.length >= BUSY_DAY ? hourCounts(events) : undefined;
+const firsts = hours ? firstEventPerHour(events) : undefined;
 const peak = Math.max(1, ...(hours ?? []));
+const pad2 = (n: number) => String(n).padStart(2, '0');
 
 const fileName = (path: string) => path.split(/[\\/]/).pop();
 const mediaUrl = (id: string, n: number) =>
@@ -66,31 +69,53 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
       </span>
     </div>
     {
-      hours && (
-        <div class="flex flex-col gap-1" aria-hidden="true">
-          <div class="flex h-6 items-end gap-0.5">
-            {hours.map((count) => (
-              <div
-                class:list={[
-                  'min-h-0.5 flex-1 rounded-[1px]',
-                  count === 0
-                    ? 'bg-border'
-                    : count === peak
-                      ? 'bg-primary'
-                      : 'bg-primary/35',
-                ]}
-                style={`height: ${Math.max(8, (count / peak) * 100)}%`}
-              />
-            ))}
-          </div>
-          <div class="text-muted-foreground flex justify-between text-xs tabular-nums">
+      hours && firsts && (
+        <nav
+          aria-label="這一天的時段"
+          data-hour-strip
+          class="flex flex-col gap-1"
+        >
+          <ol class="flex h-6 items-end gap-0.5">
+            {hours.map((count, hour) => {
+              const first = firsts[hour];
+              const bar = [
+                'block w-full rounded-[1px]',
+                count === 0
+                  ? 'bg-border'
+                  : count === peak
+                    ? 'bg-primary'
+                    : 'bg-primary/35',
+              ];
+              const height = `height: ${Math.max(8, (count / peak) * 100)}%`;
+              return (
+                <li class="flex h-full flex-1 items-end">
+                  {first ? (
+                    <a
+                      href={`#ev-${first}`}
+                      data-hour={hour}
+                      aria-label={`${pad2(hour)} 點，${count} 則`}
+                      class="focus-visible:ring-ring flex h-full w-full items-end rounded-[1px] outline-none focus-visible:ring-2"
+                    >
+                      <span data-bar class:list={bar} style={height} />
+                    </a>
+                  ) : (
+                    <span class:list={bar} style={height} />
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          <div
+            aria-hidden="true"
+            class="text-muted-foreground flex justify-between text-xs tabular-nums"
+          >
             <span>00</span>
             <span>06</span>
             <span>12</span>
             <span>18</span>
             <span>24</span>
           </div>
-        </div>
+        </nav>
       )
     }
   </header>

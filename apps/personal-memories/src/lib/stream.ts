@@ -1,5 +1,5 @@
 import type { TimelineEvent, TimelineSource } from './timeline.ts';
-import { taipeiTime } from './weeks.ts';
+import { taipeiHour } from './weeks.ts';
 
 export type StreamEvent = TimelineEvent & { showTime: boolean };
 
@@ -63,11 +63,19 @@ export function ownersFromEnv(
 
 export function hourCounts(events: readonly TimelineEvent[]): number[] {
   const counts = Array.from({ length: 24 }, () => 0);
-  for (const event of events) {
-    const hour = Number(taipeiTime(event.at).slice(0, 2));
-    counts[hour] = (counts[hour] ?? 0) + 1;
-  }
+  for (const event of events) counts[taipeiHour(event.at)] += 1;
   return counts;
+}
+
+export function firstEventPerHour(
+  events: readonly TimelineEvent[],
+): (string | undefined)[] {
+  const firsts: (string | undefined)[] = Array.from(
+    { length: 24 },
+    () => undefined,
+  );
+  for (const event of events) firsts[taipeiHour(event.at)] ??= event.id;
+  return firsts;
 }
 
 const THUMB_WIDTHS = [240, 480, 960] as const;

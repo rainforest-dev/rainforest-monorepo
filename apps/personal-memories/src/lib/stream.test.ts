@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { groupRuns, hourCounts, ownersFromEnv, thumbSrcset } from './stream.ts';
+import {
+  firstEventPerHour,
+  groupRuns,
+  hourCounts,
+  ownersFromEnv,
+  thumbSrcset,
+} from './stream.ts';
 import type { TimelineEvent } from './timeline.ts';
 
 const ev = (
@@ -106,6 +112,26 @@ describe('hourCounts', () => {
     expect(counts).toHaveLength(24);
     expect(counts[0]).toBe(1);
     expect(counts[9]).toBe(2);
+  });
+});
+
+describe('firstEventPerHour', () => {
+  it('maps each hour to its first event and leaves empty hours undefined', () => {
+    const firsts = firstEventPerHour([
+      ev('a', 'Alice', 'line', '2025-11-01T09:05:00+08:00'),
+      ev('b', 'Bob', 'line', '2025-11-01T09:40:00+08:00'),
+      ev('c', 'Alice', 'line', '2025-11-01T13:00:00+08:00'),
+    ]);
+    expect(firsts).toHaveLength(24);
+    expect(firsts[9]).toBe('a');
+    expect(firsts[13]).toBe('c');
+    expect(firsts[10]).toBeUndefined();
+  });
+
+  it('buckets by the Taipei hour whatever offset the event carries', () => {
+    expect(
+      firstEventPerHour([ev('x', 'Bob', 'line', '2025-11-01T01:30:00Z')])[9],
+    ).toBe('x');
   });
 });
 

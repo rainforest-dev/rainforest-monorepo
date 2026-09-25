@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 test('home is a heatmap of the fixture days', async ({ page }) => {
   await page.goto('/');
   const days = page.locator('a[data-date]');
-  await expect(days).toHaveCount(3);
+  await expect(days).toHaveCount(4);
   await expect(page.locator('a[data-date="2025-11-01"]')).toHaveAttribute(
     'href',
     '/day/2025-11-01',
@@ -26,7 +26,7 @@ test('home is a heatmap of the fixture days', async ({ page }) => {
 
 test('old week links redirect to their first day', async ({ page }) => {
   await page.goto('/week/2025-W44');
-  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
   const response = await page.goto('/day/1999-01-01');
   expect(response?.status()).toBe(404);
 });
@@ -177,4 +177,46 @@ test('a note typed just before scrolling stays on its own day', async ({
     existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
   await expect.poll(() => read('2025-11-02')).toContain('十一月二日的筆記');
   expect(read('2025-11-03')).not.toContain('十一月二日的筆記');
+});
+
+test('the hour strip jumps to an hour and follows the scroll', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-10-31');
+  const strip = page.locator('#day-2025-10-31 [data-hour-strip]');
+  await expect(strip).toBeVisible();
+  await strip.getByRole('link', { name: '15 點，10 則' }).click();
+  await expect(
+    page.getByText('Busy message 81', { exact: true }),
+  ).toBeInViewport();
+  await expect(strip.locator('[aria-current="time"]')).toHaveAttribute(
+    'data-hour',
+    '15',
+  );
+  await page
+    .locator('[data-event-id]', { hasText: 'Busy message 101' })
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(strip.locator('[aria-current="time"]')).toHaveAttribute(
+    'data-hour',
+    '17',
+  );
+});
+
+test('the hour strip works on a day loaded while scrolling', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  await expect(page.locator('#day-2025-10-31')).toBeAttached();
+  await page
+    .locator('[data-event-id]', { hasText: 'Busy message 31' })
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  const strip = page.locator('#day-2025-10-31 [data-hour-strip]');
+  await expect(strip.locator('[aria-current="time"]')).toHaveAttribute(
+    'data-hour',
+    '10',
+  );
+  await strip.getByRole('link', { name: '08 點，10 則' }).click();
+  await expect(
+    page.getByText('Busy message 11', { exact: true }),
+  ).toBeInViewport();
 });

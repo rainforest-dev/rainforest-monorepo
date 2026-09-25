@@ -35,6 +35,10 @@ export function taipeiTime(at: string): string {
   return `${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}`;
 }
 
+export function taipeiHour(at: string): number {
+  return new Date(Date.parse(at) + TAIPEI_OFFSET_MS).getUTCHours();
+}
+
 /** ISO 8601 week (`2026-W38`) of the instant in Asia/Taipei. */
 export function isoWeek(at: string): string {
   const day = taipeiDay(at);
