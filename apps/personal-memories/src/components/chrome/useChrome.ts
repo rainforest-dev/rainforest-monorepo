@@ -5,11 +5,20 @@ import { useActiveDay } from '../useActiveDay.ts';
 import { useOverlay } from '../useOverlay.ts';
 
 export type DayCount = { date: string; total: number };
+export type StepHrefs = {
+  prev?: string | undefined;
+  next?: string | undefined;
+};
 
 const DATA_APPBAR_READY = 'data-appbar-ready';
 
-export function useChrome(place: Place, initial: Record<Level, string>) {
+export function useChrome(
+  place: Place,
+  initial: Record<Level, string>,
+  initialStep?: StepHrefs,
+) {
   const active = useActiveDay(place.level === 'day' ? place.date : undefined);
+  const [step, setStep] = useState(initialStep);
   const hrefs =
     place.level === 'day' && active
       ? levelHrefs({ level: 'day', date: active }, [])
@@ -33,6 +42,16 @@ export function useChrome(place: Place, initial: Record<Level, string>) {
   }, []);
 
   useEffect(() => {
+    if (!active) return;
+    const section = document.querySelector<HTMLElement>(
+      `[data-day="${active}"]`,
+    );
+    if (section) {
+      setStep({ prev: section.dataset['prev'], next: section.dataset['next'] });
+    }
+  }, [active]);
+
+  useEffect(() => {
     if (!jumpOpen || Array.isArray(days)) return;
     let live = true;
     fetch('/days.json')
@@ -51,5 +70,5 @@ export function useChrome(place: Place, initial: Record<Level, string>) {
   }, [jumpOpen, days]);
 
   useOverlay(jumpOpen || keysOpen);
-  return { hrefs, jumpOpen, setJumpOpen, keysOpen, setKeysOpen, days };
+  return { hrefs, step, jumpOpen, setJumpOpen, keysOpen, setKeysOpen, days };
 }

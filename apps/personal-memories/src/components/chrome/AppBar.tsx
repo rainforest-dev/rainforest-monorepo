@@ -5,19 +5,19 @@ import type { Level, Place } from '../../lib/nav.ts';
 import { DateJump } from './DateJump.tsx';
 import { ShortcutsDialog } from './ShortcutsDialog.tsx';
 import { TopBar } from './TopBar.tsx';
-import { useChrome } from './useChrome.ts';
+import { type StepHrefs, useChrome } from './useChrome.ts';
 
 type Props = {
   place: Place;
   hrefs: Record<Level, string>;
-  step?: { prev?: string | undefined; next?: string | undefined } | undefined;
+  step?: StepHrefs | undefined;
 };
 
 const go = (date: string, nearest: boolean) =>
   location.assign(`/day/${date}${nearest ? '?nearest=1' : ''}`);
 
 export function AppBar({ place, hrefs, step }: Props) {
-  const chrome = useChrome(place, hrefs);
+  const chrome = useChrome(place, hrefs, step);
   return (
     <TooltipProvider>
       <TopBar
@@ -26,7 +26,7 @@ export function AppBar({ place, hrefs, step }: Props) {
         onJump={() => chrome.setJumpOpen(true)}
         onKeys={() => chrome.setKeysOpen(true)}
         onStep={place.level === 'day' ? stepDay : undefined}
-        stepHrefs={step}
+        stepHrefs={chrome.step}
       />
       <DateJump
         open={chrome.jumpOpen}

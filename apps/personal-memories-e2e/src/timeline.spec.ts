@@ -630,6 +630,26 @@ test('the 年/月/日 tabs follow the day in view', async ({ page }) => {
   await expect(page).toHaveURL(/\/month\/2025-10$/);
 });
 
+test('the ‹ › links point at the neighbours of the day in view', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  const prev = page.getByRole('link', { name: '前一天' });
+  const next = page.getByRole('link', { name: '後一天' });
+  await expect(prev).toHaveAttribute('href', '/day/2025-11-01');
+  await expect(next).toHaveAttribute('href', '/day/2025-11-03');
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  const day = page.locator('[data-day="2025-11-03"]');
+  await expect(day).toBeAttached();
+  await expect(day).not.toHaveAttribute('data-next', /./);
+  await day.scrollIntoViewIfNeeded();
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await expect(prev).toHaveAttribute('href', '/day/2025-11-02');
+  await expect(next).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '後一天' })).toBeVisible();
+});
+
 test('the date jump ignores an Enter fired mid-IME composition', async ({
   page,
 }) => {
