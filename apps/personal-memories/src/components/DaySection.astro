@@ -7,6 +7,7 @@ import { getTimeline } from '../lib/store.ts';
 import {
   type Accent,
   authorAccents,
+  burstLayout,
   firstEventPerHour,
   groupRuns,
   hourCounts,
@@ -32,7 +33,6 @@ type Props = {
 const { date, events, prev, next, morph } = Astro.props;
 
 const BUSY_DAY = 100;
-const TILES = 4;
 const IMAGE = /\.(avif|gif|jpe?g|png|webp)$/i;
 const SOURCE_LABEL: Record<TimelineSource, string> = {
   line: 'LINE',
@@ -47,10 +47,6 @@ const FOLLOW_ON =
   'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none';
 const CHIP =
   'text-foreground flex shrink-0 items-center justify-center rounded-full text-xs font-semibold';
-const PHOTO_ROW =
-  'grid grid-cols-[42px_minmax(0,1fr)_12px] sm:grid-cols-[52px_minmax(0,1fr)_20px]';
-const GUTTER =
-  'text-muted-foreground pl-1 text-xs leading-[25px] tabular-nums sm:pl-2';
 const PILL_BASE = cn(
   buttonVariants({ variant: 'outline', size: 'xs' }),
   'bg-popover absolute z-1 shadow-md opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100',
@@ -69,6 +65,13 @@ const accentOf = (author: string) => accents.get(author);
 const dayAuthors = [
   ...new Set(runs.flatMap((run) => (run.kind === 'text' ? [run.author] : []))),
 ];
+const layouts = new Map(
+  runs.flatMap((run) =>
+    run.kind === 'photos'
+      ? [[run, burstLayout(run.events.length)] as const]
+      : [],
+  ),
+);
 const hours = events.length >= BUSY_DAY ? hourCounts(events) : undefined;
 const firsts = hours ? firstEventPerHour(events) : undefined;
 const peak = Math.max(1, ...(hours ?? []));
@@ -335,31 +338,36 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
             </ol>
           </li>
         ) : (
-          <li data-source="photo" class="mt-[22px] first:mt-1.5">
-            <div class:list={[PHOTO_ROW, 'items-baseline py-0.5']}>
-              <span />
-              <div class="flex items-baseline gap-1.5">
+          <li data-source="photo" class:list={[ROW, 'mt-4.5 first:mt-1.5']}>
+            <span class={TIME}>
+              <time datetime={run.events[0]?.at}>
+                {run.events[0] && taipeiTime(run.events[0].at)}
+              </time>
+            </span>
+            <span class="hidden flex-col pt-1 sm:flex">
+              <span class="text-meta font-medium">照片</span>
+              <span class="text-muted-foreground text-xs tabular-nums">
+                {' '}
+                {run.events.length} 張
+              </span>
+            </span>
+            <div class="pl-4.25 min-w-0">
+              <div class="mb-1 flex items-baseline gap-1.5 sm:hidden">
                 <span class="text-meta font-medium">照片</span>
                 <span class="text-muted-foreground text-xs tabular-nums">
                   {' '}
                   {run.events.length} 張
                 </span>
               </div>
-              <span />
-            </div>
-            <div class:list={[PHOTO_ROW, 'py-1.5']}>
-              <span class={GUTTER}>
-                <time datetime={run.events[0]?.at}>
-                  {run.events[0] && taipeiTime(run.events[0].at)}
-                </time>
-              </span>
-              <ol data-burst class="grid grid-cols-4 gap-[3px] sm:gap-1">
+              <ol
+                data-burst
+                class="grid auto-rows-[64px] grid-cols-4 gap-1 sm:auto-rows-[88px]"
+              >
                 {run.events.map((event, index) => {
                   const media = event.media?.[0];
-                  const more =
-                    run.events.length > TILES && index === TILES - 1
-                      ? run.events.length - (TILES - 1)
-                      : 0;
+                  const tile = layouts.get(run)?.[index];
+                  const photoLabel = `照片 ${taipeiTime(event.at)}`;
+                  const describedBy = `photo-${event.id}`;
                   return (
                     <li
                       id={`ev-${event.id}`}
@@ -371,37 +379,41 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                       data-width={media?.width}
                       data-height={media?.height}
                       data-video={event.photo?.movie ? '' : undefined}
-                      data-overflow={index >= TILES ? '' : undefined}
-                      data-more={more > 0 ? '' : undefined}
+                      data-overflow={tile?.overflow ? '' : undefined}
+                      data-more={tile?.more ? '' : undefined}
                       class:list={[
-                        'focus-within:ring-ring focus-within:ring-offset-background group relative scroll-mt-32 rounded-sm focus-within:ring-2 focus-within:ring-offset-2',
-                        index >= TILES && 'hidden',
+                        'focus-within:ring-ring focus-within:ring-offset-background group relative scroll-mt-32 rounded-md focus-within:ring-2 focus-within:ring-offset-2',
+                        tile?.hero && 'col-span-2 row-span-2',
+                        tile?.overflow && 'hidden',
                       ]}
                     >
+                      <span id={describedBy} class="sr-only">
+                        {photoLabel}
+                      </span>
                       <a
                         href={mediaUrl(event.id, 0)}
                         data-lightbox
-                        class="bg-muted relative block aspect-square overflow-hidden rounded-sm outline-none"
+                        class="bg-muted relative block size-full overflow-hidden rounded-md outline-none"
                       >
                         {media && (
                           <img
                             src={thumbUrl(event.id, 0, 480)}
                             srcset={thumbSrcset(event.id, 0, media.width)}
                             sizes={TILE_SIZES}
-                            alt={event.text ?? `照片 ${taipeiTime(event.at)}`}
+                            alt={event.text ?? photoLabel}
                             width={media.width}
                             height={media.height}
                             loading="lazy"
                             class="size-full object-cover"
                           />
                         )}
-                        {more > 0 && (
+                        {tile?.more ? (
                           <span
                             data-scrim
                             class="bg-background/65 text-foreground text-heading absolute inset-0 flex items-center justify-center font-semibold tabular-nums"
-                            set:text={`+${more}`}
+                            set:text={`+${tile.more}`}
                           />
-                        )}
+                        ) : null}
                       </a>
                       <span
                         data-marker
@@ -410,6 +422,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                       <button
                         type="button"
                         data-annotate
+                        aria-describedby={describedBy}
                         class:list={[PHOTO_PILL, 'right-1 top-1']}
                       >
                         眉批
@@ -418,7 +431,6 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                   );
                 })}
               </ol>
-              <span />
             </div>
           </li>
         ),

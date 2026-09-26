@@ -138,3 +138,19 @@ export function thumbSrcset(id: string, n: number, width?: number): string {
     return [`${thumbUrl(id, n, w)} ${actual}w`];
   }).join(', ');
 }
+
+export const BURST_TILES = 5;
+
+export type BurstTile = { hero: boolean; overflow: boolean; more: number };
+
+export function burstLayout(count: number): BurstTile[] {
+  const single = count >= 3;
+  return Array.from({ length: count }, (_, i) => ({
+    hero: single ? i === 0 : true,
+    overflow: i >= BURST_TILES,
+    more:
+      count > BURST_TILES && i === BURST_TILES - 1
+        ? count - (BURST_TILES - 1)
+        : 0,
+  }));
+}

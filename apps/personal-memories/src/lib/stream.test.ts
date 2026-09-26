@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   authorAccents,
+  burstLayout,
   firstEventPerHour,
   groupRuns,
   hourCounts,
@@ -248,5 +249,40 @@ describe('rowLabel', () => {
 
   it('leaves out the excerpt when the message has no text', () => {
     expect(rowLabel('Bob', '2025-11-01T09:30:00+08:00', '')).toBe('Bob，09:30');
+  });
+});
+
+describe('burstLayout', () => {
+  const heroes = (n: number) => burstLayout(n).map((t) => t.hero);
+
+  it('gives one or two photos a large tile each', () => {
+    expect(heroes(1)).toEqual([true]);
+    expect(heroes(2)).toEqual([true, true]);
+  });
+
+  it('leads three or more photos with one large tile', () => {
+    expect(heroes(3)).toEqual([true, false, false]);
+    expect(heroes(6)).toEqual([true, false, false, false, false, false]);
+  });
+
+  it('shows five tiles and puts +N on the fifth only past five', () => {
+    expect(burstLayout(5).map((t) => t.more)).toEqual([0, 0, 0, 0, 0]);
+    expect(burstLayout(5).some((t) => t.overflow)).toBe(false);
+    expect(burstLayout(6).map((t) => t.more)).toEqual([0, 0, 0, 0, 2, 0]);
+    expect(burstLayout(7).map((t) => [t.more, t.overflow])).toEqual([
+      [0, false],
+      [0, false],
+      [0, false],
+      [0, false],
+      [3, false],
+      [0, true],
+      [0, true],
+    ]);
+  });
+
+  it('keeps a burst of hundreds to five tiles', () => {
+    const tiles = burstLayout(300);
+    expect(tiles.filter((t) => !t.overflow)).toHaveLength(5);
+    expect(tiles[4]?.more).toBe(296);
   });
 });

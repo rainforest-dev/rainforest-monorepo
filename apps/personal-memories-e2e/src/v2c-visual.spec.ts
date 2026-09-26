@@ -38,6 +38,17 @@ for (const scheme of SCHEMES) {
         await noSideScroll(page);
         await page.screenshot({ path: shot('day') });
       });
+
+      test('photo burst', async ({ page }) => {
+        await page.goto('/day/2025-11-01');
+        await settle(page);
+        const burst = page.locator('#day-2025-11-01 [data-burst]').first();
+        await burst.scrollIntoViewIfNeeded();
+        await noSideScroll(page);
+        await burst
+          .locator('xpath=ancestor::li[@data-source="photo"][1]')
+          .screenshot({ path: shot('burst') });
+      });
     });
   }
 }

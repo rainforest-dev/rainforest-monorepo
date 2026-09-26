@@ -165,15 +165,35 @@ test('a day shows messages and photos in order, with the source filter', async (
   await toggle.click();
 });
 
-test('a photo run longer than 4 collapses the rest behind a +N tile', async ({
+test('a photo run longer than 5 leads with a large tile and hides the rest behind +N', async ({
   page,
 }) => {
   await page.goto('/day/2025-11-01');
-  const day = page.locator('#day-2025-11-01');
-  const burst = day.locator('[data-burst]').first();
-  await expect(burst.locator('li[data-event-id]')).toHaveCount(7);
-  await expect(burst.locator('li[data-overflow]')).toHaveCount(3);
-  await expect(burst.locator('[data-more] [data-scrim]')).toHaveText('+4');
+  const burst = page.locator('#day-2025-11-01 [data-burst]').first();
+  const tiles = burst.locator(':scope > li[data-event-id]');
+  await expect(tiles).toHaveCount(7);
+  await expect(burst.locator('li[data-overflow]')).toHaveCount(2);
+  await expect(burst.locator('[data-more] [data-scrim]')).toHaveText('+3');
+  const [hero, small] = await Promise.all([
+    tiles.nth(0).boundingBox(),
+    tiles.nth(1).boundingBox(),
+  ]);
+  expect(hero && small && hero.width > small.width * 1.8).toBe(true);
+  expect(hero && small && hero.height > small.height * 1.8).toBe(true);
+});
+
+test('a link to a photo past the fifth still shows it', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const tiles = page
+    .locator('#day-2025-11-01 [data-burst]')
+    .first()
+    .locator(':scope > li[data-event-id]');
+  const id = await tiles.nth(5).getAttribute('data-event-id');
+  await page.goto(`/day/2025-11-01#ev-${id}`);
+  await expect(tiles.nth(5)).toBeVisible();
+  await expect(
+    page.locator('#day-2025-11-01 [data-burst] [data-scrim]').first(),
+  ).toBeHidden();
 });
 
 test('rows line up in one column whoever wrote them', async ({ page }) => {
@@ -261,6 +281,15 @@ test('the author key is named and each 眉批 button names its message', async (
   expect(new Set(ids).size).toBe(ids.length);
   for (const id of ids)
     expect(await page.locator(`[id="${id}"]`).count()).toBe(1);
+
+  const burstIds = await day
+    .locator('[data-burst] [data-annotate]')
+    .evaluateAll((buttons) =>
+      buttons.map((b) => b.getAttribute('aria-describedby')),
+    );
+  expect(burstIds.length).toBeGreaterThan(0);
+  expect(burstIds.every(Boolean)).toBe(true);
+  expect(new Set(burstIds).size).toBe(burstIds.length);
 });
 
 test('the date jump input asks for digits without autocorrect', async ({
@@ -414,11 +443,11 @@ test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   await waitForLightboxReady(page);
   await page.locator('#day-2025-11-01 [data-burst] [data-more] a').click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('照片 · 4 / 7');
+  await expect(dialog).toContainText('照片 · 5 / 7');
   await expect(
     dialog.getByRole('button', { name: '設為封面', exact: true }),
   ).toBeFocused();
-  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  for (let i = 0; i < 2; i++) await page.keyboard.press('ArrowRight');
   await expect(dialog).toContainText('照片 · 7 / 7');
   await expect(dialog.getByRole('button', { name: '下一張' })).toBeDisabled();
 
