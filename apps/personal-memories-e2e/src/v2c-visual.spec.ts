@@ -33,6 +33,20 @@ for (const scheme of SCHEMES) {
       const shot = (surface: string) =>
         path.join(OUT, `app-${surface}-${scheme}-${viewport.width}.png`);
 
+      test('year', async ({ page }) => {
+        await page.goto('/');
+        await settle(page);
+        await noSideScroll(page);
+        await page.screenshot({ path: shot('year') });
+      });
+
+      test('month', async ({ page }) => {
+        await page.goto('/month/2025-11');
+        await settle(page);
+        await noSideScroll(page);
+        await page.screenshot({ path: shot('month') });
+      });
+
       test('day stream', async ({ page }) => {
         await page.goto('/day/2025-11-01');
         await settle(page);

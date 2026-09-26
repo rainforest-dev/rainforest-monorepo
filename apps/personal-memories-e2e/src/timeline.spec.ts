@@ -1579,3 +1579,33 @@ test('an unreadable empty day shows its notice without a stray divider', async (
     else rmSync(file, { force: true });
   }
 });
+
+test('each year row ends in its month total', async ({ page, request }) => {
+  const days = (await (await request.get('/days.json')).json()) as {
+    date: string;
+    total: number;
+  }[];
+  const november = days
+    .filter((d) => d.date.startsWith('2025-11'))
+    .reduce((sum, d) => sum + d.total, 0);
+  await page.goto('/');
+  await expect(page.locator('[data-month-total="2025-11"]')).toHaveText(
+    `${november} 則`,
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    page.getByRole('link', { name: `2025 年 11 月，${november} 則` }),
+  ).toBeVisible();
+});
+
+test('a month cell with a cover shows it edge to edge', async ({ page }) => {
+  await page.goto('/month/2025-11');
+  const cell = page.locator('a[data-date="2025-11-01"]:visible');
+  const img = cell.locator('img');
+  await expect(img).toBeVisible();
+  await expect(cell).toHaveCSS('height', '116px');
+  const [c, i] = await Promise.all([cell.boundingBox(), img.boundingBox()]);
+  expect(c && i && Math.abs(c.width - i.width) <= 1).toBe(true);
+  expect(c && i && Math.abs(c.height - i.height) <= 1).toBe(true);
+  await expect(cell).toContainText('則');
+});

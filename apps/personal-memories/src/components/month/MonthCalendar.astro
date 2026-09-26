@@ -43,7 +43,7 @@ const monthKey = `month-${view.month}`;
                   data-morph={`day-${cell.date}`}
                   aria-label={label(cell)}
                   class:list={[
-                    'bg-card ring-border hover:bg-accent/65 flex h-[104px] flex-col gap-1.5 overflow-hidden rounded-lg p-2 ring-1',
+                    'bg-card ring-border hover:bg-accent/65 h-29 relative flex flex-col overflow-hidden rounded-lg ring-1',
                     FOCUS,
                   ]}
                   {...morphAttrs(`day-${cell.date}`, morph)}
@@ -53,7 +53,7 @@ const monthKey = `month-${view.month}`;
               ) : (
                 <div
                   data-date={cell.date}
-                  class="ring-border text-muted-foreground text-meta h-[104px] rounded-lg p-2 tabular-nums ring-1 ring-inset"
+                  class="ring-border text-muted-foreground text-meta h-29 rounded-lg p-2 tabular-nums ring-1 ring-inset"
                 >
                   {cell.day}
                 </div>

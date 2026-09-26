@@ -73,14 +73,27 @@ describe('days', () => {
       new Map([['2025-12-25', 2]]),
     );
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ year: 2025, month: 12 });
+    expect(rows[0]).toMatchObject({ year: 2025, month: 12, total: 2 });
     expect(rows[0].cells[18]).toBeNull();
     expect(rows[0].cells[19]).toEqual({ date: '2025-12-20', total: 0 });
     expect(rows[0].cells[24]).toEqual({ date: '2025-12-25', total: 2 });
     expect(rows[0].cells[30]).toEqual({ date: '2025-12-31', total: 0 });
-    expect(rows[1]).toMatchObject({ year: 2026, month: 1 });
+    expect(rows[1]).toMatchObject({ year: 2026, month: 1, total: 0 });
     expect(rows[1].cells[9]).toEqual({ date: '2026-01-10', total: 0 });
     expect(rows[1].cells[10]).toBeNull();
+  });
+
+  it('sums a month total from its days in range only', () => {
+    const rows = monthRows(
+      '2025-11-02',
+      '2025-11-30',
+      new Map([
+        ['2025-11-01', 50],
+        ['2025-11-02', 3],
+        ['2025-11-30', 4],
+      ]),
+    );
+    expect(rows[0]?.total).toBe(7);
   });
 
   it('keeps all 29 February slots in a leap year and nulls the rest', () => {

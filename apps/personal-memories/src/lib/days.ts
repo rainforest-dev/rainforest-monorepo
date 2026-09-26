@@ -79,6 +79,7 @@ export type MonthRow = {
   year: number;
   month: number;
   cells: CalendarCell[];
+  total: number;
 };
 
 export function monthRows(
@@ -105,7 +106,8 @@ export function monthRows(
       const date = iso(t);
       return { date, total: totals.get(date) ?? 0 };
     });
-    rows.push({ year, month: month + 1, cells });
+    const total = cells.reduce((sum, cell) => sum + (cell?.total ?? 0), 0);
+    rows.push({ year, month: month + 1, cells, total });
     month++;
     if (month > 11) {
       month = 0;
