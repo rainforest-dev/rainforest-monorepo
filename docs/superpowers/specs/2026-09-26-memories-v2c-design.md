@@ -26,7 +26,7 @@ is B, `notes`, `year`, `month` and the bar are A), then the live v2b code and
 4. 眉批 show inline under their message in the stream (first two lines and the author) and in
    full in the notes panel as margin notes. The brief's small cards are dropped.
 5. New copy. C uses 鍵盤快速鍵, the group names 全部畫面 / 年 / 日 / 照片, 縮小一層 and 寫回憶.
-   v2c adds none of it beyond what v2b ships (see "Copy").
+   v2c adopts them (see Copy).
 6. The invited viewer sees the same view as the owner. Read-only gating stays out of scope.
 
 Also from `review.md`: the 眉批 button sits inside the row's 72px right gutter; the date-jump
@@ -86,7 +86,6 @@ and the `aside` named 筆記; the sheet keeps its `SheetTitle`.
 
 ## Out of scope
 
-- Adopting C's new strings (below) until the owner confirms them.
 - Read-only gating for the invited viewer.
 - `toHaveScreenshot` baselines: e2e does not run in CI, and macOS captures would not match Linux.
   v2c keeps per-task captures for comparison with the prototype instead.
@@ -95,13 +94,14 @@ and the `aside` named 筆記; the sheet keeps its `SheetTitle`.
 
 ## Copy
 
-v2c adds no user-facing words. Strings C shows that v2b does not ship, left out pending the
-owner:
+v2c adopts C's copy (owner approved direction C, 2026-09-26):
 
-- 全部畫面 (title of the first shortcut group; v2b has no title there)
-- 看所有快速鍵 (the `?` row; v2b says 鍵盤快速鍵)
-- 寫回憶 (the `n` row; v2b says 這一天的回憶)
-- 已有眉批 (the prototype's `NotedMark` label; v2c's inline 眉批 makes it redundant)
+- 全部畫面: title of the first shortcut group
+- 看所有快速鍵: the `?` row (was 鍵盤快速鍵)
+- 寫回憶: the `n` row (was 這一天的回憶)
+- 已有眉批: accessible name of the inline 眉批 mark
+- 還有 N 張照片: accessible name of the `+N` burst tile
+- 作者: aria-label of the day header's author key
 
 New formats built from existing words, used as screen-reader names or date layout:
 `{author}，{HH:MM}：{excerpt}` (row name), `{YYYY} 年 {M} 月，{N} 則` (phone month row),
