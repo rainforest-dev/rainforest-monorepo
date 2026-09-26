@@ -13,7 +13,7 @@ export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
   use: {
     baseURL,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
   },
   webServer: {
     command:
