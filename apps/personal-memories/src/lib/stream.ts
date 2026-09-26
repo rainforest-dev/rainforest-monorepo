@@ -139,9 +139,9 @@ export function thumbSrcset(id: string, n: number, width?: number): string {
   }).join(', ');
 }
 
-export const BURST_TILES = 5;
+const BURST_TILES = 5;
 
-export type BurstTile = { hero: boolean; overflow: boolean; more: number };
+type BurstTile = { hero: boolean; overflow: boolean; more: number };
 
 export function burstLayout(count: number): BurstTile[] {
   const single = count >= 3;
