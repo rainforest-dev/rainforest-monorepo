@@ -60,7 +60,7 @@
   @apply bg-primary;
 }
 
-[data-event-id]:not([data-annotated]) [data-note] {
+[data-event-id]:not([data-annotated]) :is([data-note], [data-note-flag]) {
   display: none;
 }
 
