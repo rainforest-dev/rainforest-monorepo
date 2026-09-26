@@ -59,6 +59,35 @@ for (const scheme of SCHEMES) {
           .locator('xpath=ancestor::li[@data-source="photo"][1]')
           .screenshot({ path: shot('burst') });
       });
+
+      test('inline 眉批', async ({ page }) => {
+        await page.setExtraHTTPHeaders({
+          'Cf-Access-Authenticated-User-Email': 'alice@example.com',
+        });
+        await page.goto('/day/2025-10-31');
+        await settle(page);
+        const row = page
+          .locator('#day-2025-10-31 [data-event-id]', {
+            hasText: 'Busy message 1',
+          })
+          .first();
+        if ((await row.getAttribute('data-annotated')) === null) {
+          await row.focus();
+          await row.getByRole('button', { name: '眉批' }).click();
+          await page
+            .getByLabel(/^眉批：Busy message 1$/)
+            .fill('那天早上的第一則');
+        }
+        await expect(row.locator('[data-note]')).toBeVisible();
+        await expect(row.locator('[data-note-by]')).toHaveText(' · Alice');
+        await page.keyboard.press('Escape');
+        await row.evaluate((el) => {
+          (document.activeElement as HTMLElement | null)?.blur();
+          el.scrollIntoView({ block: 'center' });
+        });
+        await noSideScroll(page);
+        await row.screenshot({ path: shot('inline-note') });
+      });
     });
   }
 }

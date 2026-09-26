@@ -1390,3 +1390,105 @@ test('a hidden source stays hidden from the first paint', async ({ page }) => {
   await toggle.click();
   await expect(page.locator('html[data-hide-photo]')).toHaveCount(0);
 });
+
+test('眉批 show under their message, clamped, on the panel day and on days loaded by scrolling', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-03');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+  const row = page.locator('#day-2025-11-03 [data-event-id]', {
+    hasText: 'Coffee first',
+  });
+  await row.hover();
+  await row.getByRole('button', { name: '眉批' }).click();
+  await panel.getByLabel('眉批：Coffee first').fill('第一行\n第二行\n第三行');
+  await expect(panel).toContainText('已儲存');
+  const note = row.locator('[data-note]');
+  await expect(note).toBeVisible();
+  await expect(note).toContainText('第一行');
+  await expect(note.getByRole('img', { name: '已有眉批' })).toBeVisible();
+  await expect(note.locator('[data-note-by]')).toHaveText(' · Bob');
+  await expect(note.locator('[data-note-by]')).toBeVisible();
+  const clamp = note.locator('.line-clamp-2');
+  expect(
+    await clamp.evaluate((el) => el.scrollHeight > el.clientHeight + 1),
+  ).toBe(true);
+  await expect(row.locator('p').first()).toHaveText('Coffee first');
+
+  await page.goto('/day/2025-11-02');
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  const scrolled = page.locator('#day-2025-11-03 [data-event-id]', {
+    hasText: 'Coffee first',
+  });
+  await expect(scrolled).toHaveAttribute('data-annotated', '');
+  await expect(scrolled.locator('[data-note]')).toContainText('第一行');
+  await page
+    .locator('#day-2025-11-03')
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await page
+    .locator('#day-2025-11-02')
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  await expect(scrolled).toHaveAttribute('data-annotated', '');
+  await expect(scrolled.locator('[data-note]')).toContainText('第一行');
+});
+
+test('a message without 眉批 shows no inline note', async ({ page }) => {
+  await page.goto('/day/2025-11-03');
+  const row = page.locator('#day-2025-11-03 [data-event-id]', {
+    hasText: 'New week, new plans',
+  });
+  await expect(row).not.toHaveAttribute('data-annotated', '');
+  await expect(row.locator('[data-note]')).toBeHidden();
+  await expect(row.getByRole('img', { name: '已有眉批' })).toHaveCount(0);
+});
+
+const noteDom = (page: Page, date: string) =>
+  page.evaluate(async (day) => {
+    const html = await (await fetch(`/day/${day}`)).text();
+    const served = new DOMParser().parseFromString(html, 'text/html');
+    const rows = (root: ParentNode) =>
+      [...root.querySelectorAll(`#day-${day} [data-event-id]`)].map((li) => [
+        li.id,
+        li.hasAttribute('data-annotated'),
+        li.querySelector('[data-note]')?.outerHTML ?? null,
+      ]);
+    return { live: rows(document), served: rows(served) };
+  }, date);
+
+test('the server and the panel repaint render the same inline 眉批', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+  const lunch = page.locator('#day-2025-11-01 [data-event-id]', {
+    hasText: 'Lunch plan',
+  });
+  await expect(lunch.locator('[data-note-body]')).toHaveText('後來那家店關了');
+  await expect(lunch.locator('[data-note-by]')).toHaveText('');
+  const hydrated = await noteDom(page, '2025-11-01');
+  expect(hydrated.live.some(([, annotated]) => annotated)).toBe(true);
+  expect(hydrated.live).toEqual(hydrated.served);
+
+  const row = page.locator('#day-2025-11-01 [data-event-id]', {
+    hasText: 'Sounds good',
+  });
+  await row.hover();
+  await row.getByRole('button', { name: '眉批' }).click();
+  await panel
+    .getByLabel(/^眉批：Sounds good$/)
+    .fill('  <b>好</b> & "那家"\n第二行  ');
+  await expect(panel).toContainText('已儲存');
+  await expect(row).toHaveAttribute('data-annotated', '');
+  const painted = await noteDom(page, '2025-11-01');
+  expect(painted.live).toEqual(painted.served);
+
+  await page.goto('/day/2025-11-03');
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+  const signed = await noteDom(page, '2025-11-03');
+  expect(signed.live).toEqual(signed.served);
+});

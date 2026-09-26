@@ -60,6 +60,10 @@
   @apply bg-primary;
 }
 
+[data-event-id]:not([data-annotated]) [data-note] {
+  display: none;
+}
+
 [data-source='photo'][data-event-id][data-annotated] [data-marker] {
   @apply ring-background ring-2;
 }
