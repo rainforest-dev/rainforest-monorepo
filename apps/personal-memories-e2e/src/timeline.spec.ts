@@ -494,6 +494,28 @@ test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   ).toHaveAttribute('src', /DDDDDDDD-0000-0000-0000-000000000004/);
 });
 
+test('an annotated photo tile is announced to screen readers', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  const tile = page
+    .locator('#day-2025-11-01 [data-burst] > li[data-source="photo"]')
+    .first();
+  const link = tile.locator('a[data-lightbox]');
+  await expect(link).not.toHaveAccessibleName(/已有眉批/);
+  const eventId = await tile.getAttribute('data-event-id');
+  await tile.hover();
+  await tile.getByRole('button', { name: '眉批' }).click();
+  const editor = panel.locator('li').filter({
+    has: page.locator(`a[data-quote][href="#ev-${eventId}"]`),
+  });
+  await editor.getByRole('textbox').fill('那張照片拍得真好');
+  await expect(panel).toContainText('已儲存');
+  await expect(tile).toHaveAttribute('data-annotated', '');
+  await expect(link).toHaveAccessibleName(/已有眉批/);
+});
+
 test('a video in a burst plays and cannot be set as cover', async ({
   page,
 }) => {
