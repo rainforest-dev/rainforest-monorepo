@@ -577,7 +577,7 @@ test('a note typed just before scrolling stays on its own day', async ({
   await page
     .locator('#day-2025-11-03')
     .evaluate((el) => el.scrollIntoView({ block: 'start' }));
-  await expect(panel).toContainText('2025-11-03（週一）');
+  await expect(panel).toContainText('11 月 3 日');
   await expect(body).toHaveValue('');
 
   const read = (date: string) =>
@@ -1126,6 +1126,20 @@ test.describe('on a phone', () => {
       )
       .toBe(true);
   });
+
+  test('the expanded sheet opens on the diary date with ruled lines', async ({
+    page,
+  }) => {
+    await page.goto('/day/2025-11-02');
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await sheet.getByRole('button', { name: '展開筆記' }).click();
+    await expect(sheet).toContainText('11 月 2 日');
+    await expect(sheet).toContainText('週日 · 2025');
+    await expect(sheet.getByLabel('當天的回憶')).toHaveCSS(
+      'line-height',
+      '28px',
+    );
+  });
 });
 
 test('a long press on a message opens 眉批 and 複製', async ({ page }) => {
@@ -1492,4 +1506,52 @@ test('the server and the panel repaint render the same inline 眉批', async ({
   const signed = await noteDom(page, '2025-11-03');
   expect(signed.live.some(([, a]) => a)).toBe(true);
   expect(signed.live).toEqual(signed.served);
+});
+
+test('the notes panel is a diary page with ruled lines', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel).toContainText('11 月 1 日');
+  await expect(panel).toContainText('週六 · 2025');
+  await expect(
+    panel.getByRole('heading', { name: '這一天的回憶' }),
+  ).toBeVisible();
+  const memory = panel.getByLabel('當天的回憶');
+  await expect(memory).toHaveCSS('line-height', '28px');
+  await expect(memory).toHaveCSS(
+    'background-image',
+    /repeating-linear-gradient/,
+  );
+  const card = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = 'var(--card)';
+    document.body.append(probe);
+    const colour = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return colour;
+  });
+  await expect(panel).toHaveCSS('background-color', card);
+});
+
+test('a margin note quotes in the colour of the message author', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  const message = page.locator('#day-2025-11-01 [data-event-id]', {
+    hasText: 'Yes, reading.',
+  });
+  await message.hover();
+  await message.getByRole('button', { name: '眉批' }).click();
+  await expect(panel.getByLabel('眉批：Yes, reading.')).toBeFocused();
+  const quote = panel.locator('[data-quote]', { hasText: 'Yes, reading.' });
+  await expect(quote).toHaveCSS('border-left-width', '3px');
+  const [q, rule] = await Promise.all([
+    quote.evaluate((el) => getComputedStyle(el).borderLeftColor),
+    message
+      .locator('[data-row-body]')
+      .evaluate((el) => getComputedStyle(el).borderLeftColor),
+  ]);
+  expect(q).toBe(rule);
+  await expect(quote).toContainText('00:07 · LINE · Bob');
 });

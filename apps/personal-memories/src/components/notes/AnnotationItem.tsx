@@ -1,19 +1,16 @@
-import {
-  Button,
-  Card,
-  CardContent,
-  Input,
-  Textarea,
-} from '@rainforest-dev/rainforest-react';
+import { Button, cn, Input, Textarea } from '@rainforest-dev/rainforest-react';
 import { PenLineIcon } from 'lucide-react';
 import type { Ref, RefObject } from 'react';
 
 import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
 import { SOURCE_LABELS } from '../../lib/notes/types.ts';
+import type { Accent } from '../../lib/stream.ts';
 import { taipeiTime } from '../../lib/weeks.ts';
+import { accentRule } from '../accent-classes.ts';
 
 type Props = {
   annotation: ResolvedAnnotation;
+  accent: Accent | undefined;
   disabled: boolean;
   readOnly: boolean;
   reattaching: boolean;
@@ -25,8 +22,8 @@ type Props = {
 
 const FOCUS =
   'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2';
-const EXCERPT =
-  'text-muted-foreground border-border text-meta line-clamp-2 border-l-2 pl-2.5 leading-[1.6]';
+const QUOTE = 'flex flex-col gap-0.5 rounded-xs border-l-3 py-0.5 pl-2.5';
+const EXCERPT = 'text-muted-foreground text-meta line-clamp-2 leading-[1.6]';
 const NOTE = 'text-sm leading-[1.65]';
 
 function UnlinkIcon() {
@@ -51,6 +48,7 @@ function UnlinkIcon() {
 
 export function AnnotationItem({
   annotation: a,
+  accent,
   disabled,
   readOnly,
   reattaching,
@@ -63,83 +61,90 @@ export function AnnotationItem({
   const meta = [taipeiTime(a.at), SOURCE_LABELS[a.source], a.author].join(
     ' · ',
   );
+  const quote = (
+    <>
+      <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs tabular-nums">
+        {!attached && <UnlinkIcon />}
+        {attached ? meta : `找不到原本的訊息 · 原為 ${meta}`}
+      </span>
+      <span className={EXCERPT}>{a.excerpt}</span>
+    </>
+  );
   return (
-    <li>
-      <Card
-        size="sm"
-        className={
-          attached
-            ? 'focus-within:bg-primary/10 focus-within:ring-primary/40'
-            : 'border-border border border-dashed bg-transparent ring-0'
-        }
-      >
-        <CardContent className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs tabular-nums">
-              {!attached && <UnlinkIcon />}
-              {attached ? meta : `找不到原本的訊息 · 原為 ${meta}`}
-            </span>
-            {a.by && (
-              <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
-                <PenLineIcon className="size-3" aria-hidden />
-                {a.by}
-              </span>
-            )}
-            {!readOnly && (
-              <Button
-                variant="ghost"
-                size="xs"
-                disabled={disabled}
-                onClick={onDelete}
-              >
-                刪除
-              </Button>
-            )}
-          </div>
-          {attached ? (
-            <a
-              href={`#ev-${a.eventId}`}
-              className={`${EXCERPT} underline-offset-2 hover:underline ${FOCUS}`}
-            >
-              {a.excerpt}
-            </a>
-          ) : (
-            <p className={EXCERPT}>{a.excerpt}</p>
+    <li className="focus-within:bg-primary/10 -mx-2 flex flex-col gap-2 rounded-md px-2 py-1.5">
+      {attached ? (
+        <a
+          href={`#ev-${a.eventId}`}
+          data-quote
+          className={cn(
+            QUOTE,
+            accentRule(accent),
+            'underline-offset-2 hover:underline',
+            FOCUS,
           )}
-          {readOnly ? (
-            a.body && <p className={`${NOTE} whitespace-pre-wrap`}>{a.body}</p>
-          ) : (
-            <Textarea
-              ref={textareaRef}
-              aria-label={`眉批：${a.excerpt}`}
-              value={a.body}
-              disabled={disabled}
-              rows={2}
-              onChange={(e) => onBody(e.target.value)}
-              className={`${NOTE} min-h-0 resize-y px-2.5 py-1.5`}
-            />
+        >
+          {quote}
+        </a>
+      ) : (
+        <div
+          data-quote
+          className={cn(QUOTE, 'border-muted-foreground border-dashed')}
+        >
+          {quote}
+        </div>
+      )}
+      {readOnly ? (
+        a.body && <p className={`${NOTE} whitespace-pre-wrap`}>{a.body}</p>
+      ) : (
+        <Textarea
+          ref={textareaRef}
+          aria-label={`眉批：${a.excerpt}`}
+          value={a.body}
+          disabled={disabled}
+          rows={2}
+          onChange={(e) => onBody(e.target.value)}
+          className={`${NOTE} min-h-0 resize-y px-2.5 py-1.5`}
+        />
+      )}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-muted-foreground flex items-center gap-1 text-xs">
+          {a.by && (
+            <>
+              <PenLineIcon className="size-3" aria-hidden />
+              {a.by}
+            </>
           )}
-          {!attached && !readOnly && (
-            <div className="flex items-center gap-2.5">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="aria-pressed:ring-ring aria-pressed:ring-2"
-                aria-pressed={reattaching}
-                disabled={disabled}
-                onClick={onReattach}
-              >
-                重新連結
-              </Button>
-              <span
-                className={`text-xs ${reattaching ? 'text-foreground' : 'text-muted-foreground'}`}
-              >
-                再點選串流裡的一則訊息
-              </span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </span>
+        {!readOnly && (
+          <Button
+            variant="ghost"
+            size="xs"
+            disabled={disabled}
+            onClick={onDelete}
+          >
+            刪除
+          </Button>
+        )}
+      </div>
+      {!attached && !readOnly && (
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="aria-pressed:ring-ring aria-pressed:ring-2"
+            aria-pressed={reattaching}
+            disabled={disabled}
+            onClick={onReattach}
+          >
+            重新連結
+          </Button>
+          <span
+            className={`text-xs ${reattaching ? 'text-foreground' : 'text-muted-foreground'}`}
+          >
+            再點選串流裡的一則訊息
+          </span>
+        </div>
+      )}
     </li>
   );
 }
@@ -155,6 +160,7 @@ type ListProps = {
   onBody: (i: number, body: string) => void;
   onReattach: (i: number) => void;
   onDelete: (i: number) => void;
+  accentOf: (author: string) => Accent | undefined;
 };
 
 export function AnnotationList({
@@ -166,6 +172,7 @@ export function AnnotationList({
   onBody,
   onReattach,
   onDelete,
+  accentOf,
   ...rest
 }: ListProps) {
   if (rest.readOnly && annotations.length === 0) return null;
@@ -205,11 +212,12 @@ export function AnnotationList({
           還沒有眉批。把游標移到訊息上，按「眉批」就能加一則。
         </p>
       ) : (
-        <ul className="flex flex-col gap-2.5">
+        <ul className="flex flex-col gap-5">
           {ordered.map(({ a, i }) => (
             <AnnotationItem
               key={`${i}-${a.eventId}`}
               annotation={a}
+              accent={accentOf(a.author)}
               {...rest}
               reattaching={reattach === i}
               textareaRef={(el) => {

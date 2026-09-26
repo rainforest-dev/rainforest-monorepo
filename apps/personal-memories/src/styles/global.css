@@ -173,3 +173,15 @@
     translate: -50% 0;
   }
 }
+
+[data-ruled] {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 27px,
+    var(--border) 27px 28px
+  );
+  background-attachment: local;
+  border-color: transparent;
+  line-height: 28px;
+}

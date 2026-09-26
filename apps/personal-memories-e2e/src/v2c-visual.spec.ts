@@ -90,6 +90,26 @@ for (const scheme of SCHEMES) {
         await noSideScroll(page);
         await row.screenshot({ path: shot('inline-note') });
       });
+
+      test('notes panel', async ({ page }) => {
+        await page.goto('/day/2025-11-01');
+        await settle(page);
+        if (viewport.width === 390) {
+          const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+          await sheet.screenshot({ path: shot('notes-peek') });
+          await sheet.getByRole('button', { name: '展開筆記' }).click();
+          await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
+          await page.evaluate(() =>
+            Promise.all(document.getAnimations().map((a) => a.finished)),
+          );
+          await page.screenshot({ path: shot('notes') });
+          return;
+        }
+        await noSideScroll(page);
+        await page
+          .getByRole('complementary', { name: '筆記' })
+          .screenshot({ path: shot('notes') });
+      });
     });
   }
 }

@@ -69,17 +69,19 @@ export function NotesSurface({
     return (
       <aside
         aria-label="筆記"
-        className="bg-sidebar border-sidebar-border hidden flex-col rounded-lg border lg:sticky lg:top-[calc(var(--app-bar-h)+1rem)] lg:flex lg:max-h-[calc(100vh-var(--app-bar-h)-2rem)] lg:self-start"
+        className="bg-card text-card-foreground ring-border hidden flex-col rounded-xl shadow-lg ring-1 lg:sticky lg:top-[calc(var(--app-bar-h)+1rem)] lg:flex lg:max-h-[calc(100vh-var(--app-bar-h)-2rem)] lg:self-start"
       >
-        <div className="flex items-center justify-between gap-3 px-6 pt-5">
-          <div className="flex min-w-0 items-baseline gap-2">
-            <h2 className="text-meta font-semibold">{title}</h2>
-            {date}
+        <div className="flex flex-col gap-1 px-7 pb-4 pt-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-muted-foreground text-xs font-semibold tracking-[0.04em]">
+              {title}
+            </h2>
+            {status}
           </div>
-          {status}
+          {date}
         </div>
         <ScrollArea className="min-h-0 flex-1">
-          <div className="px-6 pb-8 pt-3">{children}</div>
+          <div className="px-7 pb-7">{children}</div>
         </ScrollArea>
       </aside>
     );
@@ -104,7 +106,7 @@ export function NotesSurface({
         showOverlay={expanded}
         showCloseButton={expanded}
         closeLabel="關閉"
-        className="bg-sidebar gap-0"
+        className="bg-card gap-0"
       >
         <SheetHeader
           className={`flex-row items-center justify-between gap-3 pb-2 pt-3 ${expanded ? 'pr-12' : ''}`}
@@ -123,7 +125,14 @@ export function NotesSurface({
           >
             {expanded ? '收合筆記' : '展開筆記'}
           </Button>
-          {expanded ? children : peek}
+          {expanded ? (
+            <>
+              <div className="pb-4">{date}</div>
+              {children}
+            </>
+          ) : (
+            peek
+          )}
         </SheetBody>
       </SheetContent>
     </Sheet>

@@ -17,6 +17,7 @@ import { viewerName } from '../../lib/notes/authors.ts';
 import { notePayload } from '../../lib/notes/payload.ts';
 import { notesStore } from '../../lib/notes/store.ts';
 import { getTimeline } from '../../lib/store.ts';
+import { authorAccents, ownersFromEnv } from '../../lib/stream.ts';
 import { dayHeading } from '../../lib/weeks.ts';
 import { morphFromRequest } from '../../lib/zoom.ts';
 
@@ -40,6 +41,10 @@ const initial = day?.events
 
 const dates =
   state.status === 'ready' ? indexDays(state.timeline.events).dates : [];
+const accents =
+  state.status === 'ready'
+    ? Object.fromEntries(authorAccents(state.timeline.events, ownersFromEnv()))
+    : {};
 const months =
   state.status === 'ready'
     ? scrubberMonths(summarize(indexDays(state.timeline.events)))
@@ -96,7 +101,7 @@ const bar = {
             />
             <Sentinel direction="next" date={day.next} />
           </div>
-          <NotePanel client:load initial={initial} />
+          <NotePanel client:load initial={initial} accents={accents} />
           <StreamMenu client:idle />
         </div>
       </>

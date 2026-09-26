@@ -72,6 +72,14 @@ export function dayHeading(date: string): string {
   return `${date}（週${WEEKDAYS_ZH[weekday]}）`;
 }
 
+export function diaryDate(date: string): { day: string; meta: string } {
+  const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+  return {
+    day: `${Number(date.slice(5, 7))} 月 ${Number(date.slice(8, 10))} 日`,
+    meta: `週${WEEKDAYS_ZH[weekday]} · ${date.slice(0, 4)}`,
+  };
+}
+
 export type WeekDays = Map<string, TimelineEvent[]>;
 
 /**
