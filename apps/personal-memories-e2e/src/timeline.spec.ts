@@ -126,7 +126,9 @@ test('a day shows messages and photos in order, with the source filter', async (
   await expect(day.getByRole('heading')).toHaveText('2025-11-01（週六）');
   // content-visibility:auto defers layout until the section is in view.
   await expect(day).toContainText('照片 7 張');
-  await expect(day).toContainText('Alice 🌷 LINE');
+  await expect(day.locator('[data-author-cell]').first()).toContainText(
+    'Alice 🌷',
+  );
   // content-visibility:auto blanks innerText pre-render; textContent needs no layout.
   const texts = await day
     .locator('[data-event-id]')
@@ -174,22 +176,116 @@ test('a photo run longer than 4 collapses the rest behind a +N tile', async ({
   await expect(burst.locator('[data-more] [data-scrim]')).toHaveText('+4');
 });
 
-test("the owner's rows are indented from everyone else's", async ({ page }) => {
+test('rows line up in one column whoever wrote them', async ({ page }) => {
   await page.goto('/day/2025-11-01');
   const day = page.locator('#day-2025-11-01');
-  const ownerRow = day
-    .locator('[data-event-id][data-author="Bob"]')
-    .first()
-    .locator('[data-row-body]');
-  const otherRow = day
-    .locator('[data-event-id][data-author="Alice 🌷"]')
-    .first()
-    .locator('[data-row-body]');
-  const [ownerLeft, otherLeft] = await Promise.all([
-    ownerRow.evaluate((el) => el.getBoundingClientRect().left),
-    otherRow.evaluate((el) => el.getBoundingClientRect().left),
+  const left = (author: string) =>
+    day
+      .locator(`[data-event-id][data-author="${author}"] [data-row-body]`)
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().left);
+  expect(await left('Bob')).toBe(await left('Alice 🌷'));
+});
+
+test('each run keeps one unbroken 3px rule', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const pairs = await page.locator('#day-2025-11-01').evaluate((day) => {
+    let checked = 0;
+    for (const run of day.querySelectorAll('li[data-accent]')) {
+      const bodies = [...run.querySelectorAll<HTMLElement>('[data-row-body]')];
+      for (const body of bodies)
+        if (getComputedStyle(body).borderLeftWidth !== '3px') return -1;
+      for (let i = 1; i < bodies.length; i++) {
+        const gap =
+          bodies[i].getBoundingClientRect().top -
+          bodies[i - 1].getBoundingClientRect().bottom;
+        if (Math.abs(gap) > 0.5) return -1;
+        checked++;
+      }
+    }
+    return checked;
+  });
+  expect(pairs).toBeGreaterThan(0);
+});
+
+test('the author shows once per run, in its column on desktop and inline on a phone', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const day = page.locator('#day-2025-11-01');
+  await expect(day.locator('[data-author-key]')).toContainText('Bob');
+  await expect(day.locator('[data-author-key]')).toContainText('Alice 🌷');
+  const run = day
+    .locator('li[data-accent]')
+    .filter({ has: page.locator('[data-event-id] + [data-event-id]') })
+    .first();
+  const rows = run.locator('[data-event-id]');
+  await expect(rows.nth(0).locator('[data-author-cell]')).toBeVisible();
+  await expect(rows.nth(1).locator('[data-author-cell]')).toHaveCount(0);
+  await expect(rows.nth(0).locator('[data-author-inline]')).toBeHidden();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(rows.nth(0).locator('[data-author-cell]')).toBeHidden();
+  await expect(rows.nth(0).locator('[data-author-inline]')).toBeVisible();
+  await expect(rows.nth(1).locator('[data-author-inline]')).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test('each message row has an accessible name', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  await expect(
+    page.getByRole('listitem', { name: 'Bob，00:07：Yes, reading.' }),
+  ).toBeVisible();
+});
+
+test('the date jump input asks for digits without autocorrect', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  await expect(input).toHaveAttribute('inputmode', 'numeric');
+  await expect(input).toHaveAttribute('autocomplete', 'off');
+  await expect(input).toHaveAttribute('spellcheck', 'false');
+});
+
+test('follow-on times and the 眉批 button appear on hover or focus, beside the text', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const second = page
+    .locator(
+      '#day-2025-11-01 li[data-accent] [data-event-id] + [data-event-id]',
+    )
+    .first();
+  const first = page
+    .locator('#day-2025-11-01 li[data-accent] [data-event-id]')
+    .first();
+  const time = second.locator('time');
+  const pill = second.locator('[data-annotate]');
+  await expect(first.locator('time')).toHaveCSS('opacity', '1');
+  await expect(time).toHaveCSS('opacity', '0');
+  await expect(pill).toHaveCSS('opacity', '0');
+
+  await second.hover();
+  await expect(time).toHaveCSS('opacity', '1');
+  await expect(pill).toHaveCSS('opacity', '1');
+  const [p, text] = await Promise.all([
+    pill.boundingBox(),
+    second.locator('[data-row-body] p').first().boundingBox(),
   ]);
-  expect(ownerLeft).toBeGreaterThan(otherLeft);
+  expect(p && text && p.x >= text.x + text.width).toBe(true);
+
+  await page.mouse.move(0, 0);
+  await expect(time).toHaveCSS('opacity', '0');
+  await second.focus();
+  await expect(time).toHaveCSS('opacity', '1');
+  await expect(pill).toHaveCSS('opacity', '1');
 });
 
 test('each person keeps one fixed accent on every day', async ({ page }) => {
@@ -622,7 +718,15 @@ test('the keyboard button opens the shortcuts overlay', async ({ page }) => {
   await waitForAppBarReady(page);
   await page.getByRole('button', { name: '鍵盤快速鍵' }).click();
   const dialog = page.getByRole('dialog', { name: '鍵盤快速鍵' });
-  await expect(dialog).toContainText('在日子間移動');
+  await expect(dialog.getByRole('heading')).toHaveText([
+    '鍵盤快速鍵',
+    '全部畫面',
+    '年',
+    '日',
+    '照片',
+  ]);
+  for (const label of ['看所有快速鍵', '在日子間移動', '寫回憶'])
+    await expect(dialog).toContainText(label);
   await dialog.getByRole('button', { name: '關閉' }).click();
   await expect(dialog).toBeHidden();
 });
@@ -1179,16 +1283,18 @@ test('a failed next day keeps its notice until the reader scrolls again', async 
   const notice = page.locator('[data-load="next"] [data-failed]');
   await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
   await expect(notice).toBeVisible();
+  await page.waitForTimeout(500);
+  const failed = requests;
   await page.waitForTimeout(2500);
   await expect(notice).toBeVisible();
   await expect(page.locator('[data-load="next"] [data-skeleton]')).toBeHidden();
-  expect(requests).toBe(1);
+  expect(requests).toBe(failed);
 
   fail = false;
-  await page.mouse.wheel(0, 40);
+  await page.mouse.wheel(0, -40);
   await expect(page.locator('#day-2025-11-03')).toBeAttached();
   await expect(notice).toBeHidden();
-  expect(requests).toBe(2);
+  expect(requests).toBe(failed + 1);
 });
 
 test('a hidden source stays hidden from the first paint', async ({ page }) => {

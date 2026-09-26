@@ -7,6 +7,7 @@ import {
   hourCounts,
   initialOf,
   ownersFromEnv,
+  rowLabel,
   thumbSrcset,
 } from './stream.ts';
 import type { TimelineEvent } from './timeline.ts';
@@ -18,10 +19,8 @@ const ev = (
   at = '2025-11-01T09:00:00+08:00',
 ): TimelineEvent => ({ id, source, at, author });
 
-const OWNERS = new Set(['Bob']);
-
 const shape = (events: TimelineEvent[]) =>
-  groupRuns(events, OWNERS).map((run) => run.events.map((e) => e.id).join(','));
+  groupRuns(events).map((run) => run.events.map((e) => e.id).join(','));
 
 describe('groupRuns', () => {
   it('keeps consecutive messages from one author and source in one run', () => {
@@ -44,10 +43,11 @@ describe('groupRuns', () => {
   });
 
   it('gives a photo between messages its own run', () => {
-    const runs = groupRuns(
-      [ev('a', 'Alice'), ev('p', 'photo', 'photo'), ev('b', 'Alice')],
-      OWNERS,
-    );
+    const runs = groupRuns([
+      ev('a', 'Alice'),
+      ev('p', 'photo', 'photo'),
+      ev('b', 'Alice'),
+    ]);
     expect(runs.map((r) => r.kind)).toEqual(['text', 'photos', 'text']);
     expect(runs.map((r) => r.events.map((e) => e.id))).toEqual([
       ['a'],
@@ -57,24 +57,23 @@ describe('groupRuns', () => {
   });
 
   it('collects consecutive photos into one run', () => {
-    const runs = groupRuns(
-      [
-        ev('p1', 'photo', 'photo'),
-        ev('p2', 'photo', 'photo'),
-        ev('p3', 'photo', 'photo'),
-      ],
-      OWNERS,
-    );
+    const runs = groupRuns([
+      ev('p1', 'photo', 'photo'),
+      ev('p2', 'photo', 'photo'),
+      ev('p3', 'photo', 'photo'),
+    ]);
     expect(runs).toHaveLength(1);
     expect(runs[0]?.kind).toBe('photos');
     expect(runs[0]?.events.map((e) => e.id)).toEqual(['p1', 'p2', 'p3']);
   });
 
   it('shows the time on the first event of a run only', () => {
-    const runs = groupRuns(
-      [ev('a', 'Alice'), ev('b', 'Alice'), ev('c', 'Bob'), ev('d', 'Bob')],
-      OWNERS,
-    );
+    const runs = groupRuns([
+      ev('a', 'Alice'),
+      ev('b', 'Alice'),
+      ev('c', 'Bob'),
+      ev('d', 'Bob'),
+    ]);
     expect(runs.flatMap((r) => r.events.map((e) => e.showTime))).toEqual([
       true,
       false,
@@ -83,12 +82,17 @@ describe('groupRuns', () => {
     ]);
   });
 
-  it('marks runs by an owner and carries author and source', () => {
-    const runs = groupRuns([ev('a', 'Alice'), ev('b', 'Bob', 'slack')], OWNERS);
-    expect(runs).toMatchObject([
-      { kind: 'text', author: 'Alice', source: 'line', isOwner: false },
-      { kind: 'text', author: 'Bob', source: 'slack', isOwner: true },
+  it('carries author and source, and no owner flag', () => {
+    const runs = groupRuns([ev('a', 'Alice'), ev('b', 'Bob', 'slack')]);
+    expect(runs).toEqual([
+      expect.objectContaining({
+        kind: 'text',
+        author: 'Alice',
+        source: 'line',
+      }),
+      expect.objectContaining({ kind: 'text', author: 'Bob', source: 'slack' }),
     ]);
+    expect(runs[0]).not.toHaveProperty('isOwner');
   });
 });
 
@@ -232,5 +236,17 @@ describe('thumbSrcset', () => {
       '/thumb/a?n=0&w=240 240w, /thumb/a?n=0&w=480 300w',
     );
     expect(thumbSrcset('a', 0, 1)).toBe('/thumb/a?n=0&w=240 1w');
+  });
+});
+
+describe('rowLabel', () => {
+  it('names a row by author, Taipei time and excerpt', () => {
+    expect(rowLabel('Bob', '2025-10-31T16:07:00Z', 'Yes, reading.')).toBe(
+      'Bob，00:07：Yes, reading.',
+    );
+  });
+
+  it('leaves out the excerpt when the message has no text', () => {
+    expect(rowLabel('Bob', '2025-11-01T09:30:00+08:00', '')).toBe('Bob，09:30');
   });
 });

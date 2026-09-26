@@ -28,11 +28,11 @@ export function ShortcutsDialog({ open, onOpenChange }: Props) {
           </DialogClose>
         </DialogHeader>
         {SHORTCUT_GROUPS.map((group, i) => (
-          <section key={group.title ?? 'all'} className="flex flex-col gap-2">
+          <section key={group.title} className="flex flex-col gap-2">
             {i > 0 && <Separator />}
-            {group.title && (
-              <h3 className="text-muted-foreground text-xs">{group.title}</h3>
-            )}
+            <h3 className="text-muted-foreground text-xs font-semibold">
+              {group.title}
+            </h3>
             <dl className="flex flex-col gap-1.5">
               {group.rows.map((row) => (
                 <div

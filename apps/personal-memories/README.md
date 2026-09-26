@@ -98,8 +98,10 @@ MEMORIES_DATA_DIR="$HOME/.local/share/memories" pnpm nx dev personal-memories
   next scroll.
 
 Set `MEMORIES_OWNER` to a comma-separated list of author names (as they appear in the LINE or
-Slack export) to indent that person's own messages in the day stream, the way a chat app sets
-your own bubbles apart from the other side's.
+Slack export) to give that person's messages the owner's colour, `chart-2`, in the day stream.
+Everyone else gets a colour in order of their first message: `chart-4` for the first, then
+`chart-1`, `chart-3` and `chart-5`, repeating those three. Each run also shows the author's
+initial and name, so colour is never the only cue.
 
 Without a `timeline.json` the pages show how to run `ingest` instead of failing.
 

@@ -1,5 +1,5 @@
 import type { TimelineEvent, TimelineSource } from './timeline.ts';
-import { taipeiHour } from './weeks.ts';
+import { taipeiHour, taipeiTime } from './weeks.ts';
 
 export type StreamEvent = TimelineEvent & { showTime: boolean };
 
@@ -8,7 +8,6 @@ export type Run =
       kind: 'text';
       author: string;
       source: TimelineSource;
-      isOwner: boolean;
       events: StreamEvent[];
     }
   | { kind: 'photos'; events: StreamEvent[] };
@@ -23,10 +22,7 @@ const continues = (run: Run | undefined, event: TimelineEvent) => {
   );
 };
 
-export function groupRuns(
-  events: readonly TimelineEvent[],
-  owners: ReadonlySet<string>,
-): Run[] {
+export function groupRuns(events: readonly TimelineEvent[]): Run[] {
   const runs: Run[] = [];
   for (const event of events) {
     const last = runs.at(-1);
@@ -42,7 +38,6 @@ export function groupRuns(
             kind: 'text',
             author: event.author,
             source: event.source,
-            isOwner: owners.has(event.author),
             events: first,
           },
     );
@@ -123,6 +118,11 @@ export function authorAccents(
 
 export const initialOf = (author: string) =>
   [...author.trim()][0]?.toUpperCase() ?? '?';
+
+export const rowLabel = (author: string, at: string, excerpt: string) =>
+  excerpt
+    ? `${author}，${taipeiTime(at)}：${excerpt}`
+    : `${author}，${taipeiTime(at)}`;
 
 const THUMB_WIDTHS = [240, 480, 960] as const;
 
