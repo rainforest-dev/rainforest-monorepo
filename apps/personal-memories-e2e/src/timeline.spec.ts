@@ -182,6 +182,21 @@ test('a photo run longer than 5 leads with a large tile and hides the rest behin
   expect(hero && small && hero.height > small.height * 1.8).toBe(true);
 });
 
+test('the hero tile requests a larger responsive image than the small tiles', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const tiles = page
+    .locator('#day-2025-11-01 [data-burst]')
+    .first()
+    .locator(':scope > li[data-event-id]');
+  const [heroSizes, smallSizes] = await Promise.all([
+    tiles.nth(0).locator('img').getAttribute('sizes'),
+    tiles.nth(1).locator('img').getAttribute('sizes'),
+  ]);
+  expect(heroSizes).not.toBe(smallSizes);
+});
+
 test('a link to a photo past the fifth still shows it', async ({ page }) => {
   await page.goto('/day/2025-11-01');
   const tiles = page
@@ -441,7 +456,9 @@ test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   stripCover('2025-11-01');
   await page.goto('/day/2025-11-01');
   await waitForLightboxReady(page);
-  await page.locator('#day-2025-11-01 [data-burst] [data-more] a').click();
+  const moreLink = page.locator('#day-2025-11-01 [data-burst] [data-more] a');
+  await expect(moreLink).toHaveAccessibleName('還有 3 張照片');
+  await moreLink.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('照片 · 5 / 7');
   await expect(

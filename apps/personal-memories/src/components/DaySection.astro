@@ -81,6 +81,7 @@ const fileName = (path: string) => path.split(/[\\/]/).pop();
 const mediaUrl = (id: string, n: number) =>
   `/media/${encodeURIComponent(id)}${n ? `?n=${n}` : ''}`;
 const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
+const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
 ---
 
 <section
@@ -393,13 +394,16 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                       <a
                         href={mediaUrl(event.id, 0)}
                         data-lightbox
+                        aria-label={
+                          tile?.more ? `還有 ${tile.more} 張照片` : undefined
+                        }
                         class="bg-muted relative block size-full overflow-hidden rounded-md outline-none"
                       >
                         {media && (
                           <img
                             src={thumbUrl(event.id, 0, 480)}
                             srcset={thumbSrcset(event.id, 0, media.width)}
-                            sizes={TILE_SIZES}
+                            sizes={tile?.hero ? HERO_TILE_SIZES : TILE_SIZES}
                             alt={event.text ?? photoLabel}
                             width={media.width}
                             height={media.height}

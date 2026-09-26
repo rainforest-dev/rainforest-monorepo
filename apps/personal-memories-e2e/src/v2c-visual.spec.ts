@@ -43,7 +43,17 @@ for (const scheme of SCHEMES) {
         await page.goto('/day/2025-11-01');
         await settle(page);
         const burst = page.locator('#day-2025-11-01 [data-burst]').first();
-        await burst.scrollIntoViewIfNeeded();
+        await burst.evaluate((el) => {
+          const li = el.closest('li[data-source="photo"]');
+          const header = li?.closest('section')?.querySelector('header');
+          if (!li || !header) return;
+          window.scrollBy(
+            0,
+            li.getBoundingClientRect().top -
+              header.getBoundingClientRect().bottom -
+              16,
+          );
+        });
         await noSideScroll(page);
         await burst
           .locator('xpath=ancestor::li[@data-source="photo"][1]')
