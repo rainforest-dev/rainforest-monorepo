@@ -15,6 +15,17 @@ test.describe.configure({ mode: 'serial' });
 const settle = async (page: Page) => {
   await expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
   await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+          .map((a) => a.finished.catch(() => undefined)),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]),
+  );
 };
 
 const noSideScroll = (page: Page) =>
@@ -110,22 +121,23 @@ for (const scheme of SCHEMES) {
         await settle(page);
         if (viewport.width === 390) {
           const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
-          await sheet.screenshot({ path: shot('notes-peek') });
+          const box = await sheet.boundingBox();
+          if (box) {
+            const x = Math.max(box.x, 0);
+            const y = Math.max(box.y, 0);
+            await page.screenshot({
+              path: shot('notes-peek'),
+              clip: {
+                x,
+                y,
+                width: Math.min(box.x + box.width, viewport.width) - x,
+                height: Math.min(box.y + box.height, viewport.height) - y,
+              },
+            });
+          }
           await sheet.getByRole('button', { name: '展開筆記' }).click();
           await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
-          await sheet.evaluate((el) =>
-            Promise.race([
-              Promise.all(
-                el
-                  .getAnimations({ subtree: true })
-                  .filter(
-                    (a) => a.effect?.getComputedTiming().endTime !== Infinity,
-                  )
-                  .map((a) => a.finished.catch(() => undefined)),
-              ),
-              new Promise((resolve) => setTimeout(resolve, 2000)),
-            ]),
-          );
+          await settle(page);
           await page.screenshot({ path: shot('notes') });
           return;
         }
