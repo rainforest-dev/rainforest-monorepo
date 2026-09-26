@@ -182,6 +182,7 @@
     var(--border) 27px 28px
   );
   background-attachment: local;
+  background-clip: padding-box;
   border-color: transparent;
   line-height: 28px;
 }

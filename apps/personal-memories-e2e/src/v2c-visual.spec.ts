@@ -99,8 +99,18 @@ for (const scheme of SCHEMES) {
           await sheet.screenshot({ path: shot('notes-peek') });
           await sheet.getByRole('button', { name: '展開筆記' }).click();
           await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
-          await page.evaluate(() =>
-            Promise.all(document.getAnimations().map((a) => a.finished)),
+          await sheet.evaluate((el) =>
+            Promise.race([
+              Promise.all(
+                el
+                  .getAnimations({ subtree: true })
+                  .filter(
+                    (a) => a.effect?.getComputedTiming().endTime !== Infinity,
+                  )
+                  .map((a) => a.finished.catch(() => undefined)),
+              ),
+              new Promise((resolve) => setTimeout(resolve, 2000)),
+            ]),
           );
           await page.screenshot({ path: shot('notes') });
           return;

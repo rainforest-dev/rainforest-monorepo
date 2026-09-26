@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
@@ -1554,4 +1560,22 @@ test('a margin note quotes in the colour of the message author', async ({
   ]);
   expect(q).toBe(rule);
   await expect(quote).toContainText('00:07 · LINE · Bob');
+});
+
+test('an unreadable empty day shows its notice without a stray divider', async ({
+  page,
+}) => {
+  const file = noteFile('2025-10-31');
+  const before = readNote('2025-10-31');
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, '---\n- not a mapping\n---\n');
+  try {
+    await page.goto('/day/2025-10-31');
+    const panel = page.getByRole('complementary', { name: '筆記' });
+    await expect(panel).toContainText('格式有誤');
+    await expect(panel.getByRole('separator')).toHaveCount(0);
+  } finally {
+    if (before) writeFileSync(file, before);
+    else rmSync(file, { force: true });
+  }
 });

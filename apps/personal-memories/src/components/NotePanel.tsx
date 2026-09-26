@@ -143,7 +143,10 @@ export function NotePanel({
         )}
         {readOnly ? (
           draft.body && (
-            <div className="bg-muted/50 text-body whitespace-pre-wrap rounded-lg px-4 py-3.5">
+            <div
+              data-ruled
+              className="text-body whitespace-pre-wrap border px-1"
+            >
               {draft.body}
             </div>
           )
@@ -164,7 +167,9 @@ export function NotePanel({
             <p className="text-muted-foreground text-xs">Markdown · 自動儲存</p>
           </div>
         )}
-        <Separator className="my-6" />
+        {!(readOnly && draft.annotations.length === 0) && (
+          <Separator className="my-6" />
+        )}
         <AnnotationList
           annotations={draft.annotations}
           disabled={locked}

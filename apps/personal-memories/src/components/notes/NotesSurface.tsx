@@ -126,10 +126,10 @@ export function NotesSurface({
             {expanded ? '收合筆記' : '展開筆記'}
           </Button>
           {expanded ? (
-            <>
+            <div>
               <div className="pb-4">{date}</div>
               {children}
-            </>
+            </div>
           ) : (
             peek
           )}
