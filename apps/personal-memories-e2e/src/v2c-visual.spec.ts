@@ -10,6 +10,7 @@ const VIEWPORTS = [
 ] as const;
 
 test.skip(!process.env['V2C_VISUAL'], 'captures run with V2C_VISUAL=1');
+test.describe.configure({ mode: 'serial' });
 
 const settle = async (page: Page) => {
   await expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
@@ -77,10 +78,11 @@ for (const scheme of SCHEMES) {
           await page
             .getByLabel(/^眉批：Busy message 1$/)
             .fill('那天早上的第一則');
+          await expect(page.getByText('已儲存').first()).toBeVisible();
+          await page.keyboard.press('Escape');
         }
         await expect(row.locator('[data-note]')).toBeVisible();
         await expect(row.locator('[data-note-by]')).toHaveText(' · Alice');
-        await page.keyboard.press('Escape');
         await row.evaluate((el) => {
           (document.activeElement as HTMLElement | null)?.blur();
           el.scrollIntoView({ block: 'center' });

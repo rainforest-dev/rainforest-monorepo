@@ -1490,5 +1490,6 @@ test('the server and the panel repaint render the same inline 眉批', async ({
   await page.goto('/day/2025-11-03');
   await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
   const signed = await noteDom(page, '2025-11-03');
+  expect(signed.live.some(([, a]) => a)).toBe(true);
   expect(signed.live).toEqual(signed.served);
 });
