@@ -77,14 +77,16 @@ function watchLoaders(
           }
           if (result.status === 'error') {
             observer.unobserve(sentinel);
-            window.addEventListener(
-              'scroll',
-              () => observer.observe(sentinel),
-              {
-                once: true,
+            const retry = new AbortController();
+            const again = () => {
+              retry.abort();
+              observer.observe(sentinel);
+            };
+            for (const type of ['wheel', 'touchmove', 'keydown'] as const)
+              window.addEventListener(type, again, {
                 passive: true,
-              },
-            );
+                signal: retry.signal,
+              });
             return;
           }
           const { section } = result;

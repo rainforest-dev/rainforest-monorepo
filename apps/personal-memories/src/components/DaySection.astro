@@ -109,6 +109,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
         dayAuthors.length > 0 && (
           <ul
             data-author-key
+            aria-label="作者"
             class="text-muted-foreground ms-auto flex flex-wrap items-center gap-3 text-xs"
           >
             {dayAuthors.map((author) => (
@@ -243,6 +244,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                     )}
                     <div
                       data-row-body
+                      id={event.text ? undefined : `msg-${event.id}`}
                       class:list={[
                         'border-l-3 sm:pr-18 min-w-0 py-1 pl-3.5 pr-3',
                         accentRule(accentOf(run.author)),
@@ -273,6 +275,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                       )}
                       {event.text && (
                         <p
+                          id={`msg-${event.id}`}
                           class="text-body whitespace-pre-wrap text-pretty break-words"
                           set:text={event.text}
                         />
@@ -307,6 +310,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                     <button
                       type="button"
                       data-annotate
+                      aria-describedby={`msg-${event.id}`}
                       class:list={[PILL, 'right-1 top-1']}
                     >
                       <svg

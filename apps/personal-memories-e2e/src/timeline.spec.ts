@@ -242,6 +242,27 @@ test('each message row has an accessible name', async ({ page }) => {
   ).toBeVisible();
 });
 
+test('the author key is named and each 眉批 button names its message', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const day = page.locator('#day-2025-11-01');
+  await expect(day.getByRole('list', { name: '作者' })).toBeVisible();
+  const row = day.getByRole('listitem', { name: 'Bob，00:07：Yes, reading.' });
+  await expect(
+    row.getByRole('button', { name: '眉批' }),
+  ).toHaveAccessibleDescription('Yes, reading.');
+  const ids = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-annotate][aria-describedby]')].map(
+      (b) => b.getAttribute('aria-describedby') ?? '',
+    ),
+  );
+  expect(ids.length).toBeGreaterThan(0);
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const id of ids)
+    expect(await page.locator(`[id="${id}"]`).count()).toBe(1);
+});
+
 test('the date jump input asks for digits without autocorrect', async ({
   page,
 }) => {
@@ -1283,18 +1304,16 @@ test('a failed next day keeps its notice until the reader scrolls again', async 
   const notice = page.locator('[data-load="next"] [data-failed]');
   await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
   await expect(notice).toBeVisible();
-  await page.waitForTimeout(500);
-  const failed = requests;
   await page.waitForTimeout(2500);
   await expect(notice).toBeVisible();
   await expect(page.locator('[data-load="next"] [data-skeleton]')).toBeHidden();
-  expect(requests).toBe(failed);
+  expect(requests).toBe(1);
 
   fail = false;
-  await page.mouse.wheel(0, -40);
+  await page.mouse.wheel(0, 40);
   await expect(page.locator('#day-2025-11-03')).toBeAttached();
   await expect(notice).toBeHidden();
-  expect(requests).toBe(failed + 1);
+  expect(requests).toBe(2);
 });
 
 test('a hidden source stays hidden from the first paint', async ({ page }) => {
