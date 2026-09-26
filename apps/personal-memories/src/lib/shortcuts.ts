@@ -1,13 +1,14 @@
 import { type Place, zoomOutHref } from './nav.ts';
 
 export type ShortcutRow = { keys: string[]; label: string };
-export type ShortcutGroup = { title?: string; rows: ShortcutRow[] };
+export type ShortcutGroup = { title: string; rows: ShortcutRow[] };
 
 export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
+    title: '全部畫面',
     rows: [
       { keys: ['/'], label: '跳至日期' },
-      { keys: ['?'], label: '鍵盤快速鍵' },
+      { keys: ['?'], label: '看所有快速鍵' },
       { keys: ['Esc'], label: '縮小一層' },
     ],
   },
@@ -21,9 +22,9 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: '日',
     rows: [
-      { keys: ['j'], label: '後一天' },
       { keys: ['k'], label: '前一天' },
-      { keys: ['n'], label: '這一天的回憶' },
+      { keys: ['j'], label: '後一天' },
+      { keys: ['n'], label: '寫回憶' },
     ],
   },
   {

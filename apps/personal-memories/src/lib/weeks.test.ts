@@ -4,6 +4,7 @@ import { makeEvent } from './timeline.ts';
 import {
   countBySource,
   dayHeading,
+  diaryDate,
   groupByWeek,
   isoWeek,
   taipeiTime,
@@ -84,5 +85,16 @@ describe('labels', () => {
     expect(dayHeading('2026-01-04')).toBe('2026-01-04（週日）');
     expect(dayHeading('2025-12-29')).toBe('2025-12-29（週一）');
     expect(taipeiTime('2025-12-31T16:30:00Z')).toBe('00:30');
+  });
+
+  it('splits a diary date into the big day and its weekday and year', () => {
+    expect(diaryDate('2025-11-08')).toEqual({
+      day: '11 月 8 日',
+      meta: '週六 · 2025',
+    });
+    expect(diaryDate('2026-01-04')).toEqual({
+      day: '1 月 4 日',
+      meta: '週日 · 2026',
+    });
   });
 });

@@ -60,6 +60,10 @@
   @apply bg-primary;
 }
 
+[data-event-id]:not([data-annotated]) :is([data-note], [data-note-flag]) {
+  display: none;
+}
+
 [data-source='photo'][data-event-id][data-annotated] [data-marker] {
   @apply ring-background ring-2;
 }
@@ -168,4 +172,17 @@
     left: 50%;
     translate: -50% 0;
   }
+}
+
+[data-ruled] {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 27px,
+    var(--border) 27px 28px
+  );
+  background-attachment: local;
+  background-clip: padding-box;
+  border-color: transparent;
+  line-height: 28px;
 }

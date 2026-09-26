@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
@@ -126,7 +132,9 @@ test('a day shows messages and photos in order, with the source filter', async (
   await expect(day.getByRole('heading')).toHaveText('2025-11-01（週六）');
   // content-visibility:auto defers layout until the section is in view.
   await expect(day).toContainText('照片 7 張');
-  await expect(day).toContainText('Alice 🌷 LINE');
+  await expect(day.locator('[data-author-cell]').first()).toContainText(
+    'Alice 🌷',
+  );
   // content-visibility:auto blanks innerText pre-render; textContent needs no layout.
   const texts = await day
     .locator('[data-event-id]')
@@ -163,51 +171,222 @@ test('a day shows messages and photos in order, with the source filter', async (
   await toggle.click();
 });
 
-test('a photo run longer than 4 collapses the rest behind a +N tile', async ({
+test('a photo run longer than 5 leads with a large tile and hides the rest behind +N', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const burst = page.locator('#day-2025-11-01 [data-burst]').first();
+  const tiles = burst.locator(':scope > li[data-event-id]');
+  await expect(tiles).toHaveCount(7);
+  await expect(burst.locator('li[data-overflow]')).toHaveCount(2);
+  await expect(burst.locator('[data-more] [data-scrim]')).toHaveText('+3');
+  const [hero, small] = await Promise.all([
+    tiles.nth(0).boundingBox(),
+    tiles.nth(1).boundingBox(),
+  ]);
+  expect(hero && small && hero.width > small.width * 1.8).toBe(true);
+  expect(hero && small && hero.height > small.height * 1.8).toBe(true);
+});
+
+test('the hero tile requests a larger responsive image than the small tiles', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const tiles = page
+    .locator('#day-2025-11-01 [data-burst]')
+    .first()
+    .locator(':scope > li[data-event-id]');
+  const [heroSizes, smallSizes] = await Promise.all([
+    tiles.nth(0).locator('img').getAttribute('sizes'),
+    tiles.nth(1).locator('img').getAttribute('sizes'),
+  ]);
+  expect(heroSizes).not.toBe(smallSizes);
+});
+
+test('a link to a photo past the fifth still shows it', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const tiles = page
+    .locator('#day-2025-11-01 [data-burst]')
+    .first()
+    .locator(':scope > li[data-event-id]');
+  const id = await tiles.nth(5).getAttribute('data-event-id');
+  await page.goto(`/day/2025-11-01#ev-${id}`);
+  await expect(tiles.nth(5)).toBeVisible();
+  await expect(
+    page.locator('#day-2025-11-01 [data-burst] [data-scrim]').first(),
+  ).toBeHidden();
+});
+
+test('rows line up in one column whoever wrote them', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const day = page.locator('#day-2025-11-01');
+  const left = (author: string) =>
+    day
+      .locator(`[data-event-id][data-author="${author}"] [data-row-body]`)
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().left);
+  expect(await left('Bob')).toBe(await left('Alice 🌷'));
+});
+
+test('each run keeps one unbroken 3px rule', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const pairs = await page.locator('#day-2025-11-01').evaluate((day) => {
+    let checked = 0;
+    for (const run of day.querySelectorAll('li[data-accent]')) {
+      const bodies = [...run.querySelectorAll<HTMLElement>('[data-row-body]')];
+      for (const body of bodies)
+        if (getComputedStyle(body).borderLeftWidth !== '3px') return -1;
+      for (let i = 1; i < bodies.length; i++) {
+        const gap =
+          bodies[i].getBoundingClientRect().top -
+          bodies[i - 1].getBoundingClientRect().bottom;
+        if (Math.abs(gap) > 0.5) return -1;
+        checked++;
+      }
+    }
+    return checked;
+  });
+  expect(pairs).toBeGreaterThan(0);
+});
+
+test('the author shows once per run, in its column on desktop and inline on a phone', async ({
   page,
 }) => {
   await page.goto('/day/2025-11-01');
   const day = page.locator('#day-2025-11-01');
-  const burst = day.locator('[data-burst]').first();
-  await expect(burst.locator('li[data-event-id]')).toHaveCount(7);
-  await expect(burst.locator('li[data-overflow]')).toHaveCount(3);
-  await expect(burst.locator('[data-more] [data-scrim]')).toHaveText('+4');
+  await expect(day.locator('[data-author-key]')).toContainText('Bob');
+  await expect(day.locator('[data-author-key]')).toContainText('Alice 🌷');
+  const run = day
+    .locator('li[data-accent]')
+    .filter({ has: page.locator('[data-event-id] + [data-event-id]') })
+    .first();
+  const rows = run.locator('[data-event-id]');
+  await expect(rows.nth(0).locator('[data-author-cell]')).toBeVisible();
+  await expect(rows.nth(1).locator('[data-author-cell]')).toHaveCount(0);
+  await expect(rows.nth(0).locator('[data-author-inline]')).toBeHidden();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(rows.nth(0).locator('[data-author-cell]')).toBeHidden();
+  await expect(rows.nth(0).locator('[data-author-inline]')).toBeVisible();
+  await expect(rows.nth(1).locator('[data-author-inline]')).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });
 
-test("the owner's rows are indented from everyone else's", async ({ page }) => {
+test('each message row has an accessible name', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  await expect(
+    page.getByRole('listitem', { name: 'Bob，00:07：Yes, reading.' }),
+  ).toBeVisible();
+});
+
+test('the author key is named and each 眉批 button names its message', async ({
+  page,
+}) => {
   await page.goto('/day/2025-11-01');
   const day = page.locator('#day-2025-11-01');
-  const ownerRow = day
-    .locator('[data-event-id][data-author="Bob"]')
-    .first()
-    .locator('[data-row-body]');
-  const otherRow = day
-    .locator('[data-event-id][data-author="Alice 🌷"]')
-    .first()
-    .locator('[data-row-body]');
-  const [ownerLeft, otherLeft] = await Promise.all([
-    ownerRow.evaluate((el) => el.getBoundingClientRect().left),
-    otherRow.evaluate((el) => el.getBoundingClientRect().left),
+  await expect(day.getByRole('list', { name: '作者' })).toBeVisible();
+  const row = day.getByRole('listitem', { name: 'Bob，00:07：Yes, reading.' });
+  await expect(
+    row.getByRole('button', { name: '眉批' }),
+  ).toHaveAccessibleDescription('Yes, reading.');
+  const ids = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-annotate][aria-describedby]')].map(
+      (b) => b.getAttribute('aria-describedby') ?? '',
+    ),
+  );
+  expect(ids.length).toBeGreaterThan(0);
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const id of ids)
+    expect(await page.locator(`[id="${id}"]`).count()).toBe(1);
+
+  const burstIds = await day
+    .locator('[data-burst] [data-annotate]')
+    .evaluateAll((buttons) =>
+      buttons.map((b) => b.getAttribute('aria-describedby')),
+    );
+  expect(burstIds.length).toBeGreaterThan(0);
+  expect(burstIds.every(Boolean)).toBe(true);
+  expect(new Set(burstIds).size).toBe(burstIds.length);
+});
+
+test('the date jump input asks for digits without autocorrect', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  await expect(input).toHaveAttribute('inputmode', 'numeric');
+  await expect(input).toHaveAttribute('autocomplete', 'off');
+  await expect(input).toHaveAttribute('spellcheck', 'false');
+});
+
+test('follow-on times and the 眉批 button appear on hover or focus, beside the text', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const second = page
+    .locator(
+      '#day-2025-11-01 li[data-accent] [data-event-id] + [data-event-id]',
+    )
+    .first();
+  const first = page
+    .locator('#day-2025-11-01 li[data-accent] [data-event-id]')
+    .first();
+  const time = second.locator('time');
+  const pill = second.locator('[data-annotate]');
+  await expect(first.locator('time')).toHaveCSS('opacity', '1');
+  await expect(time).toHaveCSS('opacity', '0');
+  await expect(pill).toHaveCSS('opacity', '0');
+
+  await second.hover();
+  await expect(time).toHaveCSS('opacity', '1');
+  await expect(pill).toHaveCSS('opacity', '1');
+  const [p, text] = await Promise.all([
+    pill.boundingBox(),
+    second.locator('[data-row-body] p').first().boundingBox(),
   ]);
-  expect(ownerLeft).toBeGreaterThan(otherLeft);
+  expect(p && text && p.x >= text.x + text.width).toBe(true);
+
+  await page.mouse.move(0, 0);
+  await expect(time).toHaveCSS('opacity', '0');
+  await second.focus();
+  await expect(time).toHaveCSS('opacity', '1');
+  await expect(pill).toHaveCSS('opacity', '1');
 });
 
-test('each speaker keeps an accent on every row', async ({ page }) => {
-  await page.goto('/day/2025-11-01');
-  const day = page.locator('#day-2025-11-01');
-  const accentOf = (author: string) =>
-    day
-      .locator('li[data-accent]', {
+test('each person keeps one fixed accent on every day', async ({ page }) => {
+  const accentOf = (date: string, author: string) =>
+    page
+      .locator(`#day-${date} li[data-accent]`, {
         has: page.locator(`[data-author="${author}"]`),
       })
       .first()
       .getAttribute('data-accent');
-  expect(await accentOf('Alice 🌷')).not.toBe(await accentOf('Bob'));
-  const width = await day
-    .locator('[data-event-id][data-author="Bob"] [data-row-body]')
+  await page.goto('/day/2025-11-01');
+  expect(await accentOf('2025-11-01', 'Bob')).toBe('2');
+  expect(await accentOf('2025-11-01', 'Alice 🌷')).toBe('1');
+  await page.goto('/day/2025-10-31');
+  expect(await accentOf('2025-10-31', 'Bob')).toBe('2');
+  expect(await accentOf('2025-10-31', 'Alice')).toBe('4');
+  const colours = await page
+    .locator(
+      '#day-2025-10-31 [data-event-id][data-author="Bob"] [data-row-body]',
+    )
     .first()
-    .evaluate((el) => getComputedStyle(el).borderLeftWidth);
-  expect(width).toBe('2px');
+    .evaluate((el) => {
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--chart-2)';
+      document.body.append(probe);
+      const expected = getComputedStyle(probe).color;
+      probe.remove();
+      return { rule: getComputedStyle(el).borderLeftColor, expected };
+    });
+  expect(colours.rule).toBe(colours.expected);
 });
 
 test('a thumbnail request returns a webp image', async ({ request }) => {
@@ -283,13 +462,15 @@ test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   stripCover('2025-11-01');
   await page.goto('/day/2025-11-01');
   await waitForLightboxReady(page);
-  await page.locator('#day-2025-11-01 [data-burst] [data-more] a').click();
+  const moreLink = page.locator('#day-2025-11-01 [data-burst] [data-more] a');
+  await expect(moreLink).toHaveAccessibleName('還有 3 張照片');
+  await moreLink.click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('照片 · 4 / 7');
+  await expect(dialog).toContainText('照片 · 5 / 7');
   await expect(
     dialog.getByRole('button', { name: '設為封面', exact: true }),
   ).toBeFocused();
-  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  for (let i = 0; i < 2; i++) await page.keyboard.press('ArrowRight');
   await expect(dialog).toContainText('照片 · 7 / 7');
   await expect(dialog.getByRole('button', { name: '下一張' })).toBeDisabled();
 
@@ -311,6 +492,28 @@ test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   await expect(
     page.locator('a[data-date="2025-11-01"]:visible img'),
   ).toHaveAttribute('src', /DDDDDDDD-0000-0000-0000-000000000004/);
+});
+
+test('an annotated photo tile is announced to screen readers', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  const tile = page
+    .locator('#day-2025-11-01 [data-burst] > li[data-source="photo"]')
+    .first();
+  const link = tile.locator('a[data-lightbox]');
+  await expect(link).not.toHaveAccessibleName(/已有眉批/);
+  const eventId = await tile.getAttribute('data-event-id');
+  await tile.hover();
+  await tile.getByRole('button', { name: '眉批' }).click();
+  const editor = panel.locator('li').filter({
+    has: page.locator(`a[data-quote][href="#ev-${eventId}"]`),
+  });
+  await editor.getByRole('textbox').fill('那張照片拍得真好');
+  await expect(panel).toContainText('已儲存');
+  await expect(tile).toHaveAttribute('data-annotated', '');
+  await expect(link).toHaveAccessibleName(/已有眉批/);
 });
 
 test('a video in a burst plays and cannot be set as cover', async ({
@@ -402,7 +605,7 @@ test('a note typed just before scrolling stays on its own day', async ({
   await page
     .locator('#day-2025-11-03')
     .evaluate((el) => el.scrollIntoView({ block: 'start' }));
-  await expect(panel).toContainText('2025-11-03（週一）');
+  await expect(panel).toContainText('11 月 3 日');
   await expect(body).toHaveValue('');
 
   const read = (date: string) =>
@@ -610,7 +813,15 @@ test('the keyboard button opens the shortcuts overlay', async ({ page }) => {
   await waitForAppBarReady(page);
   await page.getByRole('button', { name: '鍵盤快速鍵' }).click();
   const dialog = page.getByRole('dialog', { name: '鍵盤快速鍵' });
-  await expect(dialog).toContainText('在日子間移動');
+  await expect(dialog.getByRole('heading')).toHaveText([
+    '鍵盤快速鍵',
+    '全部畫面',
+    '年',
+    '日',
+    '照片',
+  ]);
+  for (const label of ['看所有快速鍵', '在日子間移動', '寫回憶'])
+    await expect(dialog).toContainText(label);
   await dialog.getByRole('button', { name: '關閉' }).click();
   await expect(dialog).toBeHidden();
 });
@@ -943,6 +1154,20 @@ test.describe('on a phone', () => {
       )
       .toBe(true);
   });
+
+  test('the expanded sheet opens on the diary date with ruled lines', async ({
+    page,
+  }) => {
+    await page.goto('/day/2025-11-02');
+    const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+    await sheet.getByRole('button', { name: '展開筆記' }).click();
+    await expect(sheet).toContainText('11 月 2 日');
+    await expect(sheet).toContainText('週日 · 2025');
+    await expect(sheet.getByLabel('當天的回憶')).toHaveCSS(
+      'line-height',
+      '28px',
+    );
+  });
 });
 
 test('a long press on a message opens 眉批 and 複製', async ({ page }) => {
@@ -1206,4 +1431,203 @@ test('a hidden source stays hidden from the first paint', async ({ page }) => {
   await expect(page.locator('html[data-hide-photo]')).toHaveCount(1);
   await toggle.click();
   await expect(page.locator('html[data-hide-photo]')).toHaveCount(0);
+});
+
+test('眉批 show under their message, clamped, on the panel day and on days loaded by scrolling', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-03');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+  const row = page.locator('#day-2025-11-03 [data-event-id]', {
+    hasText: 'Coffee first',
+  });
+  await row.hover();
+  await row.getByRole('button', { name: '眉批' }).click();
+  await panel.getByLabel('眉批：Coffee first').fill('第一行\n第二行\n第三行');
+  await expect(panel).toContainText('已儲存');
+  const note = row.locator('[data-note]');
+  await expect(note).toBeVisible();
+  await expect(note).toContainText('第一行');
+  await expect(note.getByRole('img', { name: '已有眉批' })).toBeVisible();
+  await expect(note.locator('[data-note-by]')).toHaveText(' · Bob');
+  await expect(note.locator('[data-note-by]')).toBeVisible();
+  const clamp = note.locator('.line-clamp-2');
+  expect(
+    await clamp.evaluate((el) => el.scrollHeight > el.clientHeight + 1),
+  ).toBe(true);
+  await expect(row.locator('p').first()).toHaveText('Coffee first');
+
+  await page.goto('/day/2025-11-02');
+  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(page.locator('#day-2025-11-03')).toBeAttached();
+  const scrolled = page.locator('#day-2025-11-03 [data-event-id]', {
+    hasText: 'Coffee first',
+  });
+  await expect(scrolled).toHaveAttribute('data-annotated', '');
+  await expect(scrolled.locator('[data-note]')).toContainText('第一行');
+  await page
+    .locator('#day-2025-11-03')
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await page
+    .locator('#day-2025-11-02')
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  await expect(scrolled).toHaveAttribute('data-annotated', '');
+  await expect(scrolled.locator('[data-note]')).toContainText('第一行');
+});
+
+test('a message without 眉批 shows no inline note', async ({ page }) => {
+  await page.goto('/day/2025-11-03');
+  const row = page.locator('#day-2025-11-03 [data-event-id]', {
+    hasText: 'New week, new plans',
+  });
+  await expect(row).not.toHaveAttribute('data-annotated', '');
+  await expect(row.locator('[data-note]')).toBeHidden();
+  await expect(row.getByRole('img', { name: '已有眉批' })).toHaveCount(0);
+});
+
+const noteDom = (page: Page, date: string) =>
+  page.evaluate(async (day) => {
+    const html = await (await fetch(`/day/${day}`)).text();
+    const served = new DOMParser().parseFromString(html, 'text/html');
+    const rows = (root: ParentNode) =>
+      [...root.querySelectorAll(`#day-${day} [data-event-id]`)].map((li) => [
+        li.id,
+        li.hasAttribute('data-annotated'),
+        li.querySelector('[data-note]')?.outerHTML ?? null,
+      ]);
+    return { live: rows(document), served: rows(served) };
+  }, date);
+
+test('the server and the panel repaint render the same inline 眉批', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+  const lunch = page.locator('#day-2025-11-01 [data-event-id]', {
+    hasText: 'Lunch plan',
+  });
+  await expect(lunch.locator('[data-note-body]')).toHaveText('後來那家店關了');
+  await expect(lunch.locator('[data-note-by]')).toHaveText('');
+  const hydrated = await noteDom(page, '2025-11-01');
+  expect(hydrated.live.some(([, annotated]) => annotated)).toBe(true);
+  expect(hydrated.live).toEqual(hydrated.served);
+
+  const row = page.locator('#day-2025-11-01 [data-event-id]', {
+    hasText: 'Sounds good',
+  });
+  await row.hover();
+  await row.getByRole('button', { name: '眉批' }).click();
+  await panel
+    .getByLabel(/^眉批：Sounds good$/)
+    .fill('  <b>好</b> & "那家"\n第二行  ');
+  await expect(panel).toContainText('已儲存');
+  await expect(row).toHaveAttribute('data-annotated', '');
+  const painted = await noteDom(page, '2025-11-01');
+  expect(painted.live).toEqual(painted.served);
+
+  await page.goto('/day/2025-11-03');
+  await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
+  const signed = await noteDom(page, '2025-11-03');
+  expect(signed.live.some(([, a]) => a)).toBe(true);
+  expect(signed.live).toEqual(signed.served);
+});
+
+test('the notes panel is a diary page with ruled lines', async ({ page }) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await expect(panel).toContainText('11 月 1 日');
+  await expect(panel).toContainText('週六 · 2025');
+  await expect(
+    panel.getByRole('heading', { name: '這一天的回憶' }),
+  ).toBeVisible();
+  const memory = panel.getByLabel('當天的回憶');
+  await expect(memory).toHaveCSS('line-height', '28px');
+  await expect(memory).toHaveCSS(
+    'background-image',
+    /repeating-linear-gradient/,
+  );
+  const card = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = 'var(--card)';
+    document.body.append(probe);
+    const colour = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return colour;
+  });
+  await expect(panel).toHaveCSS('background-color', card);
+});
+
+test('a margin note quotes in the colour of the message author', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  const message = page.locator('#day-2025-11-01 [data-event-id]', {
+    hasText: 'Yes, reading.',
+  });
+  await message.hover();
+  await message.getByRole('button', { name: '眉批' }).click();
+  await expect(panel.getByLabel('眉批：Yes, reading.')).toBeFocused();
+  const quote = panel.locator('[data-quote]', { hasText: 'Yes, reading.' });
+  await expect(quote).toHaveCSS('border-left-width', '3px');
+  const [q, rule] = await Promise.all([
+    quote.evaluate((el) => getComputedStyle(el).borderLeftColor),
+    message
+      .locator('[data-row-body]')
+      .evaluate((el) => getComputedStyle(el).borderLeftColor),
+  ]);
+  expect(q).toBe(rule);
+  await expect(quote).toContainText('00:07 · LINE · Bob');
+});
+
+test('an unreadable empty day shows its notice without a stray divider', async ({
+  page,
+}) => {
+  const file = noteFile('2025-10-31');
+  const before = readNote('2025-10-31');
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, '---\n- not a mapping\n---\n');
+  try {
+    await page.goto('/day/2025-10-31');
+    const panel = page.getByRole('complementary', { name: '筆記' });
+    await expect(panel).toContainText('格式有誤');
+    await expect(panel.getByRole('separator')).toHaveCount(0);
+  } finally {
+    if (before) writeFileSync(file, before);
+    else rmSync(file, { force: true });
+  }
+});
+
+test('each year row ends in its month total', async ({ page, request }) => {
+  const days = (await (await request.get('/days.json')).json()) as {
+    date: string;
+    total: number;
+  }[];
+  const november = days
+    .filter((d) => d.date.startsWith('2025-11'))
+    .reduce((sum, d) => sum + d.total, 0);
+  await page.goto('/');
+  await expect(page.locator('[data-month-total="2025-11"]')).toHaveText(
+    `${november} 則`,
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    page.getByRole('link', { name: `2025 年 11 月，${november} 則` }),
+  ).toBeVisible();
+});
+
+test('a month cell with a cover shows it edge to edge', async ({ page }) => {
+  await page.goto('/month/2025-11');
+  const cell = page.locator('a[data-date="2025-11-01"]:visible');
+  const img = cell.locator('img');
+  await expect(img).toBeVisible();
+  await expect(cell).toHaveCSS('height', '116px');
+  const [c, i] = await Promise.all([cell.boundingBox(), img.boundingBox()]);
+  expect(c && i && Math.abs(c.width - i.width) <= 1).toBe(true);
+  expect(c && i && Math.abs(c.height - i.height) <= 1).toBe(true);
+  await expect(cell).toContainText('則');
 });

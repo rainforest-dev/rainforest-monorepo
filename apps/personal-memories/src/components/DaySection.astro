@@ -2,22 +2,31 @@
 import { buttonVariants, cn } from '@rainforest-dev/rainforest-react';
 
 import { pickCover } from '../lib/cover.ts';
-import { excerptOf } from '../lib/notes/attach.ts';
+import { excerptOf, resolveAnnotations } from '../lib/notes/attach.ts';
+import {
+  bySuffix,
+  type NotePreview,
+  notePreviews,
+} from '../lib/notes/preview.ts';
+import { notesStore } from '../lib/notes/store.ts';
 import { getTimeline } from '../lib/store.ts';
 import {
   type Accent,
   authorAccents,
+  burstLayout,
   firstEventPerHour,
   groupRuns,
   hourCounts,
   initialOf,
   ownersFromEnv,
+  rowLabel,
   thumbSrcset,
   thumbUrl,
 } from '../lib/stream.ts';
 import type { TimelineEvent, TimelineSource } from '../lib/timeline.ts';
 import { dayHeading, taipeiTime } from '../lib/weeks.ts';
 import { morphAttrs } from '../lib/zoom.ts';
+import { accentChip, accentRule } from './accent-classes.ts';
 
 type Props = {
   date: string;
@@ -30,7 +39,6 @@ type Props = {
 const { date, events, prev, next, morph } = Astro.props;
 
 const BUSY_DAY = 100;
-const TILES = 4;
 const IMAGE = /\.(avif|gif|jpe?g|png|webp)$/i;
 const SOURCE_LABEL: Record<TimelineSource, string> = {
   line: 'LINE',
@@ -38,10 +46,13 @@ const SOURCE_LABEL: Record<TimelineSource, string> = {
   photo: '照片',
 };
 const ROW =
-  'grid grid-cols-[42px_minmax(0,1fr)_12px] sm:grid-cols-[52px_minmax(0,1fr)_20px]';
-const GUTTER =
-  'text-muted-foreground pl-1 text-xs leading-[25px] tabular-nums sm:pl-2';
-const INDENT = 'ml-7 sm:ml-12';
+  'grid grid-cols-[40px_minmax(0,1fr)] gap-x-3 sm:grid-cols-[48px_84px_minmax(0,1fr)]';
+const TIME =
+  'text-muted-foreground pt-1 text-right text-xs leading-[26px] tabular-nums';
+const FOLLOW_ON =
+  'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none';
+const CHIP =
+  'text-foreground flex shrink-0 items-center justify-center rounded-full text-xs font-semibold';
 const PILL_BASE = cn(
   buttonVariants({ variant: 'outline', size: 'xs' }),
   'bg-popover absolute z-1 shadow-md opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100',
@@ -49,27 +60,29 @@ const PILL_BASE = cn(
 const PILL = `${PILL_BASE} pointer-coarse:pointer-events-none pointer-coarse:group-focus-within:pointer-events-auto`;
 const PHOTO_PILL = `${PILL_BASE} pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto`;
 
-const runs = groupRuns(events, ownersFromEnv());
+const owners = ownersFromEnv();
+const runs = groupRuns(events);
 const timeline = getTimeline();
 const accents =
   timeline.status === 'ready'
-    ? authorAccents(timeline.timeline.events)
+    ? authorAccents(timeline.timeline.events, owners)
     : new Map<string, Accent>();
-const accentOf = (author: string): Accent => accents.get(author) ?? 1;
-const ACCENT_RULE: Record<Accent, string> = {
-  1: 'border-chart-1/65',
-  2: 'border-chart-2/65',
-  3: 'border-chart-3/65',
-  4: 'border-chart-4/65',
-  5: 'border-chart-5/65',
-};
-const ACCENT_CHIP: Record<Accent, string> = {
-  1: 'bg-chart-1/15',
-  2: 'bg-chart-2/15',
-  3: 'bg-chart-3/15',
-  4: 'bg-chart-4/15',
-  5: 'bg-chart-5/15',
-};
+const accentOf = (author: string) => accents.get(author);
+const dayAuthors = [
+  ...new Set(runs.flatMap((run) => (run.kind === 'text' ? [run.author] : []))),
+];
+const stored = notesStore()?.read(date);
+const previews =
+  stored && !stored.parseError
+    ? notePreviews(resolveAnnotations(stored.note.annotations, events))
+    : new Map<string, NotePreview>();
+const layouts = new Map(
+  runs.flatMap((run) =>
+    run.kind === 'photos'
+      ? [[run, burstLayout(run.events.length)] as const]
+      : [],
+  ),
+);
 const hours = events.length >= BUSY_DAY ? hourCounts(events) : undefined;
 const firsts = hours ? firstEventPerHour(events) : undefined;
 const peak = Math.max(1, ...(hours ?? []));
@@ -79,6 +92,7 @@ const fileName = (path: string) => path.split(/[\\/]/).pop();
 const mediaUrl = (id: string, n: number) =>
   `/media/${encodeURIComponent(id)}${n ? `?n=${n}` : ''}`;
 const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
+const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
 ---
 
 <section
@@ -87,12 +101,12 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
   data-prev={prev}
   data-next={next}
   data-auto-cover={pickCover(events)?.id}
-  class="mx-auto mb-10 max-w-[660px]"
+  class="mx-auto mb-10 max-w-2xl"
 >
   <header
-    class="bg-background/90 border-border top-(--app-bar-h) sticky z-10 mb-2 flex flex-col gap-2.5 border-b pb-2.5 pt-4 backdrop-blur-md sm:pb-3 sm:pt-[22px]"
+    class="bg-background/90 border-border top-(--app-bar-h) sticky z-10 mb-2 flex flex-col gap-2.5 border-b pb-2.5 pt-3.5 backdrop-blur-md sm:pb-3 sm:pt-5"
   >
-    <div class="flex items-baseline gap-3">
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
       <h2 class="text-heading font-semibold tabular-nums tracking-[-0.01em]">
         <a
           href={`/day/${date}`}
@@ -106,6 +120,27 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
       <span class="text-meta text-muted-foreground tabular-nums">
         {events.length} 則
       </span>
+      {
+        dayAuthors.length > 0 && (
+          <ul
+            data-author-key
+            aria-label="作者"
+            class="text-muted-foreground ms-auto flex flex-wrap items-center gap-3 text-xs"
+          >
+            {dayAuthors.map((author) => (
+              <li class="flex items-center gap-1.5">
+                <span
+                  aria-hidden="true"
+                  class:list={[CHIP, 'size-4.5', accentChip(accentOf(author))]}
+                >
+                  {initialOf(author)}
+                </span>
+                {author}
+              </li>
+            ))}
+          </ul>
+        )
+      }
     </div>
     {
       hours && firsts && (
@@ -165,150 +200,229 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
           <li
             data-source={run.source}
             data-accent={accentOf(run.author)}
-            class="mt-[22px] first:mt-1.5"
+            class="mt-3.5 first:mt-1.5"
           >
-            <div class:list={[ROW, 'items-center py-0.5']}>
-              <span />
-              <div
-                class:list={['flex items-center gap-2', run.isOwner && INDENT]}
-              >
-                <span
-                  aria-hidden="true"
-                  class:list={[
-                    'text-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold',
-                    ACCENT_CHIP[accentOf(run.author)],
-                  ]}
-                >
-                  {initialOf(run.author)}
-                </span>
-                <span class="text-meta font-semibold">{run.author}</span>
-                <span class="text-muted-foreground text-xs">
-                  {' '}
-                  {SOURCE_LABEL[run.source]}
-                </span>
-              </div>
-              <span />
-            </div>
             <ol>
-              {run.events.map((event) => (
-                <li
-                  id={`ev-${event.id}`}
-                  data-event-id={event.id}
-                  data-source={event.source}
-                  data-at={event.at}
-                  data-author={event.author}
-                  data-excerpt={excerptOf(event)}
-                  tabindex="0"
-                  class:list={[
-                    ROW,
-                    'hover:bg-accent/60 focus-visible:ring-ring focus-visible:ring-offset-background group relative scroll-mt-32 items-start rounded-md py-[5px] outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                  ]}
-                >
-                  <span class={GUTTER}>
-                    {event.showTime && (
-                      <time datetime={event.at}>{taipeiTime(event.at)}</time>
-                    )}
-                  </span>
-                  <div
-                    data-row-body
+              {run.events.map((event) => {
+                const excerpt = excerptOf(event);
+                return (
+                  <li
+                    id={`ev-${event.id}`}
+                    data-event-id={event.id}
+                    data-annotated={previews.has(event.id) ? '' : undefined}
+                    data-source={event.source}
+                    data-at={event.at}
+                    data-author={event.author}
+                    data-excerpt={excerpt}
+                    aria-label={rowLabel(event.author, event.at, excerpt)}
+                    tabindex="0"
                     class:list={[
-                      'min-w-0 border-l-2 pl-3',
-                      ACCENT_RULE[accentOf(run.author)],
-                      run.isOwner && INDENT,
+                      ROW,
+                      'hover:bg-accent/50 focus-visible:ring-ring focus-visible:ring-offset-background group relative scroll-mt-32 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                     ]}
                   >
-                    {event.text && (
-                      <p
-                        class="text-body whitespace-pre-wrap text-pretty break-words"
-                        set:text={event.text}
-                      />
+                    <span class={TIME}>
+                      <time
+                        datetime={event.at}
+                        class:list={[!event.showTime && FOLLOW_ON]}
+                      >
+                        {taipeiTime(event.at)}
+                      </time>
+                    </span>
+                    {event.showTime ? (
+                      <span
+                        data-author-cell
+                        class="hidden min-w-0 flex-col gap-0.5 pt-1.5 sm:flex"
+                      >
+                        <span class="flex min-w-0 items-center gap-1.5">
+                          <span
+                            aria-hidden="true"
+                            class:list={[
+                              CHIP,
+                              'size-5',
+                              accentChip(accentOf(run.author)),
+                            ]}
+                          >
+                            {initialOf(run.author)}
+                          </span>
+                          <span class="text-meta truncate font-semibold">
+                            {run.author}
+                          </span>
+                        </span>
+                        {run.source !== 'line' && (
+                          <span class="text-muted-foreground pl-6.5 text-xs">
+                            {SOURCE_LABEL[run.source]}
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span aria-hidden="true" class="hidden sm:block" />
                     )}
-                    {event.media?.map(({ path, width, height }, n) =>
-                      IMAGE.test(path) ? (
-                        <a
-                          href={mediaUrl(event.id, n)}
-                          class="bg-muted mt-1.5 block aspect-square w-[calc(25%-3px)] overflow-hidden rounded-sm"
-                        >
-                          <img
-                            src={thumbUrl(event.id, n, 480)}
-                            srcset={thumbSrcset(event.id, n, width)}
-                            sizes={TILE_SIZES}
-                            alt={fileName(path)}
-                            width={width}
-                            height={height}
-                            loading="lazy"
-                            class="size-full object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <a
-                          href={mediaUrl(event.id, n)}
-                          class="text-meta mt-1 block underline"
-                        >
-                          {fileName(path)}
-                        </a>
-                      ),
-                    )}
-                  </div>
-                  <span
-                    data-marker
-                    class="mt-2.5 size-1.5 justify-self-center rounded-full"
-                  />
-                  <button
-                    type="button"
-                    data-annotate
-                    class:list={[PILL, '-top-4 right-6']}
-                  >
-                    <svg
-                      aria-hidden="true"
-                      width="13"
-                      height="13"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
+                    <div
+                      data-row-body
+                      id={event.text ? undefined : `msg-${event.id}`}
+                      class:list={[
+                        'border-l-3 sm:pr-18 min-w-0 py-1 pl-3.5 pr-3',
+                        accentRule(accentOf(run.author)),
+                      ]}
                     >
-                      <path d="M12 20h9" />
-                      <path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z" />
-                    </svg>
-                    眉批
-                  </button>
-                </li>
-              ))}
+                      {event.showTime && (
+                        <div
+                          data-author-inline
+                          class="mb-0.5 flex items-center gap-1.5 sm:hidden"
+                        >
+                          <span
+                            aria-hidden="true"
+                            class:list={[
+                              CHIP,
+                              'size-4.5',
+                              accentChip(accentOf(run.author)),
+                            ]}
+                          >
+                            {initialOf(run.author)}
+                          </span>
+                          <span class="text-meta font-semibold">
+                            {run.author}
+                          </span>
+                          <span class="text-muted-foreground text-xs">
+                            {SOURCE_LABEL[run.source]}
+                          </span>
+                        </div>
+                      )}
+                      {event.text && (
+                        <p
+                          id={`msg-${event.id}`}
+                          class="text-body whitespace-pre-wrap text-pretty break-words"
+                          set:text={event.text}
+                        />
+                      )}
+                      {event.media?.map(({ path, width, height }, n) =>
+                        IMAGE.test(path) ? (
+                          <a
+                            href={mediaUrl(event.id, n)}
+                            class="bg-muted mt-1.5 block aspect-square w-[calc(25%-3px)] overflow-hidden rounded-sm"
+                          >
+                            <img
+                              src={thumbUrl(event.id, n, 480)}
+                              srcset={thumbSrcset(event.id, n, width)}
+                              sizes={TILE_SIZES}
+                              alt={fileName(path)}
+                              width={width}
+                              height={height}
+                              loading="lazy"
+                              class="size-full object-cover"
+                            />
+                          </a>
+                        ) : (
+                          <a
+                            href={mediaUrl(event.id, n)}
+                            class="text-meta mt-1 block underline"
+                          >
+                            {fileName(path)}
+                          </a>
+                        ),
+                      )}
+                      <div
+                        data-note
+                        class="text-meta text-muted-foreground mt-1 flex items-start gap-1.5"
+                      >
+                        <span
+                          title="已有眉批"
+                          class="text-primary mt-0.5 inline-flex shrink-0"
+                        >
+                          <svg
+                            role="img"
+                            aria-label="已有眉批"
+                            width="13"
+                            height="13"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M12 20h9" />
+                            <path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z" />
+                          </svg>
+                        </span>
+                        <span class="items-baseline-last flex min-w-0 gap-x-1">
+                          <span
+                            data-note-body
+                            class="line-clamp-2 whitespace-pre-line break-words"
+                            set:text={previews.get(event.id)?.body ?? ''}
+                          />
+                          <span
+                            data-note-by
+                            class="shrink-0 whitespace-nowrap text-xs"
+                            set:text={bySuffix(previews.get(event.id)?.by)}
+                          />
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      data-annotate
+                      aria-describedby={`msg-${event.id}`}
+                      class:list={[PILL, 'right-1 top-1']}
+                    >
+                      <svg
+                        aria-hidden="true"
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M12 20h9" />
+                        <path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z" />
+                      </svg>
+                      眉批
+                    </button>
+                  </li>
+                );
+              })}
             </ol>
           </li>
         ) : (
-          <li data-source="photo" class="mt-[22px] first:mt-1.5">
-            <div class:list={[ROW, 'items-baseline py-0.5']}>
-              <span />
-              <div class="flex items-baseline gap-1.5">
+          <li data-source="photo" class:list={[ROW, 'mt-4.5 first:mt-1.5']}>
+            <span class={TIME}>
+              <time datetime={run.events[0]?.at}>
+                {run.events[0] && taipeiTime(run.events[0].at)}
+              </time>
+            </span>
+            <span class="hidden flex-col pt-1 sm:flex">
+              <span class="text-meta font-medium">照片</span>
+              <span class="text-muted-foreground text-xs tabular-nums">
+                {' '}
+                {run.events.length} 張
+              </span>
+            </span>
+            <div class="pl-4.25 min-w-0">
+              <div class="mb-1 flex items-baseline gap-1.5 sm:hidden">
                 <span class="text-meta font-medium">照片</span>
                 <span class="text-muted-foreground text-xs tabular-nums">
                   {' '}
                   {run.events.length} 張
                 </span>
               </div>
-              <span />
-            </div>
-            <div class:list={[ROW, 'py-1.5']}>
-              <span class={GUTTER}>
-                <time datetime={run.events[0]?.at}>
-                  {run.events[0] && taipeiTime(run.events[0].at)}
-                </time>
-              </span>
-              <ol data-burst class="grid grid-cols-4 gap-[3px] sm:gap-1">
+              <ol
+                data-burst
+                class="grid auto-rows-[64px] grid-cols-4 gap-1 sm:auto-rows-[88px]"
+              >
                 {run.events.map((event, index) => {
                   const media = event.media?.[0];
-                  const more =
-                    run.events.length > TILES && index === TILES - 1
-                      ? run.events.length - (TILES - 1)
-                      : 0;
+                  const tile = layouts.get(run)?.[index];
+                  const photoLabel = `照片 ${taipeiTime(event.at)}`;
+                  const describedBy = `photo-${event.id}`;
                   return (
                     <li
                       id={`ev-${event.id}`}
                       data-event-id={event.id}
+                      data-annotated={previews.has(event.id) ? '' : undefined}
                       data-source={event.source}
                       data-at={event.at}
                       data-author={event.author}
@@ -316,37 +430,47 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                       data-width={media?.width}
                       data-height={media?.height}
                       data-video={event.photo?.movie ? '' : undefined}
-                      data-overflow={index >= TILES ? '' : undefined}
-                      data-more={more > 0 ? '' : undefined}
+                      data-overflow={tile?.overflow ? '' : undefined}
+                      data-more={tile?.more ? '' : undefined}
                       class:list={[
-                        'focus-within:ring-ring focus-within:ring-offset-background group relative scroll-mt-32 rounded-sm focus-within:ring-2 focus-within:ring-offset-2',
-                        index >= TILES && 'hidden',
+                        'focus-within:ring-ring focus-within:ring-offset-background group relative scroll-mt-32 rounded-md focus-within:ring-2 focus-within:ring-offset-2',
+                        tile?.hero && 'col-span-2 row-span-2',
+                        tile?.overflow && 'hidden',
                       ]}
                     >
+                      <span id={describedBy} class="sr-only">
+                        {photoLabel}
+                      </span>
                       <a
                         href={mediaUrl(event.id, 0)}
                         data-lightbox
-                        class="bg-muted relative block aspect-square overflow-hidden rounded-sm outline-none"
+                        aria-label={
+                          tile?.more ? `還有 ${tile.more} 張照片` : undefined
+                        }
+                        class="bg-muted relative block size-full overflow-hidden rounded-md outline-none"
                       >
                         {media && (
                           <img
                             src={thumbUrl(event.id, 0, 480)}
                             srcset={thumbSrcset(event.id, 0, media.width)}
-                            sizes={TILE_SIZES}
-                            alt={event.text ?? `照片 ${taipeiTime(event.at)}`}
+                            sizes={tile?.hero ? HERO_TILE_SIZES : TILE_SIZES}
+                            alt={event.text ?? photoLabel}
                             width={media.width}
                             height={media.height}
                             loading="lazy"
                             class="size-full object-cover"
                           />
                         )}
-                        {more > 0 && (
+                        <span data-note-flag class="sr-only">
+                          ，已有眉批
+                        </span>
+                        {tile?.more ? (
                           <span
                             data-scrim
-                            class="bg-background/60 text-foreground text-heading absolute inset-0 flex items-center justify-center font-semibold tabular-nums"
-                            set:text={`+${more}`}
+                            class="bg-background/65 text-foreground text-heading absolute inset-0 flex items-center justify-center font-semibold tabular-nums"
+                            set:text={`+${tile.more}`}
                           />
-                        )}
+                        ) : null}
                       </a>
                       <span
                         data-marker
@@ -355,6 +479,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                       <button
                         type="button"
                         data-annotate
+                        aria-describedby={describedBy}
                         class:list={[PHOTO_PILL, 'right-1 top-1']}
                       >
                         眉批
@@ -363,7 +488,6 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                   );
                 })}
               </ol>
-              <span />
             </div>
           </li>
         ),

@@ -1,6 +1,8 @@
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
+import { paintNotes } from '../../lib/client/paint-notes.ts';
 import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
+import { notePreviews } from '../../lib/notes/preview.ts';
 import type { Annotation } from '../../lib/notes/types.ts';
 import { taipeiDate } from '../../lib/weeks.ts';
 import type { Draft } from './useNoteDraft.ts';
@@ -20,16 +22,12 @@ type Options = {
   author: string | undefined;
 };
 
-function markAnnotated(annotations: readonly ResolvedAnnotation[]) {
-  document
-    .querySelectorAll('[data-annotated]')
-    .forEach((el) => el.removeAttribute('data-annotated'));
-  for (const a of annotations) {
-    if (a.status === 'unattached' || !a.eventId) continue;
-    document
-      .getElementById(`ev-${a.eventId}`)
-      ?.setAttribute('data-annotated', '');
-  }
+function markAnnotated(
+  date: string,
+  annotations: readonly ResolvedAnnotation[],
+) {
+  const section = document.querySelector(`[data-day="${date}"]`);
+  if (section) paintNotes(section, notePreviews(annotations));
 }
 
 export function useStreamBridge(o: Options) {
@@ -128,13 +126,16 @@ export function useStreamBridge(o: Options) {
     }
   }, [o.date, o.readOnly]);
 
-  useEffect(() => markAnnotated(o.draft.annotations), [o.draft.annotations]);
+  useEffect(
+    () => markAnnotated(o.date, o.draft.annotations),
+    [o.date, o.draft.annotations],
+  );
 
   useEffect(() => {
     const onRestored = (e: Event) => {
       const { draft, payload } = latest.current.current.current;
       const date = (e as CustomEvent<{ date?: string } | null>).detail?.date;
-      if (date === payload.date) markAnnotated(draft.annotations);
+      if (date === payload.date) markAnnotated(payload.date, draft.annotations);
     };
     document.addEventListener('memories:day-restored', onRestored);
     return () =>

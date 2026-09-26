@@ -3,6 +3,7 @@ import { Kbd, KbdGroup } from '@rainforest-dev/rainforest-react';
 
 import type { MonthRow } from '../lib/days.ts';
 import type { MonthCell } from '../lib/month-view.ts';
+import { monthLabel } from '../lib/months.ts';
 import { dayHeading } from '../lib/weeks.ts';
 import { morphAttrs } from '../lib/zoom.ts';
 import DayPreview from './year/DayPreview.astro';
@@ -25,8 +26,8 @@ const LEVEL = [
   'bg-primary/90',
 ];
 
-const GRID_COLS = 'grid-cols-[56px_repeat(31,24px)] gap-x-1.5';
-const PHONE_GRID_COLS = 'grid-cols-[28px_repeat(31,8px)]';
+const GRID_COLS = 'grid-cols-[56px_repeat(31,24px)_72px] gap-x-1.5';
+const PHONE_GRID_COLS = 'grid-cols-[28px_repeat(31,8px)_minmax(0,1fr)]';
 
 const rangeLabel = (() => {
   if (rows.length === 0) return '';
@@ -81,6 +82,7 @@ const monthKey = (row: MonthRow) =>
             <span class="text-center">{i + 1}</span>
           ))
         }
+        <span></span>
       </div>
       {
         rows.map((row, i) => {
@@ -88,16 +90,16 @@ const monthKey = (row: MonthRow) =>
           return (
             <>
               {showYear && (
-                <div class="text-meta mt-2.5 font-semibold tabular-nums first:mt-0">
+                <div class="text-heading mt-3.5 font-semibold tabular-nums first:mt-0">
                   {row.year}
                 </div>
               )}
-              <div class={`grid h-[30px] items-center ${GRID_COLS}`}>
+              <div class={`grid h-8 items-center ${GRID_COLS}`}>
                 <a
                   href={`/month/${monthKey(row)}`}
                   data-morph={`month-${monthKey(row)}`}
                   {...morphAttrs(`month-${monthKey(row)}`, morph)}
-                  class="text-meta text-muted-foreground hover:text-foreground tabular-nums"
+                  class="text-meta text-muted-foreground hover:text-foreground font-medium tabular-nums"
                 >
                   {row.month} 月
                 </a>
@@ -159,6 +161,12 @@ const monthKey = (row: MonthRow) =>
                     </span>
                   );
                 })}
+                <span
+                  data-month-total={monthKey(row)}
+                  class="text-muted-foreground text-right text-xs tabular-nums"
+                >
+                  {row.total} 則
+                </span>
               </div>
             </>
           );
@@ -192,12 +200,15 @@ const monthKey = (row: MonthRow) =>
               {row.month}月
             </span>
             {bars}
+            <span class="text-muted-foreground text-right text-xs tabular-nums">
+              {row.total}
+            </span>
           </>
         );
         return (
           <>
             {showYear && (
-              <div class="text-meta mt-2.5 font-semibold tabular-nums first:mt-0">
+              <div class="text-heading mt-3.5 font-semibold tabular-nums first:mt-0">
                 {row.year}
               </div>
             )}
@@ -206,12 +217,13 @@ const monthKey = (row: MonthRow) =>
                 href={`/month/${monthKey(row)}`}
                 data-morph={`month-${monthKey(row)}`}
                 {...morphAttrs(`month-${monthKey(row)}`, morph)}
-                class={`grid h-7 items-center ${PHONE_GRID_COLS}`}
+                aria-label={`${monthLabel(monthKey(row))}，${row.total} 則`}
+                class={`grid h-8 items-center ${PHONE_GRID_COLS}`}
               >
                 {rowLabel}
               </a>
             ) : (
-              <div class={`grid h-7 items-center ${PHONE_GRID_COLS}`}>
+              <div class={`grid h-8 items-center ${PHONE_GRID_COLS}`}>
                 {rowLabel}
               </div>
             )}

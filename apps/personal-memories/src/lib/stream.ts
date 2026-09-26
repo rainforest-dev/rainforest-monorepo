@@ -1,5 +1,5 @@
 import type { TimelineEvent, TimelineSource } from './timeline.ts';
-import { taipeiHour } from './weeks.ts';
+import { taipeiHour, taipeiTime } from './weeks.ts';
 
 export type StreamEvent = TimelineEvent & { showTime: boolean };
 
@@ -8,7 +8,6 @@ export type Run =
       kind: 'text';
       author: string;
       source: TimelineSource;
-      isOwner: boolean;
       events: StreamEvent[];
     }
   | { kind: 'photos'; events: StreamEvent[] };
@@ -23,10 +22,7 @@ const continues = (run: Run | undefined, event: TimelineEvent) => {
   );
 };
 
-export function groupRuns(
-  events: readonly TimelineEvent[],
-  owners: ReadonlySet<string>,
-): Run[] {
+export function groupRuns(events: readonly TimelineEvent[]): Run[] {
   const runs: Run[] = [];
   for (const event of events) {
     const last = runs.at(-1);
@@ -42,7 +38,6 @@ export function groupRuns(
             kind: 'text',
             author: event.author,
             source: event.source,
-            isOwner: owners.has(event.author),
             events: first,
           },
     );
@@ -80,32 +75,54 @@ export function firstEventPerHour(
 
 export type Accent = 1 | 2 | 3 | 4 | 5;
 
+const OWNER_ACCENT: Accent = 2;
+const PARTNER_ACCENT: Accent = 4;
+const LATER_ACCENTS: readonly Accent[] = [1, 3, 5];
+
 const accentCache = new WeakMap<
   readonly TimelineEvent[],
-  Map<string, Accent>
+  { key: string; accents: Map<string, Accent> }
 >();
 
 export function authorAccents(
   events: readonly TimelineEvent[],
+  owners: ReadonlySet<string>,
 ): Map<string, Accent> {
+  const key = [...owners].sort().join('\n');
   const hit = accentCache.get(events);
-  if (hit) return hit;
-  const counts = new Map<string, number>();
-  for (const e of events)
-    if (e.source !== 'photo')
-      counts.set(e.author, (counts.get(e.author) ?? 0) + 1);
-  const ranked = [...counts].sort(
-    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
-  );
-  const accents = new Map(
-    ranked.map(([author], i) => [author, ((i % 5) + 1) as Accent]),
-  );
-  accentCache.set(events, accents);
+  if (hit?.key === key) return hit.accents;
+  const firstSeen = new Map<string, number>();
+  for (const e of events) {
+    if (e.source === 'photo' || !e.author) continue;
+    const t = Date.parse(e.at);
+    const seen = firstSeen.get(e.author);
+    if (seen === undefined || t < seen) firstSeen.set(e.author, t);
+  }
+  const accents = new Map<string, Accent>();
+  for (const author of firstSeen.keys())
+    if (owners.has(author)) accents.set(author, OWNER_ACCENT);
+  [...firstSeen]
+    .filter(([author]) => !owners.has(author))
+    .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
+    .forEach(([author], i) =>
+      accents.set(
+        author,
+        i === 0
+          ? PARTNER_ACCENT
+          : (LATER_ACCENTS[(i - 1) % LATER_ACCENTS.length] as Accent),
+      ),
+    );
+  accentCache.set(events, { key, accents });
   return accents;
 }
 
 export const initialOf = (author: string) =>
   [...author.trim()][0]?.toUpperCase() ?? '?';
+
+export const rowLabel = (author: string, at: string, excerpt: string) =>
+  excerpt
+    ? `${author}，${taipeiTime(at)}：${excerpt}`
+    : `${author}，${taipeiTime(at)}`;
 
 const THUMB_WIDTHS = [240, 480, 960] as const;
 
@@ -120,4 +137,20 @@ export function thumbSrcset(id: string, n: number, width?: number): string {
     seen.add(actual);
     return [`${thumbUrl(id, n, w)} ${actual}w`];
   }).join(', ');
+}
+
+const BURST_TILES = 5;
+
+type BurstTile = { hero: boolean; overflow: boolean; more: number };
+
+export function burstLayout(count: number): BurstTile[] {
+  const single = count >= 3;
+  return Array.from({ length: count }, (_, i) => ({
+    hero: single ? i === 0 : true,
+    overflow: i >= BURST_TILES,
+    more:
+      count > BURST_TILES && i === BURST_TILES - 1
+        ? count - (BURST_TILES - 1)
+        : 0,
+  }));
 }

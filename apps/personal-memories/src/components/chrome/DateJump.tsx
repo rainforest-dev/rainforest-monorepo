@@ -52,6 +52,9 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
           value={query}
           onValueChange={setQuery}
           placeholder="YYYY-MM-DD"
+          inputMode="numeric"
+          autoComplete="off"
+          spellCheck={false}
           onKeyDown={(e) => {
             if (
               e.key !== 'Enter' ||

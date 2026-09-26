@@ -6,11 +6,12 @@ import { toggleCover } from '../lib/cover.ts';
 import { coverControl } from '../lib/lightbox.ts';
 import { withCover } from '../lib/notes/draft.ts';
 import type { NotePayload } from '../lib/notes/payload.ts';
-import { dayHeading } from '../lib/weeks.ts';
+import type { Accent } from '../lib/stream.ts';
 import { Lightbox } from './lightbox/Lightbox.tsx';
 import { useLightbox } from './lightbox/useLightbox.ts';
 import { AnnotationList } from './notes/AnnotationItem.tsx';
 import { ConflictView } from './notes/ConflictView.tsx';
+import { DiaryDate } from './notes/DiaryDate.tsx';
 import { NotesSurface } from './notes/NotesSurface.tsx';
 import { ReadOnlyNotice } from './notes/ReadOnlyNotice.tsx';
 import { CHIPS, LOAD_FAILED, StatusBadge } from './notes/StatusBadge.tsx';
@@ -21,7 +22,13 @@ import { useStreamBridge } from './notes/useStreamBridge.ts';
 
 const PLACEHOLDER = '這一天想起了什麼？';
 
-export function NotePanel({ initial }: { initial: NotePayload }) {
+export function NotePanel({
+  initial,
+  accents,
+}: {
+  initial: NotePayload;
+  accents: Record<string, Accent>;
+}) {
   const note = useNoteDraft(initial);
   const { payload, draft, status, conflict, current, edit } = note;
   const { request, loadFailed } = useDaySync({ ...note, current });
@@ -120,11 +127,7 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
         expanded={open}
         onExpandedChange={setOpen}
         title="這一天的回憶"
-        date={
-          <span className="text-muted-foreground truncate text-xs tabular-nums">
-            {dayHeading(date)}
-          </span>
-        }
+        date={<DiaryDate date={date} />}
         status={chip && <StatusBadge chip={chip} />}
         peek={peek}
       >
@@ -140,7 +143,10 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
         )}
         {readOnly ? (
           draft.body && (
-            <div className="bg-muted/50 text-body whitespace-pre-wrap rounded-lg px-4 py-3.5">
+            <div
+              data-ruled
+              className="text-body whitespace-pre-wrap border px-1"
+            >
               {draft.body}
             </div>
           )
@@ -155,12 +161,15 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
               onChange={(e) =>
                 edit(date, (d) => ({ ...d, body: e.target.value }))
               }
-              className="text-body md:text-body min-h-[180px] resize-none px-4 py-3.5 lg:min-h-[232px]"
+              className="text-body md:text-body min-h-49 lg:min-h-63 resize-none px-1 py-0"
+              data-ruled
             />
             <p className="text-muted-foreground text-xs">Markdown · 自動儲存</p>
           </div>
         )}
-        <Separator className="my-6" />
+        {!(readOnly && draft.annotations.length === 0) && (
+          <Separator className="my-6" />
+        )}
         <AnnotationList
           annotations={draft.annotations}
           disabled={locked}
@@ -169,6 +178,7 @@ export function NotePanel({ initial }: { initial: NotePayload }) {
           refs={refs}
           needsName={author.needsName}
           onName={author.save}
+          accentOf={(author) => accents[author]}
           onBody={(i, body) => setAnnotation(date, i, { body })}
           onReattach={setReattach}
           onDelete={(i) => {

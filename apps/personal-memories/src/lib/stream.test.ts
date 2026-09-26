@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   authorAccents,
+  burstLayout,
   firstEventPerHour,
   groupRuns,
   hourCounts,
   initialOf,
   ownersFromEnv,
+  rowLabel,
   thumbSrcset,
 } from './stream.ts';
 import type { TimelineEvent } from './timeline.ts';
@@ -18,10 +20,8 @@ const ev = (
   at = '2025-11-01T09:00:00+08:00',
 ): TimelineEvent => ({ id, source, at, author });
 
-const OWNERS = new Set(['Bob']);
-
 const shape = (events: TimelineEvent[]) =>
-  groupRuns(events, OWNERS).map((run) => run.events.map((e) => e.id).join(','));
+  groupRuns(events).map((run) => run.events.map((e) => e.id).join(','));
 
 describe('groupRuns', () => {
   it('keeps consecutive messages from one author and source in one run', () => {
@@ -44,10 +44,11 @@ describe('groupRuns', () => {
   });
 
   it('gives a photo between messages its own run', () => {
-    const runs = groupRuns(
-      [ev('a', 'Alice'), ev('p', 'photo', 'photo'), ev('b', 'Alice')],
-      OWNERS,
-    );
+    const runs = groupRuns([
+      ev('a', 'Alice'),
+      ev('p', 'photo', 'photo'),
+      ev('b', 'Alice'),
+    ]);
     expect(runs.map((r) => r.kind)).toEqual(['text', 'photos', 'text']);
     expect(runs.map((r) => r.events.map((e) => e.id))).toEqual([
       ['a'],
@@ -57,24 +58,23 @@ describe('groupRuns', () => {
   });
 
   it('collects consecutive photos into one run', () => {
-    const runs = groupRuns(
-      [
-        ev('p1', 'photo', 'photo'),
-        ev('p2', 'photo', 'photo'),
-        ev('p3', 'photo', 'photo'),
-      ],
-      OWNERS,
-    );
+    const runs = groupRuns([
+      ev('p1', 'photo', 'photo'),
+      ev('p2', 'photo', 'photo'),
+      ev('p3', 'photo', 'photo'),
+    ]);
     expect(runs).toHaveLength(1);
     expect(runs[0]?.kind).toBe('photos');
     expect(runs[0]?.events.map((e) => e.id)).toEqual(['p1', 'p2', 'p3']);
   });
 
   it('shows the time on the first event of a run only', () => {
-    const runs = groupRuns(
-      [ev('a', 'Alice'), ev('b', 'Alice'), ev('c', 'Bob'), ev('d', 'Bob')],
-      OWNERS,
-    );
+    const runs = groupRuns([
+      ev('a', 'Alice'),
+      ev('b', 'Alice'),
+      ev('c', 'Bob'),
+      ev('d', 'Bob'),
+    ]);
     expect(runs.flatMap((r) => r.events.map((e) => e.showTime))).toEqual([
       true,
       false,
@@ -83,12 +83,17 @@ describe('groupRuns', () => {
     ]);
   });
 
-  it('marks runs by an owner and carries author and source', () => {
-    const runs = groupRuns([ev('a', 'Alice'), ev('b', 'Bob', 'slack')], OWNERS);
-    expect(runs).toMatchObject([
-      { kind: 'text', author: 'Alice', source: 'line', isOwner: false },
-      { kind: 'text', author: 'Bob', source: 'slack', isOwner: true },
+  it('carries author and source, and no owner flag', () => {
+    const runs = groupRuns([ev('a', 'Alice'), ev('b', 'Bob', 'slack')]);
+    expect(runs).toEqual([
+      expect.objectContaining({
+        kind: 'text',
+        author: 'Alice',
+        source: 'line',
+      }),
+      expect.objectContaining({ kind: 'text', author: 'Bob', source: 'slack' }),
     ]);
+    expect(runs[0]).not.toHaveProperty('isOwner');
   });
 });
 
@@ -138,28 +143,78 @@ describe('firstEventPerHour', () => {
 });
 
 describe('authorAccents', () => {
-  it('ranks authors by message count, alphabetically on ties, ignoring photos', () => {
-    const accents = authorAccents([
-      ev('1', 'Bob'),
-      ev('2', 'Bob'),
-      ev('3', 'Alice'),
-      ev('4', 'Carol'),
-      ev('5', 'photo', 'photo'),
-    ]);
-    expect([...accents]).toEqual([
-      ['Bob', 1],
-      ['Alice', 2],
-      ['Carol', 3],
-    ]);
+  const at = (hour: number) =>
+    `2025-11-01T${String(hour).padStart(2, '0')}:00:00+08:00`;
+
+  it('gives every owner name chart-2 and the first other person chart-4', () => {
+    const accents = authorAccents(
+      [
+        ev('1', 'Carol', 'line', at(9)),
+        ev('2', 'Bob', 'line', at(8)),
+        ev('3', 'Bobby', 'slack', at(10)),
+        ev('4', 'Alice', 'line', at(7)),
+      ],
+      new Set(['Bob', 'Bobby']),
+    );
+    expect(accents.get('Bob')).toBe(2);
+    expect(accents.get('Bobby')).toBe(2);
+    expect(accents.get('Alice')).toBe(4);
+    expect(accents.get('Carol')).toBe(1);
   });
 
-  it('cycles after five authors and returns the same map for the same events', () => {
-    const events = ['A', 'B', 'C', 'D', 'E', 'F'].map((a, i) =>
-      ev(String(i), a),
+  it('orders later people by first appearance, not input order or count, and cycles 1, 3, 5', () => {
+    const accents = authorAccents(
+      [
+        ev('1', 'E', 'line', at(12)),
+        ev('2', 'D', 'line', at(11)),
+        ev('3', 'D', 'line', at(13)),
+        ev('4', 'C', 'line', at(10)),
+        ev('5', 'B', 'line', at(9)),
+        ev('6', 'A', 'line', at(8)),
+        ev('7', 'F', 'line', at(14)),
+      ],
+      new Set(),
     );
-    const accents = authorAccents(events);
-    expect(accents.get('F')).toBe(1);
-    expect(authorAccents(events)).toBe(accents);
+    expect(Object.fromEntries(accents)).toEqual({
+      A: 4,
+      B: 1,
+      C: 3,
+      D: 5,
+      E: 1,
+      F: 3,
+    });
+  });
+
+  it('ignores photos and blank authors, and leaves chart-2 unused without an owner', () => {
+    const accents = authorAccents(
+      [
+        ev('1', 'photo', 'photo', at(7)),
+        ev('2', '', 'line', at(8)),
+        ev('3', 'Alice', 'line', at(9)),
+      ],
+      new Set(),
+    );
+    expect([...accents]).toEqual([['Alice', 4]]);
+  });
+
+  it('gives an owner who never writes nothing, and the rest their usual order', () => {
+    const accents = authorAccents(
+      [ev('1', 'Alice', 'line', at(9)), ev('2', 'Carol', 'line', at(10))],
+      new Set(['Bob']),
+    );
+    expect(Object.fromEntries(accents)).toEqual({ Alice: 4, Carol: 1 });
+  });
+
+  it('breaks a tie on first appearance by name', () => {
+    const accents = authorAccents([ev('1', 'Zoe'), ev('2', 'Amy')], new Set());
+    expect(Object.fromEntries(accents)).toEqual({ Amy: 4, Zoe: 1 });
+  });
+
+  it('returns the same map for the same events and owners, and recomputes for other owners', () => {
+    const events = [ev('1', 'Bob'), ev('2', 'Alice')];
+    const first = authorAccents(events, new Set(['Bob']));
+    expect(authorAccents(events, new Set(['Bob']))).toBe(first);
+    expect(authorAccents(events, new Set(['Alice'])).get('Alice')).toBe(2);
   });
 });
 
@@ -182,5 +237,52 @@ describe('thumbSrcset', () => {
       '/thumb/a?n=0&w=240 240w, /thumb/a?n=0&w=480 300w',
     );
     expect(thumbSrcset('a', 0, 1)).toBe('/thumb/a?n=0&w=240 1w');
+  });
+});
+
+describe('rowLabel', () => {
+  it('names a row by author, Taipei time and excerpt', () => {
+    expect(rowLabel('Bob', '2025-10-31T16:07:00Z', 'Yes, reading.')).toBe(
+      'Bob，00:07：Yes, reading.',
+    );
+  });
+
+  it('leaves out the excerpt when the message has no text', () => {
+    expect(rowLabel('Bob', '2025-11-01T09:30:00+08:00', '')).toBe('Bob，09:30');
+  });
+});
+
+describe('burstLayout', () => {
+  const heroes = (n: number) => burstLayout(n).map((t) => t.hero);
+
+  it('gives one or two photos a large tile each', () => {
+    expect(heroes(1)).toEqual([true]);
+    expect(heroes(2)).toEqual([true, true]);
+  });
+
+  it('leads three or more photos with one large tile', () => {
+    expect(heroes(3)).toEqual([true, false, false]);
+    expect(heroes(6)).toEqual([true, false, false, false, false, false]);
+  });
+
+  it('shows five tiles and puts +N on the fifth only past five', () => {
+    expect(burstLayout(5).map((t) => t.more)).toEqual([0, 0, 0, 0, 0]);
+    expect(burstLayout(5).some((t) => t.overflow)).toBe(false);
+    expect(burstLayout(6).map((t) => t.more)).toEqual([0, 0, 0, 0, 2, 0]);
+    expect(burstLayout(7).map((t) => [t.more, t.overflow])).toEqual([
+      [0, false],
+      [0, false],
+      [0, false],
+      [0, false],
+      [3, false],
+      [0, true],
+      [0, true],
+    ]);
+  });
+
+  it('keeps a burst of hundreds to five tiles', () => {
+    const tiles = burstLayout(300);
+    expect(tiles.filter((t) => !t.overflow)).toHaveLength(5);
+    expect(tiles[4]?.more).toBe(296);
   });
 });
