@@ -80,27 +80,44 @@ export function firstEventPerHour(
 
 export type Accent = 1 | 2 | 3 | 4 | 5;
 
+const OWNER_ACCENT: Accent = 2;
+const PARTNER_ACCENT: Accent = 4;
+const LATER_ACCENTS: readonly Accent[] = [1, 3, 5];
+
 const accentCache = new WeakMap<
   readonly TimelineEvent[],
-  Map<string, Accent>
+  { key: string; accents: Map<string, Accent> }
 >();
 
 export function authorAccents(
   events: readonly TimelineEvent[],
+  owners: ReadonlySet<string>,
 ): Map<string, Accent> {
+  const key = [...owners].sort().join('\n');
   const hit = accentCache.get(events);
-  if (hit) return hit;
-  const counts = new Map<string, number>();
-  for (const e of events)
-    if (e.source !== 'photo')
-      counts.set(e.author, (counts.get(e.author) ?? 0) + 1);
-  const ranked = [...counts].sort(
-    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
-  );
-  const accents = new Map(
-    ranked.map(([author], i) => [author, ((i % 5) + 1) as Accent]),
-  );
-  accentCache.set(events, accents);
+  if (hit?.key === key) return hit.accents;
+  const firstSeen = new Map<string, number>();
+  for (const e of events) {
+    if (e.source === 'photo' || !e.author) continue;
+    const t = Date.parse(e.at);
+    const seen = firstSeen.get(e.author);
+    if (seen === undefined || t < seen) firstSeen.set(e.author, t);
+  }
+  const accents = new Map<string, Accent>();
+  for (const author of firstSeen.keys())
+    if (owners.has(author)) accents.set(author, OWNER_ACCENT);
+  [...firstSeen]
+    .filter(([author]) => !owners.has(author))
+    .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
+    .forEach(([author], i) =>
+      accents.set(
+        author,
+        i === 0
+          ? PARTNER_ACCENT
+          : (LATER_ACCENTS[(i - 1) % LATER_ACCENTS.length] as Accent),
+      ),
+    );
+  accentCache.set(events, { key, accents });
   return accents;
 }
 

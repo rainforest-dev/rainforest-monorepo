@@ -192,22 +192,34 @@ test("the owner's rows are indented from everyone else's", async ({ page }) => {
   expect(ownerLeft).toBeGreaterThan(otherLeft);
 });
 
-test('each speaker keeps an accent on every row', async ({ page }) => {
-  await page.goto('/day/2025-11-01');
-  const day = page.locator('#day-2025-11-01');
-  const accentOf = (author: string) =>
-    day
-      .locator('li[data-accent]', {
+test('each person keeps one fixed accent on every day', async ({ page }) => {
+  const accentOf = (date: string, author: string) =>
+    page
+      .locator(`#day-${date} li[data-accent]`, {
         has: page.locator(`[data-author="${author}"]`),
       })
       .first()
       .getAttribute('data-accent');
-  expect(await accentOf('Alice 🌷')).not.toBe(await accentOf('Bob'));
-  const width = await day
-    .locator('[data-event-id][data-author="Bob"] [data-row-body]')
+  await page.goto('/day/2025-11-01');
+  expect(await accentOf('2025-11-01', 'Bob')).toBe('2');
+  expect(await accentOf('2025-11-01', 'Alice 🌷')).toBe('1');
+  await page.goto('/day/2025-10-31');
+  expect(await accentOf('2025-10-31', 'Bob')).toBe('2');
+  expect(await accentOf('2025-10-31', 'Alice')).toBe('4');
+  const colours = await page
+    .locator(
+      '#day-2025-10-31 [data-event-id][data-author="Bob"] [data-row-body]',
+    )
     .first()
-    .evaluate((el) => getComputedStyle(el).borderLeftWidth);
-  expect(width).toBe('2px');
+    .evaluate((el) => {
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--chart-2)';
+      document.body.append(probe);
+      const expected = getComputedStyle(probe).color;
+      probe.remove();
+      return { rule: getComputedStyle(el).borderLeftColor, expected };
+    });
+  expect(colours.rule).toBe(colours.expected);
 });
 
 test('a thumbnail request returns a webp image', async ({ request }) => {

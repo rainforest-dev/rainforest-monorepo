@@ -138,28 +138,78 @@ describe('firstEventPerHour', () => {
 });
 
 describe('authorAccents', () => {
-  it('ranks authors by message count, alphabetically on ties, ignoring photos', () => {
-    const accents = authorAccents([
-      ev('1', 'Bob'),
-      ev('2', 'Bob'),
-      ev('3', 'Alice'),
-      ev('4', 'Carol'),
-      ev('5', 'photo', 'photo'),
-    ]);
-    expect([...accents]).toEqual([
-      ['Bob', 1],
-      ['Alice', 2],
-      ['Carol', 3],
-    ]);
+  const at = (hour: number) =>
+    `2025-11-01T${String(hour).padStart(2, '0')}:00:00+08:00`;
+
+  it('gives every owner name chart-2 and the first other person chart-4', () => {
+    const accents = authorAccents(
+      [
+        ev('1', 'Carol', 'line', at(9)),
+        ev('2', 'Bob', 'line', at(8)),
+        ev('3', 'Bobby', 'slack', at(10)),
+        ev('4', 'Alice', 'line', at(7)),
+      ],
+      new Set(['Bob', 'Bobby']),
+    );
+    expect(accents.get('Bob')).toBe(2);
+    expect(accents.get('Bobby')).toBe(2);
+    expect(accents.get('Alice')).toBe(4);
+    expect(accents.get('Carol')).toBe(1);
   });
 
-  it('cycles after five authors and returns the same map for the same events', () => {
-    const events = ['A', 'B', 'C', 'D', 'E', 'F'].map((a, i) =>
-      ev(String(i), a),
+  it('orders later people by first appearance, not input order or count, and cycles 1, 3, 5', () => {
+    const accents = authorAccents(
+      [
+        ev('1', 'E', 'line', at(12)),
+        ev('2', 'D', 'line', at(11)),
+        ev('3', 'D', 'line', at(13)),
+        ev('4', 'C', 'line', at(10)),
+        ev('5', 'B', 'line', at(9)),
+        ev('6', 'A', 'line', at(8)),
+        ev('7', 'F', 'line', at(14)),
+      ],
+      new Set(),
     );
-    const accents = authorAccents(events);
-    expect(accents.get('F')).toBe(1);
-    expect(authorAccents(events)).toBe(accents);
+    expect(Object.fromEntries(accents)).toEqual({
+      A: 4,
+      B: 1,
+      C: 3,
+      D: 5,
+      E: 1,
+      F: 3,
+    });
+  });
+
+  it('ignores photos and blank authors, and leaves chart-2 unused without an owner', () => {
+    const accents = authorAccents(
+      [
+        ev('1', 'photo', 'photo', at(7)),
+        ev('2', '', 'line', at(8)),
+        ev('3', 'Alice', 'line', at(9)),
+      ],
+      new Set(),
+    );
+    expect([...accents]).toEqual([['Alice', 4]]);
+  });
+
+  it('gives an owner who never writes nothing, and the rest their usual order', () => {
+    const accents = authorAccents(
+      [ev('1', 'Alice', 'line', at(9)), ev('2', 'Carol', 'line', at(10))],
+      new Set(['Bob']),
+    );
+    expect(Object.fromEntries(accents)).toEqual({ Alice: 4, Carol: 1 });
+  });
+
+  it('breaks a tie on first appearance by name', () => {
+    const accents = authorAccents([ev('1', 'Zoe'), ev('2', 'Amy')], new Set());
+    expect(Object.fromEntries(accents)).toEqual({ Amy: 4, Zoe: 1 });
+  });
+
+  it('returns the same map for the same events and owners, and recomputes for other owners', () => {
+    const events = [ev('1', 'Bob'), ev('2', 'Alice')];
+    const first = authorAccents(events, new Set(['Bob']));
+    expect(authorAccents(events, new Set(['Bob']))).toBe(first);
+    expect(authorAccents(events, new Set(['Alice'])).get('Alice')).toBe(2);
   });
 });
 

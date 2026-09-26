@@ -18,6 +18,7 @@ import {
 import type { TimelineEvent, TimelineSource } from '../lib/timeline.ts';
 import { dayHeading, taipeiTime } from '../lib/weeks.ts';
 import { morphAttrs } from '../lib/zoom.ts';
+import { accentChip, accentRule } from './accent-classes.ts';
 
 type Props = {
   date: string;
@@ -49,27 +50,14 @@ const PILL_BASE = cn(
 const PILL = `${PILL_BASE} pointer-coarse:pointer-events-none pointer-coarse:group-focus-within:pointer-events-auto`;
 const PHOTO_PILL = `${PILL_BASE} pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto`;
 
-const runs = groupRuns(events, ownersFromEnv());
+const owners = ownersFromEnv();
+const runs = groupRuns(events, owners);
 const timeline = getTimeline();
 const accents =
   timeline.status === 'ready'
-    ? authorAccents(timeline.timeline.events)
+    ? authorAccents(timeline.timeline.events, owners)
     : new Map<string, Accent>();
-const accentOf = (author: string): Accent => accents.get(author) ?? 1;
-const ACCENT_RULE: Record<Accent, string> = {
-  1: 'border-chart-1/65',
-  2: 'border-chart-2/65',
-  3: 'border-chart-3/65',
-  4: 'border-chart-4/65',
-  5: 'border-chart-5/65',
-};
-const ACCENT_CHIP: Record<Accent, string> = {
-  1: 'bg-chart-1/15',
-  2: 'bg-chart-2/15',
-  3: 'bg-chart-3/15',
-  4: 'bg-chart-4/15',
-  5: 'bg-chart-5/15',
-};
+const accentOf = (author: string) => accents.get(author);
 const hours = events.length >= BUSY_DAY ? hourCounts(events) : undefined;
 const firsts = hours ? firstEventPerHour(events) : undefined;
 const peak = Math.max(1, ...(hours ?? []));
@@ -176,7 +164,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                   aria-hidden="true"
                   class:list={[
                     'text-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold',
-                    ACCENT_CHIP[accentOf(run.author)],
+                    accentChip(accentOf(run.author)),
                   ]}
                 >
                   {initialOf(run.author)}
@@ -213,7 +201,7 @@ const TILE_SIZES = '(min-width: 640px) 140px, 22vw';
                     data-row-body
                     class:list={[
                       'min-w-0 border-l-2 pl-3',
-                      ACCENT_RULE[accentOf(run.author)],
+                      accentRule(accentOf(run.author)),
                       run.isOwner && INDENT,
                     ]}
                   >
