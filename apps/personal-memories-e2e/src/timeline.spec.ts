@@ -19,6 +19,18 @@ const waitForLightboxReady = (page: Page) =>
 const waitForAppBarReady = (page: Page) =>
   expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
 
+const recordReveal = (page: Page) =>
+  page.addInitScript(() => {
+    addEventListener('pagereveal', (event) => {
+      const root = document.documentElement;
+      root.dataset['revealTransition'] = String(!!event.viewTransition);
+      requestAnimationFrame(() => {
+        root.dataset['revealStyle'] =
+          document.getElementById('reveal-morph')?.textContent ?? '';
+      });
+    });
+  });
+
 const readNote = (date: string) =>
   existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
 
@@ -983,6 +995,7 @@ test('Escape collapses an expanded phone note sheet before it zooms out', async 
 test('zooming out after scrolling into a different month lands on the day in view', async ({
   page,
 }) => {
+  await recordReveal(page);
   await page.goto('/day/2025-11-01');
   await waitForAppBarReady(page);
   await expect(page.locator('#day-2025-10-31')).toBeAttached();
@@ -996,11 +1009,16 @@ test('zooming out after scrolling into a different month lands on the day in vie
   await waitForAppBarReady(page);
   await expect(page.getByRole('tablist', { name: '縮放' })).toBeInViewport();
 
-  const cell = page.locator('a[data-date="2025-10-31"]:visible');
-  await expect(cell).toHaveAttribute(
-    'style',
-    /view-transition-name: day-2025-10-31/,
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-reveal-transition', 'true');
+  await expect(html).toHaveAttribute(
+    'data-reveal-style',
+    '[data-morph]{view-transition-name:none!important}' +
+      '[data-morph="day-2025-10-31"]{view-transition-name:day-2025-10-31!important}',
   );
+
+  const cell = page.locator('a[data-date="2025-10-31"]:visible');
+  await expect(cell).toHaveAttribute('data-last-viewed', '');
   await expect(cell).toBeFocused();
 
   await cell.click();

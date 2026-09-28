@@ -103,6 +103,7 @@ const monthKey = (row: MonthRow) =>
                 <a
                   href={`/month/${monthKey(row)}`}
                   data-morph={`month-${monthKey(row)}`}
+                  data-month-row={monthKey(row)}
                   {...morphAttrs(`month-${monthKey(row)}`, morph)}
                   class="text-meta text-muted-foreground hover:text-foreground font-medium tabular-nums"
                 >
@@ -222,6 +223,7 @@ const monthKey = (row: MonthRow) =>
               <a
                 href={`/month/${monthKey(row)}`}
                 data-morph={`month-${monthKey(row)}`}
+                data-month-row={monthKey(row)}
                 {...morphAttrs(`month-${monthKey(row)}`, morph)}
                 aria-label={`${monthLabel(monthKey(row))}，${row.total} 則`}
                 class={`grid h-8 items-center ${PHONE_GRID_COLS}`}

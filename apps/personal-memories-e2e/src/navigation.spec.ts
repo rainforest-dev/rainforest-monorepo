@@ -156,3 +156,103 @@ test('Back from a day scrolled past its first names the later day for the morph'
   await expect.poll(() => page.locator('style#reveal-morph').count()).toBe(0);
   expect(errors).toEqual([]);
 });
+
+test('Back from a scrolled day marks, focuses and starts the keys from the later day', async ({
+  page,
+}) => {
+  await page.goto('/month/2025-11');
+  await waitForAppBarReady(page);
+  await visibleCell(page, '2025-11-01').click();
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await waitForAppBarReady(page);
+  await scrollToDay(page, '2025-11-03');
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  const cell = visibleCell(page, '2025-11-03');
+  await expect(cell).toHaveAttribute('data-last-viewed', '');
+  await expect(cell).toHaveAttribute('aria-description', '上次看到');
+  await expect(cell.getByText('上次看到')).toBeVisible();
+  await expect(cell).toBeFocused();
+  await expect(page.locator('[data-last-viewed]:visible')).toHaveCount(1);
+  await expect(stops(page, 'week')).toHaveAttribute('data-date', '2025-11-03');
+
+  await page.keyboard.press('ArrowUp');
+  await expect(visibleCell(page, '2025-11-01')).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(visibleCell(page, '2025-11-03')).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(visibleCell(page, '2025-11-02')).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(visibleCell(page, '2025-11-03')).toBeFocused();
+});
+
+test('Escape from a scrolled day lands on the later day as well', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  await waitForAppBarReady(page);
+  await scrollToDay(page, '2025-11-03');
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  const cell = visibleCell(page, '2025-11-03');
+  await expect(cell).toHaveAttribute('data-last-viewed', '');
+  await expect(cell).toBeFocused();
+});
+
+test('a second visit moves the mark instead of adding one', async ({
+  page,
+}) => {
+  await page.goto('/month/2025-11');
+  await waitForAppBarReady(page);
+  await visibleCell(page, '2025-11-01').click();
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await page.goBack();
+  await expect(visibleCell(page, '2025-11-01')).toHaveAttribute(
+    'data-last-viewed',
+    '',
+  );
+
+  await page.goForward();
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await waitForAppBarReady(page);
+  await scrollToDay(page, '2025-11-03');
+  await page.goBack();
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  await expect(visibleCell(page, '2025-11-03')).toHaveAttribute(
+    'data-last-viewed',
+    '',
+  );
+  await expect(page.locator('[data-last-viewed]:visible')).toHaveCount(1);
+  await expect(
+    page.locator('[data-grid="week"] [data-last-viewed]'),
+  ).toHaveCount(1);
+});
+
+test('the year marks the month row you came from, or the day', async ({
+  page,
+}) => {
+  await page.goto('/month/2025-11');
+  await waitForAppBarReady(page);
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+  const row = page.locator('a[data-month-row="2025-11"]:visible');
+  await expect(row).toHaveAttribute('data-last-viewed', '');
+  await expect(row).toHaveAttribute('aria-description', '上次看到');
+  await expect(row).toBeFocused();
+
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  const yearHref = await page
+    .getByRole('tab', { name: '年' })
+    .getAttribute('href');
+  await page.evaluate((href) => location.assign(href ?? '/'), yearHref);
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+  const cell = page.locator('a[data-date="2025-11-02"]');
+  await expect(cell).toHaveAttribute('data-last-viewed', '');
+  await expect(cell).toBeFocused();
+  await expect(page.locator('a[data-month-row][data-last-viewed]')).toHaveCount(
+    0,
+  );
+  await expect(stops(page, 'year')).toHaveAttribute('data-date', '2025-11-02');
+});

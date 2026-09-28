@@ -95,6 +95,30 @@
   @apply bg-primary ring-ring ring-offset-background ring-2 ring-offset-1;
 }
 
+[data-last-viewed] {
+  @apply inset-ring-primary inset-ring-2;
+}
+
+[data-last-label] {
+  display: none;
+}
+
+[data-last-viewed] [data-last-label] {
+  display: inline;
+}
+
+@keyframes last-viewed-flash {
+  from {
+    background-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-last-viewed] {
+    animation: last-viewed-flash 600ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
 @view-transition {
   navigation: auto;
 }

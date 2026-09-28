@@ -41,6 +41,17 @@ const showText = row || !cell.cover;
   >
     {cell.day}
     {cell.noted && <span class="bg-foreground size-1.5 rounded-full" />}
+    {
+      !row && (
+        <span
+          data-last-label
+          aria-hidden="true"
+          class="text-primary text-xs font-medium"
+        >
+          上次看到
+        </span>
+      )
+    }
   </span>
   {
     !row && (
