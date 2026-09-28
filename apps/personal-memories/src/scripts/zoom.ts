@@ -1,4 +1,5 @@
 import { placeOf } from '../lib/nav.ts';
+import { REVEAL_STYLE_ID } from '../lib/reveal.ts';
 import { morphKey } from '../lib/zoom.ts';
 
 const REDUCE = '(prefers-reduced-motion: reduce)';
@@ -10,6 +11,7 @@ const firstVisible = (selector: string) =>
 
 export function startZoom() {
   window.addEventListener('pageswap', (event) => {
+    document.getElementById(REVEAL_STYLE_ID)?.remove();
     const to = event.activation?.entry.url;
     if (!event.viewTransition || !to || matchMedia(REDUCE).matches) return;
     const key = morphKey(

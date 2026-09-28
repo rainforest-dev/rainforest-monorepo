@@ -9,6 +9,28 @@ const visibleCell = (page: Page, date: string) =>
 const stops = (page: Page, grid: 'year' | 'week' | 'list') =>
   page.locator(`[data-grid="${grid}"] a[data-date][tabindex="0"]`);
 
+const scrollToDay = async (page: Page, date: string) => {
+  const day = page.locator(`#day-${date}`);
+  await expect(async () => {
+    await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+    await expect(day).toBeAttached({ timeout: 1000 });
+  }).toPass();
+  await day.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(new RegExp(`/day/${date}$`));
+};
+
+const recordReveal = (page: Page) =>
+  page.addInitScript(() => {
+    addEventListener('pagereveal', (event) => {
+      const root = document.documentElement;
+      root.dataset['revealTransition'] = String(!!event.viewTransition);
+      requestAnimationFrame(() => {
+        root.dataset['revealStyle'] =
+          document.getElementById('reveal-morph')?.textContent ?? '';
+      });
+    });
+  });
+
 test.describe.configure({ mode: 'serial' });
 
 test('each grid has one tab stop, the latest day with data, and Tab lands on it', async ({
@@ -107,4 +129,30 @@ test('the year and month pages hint their arrow keys, and the day page does not'
 
   await page.goto('/day/2025-11-01');
   await expect(page.locator('[data-key-hints]')).toHaveCount(0);
+});
+
+test('Back from a day scrolled past its first names the later day for the morph', async ({
+  page,
+}) => {
+  const errors: Error[] = [];
+  page.on('pageerror', (error) => errors.push(error));
+  await recordReveal(page);
+  await page.goto('/month/2025-11');
+  await waitForAppBarReady(page);
+  await visibleCell(page, '2025-11-01').click();
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await waitForAppBarReady(page);
+  await scrollToDay(page, '2025-11-03');
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-reveal-transition', 'true');
+  await expect(html).toHaveAttribute(
+    'data-reveal-style',
+    '[data-morph]{view-transition-name:none!important}' +
+      '[data-morph="day-2025-11-03"]{view-transition-name:day-2025-11-03!important}',
+  );
+  await expect.poll(() => page.locator('style#reveal-morph').count()).toBe(0);
+  expect(errors).toEqual([]);
 });
