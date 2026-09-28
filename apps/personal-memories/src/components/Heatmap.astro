@@ -18,6 +18,11 @@ type Props = {
 
 const { rows, level, noted, morph, previews } = Astro.props;
 
+const stop = rows
+  .flatMap((row) => row.cells)
+  .filter((cell) => cell !== null && cell.total > 0)
+  .at(-1)?.date;
+
 const LEVEL = [
   'bg-muted',
   'bg-primary/20',
@@ -71,7 +76,7 @@ const monthKey = (row: MonthRow) =>
   </div>
 
   <div class="hidden overflow-x-auto pt-14 sm:block">
-    <div class="flex w-max flex-col">
+    <div data-grid="year" class="flex w-max flex-col">
       <div
         aria-hidden="true"
         class={`text-muted-foreground grid h-[18px] text-xs tabular-nums ${GRID_COLS}`}
@@ -135,6 +140,7 @@ const monthKey = (row: MonthRow) =>
                       data-date={cell.date}
                       data-noted={isNoted}
                       data-heat-cell
+                      tabindex={cell.date === stop ? 0 : -1}
                       data-morph={key}
                       aria-label={`${tip.date}，${tip.detail}`}
                       class={cellClass}

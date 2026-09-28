@@ -9,6 +9,7 @@ const key = (k: string, over: Partial<KeyInput> = {}): KeyInput => ({
   modified: false,
   typing: false,
   overlayOpen: false,
+  previewOpen: false,
   onCell: false,
   place: DAY,
   ...over,
@@ -51,20 +52,51 @@ describe('resolveShortcut', () => {
     }
   });
 
-  it('keeps day keys on the day and cell keys on a focused heat cell', () => {
+  it('keeps day keys on the day', () => {
     expect(resolveShortcut(key('j'))).toEqual({ type: 'step-day', delta: 1 });
     expect(resolveShortcut(key('k'))).toEqual({ type: 'step-day', delta: -1 });
     expect(resolveShortcut(key('n'))).toEqual({ type: 'focus-note' });
     expect(
       resolveShortcut(key('j', { place: { level: 'year' } })),
     ).toBeUndefined();
-    const year = { place: { level: 'year' } as Place };
+  });
+
+  it('moves within a grid on the year and the month, only from a focused cell', () => {
+    const places: Place[] = [
+      { level: 'year' },
+      { level: 'month', month: '2025-11' },
+    ];
+    for (const place of places)
+      for (const k of [
+        'ArrowLeft',
+        'ArrowRight',
+        'ArrowUp',
+        'ArrowDown',
+        'Home',
+        'End',
+      ]) {
+        expect(resolveShortcut(key(k, { place, onCell: true }))).toEqual({
+          type: 'grid',
+          key: k,
+        });
+        expect(resolveShortcut(key(k, { place }))).toBeUndefined();
+      }
+    expect(resolveShortcut(key('ArrowUp', { onCell: true }))).toBeUndefined();
+  });
+
+  it('closes an open preview before Escape does anything else', () => {
+    const places: Place[] = [
+      { level: 'year' },
+      { level: 'month', month: '2025-11' },
+    ];
+    for (const place of places)
+      expect(
+        resolveShortcut(
+          key('Escape', { place, onCell: true, previewOpen: true }),
+        ),
+      ).toEqual({ type: 'close-preview' });
     expect(
-      resolveShortcut(key('ArrowRight', { ...year, onCell: true })),
-    ).toEqual({ type: 'step-cell', delta: 1 });
-    expect(
-      resolveShortcut(key('ArrowLeft', { ...year, onCell: true })),
-    ).toEqual({ type: 'step-cell', delta: -1 });
-    expect(resolveShortcut(key('ArrowRight', year))).toBeUndefined();
+      resolveShortcut(key('Escape', { previewOpen: true, overlayOpen: true })),
+    ).toBeUndefined();
   });
 });

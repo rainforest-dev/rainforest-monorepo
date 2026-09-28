@@ -1,18 +1,13 @@
 import { isOverlayOpen } from '../lib/client/overlays.ts';
+import { openPreview } from '../lib/client/preview-dom.ts';
+import { moveInGrid, setStop } from '../lib/client/roving.ts';
 import { stepDay } from '../lib/client/step-day.ts';
 import { placeOf } from '../lib/nav.ts';
 import { resolveShortcut, type Shortcut } from '../lib/shortcuts.ts';
 
 const TYPING =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
-const CELL = 'a[data-date]';
-
-function stepCell(delta: -1 | 1) {
-  const cells = [...document.querySelectorAll<HTMLElement>(CELL)].filter((c) =>
-    c.checkVisibility(),
-  );
-  cells[cells.indexOf(document.activeElement as HTMLElement) + delta]?.focus();
-}
+const CELL = '[data-grid] a[data-date]';
 
 const emit = (
   type:
@@ -25,8 +20,10 @@ function run(action: Shortcut) {
       return location.assign(action.href);
     case 'step-day':
       return stepDay(action.delta);
-    case 'step-cell':
-      return stepCell(action.delta);
+    case 'grid':
+      return moveInGrid(action.key);
+    case 'close-preview':
+      return openPreview()?.hidePopover();
     case 'blur':
       return (document.activeElement as HTMLElement | null)?.blur();
     case 'focus-note':
@@ -51,6 +48,7 @@ export function startShortcuts() {
           event.isComposing ||
           event.keyCode === 229,
         overlayOpen: isOverlayOpen(),
+        previewOpen: !!openPreview(),
         onCell: !!active?.matches(CELL),
         place: placeOf(location.pathname),
       });
@@ -61,4 +59,8 @@ export function startShortcuts() {
     // Capture phase: Base UI closes an overlay on Escape before a bubbling listener would run.
     true,
   );
+  document.addEventListener('focusin', (event) => {
+    if (event.target instanceof HTMLElement && event.target.matches(CELL))
+      setStop(event.target);
+  });
 }

@@ -1,3 +1,4 @@
+import { type GridKey, isGridKey } from './grid-nav.ts';
 import { type Place, zoomOutHref } from './nav.ts';
 
 export type ShortcutRow = { keys: string[]; label: string };
@@ -39,7 +40,8 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
 export type Shortcut =
   | { type: 'navigate'; href: string }
   | { type: 'step-day'; delta: -1 | 1 }
-  | { type: 'step-cell'; delta: -1 | 1 }
+  | { type: 'grid'; key: GridKey }
+  | { type: 'close-preview' }
   | { type: 'blur' }
   | { type: 'focus-note' }
   | { type: 'open-jump' }
@@ -50,6 +52,7 @@ export type KeyInput = {
   modified: boolean;
   typing: boolean;
   overlayOpen: boolean;
+  previewOpen: boolean;
   onCell: boolean;
   place: Place | undefined;
 };
@@ -57,12 +60,17 @@ export type KeyInput = {
 export function resolveShortcut(k: KeyInput): Shortcut | undefined {
   if (k.modified || k.typing || k.overlayOpen || !k.place) return undefined;
   const { level } = k.place;
+  if (isGridKey(k.key))
+    return level !== 'day' && k.onCell
+      ? { type: 'grid', key: k.key }
+      : undefined;
   switch (k.key) {
     case '?':
       return { type: 'open-shortcuts' };
     case '/':
       return { type: 'open-jump' };
     case 'Escape': {
+      if (k.previewOpen) return { type: 'close-preview' };
       if (level === 'year') return k.onCell ? { type: 'blur' } : undefined;
       const href = zoomOutHref(k.place);
       return href ? { type: 'navigate', href } : undefined;
@@ -73,14 +81,6 @@ export function resolveShortcut(k: KeyInput): Shortcut | undefined {
       return level === 'day' ? { type: 'step-day', delta: -1 } : undefined;
     case 'n':
       return level === 'day' ? { type: 'focus-note' } : undefined;
-    case 'ArrowRight':
-      return level === 'year' && k.onCell
-        ? { type: 'step-cell', delta: 1 }
-        : undefined;
-    case 'ArrowLeft':
-      return level === 'year' && k.onCell
-        ? { type: 'step-cell', delta: -1 }
-        : undefined;
     default:
       return undefined;
   }

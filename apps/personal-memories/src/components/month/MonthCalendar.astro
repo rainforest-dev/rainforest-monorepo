@@ -12,6 +12,7 @@ const FOCUS =
 const label = (c: MonthCell) =>
   `${dayHeading(c.date)}，${c.total} 則${c.noted ? ' · 已寫回憶' : ''}`;
 const days = view.weeks.flat().filter((c): c is MonthCell => c !== null);
+const stop = days.filter((c) => c.total > 0).at(-1)?.date;
 const monthKey = `month-${view.month}`;
 ---
 
@@ -29,7 +30,7 @@ const monthKey = `month-${view.month}`;
     >
       {WEEKDAYS_ZH.map((d) => <span class="px-2">{d}</span>)}
     </div>
-    <ol class="grid grid-cols-7 gap-2">
+    <ol data-grid="week" class="grid grid-cols-7 gap-2">
       {
         view.weeks.flat().map((cell) =>
           !cell ? (
@@ -41,6 +42,7 @@ const monthKey = `month-${view.month}`;
                   href={`/day/${cell.date}`}
                   data-date={cell.date}
                   data-morph={`day-${cell.date}`}
+                  tabindex={cell.date === stop ? 0 : -1}
                   aria-label={label(cell)}
                   class:list={[
                     'bg-card ring-border hover:bg-accent/65 h-29 relative flex flex-col overflow-hidden rounded-lg ring-1',
@@ -64,7 +66,7 @@ const monthKey = `month-${view.month}`;
       }
     </ol>
   </div>
-  <ol class="divide-border flex flex-col divide-y sm:hidden">
+  <ol data-grid="list" class="divide-border flex flex-col divide-y sm:hidden">
     {
       days.map((cell) =>
         cell.total > 0 ? (
@@ -73,6 +75,7 @@ const monthKey = `month-${view.month}`;
               href={`/day/${cell.date}`}
               data-date={cell.date}
               data-morph={`day-${cell.date}`}
+              tabindex={cell.date === stop ? 0 : -1}
               aria-label={label(cell)}
               class:list={[
                 'grid h-16 grid-cols-[40px_52px_1fr_auto] items-center gap-2',
