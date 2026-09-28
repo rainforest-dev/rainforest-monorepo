@@ -243,10 +243,7 @@ test('the year marks the month row you came from, or the day', async ({
 
   await page.goto('/day/2025-11-02');
   await waitForAppBarReady(page);
-  const yearHref = await page
-    .getByRole('tab', { name: '年' })
-    .getAttribute('href');
-  await page.evaluate((href) => location.assign(href ?? '/'), yearHref);
+  await page.getByRole('tab', { name: '年' }).click();
   await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
   const cell = page.locator('a[data-date="2025-11-02"]');
   await expect(cell).toHaveAttribute('data-last-viewed', '');
@@ -255,4 +252,29 @@ test('the year marks the month row you came from, or the day', async ({
     0,
   );
   await expect(stops(page, 'year')).toHaveAttribute('data-date', '2025-11-02');
+});
+
+test('moving focus onto 年 keeps the day page on its day', async ({ page }) => {
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  await expect(page.locator('#day-2025-11-01')).toBeAttached();
+  const scrolled = await page.evaluate(() => scrollY);
+  await page.getByRole('tab', { name: '日' }).focus();
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.getByRole('tab', { name: '年' })).toBeFocused();
+  await page.evaluate(
+    () =>
+      new Promise((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(done)),
+      ),
+  );
+  expect(await page.evaluate(() => scrollY)).toBe(scrolled);
+  await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+  const cell = page.locator('a[data-date="2025-11-02"]');
+  await expect(cell).toHaveAttribute('data-last-viewed', '');
+  await expect(cell).toBeFocused();
 });

@@ -96,7 +96,8 @@ export function TopBar({
 }: Props) {
   return (
     <header
-      className="border-border bg-background/90 h-(--app-bar-h) sticky top-0 z-[15] -mx-4 mb-6 flex items-center gap-3 border-b px-4 backdrop-blur-md"
+      // html's scroll-padding-top covers the bar itself, so Chromium scrolls the page to reveal any control in it that gains focus.
+      className="border-border bg-background/90 h-(--app-bar-h) **:-scroll-mt-(--app-bar-h) sticky top-0 z-[15] -mx-4 mb-6 flex items-center gap-3 border-b px-4 backdrop-blur-md"
       style={{ viewTransitionName: 'app-bar' }}
     >
       <a href="/" className="text-heading font-semibold">
