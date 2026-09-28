@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 
-import { type Level, levelHrefs, type Place } from '../../lib/nav.ts';
+import {
+  type Level,
+  levelHrefs,
+  monthBack,
+  type Place,
+} from '../../lib/nav.ts';
 import { useActiveDay } from '../useActiveDay.ts';
 import { useOverlay } from '../useOverlay.ts';
 
@@ -23,6 +28,8 @@ export function useChrome(
     place.level === 'day' && active
       ? levelHrefs({ level: 'day', date: active }, [])
       : initial;
+  const back =
+    place.level === 'day' ? monthBack(active ?? place.date) : undefined;
   const [jumpOpen, setJumpOpen] = useState(false);
   const [keysOpen, setKeysOpen] = useState(false);
   const [days, setDays] = useState<DayCount[] | 'error'>();
@@ -70,5 +77,14 @@ export function useChrome(
   }, [jumpOpen, days]);
 
   useOverlay(jumpOpen || keysOpen);
-  return { hrefs, step, jumpOpen, setJumpOpen, keysOpen, setKeysOpen, days };
+  return {
+    hrefs,
+    back,
+    step,
+    jumpOpen,
+    setJumpOpen,
+    keysOpen,
+    setKeysOpen,
+    days,
+  };
 }

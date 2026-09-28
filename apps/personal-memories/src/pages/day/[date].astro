@@ -59,9 +59,6 @@ const bar = {
 ---
 
 <Layout title={`${date} · Memories`} wide bar={bar}>
-  <nav class="mb-4 text-sm">
-    <a href="/" class="text-muted-foreground hover:underline">← 全部日子</a>
-  </nav>
   {
     state.status === 'missing' ? (
       <EmptyState path={state.path} />

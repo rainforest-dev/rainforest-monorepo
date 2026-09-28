@@ -278,3 +278,52 @@ test('moving focus onto 年 keeps the day page on its day', async ({ page }) => 
   await expect(cell).toHaveAttribute('data-last-viewed', '');
   await expect(cell).toBeFocused();
 });
+
+test('the app bar leads a day with a link back to its month, following the day in view', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  await waitForAppBarReady(page);
+  await expect(page.getByRole('link', { name: '← 全部日子' })).toHaveCount(0);
+  const november = page.getByRole('link', { name: '回到 11 月' });
+  await expect(november).toHaveText('← 11 月');
+  await expect(november).toHaveAttribute('href', '/month/2025-11');
+
+  await page
+    .locator('[data-event-id]', { hasText: 'Busy message 31' })
+    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
+  const october = page.getByRole('link', { name: '回到 10 月' });
+  await expect(october).toHaveAttribute('href', '/month/2025-10');
+  await expect(october).toBeInViewport();
+});
+
+test('the back link lands on the day in view like Escape does', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-01');
+  await waitForAppBarReady(page);
+  await scrollToDay(page, '2025-11-03');
+  await page.getByRole('link', { name: '回到 11 月' }).click();
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  const cell = visibleCell(page, '2025-11-03');
+  await expect(cell).toHaveAttribute('data-last-viewed', '');
+  await expect(cell).toBeFocused();
+});
+
+test('on a phone the back link fits in the app bar', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/day/2025-11-02');
+  await waitForAppBarReady(page);
+  await expect(page.getByRole('link', { name: '回到 11 月' })).toBeInViewport({
+    ratio: 1,
+  });
+  await expect(
+    page.locator('header').first().getByText('回憶', { exact: true }),
+  ).toBeHidden();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});

@@ -23,6 +23,7 @@ export function AppBar({ place, hrefs, step }: Props) {
       <TopBar
         level={place.level}
         hrefs={chrome.hrefs}
+        back={chrome.back}
         onJump={() => chrome.setJumpOpen(true)}
         onKeys={() => chrome.setKeysOpen(true)}
         onStep={place.level === 'day' ? stepDay : undefined}

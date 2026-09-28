@@ -49,3 +49,14 @@ export function levelHrefs(
     day: last ? `/day/${last}` : '/',
   };
 }
+
+export type BackLink = { href: string; label: string; ariaLabel: string };
+
+export function monthBack(date: string): BackLink {
+  const month = Number(date.slice(5, 7));
+  return {
+    href: `/month/${monthOf(date)}`,
+    label: `← ${month} 月`,
+    ariaLabel: `回到 ${month} 月`,
+  };
+}

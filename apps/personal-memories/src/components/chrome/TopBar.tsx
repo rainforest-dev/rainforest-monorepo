@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
 
-import type { Level } from '../../lib/nav.ts';
+import type { BackLink, Level } from '../../lib/nav.ts';
 
 const LEVELS: { value: Level; label: string }[] = [
   { value: 'year', label: '年' },
@@ -32,6 +32,7 @@ const LEVELS: { value: Level; label: string }[] = [
 type Props = {
   level: Level;
   hrefs: Record<Level, string>;
+  back?: BackLink | undefined;
   onJump: () => void;
   onKeys: () => void;
   onStep?: ((delta: -1 | 1) => void) | undefined;
@@ -89,6 +90,7 @@ function IconTip({
 export function TopBar({
   level,
   hrefs,
+  back,
   onJump,
   onKeys,
   onStep,
@@ -100,9 +102,24 @@ export function TopBar({
       className="border-border bg-background/90 h-(--app-bar-h) **:-scroll-mt-(--app-bar-h) sticky top-0 z-[15] -mx-4 mb-6 flex items-center gap-3 border-b px-4 backdrop-blur-md"
       style={{ viewTransitionName: 'app-bar' }}
     >
-      <a href="/" className="text-heading font-semibold">
+      <a
+        href="/"
+        className={cn('text-heading font-semibold', back && 'max-sm:hidden')}
+      >
         回憶
       </a>
+      {back && (
+        <a
+          href={back.href}
+          aria-label={back.ariaLabel}
+          className={cn(
+            buttonVariants({ variant: 'ghost', size: 'sm' }),
+            'tabular-nums',
+          )}
+        >
+          {back.label}
+        </a>
+      )}
       <Tabs value={level}>
         <TabsList aria-label="縮放">
           {LEVELS.map(({ value, label }) => (
