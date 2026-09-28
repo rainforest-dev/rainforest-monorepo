@@ -4,6 +4,12 @@ import { type Place, zoomOutHref } from './nav.ts';
 export type ShortcutRow = { keys: string[]; label: string };
 export type ShortcutGroup = { title: string; rows: ShortcutRow[] };
 
+const GRID_ROWS: ShortcutRow[] = [
+  { keys: ['↑', '↓'], label: '上下一行' },
+  { keys: ['Home', 'End'], label: '第一天／最後一天' },
+  { keys: ['Enter'], label: '打開那一天' },
+];
+
 export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: '全部畫面',
@@ -15,10 +21,11 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   },
   {
     title: '年',
-    rows: [
-      { keys: ['←', '→'], label: '在日子間移動' },
-      { keys: ['Enter'], label: '打開那一天' },
-    ],
+    rows: [{ keys: ['←', '→'], label: '在日子間移動' }, ...GRID_ROWS],
+  },
+  {
+    title: '月',
+    rows: [{ keys: ['←', '→'], label: '前後一天' }, ...GRID_ROWS],
   },
   {
     title: '日',
@@ -35,6 +42,18 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ['→'], label: '下一張' },
     ],
   },
+];
+
+export const YEAR_HINTS: readonly ShortcutRow[] = [
+  { keys: ['←', '→'], label: '在日子間移動' },
+  { keys: ['↑', '↓'], label: '上下一個月' },
+  { keys: ['Enter'], label: '打開那一天' },
+];
+
+export const MONTH_HINTS: readonly ShortcutRow[] = [
+  { keys: ['←', '→'], label: '前後一天' },
+  { keys: ['↑', '↓'], label: '前後一週' },
+  { keys: ['Enter'], label: '打開那一天' },
 ];
 
 export type Shortcut =

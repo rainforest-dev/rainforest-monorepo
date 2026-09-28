@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Place } from './nav.ts';
-import { type KeyInput, resolveShortcut } from './shortcuts.ts';
+import {
+  type KeyInput,
+  MONTH_HINTS,
+  resolveShortcut,
+  SHORTCUT_GROUPS,
+  YEAR_HINTS,
+} from './shortcuts.ts';
 
 const DAY: Place = { level: 'day', date: '2025-11-02' };
 const key = (k: string, over: Partial<KeyInput> = {}): KeyInput => ({
@@ -98,5 +104,43 @@ describe('resolveShortcut', () => {
     expect(
       resolveShortcut(key('Escape', { previewOpen: true, overlayOpen: true })),
     ).toBeUndefined();
+  });
+});
+
+describe('key hints and the shortcuts dialog', () => {
+  it('hints the arrow keys under each grid', () => {
+    expect(YEAR_HINTS).toEqual([
+      { keys: ['←', '→'], label: '在日子間移動' },
+      { keys: ['↑', '↓'], label: '上下一個月' },
+      { keys: ['Enter'], label: '打開那一天' },
+    ]);
+    expect(MONTH_HINTS).toEqual([
+      { keys: ['←', '→'], label: '前後一天' },
+      { keys: ['↑', '↓'], label: '前後一週' },
+      { keys: ['Enter'], label: '打開那一天' },
+    ]);
+  });
+
+  it('gives the dialog a month group and the new rows on the year and the month', () => {
+    expect(SHORTCUT_GROUPS.map((g) => g.title)).toEqual([
+      '全部畫面',
+      '年',
+      '月',
+      '日',
+      '照片',
+    ]);
+    for (const title of ['年', '月']) {
+      const rows = SHORTCUT_GROUPS.find((g) => g.title === title)?.rows ?? [];
+      expect(rows).toContainEqual({ keys: ['↑', '↓'], label: '上下一行' });
+      expect(rows).toContainEqual({
+        keys: ['Home', 'End'],
+        label: '第一天／最後一天',
+      });
+      expect(rows).toContainEqual({ keys: ['Enter'], label: '打開那一天' });
+    }
+    expect(SHORTCUT_GROUPS.find((g) => g.title === '月')?.rows[0]).toEqual({
+      keys: ['←', '→'],
+      label: '前後一天',
+    });
   });
 });

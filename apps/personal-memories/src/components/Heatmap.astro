@@ -1,11 +1,11 @@
 ---
-import { Kbd, KbdGroup } from '@rainforest-dev/rainforest-react';
-
 import type { MonthRow } from '../lib/days.ts';
 import type { MonthCell } from '../lib/month-view.ts';
 import { monthLabel } from '../lib/months.ts';
+import { YEAR_HINTS } from '../lib/shortcuts.ts';
 import { dayHeading } from '../lib/weeks.ts';
 import { morphAttrs } from '../lib/zoom.ts';
+import KeyHints from './KeyHints.astro';
 import DayPreview from './year/DayPreview.astro';
 
 type Props = {
@@ -240,10 +240,5 @@ const monthKey = (row: MonthRow) =>
     <p class="text-muted-foreground mt-3 text-xs">點一列，打開那個月。</p>
   </div>
 
-  <div class="text-muted-foreground hidden gap-5 text-xs sm:flex">
-    <span class="flex items-center gap-1.5">
-      <KbdGroup><Kbd>←</Kbd><Kbd>→</Kbd></KbdGroup>在日子間移動
-    </span>
-    <span class="flex items-center gap-1.5"><Kbd>Enter</Kbd>打開那一天</span>
-  </div>
+  <KeyHints hints={YEAR_HINTS} />
 </section>

@@ -817,10 +817,18 @@ test('the keyboard button opens the shortcuts overlay', async ({ page }) => {
     '鍵盤快速鍵',
     '全部畫面',
     '年',
+    '月',
     '日',
     '照片',
   ]);
-  for (const label of ['看所有快速鍵', '在日子間移動', '寫回憶'])
+  for (const label of [
+    '看所有快速鍵',
+    '在日子間移動',
+    '上下一行',
+    '第一天／最後一天',
+    '前後一天',
+    '寫回憶',
+  ])
     await expect(dialog).toContainText(label);
   await dialog.getByRole('button', { name: '關閉' }).click();
   await expect(dialog).toBeHidden();

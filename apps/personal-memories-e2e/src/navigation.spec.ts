@@ -92,3 +92,19 @@ test('on a phone, ↑ and ↓ move one day through the month list', async ({
   await expect(visibleCell(page, '2025-11-01')).toBeFocused();
   await expect(stops(page, 'list')).toHaveAttribute('data-date', '2025-11-01');
 });
+
+test('the year and month pages hint their arrow keys, and the day page does not', async ({
+  page,
+}) => {
+  await page.goto('/month/2025-11');
+  const hints = page.locator('[data-key-hints]');
+  await expect(hints).toBeVisible();
+  for (const label of ['前後一天', '前後一週', '打開那一天'])
+    await expect(hints).toContainText(label);
+
+  await page.goto('/');
+  await expect(page.locator('[data-key-hints]')).toContainText('上下一個月');
+
+  await page.goto('/day/2025-11-01');
+  await expect(page.locator('[data-key-hints]')).toHaveCount(0);
+});
