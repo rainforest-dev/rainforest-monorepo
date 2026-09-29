@@ -7,6 +7,12 @@ export const FAULT_COOKIE = 'calibre-e2e-fault';
 export async function gotoLibrary(page: Page, url = '/'): Promise<void> {
   await page.goto(url);
   await expect(page.locator('[data-library-ready]')).toHaveCount(1);
+  const isList = (url.split('?')[0] || '/') === '/';
+  if (isList) {
+    await expect(
+      page.locator('[data-view-region][data-view-ready]'),
+    ).toHaveCount(1);
+  }
 }
 
 export async function readPrefs(

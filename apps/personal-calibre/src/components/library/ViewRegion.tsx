@@ -21,18 +21,20 @@ interface Props {
 }
 
 export function ViewRegion({ library, groupBy, platforms, filtered }: Props) {
-  const { view, isPending, setPageInfo } = useLibrary();
+  const { view, isPending, pageInfo, setPageInfo } = useLibrary();
   const { page, pageCount, entries } = library;
   useEffect(
     () => setPageInfo({ page, pageCount }),
     [page, pageCount, setPageInfo],
   );
+  const ready = pageInfo.page === page && pageInfo.pageCount === pageCount;
 
   return (
     <section
       aria-label={`${VIEW_LABELS[view]} view`}
       aria-busy={isPending}
       data-view-region={view}
+      data-view-ready={ready || undefined}
       className={cn('transition-opacity', isPending && 'opacity-60')}
     >
       {entries.length === 0 ? (
