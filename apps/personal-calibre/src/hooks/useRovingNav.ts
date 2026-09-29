@@ -115,11 +115,18 @@ export function useRovingNav<T extends HTMLElement>({
         lastFocusedRef.current = null;
       }
     };
+    const onDocumentFocusIn = (event: FocusEvent) => {
+      if (event.target instanceof Node && !container.contains(event.target)) {
+        lastFocusedRef.current = null;
+      }
+    };
     container.addEventListener('focusin', onFocusIn);
     container.addEventListener('focusout', onFocusOut);
+    document.addEventListener('focusin', onDocumentFocusIn);
     return () => {
       container.removeEventListener('focusin', onFocusIn);
       container.removeEventListener('focusout', onFocusOut);
+      document.removeEventListener('focusin', onDocumentFocusIn);
     };
   }, []);
 
@@ -129,9 +136,9 @@ export function useRovingNav<T extends HTMLElement>({
     if (!container || !stopKey || !lastFocused || lastFocused.isConnected) {
       return;
     }
+    lastFocusedRef.current = null;
     const active = document.activeElement;
     if (active !== document.body && active !== null) return;
-    lastFocusedRef.current = null;
     focusElement(
       firstVisible(container, `[data-nav-key="${CSS.escape(stopKey)}"]`),
     );

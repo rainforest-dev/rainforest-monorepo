@@ -201,4 +201,48 @@ test.describe('shelf keyboard', () => {
     await expect(tracked).toBeAttached();
     await expect.poll(() => isActiveElementBody(page)).toBe(true);
   });
+
+  test('a stale focus memory is dropped once focus moves to a control outside the shelf', async ({
+    page,
+  }) => {
+    await gotoLibrary(page);
+    const firstId = await options(page).first().getAttribute('data-book-id');
+    const secondId = await options(page).nth(1).getAttribute('data-book-id');
+    const secondTitle = await tileTitle(page, secondId);
+
+    await page.goto(`/?q=${encodeURIComponent(secondTitle)}`);
+    await expect(page.locator('[data-library-ready]')).toHaveCount(1);
+    await page.getByRole('link', { name: 'Library' }).click();
+    await expect(page).toHaveURL('/');
+
+    const first = page.locator(`[role="option"][data-book-id="${firstId}"]`);
+    await expect(first).toBeVisible();
+    await first.focus();
+    await expect(first).toBeFocused();
+
+    await clickBetweenTiles(page);
+    await expect.poll(() => isActiveElementBody(page)).toBe(true);
+
+    const search = page.getByPlaceholder('Search books...');
+    await search.focus();
+    await expect(search).toBeFocused();
+
+    await page.goBack();
+    await expect(page).toHaveURL(/q=/);
+    await expect(first).toHaveCount(0);
+    await expect(search).toBeFocused();
+
+    await page.evaluate(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    await expect.poll(() => isActiveElementBody(page)).toBe(true);
+
+    await page.goForward();
+    await expect(page).toHaveURL('/');
+    await expect(options(page).first()).toHaveAttribute(
+      'data-book-id',
+      firstId ?? '',
+    );
+    await expect.poll(() => isActiveElementBody(page)).toBe(true);
+  });
 });
