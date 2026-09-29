@@ -30,6 +30,20 @@ test.describe('shell', () => {
     expect(await readPrefs(context)).toMatchObject({ view: 'shelf' });
   });
 
+  test('switching the view clears a stale ?view= so it does not win again on reload', async ({
+    page,
+  }) => {
+    await gotoLibrary(page, '/?view=catalogue');
+    await page.getByRole('button', { name: 'Shelf view' }).click();
+    await expect(page).not.toHaveURL(/view=/);
+    await page.reload();
+    await expect(page.locator('[data-library-ready]')).toHaveCount(1);
+    await expect(
+      page.getByRole('button', { name: 'Shelf view' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).not.toHaveURL(/view=/);
+  });
+
   test('hides and shows the filter panel and remembers it', async ({
     page,
     context,

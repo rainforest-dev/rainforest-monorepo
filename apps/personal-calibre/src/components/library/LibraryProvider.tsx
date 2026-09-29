@@ -110,12 +110,21 @@ export function LibraryProvider({
     [prefs],
   );
 
+  const replaceParams = useCallback(
+    (patch: ParamPatch) => {
+      const href = buildLibraryHref(searchParams, patch);
+      startTransition(() => router.replace(href, { scroll: false }));
+    },
+    [router, searchParams],
+  );
+
   const setView = useCallback(
     (next: View) => {
       setViewState(next);
       savePrefs({ view: next });
+      if (searchParams.get('view')) replaceParams({ view: null });
     },
-    [savePrefs],
+    [replaceParams, savePrefs, searchParams],
   );
 
   const togglePanel = useCallback(
@@ -135,14 +144,6 @@ export function LibraryProvider({
     [],
   );
   const clear = useCallback(() => setSelected(new Set()), []);
-
-  const replaceParams = useCallback(
-    (patch: ParamPatch) => {
-      const href = buildLibraryHref(searchParams, patch);
-      startTransition(() => router.replace(href, { scroll: false }));
-    },
-    [router, searchParams],
-  );
 
   const clearFilters = useCallback(() => {
     const href = clearFiltersHref(searchParams);

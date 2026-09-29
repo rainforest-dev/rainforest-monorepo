@@ -165,6 +165,12 @@ describe('buildLibraryHref', () => {
       ),
     ).toBe('/?groupBy=series&sortDir=desc&page=3');
   });
+
+  it('clears a stale view override without resetting page or book', () => {
+    expect(buildLibraryHref(current, { view: null })).toBe(
+      '/?q=salt&page=3&book=38&__delay=10',
+    );
+  });
 });
 
 describe('clearFiltersHref', () => {
