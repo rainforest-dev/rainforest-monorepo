@@ -1,7 +1,10 @@
+import { cookies } from 'next/headers';
+
 import { BookDetail } from '@/components/detail/BookDetail';
 import { listBookDeliveryEvents, listDeliveryPlatforms } from '@/lib/delivery';
 import { parseLibraryParams, type RawSearchParams } from '@/lib/library-params';
 import { getBook, getFilterOptions, getLibraryBook } from '@/lib/queries';
+import { applyTestHooks, FAULT_COOKIE, readTestHooks } from '@/lib/test-hooks';
 
 export default async function PanePage({
   searchParams,
@@ -11,6 +14,10 @@ export default async function PanePage({
   const raw = await searchParams;
   const id = parseLibraryParams(raw).book;
   if (id === null) return null;
+  await applyTestHooks(
+    readTestHooks(raw, (await cookies()).get(FAULT_COOKIE)?.value),
+    'pane',
+  );
   const [book, library, events, platforms, options] = await Promise.all([
     getBook(id),
     getLibraryBook(id),

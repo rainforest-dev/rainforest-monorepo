@@ -10,8 +10,11 @@ export async function gotoLibrary(page: Page, url = '/'): Promise<void> {
   const isList = (url.split('?')[0] || '/') === '/';
   if (isList) {
     await expect(
-      page.locator('[data-view-region][data-view-ready]'),
-    ).toHaveCount(1);
+      page
+        .locator('[data-view-region][data-view-ready]')
+        .or(page.getByRole('alert'))
+        .first(),
+    ).toBeVisible();
   }
 }
 
