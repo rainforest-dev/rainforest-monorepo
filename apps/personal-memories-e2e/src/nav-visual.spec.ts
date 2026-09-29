@@ -7,7 +7,7 @@ const OUT = path.join(__dirname, '..', 'test-output', 'nav');
 const SCHEMES = ['light', 'dark'] as const;
 const VIEWPORTS = [
   { width: 1440, height: 900 },
-  { width: 390, height: 844 },
+  { width: 390, height: 844, isMobile: true, deviceScaleFactor: 2 },
 ] as const;
 
 test.skip(
@@ -35,7 +35,16 @@ const settle = async (page: Page) => {
 for (const scheme of SCHEMES) {
   for (const viewport of VIEWPORTS) {
     test.describe(`nav visual ${scheme} ${viewport.width}`, () => {
-      test.use({ colorScheme: scheme, viewport });
+      test.use({
+        colorScheme: scheme,
+        viewport: { width: viewport.width, height: viewport.height },
+        ...('isMobile' in viewport
+          ? {
+              isMobile: viewport.isMobile,
+              deviceScaleFactor: viewport.deviceScaleFactor,
+            }
+          : {}),
+      });
       const shot = (surface: string) =>
         path.join(OUT, `${PHASE}-${surface}-${scheme}-${viewport.width}.png`);
 
