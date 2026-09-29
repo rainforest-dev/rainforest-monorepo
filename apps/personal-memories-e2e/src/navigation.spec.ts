@@ -375,6 +375,26 @@ test('arriving by Escape focuses the day without opening its preview', async ({
   await expect(page.locator('[data-preview]:popover-open')).toHaveCount(0);
 });
 
+test('pagehide resets an open preview before a bfcache restore', async ({
+  page,
+}) => {
+  await page.goto('/month/2025-11');
+  await waitForAppBarReady(page);
+  await visibleCell(page, '2025-11-02').focus();
+  await page.keyboard.press('ArrowRight');
+  const cell = visibleCell(page, '2025-11-03');
+  const preview = cell.locator('[data-preview]');
+  await expect(cell).toBeFocused();
+  await expect(preview).toBeVisible();
+
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new PageTransitionEvent('pagehide', { persisted: true }),
+    ),
+  );
+  await expect(preview).toBeHidden();
+});
+
 test.describe('previews on touch', () => {
   test.use({ hasTouch: true });
 
@@ -408,6 +428,28 @@ test.describe('previews on touch', () => {
     await expect(preview).toBeVisible();
 
     await page.touchscreen.tap(20, 400);
+    await expect(preview).toBeHidden();
+    await expect(page).toHaveURL(/\/month\/2025-11$/);
+
+    await visibleCell(page, '2025-11-02').tap();
+    await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  });
+
+  test('a tap that lands on a cell while closing a pinned preview does not also navigate', async ({
+    page,
+  }) => {
+    await page.goto('/month/2025-11');
+    await waitForAppBarReady(page);
+    const send = await touch(page);
+    const preview = visibleCell(page, '2025-11-03').locator('[data-preview]');
+    await send('touchStart', [await centre(page, '2025-11-03')]);
+    await page.waitForTimeout(600);
+    await expect(preview).toBeVisible();
+    await send('touchEnd', []);
+    await page.waitForTimeout(300);
+    await expect(preview).toBeVisible();
+
+    await visibleCell(page, '2025-11-02').tap();
     await expect(preview).toBeHidden();
     await expect(page).toHaveURL(/\/month\/2025-11$/);
 

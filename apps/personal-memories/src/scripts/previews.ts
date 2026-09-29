@@ -1,3 +1,4 @@
+import { openPreview } from '../lib/client/preview-dom.ts';
 import { LONG_PRESS_MS, movedBeyond, type Point } from '../lib/gestures.ts';
 import {
   placePreview,
@@ -18,6 +19,7 @@ let quiet: Element | undefined;
 let press: { cell: HTMLElement; start: Point; timer: Timer } | undefined;
 let swallow: HTMLElement | undefined;
 let pendingRelease: HTMLElement | undefined;
+let closingTap = false;
 
 const cellOf = (target: EventTarget | null) =>
   target instanceof Element ? target.closest<HTMLElement>(CELL) : null;
@@ -35,7 +37,9 @@ function hide() {
   const preview = open && previewOf(open);
   open = undefined;
   pinned = false;
-  if (preview?.matches(':popover-open')) preview.hidePopover();
+  // Fall back to whatever popover is actually open, so a stale `open` (a bfcache restore, a state slip) can't leave a visible preview that Escape or a closing tap no longer reaches.
+  const target = preview?.matches(':popover-open') ? preview : openPreview();
+  target?.hidePopover();
 }
 
 export const closePreview = hide;
@@ -126,6 +130,7 @@ export function startPreviews() {
     (event) => {
       swallow = undefined;
       pendingRelease = undefined;
+      closingTap = pinned;
       if (pinned) hide();
       if (event.pointerType !== 'touch') return;
       const cell = cellOf(event.target);
@@ -176,10 +181,12 @@ export function startPreviews() {
   document.addEventListener(
     'click',
     (event) => {
-      if (swallow && cellOf(event.target) === swallow) {
+      // A touch's click always fires on whatever is under the finger, regardless of what pointerdown did.
+      if (closingTap || (swallow && cellOf(event.target) === swallow)) {
         event.preventDefault();
         event.stopPropagation();
       }
+      closingTap = false;
       swallow = undefined;
     },
     true,
@@ -193,4 +200,13 @@ export function startPreviews() {
       },
       { capture: true, passive: true },
     );
+
+  // A bfcache restore resurrects this module's state as-is; clear every per-gesture flag before the page freezes.
+  window.addEventListener('pagehide', () => {
+    cancelPress();
+    hide();
+    swallow = undefined;
+    pendingRelease = undefined;
+    closingTap = false;
+  });
 }
