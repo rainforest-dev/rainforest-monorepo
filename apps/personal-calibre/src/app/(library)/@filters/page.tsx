@@ -1,3 +1,4 @@
+import { connection } from 'next/server';
 import { Suspense } from 'react';
 
 import { FilterPanel } from '@/components/library/FilterPanel';
@@ -13,6 +14,7 @@ export default function FiltersSlot() {
 }
 
 async function FiltersContent() {
+  await connection();
   const [options, platforms] = await Promise.all([
     getFilterOptions(),
     listDeliveryPlatforms(),
