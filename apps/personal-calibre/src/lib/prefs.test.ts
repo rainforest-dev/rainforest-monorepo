@@ -45,6 +45,21 @@ describe('parsePrefs', () => {
       renderer: 'css',
     });
   });
+
+  it('defaults on a JSON array, encoded or not', () => {
+    expect(parsePrefs('[1,2,3]')).toEqual(DEFAULT_PREFS);
+    expect(parsePrefs(encodeURIComponent('[1,2,3]'))).toEqual(DEFAULT_PREFS);
+  });
+
+  it('defaults on a JSON number', () => {
+    expect(parsePrefs('42')).toEqual(DEFAULT_PREFS);
+  });
+
+  it('defaults on a nested garbage object', () => {
+    expect(
+      parsePrefs('{"view":{"nested":true},"panel":[1],"renderer":{}}'),
+    ).toEqual(DEFAULT_PREFS);
+  });
 });
 
 describe('resolveView', () => {

@@ -57,7 +57,8 @@ export function parsePrefs(raw: string | undefined): Prefs {
   if (!raw) return { ...DEFAULT_PREFS };
   const value = parseJson(raw) ?? parseJson(decodeCookie(raw));
   if (typeof value !== 'object' || value === null) return { ...DEFAULT_PREFS };
-  return prefsSchema.parse(value);
+  const result = prefsSchema.safeParse(value);
+  return result.success ? result.data : { ...DEFAULT_PREFS };
 }
 
 export function resolveView(
