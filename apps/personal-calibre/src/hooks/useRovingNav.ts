@@ -99,18 +99,20 @@ export function useRovingNav<T extends HTMLElement>({
     focusElement(target);
   }, [pendingFocus, page, contentKey, requestFocus, focusElement]);
 
-  const focusInsideRef = useRef(false);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const onFocusIn = () => {
-      focusInsideRef.current = true;
+    const onFocusIn = (event: FocusEvent) => {
+      if (event.target instanceof HTMLElement) {
+        lastFocusedRef.current = event.target;
+      }
     };
     const onFocusOut = (event: FocusEvent) => {
       const related = event.relatedTarget as Node | null;
       if (related && !container.contains(related)) {
-        focusInsideRef.current = false;
+        lastFocusedRef.current = null;
       }
     };
     container.addEventListener('focusin', onFocusIn);
@@ -123,9 +125,13 @@ export function useRovingNav<T extends HTMLElement>({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !focusInsideRef.current || !stopKey) return;
+    const lastFocused = lastFocusedRef.current;
+    if (!container || !stopKey || !lastFocused || lastFocused.isConnected) {
+      return;
+    }
     const active = document.activeElement;
     if (active !== document.body && active !== null) return;
+    lastFocusedRef.current = null;
     focusElement(
       firstVisible(container, `[data-nav-key="${CSS.escape(stopKey)}"]`),
     );

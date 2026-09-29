@@ -9,6 +9,17 @@ async function tileTitle(page: Page, id: string | null): Promise<string> {
   return (label ?? '').split(', ')[0] ?? '';
 }
 
+async function clickBetweenTiles(page: Page): Promise<void> {
+  const first = await options(page).first().boundingBox();
+  const second = await options(page).nth(1).boundingBox();
+  if (!first || !second) throw new Error('tiles are not laid out yet');
+  await page.mouse.click((first.x + first.width + second.x) / 2, first.y + 4);
+}
+
+async function isActiveElementBody(page: Page): Promise<boolean> {
+  return page.evaluate(() => document.activeElement === document.body);
+}
+
 async function readColumns(page: Page): Promise<number | null> {
   return page.evaluate(() => {
     const tiles = Array.from(document.querySelectorAll('[role="option"]'));
@@ -162,15 +173,32 @@ test.describe('shelf keyboard', () => {
     await expect(options(page).first()).toBeFocused();
   });
 
-  test('changing content while focus is in the search box leaves it there', async ({
+  test('a click to a non-focusable area is not overridden by a later, unrelated content change', async ({
     page,
   }) => {
-    await gotoLibrary(page);
-    const search = page.getByPlaceholder('Search books...');
-    await search.focus();
-    await search.fill('zzz-no-such-book-zzz');
-    await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/q=/);
-    await expect(search).toBeFocused();
+    await gotoLibrary(page, '/?series=4');
+    const trackedId = await options(page).first().getAttribute('data-book-id');
+
+    await page.getByRole('link', { name: 'Library' }).click();
+    await expect(page).toHaveURL('/');
+
+    const tracked = page.locator(
+      `[role="option"][data-book-id="${trackedId}"]`,
+    );
+    await expect(tracked).toBeVisible();
+    await tracked.focus();
+    await expect(tracked).toBeFocused();
+
+    await clickBetweenTiles(page);
+    await expect.poll(() => isActiveElementBody(page)).toBe(true);
+
+    await page.goBack();
+    await expect(page).toHaveURL(/series=4/);
+    await expect(options(page).first()).toHaveAttribute(
+      'data-book-id',
+      trackedId ?? '',
+    );
+    await expect(tracked).toBeAttached();
+    await expect.poll(() => isActiveElementBody(page)).toBe(true);
   });
 });
