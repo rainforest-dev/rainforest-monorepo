@@ -1,14 +1,14 @@
-import Database from 'better-sqlite3';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
 
-// Clears all delivery records between tests. Safe to call even if app.db doesn't exist yet.
-export function resetAppDb() {
-  const appDbPath = path.join(__dirname, '../fixtures/app.db');
-  if (!fs.existsSync(appDbPath)) return;
-  const db = new Database(appDbPath);
+import Database from 'better-sqlite3';
+
+import { APP_DB_PATH, resetDeliveries } from './seed';
+
+export function resetAppDb(): void {
+  if (!fs.existsSync(APP_DB_PATH)) return;
+  const db = new Database(APP_DB_PATH);
   try {
-    db.prepare(`DELETE FROM book_deliveries`).run();
+    resetDeliveries(db);
   } finally {
     db.close();
   }
