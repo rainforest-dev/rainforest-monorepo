@@ -2,6 +2,13 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { gotoLibrary, options, tokenColor } from './support/library';
 
+async function tileTitle(page: Page, id: string | null): Promise<string> {
+  const label = await page
+    .locator(`[role="option"][data-book-id="${id}"]`)
+    .getAttribute('aria-label');
+  return (label ?? '').split(', ')[0] ?? '';
+}
+
 async function readColumns(page: Page): Promise<number | null> {
   return page.evaluate(() => {
     const tiles = Array.from(document.querySelectorAll('[role="option"]'));
@@ -127,5 +134,43 @@ test.describe('shelf keyboard', () => {
     await expect(copies.first()).toBeFocused();
     await page.keyboard.press('ArrowRight');
     await expect(copies.nth(1)).toBeFocused();
+  });
+
+  test('a back navigation that removes the focused tile moves focus to the remaining tile, not the body', async ({
+    page,
+  }) => {
+    await gotoLibrary(page);
+    const firstId = await options(page).first().getAttribute('data-book-id');
+    const secondId = await options(page).nth(1).getAttribute('data-book-id');
+    const secondTitle = await tileTitle(page, secondId);
+
+    await page.goto(`/?q=${encodeURIComponent(secondTitle)}`);
+    await expect(page.locator('[data-library-ready]')).toHaveCount(1);
+    await page.getByRole('link', { name: 'Library' }).click();
+    await expect(page).toHaveURL('/');
+
+    const first = page.locator(`[role="option"][data-book-id="${firstId}"]`);
+    await expect(first).toBeVisible();
+    await first.focus();
+    await expect(first).toBeFocused();
+
+    await page.goBack();
+    await expect(page).toHaveURL(/q=/);
+    await expect(
+      page.locator(`[role="option"][data-book-id="${firstId}"]`),
+    ).toHaveCount(0);
+    await expect(options(page).first()).toBeFocused();
+  });
+
+  test('changing content while focus is in the search box leaves it there', async ({
+    page,
+  }) => {
+    await gotoLibrary(page);
+    const search = page.getByPlaceholder('Search books...');
+    await search.focus();
+    await search.fill('zzz-no-such-book-zzz');
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/q=/);
+    await expect(search).toBeFocused();
   });
 });

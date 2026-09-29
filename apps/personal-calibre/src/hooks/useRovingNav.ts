@@ -25,6 +25,16 @@ interface Options {
   contentKey: string;
 }
 
+function firstVisible(
+  container: HTMLElement,
+  selector: string,
+): HTMLElement | null {
+  for (const el of container.querySelectorAll<HTMLElement>(selector)) {
+    if (el.getClientRects().length > 0) return el;
+  }
+  return null;
+}
+
 function collectItems(container: HTMLElement, mode: NavMode): NavItem[] {
   const items = Array.from(
     container.querySelectorAll<HTMLElement>('[data-nav-key]'),
@@ -74,17 +84,52 @@ export function useRovingNav<T extends HTMLElement>({
     if (!pendingFocus || !container) return;
     if (pendingFocus.kind === 'first') {
       if (pendingFocus.page !== page) return;
+      const target = firstVisible(container, '[data-nav-key]');
+      if (!target) return;
       requestFocus(null);
-      focusElement(container.querySelector<HTMLElement>('[data-nav-key]'));
+      focusElement(target);
       return;
     }
-    requestFocus(null);
-    focusElement(
-      container.querySelector<HTMLElement>(
-        `[data-book-id="${pendingFocus.id}"]`,
-      ),
+    const target = firstVisible(
+      container,
+      `[data-book-id="${pendingFocus.id}"]`,
     );
+    if (!target) return;
+    requestFocus(null);
+    focusElement(target);
   }, [pendingFocus, page, contentKey, requestFocus, focusElement]);
+
+  const focusInsideRef = useRef(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const onFocusIn = () => {
+      focusInsideRef.current = true;
+    };
+    const onFocusOut = (event: FocusEvent) => {
+      const related = event.relatedTarget as Node | null;
+      if (related && !container.contains(related)) {
+        focusInsideRef.current = false;
+      }
+    };
+    container.addEventListener('focusin', onFocusIn);
+    container.addEventListener('focusout', onFocusOut);
+    return () => {
+      container.removeEventListener('focusin', onFocusIn);
+      container.removeEventListener('focusout', onFocusOut);
+    };
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !focusInsideRef.current || !stopKey) return;
+    const active = document.activeElement;
+    if (active !== document.body && active !== null) return;
+    focusElement(
+      firstVisible(container, `[data-nav-key="${CSS.escape(stopKey)}"]`),
+    );
+  }, [contentKey, stopKey, focusElement]);
 
   const onItemFocus = useCallback(
     (key: string) => {
@@ -112,9 +157,7 @@ export function useRovingNav<T extends HTMLElement>({
         );
         if (target) {
           focusElement(
-            container.querySelector<HTMLElement>(
-              `[data-nav-key="${CSS.escape(target)}"]`,
-            ),
+            firstVisible(container, `[data-nav-key="${CSS.escape(target)}"]`),
           );
         }
         return;
