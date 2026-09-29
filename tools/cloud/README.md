@@ -55,11 +55,20 @@ project instructions.
 - `VAULT_PATH`. The Obsidian vault is not reachable; rss-manager runs on fixtures.
 - firefox and webkit. Add them to both scripts if personal-liff-e2e's other projects matter
   more than setup time.
-- The user-scoped MCP servers and plugins on the laptop. `.mcp.json` here still loads.
+- Plugins, including the `nx` and `polygraph` plugins `.claude/settings.json` enables. Cloud
+  sessions install neither user-scoped plugins nor the ones a repository turns on, whatever
+  marketplace it declares. The user-scoped MCP servers on the laptop are absent too;
+  `.mcp.json` here still loads.
+
+## Verified elsewhere
+
+On another environment built the same way (2026-09-29): sessions run as root, the same user as the setup script, so
+`/opt/ms-playwright` needs no permission changes. The image also ships its own chromium under
+`/opt/pw-browsers` (chromium-1194), and the platform's instructions to Claude point there and
+say not to run `playwright install`; `PLAYWRIGHT_BROWSERS_PATH` overrides that path.
 
 ## Unverified until the first session
 
-- Whether `/opt/ms-playwright`, written by root, is readable by the session user.
 - Whether corepack's pnpm shim is on the session's `PATH`.
 
 Ask the first session to run `pnpm -v`, `node -v` and
