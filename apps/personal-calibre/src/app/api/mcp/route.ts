@@ -22,6 +22,14 @@ import {
   removeTagFromBook,
   revalidateBookTagCache,
 } from '@/lib/tags';
+import { httpUrlSchema } from '@/lib/url';
+
+export const addDeliveryInputSchema = {
+  bookId: z.number().int(),
+  platformKey: z.string(),
+  externalRef: httpUrlSchema.optional(),
+  note: z.string().optional(),
+};
 
 export async function POST(request: Request): Promise<Response> {
   const server = new McpServer({ name: 'calibre-mcp', version: '0.1.0' });
@@ -137,12 +145,7 @@ export async function POST(request: Request): Promise<Response> {
     'add_delivery',
     {
       description: 'Record a book as delivered to a platform',
-      inputSchema: {
-        bookId: z.number().int(),
-        platformKey: z.string(),
-        externalRef: z.string().optional(),
-        note: z.string().optional(),
-      },
+      inputSchema: addDeliveryInputSchema,
     },
     async (input) => {
       await createBookDeliveryEvent(input.bookId, {

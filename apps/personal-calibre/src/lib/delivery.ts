@@ -3,11 +3,21 @@ import { revalidateTag, unstable_noStore as noStore } from 'next/cache';
 
 import { appDb } from '@/db/client';
 import { bookDeliveries, deliveryPlatforms } from '@/db/schema-app';
+import { isHttpUrl } from '@/lib/url';
 import type {
   BookDeliveryEvent,
   CreateDeliveryEventInput,
   DeliveryPlatform,
 } from '@/types/delivery';
+
+export function normalizeExternalRef(value: string | undefined): string | null {
+  const trimmed = value?.trim() ?? '';
+  if (!trimmed) return null;
+  if (!isHttpUrl(trimmed)) {
+    throw new Error('externalRef must use http or https');
+  }
+  return trimmed;
+}
 
 export async function listDeliveryPlatforms(): Promise<DeliveryPlatform[]> {
   noStore();
@@ -60,6 +70,8 @@ export async function createBookDeliveryEvent(
     throw new Error('platformKey is required');
   }
 
+  const externalRef = normalizeExternalRef(input.externalRef);
+
   const platform = await appDb
     .select({ id: deliveryPlatforms.id })
     .from(deliveryPlatforms)
@@ -75,7 +87,7 @@ export async function createBookDeliveryEvent(
     platformId: platform.id,
     addedAt: new Date().toISOString(),
     note: input.note?.trim() || null,
-    externalRef: input.externalRef?.trim() || null,
+    externalRef,
   });
 
   revalidateTag('books', { expire: 0 });
@@ -106,6 +118,8 @@ export async function bulkCreateDeliveryEvents(
     throw new Error('platformKey is required');
   }
 
+  const externalRef = normalizeExternalRef(input.externalRef);
+
   const platform = await appDb
     .select({ id: deliveryPlatforms.id })
     .from(deliveryPlatforms)
@@ -124,7 +138,7 @@ export async function bulkCreateDeliveryEvents(
       platformId: platform.id,
       addedAt: now,
       note: input.note?.trim() || null,
-      externalRef: input.externalRef?.trim() || null,
+      externalRef,
     })),
   );
 

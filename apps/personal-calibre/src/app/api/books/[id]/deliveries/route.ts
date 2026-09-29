@@ -6,17 +6,12 @@ import {
   deleteBookDeliveryEvent,
   listBookDeliveryEvents,
 } from '@/lib/delivery';
-import { isHttpUrl } from '@/lib/url';
+import { httpUrlSchema } from '@/lib/url';
 
 const externalRefSchema = z.preprocess(
   (value) =>
     typeof value === 'string' && value.trim() === '' ? undefined : value,
-  z
-    .string()
-    .trim()
-    .url({ message: 'Reference URL must be a valid URL' })
-    .refine(isHttpUrl, { message: 'Reference URL must use http or https' })
-    .optional(),
+  httpUrlSchema.optional(),
 );
 
 export const deliveryBodySchema = z.object({
