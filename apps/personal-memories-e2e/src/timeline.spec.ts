@@ -1023,9 +1023,13 @@ test('zooming out after scrolling into a different month lands on the day in vie
   await expect(cell).toBeFocused();
 
   await cell.click();
-  await expect(
-    page.locator('#day-2025-10-31 [data-morph="day-2025-10-31"]'),
-  ).toHaveAttribute('style', /view-transition-name: day-2025-10-31/);
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
+  await expect(html).toHaveAttribute('data-reveal-transition', 'true');
+  await expect(html).toHaveAttribute(
+    'data-reveal-style',
+    '[data-morph]{view-transition-name:none!important}' +
+      '[data-morph="day-2025-10-31"]{view-transition-name:day-2025-10-31!important}',
+  );
 });
 
 test('under reduced motion no element morphs', async ({ page }) => {

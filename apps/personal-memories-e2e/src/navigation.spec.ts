@@ -290,7 +290,7 @@ test('moving focus onto 年 keeps the day page on its day', async ({ page }) => 
   await page.goto('/day/2025-11-02');
   await waitForAppBarReady(page);
   await expect(page.locator('#day-2025-11-01')).toBeAttached();
-  const scrolled = await page.evaluate(() => scrollY);
+  const before = await page.evaluate(() => scrollY);
   await page.getByRole('tab', { name: '日' }).focus();
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('ArrowLeft');
@@ -301,7 +301,7 @@ test('moving focus onto 年 keeps the day page on its day', async ({ page }) => 
         requestAnimationFrame(() => requestAnimationFrame(done)),
       ),
   );
-  expect(await page.evaluate(() => scrollY)).toBe(scrolled);
+  expect(await page.evaluate(() => scrollY)).toBe(before);
   await expect(page).toHaveURL(/\/day\/2025-11-02$/);
 
   await page.keyboard.press('Enter');
