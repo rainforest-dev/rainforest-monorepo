@@ -151,7 +151,7 @@ export function BookDetail({
         {hasEpub && (
           <Link
             href={`/read/${book.id}`}
-            className={buttonVariants({ size: 'sm' })}
+            className={buttonVariants({ variant: 'secondary', size: 'sm' })}
           >
             <BookOpen aria-hidden />
             Read

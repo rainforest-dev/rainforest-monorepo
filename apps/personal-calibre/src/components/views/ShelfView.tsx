@@ -67,18 +67,14 @@ export function ShelfView({ entries, groupBy, platforms, page }: Props) {
     );
   };
 
-  const listboxProps = {
-    ref: containerRef,
-    role: 'listbox',
-    'aria-label': 'Books',
-    'aria-multiselectable': true,
-    onKeyDown,
-  } as const;
-
   if (!groups) {
     return (
       <div
-        {...listboxProps}
+        ref={containerRef}
+        role="listbox"
+        aria-label="Books"
+        aria-multiselectable="true"
+        onKeyDown={onKeyDown}
         className="grid grid-cols-2 gap-x-5 gap-y-7 lg:grid-cols-[repeat(auto-fill,minmax(148px,1fr))]"
       >
         {entries.map((entry) => tile(entry))}
@@ -87,16 +83,26 @@ export function ShelfView({ entries, groupBy, platforms, page }: Props) {
   }
 
   return (
-    <div {...listboxProps} className="flex flex-col gap-8">
+    <div
+      ref={containerRef}
+      onKeyDown={onKeyDown}
+      className="flex flex-col gap-8"
+    >
       {groups.map((group) => (
-        <div
-          key={group.key}
-          role="group"
-          aria-label={`${groupTitle(group)}, ${booksLabel(group.total)}`}
-          className="flex flex-col gap-3"
-        >
-          <GroupHeading group={group} shown={group.entries.length} />
-          <div className="-mx-1 flex gap-5 overflow-x-auto px-1 pb-2">
+        <div key={group.key} className="flex flex-col gap-3">
+          <div
+            role="group"
+            aria-label={`${groupTitle(group)}, ${booksLabel(group.total)}`}
+          >
+            <GroupHeading group={group} shown={group.entries.length} />
+          </div>
+          <div
+            role="listbox"
+            aria-label={`Books — ${groupTitle(group)}`}
+            aria-multiselectable="true"
+            tabIndex={0}
+            className="-mx-1 flex gap-5 overflow-x-auto px-1 pb-2"
+          >
             {group.entries.map((entry) => tile(entry, group.key))}
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { Badge } from '@rainforest-dev/rainforest-react';
+import { Check } from 'lucide-react';
 
 import { platformName } from '@/lib/platforms';
 import type { DeliveryPlatform } from '@/types/delivery';
@@ -25,7 +26,8 @@ export function DeliveryPills({
   return (
     <span className="flex flex-wrap gap-1">
       {unique.map((key) => (
-        <Badge key={key} variant="success">
+        <Badge key={key} variant="success" className="text-foreground">
+          <Check className="text-success" aria-hidden />
           {platformName(platforms, key)}
         </Badge>
       ))}

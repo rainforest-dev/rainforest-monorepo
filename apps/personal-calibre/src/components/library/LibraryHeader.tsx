@@ -36,6 +36,7 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
       )}
       <Link
         href="/"
+        prefetch={false}
         className="flex items-center gap-2 font-semibold tracking-tight"
       >
         <LibraryBig className="size-5" aria-hidden />

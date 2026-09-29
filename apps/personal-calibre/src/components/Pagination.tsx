@@ -32,6 +32,7 @@ export function Pagination({
       <Link
         href={buildLibraryHref(searchParams, { page: target })}
         scroll={false}
+        prefetch={false}
         className={buttonVariants({ variant: 'outline', size: 'sm' })}
         onClick={(event: MouseEvent<HTMLAnchorElement>) => {
           if (

@@ -111,7 +111,9 @@ export function LibraryShell({
             }}
           >
             <SheetContent showCloseButton={false} className="h-[92dvh]">
-              <SheetTitle className="sr-only">Book details</SheetTitle>
+              <SheetTitle className="sr-only" render={<span />}>
+                Book details
+              </SheetTitle>
               <SheetBody className="px-0">{pane}</SheetBody>
             </SheetContent>
           </Sheet>

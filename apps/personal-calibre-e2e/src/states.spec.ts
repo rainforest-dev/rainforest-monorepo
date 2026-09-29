@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Locator, test } from '@playwright/test';
 
 import {
   BASE_URL,
@@ -8,6 +8,19 @@ import {
   pane,
   setPrefs,
 } from './support/library';
+
+async function expectRetryAlignedWithTitle(alert: Locator): Promise<void> {
+  const title = alert.locator('[data-slot="alert-title"]');
+  const retry = alert.getByRole('button', { name: 'Retry' });
+  await expect
+    .poll(async () => {
+      const titleBox = await title.boundingBox();
+      const retryBox = await retry.boundingBox();
+      if (!titleBox || !retryBox) return null;
+      return Math.abs(titleBox.x - retryBox.x);
+    })
+    .toBeLessThanOrEqual(1);
+}
 
 test.describe('states', () => {
   test('the Skeleton follows the view in the cookie', async ({
@@ -34,6 +47,9 @@ test.describe('states', () => {
       'The book list request failed. Your filters and selection are kept, so a retry picks up where you were.',
     );
     await expect(alert.getByRole('button', { name: 'Retry' })).toBeVisible();
+    await expectRetryAlignedWithTitle(alert);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectRetryAlignedWithTitle(alert);
   });
 
   test('Retry recovers and keeps the selection', async ({ page, context }) => {
@@ -64,12 +80,12 @@ test.describe('states', () => {
 
   test('a pane fault shows the compact pane error', async ({ page }) => {
     await gotoLibrary(page, '/?book=38&__fault=pane');
-    await expect(pane(page).getByRole('alert')).toContainText(
-      "Couldn't load this book",
-    );
+    const alert = pane(page).getByRole('alert');
+    await expect(alert).toContainText("Couldn't load this book");
     await expect(
       pane(page).getByRole('button', { name: 'Retry' }),
     ).toBeVisible();
     await expect(options(page)).toHaveCount(30);
+    await expectRetryAlignedWithTitle(alert);
   });
 });

@@ -82,7 +82,14 @@ export function CatalogueView({ entries, groupBy, platforms, page }: Props) {
       aria-multiselectable="true"
       onKeyDown={onKeyDown}
     >
-      {!compact && (
+      {compact ? (
+        <TableHeader className="sr-only">
+          <TableRow>
+            <TableHead>Select</TableHead>
+            <TableHead>Book</TableHead>
+          </TableRow>
+        </TableHeader>
+      ) : (
         <TableHeader>
           <TableRow>
             <TableHead className="w-10">

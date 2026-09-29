@@ -33,7 +33,7 @@ export function GroupHeading({
         <Button
           variant="link"
           size="xs"
-          className="ml-auto"
+          className="text-foreground ml-auto"
           onClick={() => {
             const patch: ParamPatch = { groupBy: null };
             patch[filter.param] = filter.id;

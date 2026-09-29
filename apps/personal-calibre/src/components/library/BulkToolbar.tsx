@@ -118,7 +118,12 @@ export function BulkToolbar({
       </Button>
       <span className="text-sm font-medium tabular-nums">{count} selected</span>
       {!everyMatchSelected && (
-        <Button variant="link" size="xs" onClick={() => addMany(matchingIds)}>
+        <Button
+          variant="link"
+          size="xs"
+          className="text-foreground"
+          onClick={() => addMany(matchingIds)}
+        >
           Select all {matchingIds.length}
         </Button>
       )}
@@ -143,6 +148,7 @@ export function BulkToolbar({
           </SelectContent>
         </Select>
         <Button
+          variant="secondary"
           size="sm"
           disabled={busy || !platformKey}
           onClick={() => void markDelivered()}

@@ -26,9 +26,11 @@ test.describe('tags', () => {
     await pane(page).getByRole('button', { name: 'Add tag' }).click();
     await page.getByPlaceholder('Search or create tag…').fill('reading-group');
     await page.getByRole('option', { name: 'Create "reading-group"' }).click();
-    await expect(
-      pane(page).getByRole('button', { name: 'Remove tag reading-group' }),
-    ).toBeVisible();
+    const removeTag = pane(page).getByRole('button', {
+      name: 'Remove tag reading-group',
+    });
+    await expect(removeTag).toBeVisible();
+    await removeTag.click();
   });
 
   test('removes a tag', async ({ page }) => {
