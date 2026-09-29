@@ -62,4 +62,24 @@ test.describe('search', () => {
     await expect(first).toHaveAttribute('aria-selected', 'false');
     await expect(input).toBeFocused();
   });
+
+  test('after Back navigation, the search field reflects the URL and keeps its focus', async ({
+    page,
+  }) => {
+    await gotoLibrary(page, '/?q=Halvik');
+    const input = page.getByPlaceholder('Search books');
+    await expect(input).toHaveValue('Halvik');
+
+    await page.getByRole('link', { name: 'Library' }).click();
+    await expect(page).toHaveURL('/');
+    await expect(input).toHaveValue('');
+
+    await input.focus();
+    await expect(input).toBeFocused();
+
+    await page.goBack();
+    await expect(page).toHaveURL(/q=Halvik/);
+    await expect(input).toHaveValue('Halvik');
+    await expect(input).toBeFocused();
+  });
 });

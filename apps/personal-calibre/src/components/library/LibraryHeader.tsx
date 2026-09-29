@@ -44,7 +44,7 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
       {isList && <ViewSwitch className="ml-auto lg:ml-2" />}
       {isList && (
         <div className="order-last w-full lg:order-none lg:mx-auto lg:w-auto lg:max-w-[420px] lg:flex-1">
-          <SearchField key={params.q ?? ''} initialQuery={params.q ?? ''} />
+          <SearchField initialQuery={params.q ?? ''} />
         </div>
       )}
       {isList && !panelOpen && count > 0 && (

@@ -23,6 +23,14 @@ export function SearchField({ initialQuery }: { initialQuery: string }) {
   const [text, setText] = useState(initialQuery);
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [prevInitial, setPrevInitial] = useState(initialQuery);
+
+  if (initialQuery !== prevInitial) {
+    setPrevInitial(initialQuery);
+    setText(initialQuery);
+    setOpen(false);
+  }
+
   const trimmed = text.trim();
 
   useEffect(() => {
