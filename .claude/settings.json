@@ -1,6 +1,28 @@
 {
+  "extraKnownMarketplaces": {
+    "nx-claude-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "nrwl/nx-ai-agents-config"
+      }
+    }
+  },
   "enabledPlugins": {
     "nx@nx-claude-plugins": true,
     "polygraph@nx-claude-plugins": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/tools/cloud/session-start.sh",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
   }
 }
