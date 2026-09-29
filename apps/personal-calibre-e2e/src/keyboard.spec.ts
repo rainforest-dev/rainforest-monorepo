@@ -22,9 +22,7 @@ async function isActiveElementBody(page: Page): Promise<boolean> {
 
 async function readColumns(page: Page): Promise<number | null> {
   return page.evaluate(() => {
-    const shelf = document.querySelector(
-      '[role="listbox"][aria-label="Books"]',
-    );
+    const shelf = document.querySelector('[aria-label^="Books"]');
     const tiles = Array.from(shelf?.querySelectorAll('[role="option"]') ?? []);
     const first = tiles[0]?.getBoundingClientRect();
     if (!first || first.width === 0) return null;
@@ -263,5 +261,34 @@ test.describe('view switch focus', () => {
       'tabindex',
       '0',
     );
+  });
+});
+
+test.describe('grouped shelf keyboard', () => {
+  test('keeps exactly one tab stop across every group', async ({ page }) => {
+    await gotoLibrary(page, '/?groupBy=series');
+    const shelf = page.getByRole('region', { name: 'Shelf view' });
+    await expect(shelf.locator('[role="option"][tabindex="0"]')).toHaveCount(1);
+    await expect(shelf.locator('[role="listbox"][tabindex]')).toHaveCount(0);
+  });
+
+  test('Tab from the toolbar lands on a tile', async ({ page }) => {
+    await gotoLibrary(page, '/?groupBy=series');
+    await page.getByRole('button', { name: /Sort direction/ }).focus();
+    await page.keyboard.press('Tab');
+    await expect(options(page).first()).toBeFocused();
+  });
+
+  test('ArrowDown from one group moves focus into the next group', async ({
+    page,
+  }) => {
+    await gotoLibrary(page, '/?groupBy=series');
+    const first = options(page).first();
+    const firstRow = await first.getAttribute('data-nav-row');
+    await first.focus();
+    await page.keyboard.press('ArrowDown');
+    const active = page.locator('[role="option"][tabindex="0"]');
+    await expect(active).toBeFocused();
+    expect(await active.getAttribute('data-nav-row')).not.toBe(firstRow);
   });
 });

@@ -100,7 +100,6 @@ export function ShelfView({ entries, groupBy, platforms, page }: Props) {
             role="listbox"
             aria-label={`Books — ${groupTitle(group)}`}
             aria-multiselectable="true"
-            tabIndex={0}
             className="-mx-1 flex gap-5 overflow-x-auto px-1 pb-2"
           >
             {group.entries.map((entry) => tile(entry, group.key))}

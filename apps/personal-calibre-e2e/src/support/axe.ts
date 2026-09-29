@@ -3,13 +3,35 @@ import { expect, type Page } from '@playwright/test';
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice'];
 
-export async function expectNoViolations(page: Page): Promise<void> {
+export interface AxeIgnore {
+  rule: string;
+  targetIncludes: string;
+}
+
+export async function expectNoViolations(
+  page: Page,
+  options?: { ignore?: AxeIgnore[] },
+): Promise<void> {
   await page.waitForLoadState('networkidle');
   const { violations } = await new AxeBuilder({ page })
     .withTags(TAGS)
     .analyze();
+  const ignore = options?.ignore ?? [];
+  const remaining = violations
+    .map((v) => ({
+      ...v,
+      nodes: v.nodes.filter(
+        (n) =>
+          !ignore.some(
+            (i) =>
+              i.rule === v.id &&
+              n.target.some((t) => t.includes(i.targetIncludes)),
+          ),
+      ),
+    }))
+    .filter((v) => v.nodes.length > 0);
   expect(
-    violations.map(
+    remaining.map(
       (v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`,
     ),
   ).toEqual([]);
