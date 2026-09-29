@@ -95,6 +95,30 @@
   @apply bg-primary ring-ring ring-offset-background ring-2 ring-offset-1;
 }
 
+[data-last-viewed] {
+  @apply inset-ring-primary inset-ring-2;
+}
+
+[data-last-label] {
+  display: none;
+}
+
+[data-last-viewed] [data-last-label] {
+  display: inline;
+}
+
+@keyframes last-viewed-flash {
+  from {
+    background-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-last-viewed] {
+    animation: last-viewed-flash 600ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
 @view-transition {
   navigation: auto;
 }
@@ -119,17 +143,19 @@
 }
 
 [data-preview] {
-  display: none;
+  inset: auto;
+  margin: 0;
 }
 
-@media (hover: hover) {
-  [data-heat-cell]:hover > [data-preview] {
-    display: flex;
-  }
-}
-
-[data-heat-cell]:focus-visible > [data-preview] {
+[data-preview]:popover-open {
   display: flex;
+}
+
+@media (pointer: coarse) {
+  [data-preview-cell] {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
 }
 
 @supports (position-area: top) {
@@ -167,10 +193,7 @@
 
 @supports not (position-area: top) {
   [data-preview] {
-    position: absolute;
-    bottom: calc(100% + 0.5rem);
-    left: 50%;
-    translate: -50% 0;
+    position: fixed;
   }
 }
 

@@ -1,4 +1,4 @@
-import { MONTH_RE, monthOf, nearestDate } from './months.ts';
+import { monthOf, nearestDate } from './months.ts';
 
 export type Level = 'year' | 'month' | 'day';
 export type Place =
@@ -6,15 +6,13 @@ export type Place =
   | { level: 'month'; month: string }
   | { level: 'day'; date: string };
 
-const DAY_PATH = /^\/day\/(\d{4}-\d{2}-\d{2})\/?$/;
-const MONTH_PATH = /^\/month\/([^/]+)\/?$/;
-
+// Serialised into a blocking head script by reveal.ts, so it must not reference anything outside itself.
 export function placeOf(pathname: string): Place | undefined {
   if (pathname === '/') return { level: 'year' };
-  const date = DAY_PATH.exec(pathname)?.[1];
+  const date = /^\/day\/(\d{4}-\d{2}-\d{2})\/?$/.exec(pathname)?.[1];
   if (date) return { level: 'day', date };
-  const month = MONTH_PATH.exec(pathname)?.[1];
-  return month && MONTH_RE.test(month) ? { level: 'month', month } : undefined;
+  const month = /^\/month\/(\d{4}-(?:0[1-9]|1[0-2]))\/?$/.exec(pathname)?.[1];
+  return month ? { level: 'month', month } : undefined;
 }
 
 export function zoomOutHref(place: Place): string | undefined {
@@ -49,5 +47,16 @@ export function levelHrefs(
     year: '/',
     month: last ? `/month/${monthOf(last)}` : '/',
     day: last ? `/day/${last}` : '/',
+  };
+}
+
+export type BackLink = { href: string; label: string; ariaLabel: string };
+
+export function monthBack(date: string): BackLink {
+  const month = Number(date.slice(5, 7));
+  return {
+    href: `/month/${monthOf(date)}`,
+    label: `← ${month} 月`,
+    ariaLabel: `回到 ${month} 月`,
   };
 }

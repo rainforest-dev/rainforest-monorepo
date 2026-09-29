@@ -28,12 +28,18 @@ describe('heat cell preview CSS', () => {
     );
   });
 
-  it('falls back to an absolute position above the cell everywhere else', () => {
+  it('leaves the position to script where position-area is missing', () => {
     const fallback = block('not (position-area: top)');
     expect(fallback).toMatch(/\[data-preview\]/);
-    expect(fallback).toMatch(/position:\s*absolute/);
-    expect(fallback).toMatch(/bottom:\s*calc\(100% \+ 0\.5rem\)/);
-    expect(fallback).toMatch(/left:\s*50%/);
-    expect(fallback).toMatch(/translate:\s*-50% 0/);
+    expect(fallback).toMatch(/position:\s*fixed/);
+    expect(fallback).not.toMatch(/bottom:/);
+  });
+
+  it('shows a preview only as an open popover, never from :hover or :focus-visible', () => {
+    expect(css).toMatch(
+      /\[data-preview\]:popover-open\s*\{\s*display:\s*flex;/,
+    );
+    expect(css).not.toMatch(/:hover\s*>\s*\[data-preview\]/);
+    expect(css).not.toMatch(/:focus-visible\s*>\s*\[data-preview\]/);
   });
 });

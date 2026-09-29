@@ -19,6 +19,18 @@ const waitForLightboxReady = (page: Page) =>
 const waitForAppBarReady = (page: Page) =>
   expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
 
+const recordReveal = (page: Page) =>
+  page.addInitScript(() => {
+    addEventListener('pagereveal', (event) => {
+      const root = document.documentElement;
+      root.dataset['revealTransition'] = String(!!event.viewTransition);
+      requestAnimationFrame(() => {
+        root.dataset['revealStyle'] =
+          document.getElementById('reveal-morph')?.textContent ?? '';
+      });
+    });
+  });
+
 const readNote = (date: string) =>
   existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
 
@@ -60,10 +72,8 @@ test('the served CSS keeps both the anchored preview and its fallback', async ({
   );
   expect(anchored?.text).toMatch(/position: fixed/);
   expect(anchored?.text).toMatch(/position-area: top;/);
-  expect(fallback?.text).toMatch(/position: absolute/);
-  expect(fallback?.text).toMatch(/bottom: calc\(100% \+ 0\.5rem\)/);
-  expect(fallback?.text).toMatch(/left: 50%/);
-  expect(fallback?.text).toMatch(/translate: -50%( 0)?;/);
+  expect(fallback?.text).toMatch(/position: fixed/);
+  expect(fallback?.text).not.toMatch(/bottom:/);
 });
 
 test('a heat cell previews its day above it on hover and on keyboard focus', async ({
@@ -89,6 +99,9 @@ test('a heat cell previews its day above it on hover and on keyboard focus', asy
   await expect(preview).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(preview).toBeHidden();
+  await expect(cell).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(cell).not.toBeFocused();
 });
 
 test('the month calendar shows each day with its cover or a line', async ({
@@ -100,7 +113,7 @@ test('the month calendar shows each day with its cover or a line', async ({
     '2025 年 11 月',
   );
   const cell = (date: string) => page.locator(`a[data-date="${date}"]:visible`);
-  await expect(cell('2025-11-01').locator('img')).toHaveAttribute(
+  await expect(cell('2025-11-01').locator('img:visible')).toHaveAttribute(
     'src',
     /AAAAAAAA-0000-0000-0000-000000000001/,
   );
@@ -490,7 +503,7 @@ test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   await expect(page).toHaveURL(/\/day\/2025-11-01$/);
   await page.goto('/month/2025-11');
   await expect(
-    page.locator('a[data-date="2025-11-01"]:visible img'),
+    page.locator('a[data-date="2025-11-01"]:visible').locator('img:visible'),
   ).toHaveAttribute('src', /DDDDDDDD-0000-0000-0000-000000000004/);
 });
 
@@ -817,10 +830,18 @@ test('the keyboard button opens the shortcuts overlay', async ({ page }) => {
     '鍵盤快速鍵',
     '全部畫面',
     '年',
+    '月',
     '日',
     '照片',
   ]);
-  for (const label of ['看所有快速鍵', '在日子間移動', '寫回憶'])
+  for (const label of [
+    '看所有快速鍵',
+    '在日子間移動',
+    '上下一行',
+    '第一天／最後一天',
+    '前後一天',
+    '寫回憶',
+  ])
     await expect(dialog).toContainText(label);
   await dialog.getByRole('button', { name: '關閉' }).click();
   await expect(dialog).toBeHidden();
@@ -975,6 +996,7 @@ test('Escape collapses an expanded phone note sheet before it zooms out', async 
 test('zooming out after scrolling into a different month lands on the day in view', async ({
   page,
 }) => {
+  await recordReveal(page);
   await page.goto('/day/2025-11-01');
   await waitForAppBarReady(page);
   await expect(page.locator('#day-2025-10-31')).toBeAttached();
@@ -988,17 +1010,26 @@ test('zooming out after scrolling into a different month lands on the day in vie
   await waitForAppBarReady(page);
   await expect(page.getByRole('tablist', { name: '縮放' })).toBeInViewport();
 
-  const cell = page.locator('a[data-date="2025-10-31"]:visible');
-  await expect(cell).toHaveAttribute(
-    'style',
-    /view-transition-name: day-2025-10-31/,
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-reveal-transition', 'true');
+  await expect(html).toHaveAttribute(
+    'data-reveal-style',
+    '[data-morph]{view-transition-name:none!important}' +
+      '[data-morph="day-2025-10-31"]{view-transition-name:day-2025-10-31!important}',
   );
+
+  const cell = page.locator('a[data-date="2025-10-31"]:visible');
+  await expect(cell).toHaveAttribute('data-last-viewed', '');
   await expect(cell).toBeFocused();
 
   await cell.click();
-  await expect(
-    page.locator('#day-2025-10-31 [data-morph="day-2025-10-31"]'),
-  ).toHaveAttribute('style', /view-transition-name: day-2025-10-31/);
+  await expect(page).toHaveURL(/\/day\/2025-10-31$/);
+  await expect(html).toHaveAttribute('data-reveal-transition', 'true');
+  await expect(html).toHaveAttribute(
+    'data-reveal-style',
+    '[data-morph]{view-transition-name:none!important}' +
+      '[data-morph="day-2025-10-31"]{view-transition-name:day-2025-10-31!important}',
+  );
 });
 
 test('under reduced motion no element morphs', async ({ page }) => {
@@ -1623,7 +1654,7 @@ test('each year row ends in its month total', async ({ page, request }) => {
 test('a month cell with a cover shows it edge to edge', async ({ page }) => {
   await page.goto('/month/2025-11');
   const cell = page.locator('a[data-date="2025-11-01"]:visible');
-  const img = cell.locator('img');
+  const img = cell.locator('img:visible');
   await expect(img).toBeVisible();
   await expect(cell).toHaveCSS('height', '116px');
   const [c, i] = await Promise.all([cell.boundingBox(), img.boundingBox()]);

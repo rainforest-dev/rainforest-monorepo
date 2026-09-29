@@ -1,6 +1,6 @@
-import { monthOf } from './months.ts';
 import { type Place, placeOf } from './nav.ts';
 
+// Serialised into a blocking head script by reveal.ts, so it must not reference anything outside itself.
 export function morphKey(
   from: Place | undefined,
   to: Place | undefined,
@@ -10,7 +10,7 @@ export function morphKey(
     from.level === 'day' ? from.date : to.level === 'day' ? to.date : undefined;
   if (day) {
     const other = from.level === 'day' ? to : from;
-    if (other.level === 'month' && other.month !== monthOf(day))
+    if (other.level === 'month' && other.month !== day.slice(0, 7))
       return undefined;
     return `day-${day}`;
   }

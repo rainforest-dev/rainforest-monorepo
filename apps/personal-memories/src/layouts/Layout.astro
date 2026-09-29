@@ -3,6 +3,7 @@ import '../styles/global.css';
 
 import { AppBar } from '../components/chrome/AppBar.tsx';
 import type { Level, Place } from '../lib/nav.ts';
+import { revealScript } from '../lib/reveal.ts';
 import { HIDDEN_KEY, SOURCES } from '../lib/sources.ts';
 
 type Props = {
@@ -25,27 +26,7 @@ const { title, wide = false, bar } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
-    <script is:inline>
-      // pagereveal fires before deferred or module scripts can listen, so this must be a blocking head script.
-      function clearMorphNames() {
-        for (const el of document.querySelectorAll('[data-morph]')) {
-          el.style.viewTransitionName = '';
-        }
-      }
-      window.addEventListener('pagereveal', (event) => {
-        (event.viewTransition?.finished ?? Promise.resolve()).finally(() => {
-          clearMorphNames();
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', clearMorphNames, {
-              once: true,
-            });
-          }
-        });
-      });
-      window.addEventListener('pageshow', (event) => {
-        if (event.persisted) clearMorphNames();
-      });
-    </script>
+    <script is:inline set:html={revealScript()} />
     <script
       is:inline
       define:vars={{ key: HIDDEN_KEY, sources: SOURCES.map((s) => s.source) }}
@@ -75,10 +56,15 @@ const { title, wide = false, bar } = Astro.props;
       <slot />
     </main>
     <script>
+      import {
+        focusWithoutPreview,
+        startPreviews,
+      } from '../scripts/previews.ts';
       import { startShortcuts } from '../scripts/shortcuts.ts';
       import { startZoom } from '../scripts/zoom.ts';
       startShortcuts();
-      startZoom();
+      startZoom(focusWithoutPreview);
+      startPreviews();
     </script>
   </body>
 </html>

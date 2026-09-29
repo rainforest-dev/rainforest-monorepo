@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { levelHrefs, placeOf, zoomOutHref } from './nav.ts';
+import { levelHrefs, monthBack, placeOf, zoomOutHref } from './nav.ts';
 
 describe('placeOf', () => {
   it('reads the three zoom levels from a path', () => {
@@ -68,5 +68,26 @@ describe('levelHrefs', () => {
       month: '/',
       day: '/',
     });
+  });
+});
+
+describe('monthBack', () => {
+  it('names the month of the day without a leading zero and points at it', () => {
+    expect(monthBack('2025-11-03')).toEqual({
+      href: '/month/2025-11',
+      label: '← 11 月',
+      ariaLabel: '回到 11 月',
+    });
+    expect(monthBack('2026-01-09')).toEqual({
+      href: '/month/2026-01',
+      label: '← 1 月',
+      ariaLabel: '回到 1 月',
+    });
+  });
+
+  it('goes where Escape goes', () => {
+    expect(monthBack('2025-10-31').href).toBe(
+      zoomOutHref({ level: 'day', date: '2025-10-31' }),
+    );
   });
 });

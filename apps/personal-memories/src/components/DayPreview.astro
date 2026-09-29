@@ -1,7 +1,7 @@
 ---
-import type { MonthCell } from '../../lib/month-view.ts';
-import { thumbUrl } from '../../lib/stream.ts';
-import { dayHeading } from '../../lib/weeks.ts';
+import type { MonthCell } from '../lib/month-view.ts';
+import { thumbUrl } from '../lib/stream.ts';
+import { dayHeading } from '../lib/weeks.ts';
 
 type Props = {
   date: string;
@@ -15,6 +15,7 @@ const { date, detail, anchor, cell } = Astro.props;
 
 <span
   data-preview
+  popover="hint"
   aria-hidden="true"
   style={`position-anchor: ${anchor}`}
   class="bg-popover text-popover-foreground ring-foreground/10 pointer-events-none z-50 w-56 flex-col gap-1.5 rounded-xl p-3 text-left text-xs shadow-md ring-1"
