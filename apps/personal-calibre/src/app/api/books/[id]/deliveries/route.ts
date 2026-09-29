@@ -1,10 +1,27 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 import {
   createBookDeliveryEvent,
   deleteBookDeliveryEvent,
   listBookDeliveryEvents,
 } from '@/lib/delivery';
+import { httpUrlSchema } from '@/lib/url';
+
+const externalRefSchema = z.preprocess(
+  (value) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  httpUrlSchema.optional(),
+);
+
+export const deliveryBodySchema = z.object({
+  platformKey: z
+    .string({ required_error: 'platformKey is required' })
+    .trim()
+    .min(1, 'platformKey is required'),
+  note: z.string().optional(),
+  externalRef: externalRefSchema,
+});
 
 export async function GET(
   _request: NextRequest,
@@ -32,32 +49,23 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid book id' }, { status: 400 });
   }
 
-  const body = (await request.json()) as {
-    platformKey?: string;
-    note?: string;
-    externalRef?: string;
-  };
-
-  if (!body.platformKey) {
-    return NextResponse.json(
-      { error: 'platformKey is required' },
-      { status: 400 },
-    );
+  const parsed = deliveryBodySchema.safeParse(
+    await request.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    const message = parsed.error.issues[0]?.message ?? 'Invalid request body';
+    return NextResponse.json({ error: message }, { status: 422 });
   }
 
   try {
-    await createBookDeliveryEvent(bookId, {
-      platformKey: body.platformKey,
-      note: body.note,
-      externalRef: body.externalRef,
-    });
+    await createBookDeliveryEvent(bookId, parsed.data);
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Failed to create delivery event';
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error('createBookDeliveryEvent failed', error);
+    return NextResponse.json(
+      { error: 'Failed to create delivery event' },
+      { status: 400 },
+    );
   }
 }
 

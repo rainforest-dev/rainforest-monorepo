@@ -1,33 +1,49 @@
 import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
-import path from 'path';
 
-const baseURL = process.env['BASE_URL'] || 'http://localhost:3333';
-const fixturesDir = path.join(__dirname, 'src/fixtures');
+import { APP_DB_PATH, FIXTURES_DIR } from './src/support/seed';
+
+const PORT = 3333;
+const externalServer = process.env['BASE_URL'];
+const baseURL = externalServer ?? `http://localhost:${PORT}`;
 
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
-  use: {
-    baseURL,
-    trace: 'on-first-retry',
-  },
+  fullyParallel: false,
+  workers: 1,
+  use: { baseURL, trace: 'on-first-retry' },
   globalSetup: './src/support/global-setup.ts',
-  webServer: {
-    command: 'pnpm exec nx dev personal-calibre',
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    cwd: workspaceRoot,
-    env: {
-      CALIBRE_LIBRARY_PATH: fixturesDir,
-      CALIBRE_APP_DB_PATH: path.join(fixturesDir, 'app.db'),
-      PORT: '3333',
-    },
-  },
+  webServer: externalServer
+    ? undefined
+    : {
+        command: `pnpm exec nx dev personal-calibre --port=${PORT}`,
+        url: `http://localhost:${PORT}/favicon.ico`,
+        reuseExistingServer: false,
+        timeout: 180_000,
+        cwd: workspaceRoot,
+        env: {
+          CALIBRE_LIBRARY_PATH: FIXTURES_DIR,
+          CALIBRE_APP_DB_PATH: APP_DB_PATH,
+          CALIBRE_E2E: '1',
+        },
+      },
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /\.phone\.spec\.ts$/,
+    },
+    {
+      name: 'phone',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 2,
+      },
+      testMatch: /\.phone\.spec\.ts$/,
     },
   ],
 });

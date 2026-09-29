@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 import { appSqlite } from '@/db/client';
+
+export const querySchema = z.string().trim().max(200);
 
 interface FtsRow {
   id: number;
@@ -50,7 +53,10 @@ function normalize(rows: FtsRow[]): SearchResult[] {
 }
 
 export async function GET(request: NextRequest) {
-  const q = (request.nextUrl.searchParams.get('q') ?? '').trim();
+  const parsed = querySchema.safeParse(
+    request.nextUrl.searchParams.get('q') ?? '',
+  );
+  const q = parsed.success ? parsed.data : '';
   if (q.length < 2) return NextResponse.json({ results: [] });
 
   // Phase 1: FTS5 trigram substring match — handles mixed CJK/ASCII.
