@@ -78,8 +78,8 @@ export async function createBookDeliveryEvent(
     externalRef: input.externalRef?.trim() || null,
   });
 
-  revalidateTag('books', 'max');
-  revalidateTag(`book-${bookId}`, 'max');
+  revalidateTag('books', { expire: 0 });
+  revalidateTag(`book-${bookId}`, { expire: 0 });
 }
 
 export async function deleteBookDeliveryEvent(
@@ -92,7 +92,8 @@ export async function deleteBookDeliveryEvent(
       and(eq(bookDeliveries.id, deliveryId), eq(bookDeliveries.bookId, bookId)),
     );
 
-  revalidateTag(`book-${bookId}`, 'max');
+  revalidateTag('books', { expire: 0 });
+  revalidateTag(`book-${bookId}`, { expire: 0 });
 }
 
 export async function bulkCreateDeliveryEvents(
@@ -127,9 +128,9 @@ export async function bulkCreateDeliveryEvents(
     })),
   );
 
-  revalidateTag('books', 'max');
+  revalidateTag('books', { expire: 0 });
   for (const bookId of bookIds) {
-    revalidateTag(`book-${bookId}`, 'max');
+    revalidateTag(`book-${bookId}`, { expire: 0 });
   }
 
   return { count: bookIds.length };

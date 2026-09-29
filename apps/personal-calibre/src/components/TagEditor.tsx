@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Button,
   Command,
   CommandEmpty,
   CommandInput,
@@ -10,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@rainforest-dev/rainforest-react';
-import { X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -57,76 +58,69 @@ export function TagEditor({ bookId, tagIds, allTags }: Props) {
   }
 
   const existingIds = new Set(tagIds.map((t) => t.id));
-  const availableTags = allTags.filter(
-    (t) => t.id !== null && !existingIds.has(t.id),
-  );
+  const availableTags = allTags.filter((t) => !existingIds.has(t.id));
+  const trimmed = inputValue.trim();
   const matchesExisting = allTags.some(
-    (t) => t.name?.toLowerCase() === inputValue.toLowerCase(),
+    (t) => t.name?.toLowerCase() === trimmed.toLowerCase(),
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5">
       {tagIds.map((tag) => (
         <span
           key={tag.id}
-          className="bg-secondary text-secondary-foreground inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+          className="bg-secondary text-secondary-foreground inline-flex items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs font-medium"
         >
           {tag.name}
           <button
             type="button"
             disabled={busy}
-            onClick={() => removeTag(tag.id)}
+            onClick={() => void removeTag(tag.id)}
             aria-label={`Remove tag ${tag.name}`}
-            className="hover:text-destructive disabled:opacity-50"
+            className="hover:bg-foreground/10 rounded-full p-0.5 disabled:opacity-50"
           >
-            <X className="h-3 w-3" />
+            <X className="size-3" aria-hidden />
           </button>
         </span>
       ))}
-
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           disabled={busy}
-          className="border-input text-muted-foreground hover:text-foreground hover:bg-accent rounded-full border px-2.5 py-0.5 text-xs disabled:opacity-50"
+          render={
+            <Button variant="outline" size="xs" className="rounded-full" />
+          }
         >
-          + Add tag
+          <Plus aria-hidden />
+          Add tag
         </PopoverTrigger>
         <PopoverContent className="w-56 p-0" align="start">
           <Command>
             <CommandInput
+              name="tagSearch"
+              aria-label="Search or create tag"
               placeholder="Search or create tag…"
               value={inputValue}
               onValueChange={setInputValue}
             />
-            <CommandEmpty>
-              {inputValue.trim() ? (
-                <button
-                  type="button"
-                  className="w-full px-3 py-2 text-left text-sm"
-                  onClick={() => addTag(inputValue)}
-                >
-                  Create &quot;{inputValue.trim()}&quot;
-                </button>
-              ) : (
-                'No tags found.'
-              )}
-            </CommandEmpty>
             <CommandList>
+              <CommandEmpty>
+                {trimmed ? `Create "${trimmed}"` : 'No tags found.'}
+              </CommandEmpty>
               {availableTags.map((t) => (
                 <CommandItem
                   key={t.id}
                   value={t.name ?? ''}
-                  onSelect={() => addTag(t.name ?? '')}
+                  onSelect={() => void addTag(t.name ?? '')}
                 >
                   {t.name}
                 </CommandItem>
               ))}
-              {inputValue.trim() && !matchesExisting && (
+              {trimmed && !matchesExisting && (
                 <CommandItem
-                  value={`__create__${inputValue}`}
-                  onSelect={() => addTag(inputValue)}
+                  value={`__create__${trimmed}`}
+                  onSelect={() => void addTag(trimmed)}
                 >
-                  Create &quot;{inputValue.trim()}&quot;
+                  Create &quot;{trimmed}&quot;
                 </CommandItem>
               )}
             </CommandList>

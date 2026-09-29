@@ -29,7 +29,7 @@ export function removeTagFromBook(bookId: number, tagId: number): void {
 }
 
 export function revalidateBookTagCache(bookId: number): void {
-  revalidateTag('books', 'max');
-  revalidateTag('filters', 'max');
-  revalidateTag(`book-${bookId}`, 'max');
+  revalidateTag('books', { expire: 0 });
+  revalidateTag('filters', { expire: 0 });
+  revalidateTag(`book-${bookId}`, { expire: 0 });
 }

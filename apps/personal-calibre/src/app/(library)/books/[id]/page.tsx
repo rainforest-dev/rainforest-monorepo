@@ -1,20 +1,17 @@
-import { buttonVariants } from '@rainforest-dev/rainforest-react';
+import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import sanitizeHtml from 'sanitize-html';
 
-import { DeliveryTracker } from '@/components/DeliveryTracker';
-import { TagEditor } from '@/components/TagEditor';
+import { BookDetail } from '@/components/detail/BookDetail';
+import { BookDetailSkeleton } from '@/components/detail/BookDetailSkeleton';
 import { listBookDeliveryEvents, listDeliveryPlatforms } from '@/lib/delivery';
-import { staticDownloadUrl } from '@/lib/files';
-import { getBook, getFilterOptions } from '@/lib/queries';
-import { cn } from '@/lib/utils';
+import { getBook, getFilterOptions, getLibraryBook } from '@/lib/queries';
 
 interface Props {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string | string[] }>;
 }
 
 export async function generateMetadata({
@@ -26,149 +23,52 @@ export async function generateMetadata({
   return { title: `${book.title} — Personal Calibre Library` };
 }
 
-export default function BookDetailPage({ params, searchParams }: Props) {
+export default function BookPage(props: Props) {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-3xl" />}>
-      <BookDetailContent params={params} searchParams={searchParams} />
+    <Suspense fallback={<BookDetailSkeleton />}>
+      <BookPageContent {...props} />
     </Suspense>
   );
 }
 
-async function BookDetailContent({ params, searchParams }: Props) {
+async function BookPageContent({ params, searchParams }: Props) {
   const { id } = await params;
   const { from } = await searchParams;
   const bookId = Number(id);
+  if (!Number.isInteger(bookId) || bookId < 1) notFound();
 
-  if (Number.isNaN(bookId)) notFound();
-
-  const [book, platforms, deliveryEvents, filterOptions] = await Promise.all([
+  const [book, library, events, platforms, options] = await Promise.all([
     getBook(bookId),
-    listDeliveryPlatforms(),
+    getLibraryBook(bookId),
     listBookDeliveryEvents(bookId),
+    listDeliveryPlatforms(),
     getFilterOptions(),
   ]);
-
   if (!book) notFound();
 
-  const safeDescription = book.description
-    ? sanitizeHtml(book.description, {
-        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
-        allowedAttributes: {
-          ...sanitizeHtml.defaults.allowedAttributes,
-          '*': ['class'],
-        },
-      })
-    : null;
-
-  // Guard against open-redirect: only trust local paths.
-  const backHref = from && from.startsWith('/') ? from : '/';
+  const back =
+    typeof from === 'string' && from.startsWith('/') && !from.startsWith('//')
+      ? from
+      : '/';
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <Link
-        href={backHref}
-        className="text-muted-foreground hover:text-foreground text-sm"
+        href={back}
+        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
       >
-        ← Back to library
+        <ArrowLeft className="size-4" aria-hidden />
+        Library
       </Link>
-
-      <div className="flex flex-col gap-8 sm:flex-row">
-        {book.hasCover && (
-          <div className="flex shrink-0 justify-center sm:block">
-            <img
-              src={`/api/books/${book.id}/cover`}
-              alt={`Cover of ${book.title}`}
-              loading="eager"
-              className="h-64 w-44 rounded-md object-cover shadow-md"
-            />
-          </div>
-        )}
-
-        <div className="flex-1 space-y-4">
-          <div>
-            <h1 className="text-2xl font-semibold leading-tight">
-              {book.title}
-            </h1>
-            {book.authors.length > 0 && (
-              <p className="text-muted-foreground mt-1">
-                {book.authors.join(', ')}
-              </p>
-            )}
-            {book.series && (
-              <p className="text-muted-foreground text-sm">
-                {book.series}
-                {book.seriesIndex ? ` #${book.seriesIndex}` : ''}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-              Tags
-            </p>
-            <TagEditor
-              bookId={book.id}
-              tagIds={book.tagIds}
-              allTags={filterOptions.tags}
-            />
-          </div>
-
-          <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-2 sm:gap-x-4">
-            {book.publisher && (
-              <>
-                <dt className="text-muted-foreground">Publisher</dt>
-                <dd>{book.publisher}</dd>
-              </>
-            )}
-            {book.pubdate && (
-              <>
-                <dt className="text-muted-foreground">Published</dt>
-                <dd>{book.pubdate.slice(0, 10)}</dd>
-              </>
-            )}
-            {book.language && (
-              <>
-                <dt className="text-muted-foreground">Language</dt>
-                <dd>{book.language}</dd>
-              </>
-            )}
-            {book.rating != null && (
-              <>
-                <dt className="text-muted-foreground">Rating</dt>
-                <dd>{'★'.repeat(Math.floor(book.rating / 2))}</dd>
-              </>
-            )}
-          </dl>
-
-          <div className="flex flex-wrap gap-2 pt-2">
-            {book.files.map(({ format, name }) => (
-              <a
-                key={format}
-                href={staticDownloadUrl(book.path, name, format)}
-                download={`${name}.${format.toLowerCase()}`}
-                className={cn(
-                  buttonVariants({ variant: 'outline', size: 'sm' }),
-                )}
-              >
-                Download {format}
-              </a>
-            ))}
-          </div>
-
-          <DeliveryTracker
-            bookId={book.id}
-            platforms={platforms}
-            events={deliveryEvents}
-          />
-        </div>
-      </div>
-
-      {safeDescription && (
-        <div className="prose prose-sm max-w-none">
-          <h2 className="text-base font-semibold">Description</h2>
-          <div dangerouslySetInnerHTML={{ __html: safeDescription }} />
-        </div>
-      )}
+      <BookDetail
+        variant="page"
+        book={book}
+        library={library}
+        events={events}
+        platforms={platforms}
+        allTags={options.tags}
+        currentParams={{}}
+      />
     </div>
   );
 }
