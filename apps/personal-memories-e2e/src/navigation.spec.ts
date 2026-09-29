@@ -229,6 +229,38 @@ test('a second visit moves the mark instead of adding one', async ({
   ).toHaveCount(1);
 });
 
+test('a repeat arrival on the same day restarts the last-viewed flash', async ({
+  page,
+}) => {
+  await page.goto('/month/2025-11');
+  await waitForAppBarReady(page);
+  await visibleCell(page, '2025-11-01').click();
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  const cell = visibleCell(page, '2025-11-01');
+  await expect(cell).toHaveAttribute('data-last-viewed', '');
+  await expect
+    .poll(() => cell.evaluate((el) => el.getAnimations().length))
+    .toBe(0);
+
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new PageTransitionEvent('pageshow', { persisted: true }),
+    ),
+  );
+  const restarted = await cell.evaluate((el) =>
+    el
+      .getAnimations()
+      .some(
+        (a) =>
+          (a as { animationName?: string }).animationName ===
+            'last-viewed-flash' && a.playState === 'running',
+      ),
+  );
+  expect(restarted).toBe(true);
+});
+
 test('the year marks the month row you came from, or the day', async ({
   page,
 }) => {

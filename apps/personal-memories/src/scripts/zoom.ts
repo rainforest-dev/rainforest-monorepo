@@ -41,6 +41,9 @@ function arrive(focus: (el: HTMLElement) => void) {
   const matches = [
     ...document.querySelectorAll<HTMLElement>(`[data-morph="${key}"]`),
   ];
+  // A same-task remove-then-set can coalesce into a no-op on a repeat bfcache arrival; flush first so the flash restarts.
+  if (matches.length && !matchMedia(REDUCE).matches)
+    void document.documentElement.offsetWidth;
   for (const el of matches.filter((m) => m.matches(MARKABLE))) {
     el.setAttribute('data-last-viewed', '');
     el.setAttribute('aria-description', '上次看到');
