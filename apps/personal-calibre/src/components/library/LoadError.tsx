@@ -23,6 +23,7 @@ export function LoadError({
   return (
     <Alert
       variant="destructive"
+      data-load-error=""
       className={cn(compact ? 'm-4 w-auto' : 'my-6')}
     >
       <TriangleAlert aria-hidden />

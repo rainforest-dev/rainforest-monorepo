@@ -11,8 +11,7 @@ export async function gotoLibrary(page: Page, url = '/'): Promise<void> {
   if (isList) {
     await expect(
       page
-        .locator('[data-view-region][data-view-ready]')
-        .or(page.getByRole('alert'))
+        .locator('[data-view-region][data-view-ready], [data-load-error]')
         .first(),
     ).toBeVisible();
   }
