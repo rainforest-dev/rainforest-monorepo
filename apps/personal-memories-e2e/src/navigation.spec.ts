@@ -415,6 +415,28 @@ test.describe('previews on touch', () => {
     await expect(page).toHaveURL(/\/day\/2025-11-02$/);
   });
 
+  test('Esc closes a long-pressed preview, and a second Esc zooms out', async ({
+    page,
+  }) => {
+    await page.goto('/month/2025-11');
+    await waitForAppBarReady(page);
+    const send = await touch(page);
+    const preview = visibleCell(page, '2025-11-03').locator('[data-preview]');
+    await send('touchStart', [await centre(page, '2025-11-03')]);
+    await page.waitForTimeout(600);
+    await expect(preview).toBeVisible();
+    await send('touchEnd', []);
+    await page.waitForTimeout(300);
+    await expect(preview).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(preview).toBeHidden();
+    await expect(page).toHaveURL(/\/month\/2025-11$/);
+
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+  });
+
   test('a finger that moves before the long press fires shows nothing', async ({
     page,
   }) => {

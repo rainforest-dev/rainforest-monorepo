@@ -4,6 +4,7 @@ import { moveInGrid, setStop } from '../lib/client/roving.ts';
 import { stepDay } from '../lib/client/step-day.ts';
 import { placeOf } from '../lib/nav.ts';
 import { resolveShortcut, type Shortcut } from '../lib/shortcuts.ts';
+import { closePreview } from './previews.ts';
 
 const TYPING =
   'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
@@ -23,7 +24,7 @@ function run(action: Shortcut) {
     case 'grid':
       return moveInGrid(action.key);
     case 'close-preview':
-      return openPreview()?.hidePopover();
+      return closePreview();
     case 'blur':
       return (document.activeElement as HTMLElement | null)?.blur();
     case 'focus-note':

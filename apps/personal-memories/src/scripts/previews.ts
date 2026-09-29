@@ -17,6 +17,7 @@ let hideTimer: Timer | undefined;
 let quiet: Element | undefined;
 let press: { cell: HTMLElement; start: Point; timer: Timer } | undefined;
 let swallow: HTMLElement | undefined;
+let pendingRelease: HTMLElement | undefined;
 
 const cellOf = (target: EventTarget | null) =>
   target instanceof Element ? target.closest<HTMLElement>(CELL) : null;
@@ -36,6 +37,8 @@ function hide() {
   pinned = false;
   if (preview?.matches(':popover-open')) preview.hidePopover();
 }
+
+export const closePreview = hide;
 
 function show(cell: HTMLElement) {
   cancelTimers();
@@ -77,9 +80,11 @@ export function startPreviews() {
         event.target !== previewOf(open)
       )
         return;
-      // Releasing a long press light-dismisses the hint popover as an outside click; re-show it.
-      if (pinned && swallow === open)
+      // Releasing a long press light-dismisses the hint popover as an outside click; re-show it once.
+      if (pinned && pendingRelease === open) {
+        pendingRelease = undefined;
         return void previewOf(open)?.showPopover();
+      }
       open = undefined;
       pinned = false;
     },
@@ -120,6 +125,7 @@ export function startPreviews() {
     'pointerdown',
     (event) => {
       swallow = undefined;
+      pendingRelease = undefined;
       if (pinned) hide();
       if (event.pointerType !== 'touch') return;
       const cell = cellOf(event.target);
@@ -132,6 +138,7 @@ export function startPreviews() {
           show(cell);
           pinned = true;
           swallow = cell;
+          pendingRelease = cell;
         }, LONG_PRESS_MS),
       };
     },
@@ -173,6 +180,7 @@ export function startPreviews() {
         event.preventDefault();
         event.stopPropagation();
       }
+      swallow = undefined;
     },
     true,
   );
