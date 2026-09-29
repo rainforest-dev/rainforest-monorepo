@@ -56,6 +56,7 @@ async function LibraryContent({ searchParams }: Props) {
         labels={labels}
         matchingBooks={library.matchingIds.length}
         libraryTotal={library.libraryTotal}
+        matchingIds={library.matchingIds}
       />
       <ViewRegion
         library={library}

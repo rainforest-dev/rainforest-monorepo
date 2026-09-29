@@ -11,7 +11,9 @@ import {
   parseLibraryParams,
   scopeTitle,
 } from '@/lib/library-params';
+import { cn } from '@/lib/utils';
 
+import { BulkToolbar } from './BulkToolbar';
 import { FilterChips } from './FilterChips';
 import { useLibrary } from './LibraryProvider';
 import { GroupSelect, SortControls } from './SortControls';
@@ -20,12 +22,21 @@ interface Props {
   labels: FilterLabels;
   matchingBooks: number;
   libraryTotal: number;
+  matchingIds: number[];
 }
 
-export function LibraryToolbar({ labels, matchingBooks, libraryTotal }: Props) {
+export function LibraryToolbar({
+  labels,
+  matchingBooks,
+  libraryTotal,
+  matchingIds,
+}: Props) {
   const params = parseLibraryParams(useSearchParams());
-  const { selectMode, setSelectMode, setFiltersOpen, clear } = useLibrary();
+  const { selected, selectMode, setSelectMode, setFiltersOpen, clear } =
+    useLibrary();
   const count = filterCount(params);
+  const bulk = selected.size > 0;
+  const scope = scopeTitle(params, labels);
   const total =
     matchingBooks === libraryTotal
       ? booksLabel(libraryTotal)
@@ -55,10 +66,17 @@ export function LibraryToolbar({ labels, matchingBooks, libraryTotal }: Props) {
           {selectMode ? 'Done' : 'Select'}
         </Button>
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 className="text-heading font-semibold">
-          {scopeTitle(params, labels)}
-        </h1>
+      {bulk && (
+        <BulkToolbar platforms={labels.platforms} matchingIds={matchingIds} />
+      )}
+      {bulk && <h1 className="sr-only max-lg:hidden">{scope}</h1>}
+      <div
+        className={cn(
+          'flex flex-wrap items-center gap-x-3 gap-y-2',
+          bulk && 'lg:hidden',
+        )}
+      >
+        <h1 className="text-heading font-semibold">{scope}</h1>
         <p className="text-muted-foreground text-sm">{total}</p>
         <div className="ml-auto flex items-center gap-2">
           <GroupSelect className="hidden lg:flex" />
