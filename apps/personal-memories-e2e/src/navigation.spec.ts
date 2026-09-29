@@ -327,3 +327,105 @@ test('on a phone the back link fits in the app bar', async ({ page }) => {
     ),
   ).toBe(true);
 });
+
+test('a month cell previews its day after a short hover, at once while moving on, and on keyboard focus', async ({
+  page,
+}) => {
+  await page.goto('/month/2025-11');
+  await waitForAppBarReady(page);
+  const cell = visibleCell(page, '2025-11-03');
+  const preview = cell.locator('[data-preview]');
+  await cell.hover();
+  expect(await preview.isVisible()).toBe(false);
+  await expect(preview).toBeVisible();
+  await expect(preview).toBeInViewport({ ratio: 1 });
+  await expect(preview).toContainText('2025-11-03（週一）');
+  await expect(preview).toContainText('「New week, new plans」');
+  const [c, p] = await Promise.all([cell.boundingBox(), preview.boundingBox()]);
+  expect(c && p && (p.y + p.height <= c.y || p.y >= c.y + c.height)).toBe(true);
+
+  const neighbour = visibleCell(page, '2025-11-02');
+  await neighbour.hover();
+  expect(await neighbour.locator('[data-preview]').isVisible()).toBe(true);
+  await expect(preview).toBeHidden();
+
+  await page.mouse.move(0, 0);
+  await expect(neighbour.locator('[data-preview]')).toBeHidden();
+
+  await neighbour.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(cell).toBeFocused();
+  await expect(preview).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(preview).toBeHidden();
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  await expect(cell).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+});
+
+test('arriving by Escape focuses the day without opening its preview', async ({
+  page,
+}) => {
+  await page.goto('/day/2025-11-03');
+  await waitForAppBarReady(page);
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/month\/2025-11$/);
+  await expect(visibleCell(page, '2025-11-03')).toBeFocused();
+  await expect(page.locator('[data-preview]:popover-open')).toHaveCount(0);
+});
+
+test.describe('previews on touch', () => {
+  test.use({ hasTouch: true });
+
+  const touch = async (page: Page) => {
+    const cdp = await page.context().newCDPSession(page);
+    return (
+      type: 'touchStart' | 'touchMove' | 'touchEnd',
+      touchPoints: { x: number; y: number; id: number }[],
+    ) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+  };
+
+  const centre = async (page: Page, date: string) => {
+    const box = await visibleCell(page, date).boundingBox();
+    if (!box) throw new Error(`no box for ${date}`);
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1 };
+  };
+
+  test('a long press shows the preview without opening the day, and the next tap closes it', async ({
+    page,
+  }) => {
+    await page.goto('/month/2025-11');
+    await waitForAppBarReady(page);
+    const send = await touch(page);
+    const preview = visibleCell(page, '2025-11-03').locator('[data-preview]');
+    await send('touchStart', [await centre(page, '2025-11-03')]);
+    await page.waitForTimeout(600);
+    await expect(preview).toBeVisible();
+    await send('touchEnd', []);
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/\/month\/2025-11$/);
+    await expect(preview).toBeVisible();
+
+    await page.touchscreen.tap(20, 400);
+    await expect(preview).toBeHidden();
+    await expect(page).toHaveURL(/\/month\/2025-11$/);
+
+    await visibleCell(page, '2025-11-02').tap();
+    await expect(page).toHaveURL(/\/day\/2025-11-02$/);
+  });
+
+  test('a finger that moves before the long press fires shows nothing', async ({
+    page,
+  }) => {
+    await page.goto('/month/2025-11');
+    await waitForAppBarReady(page);
+    const send = await touch(page);
+    const start = await centre(page, '2025-11-03');
+    await send('touchStart', [start]);
+    await send('touchMove', [{ ...start, x: start.x + 20 }]);
+    await page.waitForTimeout(600);
+    await send('touchEnd', []);
+    await expect(page.locator('[data-preview]:popover-open')).toHaveCount(0);
+  });
+});

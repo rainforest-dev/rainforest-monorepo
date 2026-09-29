@@ -2,6 +2,7 @@
 import type { MonthCell, MonthView } from '../../lib/month-view.ts';
 import { dayHeading, WEEKDAYS_ZH } from '../../lib/weeks.ts';
 import { morphAttrs } from '../../lib/zoom.ts';
+import DayPreview from '../DayPreview.astro';
 import MonthCellBody from './MonthCellBody.astro';
 
 type Props = { view: MonthView; morph?: string | undefined };
@@ -9,11 +10,22 @@ type Props = { view: MonthView; morph?: string | undefined };
 const { view, morph } = Astro.props;
 const FOCUS =
   'focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
-const label = (c: MonthCell) =>
-  `${dayHeading(c.date)}，${c.total} 則${c.noted ? ' · 已寫回憶' : ''}`;
+const detail = (c: MonthCell) => `${c.total} 則${c.noted ? ' · 已寫回憶' : ''}`;
+const label = (c: MonthCell) => `${dayHeading(c.date)}，${detail(c)}`;
 const days = view.weeks.flat().filter((c): c is MonthCell => c !== null);
 const stop = days.filter((c) => c.total > 0).at(-1)?.date;
 const monthKey = `month-${view.month}`;
+const anchorOf = (c: MonthCell, layout: 'cell' | 'row') =>
+  `--${layout === 'cell' ? 'm' : 'l'}${c.date.replaceAll('-', '')}`;
+const cellAttrs = (c: MonthCell, layout: 'cell' | 'row') => {
+  const { style, ...rest } = morphAttrs(`day-${c.date}`, morph);
+  return {
+    ...rest,
+    style: [`anchor-name: ${anchorOf(c, layout)}`, style]
+      .filter(Boolean)
+      .join('; '),
+  };
+};
 ---
 
 <section
@@ -42,15 +54,22 @@ const monthKey = `month-${view.month}`;
                   href={`/day/${cell.date}`}
                   data-date={cell.date}
                   data-morph={`day-${cell.date}`}
+                  data-preview-cell
                   tabindex={cell.date === stop ? 0 : -1}
                   aria-label={label(cell)}
                   class:list={[
                     'bg-card ring-border hover:bg-accent/65 h-29 relative flex flex-col overflow-hidden rounded-lg ring-1',
                     FOCUS,
                   ]}
-                  {...morphAttrs(`day-${cell.date}`, morph)}
+                  {...cellAttrs(cell, 'cell')}
                 >
                   <MonthCellBody cell={cell} layout="cell" />
+                  <DayPreview
+                    date={cell.date}
+                    detail={detail(cell)}
+                    anchor={anchorOf(cell, 'cell')}
+                    cell={cell}
+                  />
                 </a>
               ) : (
                 <div
@@ -75,15 +94,22 @@ const monthKey = `month-${view.month}`;
               href={`/day/${cell.date}`}
               data-date={cell.date}
               data-morph={`day-${cell.date}`}
+              data-preview-cell
               tabindex={cell.date === stop ? 0 : -1}
               aria-label={label(cell)}
               class:list={[
                 'grid h-16 grid-cols-[40px_52px_1fr_auto] items-center gap-2',
                 FOCUS,
               ]}
-              {...morphAttrs(`day-${cell.date}`, morph)}
+              {...cellAttrs(cell, 'row')}
             >
               <MonthCellBody cell={cell} layout="row" />
+              <DayPreview
+                date={cell.date}
+                detail={detail(cell)}
+                anchor={anchorOf(cell, 'row')}
+                cell={cell}
+              />
             </a>
           </li>
         ) : (

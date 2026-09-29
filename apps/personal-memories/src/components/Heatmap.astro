@@ -5,8 +5,8 @@ import { monthLabel } from '../lib/months.ts';
 import { YEAR_HINTS } from '../lib/shortcuts.ts';
 import { dayHeading } from '../lib/weeks.ts';
 import { morphAttrs } from '../lib/zoom.ts';
+import DayPreview from './DayPreview.astro';
 import KeyHints from './KeyHints.astro';
-import DayPreview from './year/DayPreview.astro';
 
 type Props = {
   rows: MonthRow[];
@@ -141,6 +141,7 @@ const monthKey = (row: MonthRow) =>
                       data-date={cell.date}
                       data-noted={isNoted}
                       data-heat-cell
+                      data-preview-cell
                       tabindex={cell.date === stop ? 0 : -1}
                       data-morph={key}
                       aria-label={`${tip.date}，${tip.detail}`}
@@ -157,6 +158,7 @@ const monthKey = (row: MonthRow) =>
                       data-date={cell.date}
                       data-noted={isNoted}
                       data-heat-cell
+                      data-preview-cell
                       data-morph={key}
                       aria-label={`${tip.date}，${tip.detail}`}
                       class={cellClass}

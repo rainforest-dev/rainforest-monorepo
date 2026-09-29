@@ -56,10 +56,15 @@ const { title, wide = false, bar } = Astro.props;
       <slot />
     </main>
     <script>
+      import {
+        focusWithoutPreview,
+        startPreviews,
+      } from '../scripts/previews.ts';
       import { startShortcuts } from '../scripts/shortcuts.ts';
       import { startZoom } from '../scripts/zoom.ts';
       startShortcuts();
-      startZoom();
+      startZoom(focusWithoutPreview);
+      startPreviews();
     </script>
   </body>
 </html>

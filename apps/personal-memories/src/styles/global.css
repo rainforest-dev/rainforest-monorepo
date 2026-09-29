@@ -143,17 +143,19 @@
 }
 
 [data-preview] {
-  display: none;
+  inset: auto;
+  margin: 0;
 }
 
-@media (hover: hover) {
-  [data-heat-cell]:hover > [data-preview] {
-    display: flex;
-  }
-}
-
-[data-heat-cell]:focus-visible > [data-preview] {
+[data-preview]:popover-open {
   display: flex;
+}
+
+@media (pointer: coarse) {
+  [data-preview-cell] {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
 }
 
 @supports (position-area: top) {
@@ -191,10 +193,7 @@
 
 @supports not (position-area: top) {
   [data-preview] {
-    position: absolute;
-    bottom: calc(100% + 0.5rem);
-    left: 50%;
-    translate: -50% 0;
+    position: fixed;
   }
 }
 

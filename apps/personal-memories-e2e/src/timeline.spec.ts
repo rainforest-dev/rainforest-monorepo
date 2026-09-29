@@ -72,10 +72,8 @@ test('the served CSS keeps both the anchored preview and its fallback', async ({
   );
   expect(anchored?.text).toMatch(/position: fixed/);
   expect(anchored?.text).toMatch(/position-area: top;/);
-  expect(fallback?.text).toMatch(/position: absolute/);
-  expect(fallback?.text).toMatch(/bottom: calc\(100% \+ 0\.5rem\)/);
-  expect(fallback?.text).toMatch(/left: 50%/);
-  expect(fallback?.text).toMatch(/translate: -50%( 0)?;/);
+  expect(fallback?.text).toMatch(/position: fixed/);
+  expect(fallback?.text).not.toMatch(/bottom:/);
 });
 
 test('a heat cell previews its day above it on hover and on keyboard focus', async ({
@@ -101,6 +99,9 @@ test('a heat cell previews its day above it on hover and on keyboard focus', asy
   await expect(preview).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(preview).toBeHidden();
+  await expect(cell).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(cell).not.toBeFocused();
 });
 
 test('the month calendar shows each day with its cover or a line', async ({
@@ -112,7 +113,7 @@ test('the month calendar shows each day with its cover or a line', async ({
     '2025 年 11 月',
   );
   const cell = (date: string) => page.locator(`a[data-date="${date}"]:visible`);
-  await expect(cell('2025-11-01').locator('img')).toHaveAttribute(
+  await expect(cell('2025-11-01').locator('img:visible')).toHaveAttribute(
     'src',
     /AAAAAAAA-0000-0000-0000-000000000001/,
   );
@@ -502,7 +503,7 @@ test('the +N tile opens the whole burst, and 設為封面 is saved', async ({
   await expect(page).toHaveURL(/\/day\/2025-11-01$/);
   await page.goto('/month/2025-11');
   await expect(
-    page.locator('a[data-date="2025-11-01"]:visible img'),
+    page.locator('a[data-date="2025-11-01"]:visible').locator('img:visible'),
   ).toHaveAttribute('src', /DDDDDDDD-0000-0000-0000-000000000004/);
 });
 
@@ -1649,7 +1650,7 @@ test('each year row ends in its month total', async ({ page, request }) => {
 test('a month cell with a cover shows it edge to edge', async ({ page }) => {
   await page.goto('/month/2025-11');
   const cell = page.locator('a[data-date="2025-11-01"]:visible');
-  const img = cell.locator('img');
+  const img = cell.locator('img:visible');
   await expect(img).toBeVisible();
   await expect(cell).toHaveCSS('height', '116px');
   const [c, i] = await Promise.all([cell.boundingBox(), img.boundingBox()]);
