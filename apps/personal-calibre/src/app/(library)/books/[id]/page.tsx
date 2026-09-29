@@ -11,7 +11,6 @@ import { getBook, getFilterOptions, getLibraryBook } from '@/lib/queries';
 
 interface Props {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string | string[] }>;
 }
 
 export async function generateMetadata({
@@ -31,9 +30,8 @@ export default function BookPage(props: Props) {
   );
 }
 
-async function BookPageContent({ params, searchParams }: Props) {
+async function BookPageContent({ params }: Props) {
   const { id } = await params;
-  const { from } = await searchParams;
   const bookId = Number(id);
   if (!Number.isInteger(bookId) || bookId < 1) notFound();
 
@@ -46,15 +44,10 @@ async function BookPageContent({ params, searchParams }: Props) {
   ]);
   if (!book) notFound();
 
-  const back =
-    typeof from === 'string' && from.startsWith('/') && !from.startsWith('//')
-      ? from
-      : '/';
-
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <Link
-        href={back}
+        href="/"
         className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
       >
         <ArrowLeft className="size-4" aria-hidden />

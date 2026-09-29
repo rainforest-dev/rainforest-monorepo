@@ -52,28 +52,31 @@ export function Facet({
         {title}
       </h3>
       {expanded ? (
-        <Command label={title} className="h-auto rounded-md border p-0">
-          <CommandInput placeholder={filterLabel} aria-label={filterLabel} />
-          <CommandList>
-            <CommandItem
-              value="__all__"
-              data-checked={value === null}
-              onSelect={() => onChange(null)}
-            >
-              {allLabel}
-            </CommandItem>
-            {options.map((o) => (
+        <>
+          <Command label={title} className="h-auto rounded-md border p-0">
+            <CommandInput placeholder={filterLabel} aria-label={filterLabel} />
+            <CommandList>
               <CommandItem
-                key={o.value}
-                value={`${o.label} ${o.value}`}
-                data-checked={o.value === value}
-                onSelect={() => onChange(o.value)}
+                value="__all__"
+                data-checked={value === null}
+                onSelect={() => onChange(null)}
               >
-                {o.label}
+                {allLabel}
               </CommandItem>
-            ))}
-          </CommandList>
-        </Command>
+              {options.map((o) => (
+                <CommandItem
+                  key={o.value}
+                  value={`${o.label} ${o.value}`}
+                  data-checked={o.value === value}
+                  onSelect={() => onChange(o.value)}
+                >
+                  {o.label}
+                </CommandItem>
+              ))}
+            </CommandList>
+          </Command>
+          {value !== null && children}
+        </>
       ) : (
         <ul className="flex flex-col">
           <li>

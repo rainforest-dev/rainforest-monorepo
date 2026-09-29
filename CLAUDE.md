@@ -175,7 +175,7 @@ ESLint enforces Nx module boundaries with `@nx/enforce-module-boundaries` rule. 
 
 ## Testing
 
-- **Vitest 4 workspace** discovers all `vite.config.ts` and `vitest.config.ts` files via [vitest.workspace.ts](vitest.workspace.ts)
+- **Vitest 4** projects are discovered by the `@nx/vitest` Nx plugin (`nx.json`), not a `vitest.workspace.ts` file
 - Tests use `.test.ts` or `.spec.ts` suffixes
 - Coverage outputs to `coverage/<project-name>/`
 - rainforest-ui uses jsdom environment
