@@ -21,6 +21,7 @@ import {
   formatDeliveryTime,
   latestByPlatform,
 } from '@/lib/deliveries';
+import { safeExternalHref } from '@/lib/url';
 import type { BookDeliveryEvent, DeliveryPlatform } from '@/types/delivery';
 
 interface Props {
@@ -98,8 +99,14 @@ function DeliveryRow({
   const [externalRef, setExternalRef] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [refError, setRefError] = useState<string | null>(null);
 
   async function save() {
+    const trimmedRef = externalRef.trim();
+    if (trimmedRef && !safeExternalHref(trimmedRef)) {
+      setRefError('Reference URL must start with http:// or https://');
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`/api/books/${bookId}/deliveries`, {
@@ -113,6 +120,7 @@ function DeliveryRow({
       setOpen(false);
       setNote('');
       setExternalRef('');
+      setRefError(null);
       router.refresh();
     } catch (error) {
       toast.error(`Delivery failed — ${messageOf(error)}`);
@@ -161,10 +169,24 @@ function DeliveryRow({
             <Input
               id={`${fieldId}-ref`}
               name="externalRef"
-              inputMode="url"
+              type="url"
               value={externalRef}
-              onChange={(e) => setExternalRef(e.target.value)}
+              aria-invalid={refError ? true : undefined}
+              aria-describedby={refError ? `${fieldId}-ref-error` : undefined}
+              onChange={(e) => {
+                setExternalRef(e.target.value);
+                if (refError) setRefError(null);
+              }}
             />
+            {refError && (
+              <p
+                id={`${fieldId}-ref-error`}
+                role="alert"
+                className="text-destructive text-xs"
+              >
+                {refError}
+              </p>
+            )}
             <label htmlFor={`${fieldId}-note`} className="text-xs font-medium">
               Note
             </label>
@@ -193,6 +215,7 @@ function HistoryItem({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const externalHref = safeExternalHref(event.externalRef);
 
   async function remove() {
     setBusy(true);
@@ -225,16 +248,21 @@ function HistoryItem({
           </span>
         </p>
         {event.note && <p className="text-muted-foreground">{event.note}</p>}
-        {event.externalRef && (
-          <a
-            href={event.externalRef}
-            target="_blank"
-            rel="noreferrer"
-            className="text-muted-foreground hover:text-foreground truncate underline"
-          >
-            {event.externalRef}
-          </a>
-        )}
+        {event.externalRef &&
+          (externalHref ? (
+            <a
+              href={externalHref}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-muted-foreground hover:text-foreground truncate underline"
+            >
+              {event.externalRef}
+            </a>
+          ) : (
+            <p className="text-muted-foreground truncate">
+              {event.externalRef}
+            </p>
+          ))}
       </div>
       <Button
         variant="ghost"

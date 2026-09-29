@@ -24,6 +24,13 @@ test.describe('deliveries', () => {
     await expect(
       dialog.getByText("Logs today's date. Both fields are optional."),
     ).toBeVisible();
+    await dialog.getByLabel('Reference URL').fill('javascript:alert(1)');
+    await dialog.getByLabel('Reference URL').press('Enter');
+    await expect(
+      dialog.getByText('Reference URL must start with http:// or https://'),
+    ).toBeVisible();
+    await expect(row(page, 'kobo')).toContainText('Not added');
+    await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0);
     await dialog
       .getByLabel('Reference URL')
       .fill('https://example.com/shelf/41');
