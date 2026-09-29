@@ -63,6 +63,28 @@ test.describe('search', () => {
     await expect(input).toBeFocused();
   });
 
+  test('closing a book opened from an off-page search suggestion keeps focus in the search input', async ({
+    page,
+  }) => {
+    await gotoLibrary(page);
+    const input = page.getByPlaceholder('Search books');
+    await input.fill('Lantern Ledger');
+    await expect(
+      page.getByRole('option', { name: /The Lantern Ledger/ }),
+    ).toBeVisible();
+    await page.getByRole('option', { name: /The Lantern Ledger/ }).click();
+    await expect(page).toHaveURL(/book=24/);
+    await page.getByRole('button', { name: 'Close details' }).click();
+    await expect(page).not.toHaveURL(/book=/);
+    await input.click();
+    await page
+      .getByRole('option', { name: 'Search for "Lantern Ledger"' })
+      .click();
+    await expect(page).toHaveURL(/q=Lantern/);
+    await expect(page.locator('[data-book-id="24"]')).toBeVisible();
+    await expect(input).toBeFocused();
+  });
+
   test('after Back navigation, the search field reflects the URL and keeps its focus', async ({
     page,
   }) => {

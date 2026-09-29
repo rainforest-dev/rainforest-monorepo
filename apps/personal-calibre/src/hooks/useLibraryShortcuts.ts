@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { useLibrary } from '@/components/library/LibraryProvider';
 import { resolveShortcut } from '@/lib/keyboard';
@@ -12,6 +12,7 @@ const TYPING =
   'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
 const OVERLAY =
   '[role="dialog"], [role="alertdialog"], [role="menu"], [data-slot="select-content"], [data-slot="popover-content"]';
+const TOOLBAR = '[role="toolbar"]';
 
 export function useLibraryShortcuts(enabled: boolean) {
   const {
@@ -24,13 +25,42 @@ export function useLibraryShortcuts(enabled: boolean) {
     goToPage,
     focusId,
     requestFocus,
+    focusAfterToolbar,
+    isPending,
   } = useLibrary();
   const paneOpen = parseLibraryParams(useSearchParams()).book !== null;
+
+  const stateRef = useRef({
+    view,
+    selected,
+    pageInfo,
+    focusId,
+    paneOpen,
+    isPending,
+  });
+  useLayoutEffect(() => {
+    stateRef.current = {
+      view,
+      selected,
+      pageInfo,
+      focusId,
+      paneOpen,
+      isPending,
+    };
+  });
 
   useEffect(() => {
     if (!enabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
+      const {
+        view: currentView,
+        selected: currentSelected,
+        pageInfo: currentPageInfo,
+        focusId: currentFocusId,
+        paneOpen: currentPaneOpen,
+        isPending: currentIsPending,
+      } = stateRef.current;
       const target = event.target instanceof Element ? event.target : null;
       const shortcut = resolveShortcut({
         key: event.key,
@@ -39,12 +69,13 @@ export function useLibraryShortcuts(enabled: boolean) {
         metaKey: event.metaKey,
         typing: target?.closest(TYPING) != null,
         inOverlay: target?.closest(OVERLAY) != null,
-        paneOpen,
-        hasSelection: selected.size > 0,
-        page: pageInfo.page,
-        pageCount: pageInfo.pageCount,
+        paneOpen: currentPaneOpen,
+        hasSelection: currentSelected.size > 0,
+        page: currentPageInfo.page,
+        pageCount: currentPageInfo.pageCount,
       });
       if (!shortcut) return;
+      if (shortcut.type === 'go-to-page' && currentIsPending) return;
       event.preventDefault();
       switch (shortcut.type) {
         case 'focus-search':
@@ -54,17 +85,18 @@ export function useLibraryShortcuts(enabled: boolean) {
           break;
         case 'next-view':
           if (
-            focusId !== null &&
+            currentFocusId !== null &&
             document.activeElement?.closest('[data-view-region]')
           ) {
-            requestFocus({ kind: 'book', id: focusId });
+            requestFocus({ kind: 'book', id: currentFocusId });
           }
-          setView(nextView(view));
+          setView(nextView(currentView));
           break;
         case 'close-pane':
           closeBook();
           break;
         case 'clear-selection':
+          if (target?.closest(TOOLBAR)) focusAfterToolbar();
           clear();
           break;
         case 'go-to-page':
@@ -76,15 +108,11 @@ export function useLibraryShortcuts(enabled: boolean) {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [
     enabled,
-    view,
     setView,
     closeBook,
     clear,
-    selected,
-    pageInfo,
     goToPage,
-    focusId,
     requestFocus,
-    paneOpen,
+    focusAfterToolbar,
   ]);
 }

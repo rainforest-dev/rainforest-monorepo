@@ -49,6 +49,7 @@ export function BulkToolbar({
     zipFormat,
     setZipFormat,
     setSelectMode,
+    focusAfterToolbar,
   } = useLibrary();
   const [busy, setBusy] = useState(false);
   const platformKey = bulkPlatform || platforms[0]?.key || '';
@@ -72,6 +73,7 @@ export function BulkToolbar({
       );
       clear();
       setSelectMode(false);
+      focusAfterToolbar();
       router.refresh();
     } catch (error) {
       toast.error(`Delivery failed — ${messageOf(error)}`);
@@ -112,7 +114,11 @@ export function BulkToolbar({
         variant="ghost"
         size="icon-sm"
         aria-label="Clear selection (Esc)"
-        onClick={clear}
+        disabled={busy}
+        onClick={() => {
+          clear();
+          focusAfterToolbar();
+        }}
       >
         <X aria-hidden />
       </Button>
@@ -122,6 +128,7 @@ export function BulkToolbar({
           variant="link"
           size="xs"
           className="text-foreground"
+          disabled={busy}
           onClick={() => addMany(matchingIds)}
         >
           Select all {matchingIds.length}

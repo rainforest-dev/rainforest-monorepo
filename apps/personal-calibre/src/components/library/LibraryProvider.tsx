@@ -63,6 +63,14 @@ interface LibraryContextValue {
   goToPage: (page: number) => void;
   openBook: (id: number) => void;
   closeBook: () => void;
+  focusAfterToolbar: () => void;
+}
+
+function isBookOnPage(id: number): boolean {
+  if (typeof document === 'undefined') return false;
+  return (
+    document.querySelector(`[data-view-region] [data-book-id="${id}"]`) !== null
+  );
 }
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -112,6 +120,7 @@ export function LibraryProvider({
 
   const replaceParams = useCallback(
     (patch: ParamPatch) => {
+      requestFocus(null);
       const href = buildLibraryHref(searchParams, patch);
       startTransition(() => router.replace(href, { scroll: false }));
     },
@@ -146,6 +155,7 @@ export function LibraryProvider({
   const clear = useCallback(() => setSelected(new Set()), []);
 
   const clearFilters = useCallback(() => {
+    requestFocus(null);
     const href = clearFiltersHref(searchParams);
     startTransition(() => router.replace(href, { scroll: false }));
   }, [router, searchParams]);
@@ -175,8 +185,16 @@ export function LibraryProvider({
     router.replace(buildLibraryHref(searchParams, { book: null }), {
       scroll: false,
     });
-    requestFocus({ kind: 'book', id });
+    requestFocus(isBookOnPage(id) ? { kind: 'book', id } : null);
   }, [router, searchParams]);
+
+  const focusAfterToolbar = useCallback(() => {
+    requestFocus(
+      focusId !== null && isBookOnPage(focusId)
+        ? { kind: 'book', id: focusId }
+        : { kind: 'first', page: pageInfo.page },
+    );
+  }, [focusId, pageInfo.page]);
 
   const value = useMemo<LibraryContextValue>(
     () => ({
@@ -209,6 +227,7 @@ export function LibraryProvider({
       goToPage,
       openBook,
       closeBook,
+      focusAfterToolbar,
     }),
     [
       view,
@@ -233,6 +252,7 @@ export function LibraryProvider({
       goToPage,
       openBook,
       closeBook,
+      focusAfterToolbar,
     ],
   );
 

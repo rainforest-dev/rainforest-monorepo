@@ -75,6 +75,18 @@ test.describe('shortcuts', () => {
     await expect(page).toHaveURL(/page=3/);
   });
 
+  test('a rapid ]] press pages forward once, not twice', async ({ page }) => {
+    await gotoLibrary(page);
+    await options(page).first().focus();
+    await page.keyboard.press(']');
+    await page.keyboard.press(']');
+    await expect(page).toHaveURL(/page=2/);
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/page=2/);
+    await page.goBack();
+    await expect(page).not.toHaveURL(/page=/);
+  });
+
   test('page keys keep the pane open', async ({ page }) => {
     await gotoLibrary(page, '/?book=38');
     await page.keyboard.press(']');

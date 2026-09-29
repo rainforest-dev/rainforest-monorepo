@@ -103,4 +103,31 @@ test.describe('bulk', () => {
     await toolbar(page).getByRole('button', { name: 'ZIP' }).click();
     expect((await download).suggestedFilename()).toBe('books.zip');
   });
+
+  test('Clear returns focus to the shelf', async ({ page }) => {
+    await gotoLibrary(page);
+    const first = options(page).first();
+    await first.focus();
+    await page.keyboard.press('x');
+    await expect(toolbar(page)).toContainText('1 selected');
+    await toolbar(page)
+      .getByRole('button', { name: 'Clear selection (Esc)' })
+      .click();
+    await expect(toolbar(page)).toHaveCount(0);
+    await expect(first).toBeFocused();
+  });
+
+  test('Esc from inside the toolbar clears the selection and returns focus to the shelf', async ({
+    page,
+  }) => {
+    await gotoLibrary(page);
+    const first = options(page).first();
+    await first.focus();
+    await page.keyboard.press('x');
+    await expect(toolbar(page)).toContainText('1 selected');
+    await toolbar(page).getByRole('button', { name: 'ZIP' }).focus();
+    await page.keyboard.press('Escape');
+    await expect(toolbar(page)).toHaveCount(0);
+    await expect(first).toBeFocused();
+  });
 });
