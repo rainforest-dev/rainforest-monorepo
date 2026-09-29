@@ -27,6 +27,15 @@ test.describe('pages', () => {
     await expect(pager(page)).toContainText('Page 3 of 3');
   });
 
+  test('an astronomically large page redirects to the last page instead of erroring', async ({
+    page,
+  }) => {
+    await gotoLibrary(page, '/?page=999999999999');
+    await expect(page).toHaveURL(/page=3/);
+    await expect(page.locator('[data-load-error]')).toHaveCount(0);
+    await expect(pager(page)).toContainText('Page 3 of 3');
+  });
+
   test('junk params are ignored', async ({ page }) => {
     await gotoLibrary(page, '/?page=abc&author=abc&groupBy=nope');
     await expect(pager(page)).toContainText('Page 1 of 3');

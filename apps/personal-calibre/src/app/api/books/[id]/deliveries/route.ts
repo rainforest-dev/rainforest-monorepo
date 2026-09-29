@@ -61,11 +61,11 @@ export async function POST(
     await createBookDeliveryEvent(bookId, parsed.data);
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Failed to create delivery event';
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error('createBookDeliveryEvent failed', error);
+    return NextResponse.json(
+      { error: 'Failed to create delivery event' },
+      { status: 400 },
+    );
   }
 }
 

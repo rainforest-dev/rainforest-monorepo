@@ -119,6 +119,13 @@ describe('queryLibrary, ungrouped', () => {
     expect(result.pageCount).toBe(3);
   });
 
+  it('clamps an astronomically large page instead of erroring', async () => {
+    const result = await queryLibrary({ ...base, page: 999999999999 });
+    expect(result.entries).toEqual([]);
+    expect(result.pageCount).toBe(3);
+    expect(result.matching).toBe(9);
+  });
+
   it('filters before paging', async () => {
     const result = await queryLibrary({ ...base, tagId: 1 });
     expect(ids(result)).toEqual([1, 4, 6]);
@@ -200,6 +207,16 @@ describe('queryLibrary, grouped', () => {
       label: 'No author',
     });
     expect(result.entries.filter((e) => e.book.id === 9)).toHaveLength(2);
+  });
+
+  it('clamps an astronomically large page instead of erroring', async () => {
+    const result = await queryLibrary({
+      ...base,
+      groupBy: 'series',
+      page: 999999999999,
+    });
+    expect(result.entries).toEqual([]);
+    expect(result.pageCount).toBe(3);
   });
 
   it('applies filters before grouping', async () => {

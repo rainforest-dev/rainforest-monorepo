@@ -79,6 +79,12 @@ function pageCountFor(matching: number, pageSize: number): number {
   return Math.max(1, Math.ceil(matching / pageSize));
 }
 
+// Clamped to `matching` so an astronomical ?page= still binds as a small, valid SQLite OFFSET.
+function pageOffset(page: number, matching: number, pageSize: number): number {
+  const offset = (page - 1) * pageSize;
+  return offset < matching ? offset : matching;
+}
+
 function byBook<T extends { book: number | null }>(
   rows: T[],
 ): Map<number, T[]> {
@@ -204,7 +210,7 @@ async function groupedPage(
     .all(
       idsJson,
       query.pageSize,
-      (query.page - 1) * query.pageSize,
+      pageOffset(query.page, total, query.pageSize),
     ) as GroupedRow[];
 
   const hydrated = await hydrateLibraryBooks([
@@ -258,20 +264,21 @@ export async function queryLibrary(
   if (query.groupBy)
     return groupedPage(query, query.groupBy, matchingIds, libraryTotal);
 
+  const matching = matchingIds.length;
+  const pageCount = pageCountFor(matching, query.pageSize);
   const rows = await db
     .select({ id: books.id })
     .from(books)
     .where(where)
     .orderBy(buildOrderExpr(query.sortBy, query.sortDir))
     .limit(query.pageSize)
-    .offset((query.page - 1) * query.pageSize);
-  const matching = matchingIds.length;
+    .offset(pageOffset(query.page, matching, query.pageSize));
   return {
     entries: (await hydrateLibraryBooks(rows.map((r) => r.id))).map((book) => ({
       book,
     })),
     page: query.page,
-    pageCount: pageCountFor(matching, query.pageSize),
+    pageCount,
     matching,
     libraryTotal,
     matchingIds,

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { RawSearchParams } from '@/lib/library-params';
+
 import { applyTestHooks, NO_HOOKS, readTestHooks } from './test-hooks';
 
 describe('readTestHooks', () => {
@@ -11,6 +13,21 @@ describe('readTestHooks', () => {
         false,
       ),
     ).toEqual(NO_HOOKS);
+  });
+
+  it.each<[string, RawSearchParams, string | undefined]>([
+    ['no params, no cookie', {}, undefined],
+    ['__fault only', { __fault: 'list' }, undefined],
+    ['__delay only', { __delay: '500' }, undefined],
+    ['__pageSize only', { __pageSize: '100' }, undefined],
+    ['cookie only', {}, 'pane'],
+    [
+      'every param and the cookie',
+      { __fault: 'list', __delay: '500', __pageSize: '100' },
+      'pane',
+    ],
+  ])('%s -> NO_HOOKS when disabled', (_label, params, cookie) => {
+    expect(readTestHooks(params, cookie, false)).toEqual(NO_HOOKS);
   });
 
   it('reads the fault, delay and page size', () => {

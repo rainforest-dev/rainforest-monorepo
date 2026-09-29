@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { RawSearchParams } from '@/lib/library-params';
 
 export const FAULT_COOKIE = 'calibre-e2e-fault';
@@ -18,14 +20,22 @@ const MAX_PAGE_SIZE = 250;
 const first = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
+const positiveIntString = z
+  .string()
+  .regex(/^\d+$/)
+  .transform(Number)
+  .refine((n) => n >= 1);
+
 function boundedInt(raw: string | undefined, max: number): number | null {
-  if (!raw || !/^\d+$/.test(raw)) return null;
-  const n = Number(raw);
-  return n >= 1 ? Math.min(n, max) : null;
+  const parsed = positiveIntString.safeParse(raw);
+  return parsed.success ? Math.min(parsed.data, max) : null;
 }
 
+const faultScopeSchema = z.enum(['list', 'pane']);
+
 function asFault(raw: string | undefined): FaultScope | null {
-  return raw === 'list' || raw === 'pane' ? raw : null;
+  const parsed = faultScopeSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
 }
 
 export function readTestHooks(
