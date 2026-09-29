@@ -12,7 +12,7 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { Download, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { platformName } from '@/lib/platforms';
 import type { DeliveryPlatform } from '@/types/delivery';
@@ -52,6 +52,7 @@ export function BulkToolbar({
     focusAfterToolbar,
   } = useLibrary();
   const [busy, setBusy] = useState(false);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const platformKey = bulkPlatform || platforms[0]?.key || '';
   const count = selected.size;
   const everyMatchSelected =
@@ -73,7 +74,14 @@ export function BulkToolbar({
       );
       clear();
       setSelectMode(false);
-      focusAfterToolbar();
+      const active = document.activeElement;
+      if (
+        active === null ||
+        active === document.body ||
+        toolbarRef.current?.contains(active)
+      ) {
+        focusAfterToolbar();
+      }
       router.refresh();
     } catch (error) {
       toast.error(`Delivery failed — ${messageOf(error)}`);
@@ -106,6 +114,7 @@ export function BulkToolbar({
 
   return (
     <div
+      ref={toolbarRef}
       role="toolbar"
       aria-label="Bulk actions"
       className="bg-card fixed inset-x-2 bottom-2 z-40 flex flex-wrap items-center gap-2 rounded-xl border p-2 shadow-lg lg:static lg:z-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"

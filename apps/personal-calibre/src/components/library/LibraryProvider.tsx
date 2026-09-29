@@ -131,9 +131,13 @@ export function LibraryProvider({
     (next: View) => {
       setViewState(next);
       savePrefs({ view: next });
-      if (searchParams.get('view')) replaceParams({ view: null });
+      if (searchParams.get('view')) {
+        router.replace(buildLibraryHref(searchParams, { view: null }), {
+          scroll: false,
+        });
+      }
     },
-    [replaceParams, savePrefs, searchParams],
+    [router, savePrefs, searchParams],
   );
 
   const togglePanel = useCallback(

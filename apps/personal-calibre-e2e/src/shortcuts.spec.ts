@@ -31,6 +31,20 @@ test.describe('shortcuts', () => {
     ).toBeFocused();
   });
 
+  test('v strips a stale ?view= and keeps focus on the same book', async ({
+    page,
+  }) => {
+    await gotoLibrary(page, '/?view=catalogue');
+    const third = page.locator('tr[data-book-id]').nth(2);
+    await third.focus();
+    const id = await third.getAttribute('data-book-id');
+    await page.keyboard.press('v');
+    await expect(page).not.toHaveURL(/view=/);
+    await expect(
+      page.locator(`[role="option"][data-book-id="${id}"]`),
+    ).toBeFocused();
+  });
+
   test('Esc closes the pane and returns focus, then clears the selection', async ({
     page,
   }) => {

@@ -120,7 +120,7 @@ describe('queryLibrary, ungrouped', () => {
   });
 
   it('clamps an astronomically large page instead of erroring', async () => {
-    const result = await queryLibrary({ ...base, page: 999999999999 });
+    const result = await queryLibrary({ ...base, page: 1e20 });
     expect(result.entries).toEqual([]);
     expect(result.pageCount).toBe(3);
     expect(result.matching).toBe(9);
@@ -213,7 +213,7 @@ describe('queryLibrary, grouped', () => {
     const result = await queryLibrary({
       ...base,
       groupBy: 'series',
-      page: 999999999999,
+      page: 1e20,
     });
     expect(result.entries).toEqual([]);
     expect(result.pageCount).toBe(3);
