@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
+import { KeyHints } from '@/components/library/KeyHints';
 import { LibraryToolbar } from '@/components/library/LibraryToolbar';
 import { ViewRegion } from '@/components/library/ViewRegion';
 import { Pagination } from '@/components/Pagination';
@@ -65,6 +66,7 @@ async function LibraryContent({ searchParams }: Props) {
         filtered={hasFilters(params)}
       />
       <Pagination page={library.page} pageCount={library.pageCount} />
+      <KeyHints />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { useLibraryShortcuts } from '@/hooks/useLibraryShortcuts';
 import { parseLibraryParams } from '@/lib/library-params';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +45,7 @@ export function LibraryShell({
   useEffect(() => setReady(true), []);
 
   const isList = pathname === '/';
+  useLibraryShortcuts(isList);
   const bookOpen = isList && parseLibraryParams(searchParams).book !== null;
   const columns = panelOpen
     ? bookOpen
