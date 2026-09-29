@@ -22,7 +22,10 @@ async function isActiveElementBody(page: Page): Promise<boolean> {
 
 async function readColumns(page: Page): Promise<number | null> {
   return page.evaluate(() => {
-    const tiles = Array.from(document.querySelectorAll('[role="option"]'));
+    const shelf = document.querySelector(
+      '[role="listbox"][aria-label="Books"]',
+    );
+    const tiles = Array.from(shelf?.querySelectorAll('[role="option"]') ?? []);
     const first = tiles[0]?.getBoundingClientRect();
     if (!first || first.width === 0) return null;
     return tiles.filter((t) => t.getBoundingClientRect().top === first.top)
@@ -223,7 +226,7 @@ test.describe('shelf keyboard', () => {
     await clickBetweenTiles(page);
     await expect.poll(() => isActiveElementBody(page)).toBe(true);
 
-    const search = page.getByPlaceholder('Search books...');
+    const search = page.getByPlaceholder('Search books');
     await search.focus();
     await expect(search).toBeFocused();
 

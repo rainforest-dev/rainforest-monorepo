@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
-import { FilterBar } from '@/components/FilterBar';
+import { LibraryToolbar } from '@/components/library/LibraryToolbar';
 import { ViewRegion } from '@/components/library/ViewRegion';
 import { Pagination } from '@/components/Pagination';
 import { listDeliveryPlatforms } from '@/lib/delivery';
 import {
   buildLibraryHref,
+  type FilterLabels,
   hasFilters,
   PAGE_SIZE,
   parseLibraryParams,
@@ -48,9 +49,14 @@ async function LibraryContent({ searchParams }: Props) {
     redirect(buildLibraryHref(raw, { page: library.pageCount }));
   }
 
+  const labels: FilterLabels = { ...filters, platforms };
   return (
-    <div className="flex flex-col gap-6 py-4">
-      <FilterBar filters={filters} platforms={platforms} />
+    <div className="flex flex-col gap-4">
+      <LibraryToolbar
+        labels={labels}
+        matchingBooks={library.matchingIds.length}
+        libraryTotal={library.libraryTotal}
+      />
       <ViewRegion
         library={library}
         groupBy={params.groupBy}
