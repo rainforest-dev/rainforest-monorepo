@@ -249,3 +249,19 @@ test.describe('shelf keyboard', () => {
     await expect.poll(() => isActiveElementBody(page)).toBe(true);
   });
 });
+
+test.describe('view switch focus', () => {
+  test('the Catalogue opens on the book focused in the Shelf', async ({
+    page,
+  }) => {
+    await gotoLibrary(page);
+    const third = options(page).nth(2);
+    await third.focus();
+    const id = await third.getAttribute('data-book-id');
+    await page.getByRole('button', { name: 'Catalogue view' }).click();
+    await expect(page.locator(`tr[data-book-id="${id}"]`)).toHaveAttribute(
+      'tabindex',
+      '0',
+    );
+  });
+});

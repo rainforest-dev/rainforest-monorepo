@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { CatalogueView } from '@/components/views/CatalogueView';
 import { ShelfView } from '@/components/views/ShelfView';
 import type { GroupBy } from '@/lib/library-params';
 import { VIEW_LABELS } from '@/lib/prefs';
@@ -36,6 +37,13 @@ export function ViewRegion({ library, groupBy, platforms, filtered }: Props) {
     >
       {entries.length === 0 ? (
         <EmptyResult filtered={filtered} />
+      ) : view === 'catalogue' ? (
+        <CatalogueView
+          entries={entries}
+          groupBy={groupBy}
+          platforms={platforms}
+          page={page}
+        />
       ) : (
         <ShelfView
           entries={entries}
