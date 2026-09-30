@@ -145,7 +145,7 @@ export function BulkToolbar({
           Select all {matchingIds.length}
         </Button>
       )}
-      <ButtonGroup className="lg:ml-auto">
+      <ButtonGroup className="lg:ml-auto" aria-label="Deliver to platform">
         <Select
           items={platforms.map((p) => ({ value: p.key, label: p.name }))}
           value={platformKey}
@@ -174,7 +174,7 @@ export function BulkToolbar({
           Mark delivered
         </Button>
       </ButtonGroup>
-      <ButtonGroup>
+      <ButtonGroup aria-label="Download format">
         <Select
           items={ZIP_FORMATS.map((f) => ({ value: f, label: f }))}
           value={zipFormat}

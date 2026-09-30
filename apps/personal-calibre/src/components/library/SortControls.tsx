@@ -68,7 +68,7 @@ export function SortControls() {
   const { replaceParams } = useLibrary();
   const descending = params.sortDir === 'desc';
   return (
-    <ButtonGroup>
+    <ButtonGroup aria-label="Sort">
       <Select
         items={SORT_ITEMS}
         value={params.sortBy}
