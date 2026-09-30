@@ -56,7 +56,7 @@ export default function FeedValidator() {
         />
         <Button onClick={validate} disabled={!url || loading}>
           {loading && <Spinner data-icon="inline-start" />}
-          {loading ? 'Checking…' : 'Validate'}
+          Validate
         </Button>
       </div>
 
