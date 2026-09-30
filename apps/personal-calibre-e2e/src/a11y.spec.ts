@@ -1,7 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 import { type AxeIgnore, expectNoViolations } from './support/axe';
 import { gotoLibrary, options, pane } from './support/library';
+
+const panel = (page: Page) => page.locator('#library-filters');
 
 // Roving arrow nav plus scrollIntoView already reach every tile in a group's
 // horizontally-scrolling row, so it needs no tab stop of its own.
@@ -40,6 +42,18 @@ test.describe('accessibility', () => {
     await expect(
       page.getByRole('toolbar', { name: 'Bulk actions' }),
     ).toBeVisible();
+    await expectNoViolations(page);
+  });
+
+  test('the filter panel has no axe violations with a filter active', async ({
+    page,
+  }) => {
+    await gotoLibrary(page, '/?tag=6');
+    const clearAll = panel(page).getByRole('button', { name: 'Clear all' });
+    if (!(await clearAll.isVisible())) {
+      await page.getByRole('button', { name: 'Show filters' }).click();
+    }
+    await expect(clearAll).toBeVisible();
     await expectNoViolations(page);
   });
 
