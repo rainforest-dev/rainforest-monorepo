@@ -126,3 +126,5 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
   `FieldGroup`.
 - `ButtonGroup` joins controls that act as one: a `SelectTrigger` and the button that applies
   it, or an input and its action. A single-choice switch (views, modes) is `ToggleGroup`.
+- List rows with a title, meta and actions are `Item`s inside `ItemGroup`. `ItemGroup` is
+  `role="list"`, so give each `Item` `role="listitem"`; axe reports the list otherwise.

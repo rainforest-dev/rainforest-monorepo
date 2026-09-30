@@ -6,6 +6,7 @@ export * from './cn.js';
 export * from './empty.js';
 export * from './field.js';
 export * from './input-group.js';
+export * from './item.js';
 export * from './sheet.js';
 export * from './tabs.js';
 export * from './toggle.js';

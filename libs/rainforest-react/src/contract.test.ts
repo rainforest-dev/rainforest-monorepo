@@ -24,6 +24,7 @@ const componentNames = [
   'Field',
   'Input',
   'InputGroup',
+  'Item',
   'Kbd',
   'Label',
   'Popover',

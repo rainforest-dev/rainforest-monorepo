@@ -49,6 +49,9 @@
     "InputGroup": {
       "skip": ["forms-inputgroup--dark"]
     },
+    "Item": {
+      "skip": ["display-item--dark"]
+    },
     "Kbd": {
       "skip": ["display-kbd--dark"]
     },
