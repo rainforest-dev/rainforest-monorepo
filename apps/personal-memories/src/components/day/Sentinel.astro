@@ -1,0 +1,21 @@
+---
+import { Skeleton } from '@rainforest-dev/rainforest-react';
+
+type Props = { direction: 'prev' | 'next'; date?: string | undefined };
+
+const { direction, date } = Astro.props;
+---
+
+<div data-load={direction} data-date={date}>
+  <div data-skeleton class="mx-auto hidden max-w-[660px] flex-col gap-2 py-4">
+    <Skeleton className="h-5 w-1/3" />
+    <Skeleton className="h-4 w-2/3" />
+    <Skeleton className="h-4 w-1/2" />
+  </div>
+  <p
+    data-failed
+    class="text-muted-foreground text-meta hidden py-4 text-center"
+  >
+    載入失敗，捲動時會再試
+  </p>
+</div>

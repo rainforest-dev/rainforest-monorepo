@@ -34,3 +34,32 @@ export interface FilterOptions {
   tags: Array<{ id: number; name: string | null }>;
   series: Array<{ id: number; name: string | null }>;
 }
+
+export interface LibraryBook extends BookSummary {
+  seriesId: number | null;
+  authorIds: number[];
+  tags: Array<{ id: number; name: string }>;
+  pubdate: string | null;
+}
+
+export interface EntryGroupRef {
+  key: string;
+  label: string;
+  total: number;
+  offset: number;
+  id: number | null;
+}
+
+export interface LibraryEntry {
+  book: LibraryBook;
+  group?: EntryGroupRef;
+}
+
+export interface LibraryResult {
+  entries: LibraryEntry[];
+  page: number;
+  pageCount: number;
+  matching: number;
+  libraryTotal: number;
+  matchingIds: number[];
+}

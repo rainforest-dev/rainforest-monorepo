@@ -1,0 +1,248 @@
+---
+import type { MonthRow } from '../lib/days.ts';
+import type { MonthCell } from '../lib/month-view.ts';
+import { monthLabel } from '../lib/months.ts';
+import { YEAR_HINTS } from '../lib/shortcuts.ts';
+import { dayHeading } from '../lib/weeks.ts';
+import { morphAttrs } from '../lib/zoom.ts';
+import DayPreview from './DayPreview.astro';
+import KeyHints from './KeyHints.astro';
+
+type Props = {
+  rows: MonthRow[];
+  level: (total: number) => 0 | 1 | 2 | 3 | 4;
+  noted: Set<string>;
+  morph?: string | undefined;
+  previews: Map<string, MonthCell>;
+};
+
+const { rows, level, noted, morph, previews } = Astro.props;
+
+const stop = rows
+  .flatMap((row) => row.cells)
+  .filter((cell) => cell !== null && cell.total > 0)
+  .at(-1)?.date;
+
+const LEVEL = [
+  'bg-muted',
+  'bg-primary/20',
+  'bg-primary/40',
+  'bg-primary/65',
+  'bg-primary/90',
+];
+
+const GRID_COLS = 'grid-cols-[56px_repeat(31,24px)_72px] gap-x-1.5';
+const PHONE_GRID_COLS = 'grid-cols-[28px_repeat(31,8px)_minmax(0,1fr)]';
+
+const rangeLabel = (() => {
+  if (rows.length === 0) return '';
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  const a = `${first.year} 年 ${first.month} 月`;
+  if (first.year === last.year && first.month === last.month) return a;
+  return `${a} – ${last.year} 年 ${last.month} 月`;
+})();
+
+const dotClass = (lvl: 0 | 1 | 2 | 3 | 4) =>
+  lvl >= 3 ? 'bg-primary-foreground' : 'bg-foreground';
+
+const tooltip = (date: string, total: number, isNoted: boolean) => ({
+  date: dayHeading(date),
+  detail: `${total} 則${isNoted ? ' · 已寫回憶' : ''}`,
+});
+
+const monthKey = (row: MonthRow) =>
+  `${row.year}-${String(row.month).padStart(2, '0')}`;
+---
+
+<section class="flex flex-col gap-7">
+  <div
+    class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6"
+  >
+    <h2 class="text-title font-semibold tracking-[-0.01em]">{rangeLabel}</h2>
+    <div
+      class="text-muted-foreground flex items-center justify-between gap-4 text-xs sm:justify-start"
+    >
+      <div class="flex items-center gap-1">
+        <span>少</span>
+        {LEVEL.map((cls) => <span class={`size-3.5 rounded-sm ${cls}`} />)}
+        <span>多</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="bg-foreground inline-block size-1.5 rounded-full"></span>
+        已寫回憶
+      </div>
+    </div>
+  </div>
+
+  <div class="hidden overflow-x-auto pt-14 sm:block">
+    <div data-grid="year" class="flex w-max flex-col">
+      <div
+        aria-hidden="true"
+        class={`text-muted-foreground grid h-[18px] text-xs tabular-nums ${GRID_COLS}`}
+      >
+        <span></span>
+        {
+          Array.from({ length: 31 }, (_, i) => (
+            <span class="text-center">{i + 1}</span>
+          ))
+        }
+        <span></span>
+      </div>
+      {
+        rows.map((row, i) => {
+          const showYear = i === 0 || row.year !== rows[i - 1].year;
+          return (
+            <>
+              {showYear && (
+                <div class="text-heading mt-3.5 font-semibold tabular-nums first:mt-0">
+                  {row.year}
+                </div>
+              )}
+              <div class={`grid h-8 items-center ${GRID_COLS}`}>
+                <a
+                  href={`/month/${monthKey(row)}`}
+                  data-morph={`month-${monthKey(row)}`}
+                  data-month-row={monthKey(row)}
+                  {...morphAttrs(`month-${monthKey(row)}`, morph)}
+                  class="text-meta text-muted-foreground hover:text-foreground font-medium tabular-nums"
+                >
+                  {row.month} 月
+                </a>
+                {row.cells.map((cell) => {
+                  if (!cell) return <span class="size-6" />;
+                  const isNoted = noted.has(cell.date);
+                  const lvl = level(cell.total);
+                  const tip = tooltip(cell.date, cell.total, isNoted);
+                  const anchor = `--d${cell.date.replaceAll('-', '')}`;
+                  const key = `day-${cell.date}`;
+                  const { style: morphStyle, ...morphRest } = morphAttrs(
+                    key,
+                    morph,
+                  );
+                  const style = [`anchor-name: ${anchor}`, morphStyle]
+                    .filter(Boolean)
+                    .join('; ');
+                  const cellClass = `focus-visible:ring-ring focus-visible:ring-offset-background relative flex size-6 items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${LEVEL[lvl]}`;
+                  const preview = (
+                    <DayPreview
+                      date={cell.date}
+                      detail={tip.detail}
+                      anchor={anchor}
+                      cell={previews.get(cell.date)}
+                    />
+                  );
+                  const dot = isNoted && (
+                    <span class={`size-1.5 rounded-full ${dotClass(lvl)}`} />
+                  );
+                  return cell.total > 0 ? (
+                    <a
+                      href={`/day/${cell.date}`}
+                      data-date={cell.date}
+                      data-noted={isNoted}
+                      data-heat-cell
+                      data-preview-cell
+                      tabindex={cell.date === stop ? 0 : -1}
+                      data-morph={key}
+                      aria-label={`${tip.date}，${tip.detail}`}
+                      class={cellClass}
+                      style={style}
+                      {...morphRest}
+                    >
+                      {dot}
+                      {preview}
+                    </a>
+                  ) : (
+                    <span
+                      role="img"
+                      data-date={cell.date}
+                      data-noted={isNoted}
+                      data-heat-cell
+                      data-preview-cell
+                      data-morph={key}
+                      aria-label={`${tip.date}，${tip.detail}`}
+                      class={cellClass}
+                      style={style}
+                      {...morphRest}
+                    >
+                      {dot}
+                      {preview}
+                    </span>
+                  );
+                })}
+                <span
+                  data-month-total={monthKey(row)}
+                  class="text-muted-foreground text-right text-xs tabular-nums"
+                >
+                  {row.total} 則
+                </span>
+              </div>
+            </>
+          );
+        })
+      }
+    </div>
+  </div>
+
+  <div class="flex flex-col sm:hidden">
+    {
+      rows.map((row, i) => {
+        const showYear = i === 0 || row.year !== rows[i - 1].year;
+        const hasEvents = row.cells.some((c) => c !== null && c.total > 0);
+        const bars = row.cells.map((cell) => {
+          if (!cell) return <span class="h-4 w-2" />;
+          const isNoted = noted.has(cell.date);
+          const lvl = level(cell.total);
+          return (
+            <span
+              class={`flex h-4 w-2 items-end justify-center rounded-[2px] pb-px ${LEVEL[lvl]}`}
+            >
+              {isNoted && (
+                <span class={`size-1 rounded-full ${dotClass(lvl)}`} />
+              )}
+            </span>
+          );
+        });
+        const rowLabel = (
+          <>
+            <span class="text-muted-foreground text-xs tabular-nums">
+              {row.month}月
+            </span>
+            {bars}
+            <span class="text-muted-foreground text-right text-xs tabular-nums">
+              {row.total}
+            </span>
+          </>
+        );
+        return (
+          <>
+            {showYear && (
+              <div class="text-heading mt-3.5 font-semibold tabular-nums first:mt-0">
+                {row.year}
+              </div>
+            )}
+            {hasEvents ? (
+              <a
+                href={`/month/${monthKey(row)}`}
+                data-morph={`month-${monthKey(row)}`}
+                data-month-row={monthKey(row)}
+                {...morphAttrs(`month-${monthKey(row)}`, morph)}
+                aria-label={`${monthLabel(monthKey(row))}，${row.total} 則`}
+                class={`grid h-8 items-center ${PHONE_GRID_COLS}`}
+              >
+                {rowLabel}
+              </a>
+            ) : (
+              <div class={`grid h-8 items-center ${PHONE_GRID_COLS}`}>
+                {rowLabel}
+              </div>
+            )}
+          </>
+        );
+      })
+    }
+    <p class="text-muted-foreground mt-3 text-xs">點一列，打開那個月。</p>
+  </div>
+
+  <KeyHints hints={YEAR_HINTS} />
+</section>

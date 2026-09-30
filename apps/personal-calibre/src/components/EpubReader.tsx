@@ -1,10 +1,9 @@
 'use client';
 
+import { Button } from '@rainforest-dev/rainforest-react';
 import ePub, { type Book, type Location, type Rendition } from 'epubjs';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-
-import { Button } from '@/components/ui/button';
 
 interface Props {
   bookId: number;

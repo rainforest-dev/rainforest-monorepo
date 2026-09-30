@@ -1,0 +1,16 @@
+{
+  "name": "personal-memories-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "projectType": "application",
+    "sourceRoot": "apps/personal-memories-e2e/src",
+    "implicitDependencies": [
+      "personal-memories"
+    ]
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/node": "catalog:"
+  }
+}

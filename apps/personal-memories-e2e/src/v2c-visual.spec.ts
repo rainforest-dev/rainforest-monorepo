@@ -1,0 +1,151 @@
+import path from 'node:path';
+
+import { expect, type Page, test } from '@playwright/test';
+
+const OUT = path.join(__dirname, '..', 'test-output', 'v2c');
+const SCHEMES = ['light', 'dark'] as const;
+const VIEWPORTS = [
+  { width: 1280, height: 800 },
+  { width: 390, height: 844 },
+] as const;
+
+test.skip(!process.env['V2C_VISUAL'], 'captures run with V2C_VISUAL=1');
+test.describe.configure({ mode: 'serial' });
+
+const settle = async (page: Page) => {
+  await expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+          .map((a) => a.finished.catch(() => undefined)),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]),
+  );
+};
+
+const noSideScroll = (page: Page) =>
+  expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    )
+    .toBe(true);
+
+for (const scheme of SCHEMES) {
+  for (const viewport of VIEWPORTS) {
+    test.describe(`v2c visual ${scheme} ${viewport.width}`, () => {
+      test.use({ colorScheme: scheme, viewport });
+      const shot = (surface: string) =>
+        path.join(OUT, `app-${surface}-${scheme}-${viewport.width}.png`);
+
+      test('year', async ({ page }) => {
+        await page.goto('/');
+        await settle(page);
+        await noSideScroll(page);
+        await page.screenshot({ path: shot('year') });
+      });
+
+      test('month', async ({ page }) => {
+        await page.goto('/month/2025-11');
+        await settle(page);
+        await noSideScroll(page);
+        await page.screenshot({ path: shot('month') });
+      });
+
+      test('day stream', async ({ page }) => {
+        await page.goto('/day/2025-11-01');
+        await settle(page);
+        await noSideScroll(page);
+        await page.screenshot({ path: shot('day') });
+      });
+
+      test('photo burst', async ({ page }) => {
+        await page.goto('/day/2025-11-01');
+        await settle(page);
+        const burst = page.locator('#day-2025-11-01 [data-burst]').first();
+        await burst.evaluate((el) => {
+          const li = el.closest('li[data-source="photo"]');
+          const header = li?.closest('section')?.querySelector('header');
+          if (!li || !header) return;
+          window.scrollBy(
+            0,
+            li.getBoundingClientRect().top -
+              header.getBoundingClientRect().bottom -
+              16,
+          );
+        });
+        await noSideScroll(page);
+        await burst
+          .locator('xpath=ancestor::li[@data-source="photo"][1]')
+          .screenshot({ path: shot('burst') });
+      });
+
+      test('inline 眉批', async ({ page }) => {
+        await page.setExtraHTTPHeaders({
+          'Cf-Access-Authenticated-User-Email': 'alice@example.com',
+        });
+        await page.goto('/day/2025-10-31');
+        await settle(page);
+        const row = page
+          .locator('#day-2025-10-31 [data-event-id]', {
+            hasText: 'Busy message 1',
+          })
+          .first();
+        if ((await row.getAttribute('data-annotated')) === null) {
+          await row.focus();
+          await row.getByRole('button', { name: '眉批' }).click();
+          await page
+            .getByLabel(/^眉批：Busy message 1$/)
+            .fill('那天早上的第一則');
+          await expect(page.getByText('已儲存').first()).toBeVisible();
+          await page.keyboard.press('Escape');
+        }
+        await expect(row.locator('[data-note]')).toBeVisible();
+        await expect(row.locator('[data-note-by]')).toHaveText(' · Alice');
+        await row.evaluate((el) => {
+          (document.activeElement as HTMLElement | null)?.blur();
+          el.scrollIntoView({ block: 'center' });
+        });
+        await noSideScroll(page);
+        await row.screenshot({ path: shot('inline-note') });
+      });
+
+      test('notes panel', async ({ page }) => {
+        await page.goto('/day/2025-11-01');
+        await settle(page);
+        if (viewport.width === 390) {
+          const sheet = page.getByRole('dialog', { name: '這一天的回憶' });
+          const box = await sheet.boundingBox();
+          if (box) {
+            const x = Math.max(box.x, 0);
+            const y = Math.max(box.y, 0);
+            await page.screenshot({
+              path: shot('notes-peek'),
+              clip: {
+                x,
+                y,
+                width: Math.min(box.x + box.width, viewport.width) - x,
+                height: Math.min(box.y + box.height, viewport.height) - y,
+              },
+            });
+          }
+          await sheet.getByRole('button', { name: '展開筆記' }).click();
+          await expect(sheet.getByLabel('當天的回憶')).toBeVisible();
+          await settle(page);
+          await page.screenshot({ path: shot('notes') });
+          return;
+        }
+        await noSideScroll(page);
+        await page
+          .getByRole('complementary', { name: '筆記' })
+          .screenshot({ path: shot('notes') });
+      });
+    });
+  }
+}

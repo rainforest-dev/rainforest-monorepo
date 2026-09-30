@@ -2,11 +2,7 @@
 export type WalletBackend = 'goby' | 'hoogii' | 'chia';
 
 export type OfferStage =
-  | 'idle'
-  | 'connected'
-  | 'review'
-  | 'signing'
-  | 'tracking';
+  'idle' | 'connected' | 'review' | 'signing' | 'tracking';
 
 /**
  * `offerStatusEnum` — the real Chia offer lifecycle. A swap is a signed
@@ -14,11 +10,7 @@ export type OfferStage =
  * spent was used elsewhere first (a conflicting spend), not a generic error.
  */
 export type OfferStatus =
-  | 'pending'
-  | 'valid'
-  | 'in_mempool'
-  | 'on_chain'
-  | 'invalid';
+  'pending' | 'valid' | 'in_mempool' | 'on_chain' | 'invalid';
 
 export interface OfferState {
   stage: OfferStage;

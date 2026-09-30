@@ -36,15 +36,20 @@ PR #342 — the first PR this repo's loop opened unattended, which failed CI on
 `Check formatting` while `pnpm prettier --write` sat documented in CLAUDE.md,
 unrun. Formatting on the way in means that failure cannot be authored.
 
-`build` is deliberately absent from pre-push: CI runs it authoritatively, and
-building inside a git worktree corrupts the shared `.nx` cache. The hook also
+`build` is deliberately absent from the pre-push targets, because building
+inside a git worktree corrupts the shared `.nx` cache. `personal-website`'s
+`test` and `typecheck` depend on `^build`, so a push that affects it still
+builds its libraries. CI has no build step either; app builds run in the Vercel
+previews and the release workflows. The hook also
 hands over to the worktree's own copy of itself before running, because agent
 worktrees inherit an absolute `core.hooksPath` pointing at the main clone — the
 loop executor runs in worktrees here, so that is the normal case, not an edge
 one.
 
-To skip them for a genuine emergency: `git commit --no-verify`. Say so in the PR
-if you do; a silent skip and an absent gate look identical afterwards.
+In a genuine emergency, `git push --no-verify` skips the pre-push checks, which
+are the heavy gate; `git commit --no-verify` only skips the pre-commit
+formatter. Say so in the PR if you use either; a silent skip and an absent gate
+look identical afterwards.
 
 ## Attaching screenshots to a PR
 
@@ -53,33 +58,21 @@ a new state, a layout fix. It does **not** belong in the repository: binaries,
 especially multi-MB GIFs, bloat git history permanently and cannot be removed
 from it later.
 
-1. Capture to a path **outside** the repo, then copy it into the session's own
-   scratchpad directory. `file_upload` reads only paths the session owns, so a
-   bare `/tmp/…` path is rejected.
-2. Shrink first: `sips -Z 1100 -s format jpeg -s formatOptions 55 <file>` takes a
-   full-page PNG well under GitHub's limit with no meaningful loss of legibility.
-3. Upload **into the authenticated page's own file input**, which is what mints
-   the `user-attachments` URL. GitHub's comment box hides a real
-   `<input type="file" multiple>` inside its `<file-attachment>` element —
-   `#fc-new_comment_field` for the bottom compose box, `#fc-issue-<id>-body` for
-   an in-place edit. Find the input, then upload; several files in one call mint
-   all the URLs at once.
-4. Poll the textarea until the markup lands — the upload is asynchronous and the
-   value arrives as `<img … src="https://github.com/user-attachments/assets/…">`.
-5. To place it anywhere other than the box you uploaded into, take that URL and
-   `gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<file>`.
-   Then clear the compose box, or the upload posts as a stray comment.
-6. Verify it renders: reload and check `naturalWidth > 0` on the image.
+`gh` 2.101 and later uploads attachments itself, so this is one command:
 
-Do not try to upload from outside the browser. `/upload/policies/assets` needs a
-web-session CSRF token, GitHub's CSP blocks cross-origin fetches from local
-servers, and no documented API mints `user-attachments` URLs. Two routes that
-look adjacent and are not worth it: a synthetic ⌘V paste depends on synthetic
-input reaching the page, which is not dependable across browser reconnects; and
-base64-ing the image through the model to build a `File` in-page costs roughly
-70KB of tokens per screenshot for no gain.
+```bash
+gh pr comment <number> --body "What the screenshots show, and that they come from fixture data." \
+  --attach './index.jpg#Week index with two fixture weeks' \
+  --attach './week.jpg#Week page with photos inline'
+```
 
-> This repository is **public**, so `![alt](raw.githubusercontent.com/…)` embeds
-> do render here — unlike a private repo, where `camo` cannot authenticate and
-> they 404. That is a reason to be deliberate about what a screenshot shows, not
-> a reason to commit one: the history cost is the same either way.
+The text after `#` is the alt text. Up to 50 files per command; a body that already
+references `![alt](./index.jpg)` gets that reference rewritten to the uploaded asset.
+
+Capture to a path **outside** the repo. Shrink first when the image is large:
+`sips -Z 1100` caps the longest side (so crop a tall full-page capture with
+`sips -c <h> <w>` before resizing, or the width collapses). Never put real
+personal data in a screenshot that goes on a public PR; use fixture data.
+
+The browser-upload procedure this section used to describe predates `--attach`
+and is no longer needed.

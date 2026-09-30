@@ -1,44 +1,49 @@
+import {
+  Alert,
+  AlertTitle,
+  Badge,
+  type BadgeProps,
+  Button,
+  buttonVariants,
+  Input,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@rainforest-dev/rainforest-react';
 import { useEffect, useState } from 'react';
 
-// Re-declared locally rather than imported: registry.ts pulls in node:fs, which
-// would land in the client bundle for this island.
-type StaleType = 'feed-dead' | 'delivery-gap' | 'low-value' | 'unspecified';
-
-type Source = {
-  name: string;
-  url: string;
-  tags: string[];
-  status: 'active' | 'proposed' | 'no-rss' | 'retired';
-  category: string;
-  proposedDate?: string;
-  stale?: { type: StaleType; note: string };
-};
+import { patchRegistry } from '../lib/patchRegistry.js';
+import type { Source, StaleType } from '../lib/registry.types.js';
+import { READ_ONLY_NOTE } from '../lib/registry.types.js';
 
 /** Where Readwise manages feed subscriptions — the fix for a delivery gap. */
 const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';
 
 const STALE_UI: Record<
   StaleType,
-  { label: string; className: string; retirable: boolean }
+  { label: string; variant: BadgeProps['variant']; retirable: boolean }
 > = {
   'feed-dead': {
     label: 'feed dead',
-    className: 'bg-red-900 text-red-300',
+    variant: 'destructive',
     retirable: true,
   },
   'delivery-gap': {
     label: 'delivery gap',
-    className: 'bg-amber-900 text-amber-300',
+    variant: 'warning',
     retirable: false,
   },
   'low-value': {
     label: 'low value',
-    className: 'bg-amber-900 text-amber-300',
+    variant: 'warning',
     retirable: true,
   },
   unspecified: {
     label: 'flagged',
-    className: 'bg-gray-700 text-gray-300',
+    variant: 'muted',
     retirable: true,
   },
 };
@@ -52,11 +57,11 @@ function daysAgo(dateStr: string): string {
   return `${diff}d ago`;
 }
 
-const STATUS_COLORS: Record<Source['status'], string> = {
-  active: 'bg-green-900 text-green-300',
-  proposed: 'bg-blue-900 text-blue-300',
-  'no-rss': 'bg-gray-800 text-gray-400',
-  retired: 'bg-red-900 text-red-400',
+const STATUS_VARIANT: Record<Source['status'], BadgeProps['variant']> = {
+  active: 'success',
+  proposed: 'info',
+  'no-rss': 'muted',
+  retired: 'destructive',
 };
 
 export default function SourceTable() {
@@ -65,6 +70,9 @@ export default function SourceTable() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [writable, setWritable] = useState(true);
   const [pending, setPending] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -73,8 +81,9 @@ export default function SourceTable() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data: Source[]) => {
-        setSources(data);
+      .then((data: { sources: Source[]; writable: boolean }) => {
+        setSources(data.sources);
+        setWritable(data.writable);
         setLoading(false);
       })
       .catch(() => {
@@ -85,13 +94,16 @@ export default function SourceTable() {
 
   async function doAction(name: string, action: 'activate' | 'retire') {
     setPending((p) => new Set(p).add(name));
+    setActionError(null);
     try {
-      const res = await fetch('/api/sources', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, action }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
+      const result = await patchRegistry('/api/sources', name, action);
+      if (!result.ok) {
+        // The banner above already states the read-only case; repeating it
+        // under the table would read as a second, separate problem.
+        if (result.readOnly) setWritable(false);
+        else setActionError(result.error);
+        return;
+      }
       // Optimistic update
       setSources((prev) =>
         prev.map((s) => {
@@ -102,13 +114,35 @@ export default function SourceTable() {
         }),
       );
     } catch (e) {
-      alert(`Action failed: ${e}`);
+      setActionError(e instanceof Error ? e.message : String(e));
     } finally {
       setPending((p) => {
         const n = new Set(p);
         n.delete(name);
         return n;
       });
+    }
+  }
+
+  /**
+   * Readwise has no URL that adds a given feed, so re-subscribing means pasting
+   * it into the Add feeds box (Shift + A). The click carries the URL over on
+   * the clipboard and lets the link open the subscriptions page as usual.
+   */
+  async function copyFeedUrl(name: string, url: string) {
+    if (!url) return;
+    setActionError(null);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(name);
+      window.setTimeout(
+        () => setCopied((current) => (current === name ? null : current)),
+        3000,
+      );
+    } catch {
+      // Denied, or no clipboard outside a secure context. The page still opens,
+      // so show the URL to copy by hand.
+      setActionError(`Could not copy the feed URL — paste it by hand: ${url}`);
     }
   }
 
@@ -127,117 +161,143 @@ export default function SourceTable() {
     {} as Record<string, number>,
   );
 
-  if (error) return <p className="py-8 text-center text-red-400">{error}</p>;
+  if (error)
+    return <p className="text-destructive py-8 text-center">{error}</p>;
   if (loading)
-    return <p className="py-8 text-center text-gray-400">Loading sources…</p>;
+    return (
+      <p className="text-muted-foreground py-8 text-center">Loading sources…</p>
+    );
 
   return (
     <div className="space-y-4">
+      {!writable && (
+        <Alert variant="warning" role="status">
+          <AlertTitle>
+            {READ_ONLY_NOTE} Activate and Retire are disabled.
+          </AlertTitle>
+        </Alert>
+      )}
+      {actionError && (
+        <Alert variant="destructive">
+          <AlertTitle>{actionError}</AlertTitle>
+        </Alert>
+      )}
+
       {/* Summary chips */}
       <div className="flex flex-wrap gap-2">
         {(['all', 'active', 'proposed', 'no-rss'] as const).map((s) => (
-          <button
+          <Button
             key={s}
+            size="sm"
+            variant={statusFilter === s ? 'default' : 'secondary'}
+            aria-pressed={statusFilter === s}
             onClick={() => setStatusFilter(s)}
-            className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-              statusFilter === s
-                ? 'bg-violet-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-            }`}
           >
             {s === 'all'
               ? `All (${sources.length})`
               : `${s} (${counts[s] ?? 0})`}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Search */}
-      <input
+      <Input
         type="search"
+        aria-label="Filter sources"
         placeholder="Filter by name, tag, or category…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="w-full rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
       />
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800 text-left text-gray-500">
-              <th className="py-2 pr-4 font-medium">Source</th>
-              <th className="py-2 pr-4 font-medium">Category</th>
-              <th className="py-2 pr-4 font-medium">Tags</th>
-              <th className="py-2 pr-4 font-medium">Status</th>
-              <th className="py-2 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Source</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Tags</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((s) => (
-              <tr
-                key={s.url || s.name}
-                className="border-b border-gray-800 hover:bg-gray-800/50"
-              >
-                <td className="py-2 pr-4">
-                  {s.url ? (
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-violet-400 hover:underline"
-                    >
-                      {s.name}
-                    </a>
-                  ) : (
-                    <span className="text-gray-300">{s.name}</span>
-                  )}
-                </td>
-                <td className="py-2 pr-4 text-gray-400">{s.category || '—'}</td>
-                <td className="py-2 pr-4">
-                  <div className="flex flex-wrap gap-1">
-                    {s.tags.map((t) => (
-                      <span
-                        key={t}
-                        className="rounded bg-gray-800 px-1.5 py-0.5 text-xs text-gray-400"
+              <TableRow key={s.url || s.name}>
+                <TableCell>
+                  {/* The name goes to the site; the feed XML is a click no
+                      reader wants, so it gets its own small link instead. When
+                      the feed URL does not say what the site is, the name is
+                      plain text rather than a link onto XML. */}
+                  <div className="flex items-center gap-2">
+                    {s.siteUrl ? (
+                      <a
+                        href={s.siteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
                       >
-                        #{t}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="py-2 pr-4">
-                  <div className="flex flex-wrap items-center gap-1">
-                    <span
-                      className={`rounded px-2 py-0.5 text-xs ${STATUS_COLORS[s.status]}`}
-                    >
-                      {s.status}
-                    </span>
-                    {s.stale && (
-                      <span
-                        title={s.stale.note}
-                        className={`rounded px-2 py-0.5 text-xs ${STALE_UI[s.stale.type].className}`}
+                        {s.name}
+                      </a>
+                    ) : (
+                      <span className="text-foreground">{s.name}</span>
+                    )}
+                    {s.url && s.url !== s.siteUrl && (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={s.url}
+                        className="text-muted-foreground hover:text-foreground text-xs"
                       >
-                        {STALE_UI[s.stale.type].label}
-                      </span>
+                        RSS
+                      </a>
                     )}
                   </div>
-                </td>
-                <td className="py-2 text-right">
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {s.category || '—'}
+                </TableCell>
+                <TableCell className="whitespace-normal">
+                  <div className="flex flex-wrap gap-1">
+                    {s.tags.map((t) => (
+                      <Badge key={t} variant="muted">
+                        #{t}
+                      </Badge>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Badge variant={STATUS_VARIANT[s.status]}>{s.status}</Badge>
+                    {s.stale && (
+                      <Badge
+                        title={s.stale.note}
+                        variant={STALE_UI[s.stale.type].variant}
+                      >
+                        {STALE_UI[s.stale.type].label}
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
                     {s.proposedDate && s.status === 'proposed' && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-muted-foreground text-xs">
                         {daysAgo(s.proposedDate)}
                       </span>
                     )}
                     {s.status === 'proposed' && (
-                      <button
+                      <Button
+                        size="xs"
                         onClick={() => doAction(s.name, 'activate')}
-                        disabled={pending.has(s.name)}
-                        className="rounded bg-violet-600 px-3 py-1 text-xs text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                        disabled={pending.has(s.name) || !writable}
+                        title={writable ? undefined : READ_ONLY_NOTE}
                       >
                         {pending.has(s.name) ? '…' : 'Activate'}
-                      </button>
+                      </Button>
                     )}
                     {s.status === 'active' &&
                       (s.stale && !STALE_UI[s.stale.type].retirable ? (
@@ -248,27 +308,34 @@ export default function SourceTable() {
                           href={READER_FEEDS_URL}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded bg-amber-700 px-3 py-1 text-xs text-amber-100 transition-colors hover:bg-amber-600"
+                          onClick={() => copyFeedUrl(s.name, s.url)}
+                          title={`Copies ${s.url} and opens Readwise — paste it there with Shift + A`}
+                          className={buttonVariants({
+                            size: 'xs',
+                            variant: 'warning',
+                          })}
                         >
-                          Re-subscribe
+                          {copied === s.name ? 'Copied ✓' : 'Re-subscribe'}
                         </a>
                       ) : (
-                        <button
+                        <Button
+                          size="xs"
+                          variant="secondary"
                           onClick={() => doAction(s.name, 'retire')}
-                          disabled={pending.has(s.name)}
-                          className="rounded bg-gray-700 px-3 py-1 text-xs text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
+                          disabled={pending.has(s.name) || !writable}
+                          title={writable ? undefined : READ_ONLY_NOTE}
                         >
                           {pending.has(s.name) ? '…' : 'Retire'}
-                        </button>
+                        </Button>
                       ))}
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         {filtered.length === 0 && (
-          <p className="py-8 text-center text-gray-500">
+          <p className="text-muted-foreground py-8 text-center">
             No sources match the current filter.
           </p>
         )}

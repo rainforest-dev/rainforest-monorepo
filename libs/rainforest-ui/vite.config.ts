@@ -36,7 +36,7 @@ export default defineConfig({
         'tailwindcss/shadcn': 'src/tailwindcss/shadcn.ts',
         ...Object.fromEntries(
           glob
-            .sync('src/{lit,utils}/**/!(*.spec|*.test).ts')
+            .sync('src/{lit,utils,recipes}/**/!(*.spec|*.test).ts')
             .map((e) => [e.replace('src/', '').replace('.ts', ''), e]),
         ),
       },

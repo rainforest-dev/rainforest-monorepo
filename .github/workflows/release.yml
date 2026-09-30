@@ -1,0 +1,196 @@
+name: Release Docker apps
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/release.yml'
+      - '.github/actions/nx-affected-docker-apps/**'
+      - 'nx.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+env:
+  NX_NO_CLOUD: ${{ vars.NX_NO_CLOUD }}
+
+jobs:
+  release:
+    name: Release affected Docker apps
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve affected Docker apps (push)
+        id: affected_push
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -o pipefail
+          NX_ERR=$(mktemp)
+          if ! APPS=$(pnpm exec nx show projects --withTarget=docker:build --json 2>"$NX_ERR" | node .github/actions/nx-affected-docker-apps/parse-affected.mjs); then
+            echo "::error::could not resolve the Docker app list"
+            cat "$NX_ERR" >&2
+            rm -f "$NX_ERR"
+            exit 1
+          fi
+          rm -f "$NX_ERR"
+          KEPT=()
+          IFS=',' read -ra APP_LIST <<< "$APPS"
+          for APP in "${APP_LIST[@]}"; do
+            [ -z "$APP" ] && continue
+            if TAG=$(git describe --tags --abbrev=0 --match "${APP}@[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9].*" HEAD 2>/dev/null); then
+              BASE=$(git rev-list -n1 "$TAG")
+              SOURCE="its release tag $TAG"
+            else
+              BASE="$BEFORE"
+              SOURCE="github.event.before"
+            fi
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+              BASE="HEAD~1"
+              SOURCE="HEAD~1, since $SOURCE did not resolve to a reachable commit"
+            fi
+            echo "::notice::$APP: base is $BASE ($SOURCE)."
+            NX_ERR=$(mktemp)
+            if ! NX_OUT=$(pnpm exec nx show projects --affected --base="$BASE" --head=HEAD --withTarget=docker:build --json 2>"$NX_ERR"); then
+              echo "::error::nx show projects --affected failed for $APP"
+              cat "$NX_ERR" >&2
+              rm -f "$NX_ERR"
+              exit 1
+            fi
+            rm -f "$NX_ERR"
+            AFFECTED_FROM_BASE=$(printf '%s' "$NX_OUT" | node .github/actions/nx-affected-docker-apps/parse-affected.mjs) || {
+              echo "::error::could not find the affected-projects JSON array in nx output for $APP"
+              exit 1
+            }
+            IFS=',' read -ra AFFECTED_LIST <<< "$AFFECTED_FROM_BASE"
+            for ITEM in "${AFFECTED_LIST[@]}"; do
+              if [ "$ITEM" = "$APP" ]; then
+                KEPT+=("$APP")
+                break
+              fi
+            done
+          done
+          AFFECTED=$(IFS=,; echo "${KEPT[*]}")
+          echo "affected=$AFFECTED" >> "$GITHUB_OUTPUT"
+          echo "::notice::Affected Docker apps, each measured from its own last release: ${AFFECTED:-<none>}"
+
+      - name: Resolve affected base
+        id: base
+        if: github.event_name != 'push'
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          BASE=$(git merge-base origin/main HEAD || echo '')
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$REF" = "refs/heads/main" ]; then
+            echo "::notice::Manual run from main; comparing main with itself."
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve affected Docker apps
+        id: affected
+        if: github.event_name != 'push'
+        uses: ./.github/actions/nx-affected-docker-apps
+        with:
+          base: ${{ steps.base.outputs.base }}
+
+      - name: Version, build and publish
+        id: release
+        env:
+          AFFECTED: ${{ steps.affected_push.outputs.affected || steps.affected.outputs.affected }}
+          IS_DEPLOY: ${{ github.event_name == 'push' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          if [ -z "$AFFECTED" ]; then
+            echo "::notice::No Docker apps affected."
+            exit 0
+          fi
+          export NX_DOCKER_BUILD_PROJECTS="$AFFECTED"
+          # nx pushes the current branch whenever release.git.push is true, even with --git-tag=false.
+          pnpm exec nx release version --projects="$AFFECTED" --dockerVersionScheme=prod \
+            --git-tag="$IS_DEPLOY" --git-commit=false --stage-changes=false --verbose 2>&1 | tee /tmp/nx-release.log
+          if [ "$IS_DEPLOY" != "true" ]; then
+            echo "::notice::Verify run: built $AFFECTED, published nothing."
+            exit 0
+          fi
+          pnpm exec nx release publish --projects="$AFFECTED" --verbose 2>&1 | tee -a /tmp/nx-release.log
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push latest
+        if: steps.release.outputs.published == 'true'
+        env:
+          AFFECTED: ${{ steps.affected_push.outputs.affected || steps.affected.outputs.affected }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -o pipefail
+          if [ "$EVENT" = "push" ]; then
+            git fetch --no-tags origin main
+            if ! git merge-base --is-ancestor origin/main HEAD; then
+              echo "::error::HEAD is behind origin/main; refusing to move :latest from a stale re-run."
+              exit 1
+            fi
+          fi
+          IFS=',' read -ra PROJECTS <<< "$AFFECTED"
+          declare -A TAGS
+          declare -A REPOS
+          for PROJECT in "${PROJECTS[@]}"; do
+            TAG=$(git tag --points-at HEAD --list "${PROJECT}@*" | head -1)
+            if [ -z "$TAG" ]; then
+              echo "::error::No ${PROJECT}@<version> tag at HEAD; refusing to move :latest."
+              exit 1
+            fi
+            ROOT=$(pnpm exec nx show project "$PROJECT" --json 2>/dev/null | grep '^{' | tail -1 | node -p 'JSON.parse(require("fs").readFileSync(0)).root')
+            REPO=$(node -p "require('./' + process.argv[1] + '/package.json').nx.release.docker.repositoryName" "$ROOT")
+            if [ -z "$REPO" ] || [ "$REPO" = "undefined" ]; then
+              echo "::error::No nx.release.docker.repositoryName resolved for ${PROJECT}; refusing to move :latest."
+              exit 1
+            fi
+            TAGS["$PROJECT"]="$TAG"
+            REPOS["$PROJECT"]="$REPO"
+          done
+          echo "| Project | Image | Digest |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          for PROJECT in "${PROJECTS[@]}"; do
+            TAG="${TAGS[$PROJECT]}"
+            VERSION="${TAG##*@}"
+            IMAGE="ghcr.io/${REPOS[$PROJECT]}"
+            docker tag "${IMAGE}:${VERSION}" "${IMAGE}:latest"
+            docker push "${IMAGE}:latest"
+            git push origin "refs/tags/${TAG}"
+            DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --format '{{json .Manifest.Digest}}' | tr -d '"') || DIGEST="(unavailable)"
+            echo "| ${PROJECT} | \`${IMAGE}:${VERSION}\` | \`${DIGEST}\` |" >> "$GITHUB_STEP_SUMMARY"
+          done

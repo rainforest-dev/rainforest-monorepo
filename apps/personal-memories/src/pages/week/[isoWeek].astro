@@ -1,0 +1,13 @@
+---
+import { dayForWeek, indexDays } from '../../lib/days.ts';
+import { getTimeline } from '../../lib/store.ts';
+
+const { isoWeek = '' } = Astro.params;
+const state = getTimeline();
+const day =
+  state.status === 'ready'
+    ? dayForWeek(indexDays(state.timeline.events), isoWeek)
+    : undefined;
+if (day) return Astro.redirect(`/day/${day}`, 301);
+return new Response('Not found', { status: 404 });
+---

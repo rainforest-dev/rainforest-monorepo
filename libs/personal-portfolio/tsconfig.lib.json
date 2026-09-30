@@ -19,5 +19,10 @@
     "src/**/*.test.tsx",
     "src/**/*.spec.ts",
     "src/**/*.spec.tsx"
+  ],
+  "references": [
+    {
+      "path": "../rainforest-react/tsconfig.lib.json"
+    }
   ]
 }

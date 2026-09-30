@@ -20,11 +20,7 @@ export type ProjectTheme = 'dark' | 'light' | 'system';
  * 5. relay-gate    — dApp messaging relay/gate
  */
 export type HoogiiInteractionKind =
-  | 'phrase-grid'
-  | 'fuzzy-search'
-  | 'live-ledger'
-  | 'idle-lock'
-  | 'relay-gate';
+  'phrase-grid' | 'fuzzy-search' | 'live-ledger' | 'idle-lock' | 'relay-gate';
 
 /**
  * Hashgreen DEX — five real interactive sections transcribed from the
@@ -57,11 +53,7 @@ export type DexInteractionKind =
  *                     `i18next-chained-backend`
  */
 export type SwapInteractionKind =
-  | 'amm-quote'
-  | 'offer-state'
-  | 'zap-liquidity'
-  | 'env-deploy'
-  | 'i18n-card';
+  'amm-quote' | 'offer-state' | 'zap-liquidity' | 'env-deploy' | 'i18n-card';
 
 /**
  * OpenCGT — five real interactive sections transcribed from the portfolio

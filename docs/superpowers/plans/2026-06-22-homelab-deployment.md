@@ -1,5 +1,18 @@
 # Homelab Deployment (Docker Compose + Traefik) Implementation Plan
 
+> **Superseded — 2026-09-21.** None of this describes the homelab any more, and
+> this repo has no `deploy/` directory. Services are Terraform modules in
+> [rainforest-dev/rainforest-homelab](https://github.com/rainforest-dev/rainforest-homelab)
+> (`modules/<service>/main.tf`, `kreuzwerker/docker` provider), deployed from the
+> GHCR images the `release-*.yml` workflows here publish and applied with
+> `terraform apply` on the homelab host. Traefik is gone (`main.tf`: "Traefik
+> removed - using Cloudflare Tunnel for ingress"): ingress is a Cloudflare
+> Zero Trust tunnel and the gate is a Cloudflare Access application
+> (`modules/cloudflare-tunnel`), so the `auth-service` this plan builds on was
+> dropped too — it no longer exists in `apps/`. The compose YAML, the `.env`
+> variables and the `traefik/` config below are a record of the original plan,
+> not instructions.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Wire `auth-service`, `rss-manager`, and `personal-calibre` behind a single Traefik reverse proxy with Let's Encrypt wildcard TLS and a single ForwardAuth middleware that gates all homelab subdomains with the `rf_session` passkey cookie.

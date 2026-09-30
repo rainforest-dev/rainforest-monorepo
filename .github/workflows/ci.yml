@@ -34,6 +34,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v5
 
+      - name: Test the affected-Docker-apps parser
+        run: node --test .github/actions/nx-affected-docker-apps/parse-affected.test.mjs
+
       # Formatting is not covered by lint: eslint-config-prettier switches off ESLint's
       # stylistic rules on the assumption Prettier owns them, but nothing ran Prettier, so
       # malformed code passed lint, typecheck and tests alike.

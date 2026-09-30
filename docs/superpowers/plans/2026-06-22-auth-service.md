@@ -460,9 +460,8 @@ Create `apps/auth-service/src/lib/webauthn.test.ts`:
 ```typescript
 import { describe, it, expect } from 'vitest';
 
-const { storeChallenge, consumeChallenge, getRpConfig } = await import(
-  './webauthn.js'
-);
+const { storeChallenge, consumeChallenge, getRpConfig } =
+  await import('./webauthn.js');
 
 describe('challenge store', () => {
   it('stores and consumes a challenge once', () => {

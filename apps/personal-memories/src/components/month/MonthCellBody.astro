@@ -1,0 +1,103 @@
+---
+import { badgeVariants, Skeleton } from '@rainforest-dev/rainforest-react';
+
+import type { MonthCell } from '../../lib/month-view.ts';
+import { thumbSrcset, thumbUrl } from '../../lib/stream.ts';
+
+type Props = { cell: MonthCell; layout: 'cell' | 'row' };
+
+const { cell, layout } = Astro.props;
+const row = layout === 'row';
+const showText = row || !cell.cover;
+---
+
+{
+  !row && cell.cover && (
+    <span class="absolute inset-0">
+      <Skeleton className="absolute inset-0" />
+      <img
+        src={thumbUrl(cell.cover, 0, 240)}
+        srcset={thumbSrcset(cell.cover, 0)}
+        sizes="(min-width: 640px) 160px, 52px"
+        alt=""
+        loading="lazy"
+        class="absolute inset-0 size-full object-cover"
+      />
+    </span>
+  )
+}
+<span
+  class:list={[
+    'text-meta flex items-center gap-1.5 font-medium tabular-nums',
+    !row && 'relative justify-between p-1.5',
+  ]}
+>
+  <span
+    class:list={[
+      'flex items-center gap-1.5',
+      !row && 'h-5.5 rounded-md px-1.5 font-semibold',
+      !row && cell.cover && 'bg-background/90',
+    ]}
+  >
+    {cell.day}
+    {cell.noted && <span class="bg-foreground size-1.5 rounded-full" />}
+    {
+      !row && (
+        <span
+          data-last-label
+          aria-hidden="true"
+          class="text-primary text-xs font-medium"
+        >
+          上次看到
+        </span>
+      )
+    }
+  </span>
+  {
+    !row && (
+      <span class={badgeVariants({ variant: 'muted' })}>{cell.total} 則</span>
+    )
+  }
+</span>
+{
+  row &&
+    (cell.cover ? (
+      <span class="relative block size-12 overflow-hidden rounded-md">
+        <Skeleton className="absolute inset-0" />
+        <img
+          src={thumbUrl(cell.cover, 0, 240)}
+          srcset={thumbSrcset(cell.cover, 0)}
+          sizes="(min-width: 640px) 160px, 52px"
+          alt=""
+          loading="lazy"
+          class="absolute inset-0 size-full object-cover"
+        />
+      </span>
+    ) : (
+      <span />
+    ))
+}
+{
+  showText &&
+    (cell.memory ? (
+      <span class:list={['text-meta line-clamp-3', !row && 'px-2.5 pb-2.5']}>
+        {cell.memory}
+      </span>
+    ) : cell.excerpt ? (
+      <span
+        class:list={[
+          'text-meta text-muted-foreground line-clamp-3',
+          !row && 'px-2.5 pb-2.5',
+        ]}
+      >
+        「{cell.excerpt}」
+      </span>
+    ) : (
+      row && <span />
+    ))
+}
+{
+  row && (
+    <span class={badgeVariants({ variant: 'muted' })}>{cell.total} 則</span>
+  )
+}

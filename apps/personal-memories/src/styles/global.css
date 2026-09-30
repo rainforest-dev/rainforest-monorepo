@@ -1,0 +1,211 @@
+@import 'tailwindcss';
+@import '@rainforest-dev/rainforest-react/tailwind.css';
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+
+/* Inter when the system has it — the album is local-only, so no webfont is
+   fetched; CJK falls through to the system stack either way. */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+  :root {
+    --app-bar-h: 3.5rem;
+  }
+  html {
+    scroll-padding-top: var(--app-bar-h);
+  }
+}
+
+:root[data-hide-line] [data-stream] [data-source='line'],
+:root[data-hide-slack] [data-stream] [data-source='slack'],
+:root[data-hide-photo] [data-stream] [data-source='photo'] {
+  display: none;
+}
+
+[data-load='next'][data-state='loading'] [data-skeleton] {
+  display: flex;
+}
+
+[data-load='next'][data-state='error'] [data-failed] {
+  display: block;
+}
+
+@media (pointer: coarse) {
+  [data-stream] li[data-event-id] {
+    -webkit-touch-callout: none;
+  }
+}
+
+[data-event-id]:target {
+  @apply bg-primary/15 ring-primary/45 ring-1 ring-inset ring-offset-0;
+}
+
+[data-source='photo'][data-event-id]:target {
+  @apply bg-transparent ring-0;
+}
+
+[data-source='photo'][data-event-id]:target > a {
+  @apply outline-primary outline-solid outline-2 outline-offset-2;
+}
+
+[data-event-id][data-annotated] [data-marker] {
+  @apply bg-primary;
+}
+
+[data-event-id]:not([data-annotated]) :is([data-note], [data-note-flag]) {
+  display: none;
+}
+
+[data-source='photo'][data-event-id][data-annotated] [data-marker] {
+  @apply ring-background ring-2;
+}
+
+[data-burst]:has(:target) > [data-overflow] {
+  display: block;
+}
+
+[data-burst]:has(:target) [data-scrim] {
+  display: none;
+}
+
+[data-burst]:not(:has(:target)):has(> [data-overflow][data-annotated])
+  > [data-more]
+  [data-marker] {
+  @apply bg-primary ring-background ring-2;
+}
+
+[data-stream] {
+  overflow-anchor: none;
+}
+
+[data-day] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+[data-hour-strip] [aria-current='time'] [data-bar] {
+  @apply bg-primary ring-ring ring-offset-background ring-2 ring-offset-1;
+}
+
+[data-last-viewed] {
+  @apply inset-ring-primary inset-ring-2;
+}
+
+[data-last-label] {
+  display: none;
+}
+
+[data-last-viewed] [data-last-label] {
+  display: inline;
+}
+
+@keyframes last-viewed-flash {
+  from {
+    background-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-last-viewed] {
+    animation: last-viewed-flash 600ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 150ms;
+  }
+
+  [data-morph] {
+    view-transition-name: none !important;
+  }
+}
+
+[data-preview] {
+  inset: auto;
+  margin: 0;
+}
+
+[data-preview]:popover-open {
+  display: flex;
+}
+
+@media (pointer: coarse) {
+  [data-preview-cell] {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+
+@supports (position-area: top) {
+  [data-preview] {
+    position: fixed;
+    position-area: top;
+    margin-block: var(--app-bar-h) 0.5rem;
+    position-try-fallbacks:
+      --below, --above-right, --below-right, --above-left, --below-left;
+  }
+
+  @position-try --below {
+    position-area: bottom;
+    margin-block: 0.5rem 0;
+  }
+
+  @position-try --above-right {
+    position-area: top span-right;
+  }
+
+  @position-try --below-right {
+    position-area: bottom span-right;
+    margin-block: 0.5rem 0;
+  }
+
+  @position-try --above-left {
+    position-area: top span-left;
+  }
+
+  @position-try --below-left {
+    position-area: bottom span-left;
+    margin-block: 0.5rem 0;
+  }
+}
+
+@supports not (position-area: top) {
+  [data-preview] {
+    position: fixed;
+  }
+}
+
+[data-ruled] {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 27px,
+    var(--border) 27px 28px
+  );
+  background-attachment: local;
+  background-clip: padding-box;
+  border-color: transparent;
+  line-height: 28px;
+}

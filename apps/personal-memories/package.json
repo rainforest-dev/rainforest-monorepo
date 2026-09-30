@@ -1,0 +1,73 @@
+{
+  "name": "@rainforest-monorepo/personal-memories",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 3004 --host 127.0.0.1",
+    "build": "astro check && astro build",
+    "preview": "astro preview --port 3004 --host 127.0.0.1",
+    "ingest": "node src/cli/ingest.ts",
+    "fixture": "node src/cli/fixture.ts",
+    "docker-smoke": "node src/cli/docker-smoke.ts"
+  },
+  "nx": {
+    "name": "personal-memories",
+    "projectType": "application",
+    "sourceRoot": "apps/personal-memories/src",
+    "tags": [
+      "docker"
+    ],
+    "targets": {
+      "dev": {
+        "dependsOn": [
+          "^build"
+        ]
+      },
+      "build": {
+        "dependsOn": [
+          "^build"
+        ],
+        "cache": true
+      },
+      "typecheck": {
+        "dependsOn": [
+          "^build"
+        ],
+        "executor": "nx:run-commands",
+        "cache": true,
+        "options": {
+          "cwd": "apps/personal-memories",
+          "command": "tsc --noEmit -p tsconfig.json"
+        }
+      }
+    },
+    "release": {
+      "docker": {
+        "repositoryName": "rainforest-dev/personal-memories"
+      }
+    }
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.6",
+    "@astrojs/react": "^6.0.6",
+    "@rainforest-dev/rainforest-react": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "astro": "^7.3.3",
+    "lucide-react": "^1.8.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sharp": "^0.35.4",
+    "tailwindcss": "catalog:",
+    "tslib": "^2.3.0",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "^3.2.4"
+  }
+}

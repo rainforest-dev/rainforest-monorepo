@@ -1,50 +1,49 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 import { bulkCreateDeliveryEvents } from '@/lib/delivery';
+import { httpUrlSchema } from '@/lib/url';
+
+const externalRefSchema = z.preprocess(
+  (value) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  httpUrlSchema.optional(),
+);
+
+export const bulkDeliveryBodySchema = z.object({
+  bookIds: z
+    .array(z.number().int().positive())
+    .min(1, 'bookIds must be a non-empty array')
+    .max(1000, 'bookIds must have at most 1000 items'),
+  platformKey: z
+    .string({ required_error: 'platformKey is required' })
+    .trim()
+    .min(1, 'platformKey is required'),
+  note: z.string().trim().max(2000).optional(),
+  externalRef: externalRefSchema,
+});
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as {
-    bookIds?: unknown;
-    platformKey?: string;
-    note?: string;
-  };
-
-  if (!Array.isArray(body.bookIds) || body.bookIds.length === 0) {
-    return NextResponse.json(
-      { error: 'bookIds must be a non-empty array' },
-      { status: 400 },
-    );
-  }
-
-  const bookIds = body.bookIds as number[];
-  if (bookIds.some((id) => !Number.isInteger(id))) {
-    return NextResponse.json(
-      { error: 'All bookIds must be integers' },
-      { status: 400 },
-    );
-  }
-
-  if (!body.platformKey) {
-    return NextResponse.json(
-      { error: 'platformKey is required' },
-      { status: 400 },
-    );
+  const parsed = bulkDeliveryBodySchema.safeParse(
+    await request.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    const message = parsed.error.issues[0]?.message ?? 'Invalid request body';
+    return NextResponse.json({ error: message }, { status: 422 });
   }
 
   try {
-    const result = await bulkCreateDeliveryEvents(bookIds, {
-      platformKey: body.platformKey,
-      note: body.note,
-    });
+    const { bookIds, ...input } = parsed.data;
+    const result = await bulkCreateDeliveryEvents(bookIds, input);
     return NextResponse.json(
       { ok: true, count: result.count },
       { status: 201 },
     );
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Failed to create delivery events';
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error('bulkCreateDeliveryEvents failed', error);
+    return NextResponse.json(
+      { error: 'Failed to create delivery events' },
+      { status: 400 },
+    );
   }
 }

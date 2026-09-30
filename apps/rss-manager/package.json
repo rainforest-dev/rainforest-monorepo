@@ -9,6 +9,9 @@
     "preview": "astro preview --port 3002"
   },
   "nx": {
+    "tags": [
+      "docker"
+    ],
     "targets": {
       "dev": {
         "dependsOn": [
@@ -21,18 +24,26 @@
         ],
         "cache": true
       }
+    },
+    "release": {
+      "docker": {
+        "repositoryName": "rainforest-dev/rss-manager"
+      }
     }
   },
   "dependencies": {
-    "@astrojs/node": "^10.1.4",
-    "@astrojs/react": "^5.0.7",
+    "@astrojs/node": "^11.1.6",
+    "@astrojs/react": "^6.0.6",
+    "@rainforest-dev/rainforest-react": "workspace:*",
     "@tailwindcss/vite": "catalog:",
-    "astro": "^6.4.8",
+    "astro": "^7.3.3",
+    "lucide-react": "^1.8.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "catalog:"
   },
   "devDependencies": {
+    "@rainforest-dev/rainforest-ui": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

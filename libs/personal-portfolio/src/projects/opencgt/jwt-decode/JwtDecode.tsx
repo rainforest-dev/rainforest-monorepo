@@ -1,6 +1,7 @@
+import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { type JSX, useEffect, useState } from 'react';
 
-import { button, cx } from '../../../shared/ui';
+import { cx } from '../../../shared/ui';
 import { useReducedMotion } from '../../../shared/useReducedMotion';
 import {
   buildMockJwt,
@@ -105,7 +106,7 @@ export function JwtDecode(): JSX.Element {
         type="button"
         onClick={handleLogin}
         disabled={stage === 'hop'}
-        className={button({ className: 'mt-4' })}
+        className={buttonVariants({ size: 'lg', className: 'mt-4' })}
       >
         {stage === 'hop' ? 'Signing in…' : decoded ? 'Log in again' : 'Log in'}
       </button>
