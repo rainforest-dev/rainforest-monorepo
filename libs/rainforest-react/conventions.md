@@ -120,3 +120,7 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
   request settles.
 - A region with nothing to show uses `Empty`: a title, at most one line of help, and the next
   action in `EmptyContent`. Errors keep `Alert`, whose `role="alert"` announces them.
+- A form field is `Field` with a `FieldLabel` pointing at the control (`htmlFor`), optional
+  `FieldDescription` and a `FieldError` whose `id` the control lists in `aria-describedby`. Set
+  `data-invalid` on the `Field` and `aria-invalid` on the control together. Stack fields in
+  `FieldGroup`.

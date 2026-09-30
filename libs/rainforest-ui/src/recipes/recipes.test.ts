@@ -7,6 +7,7 @@ import {
   buttonVariants,
   cn,
   emptyMediaVariants,
+  fieldVariants,
   inputGroupAddonVariants,
   inputGroupButtonVariants,
   sheetContentVariants,
@@ -36,6 +37,11 @@ describe('recipes', () => {
   it('resolve the Empty media variants', () => {
     expect(emptyMediaVariants()).toContain('bg-transparent');
     expect(emptyMediaVariants({ variant: 'icon' })).toContain('bg-muted');
+  });
+
+  it('resolve the Field orientations', () => {
+    expect(fieldVariants()).toContain('flex-col');
+    expect(fieldVariants({ orientation: 'horizontal' })).toContain('flex-row');
   });
 
   it('merge conflicting Tailwind classes with the last one winning', () => {

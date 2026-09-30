@@ -37,6 +37,9 @@
     "Empty": {
       "skip": ["feedback-empty--dark"]
     },
+    "Field": {
+      "skip": ["forms-field--dark"]
+    },
     "Input": {
       "skip": ["forms-input--dark"]
     },
@@ -45,6 +48,9 @@
     },
     "Kbd": {
       "skip": ["display-kbd--dark"]
+    },
+    "Label": {
+      "skip": ["forms-label--dark"]
     },
     "Popover": {
       "skip": ["overlays-popover--dark"],
