@@ -84,6 +84,15 @@ test.describe('deliveries', () => {
     await expect(row(page, 'readwise-reader')).toContainText('Not added');
   });
 
+  test('delivery rows are separated by a visible divider', async ({ page }) => {
+    await gotoLibrary(page, '/?book=1');
+    const borderColor = await row(page, 'kobo').evaluate(
+      (el) => getComputedStyle(el).borderBottomColor,
+    );
+    expect(borderColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(borderColor).not.toBe('transparent');
+  });
+
   test('Save shows a spinner and stays disabled while the request runs', async ({
     page,
   }) => {

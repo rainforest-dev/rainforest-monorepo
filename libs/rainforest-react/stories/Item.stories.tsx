@@ -22,8 +22,11 @@ type Story = StoryObj<typeof meta>;
 
 export const DeliveryRows: Story = {
   render: () => (
-    <ItemGroup className="w-96 gap-0 divide-y rounded-lg border">
-      <Item role="listitem" className="rounded-none py-2">
+    <ItemGroup className="w-96 gap-0 rounded-lg border">
+      <Item
+        role="listitem"
+        className="not-last:border-b-border rounded-none py-2"
+      >
         <ItemContent>
           <ItemTitle>
             Kobo
@@ -39,7 +42,10 @@ export const DeliveryRows: Story = {
           </Button>
         </ItemActions>
       </Item>
-      <Item role="listitem" className="rounded-none py-2">
+      <Item
+        role="listitem"
+        className="not-last:border-b-border rounded-none py-2"
+      >
         <ItemContent>
           <ItemTitle>
             NotebookLM

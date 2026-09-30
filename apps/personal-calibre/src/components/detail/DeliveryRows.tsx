@@ -69,7 +69,7 @@ export function DeliveryRows({
       >
         Deliveries
       </Heading>
-      <ItemGroup className="gap-0 divide-y rounded-lg border">
+      <ItemGroup className="gap-0 rounded-lg border">
         {platforms.map((platform) => (
           <DeliveryRow
             key={platform.key}
@@ -144,7 +144,7 @@ function DeliveryRow({
     <Item
       role="listitem"
       data-platform={platform.key}
-      className="rounded-none py-2"
+      className="not-last:border-b-border rounded-none py-2"
     >
       <ItemContent>
         <ItemTitle>
