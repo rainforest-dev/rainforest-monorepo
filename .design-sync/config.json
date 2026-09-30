@@ -17,7 +17,8 @@
       "skip": ["actions-button--dark"]
     },
     "ButtonGroup": {
-      "skip": ["actions-buttongroup--dark"]
+      "skip": ["actions-buttongroup--dark"],
+      "cardMode": "column"
     },
     "Card": {
       "skip": ["display-card--dark"]
@@ -50,7 +51,8 @@
       "skip": ["forms-inputgroup--dark"]
     },
     "Item": {
-      "skip": ["display-item--dark"]
+      "skip": ["display-item--dark"],
+      "cardMode": "column"
     },
     "Kbd": {
       "skip": ["display-kbd--dark"]
