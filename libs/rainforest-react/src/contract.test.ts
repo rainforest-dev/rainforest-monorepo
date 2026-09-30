@@ -19,6 +19,7 @@ const componentNames = [
   'Command',
   'Dialog',
   'DropdownMenu',
+  'Empty',
   'Input',
   'InputGroup',
   'Kbd',

@@ -118,3 +118,5 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
 - A pending action puts `Spinner` inside its own button, before the label
   (`<Spinner data-icon="inline-start" />`), keeps the label and disables the button until the
   request settles.
+- A region with nothing to show uses `Empty`: a title, at most one line of help, and the next
+  action in `EmptyContent`. Errors keep `Alert`, whose `role="alert"` announces them.

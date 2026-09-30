@@ -34,6 +34,9 @@
       "skip": ["overlays-dropdownmenu--dark"],
       "cardMode": "single"
     },
+    "Empty": {
+      "skip": ["feedback-empty--dark"]
+    },
     "Input": {
       "skip": ["forms-input--dark"]
     },

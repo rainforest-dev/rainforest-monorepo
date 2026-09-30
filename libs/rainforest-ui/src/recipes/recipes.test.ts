@@ -6,6 +6,7 @@ import {
   badgeVariants,
   buttonVariants,
   cn,
+  emptyMediaVariants,
   inputGroupAddonVariants,
   inputGroupButtonVariants,
   sheetContentVariants,
@@ -30,6 +31,11 @@ describe('recipes', () => {
     expect(inputGroupButtonVariants({ size: 'xs' })).toContain('h-6');
     expect(toggleVariants({ variant: 'outline' })).toContain('border-input');
     expect(sheetContentVariants({ side: 'bottom' })).toContain('rounded-t-xl');
+  });
+
+  it('resolve the Empty media variants', () => {
+    expect(emptyMediaVariants()).toContain('bg-transparent');
+    expect(emptyMediaVariants({ variant: 'icon' })).toContain('bg-muted');
   });
 
   it('merge conflicting Tailwind classes with the last one winning', () => {
