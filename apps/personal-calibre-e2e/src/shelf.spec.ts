@@ -89,6 +89,9 @@ test.describe('shelf', () => {
   test('an empty result offers Clear filters', async ({ page }) => {
     await gotoLibrary(page, '/?q=zzzz-no-such-book');
     await expect(page.getByText('No books match these filters.')).toBeVisible();
+    await expect(
+      page.locator('[data-view-region] [data-slot="empty"]'),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Clear filters' }).click();
     await expect(page).not.toHaveURL(/q=/);
     await expect(options(page)).toHaveCount(30);

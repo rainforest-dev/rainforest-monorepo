@@ -115,3 +115,16 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
   example `closeLabel="關閉"`) in apps whose UI is not English.
 - Loading states use `Skeleton` blocks sized like the content they stand for, never a spinner
   alone.
+- A pending action puts `Spinner` inside its own button, before the label
+  (`<Spinner data-icon="inline-start" />`), keeps the label and disables the button until the
+  request settles.
+- A region with nothing to show uses `Empty`: a title, at most one line of help, and the next
+  action in `EmptyContent`. Errors keep `Alert`, whose `role="alert"` announces them.
+- A form field is `Field` with a `FieldLabel` pointing at the control (`htmlFor`), optional
+  `FieldDescription` and a `FieldError` whose `id` the control lists in `aria-describedby`. Set
+  `data-invalid` on the `Field` and `aria-invalid` on the control together. Stack fields in
+  `FieldGroup`.
+- `ButtonGroup` joins controls that act as one: a `SelectTrigger` and the button that applies
+  it, or an input and its action. A single-choice switch (views, modes) is `ToggleGroup`.
+- List rows with a title, meta and actions are `Item`s inside `ItemGroup`. `ItemGroup` is
+  `role="list"`, so give each `Item` `role="listitem"`; axe reports the list otherwise.

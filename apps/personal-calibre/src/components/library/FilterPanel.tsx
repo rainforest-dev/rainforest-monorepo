@@ -49,7 +49,7 @@ export function FilterPanel({
           <Button
             variant="link"
             size="xs"
-            className="text-foreground ml-auto"
+            className="ml-auto"
             onClick={clearFilters}
           >
             Clear all

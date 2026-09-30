@@ -2,6 +2,7 @@
 
 import {
   Button,
+  ButtonGroup,
   Select,
   SelectContent,
   SelectItem,
@@ -67,7 +68,7 @@ export function SortControls() {
   const { replaceParams } = useLibrary();
   const descending = params.sortDir === 'desc';
   return (
-    <div className="flex items-center gap-1">
+    <ButtonGroup aria-label="Sort">
       <Select
         items={SORT_ITEMS}
         value={params.sortBy}
@@ -96,6 +97,6 @@ export function SortControls() {
       >
         {descending ? <ArrowDown aria-hidden /> : <ArrowUp aria-hidden />}
       </Button>
-    </div>
+    </ButtonGroup>
   );
 }

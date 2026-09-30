@@ -1,8 +1,10 @@
 ---
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
 } from '@rainforest-dev/rainforest-react';
 
 type Props = { path: string | undefined };
@@ -10,10 +12,10 @@ type Props = { path: string | undefined };
 const { path } = Astro.props;
 ---
 
-<Alert>
-  <AlertTitle>還沒有時間軸</AlertTitle>
-  <AlertDescription>
-    <p>
+<Empty className="border">
+  <EmptyHeader>
+    <EmptyTitle>還沒有時間軸</EmptyTitle>
+    <EmptyDescription>
       {
         path ? (
           <>
@@ -26,8 +28,10 @@ const { path } = Astro.props;
         )
       }
       先執行匯入：
-    </p>
+    </EmptyDescription>
+  </EmptyHeader>
+  <EmptyContent>
     <pre
-      class="bg-muted mt-2 overflow-x-auto rounded-md p-3 text-xs"><code>MEMORIES_DATA_DIR=… pnpm nx run personal-memories:ingest</code></pre>
-  </AlertDescription>
-</Alert>
+      class="bg-muted w-full overflow-x-auto rounded-md p-3 text-left text-xs"><code>MEMORIES_DATA_DIR=… pnpm nx run personal-memories:ingest</code></pre>
+  </EmptyContent>
+</Empty>

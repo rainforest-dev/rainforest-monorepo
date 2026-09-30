@@ -102,7 +102,7 @@ export function Facet({
         <Button
           variant="link"
           size="xs"
-          className="text-foreground self-start"
+          className="self-start"
           onClick={() => setExpanded((open) => !open)}
         >
           {expanded ? 'Show fewer' : `Show all ${options.length}`}

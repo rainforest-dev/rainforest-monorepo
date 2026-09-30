@@ -4,6 +4,7 @@ import {
   Badge,
   type BadgeProps,
   Button,
+  Spinner,
 } from '@rainforest-dev/rainforest-react';
 import { useEffect, useState } from 'react';
 
@@ -32,7 +33,9 @@ export default function TopicList() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [writable, setWritable] = useState(true);
-  const [pending, setPending] = useState<Set<string>>(new Set());
+  const [pending, setPending] = useState<Map<string, 'activate' | 'decline'>>(
+    new Map(),
+  );
 
   useEffect(() => {
     fetch('/api/topics')
@@ -52,7 +55,7 @@ export default function TopicList() {
   }, []);
 
   async function doAction(name: string, action: 'activate' | 'decline') {
-    setPending((p) => new Set(p).add(name));
+    setPending((p) => new Map(p).set(name, action));
     setActionError(null);
     try {
       const result = await patchRegistry('/api/topics', name, action);
@@ -76,7 +79,7 @@ export default function TopicList() {
       setActionError(e instanceof Error ? e.message : String(e));
     } finally {
       setPending((p) => {
-        const n = new Set(p);
+        const n = new Map(p);
         n.delete(name);
         return n;
       });
@@ -156,7 +159,10 @@ export default function TopicList() {
                         disabled={pending.has(t.name) || !writable}
                         title={writable ? undefined : READ_ONLY_NOTE}
                       >
-                        {pending.has(t.name) ? '…' : 'Activate'}
+                        {pending.get(t.name) === 'activate' && (
+                          <Spinner data-icon="inline-start" />
+                        )}
+                        Activate
                       </Button>
                       <Button
                         size="xs"
@@ -165,7 +171,10 @@ export default function TopicList() {
                         disabled={pending.has(t.name) || !writable}
                         title={writable ? undefined : READ_ONLY_NOTE}
                       >
-                        {pending.has(t.name) ? '…' : 'Decline'}
+                        {pending.get(t.name) === 'decline' && (
+                          <Spinner data-icon="inline-start" />
+                        )}
+                        Decline
                       </Button>
                     </div>
                   )}

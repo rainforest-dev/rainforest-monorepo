@@ -135,6 +135,9 @@ test.describe('shortcuts', () => {
   }) => {
     await gotoLibrary(page);
     await expect(page.locator('[data-key-hints]')).toContainText('Page');
+    await expect(
+      page.locator('[data-key-hints] [data-slot="kbd-group"]').first(),
+    ).toBeVisible();
     await gotoLibrary(page, '/?series=4');
     await expect(page.locator('[data-key-hints]')).not.toContainText('Page');
   });
