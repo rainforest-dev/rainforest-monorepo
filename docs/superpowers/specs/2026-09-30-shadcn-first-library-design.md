@@ -61,14 +61,14 @@ placeholder becomes `font-heading`, which the lib already defines in `tailwind.c
 All five candidates have real sites, so none is dropped. `label` enters as a registry dependency of
 `field`.
 
-| Primitive | Decision | Sites that replace handmade markup |
-| --- | --- | --- |
-| `spinner` | add | calibre: add-delivery Save, History remove, bulk Mark delivered and ZIP. rss-manager: `…` in SourceTable Activate/Retire and TopicList Activate/Decline, `Checking…` in FeedValidator |
-| `empty` | add | calibre `EmptyResult`. rss-manager: SourceTable "No sources match", ReadingQueue "No reading queue has been generated yet". memories `EmptyState.astro` |
-| `field` | add | calibre add-delivery form (hand-rolled `<label>` + `Input` + `<p role="alert">`) |
-| `label` | add, as `field`'s registry dependency | used by `FieldLabel`; exported so a plain label can use it |
-| `button-group` | add | calibre `SortControls` (sort select + direction button), `BulkToolbar` (platform select + Mark delivered, format select + ZIP) |
-| `item` | add | calibre `DeliveryRows`: the per-platform rows and the History entries |
+| Primitive      | Decision                              | Sites that replace handmade markup                                                                                                                                                    |
+| -------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spinner`      | add                                   | calibre: add-delivery Save, History remove, bulk Mark delivered and ZIP. rss-manager: `…` in SourceTable Activate/Retire and TopicList Activate/Decline, `Checking…` in FeedValidator |
+| `empty`        | add                                   | calibre `EmptyResult`. rss-manager: SourceTable "No sources match", ReadingQueue "No reading queue has been generated yet". memories `EmptyState.astro`                               |
+| `field`        | add                                   | calibre add-delivery form (hand-rolled `<label>` + `Input` + `<p role="alert">`)                                                                                                      |
+| `label`        | add, as `field`'s registry dependency | used by `FieldLabel`; exported so a plain label can use it                                                                                                                            |
+| `button-group` | add                                   | calibre `SortControls` (sort select + direction button), `BulkToolbar` (platform select + Mark delivered, format select + ZIP)                                                        |
+| `item`         | add                                   | calibre `DeliveryRows`: the per-platform rows and the History entries                                                                                                                 |
 
 Reasons, one line each:
 
@@ -164,13 +164,13 @@ That matches the 4.0 to 4.17 the owner measured.
 New light values: `--primary` L 0.48 (C 0.12 unchanged) and `--primary-foreground` L 0.99
 (C 0.012 unchanged).
 
-| Pair (default seed, clipped) | Before | After |
-| --- | --- | --- |
-| light primary / primary-foreground | 4.18 | 5.69 |
-| light primary as text on background | 4.18 | 5.51 |
-| light primary as text on sidebar | 4.01 | 5.29 |
-| light primary as text on muted | 3.70 | 4.89 |
-| dark primary / primary-foreground (L 0.75 / 0.17, unchanged) | 8.93 | 8.93 |
+| Pair (default seed, clipped)                                 | Before | After |
+| ------------------------------------------------------------ | ------ | ----- |
+| light primary / primary-foreground                           | 4.18   | 5.69  |
+| light primary as text on background                          | 4.18   | 5.51  |
+| light primary as text on sidebar                             | 4.01   | 5.29  |
+| light primary as text on muted                               | 3.70   | 4.89  |
+| dark primary / primary-foreground (L 0.75 / 0.17, unchanged) | 8.93   | 8.93  |
 
 L 0.48 leaves margin for link-styled buttons (`text-primary`), which sit on `background`,
 `sidebar` and `card`; L 0.52 would pass the pair test at 4.69 but leave links near the line on

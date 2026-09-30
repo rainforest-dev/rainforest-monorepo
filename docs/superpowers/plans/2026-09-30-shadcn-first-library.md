@@ -48,9 +48,11 @@
 No commit. This task records the state every later task is compared with.
 
 **Files:**
+
 - Create (outside the repo): `$CAPTURE_DIR/capture.cjs`, `$CAPTURE_DIR/rss-vault/RSS-Source-Registry.md`, `$CAPTURE_DIR/rss-vault/RSS-Topic-Registry.md`, `$CAPTURE_DIR/before/*`
 
 **Interfaces:**
+
 - Produces: `capture.cjs` usage `node capture.cjs <before|after> <name> <url> [selector]`, used again in Task 15.
 
 - [ ] **Step 1: Install dependencies in the worktree**
@@ -59,6 +61,7 @@ No commit. This task records the state every later task is compared with.
 cd /Users/rainforest/Repositories/rainforest-monorepo/.claude/worktrees/shared-library-components
 perl -e 'alarm 900; exec @ARGV' -- pnpm install --frozen-lockfile
 ```
+
 Expected: exit 0, no lockfile change (`git status --short` prints nothing).
 
 - [ ] **Step 2: Record the baseline of every suite this plan must keep green**
@@ -70,6 +73,7 @@ perl -e 'alarm 1800; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-c
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 git checkout -- apps/personal-calibre/next-env.d.ts
 ```
+
 Expected: all green. Write any failure, with its test title, into `$CAPTURE_DIR/baseline.txt`; a failure present here is pre-existing and later tasks are not blamed for it. The e2e run also creates the calibre fixture at `apps/personal-calibre-e2e/test-output/fixtures`.
 
 - [ ] **Step 3: Write the capture script**
@@ -81,7 +85,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execSync } = require('node:child_process');
 
-const REPO = '/Users/rainforest/Repositories/rainforest-monorepo/.claude/worktrees/shared-library-components';
+const REPO =
+  '/Users/rainforest/Repositories/rainforest-monorepo/.claude/worktrees/shared-library-components';
 const { chromium } = require(
   require.resolve('@playwright/test', {
     paths: [path.join(REPO, 'apps/personal-calibre-e2e')],
@@ -127,7 +132,8 @@ const outDir = path.join(process.env.CAPTURE_DIR, label);
       const c = v / 255;
       return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
     };
-    const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    const lum = ([r, g, b]) =>
+      0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
     const style = getComputedStyle(target);
     const bg = rgba(style.backgroundColor);
     const fg = rgba(style.color);
@@ -137,20 +143,28 @@ const outDir = path.join(process.env.CAPTURE_DIR, label);
       text: target.textContent.trim() || target.getAttribute('aria-label'),
       background: style.backgroundColor,
       color: style.color,
-      ratio: bg[3] === 255 ? Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100 : null,
+      ratio:
+        bg[3] === 255
+          ? Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100
+          : null,
     };
   }, selector);
   const record = {
     name,
     url,
     selector,
-    commit: execSync('git rev-parse --short HEAD', { cwd: REPO }).toString().trim(),
+    commit: execSync('git rev-parse --short HEAD', { cwd: REPO })
+      .toString()
+      .trim(),
     capturedAt: new Date().toISOString(),
     colorScheme: 'light',
     found,
   };
   if (found) {
-    const box = await page.locator('[data-capture-target]').first().boundingBox();
+    const box = await page
+      .locator('[data-capture-target]')
+      .first()
+      .boundingBox();
     const pad = 24;
     await page.screenshot({
       path: path.join(outDir, `${name}.png`),
@@ -163,7 +177,10 @@ const outDir = path.join(process.env.CAPTURE_DIR, label);
     });
   }
   await page.screenshot({ path: path.join(outDir, `${name}--page.png`) });
-  fs.writeFileSync(path.join(outDir, `${name}.json`), JSON.stringify(record, null, 2));
+  fs.writeFileSync(
+    path.join(outDir, `${name}.json`),
+    JSON.stringify(record, null, 2),
+  );
   console.log(JSON.stringify(record));
   await browser.close();
 })();
@@ -228,7 +245,9 @@ FIX="$PWD/apps/personal-calibre-e2e/test-output/fixtures"
 CALIBRE_LIBRARY_PATH="$FIX" CALIBRE_APP_DB_PATH="$FIX/app.db" CALIBRE_E2E=1 \
   pnpm nx dev personal-calibre --port=3335 --skip-nx-cache
 ```
+
 Run it in the background, wait until `http://localhost:3335/favicon.ico` answers, then:
+
 ```bash
 cd "$CAPTURE_DIR"
 node capture.cjs before calibre-read 'http://localhost:3335/?book=38' 'a[href="/read/38"]'
@@ -236,11 +255,13 @@ node capture.cjs before calibre-empty 'http://localhost:3335/?q=zzzz-no-such-boo
 node capture.cjs before calibre-deliveries 'http://localhost:3335/?book=38' 'section:has([data-platform])'
 node capture.cjs before calibre-sort 'http://localhost:3335/' 'div:has(> button[aria-label^="Sort direction"])'
 ```
+
 Expected: each prints a record with `found` not null; `calibre-read` shows the secondary Read link (the workaround). Stop the server, then `git checkout -- apps/personal-calibre/next-env.d.ts`.
 
 - [ ] **Step 6: Capture memories, rss-manager and the website (before)**
 
 memories (same command as its e2e webServer, synthetic data):
+
 ```bash
 DATA="$CAPTURE_DIR/memories-data"; NOTES="$CAPTURE_DIR/memories-notes"
 rm -rf "$DATA" "$NOTES" && mkdir -p "$DATA" "$NOTES"
@@ -249,18 +270,23 @@ MEMORIES_DATA_DIR="$DATA" MEMORIES_NOTES_DIR="$NOTES" MEMORIES_OWNER=Bob MEMORIE
   MEMORIES_AUTHORS='alice@example.com=Alice,bob@example.com=Bob' \
   pnpm --dir apps/personal-memories exec astro dev --host 127.0.0.1 --port 3024 --ignore-lock
 ```
+
 In the background; then `node capture.cjs before memories-primary 'http://127.0.0.1:3024/'`. Stop it.
 
 rss-manager:
+
 ```bash
 VAULT_PATH="$CAPTURE_DIR/rss-vault" pnpm nx dev rss-manager --skip-nx-cache
 ```
+
 In the background (port 3002); then `node capture.cjs before rss-activate 'http://localhost:3002/?tab=sources'`. With no selector the script picks the first primary-filled button, which on the fixture vault is Activate on "Example Build Log"; check `found.text` says `Activate`. Stop it.
 
 website:
+
 ```bash
 pnpm nx dev personal-website --skip-nx-cache
 ```
+
 In the background; use the URL it prints (Astro's default is `http://localhost:4321/`); then `node capture.cjs before website-fab '<url>' 'button[aria-label="back to top"], button[aria-label="contact me"]'`. Stop it.
 
 Expected: a PNG and JSON per capture in `$CAPTURE_DIR/before`. A record with `found: null` means that page has no primary-filled control; keep the page screenshot and write the blocker next to it in `baseline.txt`.
@@ -270,10 +296,12 @@ Expected: a PNG and JSON per capture in `$CAPTURE_DIR/before`. A record with `fo
 ### Task 2: Primary pair reaches WCAG AA
 
 **Files:**
+
 - Create: `libs/rainforest-ui/src/tailwindcss/shadcn.test.ts`
 - Modify: `libs/rainforest-ui/src/tailwindcss/shadcn.ts:28-29`, `:101-102`, `:135-136`
 
 **Interfaces:**
+
 - Produces: light `--primary` `oklch(from var(--seed) 0.48 0.12 h)`, light `--primary-foreground` `oklch(from var(--seed) 0.99 0.012 h)`; fallback light `#007173` / `#f3fffe`, fallback dark `#43c3c4` / `#051212`.
 
 - [ ] **Step 1: Write the failing test**
@@ -491,6 +519,7 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 3: Revert calibre's contrast workarounds
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/components/detail/BookDetail.tsx:154`
 - Modify: `apps/personal-calibre/src/components/library/BulkToolbar.tsx:136-141`, `:150-155`
 - Modify: `apps/personal-calibre/src/components/detail/DeliveryRows.tsx:199-206`
@@ -500,21 +529,26 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 - Modify: `apps/personal-calibre/src/components/views/GroupHeading.tsx:36`
 
 **Interfaces:**
+
 - Consumes: Task 2's primary values.
 - Produces: primary CTAs back on `variant="default"` and link buttons back on `text-primary`; Tasks 11 and 12 write their files from this state.
 
 - [ ] **Step 1: Make the edits**
 
 `BookDetail.tsx`:
+
 ```tsx
             className={buttonVariants({ variant: 'secondary', size: 'sm' })}
 ```
+
 becomes
+
 ```tsx
             className={buttonVariants({ size: 'sm' })}
 ```
 
 `BulkToolbar.tsx`, Select all:
+
 ```tsx
         <Button
           variant="link"
@@ -524,7 +558,9 @@ becomes
           onClick={() => addMany(matchingIds)}
         >
 ```
+
 becomes
+
 ```tsx
         <Button
           variant="link"
@@ -533,7 +569,9 @@ becomes
           onClick={() => addMany(matchingIds)}
         >
 ```
+
 and Mark delivered:
+
 ```tsx
         <Button
           variant="secondary"
@@ -542,7 +580,9 @@ and Mark delivered:
           onClick={() => void markDelivered()}
         >
 ```
+
 becomes
+
 ```tsx
         <Button
           size="sm"
@@ -552,21 +592,19 @@ becomes
 ```
 
 `DeliveryRows.tsx`:
+
 ```tsx
-            <Button
-              type="submit"
-              variant="secondary"
-              size="sm"
-              disabled={saving}
-            >
-              Save
-            </Button>
+<Button type="submit" variant="secondary" size="sm" disabled={saving}>
+  Save
+</Button>
 ```
+
 becomes
+
 ```tsx
-            <Button type="submit" size="sm" disabled={saving}>
-              Save
-            </Button>
+<Button type="submit" size="sm" disabled={saving}>
+  Save
+</Button>
 ```
 
 Class names: `Facet.tsx` `className="text-foreground self-start"` becomes `className="self-start"`; `FilterChips.tsx` `className="text-foreground shrink-0"` becomes `className="shrink-0"`; `FilterPanel.tsx` `className="text-foreground ml-auto"` becomes `className="ml-auto"`; `GroupHeading.tsx` `className="text-foreground ml-auto"` becomes `className="ml-auto"`. Leave `DeliveryPills.tsx` alone (success token, not primary).
@@ -584,6 +622,7 @@ perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-ca
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-cache -- --project=phone --grep "axe"
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 ```
+
 Expected: PASS. A `color-contrast` failure here means Task 2 did not land in the build the dev server used; rerun after `pnpm nx build rainforest-ui --skip-nx-cache`.
 
 - [ ] **Step 4: Typecheck, lint, commit**
@@ -607,12 +646,14 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 4: Spinner
 
 **Files:**
+
 - Create: `libs/rainforest-react/src/components/spinner.tsx`
 - Create: `libs/rainforest-react/src/spinner.test.tsx`
 - Create: `libs/rainforest-react/stories/Spinner.stories.tsx`
 - Modify: `libs/rainforest-react/src/index.ts`, `libs/rainforest-react/src/contract.test.ts`, `libs/rainforest-react/src/dist.test.ts`, `libs/rainforest-react/conventions.md`, `.design-sync/config.json`
 
 **Interfaces:**
+
 - Produces: `Spinner(props: React.ComponentProps<'svg'>)` rendering `<svg data-slot="spinner" role="status" aria-label="Loading">`; `SpinnerProps`. Usage inside a button: `<Spinner data-icon="inline-start" />` before the label.
 
 - [ ] **Step 1: View the registry item**
@@ -657,9 +698,7 @@ describe('Spinner', () => {
     const button = screen.getByRole('button', { name: /Save/ });
     expect(button.hasAttribute('disabled')).toBe(true);
     expect(
-      button
-        .querySelector('[data-slot="spinner"]')
-        ?.getAttribute('data-icon'),
+      button.querySelector('[data-slot="spinner"]')?.getAttribute('data-icon'),
     ).toBe('inline-start');
   });
 });
@@ -689,7 +728,10 @@ function Spinner({ className, ...props }: React.ComponentProps<'svg'>) {
       data-slot="spinner"
       role="status"
       aria-label="Loading"
-      className={cn('size-4 animate-spin motion-reduce:animate-none', className)}
+      className={cn(
+        'size-4 animate-spin motion-reduce:animate-none',
+        className,
+      )}
       {...props}
     />
   );
@@ -781,6 +823,7 @@ Expected: PASS, including `dist.test.ts` finding `.animate-spin`.
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx run-many -t lint typecheck -p rainforest-react
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx build-storybook rainforest-react --skip-nx-cache
 ```
+
 Expected: PASS; the Storybook build lists `feedback-spinner--default`, `--in-button` and `--dark`.
 
 - [ ] **Step 7: Commit**
@@ -803,6 +846,7 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 5: Empty
 
 **Files:**
+
 - Create: `libs/rainforest-ui/src/recipes/empty.ts`
 - Create: `libs/rainforest-react/src/components/empty.tsx`
 - Create: `libs/rainforest-react/src/empty.test.tsx`
@@ -810,6 +854,7 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 - Modify: `libs/rainforest-ui/src/recipes/index.ts`, `libs/rainforest-ui/src/recipes/recipes.test.ts`, `libs/rainforest-react/src/index.ts`, `libs/rainforest-react/src/contract.test.ts`, `libs/rainforest-react/conventions.md`, `.design-sync/config.json`
 
 **Interfaces:**
+
 - Produces: `Empty`, `EmptyHeader`, `EmptyMedia` (`variant?: 'default' | 'icon'`), `EmptyTitle`, `EmptyDescription`, `EmptyContent`, all `div`s with `data-slot` `empty`, `empty-header`, `empty-icon`, `empty-title`, `empty-description`, `empty-content`; `emptyMediaVariants`; `EmptyProps`. No ARIA role on any part.
 
 - [ ] **Step 1: View the registry item**
@@ -880,10 +925,10 @@ describe('Empty', () => {
 In `libs/rainforest-ui/src/recipes/recipes.test.ts`, add `emptyMediaVariants,` to the import list (alphabetical, after `cn,`) and add inside `describe('recipes', …)`:
 
 ```ts
-  it('resolve the Empty media variants', () => {
-    expect(emptyMediaVariants()).toContain('bg-transparent');
-    expect(emptyMediaVariants({ variant: 'icon' })).toContain('bg-muted');
-  });
+it('resolve the Empty media variants', () => {
+  expect(emptyMediaVariants()).toContain('bg-transparent');
+  expect(emptyMediaVariants({ variant: 'icon' })).toContain('bg-muted');
+});
 ```
 
 Add `'Empty',` to `componentNames` in `libs/rainforest-react/src/contract.test.ts` (after `'DropdownMenu',`).
@@ -1125,6 +1170,7 @@ Expected: PASS.
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx run-many -t lint typecheck -p rainforest-ui rainforest-react
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx build-storybook rainforest-react --skip-nx-cache
 ```
+
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
@@ -1146,6 +1192,7 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 6: Label and Field
 
 **Files:**
+
 - Create: `libs/rainforest-ui/src/recipes/field.ts`
 - Create: `libs/rainforest-react/src/components/label.tsx`, `libs/rainforest-react/src/components/field.tsx`
 - Create: `libs/rainforest-react/src/field.test.tsx`
@@ -1153,6 +1200,7 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 - Modify: `libs/rainforest-ui/src/recipes/index.ts`, `libs/rainforest-ui/src/recipes/recipes.test.ts`, `libs/rainforest-react/src/index.ts`, `libs/rainforest-react/src/contract.test.ts`, `libs/rainforest-react/conventions.md`, `.design-sync/config.json`
 
 **Interfaces:**
+
 - Produces: `Label(props: React.ComponentProps<'label'>)`; `FieldSet`, `FieldLegend` (`variant?: 'legend' | 'label'`), `FieldGroup`, `Field` (`orientation?: 'vertical' | 'horizontal' | 'responsive'`, renders `div role="group" data-slot="field" data-orientation`), `FieldContent`, `FieldLabel` (a `Label` with `data-slot="field-label"`), `FieldTitle`, `FieldDescription`, `FieldSeparator`, `FieldError` (`errors?: Array<{ message?: string } | undefined>`, renders `div role="alert" data-slot="field-error"` or nothing); `fieldVariants`; `LabelProps`, `FieldProps`.
 
 - [ ] **Step 1: View the registry items**
@@ -1227,11 +1275,15 @@ describe('Field', () => {
 
   it('shows one message for duplicate errors and a list for several', () => {
     const { rerender } = render(
-      <FieldError errors={[{ message: 'Required' }, { message: 'Required' }]} />,
+      <FieldError
+        errors={[{ message: 'Required' }, { message: 'Required' }]}
+      />,
     );
     expect(screen.getByRole('alert').textContent).toBe('Required');
     rerender(
-      <FieldError errors={[{ message: 'Required' }, { message: 'Too long' }]} />,
+      <FieldError
+        errors={[{ message: 'Required' }, { message: 'Too long' }]}
+      />,
     );
     expect(
       screen.getAllByRole('listitem').map((item) => item.textContent),
@@ -1248,10 +1300,10 @@ describe('Field', () => {
 In `recipes.test.ts`, add `fieldVariants,` to the imports (after `emptyMediaVariants,`) and:
 
 ```ts
-  it('resolve the Field orientations', () => {
-    expect(fieldVariants()).toContain('flex-col');
-    expect(fieldVariants({ orientation: 'horizontal' })).toContain('flex-row');
-  });
+it('resolve the Field orientations', () => {
+  expect(fieldVariants()).toContain('flex-col');
+  expect(fieldVariants({ orientation: 'horizontal' })).toContain('flex-row');
+});
 ```
 
 Add `'Field',` (after `'Empty',`) and `'Label',` (after `'Kbd',`) to `componentNames` in `contract.test.ts`.
@@ -1312,7 +1364,7 @@ function Label({ className, ...props }: React.ComponentProps<'label'>) {
     <label
       data-slot="label"
       className={cn(
-        'flex select-none items-center gap-2 text-sm font-medium leading-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
+        'flex select-none items-center gap-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50',
         className,
       )}
       {...props}
@@ -1422,7 +1474,7 @@ function FieldLabel({
     <Label
       data-slot="field-label"
       className={cn(
-        'group/field-label peer/field-label has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:not-has-[:disabled,[data-disabled]]:hover:bg-muted/50 has-[>[data-slot=field]]:has-[:focus-visible]:border-ring has-[>[data-slot=field]]:has-[:focus-visible]:ring-3 has-[>[data-slot=field]]:has-[:focus-visible]:ring-ring/50 flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border *:data-[slot=field]:p-2.5',
+        'group/field-label peer/field-label has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:not-has-[:disabled,[data-disabled]]:hover:bg-muted/50 has-[>[data-slot=field]]:has-[:focus-visible]:border-ring has-[>[data-slot=field]]:has-[:focus-visible]:ring-3 has-[>[data-slot=field]]:has-[:focus-visible]:ring-ring/50 flex w-fit gap-2 leading-snug has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border *:data-[slot=field]:p-2.5 group-data-[disabled=true]/field:opacity-50',
         'has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col',
         className,
       )}
@@ -1717,6 +1769,7 @@ Expected: PASS.
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx run-many -t lint typecheck -p rainforest-ui rainforest-react
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx build-storybook rainforest-react --skip-nx-cache
 ```
+
 Expected: PASS. An "unused eslint-disable directive" warning on `label.tsx` means the rule does not fire through the spread in this version; delete that comment line and rerun lint.
 
 - [ ] **Step 7: Commit**
@@ -1739,6 +1792,7 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 7: ButtonGroup
 
 **Files:**
+
 - Create: `libs/rainforest-ui/src/recipes/button-group.ts`
 - Create: `libs/rainforest-react/src/components/button-group.tsx`
 - Create: `libs/rainforest-react/src/button-group.test.tsx`
@@ -1746,6 +1800,7 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 - Modify: `libs/rainforest-ui/src/recipes/index.ts`, `libs/rainforest-ui/src/recipes/recipes.test.ts`, `libs/rainforest-react/src/index.ts`, `libs/rainforest-react/src/contract.test.ts`, `libs/rainforest-react/conventions.md`, `.design-sync/config.json`
 
 **Interfaces:**
+
 - Produces: `ButtonGroup` (`orientation?: 'horizontal' | 'vertical'`, renders `div role="group" data-slot="button-group"`), `ButtonGroupText` (Base UI `render` prop, `data-slot="button-group-text"`), `ButtonGroupSeparator` (vertical `Separator` by default); `buttonGroupVariants`; `ButtonGroupProps`.
 
 - [ ] **Step 1: View the registry item**
@@ -1817,9 +1872,9 @@ describe('ButtonGroup', () => {
         <Button>Paste</Button>
       </ButtonGroup>,
     );
-    expect(
-      screen.getByRole('separator').getAttribute('aria-orientation'),
-    ).toBe('vertical');
+    expect(screen.getByRole('separator').getAttribute('aria-orientation')).toBe(
+      'vertical',
+    );
   });
 });
 ```
@@ -1827,12 +1882,12 @@ describe('ButtonGroup', () => {
 In `recipes.test.ts`, add `buttonGroupVariants,` to the imports (after `badgeVariants,`) and:
 
 ```ts
-  it('resolve the ButtonGroup orientations', () => {
-    expect(buttonGroupVariants()).toContain('rounded-r-none');
-    expect(buttonGroupVariants({ orientation: 'vertical' })).toContain(
-      'flex-col',
-    );
-  });
+it('resolve the ButtonGroup orientations', () => {
+  expect(buttonGroupVariants()).toContain('rounded-r-none');
+  expect(buttonGroupVariants({ orientation: 'vertical' })).toContain(
+    'flex-col',
+  );
+});
 ```
 
 Add `'ButtonGroup',` to `componentNames` in `contract.test.ts` (after `'Button',`).
@@ -2084,6 +2139,7 @@ Expected: PASS.
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx run-many -t lint typecheck -p rainforest-ui rainforest-react
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx build-storybook rainforest-react --skip-nx-cache
 ```
+
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
@@ -2105,6 +2161,7 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 8: Item
 
 **Files:**
+
 - Create: `libs/rainforest-ui/src/recipes/item.ts`
 - Create: `libs/rainforest-react/src/components/item.tsx`
 - Create: `libs/rainforest-react/src/item.test.tsx`
@@ -2112,6 +2169,7 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 - Modify: `libs/rainforest-ui/src/recipes/index.ts`, `libs/rainforest-ui/src/recipes/recipes.test.ts`, `libs/rainforest-react/src/index.ts`, `libs/rainforest-react/src/contract.test.ts`, `libs/rainforest-react/conventions.md`, `.design-sync/config.json`
 
 **Interfaces:**
+
 - Produces: `ItemGroup` (`div role="list" data-slot="item-group"`), `Item` (`variant?: 'default' | 'outline' | 'muted'`, `size?: 'default' | 'sm' | 'xs'`, Base UI `render` prop, sets `data-slot="item"`, `data-variant`, `data-size`), `ItemMedia` (`variant?: 'default' | 'icon' | 'image'`), `ItemContent`, `ItemTitle`, `ItemDescription` (`p`), `ItemActions`, `ItemHeader`, `ItemFooter`, `ItemSeparator`; `itemVariants`, `itemMediaVariants`; `ItemProps`. Callers inside `ItemGroup` pass `role="listitem"` to each `Item`.
 
 - [ ] **Step 1: View the registry item**
@@ -2207,11 +2265,11 @@ describe('Item', () => {
 In `recipes.test.ts`, add `itemMediaVariants,` and `itemVariants,` to the imports (after `inputGroupButtonVariants,`) and:
 
 ```ts
-  it('resolve the Item variants', () => {
-    expect(itemVariants({ variant: 'outline' })).toContain('border-border');
-    expect(itemVariants({ variant: 'muted' })).toContain('bg-muted/50');
-    expect(itemMediaVariants({ variant: 'image' })).toContain('size-10');
-  });
+it('resolve the Item variants', () => {
+  expect(itemVariants({ variant: 'outline' })).toContain('border-border');
+  expect(itemVariants({ variant: 'muted' })).toContain('bg-muted/50');
+  expect(itemMediaVariants({ variant: 'image' })).toContain('size-10');
+});
 ```
 
 Add `'Item',` to `componentNames` in `contract.test.ts` (after `'InputGroup',`).
@@ -2303,7 +2361,7 @@ function ItemGroup({ className, ...props }: React.ComponentProps<'div'>) {
       role="list"
       data-slot="item-group"
       className={cn(
-        'group/item-group flex w-full flex-col gap-4 has-data-[size=sm]:gap-2.5 has-data-[size=xs]:gap-2',
+        'group/item-group has-data-[size=sm]:gap-2.5 has-data-[size=xs]:gap-2 flex w-full flex-col gap-4',
         className,
       )}
       {...props}
@@ -2528,7 +2586,11 @@ export const DeliveryRows: Story = {
 export const HistoryEntry: Story = {
   render: () => (
     <ItemGroup className="w-96 gap-2">
-      <Item role="listitem" variant="outline" className="items-start px-2.5 py-2">
+      <Item
+        role="listitem"
+        variant="outline"
+        className="items-start px-2.5 py-2"
+      >
         <ItemContent className="min-w-0">
           <ItemTitle>
             Kobo
@@ -2555,7 +2617,11 @@ export const HistoryEntry: Story = {
 
 export const AsLink: Story = {
   render: () => (
-    <Item variant="outline" className="w-96" render={<a href="#harbor-lights" />}>
+    <Item
+      variant="outline"
+      className="w-96"
+      render={<a href="#harbor-lights" />}
+    >
       <ItemContent>
         <ItemTitle>Harbor Lights</ItemTitle>
         <ItemDescription>Mira Okafor · EPUB</ItemDescription>
@@ -2596,6 +2662,7 @@ Expected: PASS.
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx run-many -t lint typecheck -p rainforest-ui rainforest-react
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx build-storybook rainforest-react --skip-nx-cache
 ```
+
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
@@ -2617,10 +2684,12 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 9: Calibre SelectMark becomes the lib Checkbox
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/components/views/SelectMark.tsx` (whole file)
 - Test: `apps/personal-calibre-e2e/src/keyboard.spec.ts`
 
 **Interfaces:**
+
 - Consumes: lib `Checkbox` (Base UI root: `checked`, `onCheckedChange`, `tabIndex`, `data-checked` when checked).
 - Produces: `SelectMark({ checked, visible, onToggle, className })`, unchanged signature; the root keeps `data-select-mark`.
 
@@ -2629,39 +2698,39 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 In `apps/personal-calibre-e2e/src/keyboard.spec.ts`, inside `test.describe('shelf keyboard', …)`, after the `has one tab stop` test, add:
 
 ```ts
-  test('the select mark is the lib Checkbox, toggles on click and adds no tab stop', async ({
-    page,
-  }) => {
-    await gotoLibrary(page);
-    const first = options(page).first();
-    await expect(first).toBeVisible();
-    const mark = first.locator('[data-select-mark]');
-    await expect(mark).toHaveAttribute('data-slot', 'checkbox');
-    await expect(mark).toHaveAttribute('tabindex', '-1');
-    await expect(mark).toHaveAttribute('aria-hidden', 'true');
-    await first.hover();
-    await mark.click();
-    await expect(first).toHaveAttribute('aria-selected', 'true');
-    await expect(first).toBeFocused();
-    await expect(page).not.toHaveURL(/book=/);
-    await mark.click();
-    await expect(first).toHaveAttribute('aria-selected', 'false');
-    await page.keyboard.press('x');
-    await expect(first).toHaveAttribute('aria-selected', 'true');
-    await page.keyboard.press('Space');
-    await expect(first).toHaveAttribute('aria-selected', 'false');
-    await expect(
-      page.locator('[data-select-mark]:not([tabindex="-1"])'),
-    ).toHaveCount(0);
-  });
+test('the select mark is the lib Checkbox, toggles on click and adds no tab stop', async ({
+  page,
+}) => {
+  await gotoLibrary(page);
+  const first = options(page).first();
+  await expect(first).toBeVisible();
+  const mark = first.locator('[data-select-mark]');
+  await expect(mark).toHaveAttribute('data-slot', 'checkbox');
+  await expect(mark).toHaveAttribute('tabindex', '-1');
+  await expect(mark).toHaveAttribute('aria-hidden', 'true');
+  await first.hover();
+  await mark.click();
+  await expect(first).toHaveAttribute('aria-selected', 'true');
+  await expect(first).toBeFocused();
+  await expect(page).not.toHaveURL(/book=/);
+  await mark.click();
+  await expect(first).toHaveAttribute('aria-selected', 'false');
+  await page.keyboard.press('x');
+  await expect(first).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Space');
+  await expect(first).toHaveAttribute('aria-selected', 'false');
+  await expect(
+    page.locator('[data-select-mark]:not([tabindex="-1"])'),
+  ).toHaveCount(0);
+});
 ```
 
 In `test.describe('grouped shelf keyboard', …)`, `keeps exactly one tab stop across every group`, add as the last line:
 
 ```ts
-    await expect(
-      shelf.locator('[data-select-mark]:not([tabindex="-1"])'),
-    ).toHaveCount(0);
+await expect(
+  shelf.locator('[data-select-mark]:not([tabindex="-1"])'),
+).toHaveCount(0);
 ```
 
 - [ ] **Step 2: Run them to verify the new test fails**
@@ -2670,6 +2739,7 @@ In `test.describe('grouped shelf keyboard', …)`, `keeps exactly one tab stop a
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-cache -- --grep "select mark is the lib Checkbox|keeps exactly one tab stop"
 ```
+
 Expected: `the select mark is the lib Checkbox…` FAILS on `data-slot` (the old mark is a plain span); `keeps exactly one tab stop` PASSES.
 
 - [ ] **Step 3: Replace SelectMark**
@@ -2728,6 +2798,7 @@ perl -e 'alarm 1200; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-c
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-cache -- --project=phone src/library.phone.spec.ts src/a11y.phone.spec.ts
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 ```
+
 Expected: PASS, including `focus is foreground and selection is primary` (the checked Checkbox paints `bg-primary`).
 
 - [ ] **Step 5: Typecheck, lint, commit**
@@ -2754,11 +2825,13 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 `LoadError.tsx` does not change (spec: it stays an `Alert`).
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/components/library/EmptyResult.tsx` (whole file)
 - Modify: `apps/personal-calibre/src/components/library/KeyHints.tsx` (whole file)
 - Test: `apps/personal-calibre-e2e/src/shelf.spec.ts`, `apps/personal-calibre-e2e/src/shortcuts.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `Empty`, `EmptyContent`, `EmptyHeader`, `EmptyMedia`, `EmptyTitle` (Task 5); `Kbd`, `KbdGroup`.
 
 - [ ] **Step 1: Write the failing e2e assertions**
@@ -2766,17 +2839,17 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 In `shelf.spec.ts`, test `an empty result offers Clear filters`, after the `No books match these filters.` assertion add:
 
 ```ts
-    await expect(
-      page.locator('[data-view-region] [data-slot="empty"]'),
-    ).toBeVisible();
+await expect(
+  page.locator('[data-view-region] [data-slot="empty"]'),
+).toBeVisible();
 ```
 
 In `shortcuts.spec.ts`, in the test containing `await expect(page.locator('[data-key-hints]')).toContainText('Page');`, add right after that line:
 
 ```ts
-    await expect(
-      page.locator('[data-key-hints] [data-slot="kbd-group"]').first(),
-    ).toBeVisible();
+await expect(
+  page.locator('[data-key-hints] [data-slot="kbd-group"]').first(),
+).toBeVisible();
 ```
 
 - [ ] **Step 2: Run them to verify they fail**
@@ -2785,6 +2858,7 @@ In `shortcuts.spec.ts`, in the test containing `await expect(page.locator('[data
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-cache -- src/shelf.spec.ts src/shortcuts.spec.ts
 ```
+
 Expected: both new assertions FAIL (no `empty` slot, no `kbd-group` slot).
 
 - [ ] **Step 3: Write the components**
@@ -2874,6 +2948,7 @@ pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-cache -- src/shelf.spec.ts src/shortcuts.spec.ts src/a11y.spec.ts src/states.spec.ts
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 ```
+
 Expected: PASS, including `empty result has no axe violations` and both LoadError states tests.
 
 - [ ] **Step 5: Typecheck, lint, commit**
@@ -2897,10 +2972,12 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 11: Calibre delivery rows with Item, Field and Spinner
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/components/detail/DeliveryRows.tsx` (whole file)
 - Test: `apps/personal-calibre-e2e/src/deliveries.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `Item`, `ItemGroup`, `ItemContent`, `ItemTitle`, `ItemDescription`, `ItemActions` (Task 8); `Field`, `FieldGroup`, `FieldLabel`, `FieldError` (Task 6); `Spinner` (Task 4).
 - Produces: `DeliveryRows({ bookId, platforms, events, headingAs })`, unchanged signature; each platform row keeps `data-platform`.
 
@@ -2911,56 +2988,56 @@ In `deliveries.spec.ts`, test `Mark added shows at once, with URL and note in Hi
 after `await expect(row(page, 'kobo')).toContainText('Not added');` add:
 
 ```ts
-    await expect(row(page, 'kobo')).toHaveAttribute('data-slot', 'item');
-    await expect(row(page, 'kobo')).toHaveAttribute('role', 'listitem');
+await expect(row(page, 'kobo')).toHaveAttribute('data-slot', 'item');
+await expect(row(page, 'kobo')).toHaveAttribute('role', 'listitem');
 ```
 
 after the `Reference URL must start with http:// or https://` assertion add:
 
 ```ts
-    const errorId = await dialog
-      .getByLabel('Reference URL')
-      .getAttribute('aria-describedby');
-    await expect(dialog.locator(`[id="${errorId}"]`)).toHaveAttribute(
-      'data-slot',
-      'field-error',
-    );
-    await expect(dialog.locator(`[id="${errorId}"]`)).toHaveAttribute(
-      'role',
-      'alert',
-    );
+const errorId = await dialog
+  .getByLabel('Reference URL')
+  .getAttribute('aria-describedby');
+await expect(dialog.locator(`[id="${errorId}"]`)).toHaveAttribute(
+  'data-slot',
+  'field-error',
+);
+await expect(dialog.locator(`[id="${errorId}"]`)).toHaveAttribute(
+  'role',
+  'alert',
+);
 ```
 
 Add a new test inside `test.describe('deliveries', …)`:
 
 ```ts
-  test('Save shows a spinner and stays disabled while the request runs', async ({
-    page,
-  }) => {
-    await gotoLibrary(page, '/?book=42');
-    let release: () => void = () => undefined;
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await page.route('**/api/books/42/deliveries', async (route) => {
-      if (route.request().method() === 'POST') await held;
-      await route.continue();
-    });
-    await row(page, 'notebooklm')
-      .getByRole('button', { name: 'Mark added' })
-      .click();
-    const dialog = page.getByRole('dialog', {
-      name: 'Mark as added to NotebookLM',
-    });
-    await expect(dialog.locator('[data-slot="field"]')).toHaveCount(2);
-    const save = dialog.getByRole('button', { name: 'Save' });
-    await save.click();
-    await expect(save).toBeDisabled();
-    await expect(save.locator('[data-slot="spinner"]')).toBeVisible();
-    release();
-    await expect(page.getByText('Logged NotebookLM')).toBeVisible();
-    await expect(row(page, 'notebooklm')).toContainText(today());
+test('Save shows a spinner and stays disabled while the request runs', async ({
+  page,
+}) => {
+  await gotoLibrary(page, '/?book=42');
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
   });
+  await page.route('**/api/books/42/deliveries', async (route) => {
+    if (route.request().method() === 'POST') await held;
+    await route.continue();
+  });
+  await row(page, 'notebooklm')
+    .getByRole('button', { name: 'Mark added' })
+    .click();
+  const dialog = page.getByRole('dialog', {
+    name: 'Mark as added to NotebookLM',
+  });
+  await expect(dialog.locator('[data-slot="field"]')).toHaveCount(2);
+  const save = dialog.getByRole('button', { name: 'Save' });
+  await save.click();
+  await expect(save).toBeDisabled();
+  await expect(save.locator('[data-slot="spinner"]')).toBeVisible();
+  release();
+  await expect(page.getByText('Logged NotebookLM')).toBeVisible();
+  await expect(row(page, 'notebooklm')).toContainText(today());
+});
 ```
 
 - [ ] **Step 2: Run them to verify they fail**
@@ -2969,6 +3046,7 @@ Add a new test inside `test.describe('deliveries', …)`:
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-cache -- src/deliveries.spec.ts
 ```
+
 Expected: FAIL on `data-slot` `item`, on `field-error`, and on the `field` count.
 
 - [ ] **Step 3: Rewrite DeliveryRows**
@@ -3236,11 +3314,7 @@ function HistoryItem({
   }
 
   return (
-    <Item
-      role="listitem"
-      variant="outline"
-      className="items-start px-2.5 py-2"
-    >
+    <Item role="listitem" variant="outline" className="items-start px-2.5 py-2">
       <ItemContent className="min-w-0">
         <ItemTitle>
           {event.platformName}
@@ -3285,6 +3359,7 @@ perl -e 'alarm 1200; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-c
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-cache -- --project=phone src/a11y.phone.spec.ts
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 ```
+
 Expected: PASS, including `the add-delivery form has no axe violations` and `the tile shows a new mark after Mark added in the pane`.
 
 - [ ] **Step 5: Typecheck, lint, commit**
@@ -3308,11 +3383,13 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 12: Calibre sort and bulk controls with ButtonGroup and Spinner
 
 **Files:**
+
 - Modify: `apps/personal-calibre/src/components/library/SortControls.tsx:65-101`
 - Modify: `apps/personal-calibre/src/components/library/BulkToolbar.tsx` (whole file)
 - Test: `apps/personal-calibre-e2e/src/filters.spec.ts`, `apps/personal-calibre-e2e/src/bulk.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `ButtonGroup` (Task 7), `Spinner` (Task 4).
 - Produces: `SortControls()`, `BulkToolbar({ platforms, matchingIds })`, unchanged signatures.
 
@@ -3321,46 +3398,46 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 In `filters.spec.ts`, test `sort, direction and group change the URL and drop page`, right after `await gotoLibrary(page, '/?page=2');` add:
 
 ```ts
-    await expect(
-      page
-        .getByRole('button', { name: 'Sort direction: ascending' })
-        .locator('xpath=..'),
-    ).toHaveAttribute('data-slot', 'button-group');
+await expect(
+  page
+    .getByRole('button', { name: 'Sort direction: ascending' })
+    .locator('xpath=..'),
+).toHaveAttribute('data-slot', 'button-group');
 ```
 
 In `bulk.spec.ts`, inside `test.describe('bulk', …)`, add:
 
 ```ts
-  test('Mark delivered sits in a group with its platform and shows a spinner while it runs', async ({
-    page,
-  }) => {
-    await gotoLibrary(page, '/?series=2');
-    await selectOption(page, 2);
-    const add = toolbar(page).getByRole('combobox', { name: 'Add to' });
-    await expect(add.locator('xpath=..')).toHaveAttribute(
-      'data-slot',
-      'button-group',
-    );
-    let release: () => void = () => undefined;
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await page.route('**/api/books/deliveries/bulk', async (route) => {
-      await held;
-      await route.continue();
-    });
-    await add.click();
-    await page.getByRole('option', { name: 'Readwise Reader' }).click();
-    const mark = toolbar(page).getByRole('button', { name: 'Mark delivered' });
-    await mark.click();
-    await expect(mark).toBeDisabled();
-    await expect(mark.locator('[data-slot="spinner"]')).toBeVisible();
-    await expect(
-      toolbar(page).getByRole('button', { name: /ZIP/ }),
-    ).toBeDisabled();
-    release();
-    await expect(toolbar(page)).toHaveCount(0);
+test('Mark delivered sits in a group with its platform and shows a spinner while it runs', async ({
+  page,
+}) => {
+  await gotoLibrary(page, '/?series=2');
+  await selectOption(page, 2);
+  const add = toolbar(page).getByRole('combobox', { name: 'Add to' });
+  await expect(add.locator('xpath=..')).toHaveAttribute(
+    'data-slot',
+    'button-group',
+  );
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
   });
+  await page.route('**/api/books/deliveries/bulk', async (route) => {
+    await held;
+    await route.continue();
+  });
+  await add.click();
+  await page.getByRole('option', { name: 'Readwise Reader' }).click();
+  const mark = toolbar(page).getByRole('button', { name: 'Mark delivered' });
+  await mark.click();
+  await expect(mark).toBeDisabled();
+  await expect(mark.locator('[data-slot="spinner"]')).toBeVisible();
+  await expect(
+    toolbar(page).getByRole('button', { name: /ZIP/ }),
+  ).toBeDisabled();
+  release();
+  await expect(toolbar(page)).toHaveCount(0);
+});
 ```
 
 - [ ] **Step 2: Run them to verify they fail**
@@ -3369,6 +3446,7 @@ In `bulk.spec.ts`, inside `test.describe('bulk', …)`, add:
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-cache -- src/filters.spec.ts src/bulk.spec.ts
 ```
+
 Expected: both new checks FAIL on `data-slot="button-group"`.
 
 - [ ] **Step 3: Rewrite SortControls and BulkToolbar**
@@ -3645,6 +3723,7 @@ perl -e 'alarm 1500; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-c
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx e2e personal-calibre-e2e --skip-nx-cache -- --project=phone
 pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 ```
+
 Expected: PASS, including `Tab from the toolbar lands on a tile` and the bulk toolbar axe check.
 
 - [ ] **Step 5: Typecheck, lint, commit**
@@ -3671,12 +3750,14 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 rss-manager has no component tests, so this task verifies with lint, typecheck, its Vitest suite, the build and a dev-server check against the Task 1 fixture vault.
 
 **Files:**
+
 - Modify: `apps/rss-manager/src/components/FeedValidator.tsx:1-7`, `:56-58`
 - Modify: `apps/rss-manager/src/components/SourceTable.tsx:1-15`, `:293-300`, `:320-329`, `:337-341`
 - Modify: `apps/rss-manager/src/components/TopicList.tsx:1-7`, `:152-169`
 - Modify: `apps/rss-manager/src/components/ReadingQueue.tsx:1`, `:127-139`
 
 **Interfaces:**
+
 - Consumes: `Spinner` (Task 4); `Empty`, `EmptyHeader`, `EmptyTitle`, `EmptyDescription` (Task 5).
 
 - [ ] **Step 1: Edit FeedValidator**
@@ -3684,18 +3765,18 @@ rss-manager has no component tests, so this task verifies with lint, typecheck, 
 Add `Spinner,` to the `@rainforest-dev/rainforest-react` import (after `Input,`). Replace
 
 ```tsx
-        <Button onClick={validate} disabled={!url || loading}>
-          {loading ? 'Checking…' : 'Validate'}
-        </Button>
+<Button onClick={validate} disabled={!url || loading}>
+  {loading ? 'Checking…' : 'Validate'}
+</Button>
 ```
 
 with
 
 ```tsx
-        <Button onClick={validate} disabled={!url || loading}>
-          {loading && <Spinner data-icon="inline-start" />}
-          {loading ? 'Checking…' : 'Validate'}
-        </Button>
+<Button onClick={validate} disabled={!url || loading}>
+  {loading && <Spinner data-icon="inline-start" />}
+  {loading ? 'Checking…' : 'Validate'}
+</Button>
 ```
 
 - [ ] **Step 2: Edit SourceTable**
@@ -3703,53 +3784,61 @@ with
 Add `Empty,`, `EmptyHeader,`, `EmptyTitle,` (after `buttonVariants,`) and `Spinner,` (after `Input,`) to the import. Replace
 
 ```tsx
-                        {pending.has(s.name) ? '…' : 'Activate'}
+{
+  pending.has(s.name) ? '…' : 'Activate';
+}
 ```
 
 with
 
 ```tsx
-                        {pending.has(s.name) && (
-                          <Spinner data-icon="inline-start" />
-                        )}
-                        Activate
+{
+  pending.has(s.name) && <Spinner data-icon="inline-start" />;
+}
+Activate;
 ```
 
 Replace
 
 ```tsx
-                          {pending.has(s.name) ? '…' : 'Retire'}
+{
+  pending.has(s.name) ? '…' : 'Retire';
+}
 ```
 
 with
 
 ```tsx
-                          {pending.has(s.name) && (
-                            <Spinner data-icon="inline-start" />
-                          )}
-                          Retire
+{
+  pending.has(s.name) && <Spinner data-icon="inline-start" />;
+}
+Retire;
 ```
 
 Replace
 
 ```tsx
-        {filtered.length === 0 && (
-          <p className="text-muted-foreground py-8 text-center">
-            No sources match the current filter.
-          </p>
-        )}
+{
+  filtered.length === 0 && (
+    <p className="text-muted-foreground py-8 text-center">
+      No sources match the current filter.
+    </p>
+  );
+}
 ```
 
 with
 
 ```tsx
-        {filtered.length === 0 && (
-          <Empty className="py-8">
-            <EmptyHeader>
-              <EmptyTitle>No sources match the current filter.</EmptyTitle>
-            </EmptyHeader>
-          </Empty>
-        )}
+{
+  filtered.length === 0 && (
+    <Empty className="py-8">
+      <EmptyHeader>
+        <EmptyTitle>No sources match the current filter.</EmptyTitle>
+      </EmptyHeader>
+    </Empty>
+  );
+}
 ```
 
 - [ ] **Step 3: Edit TopicList**
@@ -3757,31 +3846,35 @@ with
 Add `Spinner,` to the import (after `Button,`). Replace
 
 ```tsx
-                        {pending.has(t.name) ? '…' : 'Activate'}
+{
+  pending.has(t.name) ? '…' : 'Activate';
+}
 ```
 
 with
 
 ```tsx
-                        {pending.has(t.name) && (
-                          <Spinner data-icon="inline-start" />
-                        )}
-                        Activate
+{
+  pending.has(t.name) && <Spinner data-icon="inline-start" />;
+}
+Activate;
 ```
 
 and
 
 ```tsx
-                        {pending.has(t.name) ? '…' : 'Decline'}
+{
+  pending.has(t.name) ? '…' : 'Decline';
+}
 ```
 
 with
 
 ```tsx
-                        {pending.has(t.name) && (
-                          <Spinner data-icon="inline-start" />
-                        )}
-                        Decline
+{
+  pending.has(t.name) && <Spinner data-icon="inline-start" />;
+}
+Decline;
 ```
 
 - [ ] **Step 4: Edit ReadingQueue**
@@ -3802,29 +3895,29 @@ import {
 Replace
 
 ```tsx
-      <div className="py-12 text-center">
-        <p className="text-muted-foreground">
-          No reading queue has been generated yet.
-        </p>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Run the <code className="text-primary">reading-queue</code> skill to
-          build one.
-        </p>
-      </div>
+<div className="py-12 text-center">
+  <p className="text-muted-foreground">
+    No reading queue has been generated yet.
+  </p>
+  <p className="text-muted-foreground mt-2 text-sm">
+    Run the <code className="text-primary">reading-queue</code> skill to build
+    one.
+  </p>
+</div>
 ```
 
 with
 
 ```tsx
-      <Empty className="py-12">
-        <EmptyHeader>
-          <EmptyTitle>No reading queue has been generated yet.</EmptyTitle>
-          <EmptyDescription>
-            Run the <code className="text-primary">reading-queue</code> skill
-            to build one.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+<Empty className="py-12">
+  <EmptyHeader>
+    <EmptyTitle>No reading queue has been generated yet.</EmptyTitle>
+    <EmptyDescription>
+      Run the <code className="text-primary">reading-queue</code> skill to build
+      one.
+    </EmptyDescription>
+  </EmptyHeader>
+</Empty>
 ```
 
 - [ ] **Step 5: Lint, typecheck, test, build**
@@ -3833,6 +3926,7 @@ with
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx lint rss-manager --fix
 perl -e 'alarm 900; exec @ARGV' -- pnpm nx run-many -t lint typecheck test build -p rss-manager --skip-nx-cache
 ```
+
 Expected: PASS (the build runs `astro check`).
 
 - [ ] **Step 6: Dev-server check**
@@ -3840,6 +3934,7 @@ Expected: PASS (the build runs `astro check`).
 ```bash
 VAULT_PATH="$CAPTURE_DIR/rss-vault" pnpm nx dev rss-manager --skip-nx-cache
 ```
+
 In the background. Load `http://localhost:3002/?tab=sources`, type `zzz` in the filter field and confirm "No sources match the current filter." renders inside `[data-slot="empty"]`. Click Activate on "Example Build Log" and confirm a `[data-slot="spinner"]` shows in the button until it settles (the fixture files are writable). Load `?tab=queue` and confirm the Empty "No reading queue has been generated yet." Confirm no console errors. Stop the server and restore the fixture vault files from Task 1 step 4 if Activate rewrote them.
 
 - [ ] **Step 7: Commit**
@@ -3861,9 +3956,11 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 ### Task 14: memories empty timeline uses Empty
 
 **Files:**
+
 - Modify: `apps/personal-memories/src/components/EmptyState.astro` (whole file)
 
 **Interfaces:**
+
 - Consumes: `Empty`, `EmptyContent`, `EmptyDescription`, `EmptyHeader`, `EmptyTitle` (Task 5). Props unchanged: `{ path: string | undefined }`.
 
 - [ ] **Step 1: Rewrite EmptyState**
@@ -3921,6 +4018,7 @@ Expected: PASS.
 MEMORIES_DATA_DIR="$CAPTURE_DIR/no-such-dir" MEMORIES_NOTES_DIR="$CAPTURE_DIR/memories-notes" \
   pnpm --dir apps/personal-memories exec astro dev --host 127.0.0.1 --port 3024 --ignore-lock
 ```
+
 In the background. Load `http://127.0.0.1:3024/`, confirm "還沒有時間軸" renders inside `[data-slot="empty"]` with the path and the ingest command, and no console errors. Stop the server.
 
 - [ ] **Step 4: Run the memories e2e suite**
@@ -3948,9 +4046,11 @@ Claude-Session: https://claude.ai/code/session_019jxqNqgwsWWikAfS8FuLgm"
 No commit unless a check forces a fix; a fix goes in its own commit with the scope of the file it touches.
 
 **Files:**
+
 - Create (outside the repo): `$CAPTURE_DIR/after/*`
 
 **Interfaces:**
+
 - Consumes: `capture.cjs` and the fixtures from Task 1.
 
 - [ ] **Step 1: Run every suite**
@@ -3965,6 +4065,7 @@ pids=$(lsof -tiTCP:3333 -sTCP:LISTEN); [ -n "$pids" ] && kill $pids
 pnpm format:check
 git checkout -- apps/personal-calibre/next-env.d.ts
 ```
+
 Expected: all green, apart from failures already listed in `$CAPTURE_DIR/baseline.txt`.
 
 - [ ] **Step 2: Scan the branch for comments**
@@ -3996,4 +4097,5 @@ for port in 3002 3024 3333 3335 4321; do pids=$(lsof -tiTCP:$port -sTCP:LISTEN);
 git checkout -- apps/personal-calibre/next-env.d.ts
 git status --short
 ```
+
 Expected: `git status` prints nothing.
