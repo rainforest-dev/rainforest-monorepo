@@ -196,12 +196,7 @@ function DeliveryRow({
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
-            <Button
-              type="submit"
-              variant="secondary"
-              size="sm"
-              disabled={saving}
-            >
+            <Button type="submit" size="sm" disabled={saving}>
               Save
             </Button>
           </form>

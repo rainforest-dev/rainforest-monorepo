@@ -136,7 +136,6 @@ export function BulkToolbar({
         <Button
           variant="link"
           size="xs"
-          className="text-foreground"
           disabled={busy}
           onClick={() => addMany(matchingIds)}
         >
@@ -164,7 +163,6 @@ export function BulkToolbar({
           </SelectContent>
         </Select>
         <Button
-          variant="secondary"
           size="sm"
           disabled={busy || !platformKey}
           onClick={() => void markDelivered()}

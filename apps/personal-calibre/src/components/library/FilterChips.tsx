@@ -38,7 +38,7 @@ export function FilterChips({ labels }: { labels: FilterLabels }) {
       <Button
         variant="link"
         size="xs"
-        className="text-foreground shrink-0"
+        className="shrink-0"
         onClick={clearFilters}
       >
         Clear all
