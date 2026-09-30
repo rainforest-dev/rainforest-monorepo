@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
   alertVariants,
   badgeVariants,
+  buttonGroupVariants,
   buttonVariants,
   cn,
   emptyMediaVariants,
@@ -32,6 +33,13 @@ describe('recipes', () => {
     expect(inputGroupButtonVariants({ size: 'xs' })).toContain('h-6');
     expect(toggleVariants({ variant: 'outline' })).toContain('border-input');
     expect(sheetContentVariants({ side: 'bottom' })).toContain('rounded-t-xl');
+  });
+
+  it('resolve the ButtonGroup orientations', () => {
+    expect(buttonGroupVariants()).toContain('rounded-r-none');
+    expect(buttonGroupVariants({ orientation: 'vertical' })).toContain(
+      'flex-col',
+    );
   });
 
   it('resolve the Empty media variants', () => {

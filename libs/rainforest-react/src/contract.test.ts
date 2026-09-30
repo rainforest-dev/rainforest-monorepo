@@ -14,6 +14,7 @@ const componentNames = [
   'Alert',
   'Badge',
   'Button',
+  'ButtonGroup',
   'Card',
   'Checkbox',
   'Command',

@@ -16,6 +16,9 @@
     "Button": {
       "skip": ["actions-button--dark"]
     },
+    "ButtonGroup": {
+      "skip": ["actions-buttongroup--dark"]
+    },
     "Card": {
       "skip": ["display-card--dark"]
     },

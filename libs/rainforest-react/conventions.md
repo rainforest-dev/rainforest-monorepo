@@ -124,3 +124,5 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
   `FieldDescription` and a `FieldError` whose `id` the control lists in `aria-describedby`. Set
   `data-invalid` on the `Field` and `aria-invalid` on the control together. Stack fields in
   `FieldGroup`.
+- `ButtonGroup` joins controls that act as one: a `SelectTrigger` and the button that applies
+  it, or an input and its action. A single-choice switch (views, modes) is `ToggleGroup`.
