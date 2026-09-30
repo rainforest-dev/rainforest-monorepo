@@ -1,4 +1,11 @@
-import { Badge, Button } from '@rainforest-dev/rainforest-react';
+import {
+  Badge,
+  Button,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@rainforest-dev/rainforest-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -126,15 +133,15 @@ export default function ReadingQueue() {
 
   if (data.generated === null)
     return (
-      <div className="py-12 text-center">
-        <p className="text-muted-foreground">
-          No reading queue has been generated yet.
-        </p>
-        <p className="text-muted-foreground mt-2 text-sm">
-          Run the <code className="text-primary">reading-queue</code> skill to
-          build one.
-        </p>
-      </div>
+      <Empty className="py-12">
+        <EmptyHeader>
+          <EmptyTitle>No reading queue has been generated yet.</EmptyTitle>
+          <EmptyDescription>
+            Run the <code className="text-primary">reading-queue</code> skill to
+            build one.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
 
   const tiers = [...new Set(sorted.map((i) => i.tier))].sort((a, b) => a - b);

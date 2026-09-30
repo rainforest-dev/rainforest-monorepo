@@ -5,7 +5,11 @@ import {
   type BadgeProps,
   Button,
   buttonVariants,
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
   Input,
+  Spinner,
   Table,
   TableBody,
   TableCell,
@@ -296,7 +300,10 @@ export default function SourceTable() {
                         disabled={pending.has(s.name) || !writable}
                         title={writable ? undefined : READ_ONLY_NOTE}
                       >
-                        {pending.has(s.name) ? '…' : 'Activate'}
+                        {pending.has(s.name) && (
+                          <Spinner data-icon="inline-start" />
+                        )}
+                        Activate
                       </Button>
                     )}
                     {s.status === 'active' &&
@@ -325,7 +332,10 @@ export default function SourceTable() {
                           disabled={pending.has(s.name) || !writable}
                           title={writable ? undefined : READ_ONLY_NOTE}
                         >
-                          {pending.has(s.name) ? '…' : 'Retire'}
+                          {pending.has(s.name) && (
+                            <Spinner data-icon="inline-start" />
+                          )}
+                          Retire
                         </Button>
                       ))}
                   </div>
@@ -335,9 +345,11 @@ export default function SourceTable() {
           </TableBody>
         </Table>
         {filtered.length === 0 && (
-          <p className="text-muted-foreground py-8 text-center">
-            No sources match the current filter.
-          </p>
+          <Empty className="py-8">
+            <EmptyHeader>
+              <EmptyTitle>No sources match the current filter.</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
     </div>

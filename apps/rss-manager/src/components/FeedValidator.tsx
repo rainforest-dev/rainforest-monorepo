@@ -4,6 +4,7 @@ import {
   AlertTitle,
   Button,
   Input,
+  Spinner,
 } from '@rainforest-dev/rainforest-react';
 import { CircleCheckIcon, CircleXIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -54,6 +55,7 @@ export default function FeedValidator() {
           className="flex-1"
         />
         <Button onClick={validate} disabled={!url || loading}>
+          {loading && <Spinner data-icon="inline-start" />}
           {loading ? 'Checking…' : 'Validate'}
         </Button>
       </div>

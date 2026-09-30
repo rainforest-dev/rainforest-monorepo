@@ -4,6 +4,7 @@ import {
   Badge,
   type BadgeProps,
   Button,
+  Spinner,
 } from '@rainforest-dev/rainforest-react';
 import { useEffect, useState } from 'react';
 
@@ -156,7 +157,10 @@ export default function TopicList() {
                         disabled={pending.has(t.name) || !writable}
                         title={writable ? undefined : READ_ONLY_NOTE}
                       >
-                        {pending.has(t.name) ? '…' : 'Activate'}
+                        {pending.has(t.name) && (
+                          <Spinner data-icon="inline-start" />
+                        )}
+                        Activate
                       </Button>
                       <Button
                         size="xs"
@@ -165,7 +169,10 @@ export default function TopicList() {
                         disabled={pending.has(t.name) || !writable}
                         title={writable ? undefined : READ_ONLY_NOTE}
                       >
-                        {pending.has(t.name) ? '…' : 'Decline'}
+                        {pending.has(t.name) && (
+                          <Spinner data-icon="inline-start" />
+                        )}
+                        Decline
                       </Button>
                     </div>
                   )}
