@@ -65,6 +65,9 @@
     "Skeleton": {
       "skip": ["feedback-skeleton--dark"]
     },
+    "Spinner": {
+      "skip": ["feedback-spinner--dark"]
+    },
     "Switch": {
       "skip": ["forms-switch--dark"]
     },

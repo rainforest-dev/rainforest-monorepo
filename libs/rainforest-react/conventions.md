@@ -115,3 +115,6 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
   example `closeLabel="關閉"`) in apps whose UI is not English.
 - Loading states use `Skeleton` blocks sized like the content they stand for, never a spinner
   alone.
+- A pending action puts `Spinner` inside its own button, before the label
+  (`<Spinner data-icon="inline-start" />`), keeps the label and disables the button until the
+  request settles.

@@ -28,6 +28,7 @@ const componentNames = [
   'Separator',
   'Sheet',
   'Skeleton',
+  'Spinner',
   'Switch',
   'Table',
   'Tabs',

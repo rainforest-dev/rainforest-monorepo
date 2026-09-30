@@ -54,6 +54,7 @@ describe('dist/styles.css', () => {
   it('includes the classes the new components use', () => {
     for (const cls of [
       'animate-pulse',
+      'animate-spin',
       'data-pressed\\:bg-muted',
       'data-checked\\:bg-primary',
       'bg-muted-foreground\\/30',
