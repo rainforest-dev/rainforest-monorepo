@@ -69,6 +69,11 @@ test.describe('filters', () => {
     page,
   }) => {
     await gotoLibrary(page, '/?page=2');
+    await expect(
+      page
+        .getByRole('button', { name: 'Sort direction: ascending' })
+        .locator('xpath=..'),
+    ).toHaveAttribute('data-slot', 'button-group');
     await page
       .getByRole('button', { name: 'Sort direction: ascending' })
       .click();

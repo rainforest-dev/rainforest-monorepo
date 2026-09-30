@@ -130,4 +130,35 @@ test.describe('bulk', () => {
     await expect(toolbar(page)).toHaveCount(0);
     await expect(first).toBeFocused();
   });
+
+  test('Mark delivered sits in a group with its platform and shows a spinner while it runs', async ({
+    page,
+  }) => {
+    await gotoLibrary(page, '/?series=2');
+    await selectOption(page, 2);
+    const add = toolbar(page).getByRole('combobox', { name: 'Add to' });
+    await expect(add.locator('xpath=..')).toHaveAttribute(
+      'data-slot',
+      'button-group',
+    );
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/api/books/deliveries/bulk', async (route) => {
+      await held;
+      await route.continue();
+    });
+    await add.click();
+    await page.getByRole('option', { name: 'Readwise Reader' }).click();
+    const mark = toolbar(page).getByRole('button', { name: 'Mark delivered' });
+    await mark.click();
+    await expect(mark).toBeDisabled();
+    await expect(mark.locator('[data-slot="spinner"]')).toBeVisible();
+    await expect(
+      toolbar(page).getByRole('button', { name: /ZIP/ }),
+    ).toBeDisabled();
+    release();
+    await expect(toolbar(page)).toHaveCount(0);
+  });
 });
