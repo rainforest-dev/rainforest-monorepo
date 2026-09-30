@@ -1,6 +1,6 @@
 'use client';
 
-import { Kbd } from '@rainforest-dev/rainforest-react';
+import { Kbd, KbdGroup } from '@rainforest-dev/rainforest-react';
 
 import { hintsFor } from '@/lib/keyboard';
 
@@ -15,9 +15,11 @@ export function KeyHints() {
     >
       {hintsFor(view, pageInfo.pageCount > 1).map((hint) => (
         <span key={hint.label} className="inline-flex items-center gap-1">
-          {hint.keys.map((key) => (
-            <Kbd key={key}>{key}</Kbd>
-          ))}
+          <KbdGroup>
+            {hint.keys.map((key) => (
+              <Kbd key={key}>{key}</Kbd>
+            ))}
+          </KbdGroup>
           {hint.label}
         </span>
       ))}
