@@ -1,15 +1,17 @@
 'use client';
 
+import {
+  hasModifier,
+  isInOverlay,
+  isTypingTarget,
+  listenForShortcuts,
+} from '@rainforest-dev/rainforest-ui/interaction';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { nextView, parseLibraryParams, resolveShortcut } from '@/lib';
 import { useLibrary } from '@/providers';
 
-const TYPING =
-  'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
-const OVERLAY =
-  '[role="dialog"], [role="alertdialog"], [role="menu"], [data-slot="select-content"], [data-slot="popover-content"]';
 const TOOLBAR = '[role="toolbar"]';
 
 export function useLibraryShortcuts(enabled: boolean) {
@@ -49,8 +51,7 @@ export function useLibraryShortcuts(enabled: boolean) {
 
   useEffect(() => {
     if (!enabled) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
+    return listenForShortcuts((event) => {
       const {
         view: currentView,
         selected: currentSelected,
@@ -62,11 +63,9 @@ export function useLibraryShortcuts(enabled: boolean) {
       const target = event.target instanceof Element ? event.target : null;
       const shortcut = resolveShortcut({
         key: event.key,
-        altKey: event.altKey,
-        ctrlKey: event.ctrlKey,
-        metaKey: event.metaKey,
-        typing: target?.closest(TYPING) != null,
-        inOverlay: target?.closest(OVERLAY) != null,
+        modified: hasModifier(event),
+        typing: isTypingTarget(target),
+        inOverlay: isInOverlay(target),
         paneOpen: currentPaneOpen,
         hasSelection: currentSelected.size > 0,
         page: currentPageInfo.page,
@@ -101,9 +100,7 @@ export function useLibraryShortcuts(enabled: boolean) {
           goToPage(shortcut.page);
           break;
       }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    });
   }, [
     enabled,
     setView,
