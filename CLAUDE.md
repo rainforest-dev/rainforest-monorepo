@@ -165,6 +165,23 @@ ESLint uses `simple-import-sort` - imports must be alphabetically sorted:
 pnpm nx lint <project> --fix  # Auto-sort imports
 ```
 
+### Imports
+
+- Apps: `@/*` maps to `src/*` (`personal-calibre` and `personal-website` already;
+  `personal-memories` and `rss-manager` get it next). A cross-directory import uses the alias and
+  goes through that directory's barrel `index.ts` (`@/components/library`), never `../`. A
+  same-directory import uses `./file`. A module never imports its own directory's barrel or an
+  ancestor's.
+- A barrel never mixes environments. Server-only modules (DB access, `node:` built-ins,
+  `server-only`) live in their own directory behind their own barrel, so a client component that
+  imports a barrel cannot drag server code into the browser bundle. In Next.js a barrel must not
+  mix `'use client'` modules with server-only ones.
+- Packages: consumers import the package root or a declared subpath entry
+  (`@rainforest-dev/rainforest-ui/interaction`); deep file paths are not part of the API. Inside
+  `libs/*`, keep relative imports: tsconfig `paths` are not rewritten in the emitted `.d.ts`.
+- `import-x/no-cycle` runs in lint and fails CI on any cycle. Type-only imports (`import type`)
+  do not count as edges, and it cannot see edges inside `.astro` or `.vue` files.
+
 ### Module Boundaries
 
 ESLint enforces Nx module boundaries with `@nx/enforce-module-boundaries` rule. Projects can only import from declared dependencies in package.json.
