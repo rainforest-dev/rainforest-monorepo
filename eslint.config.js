@@ -137,6 +137,30 @@ module.exports = [
       'simple-import-sort/exports': 'error',
     },
   },
+  {
+    files: [
+      '**/src/**/*.ts',
+      '**/src/**/*.tsx',
+      '**/src/**/*.js',
+      '**/src/**/*.jsx',
+      '**/src/**/*.mjs',
+    ],
+    ignores: ['libs/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['../*'],
+              message:
+                'Import across directories through the @/ alias and the directory barrel (CLAUDE.md, Imports).',
+            },
+          ],
+        },
+      ],
+    },
+  },
   // React island surface in libs/portfolio: guardrails against hooks bugs and
   // missing a11y. Scoped to this lib (the ~20 island components) rather than the
   // whole repo to keep the change minimal — a repo-wide rollout is a separate

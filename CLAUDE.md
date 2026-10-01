@@ -167,16 +167,27 @@ pnpm nx lint <project> --fix  # Auto-sort imports
 
 ### Imports
 
-- Apps: `@/*` maps to `src/*` (`personal-calibre`, `personal-website` and `rss-manager` already;
-  `personal-memories` gets it next). A cross-directory import uses the alias and
-  goes through that directory's barrel `index.ts` (`@/components/library`), never `../`. A
-  same-directory import uses `./file`. A module never imports its own directory's barrel or an
-  ancestor's: when the target sits in an ancestor directory, import the file itself through the
-  alias (`@/utils/env`, not `@/utils`).
+- Apps: `@/*` maps to `src/*` in every app. A cross-directory import uses the alias and goes
+  through that directory's barrel `index.ts` (`@/components/library`), never `../`; lint fails on
+  `../` under `apps/*/src`. A same-directory import uses `./file`. A module never imports its own
+  directory's barrel or an ancestor's: when the target sits in an ancestor directory, import the
+  file itself through the alias (`@/utils/env`, not `@/utils`).
 - A barrel never mixes environments. Server-only modules (DB access, `node:` built-ins,
-  `server-only`) live in their own directory behind their own barrel, so a client component that
-  imports a barrel cannot drag server code into the browser bundle. In Next.js a barrel must not
-  mix `'use client'` modules with server-only ones.
+  `server-only`) live in their own directory behind their own barrel (`lib/server`), so a client
+  component that imports a barrel cannot drag server code into the browser bundle. In Next.js a
+  barrel must not mix `'use client'` modules with server-only ones. Compare the client bundle
+  before and after adding a barrel: calibre and memories each caught a leak that way.
+- Import these by file, not through a barrel:
+  - Astro islands (components rendered with `client:*`). Astro builds one hydration chunk per
+    import, so a barrel merges every island it re-exports into one chunk that each page loads.
+  - `.astro` components and side-effect scripts (`personal-memories/src/scripts/*`).
+- A Next.js app that uses barrels declares `"sideEffects": ["**/*.css"]` in its `package.json`.
+  Without it Turbopack keeps every re-export of a client-component barrel, as it did in calibre.
+- Relative paths that stay, because the tool cannot resolve the alias:
+  - `personal-memories/src/cli` and `src/lib/ingest`, which plain `node` runs. Their own
+    `eslint.config.js` turns the `../` rule off there.
+  - Tailwind `@reference` in a `<style>` block, and Vite dynamic imports built from a variable
+    (``import(`../locales/${lng}.json`)``), which must start with `./` or `../`.
 - Packages: consumers import the package root or a declared subpath entry
   (`@rainforest-dev/rainforest-ui/interaction`); deep file paths are not part of the API. Inside
   `libs/*`, keep relative imports: tsconfig `paths` are not rewritten in the emitted `.d.ts`.
