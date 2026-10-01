@@ -1,11 +1,15 @@
 import { z } from 'astro/zod';
 import { ActionError, defineAction } from 'astro:actions';
 
-import { DATE_RE, indexDays } from '../lib/days.ts';
-import { originOf, stampAuthors, viewerName } from '../lib/notes/authors.ts';
-import { notePayload, toPayload } from '../lib/notes/payload.ts';
-import { notesStore, UnreadableNoteError } from '../lib/notes/store.ts';
-import { getTimeline } from '../lib/store.ts';
+import { DATE_RE, indexDays } from '@/lib';
+import { originOf, stampAuthors, viewerName } from '@/lib/notes';
+import {
+  getTimeline,
+  notePayload,
+  notesStore,
+  toPayload,
+  UnreadableNoteError,
+} from '@/lib/server';
 
 const date = z.string().regex(DATE_RE);
 

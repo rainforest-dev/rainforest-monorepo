@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import type { NotePayload } from '@/lib/server';
+
 import type { ResolvedAnnotation } from './attach.ts';
 import { applyStamps, saveInput, toDraft, withCover } from './draft.ts';
-import type { NotePayload } from './payload.ts';
 
 const annotation: ResolvedAnnotation = {
   eventId: 'e1',

@@ -1,4 +1,5 @@
-import type { TimelineEvent, TimelineSource } from './timeline.ts';
+import type { TimelineEvent, TimelineSource } from '@/lib/server';
+
 import { taipeiHour, taipeiTime } from './weeks.ts';
 
 export type StreamEvent = TimelineEvent & { showTime: boolean };

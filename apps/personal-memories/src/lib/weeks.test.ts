@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { makeEvent } from './timeline.ts';
+import { makeEvent } from '@/lib/server';
+
 import {
   countBySource,
   dayHeading,

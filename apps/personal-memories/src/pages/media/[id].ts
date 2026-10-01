@@ -3,13 +3,8 @@ import { Readable } from 'node:stream';
 
 import type { APIRoute } from 'astro';
 
-import { parseRange } from '../../lib/range.ts';
-import {
-  contentType,
-  dataDir,
-  getTimeline,
-  mediaFile,
-} from '../../lib/store.ts';
+import { parseRange } from '@/lib';
+import { contentType, dataDir, getTimeline, mediaFile } from '@/lib/server';
 
 const notFound = () => new Response('Not found', { status: 404 });
 

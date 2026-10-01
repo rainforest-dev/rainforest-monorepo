@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import type { LongPressDetail } from '../../lib/client/events.ts';
-import { useOverlay } from '../useOverlay.ts';
+import { useOverlay } from '@/components/useOverlay.ts';
+import type { LongPressDetail } from '@/lib/client';
 
 export function useStreamMenu() {
   const [menu, setMenu] = useState<LongPressDetail>();

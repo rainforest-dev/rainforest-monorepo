@@ -1,6 +1,6 @@
 ---
-import { dayForWeek, indexDays } from '../../lib/days.ts';
-import { getTimeline } from '../../lib/store.ts';
+import { dayForWeek, indexDays } from '@/lib';
+import { getTimeline } from '@/lib/server';
 
 const { isoWeek = '' } = Astro.params;
 const state = getTimeline();

@@ -4,7 +4,8 @@ import { join } from 'node:path';
 
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { writePhotoFixture } from './__fixtures__/photos.ts';
+import { writePhotoFixture } from '@/lib/ingest/__fixtures__/photos.ts';
+
 import { parsePhotoIndex } from './photos.ts';
 
 const root = mkdtempSync(join(tmpdir(), 'memories-photos-'));

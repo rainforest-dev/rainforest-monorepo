@@ -1,7 +1,8 @@
 import { TooltipProvider } from '@rainforest-dev/rainforest-react';
 
-import { stepDay } from '../../lib/client/step-day.ts';
-import type { Level, Place } from '../../lib/nav.ts';
+import type { Level, Place } from '@/lib';
+import { stepDay } from '@/lib/client';
+
 import { DateJump } from './DateJump.tsx';
 import { ShortcutsDialog } from './ShortcutsDialog.tsx';
 import { TopBar } from './TopBar.tsx';

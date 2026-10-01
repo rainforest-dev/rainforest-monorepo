@@ -10,7 +10,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { createNotesStore, UnreadableNoteError } from './store.ts';
+import { createNotesStore, UnreadableNoteError } from './notes-store.ts';
 
 let root: string;
 beforeEach(() => {

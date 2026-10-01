@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { cleanName } from '../../lib/notes/authors.ts';
+import { cleanName } from '@/lib/notes';
 
 const KEY = 'memories:author-name';
 

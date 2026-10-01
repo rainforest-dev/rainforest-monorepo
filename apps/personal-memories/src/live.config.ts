@@ -7,10 +7,8 @@ import {
   indexDays,
   neighbours,
   summarize,
-} from './lib/days.ts';
-import { notesStore } from './lib/notes/store.ts';
-import { getTimeline } from './lib/store.ts';
-import type { TimelineEvent } from './lib/timeline.ts';
+} from '@/lib';
+import { getTimeline, notesStore, type TimelineEvent } from '@/lib/server';
 
 export type DayData = {
   summary: DaySummary;

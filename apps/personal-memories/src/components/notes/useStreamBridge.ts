@@ -1,10 +1,13 @@
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
-import { paintNotes } from '../../lib/client/paint-notes.ts';
-import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
-import { notePreviews } from '../../lib/notes/preview.ts';
-import type { Annotation } from '../../lib/notes/types.ts';
-import { taipeiDate } from '../../lib/weeks.ts';
+import { taipeiDate } from '@/lib';
+import { paintNotes } from '@/lib/client';
+import {
+  type Annotation,
+  notePreviews,
+  type ResolvedAnnotation,
+} from '@/lib/notes';
+
 import type { Draft } from './useNoteDraft.ts';
 
 type Anchor = Omit<Annotation, 'body'>;

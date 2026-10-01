@@ -9,8 +9,8 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import { useMediaQuery } from '../useMediaQuery.ts';
-import { useOverlay } from '../useOverlay.ts';
+import { useMediaQuery } from '@/components/useMediaQuery.ts';
+import { useOverlay } from '@/components/useOverlay.ts';
 
 const DESKTOP = '(min-width: 64rem)';
 const PEEK = '156px';

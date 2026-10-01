@@ -1,14 +1,15 @@
 import { parse, stringify } from 'yaml';
 
-import type { TimelineSource } from '../timeline.ts';
-import { taipeiTime } from '../weeks.ts';
-import { cleanName } from './authors.ts';
 import {
   type Annotation,
   ANNOTATIONS_HEADING,
+  cleanName,
   type DayNote,
   SOURCE_LABELS,
-} from './types.ts';
+} from '@/lib/notes';
+import { taipeiTime } from '@/lib/weeks.ts';
+
+import type { TimelineSource } from './timeline.ts';
 
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n?/;
 const ANCHOR = /^%% ev:(\S+) at:(\S+) src:(line|slack|photo)(?: by:(.+?))? %%$/;

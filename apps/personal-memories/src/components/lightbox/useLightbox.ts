@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { LightboxDetail } from '../../lib/client/events.ts';
-import {
-  DATA_LIGHTBOX_READY,
-  type LightboxRequest,
-  stepIndex,
-} from '../../lib/lightbox.ts';
-import { useOverlay } from '../useOverlay.ts';
+import { useOverlay } from '@/components/useOverlay.ts';
+import { DATA_LIGHTBOX_READY, type LightboxRequest, stepIndex } from '@/lib';
+import type { LightboxDetail } from '@/lib/client';
 
 export function useLightbox() {
   const [request, setRequest] = useState<LightboxRequest>();

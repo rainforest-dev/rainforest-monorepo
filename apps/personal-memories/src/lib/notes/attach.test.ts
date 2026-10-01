@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { TimelineEvent } from '../timeline.ts';
+import type { TimelineEvent } from '@/lib/server';
+
 import { excerptOf, resolveAnnotations } from './attach.ts';
 import type { Annotation } from './types.ts';
 

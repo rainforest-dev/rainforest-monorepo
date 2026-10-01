@@ -1,10 +1,11 @@
+// Relative, not @/: src/cli runs under plain `node`, which does not read tsconfig paths.
 import {
   makeEvent,
   type PhotoSignals,
   type TimelineEvent,
   type TimelineMedia,
   toTaipeiIso,
-} from '../timeline.ts';
+} from '../server/timeline.ts';
 
 /** The subset of an `osxphotos query --json` item this parser reads. */
 type OsxPhoto = {

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { emptyNote, type TimelineEvent } from '@/lib/server';
+
 import { indexDays } from './days.ts';
 import {
   dayCells,
@@ -7,8 +9,6 @@ import {
   monthView,
   type NoteReader,
 } from './month-view.ts';
-import { emptyNote } from './notes/format.ts';
-import type { TimelineEvent } from './timeline.ts';
 
 const SIGNALS = {
   favorite: false,

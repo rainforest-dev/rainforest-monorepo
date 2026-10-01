@@ -9,11 +9,9 @@ import {
 import { PenLineIcon } from 'lucide-react';
 import { type Ref, type RefObject, useId } from 'react';
 
-import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
-import { SOURCE_LABELS } from '../../lib/notes/types.ts';
-import type { Accent } from '../../lib/stream.ts';
-import { taipeiTime } from '../../lib/weeks.ts';
-import { accentRule } from '../accent-classes.ts';
+import { accentRule } from '@/components/accent-classes.ts';
+import { type Accent, taipeiTime } from '@/lib';
+import { type ResolvedAnnotation, SOURCE_LABELS } from '@/lib/notes';
 
 type Props = {
   annotation: ResolvedAnnotation;

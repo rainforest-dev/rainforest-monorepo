@@ -1,9 +1,12 @@
-import { isOverlayOpen } from '../lib/client/overlays.ts';
-import { openPreview } from '../lib/client/preview-dom.ts';
-import { moveInGrid, setStop } from '../lib/client/roving.ts';
-import { stepDay } from '../lib/client/step-day.ts';
-import { placeOf } from '../lib/nav.ts';
-import { resolveShortcut, type Shortcut } from '../lib/shortcuts.ts';
+import { placeOf, resolveShortcut, type Shortcut } from '@/lib';
+import {
+  isOverlayOpen,
+  moveInGrid,
+  openPreview,
+  setStop,
+  stepDay,
+} from '@/lib/client';
+
 import { closePreview } from './previews.ts';
 
 const TYPING =

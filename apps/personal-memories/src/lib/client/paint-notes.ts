@@ -1,4 +1,4 @@
-import { bySuffix, type NotePreview } from '../notes/preview.ts';
+import { bySuffix, type NotePreview } from '@/lib/notes';
 
 export function paintNotes(
   root: ParentNode,

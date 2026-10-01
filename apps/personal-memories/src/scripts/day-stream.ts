@@ -1,20 +1,18 @@
-import type { AnnotateDetail } from '../lib/client/events.ts';
-import { isOverlayOpen } from '../lib/client/overlays.ts';
 import {
+  DATA_LIGHTBOX_READY,
   distance,
   isZoomOutPinch,
+  itemFromDataset,
+  type LightboxItem,
   LONG_PRESS_MS,
   movedBeyond,
   pinchRatio,
+  placeOf,
   type Point,
-} from '../lib/gestures.ts';
-import {
-  DATA_LIGHTBOX_READY,
-  itemFromDataset,
-  type LightboxItem,
-} from '../lib/lightbox.ts';
-import { placeOf, zoomOutHref } from '../lib/nav.ts';
-import { taipeiHour } from '../lib/weeks.ts';
+  taipeiHour,
+  zoomOutHref,
+} from '@/lib';
+import { type AnnotateDetail, isOverlayOpen } from '@/lib/client';
 
 const RETRY_DELAY_MS = 2000;
 const UNZOOMED_SCALE = 1.01;

@@ -11,8 +11,9 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { useEffect, useRef } from 'react';
 
-import { lineDiff } from '../../lib/diff.ts';
-import type { NotePayload } from '../../lib/notes/payload.ts';
+import { lineDiff } from '@/lib';
+import type { NotePayload } from '@/lib/server';
+
 import type { Draft } from './useNoteDraft.ts';
 
 type Props = {
