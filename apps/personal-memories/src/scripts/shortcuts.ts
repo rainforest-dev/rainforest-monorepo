@@ -1,3 +1,9 @@
+import {
+  hasModifier,
+  isTypingTarget,
+  listenForShortcuts,
+} from '@rainforest-dev/rainforest-ui/interaction';
+
 import { placeOf, resolveShortcut, type Shortcut } from '@/lib';
 import {
   isOverlayOpen,
@@ -9,8 +15,6 @@ import {
 
 import { closePreview } from './previews.ts';
 
-const TYPING =
-  'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
 const CELL = '[data-grid] a[data-date]';
 
 const emit = (
@@ -40,29 +44,22 @@ function run(action: Shortcut) {
 }
 
 export function startShortcuts() {
-  window.addEventListener(
-    'keydown',
-    (event) => {
-      const active = document.activeElement;
-      const action = resolveShortcut({
-        key: event.key,
-        modified: event.metaKey || event.ctrlKey || event.altKey,
-        typing:
-          !!active?.closest(TYPING) ||
-          event.isComposing ||
-          event.keyCode === 229,
-        overlayOpen: isOverlayOpen(),
-        previewOpen: !!openPreview(),
-        onCell: !!active?.matches(CELL),
-        place: placeOf(location.pathname),
-      });
-      if (!action) return;
-      event.preventDefault();
-      run(action);
-    },
-    // Capture phase: Base UI closes an overlay on Escape before a bubbling listener would run.
-    true,
-  );
+  // Capture phase (the default): Base UI closes an overlay on Escape before a bubbling listener would run.
+  listenForShortcuts((event) => {
+    const active = document.activeElement;
+    const action = resolveShortcut({
+      key: event.key,
+      modified: hasModifier(event),
+      typing: isTypingTarget(active),
+      overlayOpen: isOverlayOpen(),
+      previewOpen: !!openPreview(),
+      onCell: !!active?.matches(CELL),
+      place: placeOf(location.pathname),
+    });
+    if (!action) return;
+    event.preventDefault();
+    run(action);
+  });
   document.addEventListener('focusin', (event) => {
     if (event.target instanceof HTMLElement && event.target.matches(CELL))
       setStop(event.target);
