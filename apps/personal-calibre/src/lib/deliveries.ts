@@ -1,4 +1,4 @@
-import type { BookDeliveryEvent } from '@/types/delivery';
+import type { BookDeliveryEvent } from '@/types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 

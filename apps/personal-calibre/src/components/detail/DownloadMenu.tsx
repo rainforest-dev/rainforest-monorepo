@@ -9,7 +9,7 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { Download } from 'lucide-react';
 
-import { formatBytes } from '@/lib/format';
+import { formatBytes } from '@/lib';
 
 export interface DownloadFile {
   format: string;

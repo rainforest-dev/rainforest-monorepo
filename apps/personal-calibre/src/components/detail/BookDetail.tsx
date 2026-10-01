@@ -3,27 +3,28 @@ import { BookOpen, Star } from 'lucide-react';
 import Link from 'next/link';
 import { Fragment } from 'react';
 
-import { TagEditor } from '@/components/TagEditor';
-import { sanitizeDescription } from '@/lib/description';
-import { staticDownloadUrl } from '@/lib/files';
-import { seriesLine } from '@/lib/format';
 import {
   buildLibraryHref,
+  cn,
   type ParamPatch,
   type RawSearchParams,
-} from '@/lib/library-params';
-import { spineClass } from '@/lib/spine';
-import { cn } from '@/lib/utils';
+  sanitizeDescription,
+  seriesLine,
+  spineClass,
+  staticDownloadUrl,
+} from '@/lib';
 import type {
+  BookDeliveryEvent,
   BookDetail as BookDetailData,
+  DeliveryPlatform,
   FilterOptions,
   LibraryBook,
-} from '@/types/calibre';
-import type { BookDeliveryEvent, DeliveryPlatform } from '@/types/delivery';
+} from '@/types';
 
 import { DeliveryRows } from './DeliveryRows';
 import { DownloadMenu } from './DownloadMenu';
 import { PaneTopRow } from './PaneTopRow';
+import { TagEditor } from './TagEditor';
 
 interface Props {
   variant: 'pane' | 'page';

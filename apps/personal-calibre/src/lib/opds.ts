@@ -1,4 +1,4 @@
-import type { BookDetail, BookSummary } from '@/types/calibre';
+import type { BookDetail, BookSummary } from '@/types';
 
 export function atomDate(date?: string | Date | null): string {
   if (!date) return new Date().toISOString();

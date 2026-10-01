@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LibraryBook, LibraryEntry } from '@/types/calibre';
+import type { LibraryBook, LibraryEntry } from '@/types';
 
 import {
   bookIdOfNavKey,

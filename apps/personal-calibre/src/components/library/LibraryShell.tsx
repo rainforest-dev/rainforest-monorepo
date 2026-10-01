@@ -10,13 +10,11 @@ import {
 import { usePathname, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 
-import { useIsDesktop } from '@/hooks/useIsDesktop';
-import { useLibraryShortcuts } from '@/hooks/useLibraryShortcuts';
-import { parseLibraryParams } from '@/lib/library-params';
-import { cn } from '@/lib/utils';
+import { useIsDesktop, useLibraryShortcuts } from '@/hooks';
+import { cn, parseLibraryParams } from '@/lib';
+import { useLibrary } from '@/providers';
 
 import { LibraryHeader } from './LibraryHeader';
-import { useLibrary } from './LibraryProvider';
 
 const COLUMNS = {
   both: 'lg:grid-cols-[248px_minmax(0,1fr)_420px]',

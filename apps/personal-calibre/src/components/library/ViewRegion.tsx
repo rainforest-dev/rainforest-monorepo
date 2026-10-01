@@ -2,16 +2,12 @@
 
 import { useEffect } from 'react';
 
-import { CatalogueView } from '@/components/views/CatalogueView';
-import { ShelfView } from '@/components/views/ShelfView';
-import type { GroupBy } from '@/lib/library-params';
-import { VIEW_LABELS } from '@/lib/prefs';
-import { cn } from '@/lib/utils';
-import type { LibraryResult } from '@/types/calibre';
-import type { DeliveryPlatform } from '@/types/delivery';
+import { CatalogueView, ShelfView } from '@/components/views';
+import { cn, type GroupBy, VIEW_LABELS } from '@/lib';
+import { useLibrary } from '@/providers';
+import type { DeliveryPlatform, LibraryResult } from '@/types';
 
 import { EmptyResult } from './EmptyResult';
-import { useLibrary } from './LibraryProvider';
 
 interface Props {
   library: LibraryResult;

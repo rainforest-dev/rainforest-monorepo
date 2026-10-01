@@ -1,17 +1,19 @@
 import { asc, desc, eq, inArray, like, notInArray, or, sql } from 'drizzle-orm';
 
-import { appDb, db } from '@/db/client';
 import {
+  appDb,
   authors,
+  bookDeliveries,
   books,
   booksAuthorsLink,
   booksSeriesLink,
   booksTagsLink,
   data,
+  db,
+  deliveryPlatforms,
   series,
-} from '@/db/schema';
-import { bookDeliveries, deliveryPlatforms } from '@/db/schema-app';
-import type { BookSummary } from '@/types/calibre';
+} from '@/db';
+import type { BookSummary } from '@/types';
 
 export interface BookListParams {
   page?: number;

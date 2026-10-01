@@ -4,14 +4,12 @@ import { Button } from '@rainforest-dev/rainforest-react';
 import { PanelLeftClose } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
-import { filterCount, parseLibraryParams } from '@/lib/library-params';
-import { cn } from '@/lib/utils';
-import type { FilterOptions } from '@/types/calibre';
-import type { DeliveryPlatform } from '@/types/delivery';
+import { cn, filterCount, parseLibraryParams } from '@/lib';
+import { useLibrary } from '@/providers';
+import type { DeliveryPlatform, FilterOptions } from '@/types';
 
 import { DeliveredToggle } from './DeliveredToggle';
 import { Facet, type FacetOption } from './Facet';
-import { useLibrary } from './LibraryProvider';
 import { GroupSelect } from './SortControls';
 
 const toOptions = (

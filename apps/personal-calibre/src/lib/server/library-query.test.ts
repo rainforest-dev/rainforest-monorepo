@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createCalibreDb } from '@/test/calibre-db';
+import { createCalibreDb } from '@/test';
 
 import {
   hydrateLibraryBooks,

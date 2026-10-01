@@ -1,9 +1,8 @@
 import { connection } from 'next/server';
 import { Suspense } from 'react';
 
-import { FilterPanel } from '@/components/library/FilterPanel';
-import { listDeliveryPlatforms } from '@/lib/delivery';
-import { getFilterOptions } from '@/lib/queries';
+import { FilterPanel } from '@/components/library';
+import { getFilterOptions, listDeliveryPlatforms } from '@/lib/server';
 
 export default function FiltersSlot() {
   return (

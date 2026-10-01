@@ -2,9 +2,8 @@
 
 import { Skeleton } from '@rainforest-dev/rainforest-react';
 
-import { cn } from '@/lib/utils';
-
-import { useLibrary } from './LibraryProvider';
+import { cn } from '@/lib';
+import { useLibrary } from '@/providers';
 
 export function ViewSkeleton() {
   const { view } = useLibrary();

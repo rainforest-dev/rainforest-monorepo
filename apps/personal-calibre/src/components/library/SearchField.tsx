@@ -9,7 +9,7 @@ import {
 import { Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { useLibrary } from './LibraryProvider';
+import { useLibrary } from '@/providers';
 
 interface Suggestion {
   id: number;

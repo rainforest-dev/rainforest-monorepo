@@ -4,18 +4,18 @@ import { Badge, Button } from '@rainforest-dev/rainforest-react';
 import { SlidersHorizontal } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
-import { booksLabel } from '@/lib/group-entries';
 import {
+  booksLabel,
+  cn,
   filterCount,
   type FilterLabels,
   parseLibraryParams,
   scopeTitle,
-} from '@/lib/library-params';
-import { cn } from '@/lib/utils';
+} from '@/lib';
+import { useLibrary } from '@/providers';
 
 import { BulkToolbar } from './BulkToolbar';
 import { FilterChips } from './FilterChips';
-import { useLibrary } from './LibraryProvider';
 import { GroupSelect, SortControls } from './SortControls';
 
 interface Props {

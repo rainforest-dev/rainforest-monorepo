@@ -2,27 +2,23 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp';
 import { z } from 'zod';
 
+import { httpUrlSchema } from '@/lib';
 import {
+  addTagToBook,
   bulkCreateDeliveryEvents,
   createBookDeliveryEvent,
   deleteBookDeliveryEvent,
-  listBookDeliveryEvents,
-} from '@/lib/delivery';
-import {
   getBook,
   getBookList,
   getFilterOptions,
   getGroupedBookList,
-  type GroupBy,
-  listUndeliveredBooks,
-} from '@/lib/queries';
-import {
-  addTagToBook,
   getOrCreateTag,
+  type GroupBy,
+  listBookDeliveryEvents,
+  listUndeliveredBooks,
   removeTagFromBook,
   revalidateBookTagCache,
-} from '@/lib/tags';
-import { httpUrlSchema } from '@/lib/url';
+} from '@/lib/server';
 
 export const addDeliveryInputSchema = {
   bookId: z.number().int(),

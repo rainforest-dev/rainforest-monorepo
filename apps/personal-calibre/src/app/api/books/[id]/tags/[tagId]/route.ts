@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { removeTagFromBook, revalidateBookTagCache } from '@/lib/tags';
+import { removeTagFromBook, revalidateBookTagCache } from '@/lib/server';
 
 export async function DELETE(
   _request: Request,

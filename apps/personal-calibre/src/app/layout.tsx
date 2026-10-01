@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@rainforest-dev/rainforest-react';
 import { Inter } from 'next/font/google';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 

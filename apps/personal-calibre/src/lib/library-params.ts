@@ -1,7 +1,7 @@
-import type { LibraryQuery } from '@/lib/library-query';
-import type { View } from '@/lib/prefs';
-import type { FilterOptions } from '@/types/calibre';
-import type { DeliveryPlatform } from '@/types/delivery';
+import type { LibraryQuery } from '@/lib/server';
+import type { DeliveryPlatform, FilterOptions } from '@/types';
+
+import type { View } from './prefs';
 
 export const PAGE_SIZE = 30;
 

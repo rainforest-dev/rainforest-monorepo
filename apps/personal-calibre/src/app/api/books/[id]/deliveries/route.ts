@@ -1,12 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { httpUrlSchema } from '@/lib';
 import {
   createBookDeliveryEvent,
   deleteBookDeliveryEvent,
   listBookDeliveryEvents,
-} from '@/lib/delivery';
-import { httpUrlSchema } from '@/lib/url';
+} from '@/lib/server';
 
 const externalRefSchema = z.preprocess(
   (value) =>

@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type { MouseEvent, ReactNode } from 'react';
 
-import { useLibrary } from '@/components/library/LibraryProvider';
-import { buildLibraryHref } from '@/lib/library-params';
+import { buildLibraryHref } from '@/lib';
+import { useLibrary } from '@/providers';
 
 export function Pagination({
   page,
