@@ -2,7 +2,7 @@ import { type ReactNode, Suspense } from 'react';
 
 import { LibraryProvider } from '@/components/library/LibraryProvider';
 import { LibraryShell } from '@/components/library/LibraryShell';
-import { readPrefs } from '@/lib/prefs-server';
+import { readPrefs } from '@/lib/server/prefs';
 
 interface Props {
   children: ReactNode;

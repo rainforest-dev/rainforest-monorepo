@@ -6,8 +6,15 @@ import { Suspense } from 'react';
 
 import { BookDetail } from '@/components/detail/BookDetail';
 import { BookDetailSkeleton } from '@/components/detail/BookDetailSkeleton';
-import { listBookDeliveryEvents, listDeliveryPlatforms } from '@/lib/delivery';
-import { getBook, getFilterOptions, getLibraryBook } from '@/lib/queries';
+import {
+  listBookDeliveryEvents,
+  listDeliveryPlatforms,
+} from '@/lib/server/delivery';
+import {
+  getBook,
+  getFilterOptions,
+  getLibraryBook,
+} from '@/lib/server/queries';
 
 interface Props {
   params: Promise<{ id: string }>;

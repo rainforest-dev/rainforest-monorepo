@@ -9,14 +9,15 @@ import {
   booksTagsLink,
   tags,
 } from '@/db/schema';
+import type { GroupBy } from '@/lib/library-params';
+import type { LibraryBook, LibraryEntry, LibraryResult } from '@/types/calibre';
+
 import {
   type BookListParams,
   buildBookConditions,
   buildOrderExpr,
   hydrateBooks,
-} from '@/lib/book-query';
-import type { GroupBy } from '@/lib/library-params';
-import type { LibraryBook, LibraryEntry, LibraryResult } from '@/types/calibre';
+} from './book-query';
 
 export interface LibraryQuery extends Omit<BookListParams, 'page' | 'limit'> {
   groupBy?: GroupBy;

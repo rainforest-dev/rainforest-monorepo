@@ -7,7 +7,6 @@ import { LibraryToolbar } from '@/components/library/LibraryToolbar';
 import { ViewRegion } from '@/components/library/ViewRegion';
 import { ViewSkeleton } from '@/components/library/ViewSkeleton';
 import { Pagination } from '@/components/Pagination';
-import { listDeliveryPlatforms } from '@/lib/delivery';
 import {
   buildLibraryHref,
   type FilterLabels,
@@ -17,7 +16,8 @@ import {
   type RawSearchParams,
   toLibraryQuery,
 } from '@/lib/library-params';
-import { getFilterOptions, getLibrary } from '@/lib/queries';
+import { listDeliveryPlatforms } from '@/lib/server/delivery';
+import { getFilterOptions, getLibrary } from '@/lib/server/queries';
 import { applyTestHooks, FAULT_COOKIE, readTestHooks } from '@/lib/test-hooks';
 
 interface Props {

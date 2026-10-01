@@ -1,9 +1,16 @@
 import { cookies } from 'next/headers';
 
 import { BookDetail } from '@/components/detail/BookDetail';
-import { listBookDeliveryEvents, listDeliveryPlatforms } from '@/lib/delivery';
 import { parseLibraryParams, type RawSearchParams } from '@/lib/library-params';
-import { getBook, getFilterOptions, getLibraryBook } from '@/lib/queries';
+import {
+  listBookDeliveryEvents,
+  listDeliveryPlatforms,
+} from '@/lib/server/delivery';
+import {
+  getBook,
+  getFilterOptions,
+  getLibraryBook,
+} from '@/lib/server/queries';
 import { applyTestHooks, FAULT_COOKIE, readTestHooks } from '@/lib/test-hooks';
 
 export default async function PanePage({

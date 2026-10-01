@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { EpubReader } from '@/components/EpubReader';
-import { getBook } from '@/lib/queries';
+import { getBook } from '@/lib/server/queries';
 
 interface Props {
   params: Promise<{ id: string }>;

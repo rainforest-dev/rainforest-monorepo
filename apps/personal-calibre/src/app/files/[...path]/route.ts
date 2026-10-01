@@ -5,7 +5,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db/client';
 import { books, data } from '@/db/schema';
-import { MIME_TYPES, readWithRetry, resolveFilePath } from '@/lib/files';
+import { MIME_TYPES, readWithRetry, resolveFilePath } from '@/lib/server/files';
 
 export async function GET(
   _request: NextRequest,

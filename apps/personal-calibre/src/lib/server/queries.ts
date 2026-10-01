@@ -20,17 +20,6 @@ import {
   tags,
 } from '@/db/schema';
 import { bookDeliveries, deliveryPlatforms } from '@/db/schema-app';
-import {
-  type BookListParams,
-  buildBookConditions,
-  buildOrderExpr,
-  hydrateBooks,
-} from '@/lib/book-query';
-import {
-  hydrateLibraryBooks,
-  type LibraryQuery,
-  queryLibrary,
-} from '@/lib/library-query';
 import type {
   BookDetail,
   BookGroup,
@@ -39,6 +28,18 @@ import type {
   LibraryBook,
   LibraryResult,
 } from '@/types/calibre';
+
+import {
+  type BookListParams,
+  buildBookConditions,
+  buildOrderExpr,
+  hydrateBooks,
+} from './book-query';
+import {
+  hydrateLibraryBooks,
+  type LibraryQuery,
+  queryLibrary,
+} from './library-query';
 
 export type { BookListParams };
 

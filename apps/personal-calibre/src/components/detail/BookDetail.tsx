@@ -5,7 +5,7 @@ import { Fragment } from 'react';
 
 import { TagEditor } from '@/components/TagEditor';
 import { sanitizeDescription } from '@/lib/description';
-import { staticDownloadUrl } from '@/lib/files';
+import { staticDownloadUrl } from '@/lib/file-url';
 import { seriesLine } from '@/lib/format';
 import {
   buildLibraryHref,

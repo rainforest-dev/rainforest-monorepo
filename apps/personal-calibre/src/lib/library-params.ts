@@ -1,5 +1,5 @@
-import type { LibraryQuery } from '@/lib/library-query';
 import type { View } from '@/lib/prefs';
+import type { LibraryQuery } from '@/lib/server/library-query';
 import type { FilterOptions } from '@/types/calibre';
 import type { DeliveryPlatform } from '@/types/delivery';
 

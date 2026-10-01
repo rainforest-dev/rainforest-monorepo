@@ -5,7 +5,7 @@ import {
   createBookDeliveryEvent,
   deleteBookDeliveryEvent,
   listBookDeliveryEvents,
-} from '@/lib/delivery';
+} from '@/lib/server/delivery';
 import { httpUrlSchema } from '@/lib/url';
 
 const externalRefSchema = z.preprocess(

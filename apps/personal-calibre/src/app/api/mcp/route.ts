@@ -7,7 +7,7 @@ import {
   createBookDeliveryEvent,
   deleteBookDeliveryEvent,
   listBookDeliveryEvents,
-} from '@/lib/delivery';
+} from '@/lib/server/delivery';
 import {
   getBook,
   getBookList,
@@ -15,13 +15,13 @@ import {
   getGroupedBookList,
   type GroupBy,
   listUndeliveredBooks,
-} from '@/lib/queries';
+} from '@/lib/server/queries';
 import {
   addTagToBook,
   getOrCreateTag,
   removeTagFromBook,
   revalidateBookTagCache,
-} from '@/lib/tags';
+} from '@/lib/server/tags';
 import { httpUrlSchema } from '@/lib/url';
 
 export const addDeliveryInputSchema = {
