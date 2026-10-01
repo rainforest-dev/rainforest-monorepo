@@ -23,6 +23,11 @@
       "types": "./dist/recipes/index.d.ts",
       "import": "./dist/recipes/index.js",
       "default": "./dist/recipes/index.cjs"
+    },
+    "./interaction": {
+      "types": "./dist/interaction/index.d.ts",
+      "import": "./dist/interaction/index.js",
+      "default": "./dist/interaction/index.cjs"
     }
   },
   "main": "./dist/index.js",
