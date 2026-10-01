@@ -5,6 +5,12 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemHeader,
+  ItemTitle,
 } from '@rainforest-dev/rainforest-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -63,46 +69,55 @@ function QueueRow({
   showTier?: boolean;
 }) {
   return (
-    <li className="border-border border-b py-3 last:border-b-0">
-      <div className="flex items-baseline justify-between gap-4">
+    <Item
+      role="listitem"
+      className="not-last:border-b-border gap-1 rounded-none border-0 border-b px-0 py-3"
+    >
+      <ItemHeader className="items-baseline gap-4">
         <div className="flex items-baseline gap-2">
           {showTier && (
             <Badge variant="muted">
               {TIER_LABELS[item.tier] ?? `Tier ${item.tier}`}
             </Badge>
           )}
-          <a
-            href={item.readerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary font-medium hover:underline"
-          >
-            {item.title}
-          </a>
+          <ItemTitle className="line-clamp-none text-base">
+            <a
+              href={item.readerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              {item.title}
+            </a>
+          </ItemTitle>
         </div>
         <span className="text-muted-foreground shrink-0 text-xs">
           {item.siteName} · {item.sort.readingMinutes} min
         </span>
-      </div>
-      <p className="text-muted-foreground mt-1 text-sm">{item.why}</p>
-      <div className="mt-1 flex flex-wrap items-center gap-2">
-        {item.tags.map((tag) => (
-          <span key={tag} className="text-muted-foreground text-xs">
-            #{tag}
-          </span>
-        ))}
-        {DECAY_LABEL[item.decay] && (
-          <span className="text-muted-foreground text-xs">
-            {DECAY_LABEL[item.decay]}
-          </span>
-        )}
-        {item.sort.progress > 0 && (
-          <span className="text-muted-foreground text-xs">
-            {Math.round(item.sort.progress * 100)}% read
-          </span>
-        )}
-      </div>
-    </li>
+      </ItemHeader>
+      <ItemContent>
+        <ItemDescription className="line-clamp-none">
+          {item.why}
+        </ItemDescription>
+        <div className="flex flex-wrap items-center gap-2">
+          {item.tags.map((tag) => (
+            <span key={tag} className="text-muted-foreground text-xs">
+              #{tag}
+            </span>
+          ))}
+          {DECAY_LABEL[item.decay] && (
+            <span className="text-muted-foreground text-xs">
+              {DECAY_LABEL[item.decay]}
+            </span>
+          )}
+          {item.sort.progress > 0 && (
+            <span className="text-muted-foreground text-xs">
+              {Math.round(item.sort.progress * 100)}% read
+            </span>
+          )}
+        </div>
+      </ItemContent>
+    </Item>
   );
 }
 
@@ -176,21 +191,21 @@ export default function ReadingQueue() {
             <h3 className="text-muted-foreground mb-2 text-sm font-semibold uppercase tracking-wider">
               {TIER_LABELS[tier] ?? `Tier ${tier}`}
             </h3>
-            <ul>
+            <ItemGroup className="gap-0">
               {sorted
                 .filter((i) => i.tier === tier)
                 .map((item) => (
                   <QueueRow key={item.id} item={item} />
                 ))}
-            </ul>
+            </ItemGroup>
           </section>
         ))
       ) : (
-        <ul>
+        <ItemGroup className="gap-0">
           {sorted.map((item) => (
             <QueueRow key={item.id} item={item} showTier={showTier} />
           ))}
-        </ul>
+        </ItemGroup>
       )}
 
       {data.stale.length > 0 && (

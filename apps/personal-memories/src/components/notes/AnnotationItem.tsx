@@ -1,6 +1,13 @@
-import { Button, cn, Input, Textarea } from '@rainforest-dev/rainforest-react';
+import {
+  Button,
+  cn,
+  Field,
+  FieldLabel,
+  Input,
+  Textarea,
+} from '@rainforest-dev/rainforest-react';
 import { PenLineIcon } from 'lucide-react';
-import type { Ref, RefObject } from 'react';
+import { type Ref, type RefObject, useId } from 'react';
 
 import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
 import { SOURCE_LABELS } from '../../lib/notes/types.ts';
@@ -175,6 +182,7 @@ export function AnnotationList({
   accentOf,
   ...rest
 }: ListProps) {
+  const nameId = useId();
   if (rest.readOnly && annotations.length === 0) return null;
   const ordered = annotations
     .map((a, i) => ({ a, i }))
@@ -194,9 +202,15 @@ export function AnnotationList({
         )}
       </div>
       {needsName && !rest.readOnly && (
-        <label className="mb-3 flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-xs">眉批署名</span>
+        <Field className="mb-3 gap-1.5">
+          <FieldLabel
+            htmlFor={nameId}
+            className="text-muted-foreground text-xs font-normal"
+          >
+            眉批署名
+          </FieldLabel>
           <Input
+            id={nameId}
             placeholder="你的名字"
             className="h-8"
             disabled={rest.disabled}
@@ -205,7 +219,7 @@ export function AnnotationList({
               if (e.key === 'Enter') onName(e.currentTarget.value);
             }}
           />
-        </label>
+        </Field>
       )}
       {annotations.length === 0 ? (
         <p className="text-muted-foreground text-meta leading-[1.6]">
