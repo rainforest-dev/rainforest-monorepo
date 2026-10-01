@@ -11,7 +11,7 @@ import {
   hourCounts,
   initialOf,
   morphAttrs,
-  ownersFromEnv,
+  nameOf,
   pickCover,
   rowLabel,
   taipeiTime,
@@ -26,9 +26,11 @@ import {
   resolveAnnotations,
 } from '@/lib/notes';
 import {
+  getPeople,
   getTimeline,
   isVideo,
   notesStore,
+  publicPeople,
   type TimelineEvent,
   type TimelineSource,
 } from '@/lib/server';
@@ -67,16 +69,25 @@ const PILL_BASE = cn(
 const PILL = `${PILL_BASE} pointer-coarse:pointer-events-none pointer-coarse:group-focus-within:pointer-events-auto`;
 const PHOTO_PILL = `${PILL_BASE} pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto`;
 
-const owners = ownersFromEnv();
+const people = getPeople();
+const roster = publicPeople(people);
 const runs = groupRuns(events);
 const timeline = getTimeline();
 const accents =
   timeline.status === 'ready'
-    ? authorAccents(timeline.timeline.events, owners)
+    ? authorAccents(timeline.timeline.events, people.owners, roster)
     : new Map<string, Accent>();
 const accentOf = (author: string) => accents.get(author);
+const who = (source: TimelineSource, author: string) =>
+  nameOf(roster, source, author);
+const rawTitle = (source: TimelineSource, author: string) =>
+  who(source, author) === author ? undefined : author;
 const dayAuthors = [
-  ...new Set(runs.flatMap((run) => (run.kind === 'text' ? [run.author] : []))),
+  ...new Map(
+    runs.flatMap((run) =>
+      run.kind === 'text' ? [[who(run.source, run.author), run.author]] : [],
+    ),
+  ),
 ];
 const stored = notesStore()?.read(date);
 const previews =
@@ -134,15 +145,15 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
             aria-label="作者"
             class="text-muted-foreground ms-auto flex flex-wrap items-center gap-3 text-xs"
           >
-            {dayAuthors.map((author) => (
+            {dayAuthors.map(([name, author]) => (
               <li class="flex items-center gap-1.5">
                 <span
                   aria-hidden="true"
                   class:list={[CHIP, 'size-4.5', accentChip(accentOf(author))]}
                 >
-                  {initialOf(author)}
+                  {initialOf(name)}
                 </span>
-                {author}
+                {name}
               </li>
             ))}
           </ul>
@@ -221,7 +232,11 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                     data-at={event.at}
                     data-author={event.author}
                     data-excerpt={excerpt}
-                    aria-label={rowLabel(event.author, event.at, excerpt)}
+                    aria-label={rowLabel(
+                      who(event.source, event.author),
+                      event.at,
+                      excerpt,
+                    )}
                     tabindex="0"
                     class:list={[
                       ROW,
@@ -250,10 +265,12 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                               accentChip(accentOf(run.author)),
                             ]}
                           >
-                            {initialOf(run.author)}
+                            {initialOf(who(run.source, run.author))}
                           </span>
                           <span class="text-meta truncate font-semibold">
-                            {run.author}
+                            <span title={rawTitle(run.source, run.author)}>
+                              {who(run.source, run.author)}
+                            </span>
                           </span>
                         </span>
                         {run.source !== 'line' && (
@@ -286,10 +303,12 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                               accentChip(accentOf(run.author)),
                             ]}
                           >
-                            {initialOf(run.author)}
+                            {initialOf(who(run.source, run.author))}
                           </span>
                           <span class="text-meta font-semibold">
-                            {run.author}
+                            <span title={rawTitle(run.source, run.author)}>
+                              {who(run.source, run.author)}
+                            </span>
                           </span>
                           <span class="text-muted-foreground text-xs">
                             {SOURCE_LABEL[run.source]}

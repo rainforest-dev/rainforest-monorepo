@@ -21,6 +21,24 @@ Mon, 11/03/2025
 8:20AM\tBob\tCoffee first
 `;
 
+const PEOPLE = {
+  owner: 'bob',
+  people: [
+    {
+      id: 'bob',
+      name: 'Bob',
+      emails: ['bob@example.com'],
+      aliases: { slack: ['bob'] },
+    },
+    {
+      id: 'alice',
+      name: 'Alice',
+      emails: ['alice@example.com'],
+      aliases: { slack: ['alice'] },
+    },
+  ],
+};
+
 const BUSY_DAY = [
   '[LINE] Chat history with Alice',
   'Saved on: 11/01/2025, 08:00',
@@ -47,6 +65,7 @@ export function writeFixtureDataDir(root: string) {
   writeFileSync(join(root, 'line', 'busy-day.txt'), BUSY_DAY);
   cpSync(join(FIXTURES, 'slack'), join(root, 'slack'), { recursive: true });
   writePhotoFixture(root);
+  writeFileSync(join(root, 'people.json'), JSON.stringify(PEOPLE, null, 2));
   return ingest(root, () => undefined);
 }
 

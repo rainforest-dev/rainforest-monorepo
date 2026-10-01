@@ -731,7 +731,7 @@ test.describe('an annotation signed through Access', () => {
       .poll(() => readFileSync(noteFile('2025-11-02'), 'utf8'))
       .toMatch(/ src:slack by:Alice %%$/m);
     await expect(panel.getByText('Alice', { exact: true })).toBeVisible();
-    await expect(panel.getByPlaceholder('你的名字')).toHaveCount(0);
+    await expect(panel.getByRole('group', { name: '眉批署名' })).toHaveCount(0);
   });
 
   test('resolving a conflict does not re-prompt a signed-in user for a name', async ({
@@ -755,18 +755,20 @@ test.describe('an annotation signed through Access', () => {
     });
     await obsidianCard.getByRole('button', { name: '保留這個版本' }).click();
     await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
-    await expect(panel.getByPlaceholder('你的名字')).toHaveCount(0);
+    await expect(panel.getByRole('group', { name: '眉批署名' })).toHaveCount(0);
   });
 });
 
-test('without an identity, the name set once in the panel signs 眉批', async ({
+test('without an identity, the person picked once in the panel signs 眉批', async ({
   page,
 }) => {
   await page.goto('/day/2025-11-03');
   const panel = page.getByRole('complementary', { name: '筆記' });
   await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
-  await panel.getByPlaceholder('你的名字').fill('Bob');
-  await panel.getByPlaceholder('你的名字').press('Enter');
+  const picker = panel.getByRole('group', { name: '眉批署名' });
+  await expect(picker.getByRole('button')).toHaveText(['Bob', 'Alice']);
+  await picker.getByRole('button', { name: 'Bob' }).click();
+  await expect(picker).toHaveCount(0);
   const message = page.locator('[data-event-id]', { hasText: 'Coffee first' });
   await message.hover();
   await message.getByRole('button', { name: '眉批' }).click();

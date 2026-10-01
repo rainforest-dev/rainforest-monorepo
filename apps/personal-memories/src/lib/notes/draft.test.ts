@@ -22,6 +22,7 @@ const payload: NotePayload = {
   cover: 'P1',
   version: 'v1',
   writable: true,
+  people: [],
 };
 
 describe('draft', () => {
