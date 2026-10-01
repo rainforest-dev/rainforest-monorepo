@@ -19,6 +19,16 @@ Synced with the bundled design-sync skill 2.1.281 (Claude Code 2.1.281), storybo
 - First sync built on Node 26; the 2026-09-30 re-sync ran on Node 22.14 (the repo's pin) with no spot-check divergence.
 - Select `Open`: the cropped storybook canvas also changes overlay _positioning_. `SelectContent` uses Base UI's `alignItemWithTrigger`, which measures room above the trigger; with the reference cropped, it swaps the group label for the scroll-up arrow, while the preview (with room) shows the label. Graded `match` on the preview's own render. Reproduces deterministically.
 
+## Project templates
+
+The `templates/` in project 4c25a390 are hand-written `.dc.html` files, not converter output, and have no local source. The sync never touches them. On 2026-10-01, calibre-library, rss-manager and personal-memories were redrawn with the #418 components. Traps in the `.dc.html` runtime:
+
+- `class=` on an `<x-import>` replaces the component's own classes instead of merging with them. Use `className=`.
+- `sc-for` wraps each item in a `display:contents` div, so sibling variants (`not-last:`, `first:`) never match across items. Compute per-item classes in the logic, e.g. `border-b-border` on every row but the last.
+- The DS global is not reachable from the component logic. A `render` prop gets a plain element carrying `buttonVariants()` classes, read once from the bundle.
+- `componentDidUpdate` is called without `prevProps`; guard before reading `pp.*`.
+- Verify a template by uploading a copy as `_draft-<Name>.dc.html` without its `@template` line, rendering it with `render_preview` plus Playwright, then overwriting the real file and deleting the draft.
+
 ## Re-sync risks
 
 - Story-only Tailwind classes: a class that appears in a story but not in the safelist renders in storybook and silently vanishes from the preview and from every design. After adding stories, check each `className="..."` token in `libs/rainforest-react/stories/*.stories.tsx` against `ds-bundle/_ds_bundle.css`, and safelist what is missing.
