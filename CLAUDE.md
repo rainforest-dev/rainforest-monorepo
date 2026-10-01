@@ -171,7 +171,8 @@ pnpm nx lint <project> --fix  # Auto-sort imports
   `personal-memories` and `rss-manager` get it next). A cross-directory import uses the alias and
   goes through that directory's barrel `index.ts` (`@/components/library`), never `../`. A
   same-directory import uses `./file`. A module never imports its own directory's barrel or an
-  ancestor's.
+  ancestor's: when the target sits in an ancestor directory, import the file itself through the
+  alias (`@/utils/env`, not `@/utils`).
 - A barrel never mixes environments. Server-only modules (DB access, `node:` built-ins,
   `server-only`) live in their own directory behind their own barrel, so a client component that
   imports a barrel cannot drag server code into the browser bundle. In Next.js a barrel must not

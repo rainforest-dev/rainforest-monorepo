@@ -4,7 +4,8 @@ import i18next from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import resourcesToBackend from 'i18next-resources-to-backend';
 
-import { isServerSide } from '../env';
+import { isServerSide } from '@/utils/env';
+
 import { fallbackLng, getOptions, supportedLngs } from './settings';
 
 export const createInstance = (
