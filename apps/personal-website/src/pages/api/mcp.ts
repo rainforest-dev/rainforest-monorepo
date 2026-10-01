@@ -1,7 +1,7 @@
 import { trackMcpFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 
-import { createProfileMcpHandler, mcpUsageResponse } from '../../mcp/handler';
+import { createProfileMcpHandler, mcpUsageResponse } from '@/mcp/handler';
 
 const handler = createProfileMcpHandler('/api');
 
