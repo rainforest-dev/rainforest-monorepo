@@ -126,6 +126,8 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
   `FieldGroup`.
 - `ButtonGroup` joins controls that act as one: a `SelectTrigger` and the button that applies
   it, or an input and its action. A single-choice switch (views, modes) is `ToggleGroup`.
+- A row of keyboard hints is `KeyHints`, with hints as `{ keys, label }`. It puts every hint's
+  keys in a `KbdGroup`, single keys included.
 - List rows with a title, meta and actions are `Item`s inside `ItemGroup`. `ItemGroup` is
   `role="list"`, so give each `Item` `role="listitem"`; axe reports the list otherwise. For
   rows stacked inside one bordered box, give the `ItemGroup` `gap-0 rounded-lg border` and each

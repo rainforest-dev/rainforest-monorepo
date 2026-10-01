@@ -57,6 +57,9 @@
     "Kbd": {
       "skip": ["display-kbd--dark"]
     },
+    "KeyHints": {
+      "skip": ["display-keyhints--dark"]
+    },
     "Label": {
       "skip": ["forms-label--dark"]
     },
