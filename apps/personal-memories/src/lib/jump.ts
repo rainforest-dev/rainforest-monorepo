@@ -1,4 +1,5 @@
 import { monthOf, nearestDate } from './months.ts';
+import { type DateRange, parseDateQuery } from './natural-date.ts';
 
 const pad2 = (s: string) => s.padStart(2, '0');
 
@@ -55,4 +56,37 @@ export function jumpTarget(
   const probe = probeDate(raw);
   const near = probe ? nearestDate(dates, probe) : undefined;
   return near ? { date: near, exact: false } : undefined;
+}
+
+export type JumpHit = { kind: 'date'; date: string };
+
+export type JumpResult = {
+  hits: JumpHit[];
+  target: JumpTarget | undefined;
+  range: DateRange | undefined;
+};
+
+const asHits = (dates: string[]): JumpHit[] =>
+  dates.map((date) => ({ kind: 'date', date }));
+
+export function searchDates(
+  dates: readonly string[],
+  raw: string,
+  today: string,
+): JumpResult {
+  const range = parseDateQuery(raw, today);
+  if (!range)
+    return {
+      hits: asHits(matchDates(dates, raw)),
+      target: jumpTarget(dates, raw),
+      range,
+    };
+  const inRange = dates.filter((d) => d >= range.start && d <= range.end);
+  const [first] = inRange;
+  const near = first ?? nearestDate(dates, range.start);
+  return {
+    hits: asHits(inRange),
+    target: near ? { date: near, exact: first !== undefined } : undefined,
+    range,
+  };
 }
