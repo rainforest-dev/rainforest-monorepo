@@ -9,6 +9,7 @@ import {
   CommandShortcut,
   Skeleton,
 } from '@rainforest-dev/rainforest-react';
+import { isComposing } from '@rainforest-dev/rainforest-ui/interaction';
 import { useMemo, useState } from 'react';
 
 import {
@@ -61,12 +62,7 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
           autoComplete="off"
           spellCheck={false}
           onKeyDown={(e) => {
-            if (
-              e.key !== 'Enter' ||
-              e.nativeEvent.isComposing ||
-              e.keyCode === 229 ||
-              !target
-            )
+            if (e.key !== 'Enter' || isComposing(e.nativeEvent) || !target)
               return;
             e.preventDefault();
             onGo(target.date, !target.exact);
