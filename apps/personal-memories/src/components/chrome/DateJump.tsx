@@ -13,11 +13,12 @@ import { isComposing } from '@rainforest-dev/rainforest-ui/interaction';
 import { useMemo, useState } from 'react';
 
 import {
+  type DateRange,
   dayHeading,
   groupByMonth,
-  jumpTarget,
-  matchDates,
+  localISODate,
   monthLabel,
+  searchDates,
 } from '@/lib';
 
 import type { DayCount } from './useChrome.ts';
@@ -29,6 +30,11 @@ type Props = {
   onGo: (date: string, nearest: boolean) => void;
 };
 
+const PLACEHOLDER = '2025-11-08、上週六、中秋';
+
+const rangeLabel = ({ start, end }: DateRange) =>
+  start === end ? start : `${start} – ${end}`;
+
 export function DateJump({ open, onOpenChange, days, onGo }: Props) {
   const [query, setQuery] = useState('');
   const list = useMemo(() => (Array.isArray(days) ? days : []), [days]);
@@ -37,11 +43,19 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
     () => new Map(list.map((d) => [d.date, d.total])),
     [list],
   );
-  const groups = useMemo(
-    () => groupByMonth(matchDates(dates, query)),
-    [dates, query],
+  const today = localISODate(new Date());
+  const result = useMemo(
+    () => searchDates(dates, query, today),
+    [dates, query, today],
   );
-  const target = groups.length === 0 ? jumpTarget(dates, query) : undefined;
+  const groups = useMemo(
+    () => groupByMonth(result.hits.map((hit) => hit.date)),
+    [result],
+  );
+  const target = groups.length === 0 ? result.target : undefined;
+  const missing = result.range
+    ? `${query.trim()}（${rangeLabel(result.range)}）沒有紀錄`
+    : '沒有這一天';
 
   return (
     <CommandDialog
@@ -51,14 +65,13 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
         if (!next) setQuery('');
       }}
       title="跳至日期"
-      description="YYYY-MM-DD"
+      description={PLACEHOLDER}
     >
       <Command shouldFilter={false}>
         <CommandInput
           value={query}
           onValueChange={setQuery}
-          placeholder="YYYY-MM-DD"
-          inputMode="numeric"
+          placeholder={PLACEHOLDER}
           autoComplete="off"
           spellCheck={false}
           onKeyDown={(e) => {
@@ -84,8 +97,8 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
           {Array.isArray(days) && (
             <CommandEmpty>
               {target
-                ? `沒有這一天，按 Enter 跳到最近的 ${target.date}`
-                : '沒有這一天'}
+                ? `${missing}，按 Enter 跳到最近的 ${target.date}`
+                : missing}
             </CommandEmpty>
           )}
           {groups.map(({ month, dates: inMonth }) => (
