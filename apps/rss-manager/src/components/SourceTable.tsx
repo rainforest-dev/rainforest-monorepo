@@ -19,9 +19,12 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { useEffect, useState } from 'react';
 
-import { patchRegistry } from '../lib/patchRegistry.js';
-import type { Source, StaleType } from '../lib/registry.types.js';
-import { READ_ONLY_NOTE } from '../lib/registry.types.js';
+import {
+  patchRegistry,
+  READ_ONLY_NOTE,
+  type Source,
+  type StaleType,
+} from '@/lib';
 
 /** Where Readwise manages feed subscriptions — the fix for a delivery gap. */
 const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';

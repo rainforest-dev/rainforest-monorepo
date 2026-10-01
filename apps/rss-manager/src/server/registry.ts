@@ -1,9 +1,9 @@
 import { accessSync, constants, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { Source, Stale, StaleType, Topic } from './registry.types.js';
+import type { Source, Stale, StaleType, Topic } from '@/lib';
 
-export type { Source, Stale, StaleType, Topic } from './registry.types.js';
+export type { Source, Stale, StaleType, Topic } from '@/lib';
 
 function stripFrontmatter(content: string): string {
   const match = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);

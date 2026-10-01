@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 
-import { checkFeedUrl } from '../../lib/feedCheck.js';
+import { checkFeedUrl } from '@/server';
 
 export const POST: APIRoute = async ({ request }) => {
   let body: unknown;

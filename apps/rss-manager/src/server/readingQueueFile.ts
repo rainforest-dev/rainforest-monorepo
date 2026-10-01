@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
-import { parseReadingQueue, type ReadingQueue } from './readingQueue.js';
+import { parseReadingQueue, type ReadingQueue } from '@/lib';
+
 import { registryFilePath } from './registry.js';
 
 /**

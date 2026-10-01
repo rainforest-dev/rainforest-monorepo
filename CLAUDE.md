@@ -167,8 +167,8 @@ pnpm nx lint <project> --fix  # Auto-sort imports
 
 ### Imports
 
-- Apps: `@/*` maps to `src/*` (`personal-calibre` and `personal-website` already;
-  `personal-memories` and `rss-manager` get it next). A cross-directory import uses the alias and
+- Apps: `@/*` maps to `src/*` (`personal-calibre`, `personal-website` and `rss-manager` already;
+  `personal-memories` gets it next). A cross-directory import uses the alias and
   goes through that directory's barrel `index.ts` (`@/components/library`), never `../`. A
   same-directory import uses `./file`. A module never imports its own directory's barrel or an
   ancestor's: when the target sits in an ancestor directory, import the file itself through the

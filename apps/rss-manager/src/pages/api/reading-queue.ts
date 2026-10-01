@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 
-import { readReadingQueue } from '../../lib/readingQueueFile.js';
+import { readReadingQueue } from '@/server';
 
 export const GET: APIRoute = () => {
   try {
