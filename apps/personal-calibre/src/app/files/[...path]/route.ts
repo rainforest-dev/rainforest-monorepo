@@ -3,9 +3,8 @@ import { existsSync } from 'node:fs';
 import { and, eq } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from '@/db/client';
-import { books, data } from '@/db/schema';
-import { MIME_TYPES, readWithRetry, resolveFilePath } from '@/lib/server/files';
+import { books, data, db } from '@/db';
+import { MIME_TYPES, readWithRetry, resolveFilePath } from '@/lib/server';
 
 export async function GET(
   _request: NextRequest,

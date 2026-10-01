@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { BookDeliveryEvent } from '@/types/delivery';
+import type { BookDeliveryEvent } from '@/types';
 
 import {
   formatDeliveryDate,

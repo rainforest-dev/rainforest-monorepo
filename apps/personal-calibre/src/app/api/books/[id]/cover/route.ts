@@ -5,8 +5,7 @@ import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from '@/db/client';
-import { books } from '@/db/schema';
+import { books, db } from '@/db';
 
 async function readWithRetry(filePath: string, attempts = 5): Promise<Buffer> {
   for (let i = 0; i < attempts; i++) {

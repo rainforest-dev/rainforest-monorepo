@@ -2,10 +2,14 @@
 
 import { Button } from '@rainforest-dev/rainforest-react';
 
-import { useLibrary } from '@/components/library/LibraryProvider';
-import { booksLabel, type EntryGroup, groupTitle } from '@/lib/group-entries';
-import type { ParamPatch } from '@/lib/library-params';
-import { cn } from '@/lib/utils';
+import {
+  booksLabel,
+  cn,
+  type EntryGroup,
+  groupTitle,
+  type ParamPatch,
+} from '@/lib';
+import { useLibrary } from '@/providers';
 
 export function GroupHeading({
   group,

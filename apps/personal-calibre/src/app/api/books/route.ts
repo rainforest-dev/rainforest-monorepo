@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { getBookList } from '@/lib/server/queries';
+import { getBookList } from '@/lib/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

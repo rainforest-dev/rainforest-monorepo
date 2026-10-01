@@ -1,10 +1,7 @@
 'use client';
 
-import { seriesLine } from '@/lib/format';
-import { spineClass } from '@/lib/spine';
-import { cn } from '@/lib/utils';
-import type { LibraryBook } from '@/types/calibre';
-import type { DeliveryPlatform } from '@/types/delivery';
+import { cn, seriesLine, spineClass } from '@/lib';
+import type { DeliveryPlatform, LibraryBook } from '@/types';
 
 import { DeliveryMarks } from './DeliveryMarks';
 import { SelectMark } from './SelectMark';

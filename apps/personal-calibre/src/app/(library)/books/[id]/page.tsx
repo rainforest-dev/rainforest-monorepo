@@ -4,17 +4,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
-import { BookDetail } from '@/components/detail/BookDetail';
-import { BookDetailSkeleton } from '@/components/detail/BookDetailSkeleton';
-import {
-  listBookDeliveryEvents,
-  listDeliveryPlatforms,
-} from '@/lib/server/delivery';
+import { BookDetail, BookDetailSkeleton } from '@/components/detail';
 import {
   getBook,
   getFilterOptions,
   getLibraryBook,
-} from '@/lib/server/queries';
+  listBookDeliveryEvents,
+  listDeliveryPlatforms,
+} from '@/lib/server';
 
 interface Props {
   params: Promise<{ id: string }>;

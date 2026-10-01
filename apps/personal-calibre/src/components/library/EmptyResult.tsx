@@ -10,7 +10,7 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { SearchX } from 'lucide-react';
 
-import { useLibrary } from './LibraryProvider';
+import { useLibrary } from '@/providers';
 
 export function EmptyResult({ filtered }: { filtered: boolean }) {
   const { clearFilters } = useLibrary();

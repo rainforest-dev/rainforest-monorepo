@@ -1,8 +1,7 @@
 import { Check } from 'lucide-react';
 
-import { platformAbbr, platformName } from '@/lib/platforms';
-import { cn } from '@/lib/utils';
-import type { DeliveryPlatform } from '@/types/delivery';
+import { cn, platformAbbr, platformName } from '@/lib';
+import type { DeliveryPlatform } from '@/types';
 
 export function DeliveryMarks({
   keys,

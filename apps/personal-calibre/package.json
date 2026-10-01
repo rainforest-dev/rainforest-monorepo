@@ -2,6 +2,9 @@
   "name": "@rainforest-monorepo/personal-calibre",
   "version": "0.0.1",
   "private": true,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@rainforest-dev/rainforest-react": "workspace:*",

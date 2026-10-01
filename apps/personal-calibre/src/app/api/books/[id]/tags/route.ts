@@ -5,7 +5,7 @@ import {
   addTagToBook,
   getOrCreateTag,
   revalidateBookTagCache,
-} from '@/lib/server/tags';
+} from '@/lib/server';
 
 const bodySchema = z.object({ name: z.string().min(1) });
 

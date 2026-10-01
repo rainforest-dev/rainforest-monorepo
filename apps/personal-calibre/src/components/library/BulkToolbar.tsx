@@ -16,10 +16,9 @@ import { Download, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
-import { platformName } from '@/lib/platforms';
-import type { DeliveryPlatform } from '@/types/delivery';
-
-import { useLibrary } from './LibraryProvider';
+import { platformName } from '@/lib';
+import { useLibrary } from '@/providers';
+import type { DeliveryPlatform } from '@/types';
 
 const ZIP_FORMATS = ['EPUB', 'PDF', 'MOBI', 'AZW3'];
 

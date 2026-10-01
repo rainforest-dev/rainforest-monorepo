@@ -10,10 +10,8 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { LayoutGrid, type LucideIcon, Rows3 } from 'lucide-react';
 
-import { ENABLED_VIEWS, isView, type View, VIEW_LABELS } from '@/lib/prefs';
-import { cn } from '@/lib/utils';
-
-import { useLibrary } from './LibraryProvider';
+import { cn, ENABLED_VIEWS, isView, type View, VIEW_LABELS } from '@/lib';
+import { useLibrary } from '@/providers';
 
 const ITEMS: Array<{ view: View; tooltip: string; Icon: LucideIcon }> = [
   { view: 'shelf', tooltip: '書架 Shelf', Icon: LayoutGrid },

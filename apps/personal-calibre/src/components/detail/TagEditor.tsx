@@ -15,7 +15,7 @@ import { Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import type { FilterOptions } from '@/types/calibre';
+import type { FilterOptions } from '@/types';
 
 interface Props {
   bookId: number;

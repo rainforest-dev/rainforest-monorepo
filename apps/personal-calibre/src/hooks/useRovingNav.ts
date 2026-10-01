@@ -8,15 +8,15 @@ import {
   useState,
 } from 'react';
 
-import { useLibrary } from '@/components/library/LibraryProvider';
-import { bookIdOfNavKey } from '@/lib/group-entries';
 import {
   assignRowsByTop,
+  bookIdOfNavKey,
   isNavKey,
   type NavItem,
   type NavMode,
   pickTarget,
-} from '@/lib/roving';
+} from '@/lib';
+import { useLibrary } from '@/providers';
 
 interface Options {
   navKeys: readonly string[];

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { atomDate } from '@/lib/opds';
+import { atomDate } from '@/lib';
 
 export async function GET() {
   const xml = `<?xml version="1.0" encoding="utf-8"?>

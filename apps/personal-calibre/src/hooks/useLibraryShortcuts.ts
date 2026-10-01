@@ -3,10 +3,8 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
-import { useLibrary } from '@/components/library/LibraryProvider';
-import { resolveShortcut } from '@/lib/keyboard';
-import { parseLibraryParams } from '@/lib/library-params';
-import { nextView } from '@/lib/prefs';
+import { nextView, parseLibraryParams, resolveShortcut } from '@/lib';
+import { useLibrary } from '@/providers';
 
 const TYPING =
   'input, textarea, select, [contenteditable=""], [contenteditable="true"]';

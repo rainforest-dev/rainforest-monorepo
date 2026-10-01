@@ -5,9 +5,9 @@ import { LibraryBig, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-import { filterCount, parseLibraryParams } from '@/lib/library-params';
+import { filterCount, parseLibraryParams } from '@/lib';
+import { useLibrary } from '@/providers';
 
-import { useLibrary } from './LibraryProvider';
 import { SearchField } from './SearchField';
 import { ViewSwitch } from './ViewSwitch';
 

@@ -1,4 +1,4 @@
-import type { View } from '@/lib/prefs';
+import type { View } from './prefs';
 
 export interface KeyInput {
   key: string;

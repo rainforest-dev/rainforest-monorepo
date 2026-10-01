@@ -2,9 +2,8 @@
 
 import { Kbd, KbdGroup } from '@rainforest-dev/rainforest-react';
 
-import { hintsFor } from '@/lib/keyboard';
-
-import { useLibrary } from './LibraryProvider';
+import { hintsFor } from '@/lib';
+import { useLibrary } from '@/providers';
 
 export function KeyHints() {
   const { view, pageInfo } = useLibrary();

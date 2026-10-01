@@ -1,16 +1,17 @@
 import { and, asc, count, eq, inArray } from 'drizzle-orm';
 
-import { db, sqlite } from '@/db/client';
 import {
   authors,
   books,
   booksAuthorsLink,
   booksSeriesLink,
   booksTagsLink,
+  db,
+  sqlite,
   tags,
-} from '@/db/schema';
+} from '@/db';
 import type { GroupBy } from '@/lib/library-params';
-import type { LibraryBook, LibraryEntry, LibraryResult } from '@/types/calibre';
+import type { LibraryBook, LibraryEntry, LibraryResult } from '@/types';
 
 import {
   type BookListParams,

@@ -12,18 +12,18 @@ import {
 } from 'react';
 
 import {
+  addIds,
   buildLibraryHref,
   clearFiltersHref,
   type ParamPatch,
   parseLibraryParams,
-} from '@/lib/library-params';
-import {
   type Prefs,
+  removeIds,
   resolveView,
   serializePrefs,
+  toggleId,
   type View,
-} from '@/lib/prefs';
-import { addIds, removeIds, toggleId } from '@/lib/selection';
+} from '@/lib';
 
 export type PendingFocus =
   { kind: 'first'; page: number } | { kind: 'book'; id: number };

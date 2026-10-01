@@ -1,9 +1,10 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { cacheLife, cacheTag } from 'next/cache';
 
-import { appDb, db, sqlite } from '@/db/client';
 import {
+  appDb,
   authors,
+  bookDeliveries,
   books,
   booksAuthorsLink,
   booksLanguagesLink,
@@ -13,13 +14,15 @@ import {
   booksTagsLink,
   comments,
   data,
+  db,
+  deliveryPlatforms,
   languages,
   publishers,
   ratings,
   series,
+  sqlite,
   tags,
-} from '@/db/schema';
-import { bookDeliveries, deliveryPlatforms } from '@/db/schema-app';
+} from '@/db';
 import type {
   BookDetail,
   BookGroup,
@@ -27,7 +30,7 @@ import type {
   FilterOptions,
   LibraryBook,
   LibraryResult,
-} from '@/types/calibre';
+} from '@/types';
 
 import {
   type BookListParams,

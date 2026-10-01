@@ -1,14 +1,13 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { revalidateTag, unstable_noStore as noStore } from 'next/cache';
 
-import { appDb } from '@/db/client';
-import { bookDeliveries, deliveryPlatforms } from '@/db/schema-app';
+import { appDb, bookDeliveries, deliveryPlatforms } from '@/db';
 import { isHttpUrl } from '@/lib/url';
 import type {
   BookDeliveryEvent,
   CreateDeliveryEventInput,
   DeliveryPlatform,
-} from '@/types/delivery';
+} from '@/types';
 
 export function normalizeExternalRef(value: string | undefined): string | null {
   const trimmed = value?.trim() ?? '';

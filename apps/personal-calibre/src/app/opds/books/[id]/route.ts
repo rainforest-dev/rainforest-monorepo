@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { buildAcquisitionEntry } from '@/lib/opds';
-import { getBook } from '@/lib/server/queries';
+import { buildAcquisitionEntry } from '@/lib';
+import { getBook } from '@/lib/server';
 
 export async function GET(
   _request: NextRequest,

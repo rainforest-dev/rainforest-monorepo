@@ -4,9 +4,8 @@ import { eq, inArray } from 'drizzle-orm';
 import { zip } from 'fflate';
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from '@/db/client';
-import { books, data } from '@/db/schema';
-import { readWithRetry, resolveFilePath } from '@/lib/server/files';
+import { books, data, db } from '@/db';
+import { readWithRetry, resolveFilePath } from '@/lib/server';
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as { bookIds?: unknown; format?: string };

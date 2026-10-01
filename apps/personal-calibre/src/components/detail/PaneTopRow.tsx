@@ -4,8 +4,8 @@ import { Button, buttonVariants, Kbd } from '@rainforest-dev/rainforest-react';
 import { ExternalLink, X } from 'lucide-react';
 import Link from 'next/link';
 
-import { useLibrary } from '@/components/library/LibraryProvider';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib';
+import { useLibrary } from '@/providers';
 
 export function PaneTopRow({ bookId }: { bookId: number }) {
   const { closeBook } = useLibrary();

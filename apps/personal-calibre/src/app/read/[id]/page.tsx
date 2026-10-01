@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
-import { EpubReader } from '@/components/EpubReader';
-import { getBook } from '@/lib/server/queries';
+import { EpubReader } from '@/components/reader';
+import { getBook } from '@/lib/server';
 
 interface Props {
   params: Promise<{ id: string }>;

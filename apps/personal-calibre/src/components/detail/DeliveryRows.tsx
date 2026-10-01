@@ -31,9 +31,9 @@ import {
   formatDeliveryDate,
   formatDeliveryTime,
   latestByPlatform,
-} from '@/lib/deliveries';
-import { safeExternalHref } from '@/lib/url';
-import type { BookDeliveryEvent, DeliveryPlatform } from '@/types/delivery';
+  safeExternalHref,
+} from '@/lib';
+import type { BookDeliveryEvent, DeliveryPlatform } from '@/types';
 
 interface Props {
   bookId: number;

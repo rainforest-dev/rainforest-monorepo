@@ -12,14 +12,8 @@ import {
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
-import {
-  GROUP_BYS,
-  parseLibraryParams,
-  SORT_BYS,
-  type SortBy,
-} from '@/lib/library-params';
-
-import { useLibrary } from './LibraryProvider';
+import { GROUP_BYS, parseLibraryParams, SORT_BYS, type SortBy } from '@/lib';
+import { useLibrary } from '@/providers';
 
 const GROUP_ITEMS = [
   { value: 'none', label: 'None' },

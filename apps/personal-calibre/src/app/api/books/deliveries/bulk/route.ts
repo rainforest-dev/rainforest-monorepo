@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { bulkCreateDeliveryEvents } from '@/lib/server/delivery';
-import { httpUrlSchema } from '@/lib/url';
+import { httpUrlSchema } from '@/lib';
+import { bulkCreateDeliveryEvents } from '@/lib/server';
 
 const externalRefSchema = z.preprocess(
   (value) =>

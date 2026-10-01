@@ -1,6 +1,6 @@
 import { revalidateTag } from 'next/cache';
 
-import { writableSqlite } from '@/db/client';
+import { writableSqlite } from '@/db';
 
 export function getOrCreateTag(name: string): number {
   const trimmed = name.trim();

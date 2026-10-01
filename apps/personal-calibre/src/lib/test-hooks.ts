@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { RawSearchParams } from '@/lib/library-params';
+import type { RawSearchParams } from './library-params';
 
 export const FAULT_COOKIE = 'calibre-e2e-fault';
 
