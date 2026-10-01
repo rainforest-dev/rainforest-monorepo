@@ -35,6 +35,14 @@ RUN pnpm --filter @rainforest-monorepo/personal-calibre exec tsc \
     --outDir ../../libs/rainforest-ui/dist/recipes \
     --declaration --module esnext --target es2022 --moduleResolution bundler --skipLibCheck
 
+COPY libs/rainforest-ui/src/interaction libs/rainforest-ui/src/interaction
+RUN pnpm --filter @rainforest-monorepo/personal-calibre exec tsc \
+    ../../libs/rainforest-ui/src/interaction/index.ts \
+    --rootDir ../../libs/rainforest-ui/src/interaction \
+    --outDir ../../libs/rainforest-ui/dist/interaction \
+    --declaration --module esnext --target es2022 --moduleResolution bundler --skipLibCheck \
+    --lib es2022,dom,dom.iterable
+
 COPY libs/rainforest-react libs/rainforest-react
 RUN pnpm --filter @rainforest-dev/rainforest-react exec vite build
 
