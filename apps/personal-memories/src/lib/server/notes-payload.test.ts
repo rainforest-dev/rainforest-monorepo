@@ -17,7 +17,15 @@ it('is read-only and empty without a store', () => {
     annotations: [],
     version: '',
     writable: false,
+    people: [],
   });
+});
+
+it('carries the people it was given', () => {
+  const people = [{ id: 'a', name: 'Alice', aliases: {} }];
+  expect(
+    notePayload(undefined, '2025-11-01', [], undefined, people).people,
+  ).toBe(people);
 });
 
 it('marks an unparseable file read-only', () => {

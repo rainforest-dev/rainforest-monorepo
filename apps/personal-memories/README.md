@@ -97,11 +97,35 @@ MEMORIES_DATA_DIR="$HOME/.local/share/memories" pnpm nx dev personal-memories
 - A day whose content fails to load while scrolling shows an error placeholder and retries on the
   next scroll.
 
-Set `MEMORIES_OWNER` to a comma-separated list of author names (as they appear in the LINE or
-Slack export) to give that person's messages the owner's colour, `chart-2`, in the day stream.
-Everyone else gets a colour in order of their first message: `chart-4` for the first, then
-`chart-1`, `chart-3` and `chart-5`, repeating those three. Each run also shows the author's
-initial and name, so colour is never the only cue.
+People are configured in `<MEMORIES_DATA_DIR>/people.json`. Each person has one display name,
+the Cloudflare Access emails they sign in with, and the names they go by on each platform:
+
+```json
+{
+  "owner": "bob",
+  "people": [
+    {
+      "id": "bob",
+      "name": "Bob",
+      "emails": ["bob@example.com"],
+      "aliases": { "line": ["Bobby"], "slack": ["bob.w"], "photo": ["Robert"] }
+    },
+    { "id": "alice", "name": "Alice", "emails": ["alice@example.com"] }
+  ]
+}
+```
+
+The day stream shows a configured person under their display name on every platform, with the
+platform's own name in a tooltip; anyone not listed keeps the name from the export. The `owner`
+gets the owner's colour, `chart-2`. Everyone else gets a colour in order of their first message:
+`chart-4` for the first, then `chart-1`, `chart-3` and `chart-5`, repeating those three. One
+person keeps one colour across LINE and Slack. Each run also shows the author's initial and name,
+so colour is never the only cue.
+
+The file is validated when the app starts: an id, email or same-platform alias claimed by two
+people, or an `owner` that is not in `people`, is an error. Without the file, the app falls back
+to the older variables: `MEMORIES_OWNER`, a comma-separated list of the owner's export names, and
+`MEMORIES_AUTHORS` (see [Notes](#notes)).
 
 Without a `timeline.json` the pages show how to run `ingest` instead of failing.
 
@@ -134,17 +158,19 @@ disk since the panel last read it — an edit made directly in Obsidian, say —
 back as a conflict: the panel shows both versions side by side and lets you keep either, so
 nothing is overwritten silently.
 
-Each annotation block can carry a `by:` field naming its author. Behind Cloudflare Access, the
-app trusts the `Cf-Access-Authenticated-User-Email` header Access sets on every request, and maps
-it to a name through `MEMORIES_AUTHORS`, a comma-separated `email=Name` list:
+Each annotation block can carry a `by:` field naming its author, one of the people in
+`people.json`. Behind Cloudflare Access, the app trusts the `Cf-Access-Authenticated-User-Email`
+header Access sets on every request and signs with the person whose `emails` contain it. With no
+Access header, or an email nobody claims, the panel asks once which of the configured people is
+writing and remembers the choice in that browser; the server rejects any other name. Without
+`people.json`, the legacy `MEMORIES_AUTHORS` variable, a comma-separated `email=Name` list, plays
+the same role:
 
 ```bash
 MEMORIES_AUTHORS="alice@example.com=Alice,bob@example.com=Bob"
 ```
 
-Names containing a comma are not supported. A signed-in email with no entry in that map, or no
-Access header at all — running locally, say — gets a one-time name prompt in the panel instead;
-the name is remembered for that browser from then on.
+With neither configured, the panel falls back to a free-text name.
 
 ## Deployment
 
@@ -155,7 +181,7 @@ The Terraform module lives in
 (`modules/personal-memories`), and the hostname is gated by Cloudflare Access like the other
 tools. The Cloudflare Access application must be the only route to the container, which is why
 the homelab binds the published port to 127.0.0.1: nothing else on the box can reach the
-container directly to forge the identity header `MEMORIES_AUTHORS` maps (see [Notes](#notes)).
+container directly to forge the identity header the app trusts (see [Notes](#notes)).
 
 Three host paths are bind-mounted at the same absolute path they have on the host:
 

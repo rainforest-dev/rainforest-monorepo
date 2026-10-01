@@ -27,10 +27,16 @@ export function parseAuthors(raw: string | undefined): Map<string, string> {
 
 export function viewerName(
   headers: Headers,
-  env: Record<string, string | undefined> = process.env,
+  people: readonly { name: string; emails: readonly string[] }[],
 ): string | undefined {
   const email = headers.get(IDENTITY_HEADER)?.trim().toLowerCase();
-  return email ? parseAuthors(env['MEMORIES_AUTHORS']).get(email) : undefined;
+  return email ? people.find((p) => p.emails.includes(email))?.name : undefined;
+}
+
+export class UnknownAuthorError extends Error {
+  constructor(readonly author: string) {
+    super(`${author} is not one of the configured people`);
+  }
 }
 
 export type Signable = Pick<
@@ -61,14 +67,16 @@ export function stampAuthors<T extends Signable>(
   annotations: readonly T[],
   stored: readonly Signable[],
   viewer: string | undefined,
+  roster: ReadonlySet<string> = new Set(),
 ): T[] {
   return annotations.map((a) => {
     const { by: sent, origin, ...rest } = a;
     const key = origin ?? originOf(rest);
     const before = stored.find((s) => originOf(s) === key);
-    const by = before
-      ? before.by
-      : (viewer ?? (cleanName(sent ?? '') || undefined));
+    const claimed = cleanName(sent ?? '') || undefined;
+    if (!before && !viewer && claimed && roster.size && !roster.has(claimed))
+      throw new UnknownAuthorError(claimed);
+    const by = before ? before.by : (viewer ?? claimed);
     return (by ? { ...rest, by } : rest) as T;
   });
 }

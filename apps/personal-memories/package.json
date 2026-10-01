@@ -40,6 +40,11 @@
           "cwd": "apps/personal-memories",
           "command": "tsc --noEmit -p tsconfig.json"
         }
+      },
+      "test": {
+        "dependsOn": [
+          "^build"
+        ]
       }
     },
     "release": {

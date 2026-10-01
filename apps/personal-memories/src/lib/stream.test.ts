@@ -9,7 +9,6 @@ import {
   groupRuns,
   hourCounts,
   initialOf,
-  ownersFromEnv,
   rowLabel,
   thumbSrcset,
 } from './stream.ts';
@@ -98,18 +97,6 @@ describe('groupRuns', () => {
   });
 });
 
-describe('ownersFromEnv', () => {
-  it('splits comma-separated names and trims them', () => {
-    expect(ownersFromEnv({ MEMORIES_OWNER: ' Bob , 我,, ' })).toEqual(
-      new Set(['Bob', '我']),
-    );
-  });
-
-  it('is empty when unset', () => {
-    expect(ownersFromEnv({}).size).toBe(0);
-  });
-});
-
 describe('hourCounts', () => {
   it('buckets events by Taipei hour', () => {
     const counts = hourCounts([
@@ -161,6 +148,28 @@ describe('authorAccents', () => {
     expect(accents.get('Bobby')).toBe(2);
     expect(accents.get('Alice')).toBe(4);
     expect(accents.get('Carol')).toBe(1);
+  });
+
+  it('gives one person a single accent across platforms and keys it by raw name', () => {
+    const people = [
+      { id: 'd', name: 'Dana', aliases: { line: ['丹'], slack: ['dana.c'] } },
+    ];
+    const accents = authorAccents(
+      [
+        ev('1', 'Bob', 'line', at(8)),
+        ev('2', 'dana.c', 'slack', at(9)),
+        ev('3', '丹', 'line', at(10)),
+        ev('4', 'Carol', 'line', at(11)),
+      ],
+      new Set(['Bob']),
+      people,
+    );
+    expect(Object.fromEntries(accents)).toEqual({
+      Bob: 2,
+      'dana.c': 4,
+      丹: 4,
+      Carol: 1,
+    });
   });
 
   it('orders later people by first appearance, not input order or count, and cycles 1, 3, 5', () => {

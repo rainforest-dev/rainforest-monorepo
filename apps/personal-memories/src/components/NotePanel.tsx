@@ -1,5 +1,5 @@
 import { Separator, Textarea } from '@rainforest-dev/rainforest-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Lightbox, useLightbox } from '@/components/lightbox';
 import {
@@ -16,7 +16,7 @@ import {
   useNoteDraft,
   useStreamBridge,
 } from '@/components/notes';
-import { type Accent, coverControl, toggleCover } from '@/lib';
+import { type Accent, coverControl, nameOf, toggleCover } from '@/lib';
 import { dayInUrl } from '@/lib/client';
 import { withCover } from '@/lib/notes';
 import type { NotePayload } from '@/lib/server';
@@ -63,7 +63,11 @@ export function NotePanel({
   const readOnly = !payload.writable;
   const { date } = payload;
   const locked = readOnly || !hydrated;
-  const author = useAuthorName(payload.viewer);
+  const roster = useMemo(
+    () => payload.people.map((p) => p.name),
+    [payload.people],
+  );
+  const author = useAuthorName(payload.viewer, roster);
   const { reattach, setReattach, setAnnotation, refs } = useStreamBridge({
     date,
     draft,
@@ -178,6 +182,8 @@ export function NotePanel({
           reattach={reattach}
           refs={refs}
           needsName={author.needsName}
+          roster={roster}
+          nameOf={(source, raw) => nameOf(payload.people, source, raw)}
           onName={author.save}
           accentOf={(author) => accents[author]}
           onBody={(i, body) => setAnnotation(date, i, { body })}
