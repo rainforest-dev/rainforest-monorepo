@@ -104,7 +104,7 @@ either. A silent skip and an absent gate look the same afterwards.
 
 ## Running it locally
 
-Node 22 and pnpm 11 are what the workspace expects. `engines` and `packageManager` in
+Node 24 or later and pnpm 11 are what the workspace expects. `engines` and `packageManager` in
 `package.json` are the source of truth if this drifts.
 
 ```bash

@@ -241,7 +241,7 @@ Astro markdown configured with:
 
 ## CI/CD
 
-[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on Node 22:
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on Node 24:
 
 ```bash
 pnpm format:check
