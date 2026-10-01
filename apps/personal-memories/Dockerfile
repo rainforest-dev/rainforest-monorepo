@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -42,7 +42,7 @@ RUN pnpm --filter @rainforest-monorepo/personal-memories run build
 RUN pnpm --filter @rainforest-monorepo/personal-memories deploy --prod /deploy --legacy
 
 # Runtime image
-FROM node:22-alpine AS runtime
+FROM node:24-alpine AS runtime
 WORKDIR /app
 
 COPY --from=base /deploy/node_modules ./node_modules

@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -42,7 +42,7 @@ COPY apps/personal-calibre apps/personal-calibre
 RUN pnpm --filter @rainforest-monorepo/personal-calibre exec next build
 
 # Minimal runtime image
-FROM node:22-alpine AS runtime
+FROM node:24-alpine AS runtime
 WORKDIR /app
 
 COPY --from=base /app/apps/personal-calibre/.next/standalone ./
