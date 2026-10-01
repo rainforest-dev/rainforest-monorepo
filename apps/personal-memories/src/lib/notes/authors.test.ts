@@ -6,6 +6,7 @@ import {
   parseAuthors,
   type Signable,
   stampAuthors,
+  UnknownAuthorError,
   viewerName,
 } from './authors.ts';
 
@@ -25,21 +26,21 @@ describe('parseAuthors', () => {
 });
 
 describe('viewerName', () => {
-  const env = { MEMORIES_AUTHORS: 'alice@example.com=Alice' };
+  const people = [{ name: 'Alice', emails: ['alice@example.com'] }];
 
-  it('resolves the Access email header through the mapping', () => {
+  it('resolves the Access email header to a configured person', () => {
     expect(
-      viewerName(new Headers({ [HEADER]: 'ALICE@example.com' }), env),
+      viewerName(new Headers({ [HEADER]: 'ALICE@example.com' }), people),
     ).toBe('Alice');
   });
 
-  it('is undefined without a header, for an unknown email, or with no mapping', () => {
-    expect(viewerName(new Headers(), env)).toBeUndefined();
+  it('is undefined without a header, for an unknown email, or with no people', () => {
+    expect(viewerName(new Headers(), people)).toBeUndefined();
     expect(
-      viewerName(new Headers({ [HEADER]: 'eve@example.com' }), env),
+      viewerName(new Headers({ [HEADER]: 'eve@example.com' }), people),
     ).toBeUndefined();
     expect(
-      viewerName(new Headers({ [HEADER]: 'alice@example.com' }), {}),
+      viewerName(new Headers({ [HEADER]: 'alice@example.com' }), []),
     ).toBeUndefined();
   });
 });
@@ -185,6 +186,34 @@ describe('stampAuthors', () => {
       undefined,
     );
     expect(unsigned && 'by' in unsigned).toBe(false);
+  });
+
+  it('accepts a client-sent name on a new annotation only from the roster', () => {
+    const roster = new Set(['Alice', 'Bob']);
+    expect(
+      stampAuthors(
+        [ann('n', { by: 'Alice', origin: 'new' })],
+        [],
+        undefined,
+        roster,
+      )[0]?.by,
+    ).toBe('Alice');
+    expect(() =>
+      stampAuthors(
+        [ann('n', { by: 'Eve', origin: 'new' })],
+        [],
+        undefined,
+        roster,
+      ),
+    ).toThrow(UnknownAuthorError);
+    expect(
+      stampAuthors(
+        [ann('x', { by: 'Eve' })],
+        [ann('x', { by: 'Carol' })],
+        undefined,
+        roster,
+      )[0]?.by,
+    ).toBe('Carol');
   });
 
   it('keep-mine restores an annotation as new when its origin matches nothing, even if a same-anchor annotation exists under a recovered eventId', () => {

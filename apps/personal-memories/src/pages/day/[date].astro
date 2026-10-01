@@ -17,16 +17,23 @@ import {
   levelHrefs,
   morphFromRequest,
   nearestDate,
-  ownersFromEnv,
   scrubberMonths,
   summarize,
 } from '@/lib';
 import { viewerName } from '@/lib/notes';
-import { getTimeline, notePayload, notesStore } from '@/lib/server';
+import {
+  getPeople,
+  getTimeline,
+  notePayload,
+  notesStore,
+  publicPeople,
+} from '@/lib/server';
 
 const { date = '' } = Astro.params;
 const morph = morphFromRequest(Astro.request, Astro.url);
 const state = getTimeline();
+const people = getPeople();
+const roster = publicPeople(people);
 const { entry } =
   state.status === 'ready'
     ? await getLiveEntry('days', { date })
@@ -38,7 +45,8 @@ const initial = day?.events
       notesStore(),
       date,
       day.events,
-      viewerName(Astro.request.headers),
+      viewerName(Astro.request.headers, people.people),
+      roster,
     )
   : undefined;
 
@@ -46,7 +54,9 @@ const dates =
   state.status === 'ready' ? indexDays(state.timeline.events).dates : [];
 const accents =
   state.status === 'ready'
-    ? Object.fromEntries(authorAccents(state.timeline.events, ownersFromEnv()))
+    ? Object.fromEntries(
+        authorAccents(state.timeline.events, people.owners, roster),
+      )
     : {};
 const months =
   state.status === 'ready'
