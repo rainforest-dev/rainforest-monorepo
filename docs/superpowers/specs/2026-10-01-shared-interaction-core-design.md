@@ -109,10 +109,15 @@ Callers:
 
 - calibre's `src/lib/roving.ts` becomes a re-export of `pickTarget`, `isNavKey`, `NAV_KEYS` and
   `assignRowsByTop`. `useRovingNav` keeps everything else: `useLibrary()` focus requests, focus
-  restore, the Enter/`x`/Space actions. It passes `{ mode, homeEnd: 'row', ctrl }`.
+  restore, the Enter/`x`/Space actions. It passes `{ mode, homeEnd: 'row', ctrl }`. Its
+  `data-nav-row` values are string group ids, so the hook maps them to numbers in the order they
+  first appear before calling `pickTarget`.
 - memories' `src/lib/grid-nav.ts` keeps `GridLayout`, `slotOf` and the date handling, and
   `gridTarget` becomes date items mapped to `{ key, row, col, order }` fed to
-  `pickTarget(…, { mode: layout === 'list' ? 'list' : 'grid', homeEnd: 'page' })`.
+  `pickTarget(…, { mode: 'grid', homeEnd: 'page' })` in every layout. Memories' list layout steps
+  on `←`/`→`, which `list` mode does not; with one date per row at col 0, grid `↑`/`↓` already
+  move ±1. `gridTarget` keeps returning `undefined` for a date not in the grid, checked before it
+  calls `pickTarget`.
 
 ### DOM controller (`src/interaction/roving-dom.ts`)
 
