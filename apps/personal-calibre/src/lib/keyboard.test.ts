@@ -4,9 +4,7 @@ import { hintsFor, type KeyInput, resolveShortcut } from './keyboard';
 
 const base: KeyInput = {
   key: '',
-  altKey: false,
-  ctrlKey: false,
-  metaKey: false,
+  modified: false,
   typing: false,
   inOverlay: false,
   paneOpen: false,
@@ -45,9 +43,8 @@ describe('resolveShortcut', () => {
     expect(press('/', { typing: true })).toBeNull();
     expect(press('Escape', { typing: true, paneOpen: true })).toBeNull();
     expect(press('v', { inOverlay: true })).toBeNull();
-    expect(press(']', { altKey: true })).toBeNull();
-    expect(press(']', { ctrlKey: true })).toBeNull();
-    expect(press('v', { metaKey: true })).toBeNull();
+    expect(press(']', { modified: true })).toBeNull();
+    expect(press('v', { modified: true })).toBeNull();
   });
 
   it('leaves other keys, PageUp and PageDown included, to the browser', () => {

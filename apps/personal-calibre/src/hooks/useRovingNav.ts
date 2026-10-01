@@ -1,6 +1,12 @@
 'use client';
 
 import {
+  isNavKey,
+  type NavItem,
+  type NavMode,
+  pickTarget,
+} from '@rainforest-dev/rainforest-ui/interaction';
+import {
   type KeyboardEvent,
   useCallback,
   useEffect,
@@ -8,14 +14,7 @@ import {
   useState,
 } from 'react';
 
-import {
-  assignRowsByTop,
-  bookIdOfNavKey,
-  isNavKey,
-  type NavItem,
-  type NavMode,
-  pickTarget,
-} from '@/lib';
+import { bookIdOfNavKey, toNavItems } from '@/lib';
 import { useLibrary } from '@/providers';
 
 interface Options {
@@ -36,22 +35,19 @@ function firstVisible(
 }
 
 function collectItems(container: HTMLElement, mode: NavMode): NavItem[] {
-  const items = Array.from(
+  const entries = Array.from(
     container.querySelectorAll<HTMLElement>('[data-nav-key]'),
   )
     .filter((el) => el.getClientRects().length > 0)
-    .map((el, order) => {
+    .map((el) => {
       const r = el.getBoundingClientRect();
       return {
         key: el.dataset['navKey'] ?? '',
-        row: el.dataset['navRow'] ?? '',
-        order,
-        rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+        group: el.dataset['navRow'] ?? '',
+        rect: { left: r.left, top: r.top, width: r.width, height: r.height },
       };
     });
-  return mode === 'grid' && items.some((i) => i.row === '')
-    ? assignRowsByTop(items)
-    : items;
+  return toNavItems(entries, mode);
 }
 
 export function useRovingNav<T extends HTMLElement>({
@@ -165,8 +161,7 @@ export function useRovingNav<T extends HTMLElement>({
           collectItems(container, mode),
           key,
           event.key,
-          { ctrl: event.ctrlKey || event.metaKey },
-          mode,
+          { mode, homeEnd: 'row', ctrl: event.ctrlKey || event.metaKey },
         );
         if (target) {
           focusElement(
