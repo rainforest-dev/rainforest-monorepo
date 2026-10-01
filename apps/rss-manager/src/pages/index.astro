@@ -1,9 +1,9 @@
 ---
-import SourceTable from '../components/SourceTable.tsx';
-import TopicList from '../components/TopicList.tsx';
-import FeedValidator from '../components/FeedValidator.tsx';
-import ReadingQueue from '../components/ReadingQueue.tsx';
-import '../styles/global.css';
+import SourceTable from '@/components/SourceTable.tsx';
+import TopicList from '@/components/TopicList.tsx';
+import FeedValidator from '@/components/FeedValidator.tsx';
+import ReadingQueue from '@/components/ReadingQueue.tsx';
+import '@/styles/global.css';
 
 const VALID_TABS = ['sources', 'topics', 'validate', 'queue'] as const;
 type Tab = (typeof VALID_TABS)[number];

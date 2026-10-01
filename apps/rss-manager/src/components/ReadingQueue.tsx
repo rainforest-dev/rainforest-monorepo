@@ -21,7 +21,7 @@ import {
   type SortMode,
   sortQueue,
   type StaleItem,
-} from '../lib/readingQueue.js';
+} from '@/lib';
 
 const TIER_LABELS: Record<number, string> = {
   1: 'Finish what you started',

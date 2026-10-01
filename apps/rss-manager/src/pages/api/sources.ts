@@ -7,8 +7,8 @@ import {
   registryFilePath,
   retireSource,
   SOURCES_FILE,
-} from '../../lib/registry.js';
-import { writeErrorResponse } from '../../lib/registryApi.js';
+  writeErrorResponse,
+} from '@/server';
 
 export const GET: APIRoute = () => {
   try {

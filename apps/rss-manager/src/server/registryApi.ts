@@ -1,4 +1,4 @@
-import { READ_ONLY_NOTE } from './registry.types.js';
+import { READ_ONLY_NOTE } from '@/lib';
 
 /**
  * Turns a failed registry write into the reason the caller can act on.

@@ -10,8 +10,9 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { readReadingQueue } from '@/server';
+
 import { parseReadingQueue, sortQueue } from './readingQueue.js';
-import { readReadingQueue } from './readingQueueFile.js';
 
 const FIXTURE = readFileSync(
   new URL('./fixtures/reading-queue.sample.json', import.meta.url),

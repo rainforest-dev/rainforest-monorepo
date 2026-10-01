@@ -8,9 +8,7 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { useEffect, useState } from 'react';
 
-import { patchRegistry } from '../lib/patchRegistry.js';
-import type { Topic } from '../lib/registry.types.js';
-import { READ_ONLY_NOTE } from '../lib/registry.types.js';
+import { patchRegistry, READ_ONLY_NOTE, type Topic } from '@/lib';
 
 const STATUS_VARIANT: Record<Topic['status'], BadgeProps['variant']> = {
   active: 'success',
