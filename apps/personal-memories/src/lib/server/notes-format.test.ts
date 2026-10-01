@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Annotation, DayNote } from '@/lib/notes';
+
 import {
   emptyNote,
   hasUserFrontmatter,
   isEmptyNote,
   parseNote,
   serializeNote,
-} from './format.ts';
-import type { Annotation, DayNote } from './types.ts';
+} from './notes-format.ts';
 
 const NOTE: DayNote = {
   date: '2025-11-01',

@@ -1,4 +1,4 @@
-import type { PhotoSignals, TimelineEvent } from './timeline.ts';
+import type { PhotoSignals, TimelineEvent } from '@/lib/server';
 
 export const isCoverCandidate = (e: TimelineEvent) =>
   e.source === 'photo' && !!e.media?.length && !e.photo?.movie;

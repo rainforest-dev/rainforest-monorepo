@@ -1,4 +1,4 @@
-import type { LightboxRequest } from '../lightbox.ts';
+import type { LightboxRequest } from '@/lib/lightbox.ts';
 
 export type AnnotateDetail = {
   eventId: string;

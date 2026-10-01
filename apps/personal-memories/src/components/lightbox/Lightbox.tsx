@@ -20,9 +20,11 @@ import {
   type LightboxItem,
   positionLabel,
   swipeDelta,
-} from '../../lib/lightbox.ts';
-import { thumbUrl } from '../../lib/stream.ts';
-import { taipeiDate, taipeiTime } from '../../lib/weeks.ts';
+  taipeiDate,
+  taipeiTime,
+  thumbUrl,
+} from '@/lib';
+
 import { LightboxImage } from './LightboxImage.tsx';
 
 type Props = {

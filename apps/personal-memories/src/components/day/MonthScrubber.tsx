@@ -7,8 +7,8 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { useEffect, useRef } from 'react';
 
-import { monthOf, type ScrubberMonth } from '../../lib/months.ts';
-import { useActiveDay } from '../useActiveDay.ts';
+import { useActiveDay } from '@/components/useActiveDay.ts';
+import { monthOf, type ScrubberMonth } from '@/lib';
 
 type Props = { months: ScrubberMonth[]; date: string };
 

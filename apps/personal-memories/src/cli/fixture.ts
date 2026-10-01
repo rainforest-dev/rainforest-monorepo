@@ -1,6 +1,7 @@
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
+// Relative, not @/: src/cli runs under plain `node`, which does not read tsconfig paths.
 import { writePhotoFixture } from '../lib/ingest/__fixtures__/photos.ts';
 import { ingest } from './ingest.ts';
 

@@ -1,7 +1,8 @@
-import type { TimelineEvent } from '../timeline.ts';
-import { resolveAnnotations, type ResolvedAnnotation } from './attach.ts';
-import { emptyNote } from './format.ts';
-import type { NotesStore, ReadResult } from './store.ts';
+import { resolveAnnotations, type ResolvedAnnotation } from '@/lib/notes';
+
+import { emptyNote } from './notes-format.ts';
+import type { NotesStore, ReadResult } from './notes-store.ts';
+import type { TimelineEvent } from './timeline.ts';
 
 export type NotePayload = {
   date: string;

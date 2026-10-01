@@ -1,10 +1,13 @@
 ---
-import type { MonthRow } from '../lib/days.ts';
-import type { MonthCell } from '../lib/month-view.ts';
-import { monthLabel } from '../lib/months.ts';
-import { YEAR_HINTS } from '../lib/shortcuts.ts';
-import { dayHeading } from '../lib/weeks.ts';
-import { morphAttrs } from '../lib/zoom.ts';
+import {
+  dayHeading,
+  type MonthCell,
+  monthLabel,
+  type MonthRow,
+  morphAttrs,
+  YEAR_HINTS,
+} from '@/lib';
+
 import DayPreview from './DayPreview.astro';
 import KeyHints from './KeyHints.astro';
 

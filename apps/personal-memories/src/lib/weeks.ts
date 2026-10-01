@@ -1,4 +1,4 @@
-import type { TimelineEvent, TimelineSource } from './timeline.ts';
+import type { TimelineEvent, TimelineSource } from '@/lib/server';
 
 const TAIPEI_OFFSET_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;

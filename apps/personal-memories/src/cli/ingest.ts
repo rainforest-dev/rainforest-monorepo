@@ -1,15 +1,18 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { parseLineChat } from '../lib/ingest/line.ts';
-import { parsePhotoIndex } from '../lib/ingest/photos.ts';
-import { parseSlackExport } from '../lib/ingest/slack.ts';
+// Relative, not @/: src/cli runs under plain `node`, which does not read tsconfig paths.
+import {
+  parseLineChat,
+  parsePhotoIndex,
+  parseSlackExport,
+} from '../lib/ingest/index.ts';
 import {
   mergeTimelines,
   type Timeline,
   type TimelineEvent,
   toTaipeiIso,
-} from '../lib/timeline.ts';
+} from '../lib/server/timeline.ts';
 
 export function ingest(
   root: string,

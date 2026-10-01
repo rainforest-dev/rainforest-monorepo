@@ -1,5 +1,6 @@
+import type { NotePayload } from '@/lib/server';
+
 import type { ResolvedAnnotation } from './attach.ts';
-import type { NotePayload } from './payload.ts';
 import type { Annotation } from './types.ts';
 
 export type Draft = {

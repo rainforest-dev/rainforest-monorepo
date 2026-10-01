@@ -1,5 +1,5 @@
-import { SOURCE_LABELS } from './notes/types.ts';
-import type { TimelineSource } from './timeline.ts';
+import { SOURCE_LABELS } from '@/lib/notes';
+import type { TimelineSource } from '@/lib/server';
 
 const ORDER: readonly TimelineSource[] = ['line', 'slack', 'photo'];
 

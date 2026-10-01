@@ -1,8 +1,13 @@
 ---
-import type { MonthCell, MonthView } from '../../lib/month-view.ts';
-import { dayHeading, WEEKDAYS_ZH } from '../../lib/weeks.ts';
-import { morphAttrs } from '../../lib/zoom.ts';
-import DayPreview from '../DayPreview.astro';
+import DayPreview from '@/components/DayPreview.astro';
+import {
+  dayHeading,
+  type MonthCell,
+  type MonthView,
+  morphAttrs,
+  WEEKDAYS_ZH,
+} from '@/lib';
+
 import MonthCellBody from './MonthCellBody.astro';
 
 type Props = { view: MonthView; morph?: string | undefined };

@@ -13,14 +13,15 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
+import type { DayNote } from '@/lib/notes';
+
 import {
   emptyNote,
   hasUserFrontmatter,
   isEmptyNote,
   parseNote,
   serializeNote,
-} from './format.ts';
-import type { DayNote } from './types.ts';
+} from './notes-format.ts';
 
 export type NoteVersion = string;
 export type NoteEdit = Pick<DayNote, 'body' | 'annotations' | 'cover'>;

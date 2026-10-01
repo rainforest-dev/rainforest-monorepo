@@ -1,9 +1,9 @@
+import { type DayNote, excerptOf } from '@/lib/notes';
+import type { TimelineEvent } from '@/lib/server';
+
 import { pickCover } from './cover.ts';
 import type { DayIndex } from './days.ts';
 import { calendarWeeks, MONTH_RE, monthOf, shiftMonth } from './months.ts';
-import { excerptOf } from './notes/attach.ts';
-import type { DayNote } from './notes/types.ts';
-import type { TimelineEvent } from './timeline.ts';
 
 export type MonthCell = {
   date: string;

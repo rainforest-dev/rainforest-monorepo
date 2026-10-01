@@ -1,4 +1,4 @@
-import { type GridKey, gridTarget, isGridLayout } from '../grid-nav.ts';
+import { type GridKey, gridTarget, isGridLayout } from '@/lib/grid-nav.ts';
 
 const CELL = 'a[data-date]';
 

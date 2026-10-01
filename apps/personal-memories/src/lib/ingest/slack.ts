@@ -1,12 +1,13 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
+// Relative, not @/: src/cli runs under plain `node`, which does not read tsconfig paths.
 import {
   makeEvent,
   type TimelineEvent,
   type TimelineMedia,
   toTaipeiIso,
-} from '../timeline.ts';
+} from '../server/timeline.ts';
 
 type SlackUser = {
   id: string;

@@ -1,31 +1,37 @@
 ---
 import { buttonVariants, cn } from '@rainforest-dev/rainforest-react';
 
-import { pickCover } from '../lib/cover.ts';
-import { excerptOf, resolveAnnotations } from '../lib/notes/attach.ts';
-import {
-  bySuffix,
-  type NotePreview,
-  notePreviews,
-} from '../lib/notes/preview.ts';
-import { notesStore } from '../lib/notes/store.ts';
-import { getTimeline } from '../lib/store.ts';
 import {
   type Accent,
   authorAccents,
   burstLayout,
+  dayHeading,
   firstEventPerHour,
   groupRuns,
   hourCounts,
   initialOf,
+  morphAttrs,
   ownersFromEnv,
+  pickCover,
   rowLabel,
+  taipeiTime,
   thumbSrcset,
   thumbUrl,
-} from '../lib/stream.ts';
-import type { TimelineEvent, TimelineSource } from '../lib/timeline.ts';
-import { dayHeading, taipeiTime } from '../lib/weeks.ts';
-import { morphAttrs } from '../lib/zoom.ts';
+} from '@/lib';
+import {
+  bySuffix,
+  excerptOf,
+  type NotePreview,
+  notePreviews,
+  resolveAnnotations,
+} from '@/lib/notes';
+import {
+  getTimeline,
+  notesStore,
+  type TimelineEvent,
+  type TimelineSource,
+} from '@/lib/server';
+
 import { accentChip, accentRule } from './accent-classes.ts';
 
 type Props = {

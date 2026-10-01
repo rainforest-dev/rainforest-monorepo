@@ -1,4 +1,9 @@
-import { makeEvent, taipeiWallClock, type TimelineEvent } from '../timeline.ts';
+// Relative, not @/: src/cli runs under plain `node`, which does not read tsconfig paths.
+import {
+  makeEvent,
+  taipeiWallClock,
+  type TimelineEvent,
+} from '../server/timeline.ts';
 
 export const LINE_PLACEHOLDERS = [
   '[Photo]',

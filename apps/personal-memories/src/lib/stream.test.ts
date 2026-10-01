@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { TimelineEvent } from '@/lib/server';
+
 import {
   authorAccents,
   burstLayout,
@@ -11,7 +13,6 @@ import {
   rowLabel,
   thumbSrcset,
 } from './stream.ts';
-import type { TimelineEvent } from './timeline.ts';
 
 const ev = (
   id: string,

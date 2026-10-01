@@ -8,7 +8,8 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 
-import type { NotePayload } from '../../lib/notes/payload.ts';
+import type { NotePayload } from '@/lib/server';
+
 import type { SaveStatus } from './useNoteDraft.ts';
 
 type Options = {

@@ -11,9 +11,14 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { useMemo, useState } from 'react';
 
-import { groupByMonth, jumpTarget, matchDates } from '../../lib/jump.ts';
-import { monthLabel } from '../../lib/months.ts';
-import { dayHeading } from '../../lib/weeks.ts';
+import {
+  dayHeading,
+  groupByMonth,
+  jumpTarget,
+  matchDates,
+  monthLabel,
+} from '@/lib';
+
 import type { DayCount } from './useChrome.ts';
 
 type Props = {

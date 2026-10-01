@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 
-import { indexDays, summarize } from '../lib/days.ts';
-import { getTimeline } from '../lib/store.ts';
+import { indexDays, summarize } from '@/lib';
+import { getTimeline } from '@/lib/server';
 
 export const GET: APIRoute = () => {
   const state = getTimeline();

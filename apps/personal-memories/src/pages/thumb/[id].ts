@@ -3,13 +3,15 @@ import { Readable } from 'node:stream';
 
 import type { APIRoute } from 'astro';
 
-import { dataDir, getTimeline, mediaFile } from '../../lib/store.ts';
 import {
+  dataDir,
   ensureThumb,
+  getTimeline,
+  mediaFile,
   parseWidth,
   thumbCacheDir,
   thumbPath,
-} from '../../lib/thumbs.ts';
+} from '@/lib/server';
 
 const notFound = () => new Response('Not found', { status: 404 });
 const badRequest = () => new Response('Bad request', { status: 400 });

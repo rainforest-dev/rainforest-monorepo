@@ -2,8 +2,7 @@ import { Skeleton } from '@rainforest-dev/rainforest-react';
 import { ImageOffIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import type { LightboxItem } from '../../lib/lightbox.ts';
-import { thumbUrl } from '../../lib/stream.ts';
+import { type LightboxItem, thumbUrl } from '@/lib';
 
 export function LightboxImage({ item }: { item: LightboxItem }) {
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');

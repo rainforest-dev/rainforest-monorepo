@@ -4,8 +4,8 @@ import { join } from 'node:path';
 
 import { afterEach, expect, it } from 'vitest';
 
-import { notePayload } from './payload.ts';
-import { createNotesStore } from './store.ts';
+import { notePayload } from './notes-payload.ts';
+import { createNotesStore } from './notes-store.ts';
 
 let root = '';
 afterEach(() => root && rmSync(root, { recursive: true, force: true }));

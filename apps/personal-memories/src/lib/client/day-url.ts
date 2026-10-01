@@ -1,4 +1,4 @@
-import { placeOf } from '../nav.ts';
+import { placeOf } from '@/lib/nav.ts';
 
 export function dayInUrl(): string | undefined {
   const place = placeOf(location.pathname);
