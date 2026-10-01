@@ -15,6 +15,7 @@ export * from './components/input';
 export * from './components/input-group';
 export * from './components/item';
 export * from './components/kbd';
+export * from './components/key-hints';
 export * from './components/label';
 export * from './components/popover';
 export * from './components/scroll-area';

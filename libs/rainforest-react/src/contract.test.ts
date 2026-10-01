@@ -26,6 +26,7 @@ const componentNames = [
   'InputGroup',
   'Item',
   'Kbd',
+  'KeyHints',
   'Label',
   'Popover',
   'ScrollArea',

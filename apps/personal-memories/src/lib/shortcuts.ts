@@ -1,7 +1,9 @@
+import type { KeyHint } from '@rainforest-dev/rainforest-react';
+
 import { type GridKey, isGridKey } from './grid-nav.ts';
 import { type Place, zoomOutHref } from './nav.ts';
 
-export type ShortcutRow = { keys: string[]; label: string };
+export type ShortcutRow = KeyHint;
 export type ShortcutGroup = { title: string; rows: ShortcutRow[] };
 
 const GRID_ROWS: ShortcutRow[] = [

@@ -1,28 +1,12 @@
 ---
-import { Kbd, KbdGroup } from '@rainforest-dev/rainforest-react';
+import {
+  type KeyHint,
+  KeyHints as KeyHintRow,
+} from '@rainforest-dev/rainforest-react';
 
-import type { ShortcutRow } from '@/lib';
-
-type Props = { hints: readonly ShortcutRow[] };
+type Props = { hints: readonly KeyHint[] };
 
 const { hints } = Astro.props;
 ---
 
-<div data-key-hints class="text-muted-foreground hidden gap-5 text-xs sm:flex">
-  {
-    hints.map((hint) => (
-      <span class="flex items-center gap-1.5">
-        {hint.keys.length > 1 ? (
-          <KbdGroup>
-            {hint.keys.map((key) => (
-              <Kbd>{key}</Kbd>
-            ))}
-          </KbdGroup>
-        ) : (
-          <Kbd>{hint.keys[0]}</Kbd>
-        )}
-        {hint.label}
-      </span>
-    ))
-  }
-</div>
+<KeyHintRow hints={hints} className="hidden gap-x-5 *:gap-1.5 sm:flex" />

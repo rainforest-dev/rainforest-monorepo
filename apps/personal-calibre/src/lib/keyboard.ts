@@ -1,3 +1,5 @@
+import type { KeyHint as RowHint } from '@rainforest-dev/rainforest-react';
+
 import type { View } from './prefs';
 
 export interface KeyInput {
@@ -41,9 +43,7 @@ export function resolveShortcut(input: KeyInput): Shortcut | null {
   }
 }
 
-export interface KeyHint {
-  keys: readonly string[];
-  label: string;
+export interface KeyHint extends RowHint {
   paged?: true;
 }
 
