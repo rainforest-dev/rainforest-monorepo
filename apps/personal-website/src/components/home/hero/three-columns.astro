@@ -5,9 +5,8 @@ import { useTranslatedPath, useTranslation } from '@utils/i18n';
 import { Picture } from 'astro:assets';
 
 import Icon from '@/components/icon.vue';
+import Tag from '@/components/tag.astro';
 import { Button } from '@/components/ui/button';
-
-import Tag from '../../tag.astro';
 
 const props = Astro.props;
 const year = props.dateOfBirth.getFullYear();

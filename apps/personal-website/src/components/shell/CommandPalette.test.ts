@@ -28,7 +28,7 @@ vi.mock('@utils/ai', () => ({
   registerAgentTools: () => ({ registered: [], dispose: vi.fn() }),
 }));
 
-vi.mock('../../mcp/catalog', () => ({
+vi.mock('@/mcp/catalog', () => ({
   PROFILE_TOOLS: [
     {
       name: 'get_projects',

@@ -4,7 +4,7 @@ import { trackAiResourceFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 
-import { MCP_RESOURCES, MCP_TOOLS } from '../mcp/handler';
+import { MCP_RESOURCES, MCP_TOOLS } from '@/mcp/handler';
 
 // Not prerendered, deliberately: a prerendered route's handler only ever runs once, at
 // build time, to produce a static file — Vercel then serves that file directly and never

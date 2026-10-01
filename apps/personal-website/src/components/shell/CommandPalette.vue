@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 
-// No `@mcp` path alias is configured for this app (checked tsconfig.json/tsconfig.base.json and
-// astro.config.mjs — Astro reads aliases from tsconfig `paths`, and none exists), so this is a
-// relative import rather than the `@mcp/catalog` shown in the plan.
-import { PROFILE_TOOLS, toToolDescriptors } from '../../mcp/catalog';
+import { PROFILE_TOOLS, toToolDescriptors } from '@/mcp/catalog';
 import {
   type AgentToolRegistration,
   registerAgentTools,

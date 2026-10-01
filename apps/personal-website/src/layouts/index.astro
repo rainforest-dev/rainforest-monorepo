@@ -1,5 +1,5 @@
 ---
-import '../app.css';
+import '@/app.css';
 
 import { SourceColor, ThemeProvider } from '@components';
 import CommandPalette from '@components/shell/CommandPalette.vue';
@@ -93,7 +93,7 @@ const paletteRecords: Searchable[] = [
     <script>
       // Cookieless recruiter-conversion tracking (outbound clicks, contact, resume,
       // case-study views) → /api/event → GA4. No cookies, no consent banner.
-      import '../scripts/conversion-tracking';
+      import '@/scripts/conversion-tracking';
     </script>
     <!-- client:idle: keyboard-triggered (⌘K), so it needn't hydrate before the page is interactive. -->
     <CommandPalette records={paletteRecords} lang={lang} client:idle />

@@ -1,7 +1,7 @@
 import { trackMcpFetch } from '@utils/track-ai-resource';
 import type { APIRoute } from 'astro';
 
-import { createProfileMcpHandler, mcpUsageResponse } from '../mcp/handler';
+import { createProfileMcpHandler, mcpUsageResponse } from '@/mcp/handler';
 
 // Same MCP tool surface as /api/mcp, mounted at the site root instead — added so the
 // server is reachable at rainforest.tools/mcp directly, without depending on
