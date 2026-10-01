@@ -1,5 +1,6 @@
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { writePhotoFixture } from '../lib/ingest/__fixtures__/photos.ts';
 import { ingest } from './ingest.ts';
@@ -49,7 +50,8 @@ export function writeFixtureDataDir(root: string) {
   return ingest(root, () => undefined);
 }
 
-if (import.meta.main) {
+// Node 22 before 22.18 has no import.meta.main.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const target = process.argv[2];
   if (!target) {
     console.error('usage: node src/cli/fixture.ts <empty-dir>');

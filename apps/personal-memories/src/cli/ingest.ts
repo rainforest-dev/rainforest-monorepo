@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { parseLineChat } from '../lib/ingest/line.ts';
 import { parsePhotoIndex } from '../lib/ingest/photos.ts';
@@ -69,7 +70,8 @@ export function ingest(
   return timeline;
 }
 
-if (import.meta.main) {
+// Node 22 before 22.18 has no import.meta.main.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = process.env['MEMORIES_DATA_DIR'];
   if (!root) {
     console.error(
