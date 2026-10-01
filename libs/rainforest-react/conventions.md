@@ -127,4 +127,6 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
 - `ButtonGroup` joins controls that act as one: a `SelectTrigger` and the button that applies
   it, or an input and its action. A single-choice switch (views, modes) is `ToggleGroup`.
 - List rows with a title, meta and actions are `Item`s inside `ItemGroup`. `ItemGroup` is
-  `role="list"`, so give each `Item` `role="listitem"`; axe reports the list otherwise.
+  `role="list"`, so give each `Item` `role="listitem"`; axe reports the list otherwise. For
+  rows stacked inside one bordered box, give the `ItemGroup` `gap-0 rounded-lg border` and each
+  `Item` `not-last:border-b-border rounded-none` to draw the dividers.
