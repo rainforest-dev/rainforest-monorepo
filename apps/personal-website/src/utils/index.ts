@@ -1,5 +1,3 @@
-export const isServerSide = typeof window === 'undefined';
-
 export const getBrandIconName = (_name: string) => {
   let name = undefined;
   switch (_name) {
@@ -42,6 +40,7 @@ export const getLinkedInUrl = (username: string) =>
 export const getGitHubUrl = (username: string) =>
   `https://github.com/${username}`;
 
+export * from './env';
 export * from './experience';
 export * from './i18n';
 export * from './ui';
