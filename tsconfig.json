@@ -38,6 +38,9 @@
     },
     {
       "path": "./libs/rainforest-react"
+    },
+    {
+      "path": "./apps/rss-manager-e2e"
     }
   ],
   "compilerOptions": {

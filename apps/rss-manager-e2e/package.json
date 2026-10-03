@@ -1,0 +1,28 @@
+{
+  "name": "rss-manager-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "projectType": "application",
+    "sourceRoot": "apps/rss-manager-e2e/src",
+    "implicitDependencies": [
+      "@rainforest-monorepo/rss-manager"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/playwright:playwright",
+        "outputs": [
+          "{workspaceRoot}/dist/.playwright/apps/rss-manager-e2e"
+        ],
+        "options": {
+          "config": "apps/rss-manager-e2e/playwright.config.ts"
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "catalog:"
+  }
+}
