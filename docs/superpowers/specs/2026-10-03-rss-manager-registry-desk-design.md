@@ -243,7 +243,7 @@ As the prototype and calibre P13:
 
 ## URL state
 
-The URL holds what is shown; the island holds what is being done. Proposed, owner to confirm (the
+The URL holds what is shown; the island holds what is being done. Proposed (the
 same split as calibre's P1, P2 and P4).
 
 | Param                        | Values                                     | Notes                                                  |
@@ -271,14 +271,14 @@ same split as calibre's P1, P2 and P4).
 - Reload restores the tab, filters, page and open source. The Astro page parses
   `Astro.url.searchParams` with the same pure `parseDeskParams` and passes the result as a prop, so
   the server-rendered HTML already shows the right tab, page and pane and hydration does not flash.
-- Proposed: the page also reads the three files in its frontmatter and passes them to the island
+- Decided (owner, 2026-10-03): the page also reads the three files in its frontmatter and passes them to the island
   (`{ ok, data } | { ok: false, error }` per file). The first paint then has real rows, and the
   loading Skeleton is only for a Retry. The three GET routes stay for Retry and for refreshing
   after a write.
 
 ## Writes
 
-### Rules per action (proposed, owner to confirm)
+### Rules per action (owner, 2026-10-03)
 
 | Action       | Applies to                                            | Change from today                                                                                       |
 | ------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
