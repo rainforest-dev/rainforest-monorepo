@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Source, StaleType } from '@/lib/registry.types';
+import type { Source, StaleType, Topic } from '@/lib/registry.types';
 
-import { compareSources } from './sort.js';
+import { compareSources, compareTopics } from './sort.js';
 
 const source = (
   name: string,
@@ -70,5 +70,28 @@ describe('compareSources', () => {
     expect(compareSources(source('A', 'active'), source('A', 'active'))).toBe(
       0,
     );
+  });
+});
+
+describe('compareTopics', () => {
+  const topic = (name: string, status: Topic['status']): Topic => ({
+    name,
+    tags: [],
+    description: '',
+    status,
+  });
+
+  it('orders proposed, active, declined, then by name', () => {
+    expect(
+      [
+        topic('Zeta', 'declined'),
+        topic('Beta', 'active'),
+        topic('Alpha', 'active'),
+        topic('Omega', 'proposed'),
+        topic('Delta', 'proposed'),
+      ]
+        .sort(compareTopics)
+        .map((t) => t.name),
+    ).toEqual(['Delta', 'Omega', 'Alpha', 'Beta', 'Zeta']);
   });
 });

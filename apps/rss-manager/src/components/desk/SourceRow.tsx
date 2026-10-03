@@ -1,5 +1,4 @@
 import {
-  Badge,
   Checkbox,
   cn,
   TableCell,
@@ -9,12 +8,12 @@ import {
 import type { Source } from '@/lib';
 import { daysAgo, feedHost, visibleStale } from '@/lib/desk';
 
+import { DESK_ROW_CLASS, WIDE_ONLY } from './deskRow';
 import { SourceActions } from './SourceActions';
 import { SOURCE_DETAIL_ID } from './SourceDetail';
 import { StaleBadge, StatusBadge } from './StatusBadges';
-import type { SourceActionsState } from './useSourceActions';
-
-const SHOWN_TAGS = 2;
+import { TagBadges } from './TagBadges';
+import type { SourceActionsState } from './useRegistryActions';
 
 export interface SourceRowProps {
   source: Source;
@@ -28,8 +27,6 @@ export interface SourceRowProps {
   onOpen: () => void;
 }
 
-export const WIDE_ONLY = 'max-md:hidden';
-
 export function SourceRow({
   source,
   open,
@@ -42,7 +39,6 @@ export function SourceRow({
   onOpen,
 }: SourceRowProps) {
   const stale = visibleStale(source);
-  const extraTags = source.tags.length - SHOWN_TAGS;
   return (
     <TableRow
       data-nav-key={source.name}
@@ -52,8 +48,8 @@ export function SourceRow({
       data-pending={actions.pending.has(source.name) || undefined}
       onClick={onOpen}
       className={cn(
-        'cursor-pointer outline-none data-[pending]:opacity-60',
-        'focus-visible:outline-foreground focus-visible:outline-solid focus-visible:outline-[2.5px] focus-visible:-outline-offset-[2.5px]',
+        'cursor-pointer',
+        DESK_ROW_CLASS,
         open && 'shadow-[inset_3px_0_0_var(--color-primary)]',
       )}
     >
@@ -95,21 +91,7 @@ export function SourceRow({
             {source.category || '—'}
           </TableCell>
           <TableCell className={WIDE_ONLY}>
-            <div className="flex items-center gap-1">
-              {source.tags.slice(0, SHOWN_TAGS).map((tag) => (
-                <Badge key={tag} variant="muted">
-                  {tag}
-                </Badge>
-              ))}
-              {extraTags > 0 && (
-                <span
-                  className="text-muted-foreground text-xs"
-                  title={source.tags.slice(SHOWN_TAGS).join(', ')}
-                >
-                  +{extraTags}
-                </span>
-              )}
-            </div>
+            <TagBadges tags={source.tags} />
           </TableCell>
         </>
       )}

@@ -1,7 +1,7 @@
 ---
 import { RegistryDesk } from '@/components/RegistryDesk.tsx';
 import { parseDeskParams } from '@/lib/desk';
-import { readDeskData, SOURCES_FILE } from '@/server';
+import { readDeskData, SOURCES_FILE, TOPICS_FILE } from '@/server';
 import '@/styles/global.css';
 
 const params = parseDeskParams(Astro.url.searchParams);
@@ -27,6 +27,7 @@ const data = readDeskData();
       initialParams={params}
       data={data}
       registryFile={SOURCES_FILE}
+      topicsFile={TOPICS_FILE}
     />
   </body>
 </html>

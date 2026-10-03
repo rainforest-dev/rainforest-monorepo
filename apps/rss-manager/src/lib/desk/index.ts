@@ -7,4 +7,5 @@ export * from './load.js';
 export * from './params.js';
 export * from './sort.js';
 export * from './stale.js';
+export * from './topics.js';
 export * from './validate.js';

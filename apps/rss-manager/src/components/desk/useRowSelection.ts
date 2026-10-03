@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { toggleName, withNames, withoutNames } from '@/lib/desk';
 
-export interface SourceSelection {
+export interface RowSelection {
   selectMode: boolean;
   selected: ReadonlySet<string>;
   start: () => void;
@@ -13,7 +13,7 @@ export interface SourceSelection {
   clear: () => void;
 }
 
-export function useSourceSelection(): SourceSelection {
+export function useRowSelection(): RowSelection {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
 

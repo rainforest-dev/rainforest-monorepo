@@ -1,10 +1,16 @@
-import type { Source, StaleType } from '@/lib/registry.types';
+import type { Source, StaleType, Topic } from '@/lib/registry.types';
 
 export const SOURCE_STATUS_LABEL: Record<Source['status'], string> = {
   active: 'Active',
   proposed: 'Proposed',
   'no-rss': 'No RSS',
   retired: 'Retired',
+};
+
+export const TOPIC_STATUS_LABEL: Record<Topic['status'], string> = {
+  active: 'Active',
+  proposed: 'Proposed',
+  declined: 'Declined',
 };
 
 export interface StaleCopy {

@@ -14,3 +14,7 @@ export function feedHost(url: string): string {
     return url;
   }
 }
+
+export function topicSummary(description: string): string {
+  return description.replace(/\s*·\s*_\d{4}-\d{2}-\d{2}_.*$/, '');
+}

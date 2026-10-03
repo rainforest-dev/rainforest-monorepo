@@ -6,34 +6,35 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { XIcon } from 'lucide-react';
 
-import { READ_ONLY_NOTE, type Source } from '@/lib';
-import {
-  applicableNames,
-  notApplicableNote,
-  SOURCE_ACTION_LABEL,
-  type SourceAction,
-} from '@/lib/desk';
+import { READ_ONLY_NOTE } from '@/lib';
+import { ACTION_LABEL, type RegistryAction } from '@/lib/desk';
 
-import type { SourceActionsState } from './useSourceActions';
-import type { SourceSelection } from './useSourceSelection';
+import type { RegistryActionsState } from './useRegistryActions';
+import type { RowSelection } from './useRowSelection';
 
-const ACTIONS: readonly SourceAction[] = ['activate', 'retire'];
-
-export interface BulkToolbarProps {
-  sources: readonly Source[];
-  pageNames: readonly string[];
-  selection: SourceSelection;
-  actions: SourceActionsState;
+export interface BulkOption<A extends RegistryAction> {
+  action: A;
+  names: readonly string[];
+  emptyNote: string;
 }
 
-export function BulkToolbar({
-  sources,
-  pageNames,
+export interface BulkToolbarProps<A extends RegistryAction> {
+  options: readonly BulkOption<A>[];
+  shownNames: readonly string[];
+  shownLabel: string;
+  selection: RowSelection;
+  actions: RegistryActionsState<A>;
+}
+
+export function BulkToolbar<A extends RegistryAction>({
+  options,
+  shownNames,
+  shownLabel,
   selection,
   actions,
-}: BulkToolbarProps) {
+}: BulkToolbarProps<A>) {
   const { selected } = selection;
-  const allOnPage = pageNames.every((name) => selected.has(name));
+  const allShown = shownNames.every((name) => selected.has(name));
 
   return (
     <div
@@ -52,25 +53,24 @@ export function BulkToolbar({
       <span aria-live="polite" className="text-sm font-medium tabular-nums">
         {selected.size} selected
       </span>
-      {!allOnPage && (
+      {!allShown && (
         <Button
           variant="link"
           size="xs"
-          onClick={() => selection.addMany(pageNames)}
+          onClick={() => selection.addMany(shownNames)}
         >
-          Select all {pageNames.length} on this page
+          Select all {shownNames.length} {shownLabel}
         </Button>
       )}
       <div className="flex items-center gap-2 sm:ml-auto">
         <ButtonGroup aria-label="Apply to selected">
-          {ACTIONS.map((action) => {
-            const names = applicableNames(sources, selected, action);
+          {options.map(({ action, names, emptyNote }) => {
             const running = actions.isRunning('bulk', action);
             const blocked = names.some((name) => actions.pending.has(name));
             const title = !actions.writable
               ? READ_ONLY_NOTE
               : names.length === 0
-                ? notApplicableNote(action)
+                ? emptyNote
                 : undefined;
             return (
               <Button
@@ -86,7 +86,7 @@ export function BulkToolbar({
                 }
               >
                 {running && <Spinner data-icon="inline-start" />}
-                {SOURCE_ACTION_LABEL[action]}{' '}
+                {ACTION_LABEL[action]}{' '}
                 <span className="tabular-nums">{names.length}</span>
               </Button>
             );
