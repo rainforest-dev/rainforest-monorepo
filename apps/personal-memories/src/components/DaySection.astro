@@ -27,6 +27,7 @@ import {
 } from '@/lib/notes';
 import {
   getTimeline,
+  isVideo,
   notesStore,
   type TimelineEvent,
   type TimelineSource,
@@ -435,7 +436,11 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                       data-excerpt={excerptOf(event)}
                       data-width={media?.width}
                       data-height={media?.height}
-                      data-video={event.photo?.movie ? '' : undefined}
+                      data-video={
+                        event.photo?.movie && media && isVideo(media.path)
+                          ? ''
+                          : undefined
+                      }
                       data-overflow={tile?.overflow ? '' : undefined}
                       data-more={tile?.more ? '' : undefined}
                       class:list={[

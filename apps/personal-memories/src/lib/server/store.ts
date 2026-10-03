@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, type Stats } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import { extname, isAbsolute, join } from 'node:path';
 
 import type { Timeline, TimelineEvent } from './timeline.ts';
@@ -47,6 +48,17 @@ export function contentType(path: string): string {
   return (
     CONTENT_TYPES[extname(path).toLowerCase()] ?? 'application/octet-stream'
   );
+}
+
+export const isVideo = (path: string) => contentType(path).startsWith('video/');
+
+export async function localFile(path: string): Promise<Stats | undefined> {
+  try {
+    const stats = await stat(path);
+    return stats.isFile() && stats.size > 0 ? stats : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

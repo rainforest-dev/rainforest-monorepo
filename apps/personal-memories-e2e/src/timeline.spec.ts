@@ -410,6 +410,25 @@ test('a thumbnail request returns a webp image', async ({ request }) => {
   expect(response.headers()['content-type']).toBe('image/webp');
 });
 
+test('a thumbnail for an id outside the timeline is a 404', async ({
+  request,
+}) => {
+  const response = await request.get('/thumb/NOT-AN-EVENT?w=480');
+  expect(response.status()).toBe(404);
+});
+
+test('the year view loads without fetching any photo', async ({ page }) => {
+  const photoRequests: string[] = [];
+  page.on('request', (r) => {
+    const { pathname } = new URL(r.url());
+    if (/^\/(thumb|media)\//.test(pathname)) photoRequests.push(pathname);
+  });
+  await page.goto('/');
+  await expect(page.locator('[data-heat-cell]').first()).toBeAttached();
+  await page.waitForLoadState('networkidle');
+  expect(photoRequests).toEqual([]);
+});
+
 test('scrolling loads neighbouring days and follows the URL', async ({
   page,
 }) => {

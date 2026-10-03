@@ -126,6 +126,9 @@
       "outputs": ["{projectRoot}/dist"],
       "cache": true
     },
+    "test": {
+      "dependsOn": ["^build"]
+    },
     "build-storybook": {
       "inputs": [
         "default",

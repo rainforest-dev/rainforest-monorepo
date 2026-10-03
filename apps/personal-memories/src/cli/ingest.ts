@@ -46,11 +46,16 @@ export function ingest(
 
   const photoIndex = join(root, 'photos', 'index.json');
   if (existsSync(photoIndex)) {
-    const { events, skippedNoMedia, skippedInvalid } = parsePhotoIndex(
-      JSON.parse(readFileSync(photoIndex, 'utf8')),
-    );
+    const {
+      events,
+      fromDerivative,
+      fromOriginal,
+      skippedNoMedia,
+      skippedInvalid,
+    } = parsePhotoIndex(JSON.parse(readFileSync(photoIndex, 'utf8')));
     log(
-      `photos: ${events.length} events, ${skippedNoMedia} without local media, ` +
+      `photos: ${events.length} events (${fromDerivative} from local derivatives, ` +
+        `${fromOriginal} from local originals), ${skippedNoMedia} skipped with nothing local, ` +
         `${skippedInvalid} invalid`,
     );
     lists.push(events);

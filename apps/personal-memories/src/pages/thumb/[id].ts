@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 
 import type { APIRoute } from 'astro';
@@ -7,7 +7,9 @@ import {
   dataDir,
   ensureThumb,
   getTimeline,
+  localFile,
   mediaFile,
+  NOT_LOCAL_SVG,
   parseWidth,
   thumbCacheDir,
   thumbPath,
@@ -15,6 +17,14 @@ import {
 
 const notFound = () => new Response('Not found', { status: 404 });
 const badRequest = () => new Response('Bad request', { status: 400 });
+const notLocal = () =>
+  new Response(NOT_LOCAL_SVG, {
+    headers: {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'no-store',
+      'X-Memories-Media': 'not-local',
+    },
+  });
 
 export const GET: APIRoute = async ({ params, url }) => {
   const index = Number(url.searchParams.get('n') ?? 0);
@@ -24,14 +34,16 @@ export const GET: APIRoute = async ({ params, url }) => {
   if (!width) return badRequest();
 
   const src = mediaFile(getTimeline(), dataDir(), params.id, index);
-  if (!src || !existsSync(src)) return notFound();
+  if (!src) return notFound();
+  const source = await localFile(src);
+  if (!source) return notLocal();
 
   const dest = thumbPath(
     thumbCacheDir(),
     params.id,
     index,
     width,
-    statSync(src).mtimeMs,
+    source.mtimeMs,
   );
   try {
     await ensureThumb(src, dest, width);
@@ -43,11 +55,13 @@ export const GET: APIRoute = async ({ params, url }) => {
     });
   }
 
+  const thumb = await localFile(dest);
+  if (!thumb) return notLocal();
   const stream = Readable.toWeb(createReadStream(dest)) as ReadableStream;
   return new Response(stream, {
     headers: {
       'Content-Type': 'image/webp',
-      'Content-Length': String(statSync(dest).size),
+      'Content-Length': String(thumb.size),
       'Cache-Control': 'private, max-age=86400',
     },
   });

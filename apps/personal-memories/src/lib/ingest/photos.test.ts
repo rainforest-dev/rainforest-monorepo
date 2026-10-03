@@ -6,7 +6,11 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import { writePhotoFixture } from '@/lib/ingest/__fixtures__/photos.ts';
 
-import { parsePhotoIndex } from './photos.ts';
+import {
+  type LocalSize,
+  parsePhotoIndex,
+  resolvePhotoMedia,
+} from './photos.ts';
 
 const root = mkdtempSync(join(tmpdir(), 'memories-photos-'));
 const { original, derivative } = writePhotoFixture(root);
@@ -14,11 +18,19 @@ const result = parsePhotoIndex(
   JSON.parse(readFileSync(join(root, 'photos', 'index.json'), 'utf8')),
 );
 
+const sizes =
+  (files: Record<string, number>): LocalSize =>
+  (path) =>
+    files[path];
+const anyFile: LocalSize = () => 1;
+
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 describe('parsePhotoIndex', () => {
   it('keeps items with local media and counts the rest', () => {
     expect(result.events).toHaveLength(8);
+    expect(result.fromOriginal).toBe(7);
+    expect(result.fromDerivative).toBe(1);
     expect(result.skippedNoMedia).toBe(1);
     expect(result.skippedInvalid).toBe(0);
   });
@@ -48,34 +60,40 @@ describe('parsePhotoIndex', () => {
   });
 
   it('prefers the edited version over the original', () => {
-    const { events } = parsePhotoIndex([
-      {
-        uuid: 'X',
-        date: '2025-11-01T00:00:00+08:00',
-        path: '/o.jpg',
-        path_edited: '/e.jpg',
-      },
-    ]);
+    const { events } = parsePhotoIndex(
+      [
+        {
+          uuid: 'X',
+          date: '2025-11-01T00:00:00+08:00',
+          path: '/o.jpg',
+          path_edited: '/e.jpg',
+        },
+      ],
+      anyFile,
+    );
     expect(events[0].media).toEqual([{ path: '/e.jpg' }]);
   });
 
   it('keeps dimensions and Photos signals', () => {
-    const { events } = parsePhotoIndex([
-      {
-        uuid: 'U1',
-        date: '2025-11-01T10:15:00+08:00',
-        path: '/lib/a.jpg',
-        width: 4032,
-        height: 3024,
-        favorite: true,
-        score: { overall: 0.82 },
-        persons: ['A', 'B'],
-        screenshot: false,
-        ismovie: false,
-        burst: true,
-        burst_selected: true,
-      },
-    ]);
+    const { events } = parsePhotoIndex(
+      [
+        {
+          uuid: 'U1',
+          date: '2025-11-01T10:15:00+08:00',
+          path: '/lib/a.jpg',
+          width: 4032,
+          height: 3024,
+          favorite: true,
+          score: { overall: 0.82 },
+          persons: ['A', 'B'],
+          screenshot: false,
+          ismovie: false,
+          burst: true,
+          burst_selected: true,
+        },
+      ],
+      anyFile,
+    );
     expect(events[0].media).toEqual([
       { path: '/lib/a.jpg', width: 4032, height: 3024 },
     ]);
@@ -90,9 +108,10 @@ describe('parsePhotoIndex', () => {
   });
 
   it('defaults missing signals', () => {
-    const { events } = parsePhotoIndex([
-      { uuid: 'U2', date: '2025-11-01T10:15:00+08:00', path: '/lib/b.jpg' },
-    ]);
+    const { events } = parsePhotoIndex(
+      [{ uuid: 'U2', date: '2025-11-01T10:15:00+08:00', path: '/lib/b.jpg' }],
+      anyFile,
+    );
     expect(events[0].media).toEqual([{ path: '/lib/b.jpg' }]);
     expect(events[0].photo).toEqual({
       favorite: false,
@@ -104,15 +123,88 @@ describe('parsePhotoIndex', () => {
   });
 
   it('marks an unselected burst frame', () => {
-    const { events } = parsePhotoIndex([
-      {
-        uuid: 'U3',
-        date: '2025-11-01T10:15:00+08:00',
-        path: '/lib/c.jpg',
-        burst: true,
-        burst_selected: false,
-      },
-    ]);
+    const { events } = parsePhotoIndex(
+      [
+        {
+          uuid: 'U3',
+          date: '2025-11-01T10:15:00+08:00',
+          path: '/lib/c.jpg',
+          burst: true,
+          burst_selected: false,
+        },
+      ],
+      anyFile,
+    );
     expect(events[0].photo?.burstPick).toBe(false);
+  });
+});
+
+describe('resolvePhotoMedia', () => {
+  const ORIGINAL = '/lib/originals/A.heic';
+  const BIG = '/lib/resources/derivatives/A_1_105_c.jpeg';
+  const SMALL = '/lib/resources/derivatives/masters/A_4_5005_c.jpeg';
+
+  it('serves a local original when there is no derivative', () => {
+    expect(
+      resolvePhotoMedia({ path: ORIGINAL }, sizes({ [ORIGINAL]: 3_000_000 })),
+    ).toEqual({ path: ORIGINAL, from: 'original' });
+  });
+
+  it('prefers the largest local derivative over a local original', () => {
+    expect(
+      resolvePhotoMedia(
+        { path: ORIGINAL, path_derivatives: [SMALL, BIG] },
+        sizes({ [ORIGINAL]: 3_000_000, [SMALL]: 90_000, [BIG]: 260_000 }),
+      ),
+    ).toEqual({ path: BIG, from: 'derivative' });
+  });
+
+  it('uses a derivative when the original is only in iCloud', () => {
+    expect(
+      resolvePhotoMedia(
+        { path: null, ismissing: true, path_derivatives: [BIG, SMALL] },
+        sizes({ [SMALL]: 90_000 }),
+      ),
+    ).toEqual({ path: SMALL, from: 'derivative' });
+  });
+
+  it('ignores an original path osxphotos reports as missing', () => {
+    expect(
+      resolvePhotoMedia(
+        { path: ORIGINAL, ismissing: true },
+        sizes({ [ORIGINAL]: 3_000_000 }),
+      ),
+    ).toBeUndefined();
+  });
+
+  it('returns nothing when no file is on disk', () => {
+    expect(
+      resolvePhotoMedia(
+        { path: ORIGINAL, path_derivatives: [BIG, SMALL] },
+        sizes({}),
+      ),
+    ).toBeUndefined();
+  });
+
+  it('plays a movie from its local video and falls back to a still', () => {
+    const video = '/lib/originals/M.mov';
+    const poster = '/lib/resources/derivatives/M_1_105_c.jpeg';
+    expect(
+      resolvePhotoMedia(
+        { ismovie: true, path: video, path_derivatives: [poster] },
+        sizes({ [video]: 9_000_000, [poster]: 200_000 }),
+      ),
+    ).toEqual({ path: video, from: 'original' });
+    expect(
+      resolvePhotoMedia(
+        {
+          ismovie: true,
+          path: null,
+          ismissing: true,
+          path_derivatives: [poster],
+        },
+        sizes({ [poster]: 200_000 }),
+      ),
+    ).toEqual({ path: poster, from: 'derivative' });
   });
 });
