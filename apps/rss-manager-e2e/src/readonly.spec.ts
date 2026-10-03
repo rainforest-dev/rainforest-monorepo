@@ -15,7 +15,7 @@ import {
   sourceRow,
   startSelecting,
   toasts,
-  topicCard,
+  topicRow,
 } from './support/desk';
 import { FEEDS } from './support/feed-server';
 import {
@@ -78,9 +78,9 @@ test.describe('read-only vault', () => {
     const banner = page.getByRole('status');
     await expect(banner).toContainText('Read-only vault');
     await expect(banner).toContainText(READ_ONLY_BANNER);
-    const card = topicCard(page, 'Local-first apps');
+    const row = topicRow(page, 'Local-first apps');
     for (const action of ['Activate', 'Decline']) {
-      const button = card.getByRole('button', { name: action });
+      const button = row.getByRole('button', { name: action });
       await expect(button).toBeDisabled();
       await expect(button).toHaveAttribute('title', READ_ONLY_NOTE);
     }
@@ -121,13 +121,13 @@ test.describe('read-only vault', () => {
     const before = readVault(TOPICS_FILE);
 
     makeReadOnly(TOPICS_FILE);
-    await topicCard(page, 'Accessibility audits')
+    await topicRow(page, 'Accessibility audits')
       .getByRole('button', { name: 'Decline' })
       .click();
 
     await expect(page.getByRole('status')).toContainText(READ_ONLY_NOTE);
     await expect(
-      topicCard(page, 'Accessibility audits').getByRole('button', {
+      topicRow(page, 'Accessibility audits').getByRole('button', {
         name: 'Activate',
       }),
     ).toBeDisabled();

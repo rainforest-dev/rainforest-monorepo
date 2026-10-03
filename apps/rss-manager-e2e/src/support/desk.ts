@@ -4,7 +4,7 @@ export type Tab = 'sources' | 'topics' | 'queue';
 
 const READY: Record<Tab, (page: Page) => Locator> = {
   sources: (page) => page.getByRole('searchbox', { name: 'Search sources' }),
-  topics: (page) => page.getByRole('heading', { level: 3 }).first(),
+  topics: (page) => page.getByRole('searchbox', { name: 'Search topics' }),
   queue: (page) => page.getByRole('heading', { level: 3 }).first(),
 };
 
@@ -110,10 +110,25 @@ function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export const topicCard = (page: Page, name: string): Locator =>
-  page
-    .locator('div.rounded-lg')
-    .filter({ has: page.getByText(name, { exact: true }) });
+export const topicsGrid = (page: Page): Locator =>
+  page.getByRole('grid', { name: 'Topics' });
+
+export const topicRows = (page: Page): Locator =>
+  topicsGrid(page).locator('tbody tr');
+
+export const topicRow = (page: Page, name: string): Locator =>
+  topicRows(page).filter({ has: page.getByText(name, { exact: true }) });
+
+export const topicSearch = (page: Page): Locator =>
+  page.getByRole('searchbox', { name: 'Search topics' });
+
+export const topicStatus = (page: Page): Locator =>
+  page.getByRole('group', { name: 'Topic status' });
+
+export const topicStatusButton = (page: Page, label: string): Locator =>
+  topicStatus(page).getByRole('button', {
+    name: new RegExp(`^${escapeRegExp(label)} \\d+$`),
+  });
 
 export const READ_ONLY_NOTE =
   'The vault is mounted read-only, so the registry cannot be edited from here.';
@@ -128,7 +143,7 @@ export const bulkToolbar = (page: Page): Locator =>
 
 export const bulkButton = (
   page: Page,
-  action: 'Activate' | 'Retire',
+  action: 'Activate' | 'Retire' | 'Decline',
 ): Locator =>
   bulkToolbar(page)
     .getByRole('group', { name: 'Apply to selected' })
@@ -140,7 +155,7 @@ export const selectedCount = (page: Page): Locator =>
 export async function startSelecting(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Select', exact: true }).click();
   await expect(
-    page.getByRole('checkbox', { name: 'Select all on this page' }),
+    page.getByRole('checkbox', { name: /^Select all (on this page|shown)$/ }),
   ).toBeVisible();
 }
 

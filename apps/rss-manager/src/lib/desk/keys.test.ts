@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Source, StaleType } from '@/lib/registry.types';
+import type { Source, StaleType, Topic } from '@/lib/registry.types';
 
 import {
   DESK_HINTS,
@@ -8,10 +8,10 @@ import {
   type DeskKeyInput,
   resolveDeskKey,
   type RowKeyState,
-  type SourcesKeyState,
+  type ViewKeyState,
 } from './keys.js';
 
-const SOURCES: SourcesKeyState = {
+const SOURCES: ViewKeyState = {
   paneOpen: false,
   hasSelection: false,
   selectMode: false,
@@ -40,7 +40,7 @@ function resolve(key: string, input: Partial<DeskKeyInput> = {}) {
     modified: false,
     typing: false,
     inOverlay: false,
-    sources: SOURCES,
+    view: SOURCES,
     row: null,
     ...input,
   });
@@ -49,8 +49,8 @@ function resolve(key: string, input: Partial<DeskKeyInput> = {}) {
 const onRow = (
   key: string,
   row: RowKeyState = PROPOSED,
-  sources: Partial<SourcesKeyState> = {},
-) => resolve(key, { row, sources: { ...SOURCES, ...sources } });
+  sources: Partial<ViewKeyState> = {},
+) => resolve(key, { row, view: { ...SOURCES, ...sources } });
 
 describe('row keys', () => {
   it.each(['ArrowUp', 'ArrowDown', 'Home', 'End'] as const)(
@@ -141,14 +141,94 @@ describe('row keys', () => {
   });
 });
 
+const TOPICS: ViewKeyState = {
+  paneOpen: false,
+  hasSelection: false,
+  selectMode: false,
+  page: 1,
+  pageCount: 1,
+  writable: true,
+};
+
+const topicRow = (status: Topic['status'], pending = false): RowKeyState => ({
+  topic: { status },
+  pending,
+});
+
+const onTopic = (
+  key: string,
+  row: RowKeyState,
+  view: Partial<ViewKeyState> = {},
+) => resolve(key, { row, view: { ...TOPICS, ...view } });
+
+describe('topic row keys', () => {
+  it('arrows, Home and End move; ← and → have no page to go to', () => {
+    for (const key of ['ArrowUp', 'ArrowDown', 'Home', 'End'] as const)
+      expect(onTopic(key, topicRow('active'))).toEqual({ type: 'move', key });
+    expect(onTopic('ArrowLeft', topicRow('active'))).toBeNull();
+    expect(onTopic('ArrowRight', topicRow('active'))).toBeNull();
+  });
+
+  it.each(['x', ' '])('%j toggles the selection', (key) => {
+    expect(onTopic(key, topicRow('declined'))).toEqual({ type: 'toggle' });
+  });
+
+  it('a activates proposed and declined topics', () => {
+    expect(onTopic('a', topicRow('proposed'))).toEqual({ type: 'activate' });
+    expect(onTopic('a', topicRow('declined'))).toEqual({ type: 'activate' });
+    expect(onTopic('a', topicRow('active'))).toBeNull();
+  });
+
+  it('d declines proposed topics only', () => {
+    expect(onTopic('d', topicRow('proposed'))).toEqual({ type: 'decline' });
+    expect(onTopic('d', topicRow('active'))).toBeNull();
+    expect(onTopic('d', topicRow('declined'))).toBeNull();
+  });
+
+  it('a and d write nothing read-only or while the row is pending', () => {
+    for (const key of ['a', 'd']) {
+      expect(
+        onTopic(key, topicRow('proposed'), { writable: false }),
+      ).toBeNull();
+      expect(onTopic(key, topicRow('proposed', true))).toBeNull();
+    }
+  });
+
+  it('Enter and r do nothing on a topic, and d nothing on a source', () => {
+    expect(onTopic('Enter', topicRow('proposed'))).toBeNull();
+    expect(onTopic('r', topicRow('active'))).toBeNull();
+    expect(onRow('d', PROPOSED)).toBeNull();
+  });
+
+  it('global keys still work on a topic row', () => {
+    expect(onTopic('/', topicRow('active'))).toEqual({ type: 'focus-search' });
+    expect(onTopic('1', topicRow('active'))).toEqual({
+      type: 'tab',
+      tab: 'sources',
+    });
+    expect(onTopic(']', topicRow('active'))).toBeNull();
+  });
+
+  it('Esc clears the selection, then leaves select mode', () => {
+    const row = topicRow('active');
+    expect(
+      onTopic('Escape', row, { hasSelection: true, selectMode: true }),
+    ).toEqual({ type: 'clear-selection' });
+    expect(onTopic('Escape', row, { selectMode: true })).toEqual({
+      type: 'leave-select-mode',
+    });
+    expect(onTopic('Escape', row)).toBeNull();
+  });
+});
+
 describe('global keys', () => {
   it('/ focuses the search on every tab', () => {
     expect(resolve('/')).toEqual({ type: 'focus-search' });
-    expect(resolve('/', { sources: null })).toEqual({ type: 'focus-search' });
+    expect(resolve('/', { view: null })).toEqual({ type: 'focus-search' });
   });
 
   it('1 to 3 switch tabs from any tab', () => {
-    expect(resolve('1', { sources: null })).toEqual({
+    expect(resolve('1', { view: null })).toEqual({
       type: 'tab',
       tab: 'sources',
     });
@@ -160,9 +240,9 @@ describe('global keys', () => {
   it('[ and ] step pages on Sources and stop at the ends', () => {
     expect(resolve('[')).toEqual({ type: 'page', page: 1 });
     expect(resolve(']')).toEqual({ type: 'page', page: 3 });
-    expect(resolve('[', { sources: { ...SOURCES, page: 1 } })).toBeNull();
-    expect(resolve(']', { sources: { ...SOURCES, page: 3 } })).toBeNull();
-    expect(resolve(']', { sources: null })).toBeNull();
+    expect(resolve('[', { view: { ...SOURCES, page: 1 } })).toBeNull();
+    expect(resolve(']', { view: { ...SOURCES, page: 3 } })).toBeNull();
+    expect(resolve(']', { view: null })).toBeNull();
   });
 
   it('Esc closes the pane, then clears the selection, then leaves select mode', () => {
@@ -172,19 +252,19 @@ describe('global keys', () => {
       hasSelection: true,
       selectMode: true,
     };
-    expect(resolve('Escape', { sources: all })).toEqual({
+    expect(resolve('Escape', { view: all })).toEqual({
       type: 'close-pane',
     });
-    expect(resolve('Escape', { sources: { ...all, paneOpen: false } })).toEqual(
-      { type: 'clear-selection' },
-    );
+    expect(resolve('Escape', { view: { ...all, paneOpen: false } })).toEqual({
+      type: 'clear-selection',
+    });
     expect(
       resolve('Escape', {
-        sources: { ...all, paneOpen: false, hasSelection: false },
+        view: { ...all, paneOpen: false, hasSelection: false },
       }),
     ).toEqual({ type: 'leave-select-mode' });
     expect(resolve('Escape')).toBeNull();
-    expect(resolve('Escape', { sources: null })).toBeNull();
+    expect(resolve('Escape', { view: null })).toBeNull();
   });
 
   it('other keys do nothing', () => {
@@ -206,7 +286,7 @@ describe('guards', () => {
         resolve(key, {
           ...guard,
           row: PROPOSED,
-          sources: { ...SOURCES, paneOpen: true },
+          view: { ...SOURCES, paneOpen: true },
         }),
       ).toBeNull();
   });
@@ -229,11 +309,20 @@ describe('key hints', () => {
     );
   });
 
-  it('Topics and Queue list the tab keys', () => {
-    expect(deskHints('topics', true)).toEqual([
+  it('Topics lists its row keys and the tab keys; Queue only the tab keys', () => {
+    expect(deskHints('topics', false).map((h) => h.label)).toEqual([
+      'Search',
+      'Move',
+      'Select',
+      'Activate',
+      'Decline',
+      'Clear selection',
+      'Switch tab',
+    ]);
+    expect(deskHints('queue', true)).toEqual([
       { keys: ['1', '2', '3'], label: 'Switch tab' },
     ]);
-    expect(DESK_HINTS.queue).toBe(DESK_HINTS.topics);
+    expect(DESK_HINTS.topics.at(-1)).toBe(DESK_HINTS.queue[0]);
   });
 
   it('hints carry no flags into the row', () => {

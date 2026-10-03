@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { daysAgo, feedHost } from './format.js';
+import { daysAgo, feedHost, topicSummary } from './format.js';
 
 const NOW = Date.parse('2026-10-03T12:00:00Z');
 
@@ -27,5 +27,22 @@ describe('feedHost', () => {
 
   it('falls back to the text when it is not a URL', () => {
     expect(feedHost('not a url')).toBe('not a url');
+  });
+});
+
+describe('topicSummary', () => {
+  it('drops the date and provenance rss-discover appends', () => {
+    expect(
+      topicSummary(
+        'VLANs, DNS and routers at home · _2026-09-01_ · proposed by rss-discover',
+      ),
+    ).toBe('VLANs, DNS and routers at home');
+  });
+
+  it('keeps a description with no date as it is', () => {
+    expect(topicSummary('Typography · page layout')).toBe(
+      'Typography · page layout',
+    );
+    expect(topicSummary('')).toBe('');
   });
 });

@@ -10,21 +10,23 @@ import {
   type DeskTab,
   resolveDeskKey,
   type RowKeyState,
-  type SourcesCommand,
-  type SourcesKeyState,
+  type ViewCommand,
+  type ViewKeyState,
 } from '@/lib/desk';
 
-export interface SourcesKeys {
-  state: SourcesKeyState;
+export interface ViewKeys {
+  state: ViewKeyState;
   rowAt: (
     target: EventTarget | null,
   ) => (RowKeyState & { name: string }) | null;
   run: (
-    command: SourcesCommand,
+    command: ViewCommand,
     row: string | null,
     target: Element | null,
   ) => void;
 }
+
+export type ViewKeysRef = RefObject<ViewKeys | null>;
 
 export const DESK_SEARCH_ATTR = 'data-desk-search';
 
@@ -37,30 +39,30 @@ function focusSearch(tab: DeskTab) {
 export function useDeskShortcuts({
   tab,
   onTab,
-  sources,
+  views,
 }: {
   tab: DeskTab;
   onTab: (tab: DeskTab) => void;
-  sources: RefObject<SourcesKeys | null>;
+  views: Partial<Record<DeskTab, ViewKeysRef>>;
 }) {
-  const latest = useRef({ tab, onTab });
+  const latest = useRef({ tab, onTab, views });
   useLayoutEffect(() => {
-    latest.current = { tab, onTab };
+    latest.current = { tab, onTab, views };
   });
 
   useEffect(
     () =>
       listenForShortcuts((event) => {
-        const { tab: current, onTab: switchTab } = latest.current;
+        const { tab: current, onTab: switchTab, views } = latest.current;
         const target = event.target instanceof Element ? event.target : null;
-        const keys = current === 'sources' ? sources.current : null;
+        const keys = views[current]?.current ?? null;
         const row = keys?.rowAt(target) ?? null;
         const command = resolveDeskKey({
           key: event.key,
           modified: hasModifier(event),
           typing: isTypingTarget(target),
           inOverlay: isInOverlay(target),
-          sources: keys?.state ?? null,
+          view: keys?.state ?? null,
           row,
         });
         if (!command) return;
@@ -73,6 +75,6 @@ export function useDeskShortcuts({
           keys?.run(command, row?.name ?? null, target);
         }
       }),
-    [sources],
+    [],
   );
 }

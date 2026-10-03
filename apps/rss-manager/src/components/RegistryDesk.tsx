@@ -9,16 +9,17 @@ import { type ReactNode, useRef, useState } from 'react';
 import {
   DeskHeader,
   LoadError,
-  ReadOnlyBanner,
-  type SourcesKeys,
   SourcesView,
   TabSkeleton,
+  TopicsView,
   useDeskData,
   useDeskParams,
   useDeskShortcuts,
+  useRowSelection,
   useSourceActions,
-  useSourceSelection,
+  useTopicActions,
   ValidatePopover,
+  type ViewKeys,
 } from '@/components/desk';
 import {
   clearSourceFilters,
@@ -32,12 +33,12 @@ import {
 } from '@/lib/desk';
 
 import { ReadingQueue } from './ReadingQueue';
-import { TopicList } from './TopicList';
 
 export interface RegistryDeskProps {
   initialParams: DeskParams;
   data: DeskData;
   registryFile: string;
+  topicsFile: string;
 }
 
 const FILE_LABEL: Record<DeskFile, string> = {
@@ -53,6 +54,7 @@ export function RegistryDesk({
   initialParams,
   data: initialData,
   registryFile,
+  topicsFile,
 }: RegistryDeskProps) {
   const { params, navigate } = useDeskParams(initialParams);
   const desk = useDeskData(initialData);
@@ -61,15 +63,23 @@ export function RegistryDesk({
   const sourceActions = useSourceActions({
     writable: sources.ok && sources.data.writable,
     registryFile,
-    onSourcesChange: desk.updateSources,
+    onItemsChange: desk.updateSources,
     onReadOnly: () => desk.markReadOnly('sources'),
   });
-  const selection = useSourceSelection();
-  const sourcesKeys = useRef<SourcesKeys | null>(null);
+  const topicActions = useTopicActions({
+    writable: topics.ok && topics.data.writable,
+    registryFile: topicsFile,
+    onItemsChange: desk.updateTopics,
+    onReadOnly: () => desk.markReadOnly('topics'),
+  });
+  const selection = useRowSelection();
+  const topicSelection = useRowSelection();
+  const sourcesKeys = useRef<ViewKeys | null>(null);
+  const topicsKeys = useRef<ViewKeys | null>(null);
   useDeskShortcuts({
     tab: params.tab,
     onTab: (tab) => navigate({ tab }),
-    sources: sourcesKeys,
+    views: { sources: sourcesKeys, topics: topicsKeys },
   });
 
   function body<T>(
@@ -140,20 +150,19 @@ export function RegistryDesk({
             />
           ))}
         </TabsContent>
-        <TabsContent value="topics" className={padded}>
-          <h2 className="text-lg font-semibold">Topics</h2>
+        <TabsContent value="topics" className={topics.ok ? undefined : padded}>
+          {!topics.ok && <h2 className="text-lg font-semibold">Topics</h2>}
           {body('topics', topics, (data) => (
-            <>
-              {!data.writable && <ReadOnlyBanner />}
-              <TopicList
-                topics={data.topics}
-                writable={data.writable}
-                onTopicsChange={desk.updateTopics}
-                onReadOnly={() => desk.markReadOnly('topics')}
-              />
-            </>
+            <TopicsView
+              topics={data.topics}
+              params={params}
+              navigate={navigate}
+              actions={topicActions}
+              selection={topicSelection}
+              keys={topicsKeys}
+            />
           ))}
-          {hints('topics')}
+          {!topics.ok && hints('topics')}
         </TabsContent>
         <TabsContent value="queue" className={padded}>
           <h2 className="text-lg font-semibold">Reading queue</h2>

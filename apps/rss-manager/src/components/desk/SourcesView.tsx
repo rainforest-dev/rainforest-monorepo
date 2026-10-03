@@ -15,17 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from '@rainforest-dev/rainforest-react';
-import {
-  type RefObject,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type { Source } from '@/lib';
 import {
   activeChips,
+  applicableNames,
   clampPage,
   deskHints,
   type DeskParams,
@@ -34,13 +29,16 @@ import {
   facetOptions,
   filterSources,
   type HistoryMode,
+  notApplicableNote,
   pageCheckState,
+  type SourceAction,
   SOURCES_PAGE_SIZE,
-  type SourcesCommand,
   toggleValue,
+  type ViewCommand,
 } from '@/lib/desk';
 
 import { BulkToolbar } from './BulkToolbar';
+import { WIDE_ONLY } from './deskRow';
 import { FilterChips } from './FilterChips';
 import { FilterPanel } from './FilterPanel';
 import { Pager } from './Pager';
@@ -48,21 +46,23 @@ import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { SearchField } from './SearchField';
 import { READER_FEEDS_URL } from './SourceActions';
 import { SOURCE_DETAIL_ID, SourceDetail } from './SourceDetail';
-import { SourceRow, WIDE_ONLY } from './SourceRow';
-import type { SourcesKeys } from './useDeskShortcuts';
+import { SourceRow } from './SourceRow';
+import type { ViewKeysRef } from './useDeskShortcuts';
+import type { SourceActionsState } from './useRegistryActions';
 import { useRovingRows } from './useRovingRows';
-import type { SourceActionsState } from './useSourceActions';
-import type { SourceSelection } from './useSourceSelection';
+import type { RowSelection } from './useRowSelection';
+
+const BULK_ACTIONS: readonly SourceAction[] = ['activate', 'retire'];
 
 export interface SourcesViewProps {
   sources: Source[];
   params: DeskParams;
   navigate: (patch: DeskPatch, mode?: HistoryMode) => void;
   actions: SourceActionsState;
-  selection: SourceSelection;
+  selection: RowSelection;
   onClearFilters: () => void;
   onValidate: () => void;
-  keys?: RefObject<SourcesKeys | null>;
+  keys?: ViewKeysRef;
 }
 
 export function SourcesView({
@@ -115,7 +115,7 @@ export function SourcesView({
   };
 
   const runKey = (
-    command: SourcesCommand,
+    command: ViewCommand,
     name: string | null,
     target: Element | null,
   ) => {
@@ -243,8 +243,13 @@ export function SourcesView({
             </h2>
             {bulk ? (
               <BulkToolbar
-                sources={sources}
-                pageNames={pageNames}
+                options={BULK_ACTIONS.map((action) => ({
+                  action,
+                  names: applicableNames(sources, selection.selected, action),
+                  emptyNote: notApplicableNote(action),
+                }))}
+                shownNames={pageNames}
+                shownLabel="on this page"
                 selection={selection}
                 actions={actions}
               />

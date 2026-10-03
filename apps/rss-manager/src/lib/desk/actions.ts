@@ -25,6 +25,10 @@ export function canDeclineTopic(topic: TopicState): boolean {
   return topic.status === 'proposed';
 }
 
+export type TopicAction = 'activate' | 'decline';
+export type RegistryAction = SourceAction | TopicAction;
+export type RegistryKind = 'sources' | 'topics';
+
 export const SOURCE_RULES: Record<
   SourceAction,
   (source: SourceState) => boolean
@@ -33,57 +37,96 @@ export const SOURCE_RULES: Record<
   retire: canRetire,
 };
 
-export const SOURCE_ACTION_LABEL: Record<SourceAction, string> = {
+export const TOPIC_RULES: Record<TopicAction, (topic: TopicState) => boolean> =
+  {
+    activate: canActivateTopic,
+    decline: canDeclineTopic,
+  };
+
+export const ACTION_LABEL: Record<RegistryAction, string> = {
   activate: 'Activate',
   retire: 'Retire',
+  decline: 'Decline',
 };
 
-const PAST: Record<SourceAction, string> = {
+export const SOURCE_ACTION_LABEL: Record<SourceAction, string> = ACTION_LABEL;
+
+const PAST: Record<RegistryAction, string> = {
   activate: 'Activated',
   retire: 'Retired',
+  decline: 'Declined',
 };
 
-const SCOPE: Record<SourceAction, string> = {
-  activate: 'Activate applies to proposed and retired sources.',
-  retire:
-    'Retire applies to proposed, active and no-RSS sources without a delivery gap.',
+const SCOPE: Record<RegistryKind, Partial<Record<RegistryAction, string>>> = {
+  sources: {
+    activate: 'Activate applies to proposed and retired sources.',
+    retire:
+      'Retire applies to proposed, active and no-RSS sources without a delivery gap.',
+  },
+  topics: {
+    activate: 'Activate applies to proposed and declined topics.',
+    decline: 'Decline applies to proposed topics.',
+  },
 };
+
+function selectedWhere<T extends { name: string }>(
+  items: readonly T[],
+  selection: ReadonlySet<string>,
+  applies: (item: T) => boolean,
+): string[] {
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const item of items) {
+    if (!selection.has(item.name) || seen.has(item.name)) continue;
+    seen.add(item.name);
+    if (applies(item)) names.push(item.name);
+  }
+  return names;
+}
 
 export function applicableNames(
   sources: readonly Source[],
   selection: ReadonlySet<string>,
   action: SourceAction,
 ): string[] {
-  const seen = new Set<string>();
-  const names: string[] = [];
-  for (const source of sources) {
-    if (!selection.has(source.name) || seen.has(source.name)) continue;
-    seen.add(source.name);
-    if (SOURCE_RULES[action](source)) names.push(source.name);
-  }
-  return names;
+  return selectedWhere(sources, selection, SOURCE_RULES[action]);
 }
 
-export function notApplicableNote(action: SourceAction): string {
-  return `None of the selected sources can be ${PAST[action].toLowerCase()}. ${SCOPE[action]}`;
+export function applicableTopicNames(
+  topics: readonly Topic[],
+  selection: ReadonlySet<string>,
+  action: TopicAction,
+): string[] {
+  return selectedWhere(topics, selection, TOPIC_RULES[action]);
 }
 
-function sourcesLabel(names: readonly string[]): string {
-  return names.length === 1 ? (names[0] ?? '') : `${names.length} sources`;
+export function notApplicableNote(
+  action: RegistryAction,
+  kind: RegistryKind = 'sources',
+): string {
+  const scope = SCOPE[kind][action];
+  const none = `None of the selected ${kind} can be ${PAST[action].toLowerCase()}.`;
+  return scope ? `${none} ${scope}` : none;
+}
+
+function itemsLabel(names: readonly string[], kind: RegistryKind): string {
+  return names.length === 1 ? (names[0] ?? '') : `${names.length} ${kind}`;
 }
 
 export function writeSummary(
-  action: SourceAction,
+  action: RegistryAction,
   names: readonly string[],
+  kind: RegistryKind = 'sources',
 ): string {
-  return `${PAST[action]} ${sourcesLabel(names)}`;
+  return `${PAST[action]} ${itemsLabel(names, kind)}`;
 }
 
 export function writeFailure(
-  action: SourceAction,
+  action: RegistryAction,
   names: readonly string[],
+  kind: RegistryKind = 'sources',
 ): string {
-  return `Couldn't ${action} ${sourcesLabel(names)}`;
+  return `Couldn't ${action} ${itemsLabel(names, kind)}`;
 }
 
 export type PageCheck = 'none' | 'some' | 'all';

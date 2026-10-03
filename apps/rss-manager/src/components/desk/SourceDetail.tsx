@@ -27,7 +27,7 @@ import {
 import { SourceActions } from './SourceActions';
 import { STALE_ICON, StaleBadge, StatusBadge } from './StatusBadges';
 import { useFeedValidation } from './useFeedValidation';
-import type { SourceActionsState } from './useSourceActions';
+import type { SourceActionsState } from './useRegistryActions';
 import { ValidateForm } from './ValidateForm';
 import { ValidateResult } from './ValidateResult';
 

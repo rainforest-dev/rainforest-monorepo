@@ -7,8 +7,12 @@ import {
   TrendingDownIcon,
 } from 'lucide-react';
 
-import type { Source, Stale, StaleType } from '@/lib';
-import { SOURCE_STATUS_LABEL, STALE_COPY } from '@/lib/desk';
+import type { Source, Stale, StaleType, Topic } from '@/lib';
+import {
+  SOURCE_STATUS_LABEL,
+  STALE_COPY,
+  TOPIC_STATUS_LABEL,
+} from '@/lib/desk';
 
 const STATUS_VARIANT: Record<Source['status'], BadgeProps['variant']> = {
   active: 'success',
@@ -35,6 +39,20 @@ export function StatusBadge({ status }: { status: Source['status'] }) {
   return (
     <Badge variant={STATUS_VARIANT[status]}>
       {SOURCE_STATUS_LABEL[status]}
+    </Badge>
+  );
+}
+
+const TOPIC_STATUS_VARIANT: Record<Topic['status'], BadgeProps['variant']> = {
+  active: 'success',
+  proposed: 'info',
+  declined: 'muted',
+};
+
+export function TopicStatusBadge({ status }: { status: Topic['status'] }) {
+  return (
+    <Badge variant={TOPIC_STATUS_VARIANT[status]}>
+      {TOPIC_STATUS_LABEL[status]}
     </Badge>
   );
 }

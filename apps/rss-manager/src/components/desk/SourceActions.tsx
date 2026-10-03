@@ -13,7 +13,7 @@ import {
   type SourceAction,
 } from '@/lib/desk';
 
-import type { SourceActionsState } from './useSourceActions';
+import type { SourceActionsState } from './useRegistryActions';
 
 export const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';
 

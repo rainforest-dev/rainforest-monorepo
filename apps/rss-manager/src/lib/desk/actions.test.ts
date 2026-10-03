@@ -4,6 +4,7 @@ import type { Source, StaleType, Topic } from '@/lib/registry.types';
 
 import {
   applicableNames,
+  applicableTopicNames,
   canActivate,
   canActivateTopic,
   canDeclineTopic,
@@ -165,6 +166,48 @@ describe('applicable counts', () => {
   });
 });
 
+const topic = (name: string, status: Topic['status']): Topic => ({
+  name,
+  tags: [],
+  description: '',
+  status,
+});
+
+describe('topic applicable counts', () => {
+  const topics = [
+    topic('Proposed', 'proposed'),
+    topic('Active', 'active'),
+    topic('Declined', 'declined'),
+    topic('Hidden proposal', 'proposed'),
+  ];
+  const selection = new Set(['Proposed', 'Active', 'Declined', 'Gone']);
+
+  it('Activate counts proposed and declined topics; Decline proposed only', () => {
+    expect(applicableTopicNames(topics, selection, 'activate')).toEqual([
+      'Proposed',
+      'Declined',
+    ]);
+    expect(applicableTopicNames(topics, selection, 'decline')).toEqual([
+      'Proposed',
+    ]);
+  });
+
+  it('counts a selected topic the current filter hides', () => {
+    expect(
+      applicableTopicNames(topics, new Set(['Hidden proposal']), 'decline'),
+    ).toEqual(['Hidden proposal']);
+  });
+
+  it('says why a topic bulk action applies to none', () => {
+    expect(notApplicableNote('decline', 'topics')).toBe(
+      'None of the selected topics can be declined. Decline applies to proposed topics.',
+    );
+    expect(notApplicableNote('activate', 'topics')).toContain(
+      'proposed and declined topics',
+    );
+  });
+});
+
 describe('selection helpers', () => {
   const page = ['a', 'b', 'c'];
 
@@ -200,6 +243,18 @@ describe('write messages', () => {
     );
     expect(writeFailure('activate', ['Kite & Key'])).toBe(
       "Couldn't activate Kite & Key",
+    );
+  });
+
+  it('counts topics as topics', () => {
+    expect(writeSummary('decline', ['Crypto markets'], 'topics')).toBe(
+      'Declined Crypto markets',
+    );
+    expect(writeSummary('activate', ['a', 'b'], 'topics')).toBe(
+      'Activated 2 topics',
+    );
+    expect(writeFailure('decline', ['a', 'b', 'c'], 'topics')).toBe(
+      "Couldn't decline 3 topics",
     );
   });
 });

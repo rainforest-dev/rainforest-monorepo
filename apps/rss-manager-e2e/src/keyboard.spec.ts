@@ -6,6 +6,7 @@ import {
   deskTab,
   detailPane,
   gotoSources as gotoDesk,
+  gotoTab,
   openValidate,
   pager,
   READER_FEEDS_URL,
@@ -14,6 +15,9 @@ import {
   sourceRow,
   sourceSearch,
   toasts,
+  topicRow,
+  topicSearch,
+  topicsGrid,
 } from './support/desk';
 import { FEEDS } from './support/feed-server';
 import { SOURCES } from './support/fixture-vault';
@@ -23,6 +27,7 @@ import {
   readVault,
   resetVault,
   SOURCES_FILE,
+  TOPICS_FILE,
 } from './support/vault';
 
 test.beforeEach(() => resetVault());
@@ -520,19 +525,33 @@ test.describe('keyboard: hints', () => {
     ).toBeVisible();
   });
 
-  test('Topics and Queue show the tab keys', async ({ page }) => {
+  test('Topics shows its row keys, and Queue the tab keys', async ({
+    page,
+  }) => {
     await gotoSources(page);
-    for (const [key, tab] of [
-      ['2', 'Topics'],
-      ['3', 'Queue'],
-    ] as const) {
-      await page.keyboard.press(key);
-      const hints = page
-        .getByRole('tabpanel', { name: new RegExp(`^${tab}`) })
-        .locator('[data-key-hints]');
-      await expect(hints).toBeVisible();
-      await expect(hints).toHaveText(/123\s*Switch tab/);
-    }
+    await page.keyboard.press('2');
+    const topics = page
+      .getByRole('tabpanel', { name: /^Topics/ })
+      .locator('[data-key-hints]');
+    await expect(topics).toBeVisible();
+    for (const label of [
+      'Search',
+      'Move',
+      'Select',
+      'Activate',
+      'Decline',
+      'Clear selection',
+      'Switch tab',
+    ])
+      await expect(topics).toContainText(label);
+    await expect(topics.locator('[data-slot="kbd-group"]')).toHaveCount(7);
+
+    await page.keyboard.press('3');
+    const queue = page
+      .getByRole('tabpanel', { name: /^Queue/ })
+      .locator('[data-key-hints]');
+    await expect(queue).toBeVisible();
+    await expect(queue).toHaveText(/123\s*Switch tab/);
   });
 
   test('no axe violations with the key row, a focused row and select mode', async ({
@@ -547,5 +566,178 @@ test.describe('keyboard: hints', () => {
     await page.keyboard.press('x');
     await expect(selectedCount(page)).toHaveText('1 selected');
     await expectNoViolations(page);
+  });
+});
+
+async function gotoTopics(page: Page): Promise<void> {
+  await gotoTab(page, 'topics');
+  await expect(async () => {
+    await page.keyboard.press('/');
+    await expect(topicSearch(page)).toBeFocused({ timeout: 250 });
+  }).toPass();
+  await page.evaluate(() => (document.activeElement as HTMLElement).blur());
+}
+
+const topicStops = (page: Page) =>
+  topicsGrid(page).locator('tbody tr[tabindex="0"]');
+
+async function focusTopic(page: Page, name: string) {
+  const row = topicRow(page, name);
+  await row.focus();
+  await expect(row).toBeFocused();
+  return row;
+}
+
+function countTopicPatches(page: Page): unknown[] {
+  const bodies: unknown[] = [];
+  page.on('request', (r) => {
+    if (r.method() === 'PATCH' && r.url().endsWith('/api/topics'))
+      bodies.push(r.postDataJSON());
+  });
+  return bodies;
+}
+
+test.describe('keyboard: topics', () => {
+  test('the table has one tab stop, and arrows, Home and End move it', async ({
+    page,
+  }) => {
+    await gotoTopics(page);
+    await expect(topicStops(page)).toHaveCount(1);
+    await expect(topicStops(page)).toHaveAttribute(
+      'data-nav-key',
+      'Accessibility audits',
+    );
+    for (const button of await topicRow(page, 'Home lab networking')
+      .getByRole('button')
+      .all())
+      await expect(button).toHaveAttribute('tabindex', '-1');
+
+    await focusTopic(page, 'Accessibility audits');
+    await page.keyboard.press('ArrowUp');
+    await expect(topicRow(page, 'Accessibility audits')).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(topicRow(page, 'Data visualisation')).toBeFocused();
+    await expect(topicStops(page)).toHaveAttribute(
+      'data-nav-key',
+      'Data visualisation',
+    );
+    await page.keyboard.press('End');
+    await expect(topicRow(page, 'Gaming hardware')).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(topicRow(page, 'Accessibility audits')).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press(']');
+    await expect(page).toHaveURL(/\?tab=topics$/);
+    await expect(topicRow(page, 'Accessibility audits')).toBeFocused();
+
+    await page.keyboard.press('/');
+    await expect(topicSearch(page)).toBeFocused();
+  });
+
+  test('x and Space select, then Esc clears and leaves select mode', async ({
+    page,
+  }) => {
+    await gotoTopics(page);
+    const row = await focusTopic(page, 'Home lab networking');
+    await page.keyboard.press('x');
+    await expect(selectedCount(page)).toHaveText('1 selected');
+    await expect(row).toHaveAttribute('aria-selected', 'true');
+    await expect(topicsGrid(page)).toHaveAttribute(
+      'aria-multiselectable',
+      'true',
+    );
+    await expect(row).toBeFocused();
+
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press(' ');
+    await expect(selectedCount(page)).toHaveText('2 selected');
+    await expect(bulkToolbar(page)).toContainText('Decline 2');
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    await page.keyboard.press('Escape');
+    await expect(bulkToolbar(page)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
+    await expect(topicRow(page, 'Local-first apps')).toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(
+      page.getByRole('button', { name: 'Select', exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('checkbox', { name: 'Select all shown' }),
+    ).toHaveCount(0);
+  });
+
+  test('Esc from the bulk toolbar clears and puts focus back on the rows', async ({
+    page,
+  }) => {
+    await gotoTopics(page);
+    await focusTopic(page, 'Crypto markets');
+    await page.keyboard.press('x');
+    await bulkToolbar(page)
+      .getByRole('button', { name: 'Clear selection' })
+      .focus();
+    await page.keyboard.press('Escape');
+    await expect(bulkToolbar(page)).toHaveCount(0);
+    await expect(topicRow(page, 'Crypto markets')).toBeFocused();
+  });
+
+  test('d declines and a activates where the rule applies, and focus follows', async ({
+    page,
+  }) => {
+    const patches = countTopicPatches(page);
+    await gotoTopics(page);
+    await focusTopic(page, 'Home lab networking');
+    await page.keyboard.press('d');
+    await expect(
+      toasts(page).filter({ hasText: 'Declined Home lab networking' }),
+    ).toBeVisible();
+    expect(sectionOf(readVault(TOPICS_FILE), 'Home lab networking')).toBe(
+      'Declined',
+    );
+    const row = topicRow(page, 'Home lab networking');
+    await expect(row).toContainText('Declined');
+    await expect(row).toBeFocused();
+
+    await page.keyboard.press('d');
+    await page.keyboard.press('a');
+    await expect(
+      toasts(page).filter({ hasText: 'Activated Home lab networking' }),
+    ).toBeVisible();
+    expect(sectionOf(readVault(TOPICS_FILE), 'Home lab networking')).toBe(
+      'Active',
+    );
+    await expect(row).toBeFocused();
+
+    await page.keyboard.press('a');
+    await page.keyboard.press('d');
+    await page.waitForTimeout(300);
+    expect(patches).toEqual([
+      { names: ['Home lab networking'], action: 'decline' },
+      { names: ['Home lab networking'], action: 'activate' },
+    ]);
+  });
+});
+
+test.describe('keyboard: topics on a read-only vault', () => {
+  test.skip(!canDropWritePermission, 'root ignores the permission bits');
+
+  test('a and d write nothing, while x still selects', async ({ page }) => {
+    makeReadOnly(TOPICS_FILE);
+    const patches = countTopicPatches(page);
+    await gotoTopics(page);
+    await expect(page.getByRole('status')).toContainText('Read-only vault');
+    const before = readVault(TOPICS_FILE);
+
+    await focusTopic(page, 'Local-first apps');
+    await page.keyboard.press('a');
+    await page.keyboard.press('d');
+    await page.keyboard.press('x');
+    await expect(selectedCount(page)).toHaveText('1 selected');
+    await page.waitForTimeout(300);
+
+    expect(patches).toEqual([]);
+    expect(readVault(TOPICS_FILE)).toBe(before);
+    await expect(toasts(page)).toHaveCount(0);
   });
 });
