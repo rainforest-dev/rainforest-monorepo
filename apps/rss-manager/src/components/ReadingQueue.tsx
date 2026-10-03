@@ -12,7 +12,7 @@ import {
   ItemHeader,
   ItemTitle,
 } from '@rainforest-dev/rainforest-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   type QueueItem,
@@ -58,8 +58,6 @@ const DECAY_LABEL: Record<QueueItem['decay'], string | null> = {
 const STALE_REASON_ORDER = (
   Object.keys(STALE_REASONS) as StaleItem['reason'][]
 ).sort((a, b) => STALE_REASONS[a].order - STALE_REASONS[b].order);
-
-type Payload = ReadingQueueData | { generated: null };
 
 function QueueRow({
   item,
@@ -121,32 +119,13 @@ function QueueRow({
   );
 }
 
-export default function ReadingQueue() {
-  const [data, setData] = useState<Payload | null>(null);
+export function ReadingQueue({ data }: { data: ReadingQueueData | null }) {
   const [mode, setMode] = useState<SortMode>('default');
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch('/api/reading-queue')
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((payload: Payload) => setData(payload))
-      .catch(() => setError('Failed to load the reading queue.'));
-  }, []);
-
-  const queue = data && data.generated !== null ? data.queue : [];
+  const queue = data?.queue ?? [];
   const sorted = useMemo(() => sortQueue(queue, mode), [queue, mode]);
 
-  if (error)
-    return <p className="text-destructive py-8 text-center">{error}</p>;
   if (!data)
-    return (
-      <p className="text-muted-foreground py-8 text-center">Loading queue…</p>
-    );
-
-  if (data.generated === null)
     return (
       <Empty className="py-12">
         <EmptyHeader>

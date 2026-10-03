@@ -6,7 +6,7 @@ import {
   Button,
   Spinner,
 } from '@rainforest-dev/rainforest-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { patchRegistry, READ_ONLY_NOTE, type Topic } from '@/lib';
 
@@ -25,32 +25,23 @@ function daysAgo(dateStr: string): string {
   return `${diff}d ago`;
 }
 
-export default function TopicList() {
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export interface TopicListProps {
+  topics: Topic[];
+  writable: boolean;
+  onTopicsChange: (update: (prev: Topic[]) => Topic[]) => void;
+  onReadOnly: () => void;
+}
+
+export function TopicList({
+  topics,
+  writable,
+  onTopicsChange,
+  onReadOnly,
+}: TopicListProps) {
   const [actionError, setActionError] = useState<string | null>(null);
-  const [writable, setWritable] = useState(true);
   const [pending, setPending] = useState<Map<string, 'activate' | 'decline'>>(
     new Map(),
   );
-
-  useEffect(() => {
-    fetch('/api/topics')
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data: { topics: Topic[]; writable: boolean }) => {
-        setTopics(data.topics);
-        setWritable(data.writable);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Failed to load topics.');
-        setLoading(false);
-      });
-  }, []);
 
   async function doAction(name: string, action: 'activate' | 'decline') {
     setPending((p) => new Map(p).set(name, action));
@@ -60,11 +51,11 @@ export default function TopicList() {
       if (!result.ok) {
         // The banner above already states the read-only case; repeating it here
         // would read as a second, separate problem.
-        if (result.readOnly) setWritable(false);
+        if (result.readOnly) onReadOnly();
         else setActionError(result.error);
         return;
       }
-      setTopics((prev) =>
+      onTopicsChange((prev) =>
         prev.map((t) => {
           if (t.name !== name) return t;
           if (action === 'activate') return { ...t, status: 'active' as const };
@@ -84,25 +75,11 @@ export default function TopicList() {
     }
   }
 
-  if (error)
-    return <p className="text-destructive py-8 text-center">{error}</p>;
-  if (loading)
-    return (
-      <p className="text-muted-foreground py-8 text-center">Loading topics…</p>
-    );
-
   const byStatus = (status: Topic['status']) =>
     topics.filter((t) => t.status === status);
 
   return (
     <div className="space-y-6">
-      {!writable && (
-        <Alert variant="warning" role="status">
-          <AlertTitle>
-            {READ_ONLY_NOTE} Activate and Decline are disabled.
-          </AlertTitle>
-        </Alert>
-      )}
       {actionError && (
         <Alert variant="destructive">
           <AlertTitle>{actionError}</AlertTitle>

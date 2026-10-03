@@ -1,28 +1,16 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { type AxeIgnore, expectNoViolations } from './support/axe';
-import { gotoTab, type Tab } from './support/desk';
+import { gotoTab, openValidate, type Tab } from './support/desk';
+import { FEEDS } from './support/feed-server';
 import { resetVault } from './support/vault';
 
 test.beforeEach(() => resetVault());
 
-const PAGE_WITHOUT_LANDMARKS: AxeIgnore[] = [
-  { rule: 'landmark-one-main', targetIncludes: '' },
-  { rule: 'region', targetIncludes: '' },
-];
-
 const PRE_REDESIGN_VIOLATIONS: Record<Tab, AxeIgnore[]> = {
-  sources: PAGE_WITHOUT_LANDMARKS,
-  topics: [
-    ...PAGE_WITHOUT_LANDMARKS,
-    { rule: 'heading-order', targetIncludes: '' },
-    { rule: 'color-contrast', targetIncludes: 'bg-success' },
-  ],
-  validate: PAGE_WITHOUT_LANDMARKS,
-  queue: [
-    ...PAGE_WITHOUT_LANDMARKS,
-    { rule: 'heading-order', targetIncludes: '' },
-  ],
+  sources: [],
+  topics: [{ rule: 'color-contrast', targetIncludes: 'bg-success' }],
+  queue: [],
 };
 
 test.describe('accessibility', () => {
@@ -34,4 +22,21 @@ test.describe('accessibility', () => {
       await expectNoViolations(page, { ignore });
     });
   }
+
+  test('the Validate popover has no axe violations, with a result', async ({
+    page,
+  }) => {
+    await gotoTab(page, 'sources');
+    const popover = await openValidate(page);
+    await expectNoViolations(page);
+
+    await popover.getByRole('textbox', { name: 'Feed URL' }).fill(FEEDS.rss);
+    await page.keyboard.press('Enter');
+    await expect(popover.getByRole('alert')).toContainText('Valid RSS feed');
+    await expect(popover.getByRole('button', { name: 'Validate' })).toHaveCSS(
+      'opacity',
+      '1',
+    );
+    await expectNoViolations(page);
+  });
 });
