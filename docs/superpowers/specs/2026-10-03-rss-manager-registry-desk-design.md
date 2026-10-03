@@ -350,7 +350,7 @@ The app never writes stale comments, and the comment moves with the entry.
 
 - Retire: the comment stays in the file under `## Retired`. Stale Badges, the pane's stale Alert and
   the Stale facet count non-retired sources only, so a retired source stops showing as stale
-  without a write. Proposed, owner to confirm.
+  without a write. Proposed.
 - Activate (re-activation of a retired source): the old comment comes back into view. That is the
   vault's truth, and the pane shows it.
 - Re-subscribe: no vault write, so the delivery-gap flag stays until rss-discover rewrites or
@@ -381,7 +381,7 @@ Detection is unchanged: `writable` from the GET responses, per file, and a 409 f
 | Re-subscribe | enabled (link) | disabled  | enabled: writes nothing |
 | Validate     | enabled        | disabled  | enabled: writes nothing |
 
-Proposed, owner to confirm. The banner is a `warning` Alert with the lock icon, title `Read-only
+Decided (owner, 2026-10-03). The banner is a `warning` Alert with the lock icon, title `Read-only
 vault`, `READ_ONLY_NOTE`, and `Activate, Retire and Decline are turned off until it is mounted
 read-write.` Disabled buttons keep `READ_ONLY_NOTE` as their title, and `a`/`r` (retire) do nothing.
 Select mode still works, so a selection can be inspected.
