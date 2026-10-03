@@ -1,82 +1,138 @@
-import { useState } from 'react';
+import { toast } from '@rainforest-dev/rainforest-react';
+import { useRef, useState } from 'react';
 
 import { patchRegistry, type Source } from '@/lib';
+import { type SourceAction, writeFailure, writeSummary } from '@/lib/desk';
 
-export type SourceAction = 'activate' | 'retire';
+export type WriteOrigin = 'row' | 'pane' | 'bulk';
+
+interface Write {
+  origin: WriteOrigin;
+  action: SourceAction;
+  names: readonly string[];
+}
 
 export interface SourceActionsState {
   writable: boolean;
   pending: ReadonlySet<string>;
   copied: string | null;
-  error: string | null;
-  run: (name: string, action: SourceAction) => Promise<void>;
-  copyFeedUrl: (name: string, url: string) => Promise<void>;
+  resubscribed: ReadonlySet<string>;
+  isRunning: (
+    origin: WriteOrigin,
+    action: SourceAction,
+    name?: string,
+  ) => boolean;
+  run: (
+    names: readonly string[],
+    action: SourceAction,
+    origin: WriteOrigin,
+    onSuccess?: () => void,
+  ) => Promise<void>;
+  resubscribe: (name: string, url: string) => void;
 }
 
-const NEXT_STATUS: Record<SourceAction, Source['status']> = {
-  activate: 'active',
-  retire: 'retired',
-};
+const COPIED_MS = 3000;
+
+const messageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 export function useSourceActions({
   writable,
+  registryFile,
   onSourcesChange,
   onReadOnly,
 }: {
   writable: boolean;
+  registryFile: string;
   onSourcesChange: (update: (prev: Source[]) => Source[]) => void;
   onReadOnly: () => void;
 }): SourceActionsState {
-  const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
+  const [writes, setWrites] = useState<readonly Write[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [resubscribed, setResubscribed] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+  const inFlight = useRef(new Set<string>());
 
-  function setBusy(name: string, busy: boolean) {
-    setPending((prev) => {
-      const next = new Set(prev);
-      if (busy) next.add(name);
-      else next.delete(name);
-      return next;
-    });
+  const pending = new Set(writes.flatMap((w) => w.names));
+
+  function isRunning(origin: WriteOrigin, action: SourceAction, name?: string) {
+    return writes.some(
+      (w) =>
+        w.origin === origin &&
+        w.action === action &&
+        (name === undefined || w.names.includes(name)),
+    );
   }
 
-  async function run(name: string, action: SourceAction) {
-    if (pending.has(name)) return;
-    setBusy(name, true);
-    setError(null);
+  async function run(
+    names: readonly string[],
+    action: SourceAction,
+    origin: WriteOrigin,
+    onSuccess?: () => void,
+  ) {
+    if (!writable || names.length === 0) return;
+    if (names.some((name) => inFlight.current.has(name))) return;
+
+    const write: Write = { origin, action, names };
+    for (const name of names) inFlight.current.add(name);
+    setWrites((prev) => [...prev, write]);
     try {
-      const result = await patchRegistry('/api/sources', name, action);
+      const result = await patchRegistry<Source>(
+        '/api/sources',
+        [...names],
+        action,
+      );
       if (!result.ok) {
         if (result.readOnly) onReadOnly();
-        else setError(result.error);
+        else
+          toast.error(writeFailure(action, names), {
+            description: result.error,
+          });
         return;
       }
-      onSourcesChange((prev) =>
-        prev.map((s) =>
-          s.name === name ? { ...s, status: NEXT_STATUS[action] } : s,
-        ),
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      onSourcesChange(() => result.items);
+      if (!result.writable) onReadOnly();
+      onSuccess?.();
+      toast.success(writeSummary(action, result.applied), {
+        description: `Written to ${registryFile}`,
+      });
+    } catch (error) {
+      toast.error(writeFailure(action, names), {
+        description: messageOf(error),
+      });
     } finally {
-      setBusy(name, false);
+      for (const name of names) inFlight.current.delete(name);
+      setWrites((prev) => prev.filter((w) => w !== write));
     }
   }
 
-  async function copyFeedUrl(name: string, url: string) {
-    if (!url) return;
-    setError(null);
+  function resubscribe(name: string, url: string) {
+    setResubscribed((prev) => new Set(prev).add(name));
+    const failed = () =>
+      toast.error("Couldn't copy the feed URL", {
+        description: `Paste it into Readwise by hand: ${url}`,
+      });
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(name);
-      window.setTimeout(
-        () => setCopied((current) => (current === name ? null : current)),
-        3000,
-      );
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(name);
+        window.setTimeout(
+          () => setCopied((current) => (current === name ? null : current)),
+          COPIED_MS,
+        );
+      }, failed);
     } catch {
-      setError(`Could not copy the feed URL — paste it by hand: ${url}`);
+      failed();
     }
   }
 
-  return { writable, pending, copied, error, run, copyFeedUrl };
+  return {
+    writable,
+    pending,
+    copied,
+    resubscribed,
+    isRunning,
+    run,
+    resubscribe,
+  };
 }

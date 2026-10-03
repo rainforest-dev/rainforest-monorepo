@@ -183,9 +183,15 @@ function SourceBody({
             is the part that stopped.
           </p>
         )}
-        {actions.error && (
-          <p role="alert" className="text-destructive text-sm">
-            {actions.error}
+        {actions.resubscribed.has(source.name) && (
+          <p className="text-sm">
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              <CheckIcon aria-hidden="true" className="text-success size-4" />
+              Re-subscribed in this session
+            </span>
+            <span className="text-muted-foreground block text-xs">
+              The flag stays until rss-discover next rewrites the registry.
+            </span>
           </p>
         )}
       </div>

@@ -275,7 +275,7 @@ test.describe('source detail pane', () => {
     );
   });
 
-  test('Activate in the pane writes the vault through the existing request', async ({
+  test('Activate in the pane writes the vault through the batch request', async ({
     page,
   }) => {
     await gotoSources(page, '?source=Owl+Street+Essays');
@@ -286,7 +286,7 @@ test.describe('source detail pane', () => {
     );
     await pane.getByRole('button', { name: 'Activate' }).click();
     expect((await patch).request().postDataJSON()).toEqual({
-      name: 'Owl Street Essays',
+      names: ['Owl Street Essays'],
       action: 'activate',
     });
     await expect(pane.getByRole('button', { name: 'Retire' })).toBeVisible();

@@ -1,5 +1,6 @@
 import {
   Badge,
+  Checkbox,
   cn,
   TableCell,
   TableRow,
@@ -20,6 +21,9 @@ export interface SourceRowProps {
   open: boolean;
   compact: boolean;
   actions: SourceActionsState;
+  selectMode: boolean;
+  selected: boolean;
+  onToggle: () => void;
   onOpen: () => void;
 }
 
@@ -30,6 +34,9 @@ export function SourceRow({
   open,
   compact,
   actions,
+  selectMode,
+  selected,
+  onToggle,
   onOpen,
 }: SourceRowProps) {
   const stale = visibleStale(source);
@@ -45,6 +52,16 @@ export function SourceRow({
         open && 'shadow-[inset_3px_0_0_var(--color-primary)]',
       )}
     >
+      {selectMode && (
+        <TableCell className="w-10">
+          <Checkbox
+            aria-label={`Select ${source.name}`}
+            checked={selected}
+            onCheckedChange={onToggle}
+            onClick={(event) => event.stopPropagation()}
+          />
+        </TableCell>
+      )}
       <TableCell className="max-w-0 whitespace-normal md:w-[40%]">
         <button
           type="button"

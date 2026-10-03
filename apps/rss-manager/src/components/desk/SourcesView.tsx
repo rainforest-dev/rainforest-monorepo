@@ -1,5 +1,6 @@
 import {
   Button,
+  Checkbox,
   cn,
   Empty,
   EmptyContent,
@@ -25,10 +26,12 @@ import {
   facetOptions,
   filterSources,
   type HistoryMode,
+  pageCheckState,
   SOURCES_PAGE_SIZE,
   toggleValue,
 } from '@/lib/desk';
 
+import { BulkToolbar } from './BulkToolbar';
 import { FilterChips } from './FilterChips';
 import { FilterPanel } from './FilterPanel';
 import { Pager } from './Pager';
@@ -36,16 +39,16 @@ import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { SearchField } from './SearchField';
 import { SOURCE_DETAIL_ID, SourceDetail } from './SourceDetail';
 import { SourceRow, WIDE_ONLY } from './SourceRow';
-import { useSourceActions } from './useSourceActions';
+import type { SourceActionsState } from './useSourceActions';
+import type { SourceSelection } from './useSourceSelection';
 
 export interface SourcesViewProps {
   sources: Source[];
-  writable: boolean;
   params: DeskParams;
   navigate: (patch: DeskPatch, mode?: HistoryMode) => void;
+  actions: SourceActionsState;
+  selection: SourceSelection;
   onClearFilters: () => void;
-  onSourcesChange: (update: (prev: Source[]) => Source[]) => void;
-  onReadOnly: () => void;
   onValidate: () => void;
 }
 
@@ -61,15 +64,13 @@ function focusRow(name: string) {
 
 export function SourcesView({
   sources,
-  writable,
   params,
   navigate,
+  actions,
+  selection,
   onClearFilters,
-  onSourcesChange,
-  onReadOnly,
   onValidate,
 }: SourcesViewProps) {
-  const actions = useSourceActions({ writable, onSourcesChange, onReadOnly });
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const facets = facetOptions(sources, params);
@@ -79,6 +80,10 @@ export function SourcesView({
     (page - 1) * SOURCES_PAGE_SIZE,
     page * SOURCES_PAGE_SIZE,
   );
+  const pageNames = rows.map((s) => s.name);
+  const pageCheck = pageCheckState(selection.selected, pageNames);
+  const { selectMode } = selection;
+  const bulk = selectMode && selection.selected.size > 0;
   const chips = activeChips(params);
   const openName = params.source;
   const open = openName ? sources.find((s) => s.name === openName) : undefined;
@@ -154,29 +159,49 @@ export function SourcesView({
             <h2 id="sources-heading" className="text-lg font-semibold">
               Sources
             </h2>
-            <p aria-live="polite" className="text-muted-foreground text-sm">
-              {filtered.length === total
-                ? `${total} sources`
-                : `${filtered.length} of ${total} sources`}
-            </p>
-            <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                className="lg:hidden"
-                aria-expanded={filtersOpen}
-                onClick={() => setFiltersOpen((v) => !v)}
-              >
-                {filterCount > 0 ? `Filters · ${filterCount}` : 'Filters'}
-              </Button>
-              <SearchField
-                value={params.q}
-                label="Search sources"
-                onChange={(q) => {
-                  if (q !== params.q) navigate({ q });
-                }}
+            {bulk ? (
+              <BulkToolbar
+                sources={sources}
+                pageNames={pageNames}
+                selection={selection}
+                actions={actions}
               />
-            </div>
+            ) : (
+              <>
+                <p aria-live="polite" className="text-muted-foreground text-sm">
+                  {filtered.length === total
+                    ? `${total} sources`
+                    : `${filtered.length} of ${total} sources`}
+                </p>
+                <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="lg:hidden"
+                    aria-expanded={filtersOpen}
+                    onClick={() => setFiltersOpen((v) => !v)}
+                  >
+                    {filterCount > 0 ? `Filters · ${filterCount}` : 'Filters'}
+                  </Button>
+                  <SearchField
+                    value={params.q}
+                    label="Search sources"
+                    onChange={(q) => {
+                      if (q !== params.q) navigate({ q });
+                    }}
+                  />
+                  {total > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={selectMode ? selection.done : selection.start}
+                    >
+                      {selectMode ? 'Done' : 'Select'}
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           <FilterChips
             chips={chips}
@@ -185,15 +210,10 @@ export function SourcesView({
           />
         </div>
 
-        {!writable && (
+        {!actions.writable && (
           <div className="pb-4">
             <ReadOnlyBanner />
           </div>
-        )}
-        {actions.error && !paneOpen && (
-          <p role="alert" className="text-destructive pb-4 text-sm">
-            {actions.error}
-          </p>
         )}
 
         {total === 0 ? (
@@ -234,6 +254,20 @@ export function SourcesView({
             >
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  {selectMode && (
+                    <TableHead className="w-10">
+                      <Checkbox
+                        aria-label="Select all on this page"
+                        checked={pageCheck === 'all'}
+                        indeterminate={pageCheck === 'some'}
+                        onCheckedChange={() =>
+                          pageCheck === 'all'
+                            ? selection.removeMany(pageNames)
+                            : selection.addMany(pageNames)
+                        }
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Source</TableHead>
                   {!paneOpen && (
                     <>
@@ -245,7 +279,7 @@ export function SourcesView({
                   {!paneOpen && (
                     <TableHead className={WIDE_ONLY}>Proposed</TableHead>
                   )}
-                  <TableHead className="w-28">
+                  <TableHead className="w-40">
                     <span className="sr-only">Actions</span>
                   </TableHead>
                 </TableRow>
@@ -258,6 +292,9 @@ export function SourcesView({
                     open={source.name === openName}
                     compact={paneOpen}
                     actions={actions}
+                    selectMode={selectMode}
+                    selected={selection.selected.has(source.name)}
+                    onToggle={() => selection.toggle(source.name)}
                     onOpen={() => {
                       if (source.name !== openName)
                         navigate({ source: source.name });
