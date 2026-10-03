@@ -19,6 +19,7 @@ const SHOWN_TAGS = 2;
 export interface SourceRowProps {
   source: Source;
   open: boolean;
+  tabIndex: 0 | -1;
   compact: boolean;
   actions: SourceActionsState;
   selectMode: boolean;
@@ -32,6 +33,7 @@ export const WIDE_ONLY = 'max-md:hidden';
 export function SourceRow({
   source,
   open,
+  tabIndex,
   compact,
   actions,
   selectMode,
@@ -43,18 +45,22 @@ export function SourceRow({
   const extraTags = source.tags.length - SHOWN_TAGS;
   return (
     <TableRow
-      data-source={source.name}
+      data-nav-key={source.name}
+      tabIndex={tabIndex}
+      aria-selected={selectMode ? selected : undefined}
       data-open={open || undefined}
       data-pending={actions.pending.has(source.name) || undefined}
       onClick={onOpen}
       className={cn(
-        'cursor-pointer data-[pending]:opacity-60',
+        'cursor-pointer outline-none data-[pending]:opacity-60',
+        'focus-visible:outline-foreground focus-visible:outline-solid focus-visible:outline-[2.5px] focus-visible:-outline-offset-[2.5px]',
         open && 'shadow-[inset_3px_0_0_var(--color-primary)]',
       )}
     >
       {selectMode && (
         <TableCell className="w-10">
           <Checkbox
+            tabIndex={-1}
             aria-label={`Select ${source.name}`}
             checked={selected}
             onCheckedChange={onToggle}
@@ -65,6 +71,7 @@ export function SourceRow({
       <TableCell className="max-w-0 whitespace-normal md:w-[40%]">
         <button
           type="button"
+          tabIndex={-1}
           data-source-open
           aria-current={open || undefined}
           aria-controls={open ? SOURCE_DETAIL_ID : undefined}
