@@ -30,8 +30,19 @@ and Queue move onto the same table vocabulary. The Validate tab becomes a header
 
 - 2026-10-03: direction A, Registry desk, is chosen over B, Triage inbox. Review.md's suggested
   combination (B as the home page, A as the registry) is not adopted.
-- Everything else here that changes behaviour is marked "proposed, owner to confirm". The open
-  questions at the end list the ones that most need an answer before a plan is cut.
+- 2026-10-03, answers to the open questions:
+  - Read-only keeps Re-subscribe and Validate enabled, since neither writes the vault. Activate,
+    Retire and Decline are disabled.
+  - Re-subscribe does not annotate the stale comment. It stays a non-writing action and the pane
+    shows "Re-subscribed in this session".
+  - The action rules widen as the prototype does: Activate also applies to retired sources and
+    declined topics, and Retire also applies to proposed and no-RSS sources.
+  - No `Progress` primitive. The queue's progress is a snapshot of Readwise Reader's
+    `reading_progress` taken when the reading-queue skill runs; items at 65% or more leave the
+    queue as `done-unfiled`, so the value only matters for tier 1. Today's `N% read` text stays.
+  - The Astro page reads the three files on the server, so the first paint has real rows and no
+    first-load Skeleton.
+- Other places marked "proposed" below follow those answers.
 
 ## Versions
 
@@ -41,8 +52,7 @@ Tailwind 4.2.2 with `@tailwindcss/vite`, TypeScript 6.0.3, `lucide-react` 1.46.0
 1.8.0 (through `@rainforest-dev/rainforest-react`). The app's own Vitest is 3.2.7 (`^3.2.4`) while
 the workspace root runs 4.1.4; the new tests use only APIs common to both, and aligning the app's
 version is out of scope. Playwright 1.63.0 and `@axe-core/playwright` 4.13.0 resolve for the
-existing e2e projects. No dependency is added or upgraded by the app work; the library PR in phase
-step 2 may add `Progress` from the shadcn registry (see Components).
+existing e2e projects. No dependency is added or upgraded, and no library primitive is added.
 
 ## Current app (what the code does today)
 
@@ -199,7 +209,7 @@ declined, then name. Rows are not roving items in this phase; Tab moves through 
 A `Table` sortable by column. Each sortable `TableHead` holds a button and carries `aria-sort`
 (`ascending`, `descending` or `none`). Columns: `#` (rank, default), Tier, Item (title linking to
 `readerUrl`, site and tags), Why (one line, full text in `title`), Decay, Min, Saved, Wiki
-(`wikiSources`), Progress. Clicking the active column flips the direction; another column sorts
+(`wikiSources`), Read (today's `N% read` text, empty at 0). Clicking the active column flips the direction; another column sorts
 ascending; ties break by rank. Wiki is not in the prototype; it keeps today's `thinnest` sort.
 Decay shows `time-sensitive` (`warning`), `evergreen` (`muted`) and nothing for `unknown`. Tier
 filter: `ToggleGroup` `All | T1 … T4` over the tiers present, each item's tooltip the tier label
@@ -468,11 +478,7 @@ library now and are not ported. `DropdownMenu` and `Card` are not needed by dire
 Gaps, under the shadcn-first rule (a primitive enters the library only when a named site replaces
 handmade markup with it):
 
-- `Progress`. Named site: the Queue Progress column and the phone queue row, which would otherwise
-  draw a handmade bar. shadcn has `progress` in the base-nova registry and Base UI has a Progress
-  primitive. Recommendation: add it in its own library PR (step 2), with stories and a `Dark` twin,
-  per the 2026-09-30 procedure. Fallback if the owner prefers no new primitive: today's `40% read`
-  text.
+- `Progress`: not added (owner, 2026-10-03). The queue keeps today's `N% read` text.
 - `Pagination`. Named sites: rss-manager's pager and calibre's `Pagination.tsx`. shadcn's
   Pagination is a numbered link list; both apps use `Prev` · `Page N of M` · `Next` buttons, which
   is not its structure. Recommendation: compose from `Button` in the app, as calibre does. Adding
@@ -658,46 +664,34 @@ committed.
 
 ## Phased rollout
 
-One PR per step, each green on CI before the next. Steps 1 to 3 change no visible UI.
+One PR per step, each green on CI before the next. Steps 1 and 2 change no visible UI.
 
 1. Server: `registryEdit.ts` pure transforms, `PATCH` accepting `names[]` with all-or-nothing
    checks and the status rules, atomic temp-and-rename write, re-parsed list in the response,
    duplicate-name warning; `patchRegistry` with `names[]`; unit tests.
-2. Library (separate PR, only if the owner accepts it): `Progress` in `rainforest-react` from the
-   base-nova registry, stories with `Dark`, `.design-sync` skip, contract test.
-3. E2E scaffold: `apps/rss-manager-e2e`, fixture vault, feed server, vault helpers, and specs for
+2. E2E scaffold: `apps/rss-manager-e2e`, fixture vault, feed server, vault helpers, and specs for
    the batch API and read-only flip against the current UI.
-4. Shell: `RegistryDesk` island, Astro page parsing params and reading the files, `params.ts` and
+3. Shell: `RegistryDesk` island, Astro page parsing params and reading the files, `params.ts` and
    history handling, header with tabs and counts, Validate popover (removes the Validate tab),
    `Toaster`, `LoadError`, Skeletons, read-only banner; unit tests for `params`.
-5. Sources: filter panel, chips, search, table with the order and compact columns, pager, detail
+4. Sources: filter panel, chips, search, table with the order and compact columns, pager, detail
    pane with stale Alert and feed check; `filters`, `sort` unit tests; e2e `filters`, `pages`,
    `detail`.
-6. Selection and writes: select mode, bulk toolbar with applicable counts, row and pane actions on
+5. Selection and writes: select mode, bulk toolbar with applicable counts, row and pane actions on
    the batch endpoint, pending state, toasts, stale display rules, Re-subscribe link and session
    note; `actions` unit tests; e2e `bulk`, `resubscribe`, `readonly`.
-7. Keyboard: `useRovingRows` on `createRovingController`, `useDeskShortcuts` on
+6. Keyboard: `useRovingRows` on `createRovingController`, `useDeskShortcuts` on
    `listenForShortcuts`, `resolveDeskKey`, `KeyHints`; unit and e2e `keyboard`.
-8. Topics: table, ToggleGroup, search, select mode and bulk; e2e `topics`.
-9. Queue: sortable table with `aria-sort`, Wiki column, tier filter, Progress (or text), stale panel;
+7. Topics: table, ToggleGroup, search, select mode and bulk; e2e `topics`.
+8. Queue: sortable table with `aria-sort`, Wiki column, tier filter, the `N% read` text, stale panel;
    `sortQueue(items, key, dir)` tests; e2e `queue`.
-10. Phone: list rows, filter Sheet, detail Sheet, floating bulk bar, phone Topics and Queue; e2e
-    phone project.
-11. Cleanup: remove the four old islands and the single-`name` PATCH form, axe specs, `states` spec,
+9. Phone: list rows, filter Sheet, detail Sheet, floating bulk bar, phone Topics and Queue; e2e
+   phone project.
+10. Cleanup: remove the four old islands and the single-`name` PATCH form, axe specs, `states` spec,
     captures in light and dark at 1440 and 390.
 
-Steps 5 to 7 can merge as one PR if they land close together; each is still a reviewable commit.
+Steps 4 to 6 can merge as one PR if they land close together; each is still a reviewable commit.
 
 ## Open questions
 
-1. Read-only: keep Re-subscribe and Validate enabled, since neither writes the vault (today's
-   behaviour for both), rather than disabling all five as the prototype does?
-2. Should Re-subscribe annotate the stale comment (for example
-   `<!-- stale: delivery-gap | re-subscribed 2026-10-03 -->`) so the flag reflects it before
-   rss-discover runs again? That makes Re-subscribe a vault write and read-only-gated.
-3. Action rules: allow Activate on retired sources and declined topics, and Retire on proposed and
-   no-RSS sources, as the prototype does? Today only proposed → Activate and active → Retire exist.
-4. Add `Progress` to `rainforest-react` for the Queue's progress column, or keep today's `40% read`
-   text?
-5. Server-render the three files into the page (no first-load Skeleton) instead of fetching them
-   after hydration?
+All five were answered on 2026-10-03; see Owner decisions.
