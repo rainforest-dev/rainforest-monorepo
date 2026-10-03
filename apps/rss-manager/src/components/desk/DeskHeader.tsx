@@ -22,7 +22,7 @@ function Count({ value }: { value: number | null }) {
 export function DeskHeader({ counts, registryFile, actions }: DeskHeaderProps) {
   return (
     <header className="bg-background sticky top-0 z-10 border-b">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 px-4 lg:h-14 lg:flex-nowrap lg:px-6">
+      <div className="flex flex-wrap items-center gap-x-6 px-4 lg:h-14 lg:flex-nowrap lg:px-6">
         <h1 className="h-13 flex items-center gap-2 text-base font-semibold lg:h-auto">
           <RssIcon aria-hidden="true" className="text-primary size-4" />
           RSS Manager

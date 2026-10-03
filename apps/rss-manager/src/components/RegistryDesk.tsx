@@ -5,12 +5,14 @@ import {
   DeskHeader,
   LoadError,
   ReadOnlyBanner,
+  SourcesView,
   TabSkeleton,
   useDeskData,
   useDeskParams,
   ValidatePopover,
 } from '@/components/desk';
 import {
+  clearSourceFilters,
   DESK_TABS,
   type DeskData,
   type DeskFile,
@@ -20,7 +22,6 @@ import {
 } from '@/lib/desk';
 
 import { ReadingQueue } from './ReadingQueue';
-import { SourceTable } from './SourceTable';
 import { TopicList } from './TopicList';
 
 export interface RegistryDeskProps {
@@ -33,12 +34,6 @@ const FILE_LABEL: Record<DeskFile, string> = {
   sources: 'source registry',
   topics: 'topic registry',
   queue: 'reading queue',
-};
-
-const TAB_TITLE: Record<DeskTab, string> = {
-  sources: 'Sources',
-  topics: 'Topics',
-  queue: 'Reading queue',
 };
 
 const isDeskTab = (value: unknown): value is DeskTab =>
@@ -74,6 +69,8 @@ export function RegistryDesk({
     );
   }
 
+  const padded = 'flex flex-col gap-4 px-4 py-6 lg:px-6';
+
   return (
     <Tabs
       value={params.tab}
@@ -95,38 +92,45 @@ export function RegistryDesk({
           <ValidatePopover open={validateOpen} onOpenChange={setValidateOpen} />
         }
       />
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 lg:px-6">
-        {DESK_TABS.map((tab) => (
-          <TabsContent key={tab} value={tab} className="flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">{TAB_TITLE[tab]}</h2>
-            {tab === 'sources' &&
-              body('sources', sources, (data) => (
-                <>
-                  {!data.writable && <ReadOnlyBanner />}
-                  <SourceTable
-                    sources={data.sources}
-                    writable={data.writable}
-                    onSourcesChange={desk.updateSources}
-                    onReadOnly={() => desk.markReadOnly('sources')}
-                  />
-                </>
-              ))}
-            {tab === 'topics' &&
-              body('topics', topics, (data) => (
-                <>
-                  {!data.writable && <ReadOnlyBanner />}
-                  <TopicList
-                    topics={data.topics}
-                    writable={data.writable}
-                    onTopicsChange={desk.updateTopics}
-                    onReadOnly={() => desk.markReadOnly('topics')}
-                  />
-                </>
-              ))}
-            {tab === 'queue' &&
-              body('queue', queue, (data) => <ReadingQueue data={data} />)}
-          </TabsContent>
-        ))}
+      <main className="w-full">
+        <TabsContent
+          value="sources"
+          className={sources.ok ? undefined : padded}
+        >
+          {!sources.ok && <h2 className="text-lg font-semibold">Sources</h2>}
+          {body('sources', sources, (data) => (
+            <SourcesView
+              sources={data.sources}
+              writable={data.writable}
+              params={params}
+              navigate={navigate}
+              onClearFilters={() => navigate(clearSourceFilters(params))}
+              onSourcesChange={desk.updateSources}
+              onReadOnly={() => desk.markReadOnly('sources')}
+              onValidate={() => setValidateOpen(true)}
+            />
+          ))}
+        </TabsContent>
+        <TabsContent value="topics" className={padded}>
+          <h2 className="text-lg font-semibold">Topics</h2>
+          {body('topics', topics, (data) => (
+            <>
+              {!data.writable && <ReadOnlyBanner />}
+              <TopicList
+                topics={data.topics}
+                writable={data.writable}
+                onTopicsChange={desk.updateTopics}
+                onReadOnly={() => desk.markReadOnly('topics')}
+              />
+            </>
+          ))}
+        </TabsContent>
+        <TabsContent value="queue" className={padded}>
+          <h2 className="text-lg font-semibold">Reading queue</h2>
+          {body('queue', queue, (data) => (
+            <ReadingQueue data={data} />
+          ))}
+        </TabsContent>
       </main>
       <Toaster />
     </Tabs>

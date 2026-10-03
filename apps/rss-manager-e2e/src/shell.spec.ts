@@ -4,6 +4,7 @@ import {
   deskTab,
   gotoTab,
   sourceRows,
+  SOURCES_PAGE_SIZE,
   validatePopover,
   validateTrigger,
   waitForHydration,
@@ -41,7 +42,7 @@ test.describe('shell', () => {
     await expect(
       main.getByRole('heading', { level: 2, name: 'Sources' }),
     ).toBeVisible();
-    await expect(sourceRows(page)).toHaveCount(SOURCES.length);
+    await expect(sourceRows(page)).toHaveCount(SOURCES_PAGE_SIZE);
   });
 
   test('the first paint already has rows, before any API call', async ({
@@ -86,7 +87,7 @@ test.describe('shell', () => {
 
     await deskTab(page, 'sources').click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(sourceRows(page)).toHaveCount(SOURCES.length);
+    await expect(sourceRows(page)).toHaveCount(SOURCES_PAGE_SIZE);
   });
 
   for (const tab of ['topics', 'queue'] as const) {

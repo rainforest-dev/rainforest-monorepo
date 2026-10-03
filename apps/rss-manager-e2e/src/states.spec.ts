@@ -4,6 +4,7 @@ import {
   deskTab,
   gotoTab,
   sourceRows,
+  SOURCES_PAGE_SIZE,
   tabSkeleton,
   waitForHydration,
 } from './support/desk';
@@ -92,7 +93,7 @@ test.describe('load errors', () => {
     release();
     await expect(alert).toHaveCount(0);
     await expect(tabSkeleton(page)).toHaveCount(0);
-    await expect(sourceRows(page)).toHaveCount(SOURCES.length);
+    await expect(sourceRows(page)).toHaveCount(SOURCES_PAGE_SIZE);
     await expect(
       page.getByRole('tab', { name: `Sources ${SOURCES.length}` }),
     ).toBeVisible();

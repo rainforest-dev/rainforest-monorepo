@@ -35,7 +35,7 @@ test.describe('read-only vault', () => {
     await expect(banner).toContainText(READ_ONLY_BANNER);
     for (const [name, action] of [
       ['Birch Compiler', 'Activate'],
-      ['Lantern Notes', 'Retire'],
+      ['Byte Ledger', 'Retire'],
     ] as const) {
       const button = sourceRow(page, name).getByRole('button', {
         name: action,
@@ -102,7 +102,7 @@ test.describe('read-only vault', () => {
         name: 'Activate',
       }),
     ).toBeDisabled();
-    await expect(sourceRow(page, 'Birch Compiler')).toContainText('proposed');
+    await expect(sourceRow(page, 'Birch Compiler')).toContainText('Proposed');
     expect(readVault(SOURCES_FILE)).toBe(before);
   });
 

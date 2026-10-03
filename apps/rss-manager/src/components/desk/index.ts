@@ -1,6 +1,7 @@
 export * from './DeskHeader';
 export * from './LoadError';
 export * from './ReadOnlyBanner';
+export * from './SourcesView';
 export * from './TabSkeleton';
 export * from './useDeskData';
 export * from './useDeskParams';

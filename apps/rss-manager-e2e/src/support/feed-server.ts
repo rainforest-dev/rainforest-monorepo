@@ -43,6 +43,16 @@ const ROUTES: Record<string, Route> = {
   '/feeds/rss.xml': { status: 200, type: 'application/rss+xml', body: RSS },
   '/feeds/atom.xml': { status: 200, type: 'application/atom+xml', body: ATOM },
   '/feeds/page.html': { status: 200, type: 'text/html', body: HTML },
+  '/lantern-notes/rss.xml': {
+    status: 200,
+    type: 'application/rss+xml',
+    body: RSS,
+  },
+  '/velvet-dom/atom.xml': {
+    status: 200,
+    type: 'application/atom+xml',
+    body: ATOM,
+  },
   '/feeds/slow.xml': {
     status: 200,
     type: 'application/rss+xml',
