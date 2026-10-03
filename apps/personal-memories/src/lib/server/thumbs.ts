@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
+import { access, mkdir, rename, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -75,12 +75,17 @@ function isUndecodableSource(err: unknown): boolean {
   return UNDECODABLE_SOURCE.test(message);
 }
 
+const exists = (path: string) =>
+  access(path).then(
+    () => true,
+    () => false,
+  );
+
 export function ensureThumb(
   src: string,
   dest: string,
   w: ThumbWidth,
 ): Promise<void> {
-  if (existsSync(dest)) return Promise.resolve();
   if (failedDests.has(dest)) {
     return Promise.reject(new Error('thumbnail encode previously failed'));
   }
@@ -88,23 +93,30 @@ export function ensureThumb(
   const running = inFlight.get(dest);
   if (running) return running;
 
-  const task = withEncodeSlot(async () => {
-    if (existsSync(dest)) return;
-    mkdirSync(dirname(dest), { recursive: true });
-    const tmp = `${dest}.${randomUUID()}.tmp`;
-    try {
-      await sharp(src)
-        .resize({ width: w, withoutEnlargement: true })
-        .webp()
-        .toFile(tmp);
-      renameSync(tmp, dest);
-    } catch (err) {
-      rmSync(tmp, { force: true });
-      if (isUndecodableSource(err)) failedDests.add(dest);
-      throw err;
-    }
-  }).finally(() => inFlight.delete(dest));
+  const task = (async () => {
+    if (await exists(dest)) return;
+    await withEncodeSlot(async () => {
+      if (await exists(dest)) return;
+      await mkdir(dirname(dest), { recursive: true });
+      const tmp = `${dest}.${randomUUID()}.tmp`;
+      try {
+        await sharp(src)
+          .resize({ width: w, withoutEnlargement: true })
+          .webp()
+          .toFile(tmp);
+        await rename(tmp, dest);
+      } catch (err) {
+        await rm(tmp, { force: true });
+        if (isUndecodableSource(err)) failedDests.add(dest);
+        throw err;
+      }
+    });
+  })().finally(() => inFlight.delete(dest));
 
   inFlight.set(dest, task);
   return task;
 }
+
+// Transparent, so the tile's own muted background shows through in either colour scheme.
+export const NOT_LOCAL_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1" width="1" height="1"/>';

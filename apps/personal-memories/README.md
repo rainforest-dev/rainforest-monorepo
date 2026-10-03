@@ -45,9 +45,14 @@ attached only when the named file exists under the export root.
 the metadata with
 `uvx osxphotos query --json --library "$HOME/Pictures/Photos Library.photoslibrary" --from-date <date> > photos/index.json`.
 The `--library` flag is required: without it, osxphotos tries to read a Photos preferences file
-that the terminal is not permitted to open. The index points at originals, edits, or (with
-Optimize Mac Storage, where originals are cloud-only) local derivatives. The CLI never triggers
-a download. No API can list Google Photos since 2025. Photos from someone else's phone therefore arrive only
+that the terminal is not permitted to open. With Optimize Mac Storage an original
+may live only in iCloud, so `ingest` never assumes it is on disk: it checks each candidate and
+serves the largest local derivative (the JPEG Photos itself displays), falling back to a local
+original or edit. A movie plays from its video only when the video is downloaded; otherwise it
+shows as a still. Items with nothing local are skipped, and `ingest` prints how many came from
+derivatives, from originals, and how many had nothing local. A file that disappears after
+`ingest` (Photos can purge derivatives) shows as an empty tile instead of a broken image. The
+CLI never triggers a download. No API can list Google Photos since 2025. Photos from someone else's phone therefore arrive only
 through the shared iCloud/Photos album.
 
 ## Browsing
