@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@rainforest-dev/rainforest-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import {
   patchRegistry,
@@ -71,33 +71,24 @@ const STATUS_VARIANT: Record<Source['status'], BadgeProps['variant']> = {
   retired: 'destructive',
 };
 
-export default function SourceTable() {
-  const [sources, setSources] = useState<Source[]>([]);
+export interface SourceTableProps {
+  sources: Source[];
+  writable: boolean;
+  onSourcesChange: (update: (prev: Source[]) => Source[]) => void;
+  onReadOnly: () => void;
+}
+
+export function SourceTable({
+  sources,
+  writable,
+  onSourcesChange,
+  onReadOnly,
+}: SourceTableProps) {
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const [writable, setWritable] = useState(true);
   const [pending, setPending] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    fetch('/api/sources')
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data: { sources: Source[]; writable: boolean }) => {
-        setSources(data.sources);
-        setWritable(data.writable);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Failed to load sources.');
-        setLoading(false);
-      });
-  }, []);
 
   async function doAction(name: string, action: 'activate' | 'retire') {
     setPending((p) => new Set(p).add(name));
@@ -107,12 +98,12 @@ export default function SourceTable() {
       if (!result.ok) {
         // The banner above already states the read-only case; repeating it
         // under the table would read as a second, separate problem.
-        if (result.readOnly) setWritable(false);
+        if (result.readOnly) onReadOnly();
         else setActionError(result.error);
         return;
       }
       // Optimistic update
-      setSources((prev) =>
+      onSourcesChange((prev) =>
         prev.map((s) => {
           if (s.name !== name) return s;
           if (action === 'activate') return { ...s, status: 'active' as const };
@@ -168,22 +159,8 @@ export default function SourceTable() {
     {} as Record<string, number>,
   );
 
-  if (error)
-    return <p className="text-destructive py-8 text-center">{error}</p>;
-  if (loading)
-    return (
-      <p className="text-muted-foreground py-8 text-center">Loading sources…</p>
-    );
-
   return (
     <div className="space-y-4">
-      {!writable && (
-        <Alert variant="warning" role="status">
-          <AlertTitle>
-            {READ_ONLY_NOTE} Activate and Retire are disabled.
-          </AlertTitle>
-        </Alert>
-      )}
       {actionError && (
         <Alert variant="destructive">
           <AlertTitle>{actionError}</AlertTitle>

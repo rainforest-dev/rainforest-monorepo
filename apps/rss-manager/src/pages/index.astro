@@ -1,16 +1,11 @@
 ---
-import SourceTable from '@/components/SourceTable.tsx';
-import TopicList from '@/components/TopicList.tsx';
-import FeedValidator from '@/components/FeedValidator.tsx';
-import ReadingQueue from '@/components/ReadingQueue.tsx';
+import { RegistryDesk } from '@/components/RegistryDesk.tsx';
+import { parseDeskParams } from '@/lib/desk';
+import { readDeskData, SOURCES_FILE } from '@/server';
 import '@/styles/global.css';
 
-const VALID_TABS = ['sources', 'topics', 'validate', 'queue'] as const;
-type Tab = (typeof VALID_TABS)[number];
-const rawTab = Astro.url.searchParams.get('tab') ?? 'sources';
-const tab: Tab = (VALID_TABS as readonly string[]).includes(rawTab)
-  ? (rawTab as Tab)
-  : 'sources';
+const params = parseDeskParams(Astro.url.searchParams);
+const data = readDeskData();
 ---
 
 <!doctype html>
@@ -27,37 +22,11 @@ const tab: Tab = (VALID_TABS as readonly string[]).includes(rawTab)
     />
   </head>
   <body class="min-h-screen">
-    <div class="mx-auto max-w-5xl px-6 py-8">
-      <header class="mb-8">
-        <h1 class="text-foreground text-2xl font-semibold">RSS Manager</h1>
-        <p class="text-muted-foreground mt-1 text-sm">
-          Browse and validate your Readwise RSS feeds.
-        </p>
-      </header>
-
-      <!-- Tabs -->
-      <nav class="border-border mb-6 flex gap-1 border-b">
-        {
-          VALID_TABS.map((t) => (
-            <a
-              href={`?tab=${t}`}
-              class={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-                tab === t
-                  ? 'border-primary text-primary'
-                  : 'text-muted-foreground hover:text-foreground border-transparent'
-              }`}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </a>
-          ))
-        }
-      </nav>
-
-      <!-- Tab content -->
-      {tab === 'sources' && <SourceTable client:load />}
-      {tab === 'topics' && <TopicList client:load />}
-      {tab === 'validate' && <FeedValidator client:load />}
-      {tab === 'queue' && <ReadingQueue client:load />}
-    </div>
+    <RegistryDesk
+      client:load
+      initialParams={params}
+      data={data}
+      registryFile={SOURCES_FILE}
+    />
   </body>
 </html>

@@ -1,6 +1,15 @@
 import { expect, test } from '@playwright/test';
 
-import { gotoTab, READ_ONLY_NOTE, sourceRow, topicCard } from './support/desk';
+import {
+  deskTab,
+  gotoTab,
+  openValidate,
+  READ_ONLY_BANNER,
+  READ_ONLY_NOTE,
+  sourceRow,
+  topicCard,
+} from './support/desk';
+import { FEEDS } from './support/feed-server';
 import {
   canDropWritePermission,
   makeReadOnly,
@@ -21,9 +30,9 @@ test.describe('read-only vault', () => {
     makeReadOnly(SOURCES_FILE);
     await gotoTab(page, 'sources');
 
-    await expect(page.getByRole('status')).toContainText(
-      `${READ_ONLY_NOTE} Activate and Retire are disabled.`,
-    );
+    const banner = page.getByRole('status');
+    await expect(banner).toContainText('Read-only vault');
+    await expect(banner).toContainText(READ_ONLY_BANNER);
     for (const [name, action] of [
       ['Birch Compiler', 'Activate'],
       ['Lantern Notes', 'Retire'],
@@ -37,6 +46,19 @@ test.describe('read-only vault', () => {
     await expect(
       sourceRow(page, 'Ferry Ops').getByRole('link', { name: 'Re-subscribe' }),
     ).toBeVisible();
+
+    await deskTab(page, 'topics').click();
+    await expect(page.getByRole('status')).toHaveCount(0);
+  });
+
+  test('Validate still works on a read-only vault', async ({ page }) => {
+    makeReadOnly(SOURCES_FILE);
+    makeReadOnly(TOPICS_FILE);
+    await gotoTab(page, 'sources');
+    const popover = await openValidate(page);
+    await popover.getByRole('textbox', { name: 'Feed URL' }).fill(FEEDS.rss);
+    await popover.getByRole('button', { name: 'Validate' }).click();
+    await expect(popover.getByRole('alert')).toContainText('Valid RSS feed');
   });
 
   test('topics load read-only with the banner and disabled actions', async ({
@@ -45,9 +67,9 @@ test.describe('read-only vault', () => {
     makeReadOnly(TOPICS_FILE);
     await gotoTab(page, 'topics');
 
-    await expect(page.getByRole('status')).toContainText(
-      `${READ_ONLY_NOTE} Activate and Decline are disabled.`,
-    );
+    const banner = page.getByRole('status');
+    await expect(banner).toContainText('Read-only vault');
+    await expect(banner).toContainText(READ_ONLY_BANNER);
     const card = topicCard(page, 'Local-first apps');
     for (const action of ['Activate', 'Decline']) {
       const button = card.getByRole('button', { name: action });
