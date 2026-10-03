@@ -1,14 +1,21 @@
-import { Tabs, TabsContent, Toaster } from '@rainforest-dev/rainforest-react';
-import { type ReactNode, useState } from 'react';
+import {
+  KeyHints,
+  Tabs,
+  TabsContent,
+  Toaster,
+} from '@rainforest-dev/rainforest-react';
+import { type ReactNode, useRef, useState } from 'react';
 
 import {
   DeskHeader,
   LoadError,
   ReadOnlyBanner,
+  type SourcesKeys,
   SourcesView,
   TabSkeleton,
   useDeskData,
   useDeskParams,
+  useDeskShortcuts,
   useSourceActions,
   useSourceSelection,
   ValidatePopover,
@@ -18,6 +25,7 @@ import {
   DESK_TABS,
   type DeskData,
   type DeskFile,
+  deskHints,
   type DeskParams,
   type DeskTab,
   type FileLoad,
@@ -57,6 +65,12 @@ export function RegistryDesk({
     onReadOnly: () => desk.markReadOnly('sources'),
   });
   const selection = useSourceSelection();
+  const sourcesKeys = useRef<SourcesKeys | null>(null);
+  useDeskShortcuts({
+    tab: params.tab,
+    onTab: (tab) => navigate({ tab }),
+    sources: sourcesKeys,
+  });
 
   function body<T>(
     file: DeskFile,
@@ -79,6 +93,12 @@ export function RegistryDesk({
   }
 
   const padded = 'flex flex-col gap-4 px-4 py-6 lg:px-6';
+  const hints = (tab: DeskTab) => (
+    <KeyHints
+      hints={deskHints(tab, false)}
+      className="bg-background sticky bottom-0 z-[5] mt-auto hidden border-t py-2 lg:flex"
+    />
+  );
 
   return (
     <Tabs
@@ -116,6 +136,7 @@ export function RegistryDesk({
               selection={selection}
               onClearFilters={() => navigate(clearSourceFilters(params))}
               onValidate={() => setValidateOpen(true)}
+              keys={sourcesKeys}
             />
           ))}
         </TabsContent>
@@ -132,12 +153,14 @@ export function RegistryDesk({
               />
             </>
           ))}
+          {hints('topics')}
         </TabsContent>
         <TabsContent value="queue" className={padded}>
           <h2 className="text-lg font-semibold">Reading queue</h2>
           {body('queue', queue, (data) => (
             <ReadingQueue data={data} />
           ))}
+          {hints('queue')}
         </TabsContent>
       </main>
       <Toaster />

@@ -1,4 +1,9 @@
-import { Button, ButtonGroup, Spinner } from '@rainforest-dev/rainforest-react';
+import {
+  Button,
+  ButtonGroup,
+  Kbd,
+  Spinner,
+} from '@rainforest-dev/rainforest-react';
 import { XIcon } from 'lucide-react';
 
 import { READ_ONLY_NOTE, type Source } from '@/lib';
@@ -90,6 +95,9 @@ export function BulkToolbar({
         <Button variant="outline" size="sm" onClick={selection.done}>
           Done
         </Button>
+        <span className="text-muted-foreground hidden items-center gap-1 text-xs lg:inline-flex">
+          <Kbd>Esc</Kbd> clear
+        </span>
       </div>
     </div>
   );

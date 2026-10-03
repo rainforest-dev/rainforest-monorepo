@@ -27,6 +27,7 @@ export interface SourceActionsProps {
 
 export function SourceActions({ source, actions, layout }: SourceActionsProps) {
   const size = layout === 'row' ? 'xs' : 'sm';
+  const tabIndex = layout === 'row' ? -1 : undefined;
   const width = layout === 'pane' && 'w-full';
   const busy = actions.pending.has(source.name);
   const writes = ACTIONS.filter((action) => SOURCE_RULES[action](source));
@@ -46,6 +47,7 @@ export function SourceActions({ source, actions, layout }: SourceActionsProps) {
           size={size}
           variant={action === 'activate' ? 'default' : 'secondary'}
           className={cn(width)}
+          tabIndex={tabIndex}
           onClick={(event) => {
             event.stopPropagation();
             void actions.run([source.name], action, layout);
@@ -64,6 +66,7 @@ export function SourceActions({ source, actions, layout }: SourceActionsProps) {
           href={READER_FEEDS_URL}
           target="_blank"
           rel="noopener noreferrer"
+          tabIndex={tabIndex}
           title={`Copies ${source.url} and opens Readwise — paste it there with Shift + A`}
           onClick={(event) => {
             event.stopPropagation();

@@ -5,6 +5,7 @@ export * from './SourcesView';
 export * from './TabSkeleton';
 export * from './useDeskData';
 export * from './useDeskParams';
+export * from './useDeskShortcuts';
 export * from './useFeedValidation';
 export * from './useSourceActions';
 export * from './useSourceSelection';

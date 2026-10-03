@@ -7,6 +7,7 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  KeyHints,
   ScrollArea,
   Table,
   TableBody,
@@ -14,12 +15,19 @@ import {
   TableHeader,
   TableRow,
 } from '@rainforest-dev/rainforest-react';
-import { useEffect, useRef, useState } from 'react';
+import {
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import type { Source } from '@/lib';
 import {
   activeChips,
   clampPage,
+  deskHints,
   type DeskParams,
   type DeskPatch,
   facetCount,
@@ -28,6 +36,7 @@ import {
   type HistoryMode,
   pageCheckState,
   SOURCES_PAGE_SIZE,
+  type SourcesCommand,
   toggleValue,
 } from '@/lib/desk';
 
@@ -37,8 +46,11 @@ import { FilterPanel } from './FilterPanel';
 import { Pager } from './Pager';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { SearchField } from './SearchField';
+import { READER_FEEDS_URL } from './SourceActions';
 import { SOURCE_DETAIL_ID, SourceDetail } from './SourceDetail';
 import { SourceRow, WIDE_ONLY } from './SourceRow';
+import type { SourcesKeys } from './useDeskShortcuts';
+import { useRovingRows } from './useRovingRows';
 import type { SourceActionsState } from './useSourceActions';
 import type { SourceSelection } from './useSourceSelection';
 
@@ -50,16 +62,7 @@ export interface SourcesViewProps {
   selection: SourceSelection;
   onClearFilters: () => void;
   onValidate: () => void;
-}
-
-const OVERLAY = '[role="dialog"], [role="alertdialog"], [role="menu"]';
-const TYPING = 'input, textarea, select, [contenteditable="true"]';
-
-function focusRow(name: string) {
-  const row = [
-    ...document.querySelectorAll<HTMLElement>('tr[data-source]'),
-  ].find((r) => r.dataset['source'] === name);
-  row?.querySelector<HTMLElement>('[data-source-open]')?.focus();
+  keys?: RefObject<SourcesKeys | null>;
 }
 
 export function SourcesView({
@@ -70,12 +73,14 @@ export function SourcesView({
   selection,
   onClearFilters,
   onValidate,
+  keys,
 }: SourcesViewProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const facets = facetOptions(sources, params);
   const filtered = filterSources(sources, params);
   const page = clampPage(params.page, filtered.length);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / SOURCES_PAGE_SIZE));
   const rows = filtered.slice(
     (page - 1) * SOURCES_PAGE_SIZE,
     page * SOURCES_PAGE_SIZE,
@@ -88,6 +93,7 @@ export function SourcesView({
   const openName = params.source;
   const open = openName ? sources.find((s) => s.name === openName) : undefined;
   const paneOpen = openName !== null;
+  const roving = useRovingRows(pageNames, { page, data: sources });
 
   useEffect(() => {
     if (page !== params.page) navigate({ page }, 'replace');
@@ -99,25 +105,101 @@ export function SourcesView({
     lastOpen.current = openName;
     if (!closed || openName) return;
     const active = document.activeElement;
-    if (!active || active === document.body) focusRow(closed);
-  }, [openName]);
+    if (!active || active === document.body) roving.focusNow({ name: closed });
+  });
 
-  useEffect(() => {
-    if (!paneOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        (target.closest(OVERLAY) || target.closest(TYPING))
-      )
-        return;
-      navigate({ source: null });
+  const goToPage = (next: number, focusFirstRow = false) => {
+    navigate({ page: next });
+    window.scrollTo({ top: 0 });
+    if (focusFirstRow) roving.focus({ index: 0, page: next });
+  };
+
+  const runKey = (
+    command: SourcesCommand,
+    name: string | null,
+    target: Element | null,
+  ) => {
+    const source = name ? rows.find((s) => s.name === name) : undefined;
+    const fromToolbar = target?.closest('[role="toolbar"]') != null;
+    switch (command.type) {
+      case 'move':
+        roving.move(command.key);
+        break;
+      case 'page':
+        goToPage(command.page, true);
+        break;
+      case 'open':
+        if (name && name !== openName) navigate({ source: name });
+        break;
+      case 'toggle':
+        if (!name) break;
+        if (!selectMode) selection.start();
+        selection.toggle(name);
+        break;
+      case 'activate':
+      case 'retire':
+        if (!name) break;
+        void actions.run([name], command.type, 'row', () =>
+          roving.focus({
+            name,
+            index: pageNames.indexOf(name),
+            replacing: sources,
+            ifIdle: true,
+          }),
+        );
+        break;
+      case 'resubscribe':
+        if (!source) break;
+        actions.resubscribe(source.name, source.url);
+        window.open(READER_FEEDS_URL, '_blank', 'noopener,noreferrer');
+        break;
+      case 'close-pane':
+        navigate({ source: null });
+        roving.focus({
+          name: openName,
+          index: target?.closest(`#${SOURCE_DETAIL_ID}`)
+            ? Math.max(0, pageNames.indexOf(roving.stop ?? ''))
+            : undefined,
+        });
+        break;
+      case 'clear-selection':
+        selection.clear();
+        if (fromToolbar) roving.focus({ name: roving.stop, index: 0 });
+        break;
+      case 'leave-select-mode':
+        selection.done();
+        break;
+    }
+  };
+
+  useLayoutEffect(() => {
+    if (!keys) return;
+    keys.current = {
+      state: {
+        paneOpen,
+        hasSelection: selection.selected.size > 0,
+        selectMode,
+        page,
+        pageCount,
+        writable: actions.writable,
+      },
+      rowAt: (target) => {
+        const name = roving.rowAt(target);
+        const source = name ? rows.find((s) => s.name === name) : undefined;
+        return source
+          ? {
+              name: source.name,
+              source,
+              pending: actions.pending.has(source.name),
+            }
+          : null;
+      },
+      run: runKey,
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [paneOpen, navigate]);
+    return () => {
+      keys.current = null;
+    };
+  });
 
   const closePane = () => navigate({ source: null });
 
@@ -186,6 +268,7 @@ export function SourcesView({
                   <SearchField
                     value={params.q}
                     label="Search sources"
+                    tab="sources"
                     onChange={(q) => {
                       if (q !== params.q) navigate({ q });
                     }}
@@ -249,7 +332,10 @@ export function SourcesView({
         ) : (
           <>
             <Table
+              ref={roving.ref}
+              role="grid"
               aria-labelledby="sources-heading"
+              aria-multiselectable={selectMode || undefined}
               className="table-fixed md:table-auto"
             >
               <TableHeader>
@@ -290,6 +376,7 @@ export function SourcesView({
                     key={source.name}
                     source={source}
                     open={source.name === openName}
+                    tabIndex={source.name === roving.stop ? 0 : -1}
                     compact={paneOpen}
                     actions={actions}
                     selectMode={selectMode}
@@ -307,13 +394,14 @@ export function SourcesView({
               page={page}
               pageSize={SOURCES_PAGE_SIZE}
               total={filtered.length}
-              onPage={(next) => {
-                navigate({ page: next });
-                window.scrollTo({ top: 0 });
-              }}
+              onPage={(next) => goToPage(next)}
             />
           </>
         )}
+        <KeyHints
+          hints={deskHints('sources', pageCount > 1)}
+          className="bg-background sticky bottom-0 z-[5] mt-auto hidden border-t py-2 lg:flex"
+        />
       </section>
 
       {openName !== null && (

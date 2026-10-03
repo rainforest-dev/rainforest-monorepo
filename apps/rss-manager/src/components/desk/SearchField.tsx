@@ -3,19 +3,25 @@ import {
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
+  Kbd,
 } from '@rainforest-dev/rainforest-react';
 import { SearchIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+import type { DeskTab } from '@/lib/desk';
+
+import { DESK_SEARCH_ATTR } from './useDeskShortcuts';
 
 const DEBOUNCE_MS = 200;
 
 export interface SearchFieldProps {
   value: string;
   label: string;
+  tab: DeskTab;
   onChange: (value: string) => void;
 }
 
-export function SearchField({ value, label, onChange }: SearchFieldProps) {
+export function SearchField({ value, label, tab, onChange }: SearchFieldProps) {
   const [text, setText] = useState(value);
   const [committed, setCommitted] = useState(value);
 
@@ -32,7 +38,7 @@ export function SearchField({ value, label, onChange }: SearchFieldProps) {
   }, [text, committed, onChange]);
 
   return (
-    <InputGroup className="w-full sm:w-72">
+    <InputGroup className="w-full sm:w-72" {...{ [DESK_SEARCH_ATTR]: tab }}>
       <InputGroupAddon>
         <SearchIcon aria-hidden="true" />
       </InputGroupAddon>
@@ -46,6 +52,11 @@ export function SearchField({ value, label, onChange }: SearchFieldProps) {
         onChange={(e) => setText(e.target.value)}
         className="[&::-webkit-search-cancel-button]:appearance-none"
       />
+      {!text && (
+        <InputGroupAddon align="inline-end" className="max-lg:hidden">
+          <Kbd>/</Kbd>
+        </InputGroupAddon>
+      )}
       {text && (
         <InputGroupAddon align="inline-end">
           <InputGroupButton

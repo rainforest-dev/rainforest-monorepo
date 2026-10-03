@@ -103,7 +103,7 @@ test.describe('source detail pane', () => {
     await pane.getByRole('button', { name: 'Close details' }).click();
     await expect(detailPane(page)).toHaveCount(0);
     await expect(page).toHaveURL(/\/$/);
-    await expect(openButton(page, 'Signal Garden')).toBeFocused();
+    await expect(sourceRow(page, 'Signal Garden')).toBeFocused();
   });
 
   test('Esc closes the pane and focus returns to the row', async ({ page }) => {
@@ -113,7 +113,7 @@ test.describe('source detail pane', () => {
     await page.keyboard.press('Escape');
     await expect(detailPane(page)).toHaveCount(0);
     await expect(page).toHaveURL(/\/$/);
-    await expect(openButton(page, 'Dispatch Nine')).toBeFocused();
+    await expect(sourceRow(page, 'Dispatch Nine')).toBeFocused();
   });
 
   test('Esc in the search field leaves the pane open', async ({ page }) => {
@@ -133,7 +133,7 @@ test.describe('source detail pane', () => {
     await page.goBack();
     await expect(detailPane(page)).toHaveCount(0);
     await expect(page).toHaveURL(/\/$/);
-    await expect(openButton(page, 'Folio & Frame')).toBeFocused();
+    await expect(sourceRow(page, 'Folio & Frame')).toBeFocused();
 
     await page.goForward();
     await expect(
