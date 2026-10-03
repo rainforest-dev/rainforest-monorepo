@@ -12,6 +12,7 @@ Nx 23.1.0 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-calibre** - Next.js Calibre library browser, shipped as a Docker image
 - **apps/personal-calibre-e2e** - Playwright e2e tests
 - **apps/rss-manager** - Astro + React RSS registry manager, shipped as a Docker image
+- **apps/rss-manager-e2e** - Playwright e2e tests against a generated fictional vault and a local feed server
 - **apps/personal-memories** - Astro + React memories album (dev port 3004, bound to 127.0.0.1); private data stays outside the repo, and the homelab image mounts it read-only behind the Cloudflare Access gate
 - **apps/personal-memories-e2e** - Playwright e2e tests
 - **libs/personal-data** - Profile, work history and project data, read by the website and its MCP tools
