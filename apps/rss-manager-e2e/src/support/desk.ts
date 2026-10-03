@@ -119,3 +119,41 @@ export const READ_ONLY_NOTE =
   'The vault is mounted read-only, so the registry cannot be edited from here.';
 
 export const READ_ONLY_BANNER = `${READ_ONLY_NOTE} Activate, Retire and Decline are turned off until it is mounted read-write.`;
+
+export const toasts = (page: Page): Locator =>
+  page.locator('[data-sonner-toast]');
+
+export const bulkToolbar = (page: Page): Locator =>
+  page.getByRole('toolbar', { name: 'Bulk actions' });
+
+export const bulkButton = (
+  page: Page,
+  action: 'Activate' | 'Retire',
+): Locator =>
+  bulkToolbar(page)
+    .getByRole('group', { name: 'Apply to selected' })
+    .getByRole('button', { name: new RegExp(`${action} \\d+$`) });
+
+export const selectedCount = (page: Page): Locator =>
+  bulkToolbar(page).getByText(/^\d+ selected$/);
+
+export async function startSelecting(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Select', exact: true }).click();
+  await expect(
+    page.getByRole('checkbox', { name: 'Select all on this page' }),
+  ).toBeVisible();
+}
+
+export const rowCheckbox = (page: Page, name: string): Locator =>
+  page.getByRole('checkbox', { name: `Select ${name}`, exact: true });
+
+export function sectionOf(markdown: string, name: string): string | null {
+  let section: string | null = null;
+  for (const line of markdown.split('\n')) {
+    if (line.startsWith('## ')) section = line.slice(3).trim();
+    else if (line.includes(`**${name}**`)) return section;
+  }
+  return null;
+}
+
+export const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';

@@ -9,6 +9,8 @@ import {
   TabSkeleton,
   useDeskData,
   useDeskParams,
+  useSourceActions,
+  useSourceSelection,
   ValidatePopover,
 } from '@/components/desk';
 import {
@@ -48,6 +50,13 @@ export function RegistryDesk({
   const desk = useDeskData(initialData);
   const [validateOpen, setValidateOpen] = useState(initialParams.validate);
   const { sources, topics, queue } = desk.data;
+  const sourceActions = useSourceActions({
+    writable: sources.ok && sources.data.writable,
+    registryFile,
+    onSourcesChange: desk.updateSources,
+    onReadOnly: () => desk.markReadOnly('sources'),
+  });
+  const selection = useSourceSelection();
 
   function body<T>(
     file: DeskFile,
@@ -101,12 +110,11 @@ export function RegistryDesk({
           {body('sources', sources, (data) => (
             <SourcesView
               sources={data.sources}
-              writable={data.writable}
               params={params}
               navigate={navigate}
+              actions={sourceActions}
+              selection={selection}
               onClearFilters={() => navigate(clearSourceFilters(params))}
-              onSourcesChange={desk.updateSources}
-              onReadOnly={() => desk.markReadOnly('sources')}
               onValidate={() => setValidateOpen(true)}
             />
           ))}

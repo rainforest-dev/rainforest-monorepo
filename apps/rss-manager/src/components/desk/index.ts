@@ -6,6 +6,8 @@ export * from './TabSkeleton';
 export * from './useDeskData';
 export * from './useDeskParams';
 export * from './useFeedValidation';
+export * from './useSourceActions';
+export * from './useSourceSelection';
 export * from './ValidateForm';
 export * from './ValidatePopover';
 export * from './ValidateResult';

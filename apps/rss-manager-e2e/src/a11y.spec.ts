@@ -2,6 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { type AxeIgnore, expectNoViolations } from './support/axe';
 import {
+  bulkButton,
   chips,
   detailPane,
   facetOption,
@@ -9,8 +10,13 @@ import {
   gotoTab,
   openSource,
   openValidate,
+  rowCheckbox,
+  selectedCount,
+  sourceRow,
   sourceSearch,
+  startSelecting,
   type Tab,
+  toasts,
 } from './support/desk';
 import { FEEDS } from './support/feed-server';
 import { resetVault } from './support/vault';
@@ -88,6 +94,31 @@ test.describe('accessibility', () => {
       'opacity',
       '1',
     );
+    await expectNoViolations(page);
+  });
+
+  test('the Sources tab has no axe violations in select mode with a toast', async ({
+    page,
+  }) => {
+    await gotoSources(page);
+    await startSelecting(page);
+    for (const name of ['Birch Compiler', 'Ferry Ops', 'Token Tides'])
+      await rowCheckbox(page, name).click();
+    await expect(selectedCount(page)).toHaveText('3 selected');
+    await page.mouse.move(0, 0);
+    await expect(sourceRow(page, 'Cinder Blog')).toHaveCSS(
+      'background-color',
+      'rgba(0, 0, 0, 0)',
+    );
+    await expectNoViolations(page);
+
+    await bulkButton(page, 'Activate').click();
+    const toast = toasts(page);
+    await expect(toast).toContainText('Activated Birch Compiler');
+    await toast.hover();
+    await rowCheckbox(page, 'Ferry Ops').click();
+    await toast.hover();
+    await expect(toast).toBeVisible();
     await expectNoViolations(page);
   });
 });

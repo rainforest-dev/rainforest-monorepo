@@ -1,12 +1,20 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  bulkButton,
   deskTab,
+  detailPane,
+  gotoSources,
   gotoTab,
   openValidate,
   READ_ONLY_BANNER,
   READ_ONLY_NOTE,
+  READER_FEEDS_URL,
+  rowCheckbox,
+  selectedCount,
   sourceRow,
+  startSelecting,
+  toasts,
   topicCard,
 } from './support/desk';
 import { FEEDS } from './support/feed-server';
@@ -124,5 +132,84 @@ test.describe('read-only vault', () => {
       }),
     ).toBeDisabled();
     expect(readVault(TOPICS_FILE)).toBe(before);
+  });
+
+  test('bulk buttons are disabled on a read-only vault, but selecting works', async ({
+    page,
+  }) => {
+    makeReadOnly(SOURCES_FILE);
+    await gotoTab(page, 'sources');
+    await startSelecting(page);
+    await rowCheckbox(page, 'Birch Compiler').click();
+    await rowCheckbox(page, 'Token Tides').click();
+    await expect(selectedCount(page)).toHaveText('2 selected');
+    for (const [action, n] of [
+      ['Activate', 1],
+      ['Retire', 2],
+    ] as const) {
+      const button = bulkButton(page, action);
+      await expect(button).toHaveText(`${action} ${n}`);
+      await expect(button).toBeDisabled();
+      await expect(button).toHaveAttribute('title', READ_ONLY_NOTE);
+    }
+  });
+
+  test('Re-subscribe still opens Readwise and copies on a read-only vault', async ({
+    page,
+    context,
+  }) => {
+    makeReadOnly(SOURCES_FILE);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await context.route('https://read.readwise.io/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<title>Feeds</title>' }),
+    );
+    await gotoSources(page, '?source=Ferry+Ops');
+    const before = readVault(SOURCES_FILE);
+
+    const opened = context.waitForEvent('page');
+    await detailPane(page).getByRole('link', { name: 'Re-subscribe' }).click();
+    expect((await opened).url()).toBe(READER_FEEDS_URL);
+    await expect(detailPane(page)).toContainText(
+      'Re-subscribed in this session',
+    );
+    await page.bringToFront();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+      '/ferry-ops/',
+    );
+    expect(readVault(SOURCES_FILE)).toBe(before);
+  });
+
+  test('a batch write that hits a read-only file shows the banner, not a toast', async ({
+    page,
+  }) => {
+    await gotoTab(page, 'sources');
+    await startSelecting(page);
+    await rowCheckbox(page, 'Birch Compiler').click();
+    await rowCheckbox(page, 'Cinder Blog').click();
+    const before = readVault(SOURCES_FILE);
+
+    makeReadOnly(SOURCES_FILE);
+    const patch = page.waitForResponse(
+      (r) =>
+        r.url().endsWith('/api/sources') && r.request().method() === 'PATCH',
+    );
+    await bulkButton(page, 'Activate').click();
+    const response = await patch;
+    expect(response.status()).toBe(409);
+    expect(response.request().postDataJSON()).toEqual({
+      names: ['Birch Compiler', 'Cinder Blog'],
+      action: 'activate',
+    });
+
+    await expect(page.getByRole('status')).toContainText(READ_ONLY_NOTE);
+    await expect(bulkButton(page, 'Activate')).toBeDisabled();
+    await expect(bulkButton(page, 'Activate')).toHaveAttribute(
+      'title',
+      READ_ONLY_NOTE,
+    );
+    await expect(selectedCount(page)).toHaveText('2 selected');
+    await expect(toasts(page)).toHaveCount(0);
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    expect(readVault(SOURCES_FILE)).toBe(before);
   });
 });

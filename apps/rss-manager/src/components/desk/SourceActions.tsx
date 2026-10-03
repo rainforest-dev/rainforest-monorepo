@@ -6,11 +6,18 @@ import {
 } from '@rainforest-dev/rainforest-react';
 
 import { READ_ONLY_NOTE, type Source } from '@/lib';
-import { canResubscribe } from '@/lib/desk';
+import {
+  canResubscribe,
+  SOURCE_ACTION_LABEL,
+  SOURCE_RULES,
+  type SourceAction,
+} from '@/lib/desk';
 
-import type { SourceAction, SourceActionsState } from './useSourceActions';
+import type { SourceActionsState } from './useSourceActions';
 
 export const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';
+
+const ACTIONS: readonly SourceAction[] = ['activate', 'retire'];
 
 export interface SourceActionsProps {
   source: Source;
@@ -22,45 +29,55 @@ export function SourceActions({ source, actions, layout }: SourceActionsProps) {
   const size = layout === 'row' ? 'xs' : 'sm';
   const width = layout === 'pane' && 'w-full';
   const busy = actions.pending.has(source.name);
+  const writes = ACTIONS.filter((action) => SOURCE_RULES[action](source));
+  const resubscribe = canResubscribe(source);
+  if (writes.length === 0 && !resubscribe) return null;
 
-  const write = (action: SourceAction, label: string) => (
-    <Button
-      size={size}
-      variant={action === 'activate' ? 'default' : 'secondary'}
-      className={cn(width)}
-      onClick={(event) => {
-        event.stopPropagation();
-        void actions.run(source.name, action);
-      }}
-      disabled={busy || !actions.writable}
-      title={actions.writable ? undefined : READ_ONLY_NOTE}
+  return (
+    <div
+      className={cn(
+        'flex gap-1.5',
+        layout === 'row' ? 'justify-end' : 'flex-col gap-2',
+      )}
     >
-      {busy && <Spinner data-icon="inline-start" />}
-      {label}
-    </Button>
+      {writes.map((action) => (
+        <Button
+          key={action}
+          size={size}
+          variant={action === 'activate' ? 'default' : 'secondary'}
+          className={cn(width)}
+          onClick={(event) => {
+            event.stopPropagation();
+            void actions.run([source.name], action, layout);
+          }}
+          disabled={busy || !actions.writable}
+          title={actions.writable ? undefined : READ_ONLY_NOTE}
+        >
+          {actions.isRunning(layout, action, source.name) && (
+            <Spinner data-icon="inline-start" />
+          )}
+          {SOURCE_ACTION_LABEL[action]}
+        </Button>
+      ))}
+      {resubscribe && (
+        <a
+          href={READER_FEEDS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Copies ${source.url} and opens Readwise — paste it there with Shift + A`}
+          onClick={(event) => {
+            event.stopPropagation();
+            actions.resubscribe(source.name, source.url);
+          }}
+          className={buttonVariants({
+            size,
+            variant: 'warning',
+            className: width || undefined,
+          })}
+        >
+          {actions.copied === source.name ? 'Copied' : 'Re-subscribe'}
+        </a>
+      )}
+    </div>
   );
-
-  if (source.status === 'proposed') return write('activate', 'Activate');
-  if (canResubscribe(source))
-    return (
-      <a
-        href={READER_FEEDS_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={`Copies ${source.url} and opens Readwise — paste it there with Shift + A`}
-        onClick={(event) => {
-          event.stopPropagation();
-          void actions.copyFeedUrl(source.name, source.url);
-        }}
-        className={buttonVariants({
-          size,
-          variant: 'warning',
-          className: width || undefined,
-        })}
-      >
-        {actions.copied === source.name ? 'Copied ✓' : 'Re-subscribe'}
-      </a>
-    );
-  if (source.status === 'active') return write('retire', 'Retire');
-  return null;
 }
