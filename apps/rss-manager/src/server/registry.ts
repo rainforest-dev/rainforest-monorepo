@@ -1,4 +1,4 @@
-import { accessSync, constants, readFileSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { Source, Stale, StaleType, Topic } from '@/lib';
@@ -253,128 +253,13 @@ export function readTopics(): Topic[] {
   return parseTopics(readFileSync(path, 'utf-8'));
 }
 
-// ── Write helpers ──────────────────────────────────────────────────────────────
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/** Remove an entry (checkbox line + all indented continuation lines) from lines in-place. */
-function spliceEntry(lines: string[], name: string): string[] {
-  const re = new RegExp(`^- \\[[ x]\\] \\*\\*${escapeRegex(name)}\\*\\*`);
-  const idx = lines.findIndex((l) => re.test(l));
-  if (idx === -1) throw new Error(`Entry not found: ${name}`);
-
-  const removed = [lines[idx]];
-  let j = idx + 1;
-  // Grab all indented continuation lines (URL, description, What/Why/Recent…)
-  while (j < lines.length && lines[j] !== '' && /^\s/.test(lines[j])) {
-    removed.push(lines[j]);
-    j++;
-  }
-  lines.splice(idx, removed.length);
-  // Clean up blank line left behind
-  if (lines[idx]?.trim() === '') lines.splice(idx, 1);
-
-  return removed;
-}
-
-/** Insert entry lines before the next ## section (end of target section). */
-function insertAtSectionEnd(
-  lines: string[],
-  section: string,
-  entry: string[],
-): void {
-  const sectionIdx = lines.findIndex((l) => l === `## ${section}`);
-  if (sectionIdx === -1) throw new Error(`Section not found: ## ${section}`);
-
-  let insertIdx = lines.length;
-  for (let i = sectionIdx + 1; i < lines.length; i++) {
-    if (lines[i].startsWith('## ')) {
-      insertIdx = i;
-      break;
-    }
-  }
-  // Back over trailing blank lines so we don't double-space
-  while (insertIdx > sectionIdx + 1 && lines[insertIdx - 1].trim() === '')
-    insertIdx--;
-
-  lines.splice(insertIdx, 0, '', ...entry);
-}
-
-/** Promote a proposed source to active: checks [x] and moves to Active Sources. */
-export function activateSource(name: string): void {
-  const filePath = registryFilePath(SOURCES_FILE);
-  const lines = readFileSync(filePath, 'utf-8').split('\n');
-
-  const re = new RegExp(`^- \\[[ x]\\] \\*\\*${escapeRegex(name)}\\*\\*`);
-  const idx = lines.findIndex((l) => re.test(l));
-  if (idx === -1) throw new Error(`Source not found: ${name}`);
-
-  // Determine current section
-  let currentSection = '';
-  for (let i = idx; i >= 0; i--) {
-    if (lines[i].startsWith('## ')) {
-      currentSection = lines[i].slice(3).trim();
-      break;
-    }
-  }
-
-  if (currentSection === 'Active Sources') {
-    // Already in right section — just check the box
-    lines[idx] = lines[idx].replace(/^- \[ \]/, '- [x]');
-  } else {
-    // Move to Active Sources with checked box
-    const entry = spliceEntry(lines, name);
-    entry[0] = entry[0].replace(/^- \[[ x]\]/, '- [x]');
-    insertAtSectionEnd(lines, 'Active Sources', entry);
-  }
-
-  writeFileSync(filePath, lines.join('\n'), 'utf-8');
-}
-
-/** Move a proposed topic to Active, checking its box. */
-export function activateTopic(name: string): void {
-  const filePath = registryFilePath(TOPICS_FILE);
-  const lines = readFileSync(filePath, 'utf-8').split('\n');
-
-  const entry = spliceEntry(lines, name);
-  entry[0] = entry[0].replace(/^- \[[ x]\]/, '- [x]');
-  insertAtSectionEnd(lines, 'Active', entry);
-
-  writeFileSync(filePath, lines.join('\n'), 'utf-8');
-}
-
-/** Move a proposed topic to Declined, unchecking its box. */
-export function declineTopic(name: string): void {
-  const filePath = registryFilePath(TOPICS_FILE);
-  const lines = readFileSync(filePath, 'utf-8').split('\n');
-
-  const entry = spliceEntry(lines, name);
-  entry[0] = entry[0].replace(/^- \[[ x]\]/, '- [ ]');
-
-  if (!lines.some((l) => l === '## Declined')) {
-    lines.push('', '## Declined', '', ...entry);
-  } else {
-    insertAtSectionEnd(lines, 'Declined', entry);
-  }
-
-  writeFileSync(filePath, lines.join('\n'), 'utf-8');
-}
-
-/** Move an active source to Retired, unchecking its box. */
-export function retireSource(name: string): void {
-  const filePath = registryFilePath(SOURCES_FILE);
-  const lines = readFileSync(filePath, 'utf-8').split('\n');
-
-  const entry = spliceEntry(lines, name);
-  entry[0] = entry[0].replace(/^- \[[ x]\]/, '- [ ]');
-
-  if (!lines.some((l) => l === '## Retired')) {
-    lines.push('', '## Retired', '', ...entry);
-  } else {
-    insertAtSectionEnd(lines, 'Retired', entry);
-  }
-
-  writeFileSync(filePath, lines.join('\n'), 'utf-8');
+export function duplicateNameWarnings(items: { name: string }[]): string[] {
+  const counts = new Map<string, number>();
+  for (const { name } of items) counts.set(name, (counts.get(name) ?? 0) + 1);
+  return [...counts]
+    .filter(([, count]) => count > 1)
+    .map(
+      ([name, count]) =>
+        `"${name}" appears ${count} times; a write acts on the first one.`,
+    );
 }
