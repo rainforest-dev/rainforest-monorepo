@@ -9,6 +9,8 @@ import path from 'node:path';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
+const JUMP_PLACEHOLDER = '2025-11-08、上週六、中秋';
+
 const NOTES = path.join(__dirname, '..', 'test-output', 'notes');
 const noteFile = (date: string) =>
   path.join(NOTES, date.slice(0, 4), `${date}.md`);
@@ -326,16 +328,29 @@ test('the author key is named and each 眉批 button names its message', async (
   expect(new Set(burstIds).size).toBe(burstIds.length);
 });
 
-test('the date jump input asks for digits without autocorrect', async ({
+test('the date jump input takes text, including Chinese, without autocorrect', async ({
   page,
 }) => {
   await page.goto('/');
   await waitForAppBarReady(page);
   await page.getByRole('button', { name: '跳至日期' }).first().click();
-  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
-  await expect(input).toHaveAttribute('inputmode', 'numeric');
+  const input = page.getByRole('dialog').getByPlaceholder(JUMP_PLACEHOLDER);
+  await expect(input).not.toHaveAttribute('inputmode', 'numeric');
   await expect(input).toHaveAttribute('autocomplete', 'off');
   await expect(input).toHaveAttribute('spellcheck', 'false');
+});
+
+test('the date jump box reads a festival and offers the nearest day when it has no record', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByPlaceholder(JUMP_PLACEHOLDER).fill('2025 聖誕節');
+  await expect(dialog).toContainText('2025 聖誕節（2025-12-25）沒有紀錄');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
 });
 
 test('follow-on times and the 眉批 button appear on hover or focus, beside the text', async ({
@@ -821,7 +836,7 @@ test('the date jump opens a typed day, or the nearest one', async ({
   await page.goto('/');
   await waitForAppBarReady(page);
   await page.getByRole('button', { name: '跳至日期' }).first().click();
-  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  const input = page.getByRole('dialog').getByPlaceholder(JUMP_PLACEHOLDER);
   await input.fill('2025-11-0');
   await expect(page.getByRole('dialog').getByRole('option')).toHaveCount(3);
   await input.fill('2025/11/2');
@@ -831,7 +846,7 @@ test('the date jump opens a typed day, or the nearest one', async ({
   await page.getByRole('button', { name: '跳至日期' }).first().click();
   await page
     .getByRole('dialog')
-    .getByPlaceholder('YYYY-MM-DD')
+    .getByPlaceholder(JUMP_PLACEHOLDER)
     .fill('2025-11-20');
   await expect(page.getByRole('dialog')).toContainText(
     '沒有這一天，按 Enter 跳到最近的 2025-11-03',
@@ -929,7 +944,7 @@ test('the date jump ignores an Enter fired mid-IME composition', async ({
   await page.goto('/');
   await waitForAppBarReady(page);
   await page.getByRole('button', { name: '跳至日期' }).first().click();
-  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  const input = page.getByRole('dialog').getByPlaceholder(JUMP_PLACEHOLDER);
   // An exact match selects through cmdk's own Enter, not this onKeyDown guard.
   await input.fill('2025-11-20');
   await expect(page.getByRole('dialog')).toContainText(
@@ -977,7 +992,7 @@ test('keys: j and k, n, ? and /, and Escape only when nothing else claims it', a
 
   await page.keyboard.press('/');
   await expect(
-    page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD'),
+    page.getByRole('dialog').getByPlaceholder(JUMP_PLACEHOLDER),
   ).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toBeHidden();
