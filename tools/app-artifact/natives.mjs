@@ -9,6 +9,7 @@ import {
   readFileSync,
   readSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -31,6 +32,9 @@ const pnpmPackages = (out, name) => {
     .filter((entry) => entry.startsWith(`${name.replace('/', '+')}@`))
     .map((entry) => join(store, entry, 'node_modules', name));
 };
+
+const platformName = (target) =>
+  `${target.os}${target.libc === 'musl' ? 'musl' : ''}-${target.cpu}`;
 
 const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
 
@@ -58,7 +62,7 @@ const unpack = (spec, dest) => {
 };
 
 const retargetSharp = (out, target) => {
-  const platform = `${target.os}${target.libc === 'musl' ? 'musl' : ''}-${target.cpu}`;
+  const platform = platformName(target);
   let retargeted = false;
   for (const dir of pnpmPackages(out, 'sharp')) {
     const imgDir = join(dir, '..', '@img');
@@ -87,34 +91,39 @@ const retargetSharp = (out, target) => {
   }
 };
 
-const retargetBetterSqlite3 = (out, target, { workspaceRoot, nodeMajor }) => {
+const nodeAbi = (source, nodeMajor) => {
+  const fromSqlite = createRequire(join(source, 'package.json'));
+  const fromPrebuild = createRequire(
+    fromSqlite.resolve('prebuild-install/package.json'),
+  );
+  return createRequire(fromPrebuild.resolve('node-abi/package.json'))(
+    'node-abi',
+  ).getAbi(`${nodeMajor}.0.0`, 'node');
+};
+
+const retargetBetterSqlite3 = async (
+  out,
+  target,
+  { workspaceRoot, nodeMajor },
+) => {
   for (const dir of pnpmPackages(out, 'better-sqlite3')) {
-    const source = join(workspaceRoot, relative(out, dir));
-    const bin = createRequire(join(source, 'package.json')).resolve(
-      'prebuild-install/bin.js',
-    );
-    rmSync(join(dir, 'build'), { recursive: true, force: true });
-    execFileSync(
-      process.execPath,
-      [
-        bin,
-        '--platform',
-        target.os,
-        '--arch',
-        target.cpu,
-        '--libc',
-        target.libc,
-        '--runtime',
-        'node',
-        '--target',
-        `${nodeMajor}.0.0`,
-      ],
-      { cwd: dir, stdio: 'inherit' },
-    );
+    const { version } = readJson(join(dir, 'package.json'));
+    const abi = nodeAbi(join(workspaceRoot, relative(out, dir)), nodeMajor);
+    const platform = platformName(target);
+    const asset = `better-sqlite3-v${version}-node-v${abi}-${platform}.tar.gz`;
+    const url = `https://github.com/WiseLibs/better-sqlite3/releases/download/v${version}/${asset}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${url} returned ${res.status}`);
+    const scratch = mkdtempSync(join(tmpdir(), 'app-artifact-'));
+    try {
+      writeFileSync(join(scratch, asset), Buffer.from(await res.arrayBuffer()));
+      rmSync(join(dir, 'build'), { recursive: true, force: true });
+      execFileSync('tar', ['-xzf', join(scratch, asset), '-C', dir]);
+    } finally {
+      rmSync(scratch, { recursive: true, force: true });
+    }
     if (!existsSync(join(dir, 'build', 'Release', 'better_sqlite3.node'))) {
-      throw new Error(
-        `prebuild-install left no binary in ${relative(out, dir)}`,
-      );
+      throw new Error(`${asset} holds no build/Release/better_sqlite3.node`);
     }
   }
 };
@@ -149,9 +158,9 @@ const mismatch = (file, target) => {
   return undefined;
 };
 
-export const retargetNatives = (out, target, context) => {
+export const retargetNatives = async (out, target, context) => {
   retargetSharp(out, target);
-  retargetBetterSqlite3(out, target, context);
+  await retargetBetterSqlite3(out, target, context);
   const wrong = nativeFiles(out)
     .map((file) => [relative(out, file), mismatch(file, target)])
     .filter(([, reason]) => reason);

@@ -91,7 +91,7 @@ if (kind === 'astro') await copyTraced();
 else copyStandalone();
 
 if (!forHost)
-  retargetNatives(out, IMAGE_TARGET, {
+  await retargetNatives(out, IMAGE_TARGET, {
     workspaceRoot,
     nodeMajor: imageNodeMajor(),
   });
