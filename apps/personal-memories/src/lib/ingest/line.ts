@@ -17,10 +17,12 @@ export const LINE_PLACEHOLDERS = [
 export type LineChat = {
   /** Name from the `[LINE] Chat history with <name>` header, if present. */
   chatWith?: string;
+  savedOn?: string;
   events: TimelineEvent[];
 };
 
 const HEADER = /^\[LINE\] Chat history with (.*)$/;
+const SAVED_ON = /^Saved on: (\d{2})\/(\d{2})\/(\d{4}),? (\d{1,2}):(\d{2})$/;
 const DATE_HEADER =
   /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), (\d{2})\/(\d{2})\/(\d{4})$/;
 const MESSAGE = /^(\d{1,2}):(\d{2})(AM|PM)\t(.*)$/;
@@ -72,6 +74,19 @@ export function parseLineChat(source: string): LineChat {
     const header = HEADER.exec(line);
     if (header && chat.chatWith === undefined) {
       chat.chatWith = header[1];
+      continue;
+    }
+
+    const saved = day ? null : SAVED_ON.exec(line);
+    if (saved && chat.savedOn === undefined) {
+      const [, mm, dd, yyyy, hh, min] = saved;
+      chat.savedOn = taipeiWallClock(
+        Number(yyyy),
+        Number(mm),
+        Number(dd),
+        Number(hh),
+        Number(min),
+      );
       continue;
     }
 

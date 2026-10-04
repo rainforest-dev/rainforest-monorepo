@@ -17,6 +17,11 @@ describe('parseLineChat', () => {
     expect(chat.chatWith).toBe('Alice 🌷');
   });
 
+  it('reads the Saved on header as a Taipei timestamp', () => {
+    expect(chat.savedOn).toBe('2025-11-03T21:15:00+08:00');
+    expect(parseLineChat('Sat, 11/01/2025\n').savedOn).toBeUndefined();
+  });
+
   it('parses every message line, multi-line quotes as one event', () => {
     expect(chat.events).toHaveLength(13);
     expect(chat.events.every((e) => e.source === 'line')).toBe(true);
