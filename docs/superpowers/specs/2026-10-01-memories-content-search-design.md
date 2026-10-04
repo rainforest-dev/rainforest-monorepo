@@ -98,6 +98,8 @@ The timeline stays the single source of truth and the vector file is a cache key
 - **Photo.** One document per photo:
   `labels: …｜文字: <OCR>｜場所: <venues>｜地點: <place>｜人物: <people>｜相簿: <albums>`.
   People, place and albums also go into the facets.
+  Only photos that ingest keeps become documents: since #449, a photo with no local derivative,
+  original or edit is skipped at ingest, so it has no event and is not searchable.
 - **Note.** One document per day note (body and 眉批). Notes are not written by ingest: the data
   directory is mounted read-only and the notes directory is writable, so the server embeds notes
   in the background at startup and again for one note when it is saved, cached in memory by
