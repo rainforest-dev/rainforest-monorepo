@@ -8,9 +8,9 @@ import {
   rrf,
   type SearchDoc,
   type SearchQuery,
-  searchQuerySchema,
   topK,
 } from '@/lib/search';
+import { searchQuerySchema } from '@/lib/search-schema';
 
 import { type Embedder, EmbedError, type EmbedFailure } from './embed.ts';
 import { getPeople } from './people-store.ts';

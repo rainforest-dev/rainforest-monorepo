@@ -1,5 +1,3 @@
-import { z } from 'astro/zod';
-
 import { parseDateQuery } from '@/lib/natural-date.ts';
 import type { Person } from '@/lib/people.ts';
 import type { TimelineSource } from '@/lib/server';
@@ -12,15 +10,6 @@ export type SearchQuery = {
   people?: string[];
   sources?: TimelineSource[];
 };
-
-export const searchQuerySchema = z.object({
-  text: z.string().max(200),
-  range: z.object({ start: z.iso.date(), end: z.iso.date() }).optional(),
-  people: z.array(z.string()).optional(),
-  sources: z.array(z.enum(['line', 'slack', 'photo'])).optional(),
-});
-
-export const SEARCH_QUERY_JSON_SCHEMA = z.toJSONSchema(searchQuerySchema);
 
 const HAN = /\p{Script=Han}/u;
 const MAX_DATE_CHARS = 16;
