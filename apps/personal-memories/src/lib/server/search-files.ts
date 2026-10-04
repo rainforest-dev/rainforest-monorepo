@@ -52,9 +52,18 @@ export async function readSearchFiles(
     if (bytes.byteLength !== header.docs.length * header.dims * 4)
       return undefined;
     if (vectorsHash !== bytesHash(bytes)) return undefined;
-    const copy = new Uint8Array(bytes.byteLength);
-    copy.set(bytes);
-    return { header, vectors: new Float32Array(copy.buffer) };
+    const aligned =
+      bytes.byteOffset % Float32Array.BYTES_PER_ELEMENT === 0
+        ? bytes
+        : Uint8Array.from(bytes);
+    return {
+      header,
+      vectors: new Float32Array(
+        aligned.buffer,
+        aligned.byteOffset,
+        aligned.byteLength / Float32Array.BYTES_PER_ELEMENT,
+      ),
+    };
   } catch {
     return undefined;
   }
