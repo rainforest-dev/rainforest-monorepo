@@ -19,7 +19,7 @@ import { getTimeline, notesStore } from '@/lib/server';
 
 const { month = '' } = Astro.params;
 const morph = morphFromRequest(Astro.request, Astro.url);
-const state = getTimeline();
+const state = await getTimeline();
 const index =
   state.status === 'ready' ? indexDays(state.timeline.events) : undefined;
 const store = notesStore();

@@ -3,7 +3,7 @@ import { dayForWeek, indexDays } from '@/lib';
 import { getTimeline } from '@/lib/server';
 
 const { isoWeek = '' } = Astro.params;
-const state = getTimeline();
+const state = await getTimeline();
 const day =
   state.status === 'ready'
     ? dayForWeek(indexDays(state.timeline.events), isoWeek)

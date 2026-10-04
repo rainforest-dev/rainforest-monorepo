@@ -37,6 +37,13 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: 'reload.spec.ts',
+    },
+    {
+      name: 'rewrites-fixture-data',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: 'reload.spec.ts',
+      dependencies: ['chromium'],
     },
   ],
 });

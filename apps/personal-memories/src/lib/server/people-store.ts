@@ -6,6 +6,7 @@ import { z } from 'astro/zod';
 import { parseAuthors } from '@/lib/notes';
 import type { Person } from '@/lib/people';
 
+import { type CachedFile, cachedFile } from './file-cache.ts';
 import { dataDir } from './store.ts';
 
 export type ConfiguredPerson = Person & { emails: string[] };
@@ -84,18 +85,34 @@ function legacyPeople(env: Record<string, string | undefined>): PeopleConfig {
   return { people, owners: new Set(owners) };
 }
 
+const peoplePath = (root: string | undefined) =>
+  root && join(root, 'people.json');
+
+const readPeople = (
+  contents: string | undefined,
+  env: Record<string, string | undefined>,
+): PeopleConfig =>
+  contents === undefined
+    ? legacyPeople(env)
+    : parsePeople(JSON.parse(contents));
+
 export function loadPeople(
   root: string | undefined,
   env: Record<string, string | undefined> = process.env,
 ): PeopleConfig {
-  const path = root && join(root, 'people.json');
-  if (!path || !existsSync(path)) return legacyPeople(env);
-  return parsePeople(JSON.parse(readFileSync(path, 'utf8')));
+  const path = peoplePath(root);
+  return readPeople(
+    path && existsSync(path) ? readFileSync(path, 'utf8') : undefined,
+    env,
+  );
 }
 
-let cached: PeopleConfig | undefined;
+let peopleFile: CachedFile<PeopleConfig> | undefined;
 
-export const getPeople = (): PeopleConfig => (cached ??= loadPeople(dataDir()));
+export const getPeople = (): Promise<PeopleConfig> =>
+  (peopleFile ??= cachedFile(peoplePath(dataDir()), (contents) =>
+    readPeople(contents, process.env),
+  )).get();
 
 export const publicPeople = (config: PeopleConfig): Person[] =>
   config.people.map(({ id, name, aliases }) => ({ id, name, aliases }));

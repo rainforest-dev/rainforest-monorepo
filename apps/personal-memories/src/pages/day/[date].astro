@@ -31,8 +31,7 @@ import {
 
 const { date = '' } = Astro.params;
 const morph = morphFromRequest(Astro.request, Astro.url);
-const state = getTimeline();
-const people = getPeople();
+const [state, people] = await Promise.all([getTimeline(), getPeople()]);
 const roster = publicPeople(people);
 const { entry } =
   state.status === 'ready'

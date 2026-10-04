@@ -2,22 +2,33 @@ import { existsSync, readFileSync, type Stats } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { extname, isAbsolute, join } from 'node:path';
 
+import { type CachedFile, cachedFile } from './file-cache.ts';
 import type { Timeline, TimelineEvent } from './timeline.ts';
 
 export type TimelineState =
   | { status: 'ready'; timeline: Timeline; byId: Map<string, TimelineEvent> }
   | { status: 'missing'; path: string | undefined };
 
-let cached: TimelineState | undefined;
-
 export function dataDir(): string | undefined {
   return process.env['MEMORIES_DATA_DIR'] || undefined;
 }
 
-export function loadTimeline(root: string | undefined): TimelineState {
-  const path = root && join(root, 'timeline.json');
-  if (!path || !existsSync(path)) return { status: 'missing', path };
-  const timeline = JSON.parse(readFileSync(path, 'utf8')) as Timeline;
+const timelinePath = (root: string | undefined) =>
+  root && join(root, 'timeline.json');
+
+export function parseTimeline(
+  path: string | undefined,
+  contents: string | undefined,
+): TimelineState {
+  if (contents === undefined) return { status: 'missing', path };
+  const timeline = JSON.parse(contents) as Timeline;
+  if (
+    typeof timeline !== 'object' ||
+    timeline === null ||
+    !Array.isArray(timeline.events) ||
+    !timeline.events.every((e) => typeof e?.id === 'string')
+  )
+    throw new Error('timeline.json has no events list');
   return {
     status: 'ready',
     timeline,
@@ -25,12 +36,22 @@ export function loadTimeline(root: string | undefined): TimelineState {
   };
 }
 
-/** Reads `<MEMORIES_DATA_DIR>/timeline.json` once per process. */
-export function getTimeline(): TimelineState {
-  const state = (cached ??= loadTimeline(dataDir()));
-  // A missing file is retried so running `ingest` needs no restart.
-  if (state.status === 'missing') cached = undefined;
-  return state;
+export function loadTimeline(root: string | undefined): TimelineState {
+  const path = timelinePath(root);
+  return parseTimeline(
+    path,
+    path && existsSync(path) ? readFileSync(path, 'utf8') : undefined,
+  );
+}
+
+let timelineFile: CachedFile<TimelineState> | undefined;
+
+export function getTimeline(): Promise<TimelineState> {
+  const path = timelinePath(dataDir());
+  timelineFile ??= cachedFile(path, (contents) =>
+    parseTimeline(path, contents),
+  );
+  return timelineFile.get();
 }
 
 const CONTENT_TYPES: Record<string, string> = {

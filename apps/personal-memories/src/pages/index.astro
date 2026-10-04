@@ -14,7 +14,7 @@ import {
 } from '@/lib';
 import { getTimeline, notesStore } from '@/lib/server';
 
-const state = getTimeline();
+const state = await getTimeline();
 const { entries: days = [] } = await getLiveCollection('days');
 const { entries: notes = [] } = await getLiveCollection('memoryNotes');
 const totals = new Map(days.map((d) => [d.id, d.data.summary.total]));

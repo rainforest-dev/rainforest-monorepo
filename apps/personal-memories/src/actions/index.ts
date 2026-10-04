@@ -32,8 +32,8 @@ const annotation = z.object({
   origin: z.string().max(64).optional(),
 });
 
-const dayEvents = (d: string) => {
-  const state = getTimeline();
+const dayEvents = async (d: string) => {
+  const state = await getTimeline();
   return state.status === 'ready'
     ? (indexDays(state.timeline.events).byDate.get(d) ?? [])
     : [];
@@ -42,12 +42,12 @@ const dayEvents = (d: string) => {
 export const server = {
   getNote: defineAction({
     input: z.object({ date }),
-    handler: ({ date: d }, context) => {
-      const people = getPeople();
+    handler: async ({ date: d }, context) => {
+      const people = await getPeople();
       return notePayload(
         notesStore(),
         d,
-        dayEvents(d),
+        await dayEvents(d),
         viewerName(context.request.headers, people.people),
         publicPeople(people),
       );
@@ -61,7 +61,7 @@ export const server = {
       cover: z.string().optional(),
       version: z.string(),
     }),
-    handler: ({ date: d, version, ...edit }, context) => {
+    handler: async ({ date: d, version, ...edit }, context) => {
       const store = notesStore();
       if (!store?.writable) {
         throw new ActionError({
@@ -69,7 +69,7 @@ export const server = {
           message: 'notes are read-only',
         });
       }
-      const people = getPeople();
+      const people = await getPeople();
       const viewer = viewerName(context.request.headers, people.people);
       let signedAnnotations;
       try {
@@ -112,7 +112,7 @@ export const server = {
       const current = toPayload(
         result.current,
         true,
-        dayEvents(d),
+        await dayEvents(d),
         publicPeople(people),
       );
       if (viewer) current.viewer = viewer;
