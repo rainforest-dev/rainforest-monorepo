@@ -8,6 +8,7 @@
     "build": "astro check && astro build",
     "preview": "astro preview --port 3004 --host 127.0.0.1",
     "ingest": "node src/cli/ingest.ts",
+    "auto-import": "node src/cli/auto-import.ts",
     "fixture": "node src/cli/fixture.ts",
     "docker-smoke": "node src/cli/docker-smoke.ts"
   },

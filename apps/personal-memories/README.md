@@ -22,6 +22,7 @@ $MEMORIES_DATA_DIR/
   timeline.json        written by the CLI
   .ingest.lock         held while an ingest runs
   .ingest-state.json   fingerprint of the inputs at the last complete ingest
+  auto-import/state.json   the last auto-import run (see Auto-import)
 ```
 
 When a source directory is missing, the CLI prints a notice and moves on to the next source.
@@ -103,6 +104,87 @@ place, people and albums. The embeddings come from Ollama at `MEMORIES_OLLAMA_UR
 (`http://localhost:11434` by default). Only new or changed documents are embedded again. When
 Ollama cannot be reached, `ingest` keeps the previous index and says so; lexical search still
 works without one.
+
+## Auto-import
+
+`src/cli/auto-import.ts` is the unattended version of the steps above. On the Mac mini a launchd
+agent runs it nightly and whenever a file lands in the drop folder; the agent itself lives in
+the homelab repo. One run holds `.ingest.lock` from start to finish and does this:
+
+1. **LINE drop folder.** Every top-level file in `MEMORIES_DROP_DIR` is checked. An iCloud
+   placeholder (a dataless file or a `.<name>.icloud` stub) gets `brctl download` and waits for
+   the next run, and so does a file modified in the last 10 seconds. A file that is not `.txt`, or
+   that `--add` would reject, moves to `rejected/` inside the drop folder with a
+   `<name>.reason.txt` beside it. Everything else is archived as `--add` does it and then deleted
+   from the drop folder. An export that is already archived is only deleted.
+2. **Photos.** It runs the osxphotos command from [Exporting the sources](#exporting-the-sources)
+   without a shell and streams it to `photos/index.json.new`. The new file replaces `index.json`
+   only when osxphotos exits 0, the output is a JSON array, and it holds at least 90% as many
+   items as the previous index. Otherwise the old index stays. While a full export takes at most
+   15 minutes, every run exports from `MEMORIES_PHOTOS_FROM`. Once one takes longer, runs export
+   the last 30 days instead and merge them into the index by uuid, until the last full export is
+   7 days old and the next run does a full one again.
+3. **Ingest**, exactly as `ingest` runs it, skipped when no input changed.
+4. **State.** It writes `auto-import/state.json`, then posts one webhook per failure.
+
+```bash
+MEMORIES_DATA_DIR=… MEMORIES_PHOTOS_FROM=2019-01-01 \
+  node apps/personal-memories/src/cli/auto-import.ts [--dry-run] [--only line|photos]
+```
+
+- `--dry-run` prints what would be archived, rejected, exported and rebuilt. It moves, writes and
+  posts nothing, and takes no lock.
+- `--only line` skips Photos; `--only photos` skips the drop folder. Ingest runs either way.
+
+Environment:
+
+- `MEMORIES_DATA_DIR`, required; the CLI exits 2 when it is unset.
+- `MEMORIES_DROP_DIR`, by default `~/Library/Mobile Documents/com~apple~CloudDocs/Memories Inbox`.
+- `MEMORIES_PHOTOS_LIBRARY`, by default `~/Pictures/Photos Library.photoslibrary`.
+- `MEMORIES_PHOTOS_FROM`, the export's start date (`YYYY-MM-DD`). With it unset the Photos step
+  fails.
+- `MEMORIES_PHOTOS_CMD` replaces `uvx osxphotos@0.77.2` with one executable that takes the same
+  arguments. Tests use it.
+- `MEMORIES_IMPORT_WEBHOOK`. With it unset, failures are only logged.
+- `MEMORIES_OLLAMA_URL`, by default `http://localhost:11434`.
+
+The exit status is 0 when the run succeeded or another ingest held the lock (it logs `busy:` and
+the next trigger retries), 1 when any step failed, and 2 for a usage error.
+
+Each failure posts `{"event":"memories_import_failed","detail":"<step>: <reason>","ts":"<lastRunAt>"}`.
+A detail carries counts, the first 8 hex digits of a file's SHA-256 and error class names. It
+never carries a file name, chat name, message text or path. The log on stdout does name files.
+
+`auto-import/state.json` is written through a temp file and a rename:
+
+```json
+{
+  "lastRunAt": "2025-11-20T19:30:00.000Z",
+  "lastSuccessAt": "2025-11-20T19:30:00.000Z",
+  "ok": true,
+  "fingerprint": "<sha256 of the ingest inputs after the run>",
+  "photos": {
+    "exportedAt": "2025-11-20T19:35:12.000Z",
+    "count": 41234,
+    "mode": "full",
+    "fullExportedAt": "2025-11-20T19:35:12.000Z",
+    "fullDurationMs": 312000
+  },
+  "line": { "archived": 1, "duplicates": 0, "rejected": 0, "pending": 0 },
+  "failures": []
+}
+```
+
+`lastSuccessAt` equals `lastRunAt` after a clean run and keeps its old value after a failed one.
+The container reads this file for the MCP's `get_coverage`.
+
+**launchd.** The agent runs `/opt/homebrew/bin/node
+<runner>/apps/personal-memories/src/cli/auto-import.ts` with `EnvironmentVariables` for `PATH`
+(including the directory of `uvx`, and `/usr/bin` for `stat` and `brctl`), `HOME`,
+`MEMORIES_DATA_DIR`, `MEMORIES_DROP_DIR`, `MEMORIES_PHOTOS_LIBRARY`, `MEMORIES_PHOTOS_FROM`,
+`MEMORIES_OLLAMA_URL` and `MEMORIES_IMPORT_WEBHOOK` (n8n's `/webhook/ha-events` URL). Node 24 or
+later runs the file directly, so the runner checkout needs no `pnpm install`. Reading the Photos
+library from launchd needs Full Disk Access for that `node` and for the uv-managed Python.
 
 ## Browsing
 

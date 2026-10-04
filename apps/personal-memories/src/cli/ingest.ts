@@ -17,6 +17,7 @@ import {
   IngestLockHeld,
   type IngestState,
   inputFingerprint,
+  type LineExportPlan,
   newestWinsChatEvents,
   parsePhotoIndex,
   parseSlackExport,
@@ -202,13 +203,15 @@ function migrateLine(lineDir: string, dryRun: boolean, log: Log): void {
   );
 }
 
+export type AddedExport = { path: string; plan: LineExportPlan };
+
 function addLineExports(
   lineDir: string,
   paths: readonly string[],
   dryRun: boolean,
   log: Log,
-): number {
-  let rejected = 0;
+): AddedExport[] {
+  const added: AddedExport[] = [];
   const manifest = readLineManifest(lineDir);
   for (const path of paths) {
     const input = {
@@ -219,8 +222,8 @@ function addLineExports(
     const plan = dryRun
       ? planLineExport(input, manifest)
       : archiveLineExport(lineDir, input);
+    added.push({ path, plan });
     if (plan.kind === 'rejected') {
-      rejected += 1;
       log(`line: rejected ${input.name}: ${plan.reason}`);
     } else if (plan.kind === 'duplicate') {
       log(`line: ${plan.hash.slice(0, 8)} is already archived; skipped`);
@@ -232,7 +235,7 @@ function addLineExports(
       if (dryRun) manifest.exports[plan.hash] = plan.entry;
     }
   }
-  return rejected;
+  return added;
 }
 
 export type RunOptions = {
@@ -246,6 +249,7 @@ export type RunOptions = {
 export type RunResult = {
   status: 'ingested' | 'skipped' | 'dry-run';
   rejected: number;
+  added: AddedExport[];
 };
 
 export async function runIngest(
@@ -260,7 +264,8 @@ export async function runIngest(
 ): Promise<RunResult> {
   const lineDir = join(root, 'line');
   migrateLine(lineDir, dryRun, log);
-  const rejected = addLineExports(lineDir, add, dryRun, log);
+  const added = addLineExports(lineDir, add, dryRun, log);
+  const rejected = added.filter(({ plan }) => plan.kind === 'rejected').length;
 
   const fingerprint = inputFingerprint(root);
   const state = readIngestState(root);
@@ -271,13 +276,13 @@ export async function runIngest(
     log(
       `ingest: no input changed since ${state.completedAt}; skipped (--force rebuilds)`,
     );
-    return { status: 'skipped', rejected };
+    return { status: 'skipped', rejected, added };
   }
   if (dryRun) {
     log(
       `ingest: would rebuild timeline.json and the search index (${unchanged ? 'forced' : 'inputs changed'})`,
     );
-    return { status: 'dry-run', rejected };
+    return { status: 'dry-run', rejected, added };
   }
 
   if (await buildIndex(root, ingest(root, log), embedder, log)) {
@@ -287,7 +292,7 @@ export async function runIngest(
     };
     writeFileSync(join(root, STATE_FILE), `${JSON.stringify(next)}\n`);
   }
-  return { status: 'ingested', rejected };
+  return { status: 'ingested', rejected, added };
 }
 
 if (import.meta.main) {
