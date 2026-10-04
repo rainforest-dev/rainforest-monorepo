@@ -447,7 +447,9 @@ test.describe('keyboard: global keys', () => {
 
     await page.keyboard.press('2');
     await page.keyboard.press(']');
-    await expect(page).toHaveURL(/\?tab=topics&page=2$/);
+    await expect(page).toHaveURL(/\?tab=topics$/);
+    await page.keyboard.press('1');
+    await expect(page).toHaveURL(/\?page=2$/);
   });
 
   test('keys are skipped with a modifier held', async ({ page }) => {
@@ -525,7 +527,7 @@ test.describe('keyboard: hints', () => {
     ).toBeVisible();
   });
 
-  test('Topics shows its row keys, and Queue the tab keys', async ({
+  test('Topics shows its row keys, and Queue its move, open and tab keys', async ({
     page,
   }) => {
     await gotoSources(page);
@@ -551,7 +553,10 @@ test.describe('keyboard: hints', () => {
       .getByRole('tabpanel', { name: /^Queue/ })
       .locator('[data-key-hints]');
     await expect(queue).toBeVisible();
-    await expect(queue).toHaveText(/123\s*Switch tab/);
+    await expect(queue).toHaveText(
+      /↑↓\s*Move\s*Enter\s*Open in Reader\s*123\s*Switch tab/,
+    );
+    await expect(queue.locator('[data-slot="kbd-group"]')).toHaveCount(3);
   });
 
   test('no axe violations with the key row, a focused row and select mode', async ({

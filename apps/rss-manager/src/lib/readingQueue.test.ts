@@ -12,7 +12,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { readReadingQueue } from '@/server';
 
-import { parseReadingQueue, sortQueue } from './readingQueue.js';
+import type { QueueSortKey, SortDir } from './desk/params.js';
+import {
+  parseReadingQueue,
+  type QueueItem,
+  sortQueue,
+} from './readingQueue.js';
 
 const FIXTURE = readFileSync(
   new URL('./fixtures/reading-queue.sample.json', import.meta.url),
@@ -309,39 +314,113 @@ describe('readReadingQueue', () => {
 });
 
 describe('sortQueue', () => {
-  const queue = parseReadingQueue(FIXTURE).queue;
-  const ids = (mode: Parameters<typeof sortQueue>[1]) =>
-    sortQueue(queue, mode).map((i) => i.id);
+  const item = (
+    rank: number,
+    over: Partial<Omit<QueueItem, 'sort'>> & Partial<QueueItem['sort']> = {},
+  ): QueueItem => {
+    const {
+      profileRank = 1,
+      wikiSources = 0,
+      readingMinutes = 10,
+      savedDaysAgo = 1,
+      progress = 0,
+      ...rest
+    } = over;
+    return {
+      rank,
+      tier: 1,
+      id: `q${rank}`,
+      title: `Title ${rank}`,
+      readerUrl: `https://read.example/${rank}`,
+      sourceUrl: `https://example.test/${rank}`,
+      siteName: 'example.test',
+      tags: [],
+      why: '',
+      decay: 'unknown',
+      ...rest,
+      sort: {
+        profileRank,
+        wikiSources,
+        readingMinutes,
+        savedDaysAgo,
+        progress,
+      },
+    };
+  };
 
-  it('defaults to the rank the skill assigned', () => {
-    expect(ids('default')).toEqual([
-      'fixture-0001',
-      'fixture-0002',
-      'fixture-0003',
-      'fixture-0004',
+  const items: QueueItem[] = [
+    item(3, {
+      tier: 2,
+      title: 'banana',
+      decay: 'evergreen',
+      readingMinutes: 5,
+      savedDaysAgo: 30,
+      wikiSources: 4,
+      progress: 0,
+    }),
+    item(1, {
+      tier: 1,
+      title: 'Apple',
+      decay: 'time-sensitive',
+      readingMinutes: 20,
+      savedDaysAgo: 2,
+      wikiSources: 1,
+      progress: 0.5,
+    }),
+    item(4, {
+      tier: 2,
+      title: 'cherry',
+      decay: 'unknown',
+      readingMinutes: 5,
+      savedDaysAgo: 7,
+      wikiSources: 1,
+      progress: 0,
+    }),
+    item(2, {
+      tier: 4,
+      title: 'Date',
+      decay: 'evergreen',
+      readingMinutes: 12,
+      savedDaysAgo: 2,
+      wikiSources: 9,
+      progress: 0.2,
+    }),
+  ];
+  const ranks = (key: QueueSortKey, dir: SortDir) =>
+    sortQueue(items, key, dir).map((i) => i.rank);
+
+  it.each<[QueueSortKey, number[], number[]]>([
+    ['rank', [1, 2, 3, 4], [4, 3, 2, 1]],
+    ['tier', [1, 3, 4, 2], [2, 3, 4, 1]],
+    ['title', [1, 3, 4, 2], [2, 4, 3, 1]],
+    ['decay', [1, 2, 3, 4], [4, 2, 3, 1]],
+    ['minutes', [3, 4, 2, 1], [1, 2, 3, 4]],
+    ['saved', [1, 2, 4, 3], [3, 4, 1, 2]],
+    ['wiki', [1, 4, 3, 2], [2, 3, 1, 4]],
+    ['read', [3, 4, 2, 1], [1, 2, 3, 4]],
+  ])('sorts by %s ascending and descending', (key, asc, desc) => {
+    expect(ranks(key, 'asc')).toEqual(asc);
+    expect(ranks(key, 'desc')).toEqual(desc);
+  });
+
+  it('keeps ties in ascending rank in both directions', () => {
+    expect(ranks('minutes', 'asc').slice(0, 2)).toEqual([3, 4]);
+    expect(ranks('minutes', 'desc').slice(2)).toEqual([3, 4]);
+    expect(ranks('saved', 'desc').slice(2)).toEqual([1, 2]);
+  });
+
+  it('orders decay time-sensitive, evergreen, unknown', () => {
+    expect(sortQueue(items, 'decay', 'asc').map((i) => i.decay)).toEqual([
+      'time-sensitive',
+      'evergreen',
+      'evergreen',
+      'unknown',
     ]);
   });
 
-  it('sorts shortest first by reading minutes', () => {
-    expect(ids('shortest')).toEqual([
-      'fixture-0003',
-      'fixture-0002',
-      'fixture-0001',
-      'fixture-0004',
-    ]);
-  });
-
-  it('sorts newest first by days since saved', () => {
-    expect(ids('newest')).toEqual([
-      'fixture-0004',
-      'fixture-0001',
-      'fixture-0002',
-      'fixture-0003',
-    ]);
-  });
-
-  it('sorts thinnest wiki page first', () => {
-    expect(ids('thinnest')).toEqual([
+  it('sorts the sample fixture by the thinnest wiki page first', () => {
+    const queue = parseReadingQueue(FIXTURE).queue;
+    expect(sortQueue(queue, 'wiki', 'asc').map((i) => i.id)).toEqual([
       'fixture-0003',
       'fixture-0001',
       'fixture-0002',
@@ -350,16 +429,8 @@ describe('sortQueue', () => {
   });
 
   it('does not mutate the input array', () => {
-    const before = queue.map((i) => i.id);
-    sortQueue(queue, 'shortest');
-    expect(queue.map((i) => i.id)).toEqual(before);
-  });
-
-  it('breaks ties by rank so ordering is deterministic', () => {
-    const tied = [
-      { ...queue[1], id: 'b', rank: 9 },
-      { ...queue[1], id: 'a', rank: 2 },
-    ];
-    expect(sortQueue(tied, 'shortest').map((i) => i.id)).toEqual(['a', 'b']);
+    const before = items.map((i) => i.rank);
+    sortQueue(items, 'title', 'desc');
+    expect(items.map((i) => i.rank)).toEqual(before);
   });
 });

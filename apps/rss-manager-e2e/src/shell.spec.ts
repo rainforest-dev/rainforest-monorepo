@@ -105,6 +105,42 @@ test.describe('shell', () => {
     );
   });
 
+  test("a tab change carries no other tab's params into the URL", async ({
+    page,
+  }) => {
+    await page.goto('/?page=2');
+    await waitForHydration(page);
+
+    await deskTab(page, 'topics').click();
+    await expect(page).toHaveURL(/\/\?tab=topics$/);
+    await page.getByRole('button', { name: /^Proposed \d+$/ }).click();
+    await expect(page).toHaveURL(/\/\?tab=topics&tstatus=proposed$/);
+
+    await deskTab(page, 'queue').click();
+    await expect(page).toHaveURL(/\/\?tab=queue$/);
+    await page.getByRole('button', { name: /^T2:/ }).click();
+    await expect(page).toHaveURL(/\/\?tab=queue&tier=2$/);
+
+    await page.keyboard.press('1');
+    await expect(page).toHaveURL(/\/\?page=2$/);
+    await page.keyboard.press('2');
+    await expect(page).toHaveURL(/\/\?tab=topics&tstatus=proposed$/);
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/\?page=2$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/\?tab=queue&tier=2$/);
+    await expect(page.getByRole('button', { name: /^T2:/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await page.goto('/?tab=topics&page=2&tier=3&q=css');
+    await waitForHydration(page);
+    await deskTab(page, 'queue').click();
+    await expect(page).toHaveURL(/\/\?tab=queue&tier=3$/);
+  });
+
   test('reload keeps the tab, and Back and Forward walk the tab history', async ({
     page,
   }) => {

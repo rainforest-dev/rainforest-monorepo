@@ -5,6 +5,7 @@ export * from './keys.js';
 export * from './labels.js';
 export * from './load.js';
 export * from './params.js';
+export * from './queue.js';
 export * from './sort.js';
 export * from './stale.js';
 export * from './topics.js';

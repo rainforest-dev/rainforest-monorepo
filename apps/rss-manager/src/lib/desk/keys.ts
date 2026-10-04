@@ -44,7 +44,8 @@ export interface ViewKeyState {
 
 export type RowKeyState =
   | { source: Pick<Source, 'status' | 'stale'>; pending: boolean }
-  | { topic: Pick<Topic, 'status'>; pending: boolean };
+  | { topic: Pick<Topic, 'status'>; pending: boolean }
+  | { queueItem: true; pending: false };
 
 export interface DeskKeyInput {
   key: string;
@@ -96,11 +97,26 @@ function resolveSourceKey(
   }
 }
 
+function resolveQueueKey(key: string): DeskCommand | undefined {
+  switch (key) {
+    case 'ArrowUp':
+    case 'ArrowDown':
+    case 'Home':
+    case 'End':
+      return { type: 'move', key };
+    case 'Enter':
+      return { type: 'open' };
+    default:
+      return undefined;
+  }
+}
+
 function resolveRowKey(
   key: string,
   row: RowKeyState,
   view: ViewKeyState,
 ): DeskCommand | null | undefined {
+  if ('queueItem' in row) return resolveQueueKey(key);
   const writes = view.writable && !row.pending;
   switch (key) {
     case 'ArrowUp':
@@ -184,10 +200,16 @@ const TOPICS_HINTS: readonly DeskHint[] = [
   TAB_HINT,
 ];
 
+const QUEUE_HINTS: readonly DeskHint[] = [
+  { keys: ['↑', '↓'], label: 'Move' },
+  { keys: ['Enter'], label: 'Open in Reader' },
+  TAB_HINT,
+];
+
 export const DESK_HINTS: Record<DeskTab, readonly DeskHint[]> = {
   sources: SOURCES_HINTS,
   topics: TOPICS_HINTS,
-  queue: [TAB_HINT],
+  queue: QUEUE_HINTS,
 };
 
 export function deskHints(tab: DeskTab, paged: boolean): readonly KeyHint[] {

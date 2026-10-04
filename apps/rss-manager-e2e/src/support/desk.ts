@@ -5,7 +5,7 @@ export type Tab = 'sources' | 'topics' | 'queue';
 const READY: Record<Tab, (page: Page) => Locator> = {
   sources: (page) => page.getByRole('searchbox', { name: 'Search sources' }),
   topics: (page) => page.getByRole('searchbox', { name: 'Search topics' }),
-  queue: (page) => page.getByRole('heading', { level: 3 }).first(),
+  queue: (page) => page.getByRole('grid', { name: 'Reading queue' }),
 };
 
 const TAB_LABEL: Record<Tab, string> = {
@@ -172,3 +172,23 @@ export function sectionOf(markdown: string, name: string): string | null {
 }
 
 export const READER_FEEDS_URL = 'https://read.readwise.io/feed/subscriptions';
+
+export const queueGrid = (page: Page): Locator =>
+  page.getByRole('grid', { name: 'Reading queue' });
+
+export const queueRows = (page: Page): Locator =>
+  queueGrid(page).locator('tbody tr');
+
+export const queueTitles = (page: Page): Locator =>
+  queueRows(page).locator('td:nth-child(3) a');
+
+export const queueHeader = (page: Page, name: string): Locator =>
+  queueGrid(page).getByRole('columnheader', { name, exact: true });
+
+export const tierFilter = (page: Page): Locator =>
+  page.getByRole('group', { name: 'Tier' });
+
+export const tierButton = (page: Page, label: string): Locator =>
+  tierFilter(page).getByRole('button', {
+    name: new RegExp(`^${escapeRegExp(label)}(:|$)`),
+  });
