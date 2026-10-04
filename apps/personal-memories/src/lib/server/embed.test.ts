@@ -151,6 +151,10 @@ describe('embedderFromEnv', () => {
   it('uses the fake embedder when asked, and Ollama otherwise', () => {
     expect(embedderFromEnv({ MEMORIES_EMBED: 'fake' }).model).toBe('fake');
     const real = embedderFromEnv({});
-    expect(real).toMatchObject({ model: 'embeddinggemma', dims: 768 });
+    expect(real).toMatchObject({
+      model: 'embeddinggemma',
+      dims: 768,
+      minScore: 0.25,
+    });
   });
 });

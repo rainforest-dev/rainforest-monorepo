@@ -76,6 +76,33 @@ describe('runSearch', () => {
     expect(res.results.map((r) => r.date)).toContain('2025-11-01');
   });
 
+  it('leaves out semantic neighbours below the embedder floor', async () => {
+    const res = await runSearch(
+      await indexed(),
+      { text: '拉麵' },
+      fakeEmbedder(),
+      breaker(),
+    );
+    expect(res.results.map((r) => r.date)).not.toContain('2025-11-02');
+  });
+
+  it('keeps snippets on one line', async () => {
+    const index = await indexed([
+      doc('m', '2025-11-05', 'labels: Ramen\nsecond line', {
+        kind: 'photo',
+        source: 'photo',
+        snippet: 'labels: Ramen\nsecond line',
+      }),
+    ]);
+    const res = await runSearch(
+      index,
+      { text: '吃麵' },
+      fakeEmbedder(),
+      breaker(),
+    );
+    expect(res.results[0]?.snippet).toBe('labels: Ramen second line');
+  });
+
   it('ranks a day that matches both ways above one that matches one way', async () => {
     const res = await runSearch(
       await indexed(),

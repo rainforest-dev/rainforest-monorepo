@@ -3,6 +3,7 @@ export type EmbedKind = 'query' | 'document';
 export type Embedder = {
   model: string;
   dims: number;
+  minScore: number;
   embed(
     texts: string[],
     kind: EmbedKind,
@@ -34,16 +35,19 @@ export function ollamaEmbedder({
   url = process.env['MEMORIES_OLLAMA_URL'] ?? 'http://localhost:11434',
   model = 'embeddinggemma',
   dims = 768,
+  minScore = 0.25,
   fetch: fetchImpl = fetch,
 }: {
   url?: string;
   model?: string;
   dims?: number;
+  minScore?: number;
   fetch?: typeof fetch;
 } = {}): Embedder {
   return {
     model,
     dims,
+    minScore,
     async embed(texts, kind, signal) {
       let response: Response;
       try {
@@ -116,6 +120,7 @@ export function fakeEmbedder(): Embedder {
   return {
     model: 'fake',
     dims: CONCEPTS.length,
+    minScore: 0.01,
     async embed(texts) {
       return texts.map((text) => {
         const folded = text.normalize('NFKC').toLowerCase();

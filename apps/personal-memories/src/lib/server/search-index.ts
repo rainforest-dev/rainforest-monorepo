@@ -159,7 +159,11 @@ async function semanticRank(
   const hits = topK(index.vectors, index.dims, vector, SEMANTIC_K, (row) =>
     idOfRow.has(row),
   );
-  return { ids: hits.flatMap((h) => idOfRow.get(h.row) ?? []) };
+  return {
+    ids: hits
+      .filter((h) => h.score >= embedder.minScore)
+      .flatMap((h) => idOfRow.get(h.row) ?? []),
+  };
 }
 
 function byDay(
@@ -181,7 +185,7 @@ function byDay(
       kind: 'content',
       date: doc.day,
       score,
-      snippet: snippetFor(doc, terms),
+      snippet: snippetFor(doc, terms).replace(/\s+/gu, ' ').trim(),
       source: doc.source,
     }));
 }
