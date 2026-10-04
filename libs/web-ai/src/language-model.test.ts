@@ -375,3 +375,48 @@ describe('destroy', () => {
     expect(destroySpy).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('language options', () => {
+  const install = (value: unknown) =>
+    Object.defineProperty(globalThis, 'LanguageModel', {
+      configurable: true,
+      writable: true,
+      value,
+    });
+
+  it('probes availability with the requested languages', async () => {
+    const availability = vi.fn(async () => 'unavailable');
+    install({ availability, create: vi.fn() });
+    expect(
+      await detectCapability({ input: ['en', 'zh'], output: ['en'] }),
+    ).toEqual({ kind: 'unavailable' });
+    expect(availability).toHaveBeenCalledWith({
+      expectedInputs: [{ type: 'text', languages: ['en', 'zh'] }],
+      expectedOutputs: [{ type: 'text', languages: ['en'] }],
+    });
+  });
+
+  it('recreates the session when the languages change', async () => {
+    const destroyFirst = vi.fn();
+    const create = vi
+      .fn()
+      .mockResolvedValueOnce({ prompt: vi.fn(), destroy: destroyFirst })
+      .mockResolvedValueOnce({ prompt: vi.fn(), destroy: vi.fn() });
+    install({ availability: vi.fn(async () => 'available'), create });
+    await enableModel(undefined, { input: ['en'], output: ['en'] });
+    await enableModel(undefined, { input: ['en', 'ja'], output: ['en'] });
+    expect(destroyFirst).toHaveBeenCalledOnce();
+    expect(create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        expectedInputs: [{ type: 'text', languages: ['en', 'ja'] }],
+      }),
+    );
+  });
+
+  it('reports unsupported where LanguageModel is undefined', async () => {
+    stubLanguageModel(null);
+    expect(await detectCapability({ input: ['en'], output: ['en'] })).toEqual({
+      kind: 'unsupported',
+    });
+  });
+});
