@@ -36,8 +36,7 @@ import {
 export interface RegistryDeskProps {
   initialParams: DeskParams;
   data: DeskData;
-  registryFile: string;
-  topicsFile: string;
+  files: Record<DeskFile, string>;
 }
 
 const FILE_LABEL: Record<DeskFile, string> = {
@@ -52,8 +51,7 @@ const isDeskTab = (value: unknown): value is DeskTab =>
 export function RegistryDesk({
   initialParams,
   data: initialData,
-  registryFile,
-  topicsFile,
+  files,
 }: RegistryDeskProps) {
   const { params, navigate } = useDeskParams(initialParams);
   const desk = useDeskData(initialData);
@@ -61,13 +59,13 @@ export function RegistryDesk({
   const { sources, topics, queue } = desk.data;
   const sourceActions = useSourceActions({
     writable: sources.ok && sources.data.writable,
-    registryFile,
+    registryFile: files.sources,
     onItemsChange: desk.updateSources,
     onReadOnly: () => desk.markReadOnly('sources'),
   });
   const topicActions = useTopicActions({
     writable: topics.ok && topics.data.writable,
-    registryFile: topicsFile,
+    registryFile: files.topics,
     onItemsChange: desk.updateTopics,
     onReadOnly: () => desk.markReadOnly('topics'),
   });
@@ -119,7 +117,7 @@ export function RegistryDesk({
       className="min-h-screen gap-0"
     >
       <DeskHeader
-        registryFile={registryFile}
+        file={files[params.tab]}
         counts={{
           sources: sources.ok ? sources.data.sources.length : null,
           queue: queue.ok ? (queue.data?.queue.length ?? 0) : null,

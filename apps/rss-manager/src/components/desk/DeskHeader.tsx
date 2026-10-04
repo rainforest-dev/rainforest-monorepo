@@ -10,7 +10,7 @@ export interface DeskCounts {
 
 export interface DeskHeaderProps {
   counts: DeskCounts;
-  registryFile: string;
+  file: string;
   actions: ReactNode;
 }
 
@@ -19,7 +19,7 @@ function Count({ value }: { value: number | null }) {
   return <span className="text-muted-foreground tabular-nums">{value}</span>;
 }
 
-export function DeskHeader({ counts, registryFile, actions }: DeskHeaderProps) {
+export function DeskHeader({ counts, file, actions }: DeskHeaderProps) {
   return (
     <header className="bg-background sticky top-0 z-10 border-b">
       <div className="flex flex-wrap items-center gap-x-6 px-4 lg:h-14 lg:flex-nowrap lg:px-6">
@@ -50,7 +50,7 @@ export function DeskHeader({ counts, registryFile, actions }: DeskHeaderProps) {
         </TabsList>
         <div className="flex flex-1 items-center justify-end gap-4">
           <span className="text-muted-foreground font-mono text-xs max-lg:hidden">
-            {registryFile}
+            {file}
           </span>
           {actions}
         </div>

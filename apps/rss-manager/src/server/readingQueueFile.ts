@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { parseReadingQueue, type ReadingQueue } from '@/lib';
 
-import { registryFilePath } from './registry.js';
+import { QUEUE_FILE, registryFilePath } from './registry.js';
 
 /**
  * Returns null when the artifact has not been generated yet — that is an empty
@@ -13,7 +13,7 @@ import { registryFilePath } from './registry.js';
  * island.
  */
 export function readReadingQueue(): ReadingQueue | null {
-  const path = registryFilePath('reading-queue.json');
+  const path = registryFilePath(QUEUE_FILE);
   let raw: string;
   try {
     raw = readFileSync(path, 'utf-8');

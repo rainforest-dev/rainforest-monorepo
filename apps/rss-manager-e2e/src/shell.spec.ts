@@ -45,6 +45,25 @@ test.describe('shell', () => {
     await expect(sourceRows(page)).toHaveCount(SOURCES_PAGE_SIZE);
   });
 
+  test('the header names the file behind the active tab', async ({ page }) => {
+    const banner = page.getByRole('banner');
+    const files = banner.getByText(/^(RSS-.*\.md|reading-queue\.json)$/);
+
+    await page.goto('/?tab=topics');
+    await expect(files).toHaveText('RSS-Topic-Registry.md');
+    await waitForHydration(page);
+
+    await deskTab(page, 'queue').click();
+    await expect(files).toHaveText('reading-queue.json');
+
+    await page.keyboard.press('1');
+    await expect(files).toHaveText('RSS-Source-Registry.md');
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\?tab=queue$/);
+    await expect(files).toHaveText('reading-queue.json');
+  });
+
   test('the first paint already has rows, before any API call', async ({
     page,
   }) => {

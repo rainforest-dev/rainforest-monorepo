@@ -1,5 +1,8 @@
 # RSS manager redesign: Registry desk
 
+Status: rollout complete. Steps 1 to 9 landed in #442–#446, #448, #450, #452 and #453; step 10
+is #454.
+
 Date: 2026-10-03. Branch `docs/rss-manager-registry-desk`, from `main` at 6150066b. This spec maps
 direction A of the Claude Design exploration onto `apps/rss-manager`.
 

@@ -131,9 +131,9 @@ describe('handleRegistryPatch', () => {
     );
   });
 
-  it('still takes the single-name form', async () => {
+  it('declines a topic', async () => {
     const res = await handleRegistryPatch(
-      patch({ name: 'Home automation', action: 'decline' }),
+      patch({ names: ['Home automation'], action: 'decline' }),
       TOPICS_PATCH,
     );
 
@@ -181,7 +181,7 @@ describe('handleRegistryPatch', () => {
     );
 
     const res = await handleRegistryPatch(
-      patch({ name: 'The GitHub Blog', action: 'retire' }),
+      patch({ names: ['The GitHub Blog'], action: 'retire' }),
       SOURCES_PATCH,
     );
 
@@ -190,16 +190,16 @@ describe('handleRegistryPatch', () => {
     });
   });
 
+  const NAMES_REQUIRED = 'names is required: a non-empty array of entry names';
   it.each([
-    [{ action: 'activate' }, 'Missing name, names or action'],
-    [{ name: 'Astro' }, 'Missing name, names or action'],
-    [{ names: [], action: 'activate' }, 'Missing name, names or action'],
-    [
-      { names: ['Astro', 3], action: 'activate' },
-      'Missing name, names or action',
-    ],
+    [{ action: 'activate' }, NAMES_REQUIRED],
+    [{ name: 'Astro', action: 'activate' }, NAMES_REQUIRED],
+    [{ names: 'Astro', action: 'activate' }, NAMES_REQUIRED],
+    [{ names: [], action: 'activate' }, NAMES_REQUIRED],
+    [{ names: ['Astro', 3], action: 'activate' }, NAMES_REQUIRED],
+    [{ names: ['Astro'] }, 'action is required'],
     [{ names: ['Astro'], action: 'delete' }, 'Unknown action: delete'],
-    [{ name: 'Astro', action: 'decline' }, 'Unknown action: decline'],
+    [{ names: ['Astro'], action: 'decline' }, 'Unknown action: decline'],
   ])('answers 400 to %j before touching the vault', async (body, error) => {
     const res = await handleRegistryPatch(patch(body), SOURCES_PATCH);
 
@@ -230,7 +230,7 @@ describe('handleRegistryPatch', () => {
       chmodSync(sourcesFile, 0o444);
 
       const res = await handleRegistryPatch(
-        patch({ name: 'Astro', action: 'retire' }),
+        patch({ names: ['Astro'], action: 'retire' }),
         SOURCES_PATCH,
       );
 
@@ -244,7 +244,7 @@ describe('handleRegistryPatch', () => {
     process.env.VAULT_PATH = mkdtempSync(join(tmpdir(), 'rss-manager-'));
 
     const res = await handleRegistryPatch(
-      patch({ name: 'Astro', action: 'retire' }),
+      patch({ names: ['Astro'], action: 'retire' }),
       SOURCES_PATCH,
     );
 

@@ -171,7 +171,8 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
                 >
                   T{tier}
                 </TooltipTrigger>
-                <TooltipContent>{tierLabel(tier)}</TooltipContent>
+                {/* Base UI portals the popup outside every landmark and links it to nothing; the trigger's aria-label already carries the text. */}
+                <TooltipContent aria-hidden>{tierLabel(tier)}</TooltipContent>
               </Tooltip>
             ))}
           </ToggleGroup>

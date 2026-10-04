@@ -3,8 +3,6 @@ import { join } from 'node:path';
 
 import type { Source, Stale, StaleType, Topic } from '@/lib';
 
-export type { Source, Stale, StaleType, Topic } from '@/lib';
-
 function stripFrontmatter(content: string): string {
   const match = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
   return match ? match[1] : content;
@@ -221,6 +219,7 @@ export function parseTopics(content: string): Topic[] {
 
 export const SOURCES_FILE = 'RSS-Source-Registry.md';
 export const TOPICS_FILE = 'RSS-Topic-Registry.md';
+export const QUEUE_FILE = 'reading-queue.json';
 
 export function registryFilePath(filename: string): string {
   const base = process.env.VAULT_PATH ?? '/vault';
