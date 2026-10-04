@@ -20,8 +20,11 @@ import {
   monthLabel,
   searchDates,
 } from '@/lib';
+import { localParser } from '@/lib/search';
 
+import { ContentResults } from './ContentResults.tsx';
 import type { DayCount } from './useChrome.ts';
+import { useContentSearch, usePeople } from './useContentSearch.ts';
 
 type Props = {
   open: boolean;
@@ -31,6 +34,7 @@ type Props = {
 };
 
 const PLACEHOLDER = '2025-11-08、上週六、中秋';
+const NUMERIC_DATE = /^[\d\s\-/.年月日號]+$/u;
 
 const rangeLabel = ({ start, end }: DateRange) =>
   start === end ? start : `${start} – ${end}`;
@@ -48,11 +52,30 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
     () => searchDates(dates, query, today),
     [dates, query, today],
   );
-  const groups = useMemo(
-    () => groupByMonth(result.hits.map((hit) => hit.date)),
-    [result],
+  const [composing, setComposing] = useState(false);
+  const people = usePeople(open);
+  const numericDate = NUMERIC_DATE.test(query.trim());
+  const parsed = useMemo(
+    () =>
+      query.trim() && !numericDate
+        ? localParser(query, today, people)
+        : undefined,
+    [query, today, people, numericDate],
   );
-  const target = groups.length === 0 ? result.target : undefined;
+  const dateOnly =
+    numericDate || !parsed || (!parsed.text && !parsed.people?.length);
+  const groups = useMemo(
+    () => (dateOnly ? groupByMonth(result.hits.map((hit) => hit.date)) : []),
+    [result, dateOnly],
+  );
+  const content = useContentSearch(open ? parsed : undefined, composing);
+  const target =
+    dateOnly &&
+    groups.length === 0 &&
+    content.results.length === 0 &&
+    !content.loading
+      ? result.target
+      : undefined;
   const missing = result.range
     ? `${query.trim()}（${rangeLabel(result.range)}）沒有紀錄`
     : '沒有這一天';
@@ -62,7 +85,10 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
       open={open}
       onOpenChange={(next) => {
         onOpenChange(next);
-        if (!next) setQuery('');
+        if (!next) {
+          setQuery('');
+          setComposing(false);
+        }
       }}
       title="跳至日期"
       description={PLACEHOLDER}
@@ -74,6 +100,8 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
           placeholder={PLACEHOLDER}
           autoComplete="off"
           spellCheck={false}
+          onCompositionStart={() => setComposing(true)}
+          onCompositionEnd={() => setComposing(false)}
           onKeyDown={(e) => {
             if (e.key !== 'Enter' || isComposing(e.nativeEvent) || !target)
               return;
@@ -94,7 +122,7 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
               載入失敗，請再開一次
             </p>
           )}
-          {Array.isArray(days) && (
+          {Array.isArray(days) && !content.loading && (
             <CommandEmpty>
               {target
                 ? `${missing}，按 Enter 跳到最近的 ${target.date}`
@@ -115,6 +143,16 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
               ))}
             </CommandGroup>
           ))}
+          {content.error && (
+            <p className="text-muted-foreground px-3 pt-2 text-xs">
+              搜尋失敗，請再試一次
+            </p>
+          )}
+          <ContentResults
+            results={content.results}
+            degraded={content.reason !== undefined}
+            onGo={(date) => onGo(date, false)}
+          />
         </CommandList>
       </Command>
     </CommandDialog>

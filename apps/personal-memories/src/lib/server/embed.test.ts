@@ -38,6 +38,7 @@ describe('ollamaEmbedder', () => {
         body: JSON.stringify({
           model: 'embeddinggemma',
           input: ['title: none | text: 拉麵', 'title: none | text: 湯'],
+          keep_alive: '24h',
         }),
       }),
     );
@@ -46,6 +47,17 @@ describe('ollamaEmbedder', () => {
       dims: 4,
       fetch: respond({ embeddings: [vec(4)] }),
     }).embed(['麵'], 'query');
+  });
+
+  it('asks Ollama to keep the model loaded between queries', async () => {
+    const fetch = respond({ embeddings: [vec(4)] });
+    await ollamaEmbedder({ url: 'http://o:1', dims: 4, fetch }).embed(
+      ['a'],
+      'query',
+    );
+    const [, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).keep_alive).toBe('24h');
   });
 
   it('prefixes queries for search', async () => {
@@ -151,6 +163,10 @@ describe('embedderFromEnv', () => {
   it('uses the fake embedder when asked, and Ollama otherwise', () => {
     expect(embedderFromEnv({ MEMORIES_EMBED: 'fake' }).model).toBe('fake');
     const real = embedderFromEnv({});
-    expect(real).toMatchObject({ model: 'embeddinggemma', dims: 768 });
+    expect(real).toMatchObject({
+      model: 'embeddinggemma',
+      dims: 768,
+      minScore: 0.25,
+    });
   });
 });

@@ -3,7 +3,8 @@ import { join, resolve } from 'node:path';
 
 // Relative, not @/: src/cli runs under plain `node`, which does not read tsconfig paths.
 import { writePhotoFixture } from '../lib/ingest/__fixtures__/photos.ts';
-import { ingest } from './ingest.ts';
+import { fakeEmbedder } from '../lib/server/embed.ts';
+import { buildIndex, ingest } from './ingest.ts';
 
 const FIXTURES = join(
   import.meta.dirname,
@@ -19,6 +20,8 @@ Saved on: 11/04/2025, 08:00
 Mon, 11/03/2025
 8:15AM\tAlice\tNew week, new plans
 8:20AM\tBob\tCoffee first
+12:10PM\tBob\t台南的拉麵好好吃
+12:12PM\tAlice\t下次再去
 `;
 
 const PEOPLE = {
@@ -75,6 +78,7 @@ if (import.meta.main) {
     console.error('usage: node src/cli/fixture.ts <empty-dir>');
     process.exit(2);
   }
-  const { events } = writeFixtureDataDir(resolve(target));
-  console.log(`fixture: ${events.length} events → ${resolve(target)}`);
+  const timeline = writeFixtureDataDir(resolve(target));
+  await buildIndex(resolve(target), timeline, fakeEmbedder(), () => undefined);
+  console.log(`fixture: ${timeline.events.length} events → ${resolve(target)}`);
 }

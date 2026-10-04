@@ -1,5 +1,3 @@
-import { z } from 'astro/zod';
-
 import { parseDateQuery } from '@/lib/natural-date.ts';
 import type { Person } from '@/lib/people.ts';
 import type { TimelineSource } from '@/lib/server';
@@ -12,15 +10,6 @@ export type SearchQuery = {
   people?: string[];
   sources?: TimelineSource[];
 };
-
-export const searchQuerySchema = z.object({
-  text: z.string().max(200),
-  range: z.object({ start: z.iso.date(), end: z.iso.date() }).optional(),
-  people: z.array(z.string()).optional(),
-  sources: z.array(z.enum(['line', 'slack', 'photo'])).optional(),
-});
-
-export const SEARCH_QUERY_JSON_SCHEMA = z.toJSONSchema(searchQuerySchema);
 
 const HAN = /\p{Script=Han}/u;
 const MAX_DATE_CHARS = 16;
@@ -44,6 +33,21 @@ function takeDate(
   return undefined;
 }
 
+const YEAR_TOKEN = /^(\d{4})年?$/u;
+
+function takeYear(
+  text: string,
+): { range: { start: string; end: string }; rest: string } | undefined {
+  const tokens = text.split(/\s+/u).filter(Boolean);
+  for (const at of [0, tokens.length - 1]) {
+    const year = YEAR_TOKEN.exec(tokens[at] ?? '')?.[1];
+    if (!year || tokens.length < 2) continue;
+    const rest = tokens.filter((_, i) => i !== at).join(' ');
+    return { range: { start: `${year}-01-01`, end: `${year}-12-31` }, rest };
+  }
+  return undefined;
+}
+
 function namesOf(people: readonly Person[]) {
   return people
     .flatMap((p) =>
@@ -61,7 +65,7 @@ export function localParser(
 ): SearchQuery {
   const query: SearchQuery = { text: '' };
   let rest = raw.normalize('NFKC').trim();
-  const date = takeDate(rest, today);
+  const date = takeDate(rest, today) ?? takeYear(rest);
   if (date) {
     query.range = date.range;
     rest = date.rest;

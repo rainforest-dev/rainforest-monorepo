@@ -50,6 +50,20 @@ describe('localParser', () => {
     });
   });
 
+  it('takes a standalone year at either end as that year', () => {
+    expect(localParser('2025 拉麵', TODAY, PEOPLE)).toEqual({
+      text: '拉麵',
+      range: { start: '2025-01-01', end: '2025-12-31' },
+    });
+    expect(localParser('拉麵 2024年', TODAY, PEOPLE)).toEqual({
+      text: '拉麵',
+      range: { start: '2024-01-01', end: '2024-12-31' },
+    });
+    expect(localParser('route 2025 map', TODAY, PEOPLE)).toEqual({
+      text: 'route 2025 map',
+    });
+  });
+
   it('keeps 的 when it belongs to a word', () => {
     expect(localParser('目的', TODAY, PEOPLE)).toEqual({ text: '目的' });
     expect(localParser('的士 司機', TODAY, PEOPLE)).toEqual({

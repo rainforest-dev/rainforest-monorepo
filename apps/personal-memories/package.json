@@ -54,6 +54,7 @@
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
     "@tailwindcss/vite": "catalog:",
+    "@tanstack/react-query": "5.104.1",
     "astro": "^7.3.3",
     "lucide-react": "^1.8.0",
     "react": "catalog:",
