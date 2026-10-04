@@ -3,10 +3,23 @@ import { join } from 'node:path';
 
 // Relative, not @/: src/cli runs under plain `node`, which does not read tsconfig paths.
 import {
+  buildSearchDocs,
   parseLineChat,
   parsePhotoIndex,
   parseSlackExport,
 } from '../lib/ingest/index.ts';
+import type { Person } from '../lib/people.ts';
+import {
+  type Embedder,
+  embedderFromEnv,
+  EmbedError,
+} from '../lib/server/embed.ts';
+import {
+  readSearchFiles,
+  reuseVectors,
+  searchDir,
+  writeSearchFiles,
+} from '../lib/server/search-files.ts';
 import {
   mergeTimelines,
   type Timeline,
@@ -78,6 +91,75 @@ export function ingest(
   return timeline;
 }
 
+const EMBED_BATCH = 64;
+
+function readPeople(root: string, log: (line: string) => void): Person[] {
+  const path = join(root, 'people.json');
+  if (!existsSync(path)) return [];
+  try {
+    const file = JSON.parse(readFileSync(path, 'utf8')) as {
+      people?: Partial<Person>[];
+    };
+    return (file.people ?? [])
+      .filter(
+        (p): p is Person =>
+          typeof p.id === 'string' && typeof p.name === 'string',
+      )
+      .map(({ id, name, aliases }) => ({ id, name, aliases: aliases ?? {} }));
+  } catch {
+    log('search: people.json could not be read; names stay as exported');
+    return [];
+  }
+}
+
+export async function buildIndex(
+  root: string,
+  timeline: Timeline,
+  embedder: Embedder,
+  log: (line: string) => void = console.log,
+): Promise<void> {
+  const photos = timeline.events.filter((e) => e.source === 'photo');
+  if (photos.length && photos.every((e) => !e.photo?.meta?.labels?.length))
+    log(
+      `photos: no labels in ${photos.length} photos — re-export with osxphotos 0.77.2`,
+    );
+  const docs = buildSearchDocs(timeline.events, readPeople(root, log));
+  const header = {
+    model: embedder.model,
+    dims: embedder.dims,
+    docs: docs.map(({ id, contentHash }) => ({ id, contentHash })),
+  };
+  const { vectors, missing } = reuseVectors(
+    await readSearchFiles(root),
+    header.docs,
+    embedder.model,
+    embedder.dims,
+  );
+  try {
+    for (let i = 0; i < missing.length; i += EMBED_BATCH) {
+      const rows = missing.slice(i, i + EMBED_BATCH);
+      const out = await embedder.embed(
+        rows.map((row) => docs[row]?.text ?? ''),
+        'document',
+      );
+      rows.forEach((row, j) => {
+        const vector = out[j];
+        if (vector) vectors.set(vector, row * embedder.dims);
+      });
+    }
+  } catch (error) {
+    if (!(error instanceof EmbedError)) throw error;
+    log(
+      `search: embeddings skipped (${error.reason}); lexical search still works`,
+    );
+    return;
+  }
+  await writeSearchFiles(root, header, vectors);
+  log(
+    `search: ${docs.length} docs, ${missing.length} embedded → ${searchDir(root)}`,
+  );
+}
+
 if (import.meta.main) {
   const root = process.env['MEMORIES_DATA_DIR'];
   if (!root) {
@@ -86,5 +168,5 @@ if (import.meta.main) {
     );
     process.exit(2);
   }
-  ingest(root);
+  await buildIndex(root, ingest(root), embedderFromEnv());
 }
