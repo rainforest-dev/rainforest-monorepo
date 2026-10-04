@@ -9,6 +9,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
 COPY apps/personal-memories/package.json apps/personal-memories/
 COPY libs/rainforest-ui/package.json libs/rainforest-ui/
 COPY libs/rainforest-react/package.json libs/rainforest-react/
+COPY libs/web-ai/package.json libs/web-ai/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --filter @rainforest-monorepo/personal-memories... --frozen-lockfile
@@ -41,6 +42,9 @@ RUN pnpm --filter @rainforest-monorepo/personal-memories exec tsc \
 
 COPY libs/rainforest-react libs/rainforest-react
 RUN pnpm --filter @rainforest-dev/rainforest-react exec vite build
+
+COPY libs/web-ai libs/web-ai
+RUN pnpm --filter @rainforest-dev/web-ai exec vite build
 
 COPY apps/personal-memories apps/personal-memories
 RUN pnpm --filter @rainforest-monorepo/personal-memories run build
