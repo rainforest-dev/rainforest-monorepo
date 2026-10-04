@@ -1,6 +1,7 @@
 import {
   Button,
   ButtonGroup,
+  cn,
   Kbd,
   Spinner,
 } from '@rainforest-dev/rainforest-react';
@@ -24,6 +25,7 @@ export interface BulkToolbarProps<A extends RegistryAction> {
   shownLabel: string;
   selection: RowSelection;
   actions: RegistryActionsState<A>;
+  floating?: boolean;
 }
 
 export function BulkToolbar<A extends RegistryAction>({
@@ -32,6 +34,7 @@ export function BulkToolbar<A extends RegistryAction>({
   shownLabel,
   selection,
   actions,
+  floating = false,
 }: BulkToolbarProps<A>) {
   const { selected } = selection;
   const allShown = shownNames.every((name) => selected.has(name));
@@ -40,7 +43,11 @@ export function BulkToolbar<A extends RegistryAction>({
     <div
       role="toolbar"
       aria-label="Bulk actions"
-      className="flex min-h-8 flex-1 flex-wrap items-center gap-2"
+      className={cn(
+        'flex min-h-8 flex-1 flex-wrap items-center gap-2',
+        floating &&
+          'bg-card text-card-foreground fixed inset-x-2 bottom-2 z-40 rounded-xl border p-2 shadow-lg',
+      )}
     >
       <Button
         variant="ghost"

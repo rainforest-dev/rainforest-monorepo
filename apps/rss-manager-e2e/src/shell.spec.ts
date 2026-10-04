@@ -54,11 +54,15 @@ test.describe('shell', () => {
     });
     await page.goto('/?tab=topics');
     await expect(
-      page.getByRole('main').getByText('Home lab networking'),
+      page
+        .getByRole('grid', { name: 'Topics' })
+        .getByText('Home lab networking'),
     ).toBeVisible();
     await page.goto('/?tab=queue');
     await expect(
-      page.getByRole('main').getByText(QUEUE.titles[0][1]),
+      page
+        .getByRole('grid', { name: 'Reading queue' })
+        .getByText(QUEUE.titles[0][1]),
     ).toBeVisible();
     await page.waitForLoadState('networkidle');
     expect(apiCalls).toEqual([]);

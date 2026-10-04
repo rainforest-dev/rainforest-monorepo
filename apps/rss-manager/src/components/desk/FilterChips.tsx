@@ -14,10 +14,10 @@ export function FilterChips({ chips, onRemove, onClear }: FilterChipsProps) {
   return (
     <ul
       aria-label="Active filters"
-      className="flex flex-wrap items-center gap-1.5"
+      className="flex items-center gap-1.5 max-lg:overflow-x-auto max-lg:pb-1 lg:flex-wrap"
     >
       {chips.map((chip) => (
-        <li key={chip.key} className="min-w-0">
+        <li key={chip.key} className="min-w-0 max-lg:shrink-0">
           <Badge variant="muted" className="h-6 max-w-full gap-1 pr-0.5">
             <span className="truncate">{chip.label}</span>
             <Button
@@ -32,7 +32,7 @@ export function FilterChips({ chips, onRemove, onClear }: FilterChipsProps) {
           </Badge>
         </li>
       ))}
-      <li>
+      <li className="max-lg:shrink-0">
         <Button variant="link" size="xs" onClick={onClear}>
           Clear all
         </Button>

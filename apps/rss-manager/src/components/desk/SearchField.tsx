@@ -19,9 +19,16 @@ export interface SearchFieldProps {
   label: string;
   tab: DeskTab;
   onChange: (value: string) => void;
+  className?: string;
 }
 
-export function SearchField({ value, label, tab, onChange }: SearchFieldProps) {
+export function SearchField({
+  value,
+  label,
+  tab,
+  onChange,
+  className = 'w-full sm:w-72',
+}: SearchFieldProps) {
   const [text, setText] = useState(value);
   const [committed, setCommitted] = useState(value);
 
@@ -38,7 +45,7 @@ export function SearchField({ value, label, tab, onChange }: SearchFieldProps) {
   }, [text, committed, onChange]);
 
   return (
-    <InputGroup className="w-full sm:w-72" {...{ [DESK_SEARCH_ATTR]: tab }}>
+    <InputGroup className={className} {...{ [DESK_SEARCH_ATTR]: tab }}>
       <InputGroupAddon>
         <SearchIcon aria-hidden="true" />
       </InputGroupAddon>

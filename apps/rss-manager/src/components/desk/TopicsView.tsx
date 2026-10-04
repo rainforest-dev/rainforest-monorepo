@@ -1,6 +1,7 @@
 import {
   Button,
   Checkbox,
+  cn,
   Empty,
   EmptyContent,
   EmptyDescription,
@@ -37,7 +38,9 @@ import { BulkToolbar } from './BulkToolbar';
 import { WIDE_ONLY } from './deskRow';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { SearchField } from './SearchField';
+import { TopicList } from './TopicList';
 import { TopicRow } from './TopicRow';
+import { useDeskLayout } from './useDeskLayout';
 import type { ViewKeysRef } from './useDeskShortcuts';
 import type { TopicActionsState } from './useRegistryActions';
 import { useRovingRows } from './useRovingRows';
@@ -78,9 +81,15 @@ export function TopicsView({
   const names = filtered.map((t) => t.name);
   const { selectMode, selected } = selection;
   const bulk = selectMode && selected.size > 0;
+  const { isDesktop, showTable, showList } = useDeskLayout();
   const shownCheck = pageCheckState(selected, names);
   const roving = useRovingRows(names, { page: 1, data: topics });
   const total = topics.length;
+  const bulkOptions = BULK_ACTIONS.map((action) => ({
+    action,
+    names: applicableTopicNames(topics, selected, action),
+    emptyNote: notApplicableNote(action, 'topics'),
+  }));
 
   const runKey = (
     command: ViewCommand,
@@ -151,21 +160,28 @@ export function TopicsView({
   return (
     <section
       aria-labelledby="topics-heading"
-      className="flex min-h-[calc(100dvh-3.5rem)] min-w-0 flex-col px-4 pb-6 lg:px-6"
+      className={cn(
+        'flex min-h-[calc(100dvh-3.5rem)] min-w-0 flex-col px-4 pb-6 lg:px-6',
+        bulk && 'max-lg:pb-36',
+      )}
     >
       <div className="bg-background z-[5] flex flex-col gap-3 py-4 lg:sticky lg:top-14">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h2 id="topics-heading" className="text-lg font-semibold">
+          <h2
+            id="topics-heading"
+            className="text-lg font-semibold max-lg:sr-only"
+          >
             Topics
           </h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm max-lg:hidden">
             What rss-discover looks for when it proposes sources.
           </p>
-          <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+          <div className="flex w-full items-center gap-2 lg:ml-auto lg:w-auto">
             <SearchField
               value={params.tq}
               label="Search topics"
               tab="topics"
+              className="w-full lg:w-72"
               onChange={(tq) => {
                 if (tq !== params.tq) navigate({ tq });
               }}
@@ -181,13 +197,9 @@ export function TopicsView({
             )}
           </div>
         </div>
-        {bulk ? (
+        {bulk && isDesktop ? (
           <BulkToolbar
-            options={BULK_ACTIONS.map((action) => ({
-              action,
-              names: applicableTopicNames(topics, selected, action),
-              emptyNote: notApplicableNote(action, 'topics'),
-            }))}
+            options={bulkOptions}
             shownNames={names}
             shownLabel="shown"
             selection={selection}
@@ -250,52 +262,72 @@ export function TopicsView({
           </EmptyContent>
         </Empty>
       ) : (
-        <Table
-          ref={roving.ref}
-          role="grid"
-          aria-labelledby="topics-heading"
-          aria-multiselectable={selectMode || undefined}
-          className="table-fixed md:table-auto"
-        >
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {selectMode && (
-                <TableHead className="w-10">
-                  <Checkbox
-                    aria-label="Select all shown"
-                    checked={shownCheck === 'all'}
-                    indeterminate={shownCheck === 'some'}
-                    onCheckedChange={() =>
-                      shownCheck === 'all'
-                        ? selection.removeMany(names)
-                        : selection.addMany(names)
-                    }
-                  />
+        showTable && (
+          <Table
+            ref={roving.ref}
+            role="grid"
+            aria-labelledby="topics-heading"
+            aria-multiselectable={selectMode || undefined}
+            className="table-fixed max-lg:hidden md:table-auto"
+          >
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                {selectMode && (
+                  <TableHead className="w-10">
+                    <Checkbox
+                      aria-label="Select all shown"
+                      checked={shownCheck === 'all'}
+                      indeterminate={shownCheck === 'some'}
+                      onCheckedChange={() =>
+                        shownCheck === 'all'
+                          ? selection.removeMany(names)
+                          : selection.addMany(names)
+                      }
+                    />
+                  </TableHead>
+                )}
+                <TableHead>Topic</TableHead>
+                <TableHead className={WIDE_ONLY}>Tags</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className={WIDE_ONLY}>Proposed</TableHead>
+                <TableHead className="w-40">
+                  <span className="sr-only">Actions</span>
                 </TableHead>
-              )}
-              <TableHead>Topic</TableHead>
-              <TableHead className={WIDE_ONLY}>Tags</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className={WIDE_ONLY}>Proposed</TableHead>
-              <TableHead className="w-40">
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((topic) => (
-              <TopicRow
-                key={topic.name}
-                topic={topic}
-                tabIndex={topic.name === roving.stop ? 0 : -1}
-                actions={actions}
-                selectMode={selectMode}
-                selected={selected.has(topic.name)}
-                onToggle={() => selection.toggle(topic.name)}
-              />
-            ))}
-          </TableBody>
-        </Table>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((topic) => (
+                <TopicRow
+                  key={topic.name}
+                  topic={topic}
+                  tabIndex={topic.name === roving.stop ? 0 : -1}
+                  actions={actions}
+                  selectMode={selectMode}
+                  selected={selected.has(topic.name)}
+                  onToggle={() => selection.toggle(topic.name)}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        )
+      )}
+      {showList && filtered.length > 0 && (
+        <TopicList
+          topics={filtered}
+          labelledBy="topics-heading"
+          actions={actions}
+          selection={selection}
+        />
+      )}
+      {bulk && !isDesktop && (
+        <BulkToolbar
+          floating
+          options={bulkOptions}
+          shownNames={names}
+          shownLabel="shown"
+          selection={selection}
+          actions={actions}
+        />
       )}
       <KeyHints
         hints={deskHints('topics', false)}

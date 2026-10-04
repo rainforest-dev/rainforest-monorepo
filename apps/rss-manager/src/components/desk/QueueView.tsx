@@ -35,8 +35,10 @@ import {
 } from '@/lib/desk';
 
 import { WIDE_ONLY } from './deskRow';
+import { QueueList, QueueSort } from './QueueList';
 import { QueueRow } from './QueueRow';
 import { StalePanel } from './StalePanel';
+import { useDeskLayout } from './useDeskLayout';
 import type { ViewKeysRef } from './useDeskShortcuts';
 import { useRovingRows } from './useRovingRows';
 
@@ -88,6 +90,7 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
   const ids = items.map((item) => item.id);
   const roving = useRovingRows(ids, { page: 1, data: queue });
   const tiers = queueTiers(queue ?? []);
+  const { showTable, showList } = useDeskLayout();
 
   const runKey = (command: ViewCommand, target: Element | null) => {
     if (command.type === 'move') roving.move(command.key);
@@ -130,7 +133,10 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
     >
       <div className="bg-background z-[5] flex flex-col gap-3 py-4 lg:sticky lg:top-14">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h2 id="queue-heading" className="text-lg font-semibold">
+          <h2
+            id="queue-heading"
+            className="text-lg font-semibold max-lg:sr-only"
+          >
             Reading queue
           </h2>
           {data && (
@@ -169,6 +175,16 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
               </Tooltip>
             ))}
           </ToggleGroup>
+        )}
+        {items.length > 0 && (
+          <QueueSort
+            sort={params.sort}
+            dir={params.dir}
+            onSort={(sort) => navigate({ sort, dir: 'asc' })}
+            onFlip={() =>
+              navigate({ dir: params.dir === 'asc' ? 'desc' : 'asc' })
+            }
+          />
         )}
       </div>
 
@@ -209,68 +225,73 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
           )}
         </Empty>
       ) : (
-        <Table
-          ref={roving.ref}
-          role="grid"
-          aria-labelledby="queue-heading"
-          className="table-fixed md:table-auto"
-        >
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {COLUMNS.map((column, i) => {
-                if (!column.key)
+        showTable && (
+          <Table
+            ref={roving.ref}
+            role="grid"
+            aria-labelledby="queue-heading"
+            className="table-fixed max-lg:hidden md:table-auto"
+          >
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                {COLUMNS.map((column, i) => {
+                  if (!column.key)
+                    return (
+                      <TableHead key={i} className={column.className}>
+                        {column.label}
+                      </TableHead>
+                    );
+                  const active = column.key === params.sort;
+                  const Icon = !active
+                    ? ArrowUpDownIcon
+                    : params.dir === 'asc'
+                      ? ArrowUpIcon
+                      : ArrowDownIcon;
+                  const key = column.key;
                   return (
-                    <TableHead key={i} className={column.className}>
-                      {column.label}
+                    <TableHead
+                      key={key}
+                      className={column.className}
+                      aria-sort={
+                        active
+                          ? params.dir === 'asc'
+                            ? 'ascending'
+                            : 'descending'
+                          : 'none'
+                      }
+                    >
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        className="-ml-2 flex"
+                        onClick={() => sortBy(key)}
+                      >
+                        {column.label}
+                        <Icon
+                          data-icon="inline-end"
+                          aria-hidden="true"
+                          className={active ? undefined : 'opacity-40'}
+                        />
+                      </Button>
                     </TableHead>
                   );
-                const active = column.key === params.sort;
-                const Icon = !active
-                  ? ArrowUpDownIcon
-                  : params.dir === 'asc'
-                    ? ArrowUpIcon
-                    : ArrowDownIcon;
-                const key = column.key;
-                return (
-                  <TableHead
-                    key={key}
-                    className={column.className}
-                    aria-sort={
-                      active
-                        ? params.dir === 'asc'
-                          ? 'ascending'
-                          : 'descending'
-                        : 'none'
-                    }
-                  >
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      className="-ml-2 flex"
-                      onClick={() => sortBy(key)}
-                    >
-                      {column.label}
-                      <Icon
-                        data-icon="inline-end"
-                        aria-hidden="true"
-                        className={active ? undefined : 'opacity-40'}
-                      />
-                    </Button>
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <QueueRow
-                key={item.id}
-                item={item}
-                tabIndex={item.id === roving.stop ? 0 : -1}
-              />
-            ))}
-          </TableBody>
-        </Table>
+                })}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <QueueRow
+                  key={item.id}
+                  item={item}
+                  tabIndex={item.id === roving.stop ? 0 : -1}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        )
+      )}
+      {showList && items.length > 0 && (
+        <QueueList items={items} labelledBy="queue-heading" />
       )}
 
       {data && data.stale.length > 0 && <StalePanel stale={data.stale} />}

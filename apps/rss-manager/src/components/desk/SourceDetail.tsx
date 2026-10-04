@@ -10,6 +10,10 @@ import {
   EmptyTitle,
   Kbd,
   Separator,
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetTitle,
   Spinner,
 } from '@rainforest-dev/rainforest-react';
 import { CheckIcon, CopyIcon, ExternalLinkIcon, XIcon } from 'lucide-react';
@@ -78,6 +82,58 @@ export function SourceDetail({
         </Empty>
       )}
     </div>
+  );
+}
+
+export interface SourceDetailSheetProps {
+  name: string | null;
+  sources: readonly Source[];
+  actions: SourceActionsState;
+  onClose: () => void;
+  returnFocus: (name: string) => HTMLElement | null;
+}
+
+export function SourceDetailSheet({
+  name,
+  sources,
+  actions,
+  onClose,
+  returnFocus,
+}: SourceDetailSheetProps) {
+  const [shown, setShown] = useState(name);
+  if (name !== null && name !== shown) setShown(name);
+  const source = sources.find((s) => s.name === shown);
+
+  return (
+    <Sheet
+      side="bottom"
+      open={name !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <SheetContent
+        showCloseButton={false}
+        className="h-[88dvh] gap-0"
+        finalFocus={() =>
+          shown === null ? true : (returnFocus(shown) ?? true)
+        }
+      >
+        <SheetTitle className="sr-only" render={<span />}>
+          Source details
+        </SheetTitle>
+        <SheetBody className="px-0">
+          {shown !== null && (
+            <SourceDetail
+              name={shown}
+              source={source}
+              actions={actions}
+              onClose={onClose}
+            />
+          )}
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
   );
 }
 
