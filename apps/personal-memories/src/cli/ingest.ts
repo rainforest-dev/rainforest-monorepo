@@ -29,7 +29,8 @@ export function ingest(
         readFileSync(join(lineDir, file), 'utf8'),
       );
       log(`line: ${events.length} events from ${file}`);
-      lists.push(events);
+      const chat = file.replace(/\.txt$/, '');
+      lists.push(events.map((event) => ({ ...event, chat })));
     }
   } else {
     log('line: no line/ directory, skipped');

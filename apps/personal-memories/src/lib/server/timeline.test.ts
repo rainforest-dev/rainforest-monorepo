@@ -43,3 +43,17 @@ describe('mergeTimelines', () => {
     expect(mergeTimelines([line, line], [line]).map((e) => e.id)).toEqual(ids);
   });
 });
+
+describe('makeEvent chat', () => {
+  it('keeps the chat without changing the id', () => {
+    const base = {
+      source: 'line' as const,
+      at: '2025-11-01T09:00:00+08:00',
+      author: 'Bob',
+      text: 'hi',
+    };
+    const withChat = makeEvent({ ...base, chat: 'family' });
+    expect(withChat.chat).toBe('family');
+    expect(withChat.id).toBe(makeEvent(base).id);
+  });
+});

@@ -112,6 +112,7 @@ export function parseSlackExport(root: string): SlackExport {
         result.events.push(
           makeEvent({
             source: 'slack',
+            chat: channel,
             at: toTaipeiIso(Math.round(seconds * 1000)),
             author:
               (message.user && users.get(message.user)) ||

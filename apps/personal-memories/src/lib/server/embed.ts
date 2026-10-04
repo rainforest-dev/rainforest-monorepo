@@ -13,11 +13,11 @@ export type Embedder = {
 export type EmbedFailure = 'ollama-unreachable' | 'timeout' | 'model-mismatch';
 
 export class EmbedError extends Error {
-  constructor(
-    readonly reason: EmbedFailure,
-    message: string,
-  ) {
+  readonly reason: EmbedFailure;
+
+  constructor(reason: EmbedFailure, message: string) {
     super(message);
+    this.reason = reason;
   }
 }
 
