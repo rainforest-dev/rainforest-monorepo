@@ -1,5 +1,17 @@
 # Memories Content Search Implementation Plan
 
+> **Status: done (2026-10-04).** All six slices shipped:
+>
+> 1. shared Prompt API core in `libs/web-ai` (#458);
+> 2. pure search core (#459);
+> 3. the search index built at ingest (#461);
+> 4. content search in the jump box (#462);
+> 5. opt-in Prompt API query parsing (#464);
+> 6. day notes in search (#466).
+>
+> Follow-ups: #465 builds `web-ai` into the image, which #464 had broken. #467 loads the vectors
+> without copying them. Spec: #440; this plan: #457.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development
 > (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use
 > checkbox (`- [ ]`) syntax for tracking.

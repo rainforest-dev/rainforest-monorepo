@@ -1,7 +1,9 @@
 # Memories content search
 
 Date: 2026-10-01, updated 2026-10-04 with the owner's answers to the open questions. Status:
-design approved by the owner; this file is the written spec for review. Builds on the
+done. It was implemented on 2026-10-04 by the six slices in
+`docs/superpowers/plans/2026-10-04-memories-content-search.md` (#458, #459, #461, #462, #464,
+#466), with follow-ups #465 and #467. Builds on the
 natural-language date parser (PR #427, the first PR of the implementation) and the people
 identity work (PR #439, merged).
 
