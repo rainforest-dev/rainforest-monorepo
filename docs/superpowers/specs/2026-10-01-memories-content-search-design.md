@@ -1,8 +1,9 @@
 # Memories content search
 
-Date: 2026-10-01. Status: design approved by the owner section by section in conversation; this
-file is the written spec for review. Builds on the natural-language date parser (PR #427) and the
-people identity work (PR #439); both must be on `main` before implementation starts.
+Date: 2026-10-01, updated 2026-10-04 with the owner's answers to the open questions. Status:
+design approved by the owner; this file is the written spec for review. Builds on the
+natural-language date parser (PR #427, the first PR of the implementation) and the people
+identity work (PR #439, merged).
 
 ## Problem
 
@@ -19,15 +20,18 @@ Chrome Prompt API layer should be able to plug in without a rewrite.
    Photos metadata that osxphotos exports: scene labels, OCR text, venues, place, people and
    albums. Pixel embeddings (CLIP-style) are deferred; see Out of scope.
 3. **Results are days.** They appear as a 「內容」 group under the date results in the existing
-   jump box, each day with its best snippet, and a final 「看全部結果」 row. A full results page is
-   deferred.
+   jump box, each day with its best snippet. A full results page, and the 「看全部結果」 row that
+   would lead to it, are deferred.
 4. **No separate index service.** The corpus is in the order of 10⁴ events and under 10⁴ search
    documents, so vectors fit in memory (tens of MB as `Float32Array`) and brute-force cosine
    takes milliseconds. The index is a pair of files written by `ingest` and loaded into the
    existing Astro server. Revisit only if one vector space passes about 10⁵ entries, a second
    process must write the index, or the data can no longer be reloaded whole.
-5. **Embeddings come from Ollama.** `embeddinggemma` (768 dimensions, multilingual) on an Ollama
-   endpoint configured by `MEMORIES_OLLAMA_URL`. The Node container loads no model. Apple's scene
+5. **Embeddings come from Ollama on the homelab host.** `embeddinggemma` (768 dimensions,
+   multilingual) on the Ollama that runs on the same machine as the memories container, reached at
+   `MEMORIES_OLLAMA_URL`: `http://host.docker.internal:11434` in the homelab deployment (set in the
+   homelab Terraform module), and `http://localhost:11434`, the app's default, in local dev. The
+   Node container loads no model. Apple's scene
    labels are English, so cross-language matching (「拉麵」 to `Ramen`) depends on this model.
 6. **Shared code where there are two consumers.** The Prompt API wrapper in
    `apps/personal-website/src/utils/ai/` moves, minus its Vue composables, to a new framework-free
@@ -39,9 +43,17 @@ Chrome Prompt API layer should be able to plug in without a rewrite.
    replace the removed `measureInputUsage`, `inputUsage` and `inputQuota`; the web exposes no
    `temperature` or `topK`. Supported languages are en, ja, es, de and fr, so Chinese queries
    cannot use it yet.
-8. **Code is shared, indexes never are.** The public website gets no semantic index (a separate
-   loop task covers offline keyword expansion for its palette); memories data never leaves the
-   memories server.
+8. **Prompt API parsing is opt-in and honest.** The local parser is the default and the floor.
+   The owner can switch Prompt API parsing on in the jump box; when it is on and the model
+   supports the query's language, it parses the query, with the local parser as the fallback.
+   When the browser or the language is not supported, the jump box says so instead of hiding the
+   switch. See Query parsing and the Prompt API.
+9. **Lexical matching requires every term.** The query text is split on whitespace and a doc
+   matches only when each term is a substring of its text or of one of its facets
+   (「台南 麵」 needs both). No edit-distance or 繁簡 normalisation.
+10. **Code is shared, indexes never are.** The public website gets no semantic index (a separate
+    loop task covers offline keyword expansion for its palette); memories data never leaves the
+    memories server.
 
 ## Architecture
 
@@ -57,7 +69,7 @@ apps/personal-memories/src
   lib/people.ts, server/people-store   PR #439
   lib/search/
     query.ts      SearchQuery, SearchQuerySchema (zod), localParser
-    lexical.ts    substring match with person and place facet boosts
+    lexical.ts    every whitespace-separated term as a substring, with facet boosts
     vector.ts     cosine top-k over a Float32Array
     rrf.ts        reciprocal rank fusion
     embed.ts      Ollama /api/embed client: timeout, circuit breaker, prefixes
@@ -65,7 +77,7 @@ apps/personal-memories/src
   lib/server/search-index.ts   load docs + vectors, reload on mtime, search()
   cli/ingest.ts        also writes search/docs.json and search/vectors.text.bin
   pages/search.json.ts
-  components/chrome/DateJump.tsx   「內容」 group and 「看全部結果」
+  components/chrome/DateJump.tsx   「內容」 group, the AI parsing switch and its status line
 ```
 
 ## Data
@@ -126,8 +138,20 @@ alongside it without changing this format.
 
 The `photos/index.json` export must come from osxphotos 0.77.2 or later. Earlier versions read the
 Photos search index from `database/search/psi.sqlite`, which current Photos replaced with
-`leo.sqlite`, and silently export empty `search_info`. The README pins
-`uvx osxphotos@0.77.2`, and ingest warns when no photo has labels.
+`leo.sqlite`, and silently export empty `search_info`. The README pins the version, and ingest
+warns when no photo has labels.
+
+The owner re-exports before the photo slice ships, on the homelab host, then runs ingest:
+
+```bash
+uvx osxphotos@0.77.2 query --json \
+  --library "$HOME/Pictures/Photos Library.photoslibrary" \
+  --from-date <the start date of the current export> \
+  >| "$MEMORIES_DATA_DIR/photos/index.json"
+```
+
+`>|` rather than `>` because the owner's shell sets `noclobber`, under which `>` onto the existing
+file silently writes nothing. The PR for slice (iii) repeats this command.
 
 ### Embedding prompts
 
@@ -142,12 +166,12 @@ browser   raw query → QueryParser → SearchQuery { text, range?, people?, sou
           GET /search.json?q=&from=&to=&people=&sources=
 server    validate with zod
           docs ← filter by range, people, sources
-          lexical rank  ← substring on text, boosted by person and place facets
+          lexical rank  ← every term a substring of text or facets, boosted by facet hits
           semantic rank ← embed(text) → cosine over vectors (skipped when unavailable)
           merge with RRF: score(d) = Σ 1 / (60 + rank_i(d))
           group by day: a day's score is its best doc's; snippet from that doc
           → { results: [{ kind: 'content', date, score, snippet, source }], semantic, reason?, stale? }
-client    「內容」 group under the date group; 「看全部結果」 last
+client    「內容」 group under the date group
 ```
 
 RRF uses ranks only, so cosine similarity and lexical scores never need a common scale, and an
@@ -174,10 +198,31 @@ interface QueryParser {
 - `promptParser` calls `prompt()` through `libs/web-ai` with
   `responseConstraint: z.toJSONSchema(SearchQuerySchema)`, validates the output with the same
   schema, and falls back to `localParser` on invalid output or after 1.5 s.
-- `promptParser` is chosen only when
-  `availability({ expectedInputs: [{ type: 'text', languages: ['zh'] }] })` is `available`.
-  Today that is never true, so no control to enable it is shown. The model download needs a user
-  gesture and is never started in the background.
+
+### The AI parsing switch
+
+The jump box carries one switch, 「AI 解析查詢（實驗）」, in its footer, with a status line under
+it. The setting is per browser, stored in `localStorage` under `memories:prompt-parse` and read
+defensively (blocked storage means off). Off is the default.
+
+- The query's language decides the probe: text containing CJK characters is `zh`, anything else
+  is `en`. The probe is
+  `availability({ expectedInputs: [{ type: 'text', languages: ['en', lang] }], expectedOutputs: [{ type: 'text', languages: ['en'] }] })`,
+  with the system prompt in English.
+- With the switch on, each query goes through `promptParser` only when that probe says
+  `available`; otherwise through `localParser`. The status line always names the parser that ran
+  and why:
+  - no `LanguageModel` in this browser: 「這個瀏覽器沒有內建 AI 模型，使用內建解析」, and the
+    switch is disabled;
+  - the language is unsupported (every `zh` query today): 「AI 模型還不支援中文，這次用內建解析」;
+  - `downloadable`: turning the switch on is the user gesture that starts `create()`, and the
+    status line shows the download progress; nothing downloads in the background;
+  - `available`: 「AI 解析」, or 「AI 解析逾時，改用內建解析」 when the 1.5 s fallback fired.
+- One session per page through `libs/web-ai`, created when the switch turns on and destroyed when
+  it turns off.
+
+The switch is useful today for English queries (「ramen last christmas」) and needs no change when
+Chrome adds Chinese.
 
 ## Failure handling
 
@@ -212,6 +257,11 @@ starts after one CJK character or two Latin letters, and receives at most 20 day
   labelled `Ramen`. 「拉麵」 shows the right day and snippet and Enter jumps there; 「去年中秋」 still
   resolves through the date group; with the embedder forced to fail, lexical results and the
   degradation line still show; 「Bob」 returns his LINE and Slack days.
+- **Prompt API switch.** `libs/web-ai` tests stub `LanguageModel` for each availability state and
+  each language. Playwright's Chromium has no `LanguageModel`, so e2e checks the honest path: the
+  switch shows the unsupported status, stays disabled, and parsing still works through
+  `localParser`; a stubbed `LanguageModel` injected with `addInitScript` covers the `available`
+  path, the per-browser persistence across a reload, and the timeout fallback.
 - **Privacy guard.** Every task ends with the privacy grep kept in the owner's task notes (real
   names and personal addresses, listed only in the private vault) over `apps/personal-memories`
   and `apps/personal-memories-e2e`, and it must return nothing. The repository is public; only
@@ -223,6 +273,22 @@ starts after one CJK character or two Latin letters, and receives at most 20 day
   10 ms per image for the encoder on Apple Silicon (MPS) with Chinese-CLIP B/16 and SigLIP 2 B/16
   and usable Chinese queries; decide after this ships, by comparing real queries with and
   without it.
-- A full search results page.
-- Prompt API parsing in production use, until Chrome supports Chinese.
+- A full search results page and its 「看全部結果」 row.
 - Website keyword expansion (separate loop task) and any website semantic index.
+
+## Implementation slices
+
+Each slice is one PR, fixture data only, with visual evidence when it changes what renders.
+
+0. #427, the natural-language date parser, rebased onto `main`.
+1. `libs/web-ai`, extracted from `apps/personal-website/src/utils/ai/` and moved to
+   `@types/dom-chromium-ai` 0.0.17; the website runs on it with no behaviour change.
+2. `lib/search` pure core: lexical, vector, rrf, query and `localParser`.
+3. `search-docs` and ingest writing `docs.json` and `vectors.text.bin`, the osxphotos version pin
+   and the zero-labels warning. The plan also checks whether ingest can record a chat id cheaply,
+   which would stop two chats active in the same minutes from sharing a chunk; the chunking ships
+   as written either way.
+4. `/search.json` with its degradation reasons, the 「內容」 group in the jump box, the fake
+   embedder and the e2e scenarios.
+5. The AI parsing switch.
+6. Notes embedded in the background.
