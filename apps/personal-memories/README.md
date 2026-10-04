@@ -42,20 +42,23 @@ are usually missing from an export. A message that shares a file keeps its text,
 attached only when the named file exists under the export root.
 
 **Photos.** Photos are read in place from the Mac's Photos library. Nothing is copied. Export
-the metadata with osxphotos 0.77.2 or later, from the data directory:
+the metadata with osxphotos 0.77.2 or later:
 
 ```bash
 uvx osxphotos@0.77.2 query --json \
   --library "$HOME/Pictures/Photos Library.photoslibrary" \
   --from-date <the start date of the current export> \
-  >| "$MEMORIES_DATA_DIR/photos/index.json"
+  >| "$MEMORIES_DATA_DIR/photos/index.json.new" \
+  && mv -f "$MEMORIES_DATA_DIR/photos/index.json.new" "$MEMORIES_DATA_DIR/photos/index.json"
 ```
 
 The `--library` flag is required: without it, osxphotos tries to read a Photos preferences file
 that the terminal is not permitted to open. Earlier osxphotos versions read the Photos search
 index from `database/search/psi.sqlite`, which current Photos replaced with `leo.sqlite`, and
-silently export empty labels; `ingest` warns when no photo has labels. `>|` overwrites the file
-even when the shell sets `noclobber`, under which a plain `>` writes nothing. With Optimize Mac Storage an original
+silently export empty labels; `ingest` warns when no photo has labels. The export goes to a new
+file first and replaces `index.json` only when osxphotos succeeds, so a failed run keeps the
+previous export. `>|` overwrites a leftover `.new` file even when the shell sets `noclobber`,
+under which a plain `>` writes nothing. With Optimize Mac Storage an original
 may live only in iCloud, so `ingest` never assumes it is on disk: it checks each candidate and
 serves the largest local derivative (the JPEG Photos itself displays), falling back to a local
 original or edit. A movie plays from its video only when the video is downloaded; otherwise it

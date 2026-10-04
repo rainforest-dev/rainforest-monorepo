@@ -36,6 +36,8 @@ type OsxPhoto = {
   } | null;
 };
 
+const UNKNOWN_PERSON = '_UNKNOWN_';
+
 const nonEmpty = (list: string[] | null | undefined) => {
   const kept = (list ?? []).filter((s) => typeof s === 'string' && s.trim());
   return kept.length ? kept : undefined;
@@ -46,7 +48,9 @@ function photoMeta(item: OsxPhoto): PhotoMeta | undefined {
   const labels = nonEmpty(item.search_info?.labels);
   const text = nonEmpty(item.search_info?.detected_text);
   const venues = nonEmpty(item.search_info?.venues);
-  const persons = nonEmpty(item.persons);
+  const persons = nonEmpty(
+    item.persons?.filter((name) => name !== UNKNOWN_PERSON),
+  );
   const place = item.place?.name?.trim();
   if (labels) meta.labels = labels;
   if (text) meta.text = text;

@@ -55,6 +55,7 @@ export function chatDocs(
     const current = open.get(key);
     const fits =
       current &&
+      taipeiDate(current.events[0]?.at ?? event.at) === taipeiDate(event.at) &&
       time - current.last <= CHUNK_GAP_MS &&
       current.events.length < CHUNK_MAX_MESSAGES &&
       current.chars + size <= CHUNK_MAX_CHARS;

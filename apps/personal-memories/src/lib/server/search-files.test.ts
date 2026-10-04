@@ -1,4 +1,4 @@
-import { mkdtemp, rm, truncate } from 'node:fs/promises';
+import { copyFile, mkdtemp, rm, truncate } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -42,6 +42,28 @@ describe('search files', () => {
     expect(await readSearchFiles(root)).toBeUndefined();
     await writeSearchFiles(root, HEADER, VECTORS);
     await truncate(join(searchDir(root), 'vectors.text.bin'), 12);
+    expect(await readSearchFiles(root)).toBeUndefined();
+  });
+});
+
+describe('pairing', () => {
+  it('rejects an old header next to new vectors of the same size', async () => {
+    root = await mkdtemp(join(tmpdir(), 'memories-search-'));
+    const dir = searchDir(root);
+    await writeSearchFiles(root, HEADER, VECTORS);
+    await copyFile(join(dir, 'docs.json'), join(dir, 'old-docs.json'));
+    await writeSearchFiles(
+      root,
+      {
+        ...HEADER,
+        docs: [
+          { id: 'b', contentHash: '2' },
+          { id: 'c', contentHash: '3' },
+        ],
+      },
+      new Float32Array([3, 4, 5, 6]),
+    );
+    await copyFile(join(dir, 'old-docs.json'), join(dir, 'docs.json'));
     expect(await readSearchFiles(root)).toBeUndefined();
   });
 });

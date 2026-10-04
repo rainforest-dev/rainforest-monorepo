@@ -13,6 +13,15 @@ export const searchDir = (root: string) => join(root, 'search');
 const HEADER_FILE = 'docs.json';
 const VECTOR_FILE = 'vectors.text.bin';
 
+function bytesHash(bytes: Uint8Array): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i++) {
+    hash ^= bytes[i] ?? 0;
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `${bytes.length}:${(hash >>> 0).toString(16)}`;
+}
+
 const isHeader = (value: unknown): value is SearchFileHeader => {
   const h = value as Partial<SearchFileHeader> | null;
   return (
@@ -35,10 +44,14 @@ export async function readSearchFiles(
       readFile(join(dir, HEADER_FILE), 'utf8'),
       readFile(join(dir, VECTOR_FILE)),
     ]);
-    const header: unknown = JSON.parse(json);
-    if (!isHeader(header)) return undefined;
+    const file = JSON.parse(json) as unknown;
+    if (!isHeader(file)) return undefined;
+    const { vectorsHash, ...header } = file as SearchFileHeader & {
+      vectorsHash?: string;
+    };
     if (bytes.byteLength !== header.docs.length * header.dims * 4)
       return undefined;
+    if (vectorsHash !== bytesHash(bytes)) return undefined;
     const copy = new Uint8Array(bytes.byteLength);
     copy.set(bytes);
     return { header, vectors: new Float32Array(copy.buffer) };
@@ -59,11 +72,16 @@ export async function writeSearchFiles(
 ): Promise<void> {
   const dir = searchDir(root);
   await mkdir(dir, { recursive: true });
-  await writeAtomic(
-    join(dir, VECTOR_FILE),
-    new Uint8Array(vectors.buffer, vectors.byteOffset, vectors.byteLength),
+  const bytes = new Uint8Array(
+    vectors.buffer,
+    vectors.byteOffset,
+    vectors.byteLength,
   );
-  await writeAtomic(join(dir, HEADER_FILE), JSON.stringify(header));
+  await writeAtomic(join(dir, VECTOR_FILE), bytes);
+  await writeAtomic(
+    join(dir, HEADER_FILE),
+    JSON.stringify({ ...header, vectorsHash: bytesHash(bytes) }),
+  );
 }
 
 export function reuseVectors(

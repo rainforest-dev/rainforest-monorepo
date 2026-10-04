@@ -150,7 +150,7 @@ export async function buildIndex(
   } catch (error) {
     if (!(error instanceof EmbedError)) throw error;
     log(
-      `search: embeddings skipped (${error.reason}); lexical search still works`,
+      `search: embeddings skipped (${error.reason}: ${error.message}); lexical search still works`,
     );
     return;
   }

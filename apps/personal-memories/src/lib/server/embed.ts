@@ -61,17 +61,24 @@ export function ollamaEmbedder({
           throw new EmbedError('timeout', 'embedding timed out');
         throw new EmbedError('ollama-unreachable', String(error));
       }
-      if (!response.ok)
+      if (!response.ok) {
+        const detail = await response.text().catch(() => '');
         throw new EmbedError(
           'ollama-unreachable',
-          `Ollama answered ${response.status}`,
+          `Ollama answered ${response.status}: ${detail.slice(0, 200)}`,
         );
-      let body: { embeddings?: unknown };
+      }
+      let body: { embeddings?: unknown } | null;
       try {
-        body = (await response.json()) as { embeddings?: unknown };
+        body = (await response.json()) as { embeddings?: unknown } | null;
       } catch {
         throw new EmbedError('ollama-unreachable', 'Ollama sent no JSON');
       }
+      if (typeof body !== 'object' || body === null)
+        throw new EmbedError(
+          'ollama-unreachable',
+          'Ollama sent no JSON object',
+        );
       const rows = Array.isArray(body.embeddings) ? body.embeddings : [];
       if (rows.length !== texts.length)
         throw new EmbedError(

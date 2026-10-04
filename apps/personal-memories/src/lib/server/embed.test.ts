@@ -69,6 +69,7 @@ describe('ollamaEmbedder', () => {
       down,
       respond({ error: 'x' }, { status: 502 }),
       respond('<html>Bad Gateway</html>'),
+      respond('null'),
     ])
       expect(
         await reason(
@@ -114,6 +115,21 @@ describe('ollamaEmbedder', () => {
     expect(
       await reason(embedder.embed(['a'], 'query', AbortSignal.timeout(10))),
     ).toBe('timeout');
+  });
+});
+
+describe('error messages', () => {
+  it('says what Ollama answered, so a missing model is not mistaken for a network failure', async () => {
+    const fetch = respond(
+      { error: 'model "embeddinggemma" not found' },
+      { status: 404 },
+    );
+    const error = await ollamaEmbedder({ url: 'http://o:1', dims: 4, fetch })
+      .embed(['a'], 'query')
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(EmbedError);
+    expect((error as EmbedError).message).toContain('404');
+    expect((error as EmbedError).message).toContain('not found');
   });
 });
 

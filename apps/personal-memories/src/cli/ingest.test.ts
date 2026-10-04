@@ -83,7 +83,7 @@ describe('buildIndex', () => {
     await buildIndex(dataRoot, timeline, failing, log);
     expect(await readSearchFiles(dataRoot)).toBeUndefined();
     expect(log).toHaveBeenCalledWith(
-      'search: embeddings skipped (ollama-unreachable); lexical search still works',
+      'search: embeddings skipped (ollama-unreachable: down); lexical search still works',
     );
   });
 });

@@ -80,6 +80,17 @@ describe('chatDocs', () => {
     expect(docs.map((d) => d.eventIds)).toEqual([['a'], ['b']]);
   });
 
+  it('closes a chunk at midnight, Taipei time', () => {
+    const docs = chatDocs(
+      [msg('late', 898, 'still up'), msg('early', 903, 'past midnight')],
+      PEOPLE,
+    );
+    expect(docs.map((d) => [d.day, d.eventIds])).toEqual([
+      ['2025-11-01', ['late']],
+      ['2025-11-02', ['early']],
+    ]);
+  });
+
   it('keeps sources apart', () => {
     const docs = chatDocs(
       [msg('a', 0, 'line'), msg('b', 1, 'slack', { source: 'slack' })],

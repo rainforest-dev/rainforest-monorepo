@@ -115,7 +115,7 @@ describe('parsePhotoIndex', () => {
           uuid: 'M1',
           date: '2025-11-01T10:15:00+08:00',
           path: '/lib/m.jpg',
-          persons: ['Bob'],
+          persons: ['Bob', '_UNKNOWN_'],
           place: { name: 'Tainan' },
           search_info: {
             labels: ['Ramen', 'Food'],
@@ -127,7 +127,7 @@ describe('parsePhotoIndex', () => {
           uuid: 'M2',
           date: '2025-11-01T10:16:00+08:00',
           path: '/lib/n.jpg',
-          persons: [],
+          persons: ['_UNKNOWN_'],
           place: null,
           search_info: { labels: [], detected_text: null },
         },
