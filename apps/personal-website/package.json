@@ -27,6 +27,7 @@
     "@nanostores/persistent": "^1.2.0",
     "@nanostores/react": "^1.0.0",
     "@nanostores/vue": "^1.0.1",
+    "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/personal-data": "workspace:*",
     "@rainforest-dev/personal-portfolio": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
@@ -50,7 +51,6 @@
     "lit": "catalog:",
     "lodash-es": "^4.17.23",
     "marked": "^17.0.1",
-    "mcp-handler": "^1.1.0",
     "nanostores": "^1.1.0",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -60,7 +60,7 @@
     "tailwind-merge": "catalog:",
     "tailwindcss": "catalog:",
     "vue": "^3.5.32",
-    "zod": "^3.25.76"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",

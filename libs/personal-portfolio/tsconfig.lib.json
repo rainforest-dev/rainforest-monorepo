@@ -23,6 +23,9 @@
   "references": [
     {
       "path": "../rainforest-react/tsconfig.lib.json"
+    },
+    {
+      "path": "../mcp-kit/tsconfig.lib.json"
     }
   ]
 }

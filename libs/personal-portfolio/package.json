@@ -29,8 +29,9 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
-    "zod": "^3.25.76"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@testing-library/react": "^16.1.0",

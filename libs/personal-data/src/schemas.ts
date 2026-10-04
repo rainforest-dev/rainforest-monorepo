@@ -6,13 +6,8 @@
 // content.config.ts's own comment for why they weren't consolidated into one reader), so
 // if the content shape changes here, update content.config.ts's schemas to match, and
 // vice versa.
-// The `/v4` subpath, not the package root: zod@3.25 ships BOTH implementations, and the root
-// resolves to the classic v3 one. This library is bundled into the browser alongside
-// apps/personal-website's MCP catalog, which needs v4's `z.toJSONSchema` — importing the root
-// here put two entire copies of Zod in the client chunk. Keep this and ./loader.ts on the same
-// subpath: a v4 error is not `instanceof` v3's `ZodError`, so a split would break loader.ts's
-// error wrapping without failing to compile.
-import { z } from 'zod/v4';
+// Keep zod's version in step with apps/personal-website: both ship in one client chunk.
+import { z } from 'zod';
 
 import { employmentTypes, experienceTypes, locales, skillTags } from './vocab';
 

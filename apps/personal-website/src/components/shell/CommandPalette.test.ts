@@ -33,7 +33,7 @@ vi.mock('@/mcp/catalog', () => ({
     {
       name: 'get_projects',
       description: 'Portfolio projects',
-      params: {},
+      input: {},
       run: vi.fn(),
       summarise: () => 'vue appears in 0 projects.',
     },

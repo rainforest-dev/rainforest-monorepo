@@ -1,5 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import {
+  defineTool,
+  registerTools,
+  ToolInputError,
+} from '@rainforest-dev/mcp-kit';
 import { z } from 'zod';
 
 import { getCaseStudy } from './content';
@@ -39,7 +44,7 @@ const [getCaseStudyTool] = PORTFOLIO_MCP_TOOLS;
  */
 export function caseStudyResource(slug: string): CaseStudy {
   const study = getCaseStudy(slug);
-  if (!study) throw new Error(`Case study not found: ${slug}`);
+  if (!study) throw new ToolInputError(`Case study not found: ${slug}`);
   return study;
 }
 
@@ -53,31 +58,28 @@ export function registerPortfolioMcp(
   server: McpServer,
   options: PortfolioMcpOptions = {},
 ): void {
-  // Serialize a case study, merging in its (host-provided) screenshot gallery so
-  // the profile API exposes the same screenshots as the site's carousels.
-  const serialize = (slug: string): string =>
-    JSON.stringify({
-      ...caseStudyResource(slug),
-      gallery: options.getGallery?.(slug) ?? [],
-    });
+  const withGallery = (slug: string) => ({
+    ...caseStudyResource(slug),
+    gallery: options.getGallery?.(slug) ?? [],
+  });
 
   server.registerResource(
     'case-study',
     new ResourceTemplate(caseStudyResourceDef.uriTemplate, { list: undefined }),
     { title: caseStudyResourceDef.title, mimeType: 'application/json' },
     async (uri, { slug }) => ({
-      contents: [{ uri: uri.href, text: serialize(slug as string) }],
+      contents: [
+        { uri: uri.href, text: JSON.stringify(withGallery(slug as string)) },
+      ],
     }),
   );
 
-  server.registerTool(
-    getCaseStudyTool.name,
-    {
-      description: getCaseStudyTool.description,
-      inputSchema: { slug: z.string() },
-    },
-    async ({ slug }) => ({
-      content: [{ type: 'text', text: serialize(slug) }],
+  registerTools(server, [
+    defineTool({
+      ...getCaseStudyTool,
+      input: { slug: z.string() },
+      annotations: { readOnlyHint: true },
+      run: ({ slug }) => withGallery(slug),
     }),
-  );
+  ]);
 }
