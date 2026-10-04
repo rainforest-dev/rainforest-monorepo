@@ -89,14 +89,17 @@ describe('loadPeople', () => {
 describe('getPeople', () => {
   it('reads the data directory once per process, including when people.json is absent', async () => {
     const root = mkdtempSync(join(tmpdir(), 'memories-people-cache-'));
-    vi.stubEnv('MEMORIES_DATA_DIR', root);
-    vi.stubEnv('MEMORIES_OWNER', 'Bob');
-    vi.resetModules();
-    const { getPeople } = await import('./people-store.ts');
-    const first = getPeople();
-    expect(first.owners).toEqual(new Set(['Bob']));
-    writeFileSync(join(root, 'people.json'), JSON.stringify(FILE));
-    expect(getPeople()).toBe(first);
-    vi.unstubAllEnvs();
+    try {
+      vi.stubEnv('MEMORIES_DATA_DIR', root);
+      vi.stubEnv('MEMORIES_OWNER', 'Bob');
+      vi.resetModules();
+      const { getPeople } = await import('./people-store.ts');
+      const first = getPeople();
+      expect(first.owners).toEqual(new Set(['Bob']));
+      writeFileSync(join(root, 'people.json'), JSON.stringify(FILE));
+      expect(getPeople()).toBe(first);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
