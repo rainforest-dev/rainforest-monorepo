@@ -57,6 +57,7 @@ export function ollamaEmbedder({
           body: JSON.stringify({
             model,
             input: texts.map((t) => PREFIX[kind] + t),
+            keep_alive: '24h',
           }),
           ...(signal ? { signal } : {}),
         });

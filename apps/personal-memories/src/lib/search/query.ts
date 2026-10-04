@@ -33,6 +33,21 @@ function takeDate(
   return undefined;
 }
 
+const YEAR_TOKEN = /^(\d{4})年?$/u;
+
+function takeYear(
+  text: string,
+): { range: { start: string; end: string }; rest: string } | undefined {
+  const tokens = text.split(/\s+/u).filter(Boolean);
+  for (const at of [0, tokens.length - 1]) {
+    const year = YEAR_TOKEN.exec(tokens[at] ?? '')?.[1];
+    if (!year || tokens.length < 2) continue;
+    const rest = tokens.filter((_, i) => i !== at).join(' ');
+    return { range: { start: `${year}-01-01`, end: `${year}-12-31` }, rest };
+  }
+  return undefined;
+}
+
 function namesOf(people: readonly Person[]) {
   return people
     .flatMap((p) =>
@@ -50,7 +65,7 @@ export function localParser(
 ): SearchQuery {
   const query: SearchQuery = { text: '' };
   let rest = raw.normalize('NFKC').trim();
-  const date = takeDate(rest, today);
+  const date = takeDate(rest, today) ?? takeYear(rest);
   if (date) {
     query.range = date.range;
     rest = date.rest;

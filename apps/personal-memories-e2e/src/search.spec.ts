@@ -21,6 +21,7 @@ test('a word finds the day it was said, and Enter goes there', async ({
   const first = contentGroup(dialog).getByRole('option').first();
   await expect(first).toContainText('2025-11-03');
   await expect(first).toContainText('台南的拉麵好好吃');
+  await expect(first).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/day\/2025-11-03$/);
 });
@@ -74,4 +75,59 @@ test('says so when only literal matches are available', async ({ page }) => {
     '語意搜尋暫時無法使用，只顯示字面相符的結果',
   );
   await expect(contentGroup(dialog)).toContainText('2025-11-03');
+});
+
+test('a year plus a word still finds the day, and Enter goes there', async ({
+  page,
+}) => {
+  const { dialog, input } = await openJump(page);
+  await input.fill('2025 拉麵');
+  const first = contentGroup(dialog).getByRole('option').first();
+  await expect(first).toContainText('2025-11-03');
+  await expect(dialog.getByRole('group', { name: /2025 年/ })).toHaveCount(0);
+  await expect(first).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+});
+
+test('Enter does not jump to a nearest day while content is pending', async ({
+  page,
+}) => {
+  await page.route('**/search.json*', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
+  const { input } = await openJump(page);
+  await input.fill('2024 拉麵');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
+});
+
+test('a failed search says so right away', async ({ page }) => {
+  await page.route('**/search.json*', (route) =>
+    route.fulfill({ status: 500, body: 'boom' }),
+  );
+  const { dialog, input } = await openJump(page);
+  await input.fill('拉麵');
+  await expect(dialog).toContainText('搜尋失敗，請再試一次', {
+    timeout: 2000,
+  });
+});
+
+test('closing the box mid-composition does not stall the next search', async ({
+  page,
+}) => {
+  const { dialog, input } = await openJump(page);
+  await input.dispatchEvent('compositionstart');
+  await page.mouse.click(5, 5);
+  await expect(dialog).toHaveCount(0);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  await page
+    .getByRole('dialog')
+    .getByPlaceholder(JUMP_PLACEHOLDER)
+    .fill('拉麵');
+  await expect(
+    contentGroup(page.getByRole('dialog')).getByRole('option').first(),
+  ).toContainText('2025-11-03');
 });

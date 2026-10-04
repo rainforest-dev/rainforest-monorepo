@@ -44,6 +44,7 @@ export function useContentSearch(
     queryFn: ({ signal }) => getJson<SearchResponse>(settled ?? '', signal),
     enabled: current,
     staleTime: 60_000,
+    retry: false,
   });
   return {
     results: current ? (data?.results ?? []) : [],

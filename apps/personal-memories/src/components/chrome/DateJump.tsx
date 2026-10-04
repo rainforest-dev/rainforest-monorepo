@@ -34,6 +34,7 @@ type Props = {
 };
 
 const PLACEHOLDER = '2025-11-08、上週六、中秋';
+const NUMERIC_DATE = /^[\d\s\-/.年月日號]+$/u;
 
 const rangeLabel = ({ start, end }: DateRange) =>
   start === end ? start : `${start} – ${end}`;
@@ -51,19 +52,28 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
     () => searchDates(dates, query, today),
     [dates, query, today],
   );
-  const groups = useMemo(
-    () => groupByMonth(result.hits.map((hit) => hit.date)),
-    [result],
-  );
   const [composing, setComposing] = useState(false);
   const people = usePeople(open);
+  const numericDate = NUMERIC_DATE.test(query.trim());
   const parsed = useMemo(
-    () => (query.trim() ? localParser(query, today, people) : undefined),
-    [query, today, people],
+    () =>
+      query.trim() && !numericDate
+        ? localParser(query, today, people)
+        : undefined,
+    [query, today, people, numericDate],
+  );
+  const dateOnly =
+    numericDate || !parsed || (!parsed.text && !parsed.people?.length);
+  const groups = useMemo(
+    () => (dateOnly ? groupByMonth(result.hits.map((hit) => hit.date)) : []),
+    [result, dateOnly],
   );
   const content = useContentSearch(open ? parsed : undefined, composing);
   const target =
-    groups.length === 0 && content.results.length === 0
+    dateOnly &&
+    groups.length === 0 &&
+    content.results.length === 0 &&
+    !content.loading
       ? result.target
       : undefined;
   const missing = result.range
@@ -75,7 +85,10 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
       open={open}
       onOpenChange={(next) => {
         onOpenChange(next);
-        if (!next) setQuery('');
+        if (!next) {
+          setQuery('');
+          setComposing(false);
+        }
       }}
       title="跳至日期"
       description={PLACEHOLDER}
@@ -130,6 +143,11 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
               ))}
             </CommandGroup>
           ))}
+          {content.error && (
+            <p className="text-muted-foreground px-3 pt-2 text-xs">
+              搜尋失敗，請再試一次
+            </p>
+          )}
           <ContentResults
             results={content.results}
             degraded={content.reason !== undefined}

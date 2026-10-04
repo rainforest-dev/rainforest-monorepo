@@ -227,7 +227,7 @@ let cached:
   | { timeline: unknown; mtime: number | undefined; index: SearchIndex }
   | undefined;
 
-export async function getSearchIndex(): Promise<SearchIndex | undefined> {
+async function loadSearchIndex(): Promise<SearchIndex | undefined> {
   const state = getTimeline();
   if (state.status !== 'ready') return undefined;
   const root = dataDir();
@@ -245,6 +245,15 @@ export async function getSearchIndex(): Promise<SearchIndex | undefined> {
   const index = makeIndex(docs, files);
   cached = { timeline: state.timeline, mtime, index };
   return index;
+}
+
+let inflight: Promise<SearchIndex | undefined> | undefined;
+
+export function getSearchIndex(): Promise<SearchIndex | undefined> {
+  inflight ??= loadSearchIndex().finally(() => {
+    inflight = undefined;
+  });
+  return inflight;
 }
 
 const listParam = (value: string | null) => {
