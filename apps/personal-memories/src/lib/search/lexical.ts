@@ -22,12 +22,14 @@ export function lexicalRank(
   const scored: { doc: SearchDoc; facets: number; hits: number }[] = [];
   for (const doc of docs) {
     const text = fold(doc.text);
-    const facets = [...doc.people, ...doc.places].map(fold);
+    const people = doc.people.map(fold);
+    const places = doc.places.map(fold);
     let facetHits = 0;
     let hits = 0;
     let all = true;
     for (const term of folded) {
-      const inFacet = facets.some((f) => f.includes(term));
+      const inFacet =
+        people.includes(term) || places.some((f) => f.includes(term));
       const inText = count(text, term);
       if (!inFacet && inText === 0) {
         all = false;

@@ -55,6 +55,15 @@ describe('lexicalRank', () => {
     expect(lexicalRank(docs, ['', '台北'])).toEqual(['c']);
   });
 
+  it('matches person facets only exactly, not as substrings', () => {
+    const withPerson = [
+      doc('p', '2025-11-05', 'hello', { people: ['bob'] }),
+      doc('q', '2025-11-06', 'a bobba fett figure'),
+    ];
+    expect(lexicalRank(withPerson, ['bo'])).toEqual(['q']);
+    expect(lexicalRank(withPerson, ['bob'])).toEqual(['p', 'q']);
+  });
+
   it('returns nothing without terms', () => {
     expect(lexicalRank(docs, [])).toEqual([]);
   });
