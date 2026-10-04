@@ -1,14 +1,25 @@
+import { stat } from 'node:fs/promises';
+import { join } from 'node:path';
+
+import { buildSearchDocs } from '@/lib/ingest';
 import {
   lexicalRank,
   queryTerms,
   rrf,
   type SearchDoc,
   type SearchQuery,
+  searchQuerySchema,
   topK,
 } from '@/lib/search';
 
 import { type Embedder, EmbedError, type EmbedFailure } from './embed.ts';
-import type { SearchFiles } from './search-files.ts';
+import { getPeople } from './people-store.ts';
+import {
+  readSearchFiles,
+  searchDir,
+  type SearchFiles,
+} from './search-files.ts';
+import { dataDir, getTimeline } from './store.ts';
 
 export const QUERY_EMBED_TIMEOUT_MS = 800;
 export const BREAKER_MS = 30_000;
@@ -206,4 +217,72 @@ export async function runSearch(
     ...('reason' in semantic ? { reason: semantic.reason } : {}),
     ...stale,
   };
+}
+
+let cached:
+  | { timeline: unknown; mtime: number | undefined; index: SearchIndex }
+  | undefined;
+
+export async function getSearchIndex(): Promise<SearchIndex | undefined> {
+  const state = getTimeline();
+  if (state.status !== 'ready') return undefined;
+  const root = dataDir();
+  const mtime = root
+    ? await stat(join(searchDir(root), 'docs.json')).then(
+        (s) => s.mtimeMs,
+        () => undefined,
+      )
+    : undefined;
+  if (cached?.timeline === state.timeline && cached.mtime === mtime)
+    return cached.index;
+  const docs = buildSearchDocs(state.timeline.events, getPeople().people);
+  const files =
+    root && mtime !== undefined ? await readSearchFiles(root) : undefined;
+  const index = makeIndex(docs, files);
+  cached = { timeline: state.timeline, mtime, index };
+  return index;
+}
+
+const listParam = (value: string | null) => {
+  const list = value
+    ?.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return list?.length ? list : undefined;
+};
+
+const json = (body: unknown, status = 200) =>
+  Response.json(body, {
+    status,
+    headers: { 'Cache-Control': 'private, no-cache' },
+  });
+
+export async function handleSearch(
+  url: URL,
+  deps: {
+    index: () => Promise<SearchIndex | undefined>;
+    embedder: Embedder;
+    breaker: Breaker;
+  },
+): Promise<Response> {
+  const params = url.searchParams;
+  const from = params.get('from');
+  const to = params.get('to');
+  if ((from === null) !== (to === null))
+    return json({ error: 'from and to go together' }, 400);
+  const people = listParam(params.get('people'));
+  const sources = listParam(params.get('sources'));
+  const parsed = searchQuerySchema.safeParse({
+    text: params.get('q') ?? '',
+    ...(from && to ? { range: { start: from, end: to } } : {}),
+    ...(people ? { people } : {}),
+    ...(sources ? { sources } : {}),
+  });
+  if (!parsed.success) return json({ error: 'invalid query' }, 400);
+  const query: SearchQuery = parsed.data as SearchQuery;
+  if (query.range && query.range.start > query.range.end)
+    return json({ error: 'from is after to' }, 400);
+  const index = await deps.index();
+  if (!index) return json({ results: [], semantic: 'off', reason: 'no-index' });
+  return json(await runSearch(index, query, deps.embedder, deps.breaker));
 }
