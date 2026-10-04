@@ -17,8 +17,8 @@ export function lexicalRank(
   docs: readonly SearchDoc[],
   terms: readonly string[],
 ): string[] {
-  if (terms.length === 0) return [];
-  const folded = terms.map(fold);
+  const folded = terms.map(fold).filter(Boolean);
+  if (folded.length === 0) return [];
   const scored: { doc: SearchDoc; facets: number; hits: number }[] = [];
   for (const doc of docs) {
     const text = fold(doc.text);

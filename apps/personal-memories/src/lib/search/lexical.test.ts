@@ -50,6 +50,11 @@ describe('lexicalRank', () => {
     expect(lexicalRank(docs, ['ramen'])).toEqual(['d']);
   });
 
+  it('ignores empty terms instead of looping on them', () => {
+    expect(lexicalRank(docs, [''])).toEqual([]);
+    expect(lexicalRank(docs, ['', '台北'])).toEqual(['c']);
+  });
+
   it('returns nothing without terms', () => {
     expect(lexicalRank(docs, [])).toEqual([]);
   });
