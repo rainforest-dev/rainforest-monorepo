@@ -1,4 +1,10 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -12,7 +18,7 @@ import {
 import { readSearchFiles } from '../lib/server/search-files.ts';
 import type { Timeline } from '../lib/server/timeline.ts';
 import { writeFixtureDataDir } from './fixture.ts';
-import { buildIndex } from './ingest.ts';
+import { buildIndex, ingest } from './ingest.ts';
 
 let root: string | undefined;
 afterEach(() => {
@@ -24,6 +30,22 @@ const spied = (inner: Embedder = fakeEmbedder()) => {
   const embed = vi.fn(inner.embed);
   return { embedder: { ...inner, embed }, embed };
 };
+
+describe('ingest', () => {
+  it('replaces timeline.json through a rename instead of rewriting it in place', () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-ingest-'));
+    const dataRoot = join(root, 'data');
+    writeFixtureDataDir(dataRoot);
+    const path = join(dataRoot, 'timeline.json');
+    const before = statSync(path).ino;
+
+    const timeline = ingest(dataRoot, () => undefined);
+
+    expect(statSync(path).ino).not.toBe(before);
+    expect(readdirSync(dataRoot)).not.toContain('timeline.json.tmp');
+    expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual(timeline);
+  });
+});
 
 describe('buildIndex', () => {
   it('writes the search files and re-embeds nothing when nothing changed', async () => {

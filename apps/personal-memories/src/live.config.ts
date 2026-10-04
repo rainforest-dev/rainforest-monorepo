@@ -20,7 +20,7 @@ export type DayData = {
 const daysLoader: LiveLoader<DayData, { date: string }> = {
   name: 'memories-days',
   async loadCollection() {
-    const state = getTimeline();
+    const state = await getTimeline();
     if (state.status !== 'ready') return { entries: [] };
     const index = indexDays(state.timeline.events);
     return {
@@ -31,7 +31,7 @@ const daysLoader: LiveLoader<DayData, { date: string }> = {
     };
   },
   async loadEntry({ filter }) {
-    const state = getTimeline();
+    const state = await getTimeline();
     if (state.status !== 'ready' || !DATE_RE.test(filter.date))
       return undefined;
     const index = indexDays(state.timeline.events);

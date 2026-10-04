@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -87,19 +87,43 @@ describe('loadPeople', () => {
 });
 
 describe('getPeople', () => {
-  it('reads the data directory once per process, including when people.json is absent', async () => {
+  it('caches between checks, picks up people.json once it appears, and keeps the last good copy', async () => {
     const root = mkdtempSync(join(tmpdir(), 'memories-people-cache-'));
+    const path = join(root, 'people.json');
+    const write = (body: string, second: number) => {
+      writeFileSync(path, body);
+      const at = new Date(Date.UTC(2025, 10, 1, 0, 0, second));
+      utimesSync(path, at, at);
+    };
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     try {
       vi.stubEnv('MEMORIES_DATA_DIR', root);
       vi.stubEnv('MEMORIES_OWNER', 'Bob');
       vi.resetModules();
       const { getPeople } = await import('./people-store.ts');
-      const first = getPeople();
-      expect(first.owners).toEqual(new Set(['Bob']));
-      writeFileSync(join(root, 'people.json'), JSON.stringify(FILE));
-      expect(getPeople()).toBe(first);
+      const legacy = await getPeople();
+      expect(legacy.owners).toEqual(new Set(['Bob']));
+
+      write(JSON.stringify(FILE), 1);
+      expect(await getPeople()).toBe(legacy);
+
+      vi.advanceTimersByTime(5000);
+      const configured = await getPeople();
+      expect(configured.people.map((p) => p.id)).toEqual(['bob', 'alice']);
+
+      write(JSON.stringify({ ...FILE, owner: 'carol' }), 2);
+      vi.advanceTimersByTime(5000);
+      expect(await getPeople()).toBe(configured);
+      expect(console.error).toHaveBeenCalledTimes(1);
+
+      write(JSON.stringify({ people: [FILE.people[1]] }), 3);
+      vi.advanceTimersByTime(5000);
+      expect((await getPeople()).people.map((p) => p.id)).toEqual(['alice']);
     } finally {
+      vi.useRealTimers();
       vi.unstubAllEnvs();
+      vi.restoreAllMocks();
     }
   });
 });

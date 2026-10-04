@@ -150,9 +150,11 @@ gets the owner's colour, `chart-2`. Everyone else gets a colour in order of thei
 person keeps one colour across LINE and Slack. Each run also shows the author's initial and name,
 so colour is never the only cue.
 
-The file is read and validated once, on the first request after the app starts, so restart the
-app after editing it: an id, email or same-platform alias claimed by two
-people, or an `owner` that is not in `people`, is an error. Without the file, the app falls back
+The app re-reads the file when its mtime or size changes, checking at most every 5 seconds, so an
+edit shows up without a restart. The file is validated on every read: an id, email or
+same-platform alias claimed by two people, or an `owner` that is not in `people`, is an error.
+An invalid edit is logged and ignored, and the app keeps the last valid copy until the file is
+fixed; only an invalid file at startup fails the pages. Without the file, the app falls back
 to the older variables: `MEMORIES_OWNER`, a comma-separated list of the owner's export names, and
 `MEMORIES_AUTHORS` (see [Notes](#notes)).
 
@@ -223,5 +225,8 @@ The same-path requirement is not cosmetic: `ingest` records photo paths exactly 
 reports them, and `/media/<id>` opens that path verbatim. A photo mounted somewhere else is a 404. Running the container needs Docker file sharing for those paths, and the Photos library
 also needs Full Disk Access for Docker.
 
-Re-run `ingest` on the host whenever you add sources; the server picks up the new
-`timeline.json` on the next request, without a restart.
+Re-run `ingest` on the host whenever you add sources. `ingest` replaces `timeline.json` through a
+temp file and a rename, and the server notices the new mtime within 5 seconds, so the next page
+load after that shows the new days without a restart. A `timeline.json` that fails to parse is
+logged and ignored, and the server keeps serving the previous one. The search index follows the
+timeline and `search/docs.json` the same way.

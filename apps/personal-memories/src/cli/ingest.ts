@@ -1,4 +1,10 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 // Relative, not @/: src/cli runs under plain `node`, which does not read tsconfig paths.
@@ -81,13 +87,10 @@ export function ingest(
     generatedAt: toTaipeiIso(Date.now()),
     events: mergeTimelines(...lists),
   };
-  writeFileSync(
-    join(root, 'timeline.json'),
-    `${JSON.stringify(timeline, null, 2)}\n`,
-  );
-  log(
-    `timeline: ${timeline.events.length} events → ${join(root, 'timeline.json')}`,
-  );
+  const path = join(root, 'timeline.json');
+  writeFileSync(`${path}.tmp`, `${JSON.stringify(timeline, null, 2)}\n`);
+  renameSync(`${path}.tmp`, path);
+  log(`timeline: ${timeline.events.length} events → ${path}`);
   return timeline;
 }
 

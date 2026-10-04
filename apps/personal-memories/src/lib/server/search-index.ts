@@ -244,11 +244,16 @@ export async function runSearch(
 }
 
 let cached:
-  | { timeline: unknown; mtime: number | undefined; index: SearchIndex }
+  | {
+      timeline: unknown;
+      people: unknown;
+      mtime: number | undefined;
+      index: SearchIndex;
+    }
   | undefined;
 
 async function loadSearchIndex(): Promise<SearchIndex | undefined> {
-  const state = getTimeline();
+  const [state, people] = await Promise.all([getTimeline(), getPeople()]);
   if (state.status !== 'ready') return undefined;
   const root = dataDir();
   const mtime = root
@@ -257,13 +262,17 @@ async function loadSearchIndex(): Promise<SearchIndex | undefined> {
         () => undefined,
       )
     : undefined;
-  if (cached?.timeline === state.timeline && cached.mtime === mtime)
+  if (
+    cached?.timeline === state.timeline &&
+    cached.people === people &&
+    cached.mtime === mtime
+  )
     return cached.index;
-  const docs = buildSearchDocs(state.timeline.events, getPeople().people);
+  const docs = buildSearchDocs(state.timeline.events, people.people);
   const files =
     root && mtime !== undefined ? await readSearchFiles(root) : undefined;
   const index = makeIndex(docs, files);
-  cached = { timeline: state.timeline, mtime, index };
+  cached = { timeline: state.timeline, people, mtime, index };
   return index;
 }
 

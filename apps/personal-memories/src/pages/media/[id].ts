@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ params, url, request }) => {
   const index = Number(url.searchParams.get('n') ?? 0);
   if (!params.id || !Number.isInteger(index) || index < 0) return notFound();
 
-  const path = mediaFile(getTimeline(), dataDir(), params.id, index);
+  const path = mediaFile(await getTimeline(), dataDir(), params.id, index);
   const file = path && (await localFile(path));
   if (!path || !file) return notFound();
 

@@ -1,8 +1,8 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { contentType, loadTimeline, mediaFile } from './store.ts';
 import { makeEvent } from './timeline.ts';
@@ -66,5 +66,53 @@ describe('mediaFile', () => {
     expect(contentType('/x/IMG.JPEG')).toBe('image/jpeg');
     expect(contentType('/x/a.heic')).toBe('image/heic');
     expect(contentType('/x/a.bin')).toBe('application/octet-stream');
+  });
+});
+
+describe('getTimeline', () => {
+  it('picks up a rewritten timeline.json and keeps the old one when the new one has no events', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'memories-store-reload-'));
+    const file = join(dir, 'timeline.json');
+    const write = (body: unknown, second: number) => {
+      writeFileSync(file, JSON.stringify(body));
+      const at = new Date(Date.UTC(2025, 10, 1, 0, 0, second));
+      utimesSync(file, at, at);
+    };
+    const event = (id: string) =>
+      makeEvent({
+        id,
+        source: 'line',
+        at: '2025-11-01T12:00:00+08:00',
+        author: 'Bob',
+        text: id,
+      });
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      vi.stubEnv('MEMORIES_DATA_DIR', dir);
+      vi.resetModules();
+      const { getTimeline } = await import('./store.ts');
+      expect((await getTimeline()).status).toBe('missing');
+
+      write({ generatedAt: 'a', events: [event('L1')] }, 1);
+      vi.advanceTimersByTime(5000);
+      const first = await getTimeline();
+      expect(first.status === 'ready' && [...first.byId.keys()]).toEqual([
+        'L1',
+      ]);
+
+      write({ generatedAt: 'b' }, 2);
+      vi.advanceTimersByTime(5000);
+      expect(await getTimeline()).toBe(first);
+
+      write({ generatedAt: 'c', events: [event('L1'), event('L2')] }, 3);
+      vi.advanceTimersByTime(5000);
+      const next = await getTimeline();
+      expect(next.status === 'ready' && next.byId.has('L2')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllEnvs();
+      vi.restoreAllMocks();
+    }
   });
 });

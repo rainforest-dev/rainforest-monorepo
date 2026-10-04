@@ -3,8 +3,8 @@ import type { APIRoute } from 'astro';
 import { indexDays, summarize } from '@/lib';
 import { getTimeline } from '@/lib/server';
 
-export const GET: APIRoute = () => {
-  const state = getTimeline();
+export const GET: APIRoute = async () => {
+  const state = await getTimeline();
   const days =
     state.status === 'ready'
       ? summarize(indexDays(state.timeline.events)).map(({ date, total }) => ({

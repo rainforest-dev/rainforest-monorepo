@@ -69,10 +69,10 @@ const PILL_BASE = cn(
 const PILL = `${PILL_BASE} pointer-coarse:pointer-events-none pointer-coarse:group-focus-within:pointer-events-auto`;
 const PHOTO_PILL = `${PILL_BASE} pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto`;
 
-const people = getPeople();
+const people = await getPeople();
 const roster = publicPeople(people);
 const runs = groupRuns(events);
-const timeline = getTimeline();
+const timeline = await getTimeline();
 const accents =
   timeline.status === 'ready'
     ? authorAccents(timeline.timeline.events, people.owners, roster)
