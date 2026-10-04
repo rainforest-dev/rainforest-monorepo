@@ -150,6 +150,7 @@ test('a day shows messages and photos in order, with the source filter', async (
   await expect(day.locator('[data-author-cell]').first()).toContainText(
     'Alice 🌷',
   );
+  await expect(day.locator('[data-author-cell]').first()).toContainText('LINE');
   // content-visibility:auto blanks innerText pre-render; textContent needs no layout.
   const texts = await day
     .locator('[data-event-id]')

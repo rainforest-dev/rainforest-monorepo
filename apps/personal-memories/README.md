@@ -121,7 +121,8 @@ the Cloudflare Access emails they sign in with, and the names they go by on each
 ```
 
 The day stream shows a configured person under their display name on every platform, with the
-platform's own name in a tooltip; anyone not listed keeps the name from the export. The `owner`
+platform's own name in a tooltip, and every run names its platform (LINE, Slack); anyone not
+listed keeps the name from the export. The `owner`
 gets the owner's colour, `chart-2`. Everyone else gets a colour in order of their first message:
 `chart-4` for the first, then `chart-1`, `chart-3` and `chart-5`, repeating those three. One
 person keeps one colour across LINE and Slack. Each run also shows the author's initial and name,

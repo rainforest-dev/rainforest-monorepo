@@ -273,11 +273,9 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                             </span>
                           </span>
                         </span>
-                        {run.source !== 'line' && (
-                          <span class="text-muted-foreground pl-6.5 text-xs">
-                            {SOURCE_LABEL[run.source]}
-                          </span>
-                        )}
+                        <span class="text-muted-foreground pl-6.5 text-xs">
+                          {SOURCE_LABEL[run.source]}
+                        </span>
                       </span>
                     ) : (
                       <span aria-hidden="true" class="hidden sm:block" />
