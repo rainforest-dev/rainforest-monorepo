@@ -9,6 +9,7 @@ export * from './lightbox.ts';
 export * from './month-view.ts';
 export * from './months.ts';
 export * from './nav.ts';
+export * from './people.ts';
 export * from './range.ts';
 export * from './reveal.ts';
 export * from './shortcuts.ts';
