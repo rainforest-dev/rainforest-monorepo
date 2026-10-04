@@ -451,11 +451,9 @@ Follow-ups, not prerequisites:
   measures it.
 - **Calibre's internal MCP** is open to anyone who knows its hostname until slice 8 lands.
 
-## Open questions
+## Owner answers (2026-10-04)
 
-1. Has the other person in the album agreed that their LINE messages, notes and annotations
-   become readable by the owner's agents, and through them by the agents' model providers? If
-   not, the MCP has to leave out their authored content, which changes `get_day` and
-   `search_memories`.
-2. Should a later version return small photo thumbnails as MCP image content so agents can see
-   photos, or stay metadata-only for good?
+1. The other person in the album has agreed: the MCP returns their authored messages, notes and
+   annotations like the owner's, as specified.
+2. Photos stay metadata-only. No thumbnails or image content through the MCP, now or later.
+3. Calibre's open MCP is fixed in its planned slice (8), not ahead of the memories work.
