@@ -67,14 +67,7 @@ export const TOPICS_PATCH: PatchTarget<(typeof TOPIC_ACTIONS)[number]> = {
   parse: parseTopics,
 };
 
-function requestedNames(body: {
-  name?: unknown;
-  names?: unknown;
-}): string[] | undefined {
-  if (body.names === undefined)
-    return typeof body.name === 'string' && body.name ? [body.name] : undefined;
-
-  const { names } = body;
+function requestedNames(names: unknown): string[] | undefined {
   return Array.isArray(names) &&
     names.length > 0 &&
     names.every((n) => typeof n === 'string' && n)
@@ -87,18 +80,19 @@ export async function handleRegistryPatch<A extends string>(
   target: PatchTarget<A>,
 ): Promise<Response> {
   const body = ((await request.json().catch(() => null)) ?? {}) as {
-    name?: unknown;
     names?: unknown;
     action?: unknown;
   };
-  const names = requestedNames(body);
+  const names = requestedNames(body.names);
   const { action } = body;
 
-  if (!names || typeof action !== 'string' || !action)
+  if (!names)
     return Response.json(
-      { error: 'Missing name, names or action' },
+      { error: 'names is required: a non-empty array of entry names' },
       { status: 400 },
     );
+  if (typeof action !== 'string' || !action)
+    return Response.json({ error: 'action is required' }, { status: 400 });
   if (!(target.actions as readonly string[]).includes(action))
     return Response.json(
       { error: `Unknown action: ${action}` },

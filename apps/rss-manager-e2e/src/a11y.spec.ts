@@ -163,4 +163,11 @@ test.describe('accessibility', () => {
     await page.locator('tbody tr').first().focus();
     await expectNoViolations(page);
   });
+
+  test('the Queue tier tooltip has no axe violations', async ({ page }) => {
+    await gotoTab(page, 'queue');
+    await page.getByRole('button', { name: /^T2:/ }).hover();
+    await expect(page.locator('[data-slot="tooltip-content"]')).toBeVisible();
+    await expectNoViolations(page);
+  });
 });

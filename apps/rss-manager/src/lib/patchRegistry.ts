@@ -1,14 +1,6 @@
-/**
- * The one PATCH both islands make. Kept here so a fix to how a failure is read
- * lands on sources and topics at once.
- */
-
 export type Rejection = { name: string; reason: string };
 
-export type PatchResult =
-  { ok: true } | { ok: false; error: string; readOnly: boolean };
-
-export type BatchPatchResult<T> =
+export type PatchResult<T> =
   | {
       ok: true;
       applied: string[];
@@ -29,28 +21,15 @@ type PatchBody = {
   rejected?: Rejection[];
 };
 
-export function patchRegistry(
-  endpoint: string,
-  name: string,
-  action: string,
-): Promise<PatchResult>;
-export function patchRegistry<T>(
+export async function patchRegistry<T>(
   endpoint: string,
   names: string[],
   action: string,
-): Promise<BatchPatchResult<T>>;
-export async function patchRegistry<T>(
-  endpoint: string,
-  target: string | string[],
-  action: string,
-): Promise<PatchResult | BatchPatchResult<T>> {
-  const batch = Array.isArray(target);
+): Promise<PatchResult<T>> {
   const res = await fetch(endpoint, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(
-      batch ? { names: target, action } : { name: target, action },
-    ),
+    body: JSON.stringify({ names, action }),
   });
 
   // Success is read from the body, not the status: an auth proxy answers a
@@ -58,8 +37,7 @@ export async function patchRegistry<T>(
   // a write that landed.
   const body = (await res.json().catch(() => null)) as PatchBody | null;
 
-  if (body?.ok) {
-    if (!batch) return { ok: true };
+  if (body?.ok)
     return {
       ok: true,
       applied: body.applied ?? [],
@@ -67,21 +45,21 @@ export async function patchRegistry<T>(
       writable: body.writable !== false,
       warnings: body.warnings ?? [],
     };
-  }
 
-  const failure = !body
-    ? {
-        ok: false as const,
-        readOnly: false,
-        error: res.ok
-          ? 'The server answered with a page instead of JSON — the session has probably expired. Reload and try again.'
-          : `The server answered ${res.status}.`,
-      }
-    : {
-        ok: false as const,
-        readOnly: body.writable === false,
-        error: body.error ?? `The server answered ${res.status}.`,
-      };
+  if (!body)
+    return {
+      ok: false,
+      readOnly: false,
+      rejected: [],
+      error: res.ok
+        ? 'The server answered with a page instead of JSON — the session has probably expired. Reload and try again.'
+        : `The server answered ${res.status}.`,
+    };
 
-  return batch ? { ...failure, rejected: body?.rejected ?? [] } : failure;
+  return {
+    ok: false,
+    readOnly: body.writable === false,
+    error: body.error ?? `The server answered ${res.status}.`,
+    rejected: body.rejected ?? [],
+  };
 }
