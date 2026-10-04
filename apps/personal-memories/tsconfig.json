@@ -17,10 +17,13 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../../libs/rainforest-react"
+      "path": "../../libs/web-ai"
     },
     {
       "path": "../../libs/rainforest-ui"
+    },
+    {
+      "path": "../../libs/rainforest-react"
     }
   ]
 }

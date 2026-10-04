@@ -22,9 +22,11 @@ import {
 } from '@/lib';
 import { localParser } from '@/lib/search';
 
+import { AiParseSwitch } from './AiParseSwitch.tsx';
 import { ContentResults } from './ContentResults.tsx';
 import type { DayCount } from './useChrome.ts';
 import { useContentSearch, usePeople } from './useContentSearch.ts';
+import { usePromptParse } from './usePromptParse.ts';
 
 type Props = {
   open: boolean;
@@ -53,7 +55,7 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
     [dates, query, today],
   );
   const [composing, setComposing] = useState(false);
-  const people = usePeople(open);
+  const { people, ready: peopleReady } = usePeople(open);
   const numericDate = NUMERIC_DATE.test(query.trim());
   const parsed = useMemo(
     () =>
@@ -68,12 +70,20 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
     () => (dateOnly ? groupByMonth(result.hits.map((hit) => hit.date)) : []),
     [result, dateOnly],
   );
-  const content = useContentSearch(open ? parsed : undefined, composing);
+  const ai = usePromptParse({
+    raw: query,
+    today,
+    people,
+    peopleReady,
+    open,
+    composing,
+    skip: dateOnly,
+  });
+  const searchQuery = numericDate ? undefined : ai.useAi ? ai.aiQuery : parsed;
+  const content = useContentSearch(open ? searchQuery : undefined, composing);
+  const pending = content.loading || ai.pending;
   const target =
-    dateOnly &&
-    groups.length === 0 &&
-    content.results.length === 0 &&
-    !content.loading
+    dateOnly && groups.length === 0 && content.results.length === 0 && !pending
       ? result.target
       : undefined;
   const missing = result.range
@@ -122,7 +132,7 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
               載入失敗，請再開一次
             </p>
           )}
-          {Array.isArray(days) && !content.loading && (
+          {Array.isArray(days) && !pending && (
             <CommandEmpty>
               {target
                 ? `${missing}，按 Enter 跳到最近的 ${target.date}`
@@ -154,6 +164,12 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
             onGo={(date) => onGo(date, false)}
           />
         </CommandList>
+        <AiParseSwitch
+          on={ai.on}
+          supported={ai.supported}
+          status={ai.status}
+          onToggle={(next) => void ai.toggle(next)}
+        />
       </Command>
     </CommandDialog>
   );

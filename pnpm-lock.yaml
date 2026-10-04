@@ -346,6 +346,9 @@ importers:
       '@rainforest-dev/rainforest-ui':
         specifier: workspace:*
         version: link:../../libs/rainforest-ui
+      '@rainforest-dev/web-ai':
+        specifier: workspace:*
+        version: link:../../libs/web-ai
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.2.2(vite@8.0.16(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))

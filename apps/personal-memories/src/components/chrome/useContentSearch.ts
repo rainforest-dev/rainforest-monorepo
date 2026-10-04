@@ -13,14 +13,17 @@ const getJson = async <T>(url: string, signal: AbortSignal): Promise<T> => {
   return (await response.json()) as T;
 };
 
-export function usePeople(enabled: boolean): Person[] {
-  const { data } = useQuery({
+export function usePeople(enabled: boolean): {
+  people: Person[];
+  ready: boolean;
+} {
+  const { data, isSuccess, isError } = useQuery({
     queryKey: ['people'],
     queryFn: ({ signal }) => getJson<Person[]>('/people.json', signal),
     enabled,
     staleTime: Infinity,
   });
-  return data ?? [];
+  return { people: data ?? [], ready: isSuccess || isError };
 }
 
 export function useContentSearch(
