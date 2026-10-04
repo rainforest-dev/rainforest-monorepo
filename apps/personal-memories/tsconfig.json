@@ -24,6 +24,9 @@
     },
     {
       "path": "../../libs/rainforest-react"
+    },
+    {
+      "path": "../../libs/mcp-kit"
     }
   ]
 }

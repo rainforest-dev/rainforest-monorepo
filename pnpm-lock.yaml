@@ -340,6 +340,9 @@ importers:
       '@astrojs/react':
         specifier: ^6.0.6
         version: 6.0.6(@types/node@25.9.7)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
+      '@rainforest-dev/mcp-kit':
+        specifier: workspace:*
+        version: link:../../libs/mcp-kit
       '@rainforest-dev/rainforest-react':
         specifier: workspace:*
         version: link:../../libs/rainforest-react
@@ -380,6 +383,9 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
     devDependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.30.0(zod@4.6.5)
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.7
@@ -401,6 +407,9 @@ importers:
 
   apps/personal-memories-e2e:
     devDependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.30.0(zod@4.6.5)
       '@playwright/test':
         specifier: ^1.52.0
         version: 1.63.0
