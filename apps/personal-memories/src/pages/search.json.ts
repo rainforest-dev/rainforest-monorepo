@@ -2,13 +2,13 @@ import type { APIRoute } from 'astro';
 
 import {
   breaker,
-  embedderFromEnv,
   getNoteVectors,
   getSearchIndex,
   handleSearch,
+  sharedEmbedders,
 } from '@/lib/server';
 
-const embedder = embedderFromEnv();
+const embedder = sharedEmbedders().foreground;
 const gate = breaker();
 
 export const GET: APIRoute = ({ url }) =>

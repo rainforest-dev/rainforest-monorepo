@@ -1,15 +1,18 @@
 import { noteDoc, type SearchDoc } from '@/lib/search';
 
-import { type Embedder, embedderFromEnv } from './embed.ts';
+import { type Embedder, sharedEmbedders } from './embed.ts';
 import { type NotesStore, notesStore } from './notes-store.ts';
 
-export const NOTE_BATCH = 16;
+export const NOTE_BATCH = 8;
+export const NOTE_SYNC_MS = 30_000;
 
 export type NoteVectors = {
   docs(): SearchDoc[];
   vector(id: string): Float32Array | undefined;
   refresh(date: string): Promise<void>;
   start(): Promise<void>;
+  sync(): Promise<void>;
+  syncIfStale(now: number): void;
 };
 
 export function noteVectors(
@@ -18,6 +21,8 @@ export function noteVectors(
 ): NoteVectors {
   const docs = new Map<string, SearchDoc>();
   const vectors = new Map<string, { hash: string; vector: Float32Array }>();
+  let lastSync = -Infinity;
+  let embedding: Promise<void> | undefined;
 
   const load = (date: string) => {
     const read = store?.read(date);
@@ -31,6 +36,30 @@ export function noteVectors(
       vectors.delete(`note:${date}`);
     }
     return doc;
+  };
+
+  const readAll = (): SearchDoc[] => {
+    if (!store) return [];
+    let dates: Set<string>;
+    try {
+      dates = store.dates();
+    } catch (error) {
+      console.error('[memories] cannot list notes', error);
+      return [];
+    }
+    for (const doc of [...docs.values()])
+      if (!dates.has(doc.day)) {
+        docs.delete(doc.id);
+        vectors.delete(doc.id);
+      }
+    return [...dates].sort().flatMap((date) => {
+      try {
+        return load(date) ?? [];
+      } catch (error) {
+        console.error(`[memories] cannot read the note for ${date}`, error);
+        return [];
+      }
+    });
   };
 
   const embedDocs = async (batch: SearchDoc[]) => {
@@ -56,6 +85,10 @@ export function noteVectors(
     }
   };
 
+  const sync = async () => {
+    await embedDocs(readAll());
+  };
+
   return {
     docs: () => [...docs.values()],
     vector: (id) => {
@@ -69,24 +102,20 @@ export function noteVectors(
       const doc = load(date);
       if (doc) await embedDocs([doc]);
     },
-    start: async () => {
-      if (!store) return;
-      const loaded = [...store.dates()].sort().flatMap((d) => load(d) ?? []);
-      await embedDocs(loaded);
+    start: sync,
+    sync,
+    syncIfStale: (now) => {
+      if (now - lastSync < NOTE_SYNC_MS) return;
+      lastSync = now;
+      const loaded = readAll();
+      embedding ??= embedDocs(loaded).finally(() => {
+        embedding = undefined;
+      });
     },
   };
 }
 
 let shared: NoteVectors | undefined;
 
-export function getNoteVectors(): NoteVectors {
-  if (!shared) {
-    shared = noteVectors(notesStore(), embedderFromEnv());
-    shared
-      .start()
-      .catch((error: unknown) =>
-        console.error('[memories] note search index failed', error),
-      );
-  }
-  return shared;
-}
+export const getNoteVectors = (): NoteVectors =>
+  (shared ??= noteVectors(notesStore(), sharedEmbedders().background));

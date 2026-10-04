@@ -5,6 +5,7 @@ import {
   EmbedError,
   fakeEmbedder,
   ollamaEmbedder,
+  withQueryPriority,
 } from './embed.ts';
 
 const vec = (n: number, v = 0.5) => Array.from({ length: n }, () => v);
@@ -168,5 +169,49 @@ describe('embedderFromEnv', () => {
       dims: 768,
       minScore: 0.25,
     });
+  });
+});
+
+describe('withQueryPriority', () => {
+  it('holds background embeds while a query embed is in flight', async () => {
+    let finishQuery: () => void = () => undefined;
+    const order: string[] = [];
+    const inner = fakeEmbedder();
+    const { foreground, background } = withQueryPriority({
+      ...inner,
+      embed: async (texts, kind) => {
+        order.push(`start ${kind}`);
+        if (kind === 'query') await new Promise<void>((r) => (finishQuery = r));
+        order.push(`end ${kind}`);
+        return inner.embed(texts, kind);
+      },
+    });
+    const query = foreground.embed(['拉麵'], 'query');
+    const note = background.embed(['海邊'], 'document');
+    await new Promise((r) => setTimeout(r, 10));
+    expect(order).toEqual(['start query']);
+    finishQuery();
+    await Promise.all([query, note]);
+    expect(order).toEqual([
+      'start query',
+      'end query',
+      'start document',
+      'end document',
+    ]);
+  });
+
+  it('releases background embeds when a query embed fails', async () => {
+    const inner = fakeEmbedder();
+    const { foreground, background } = withQueryPriority({
+      ...inner,
+      embed: async (texts, kind) => {
+        if (kind === 'query') throw new Error('timeout');
+        return inner.embed(texts, kind);
+      },
+    });
+    await expect(foreground.embed(['x'], 'query')).rejects.toThrow('timeout');
+    await expect(background.embed(['海邊'], 'document')).resolves.toHaveLength(
+      1,
+    );
   });
 });

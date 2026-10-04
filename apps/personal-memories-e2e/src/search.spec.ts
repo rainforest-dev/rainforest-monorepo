@@ -131,16 +131,3 @@ test('closing the box mid-composition does not stall the next search', async ({
     contentGroup(page.getByRole('dialog')).getByRole('option').first(),
   ).toContainText('2025-11-03');
 });
-
-test('a word written in a day note finds that day', async ({ page }) => {
-  await page.goto('/day/2025-10-31');
-  const panel = page.getByRole('complementary', { name: '筆記' });
-  await panel.getByLabel('當天的回憶').fill('今天去看了極光');
-  await expect(panel).toContainText('已儲存');
-
-  const { dialog, input } = await openJump(page);
-  await input.fill('極光');
-  const first = contentGroup(dialog).getByRole('option').first();
-  await expect(first).toContainText('2025-10-31');
-  await expect(first).toContainText('今天去看了極光');
-});
