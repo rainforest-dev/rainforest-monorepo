@@ -9,6 +9,7 @@ import {
   viewerName,
 } from '@/lib/notes';
 import {
+  getNoteVectors,
   getPeople,
   getTimeline,
   notePayload,
@@ -94,6 +95,11 @@ export const server = {
         });
       }
       if (result.ok) {
+        getNoteVectors()
+          .refresh(d)
+          .catch((error: unknown) =>
+            console.error('[memories] note search refresh failed', error),
+          );
         return {
           ok: true as const,
           version: result.version,

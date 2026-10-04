@@ -43,8 +43,14 @@ export type SearchResponse = {
   stale?: number;
 };
 
+export type ExtraDocs = {
+  docs(): SearchDoc[];
+  vector(id: string): Float32Array | undefined;
+};
+
 export type SearchIndex = {
   docs: SearchDoc[];
+  extra?: ExtraDocs;
   rowOf: Map<string, number>;
   vectors?: Float32Array;
   model?: string;
@@ -136,13 +142,19 @@ type Semantic = { ids: string[] } | { reason: SearchReason };
 
 async function semanticRank(
   index: SearchIndex,
-  allowed: Set<string>,
+  docs: readonly SearchDoc[],
   text: string,
   embedder: Embedder,
   gate: Breaker,
 ): Promise<Semantic> {
-  if (!index.vectors || !index.dims) return { reason: 'no-index' };
-  if (index.model !== embedder.model || index.dims !== embedder.dims)
+  const notes = docs.flatMap((doc) => {
+    const vector =
+      doc.source === 'note' ? index.extra?.vector(doc.id) : undefined;
+    return vector?.length === embedder.dims ? [{ id: doc.id, vector }] : [];
+  });
+  const files = index.vectors && index.dims ? index : undefined;
+  if (!files && notes.length === 0) return { reason: 'no-index' };
+  if (files && (files.model !== embedder.model || files.dims !== embedder.dims))
     return { reason: 'model-mismatch' };
   if (gate.open(Date.now())) return { reason: 'timeout' };
   let vector: Float32Array;
@@ -153,16 +165,28 @@ async function semanticRank(
     if (error.reason === 'timeout') gate.trip(Date.now());
     return { reason: error.reason };
   }
+  const allowed = new Set(docs.map((d) => d.id));
   const idOfRow = new Map<number, string>();
   for (const [id, row] of index.rowOf)
     if (allowed.has(id)) idOfRow.set(row, id);
-  const hits = topK(index.vectors, index.dims, vector, SEMANTIC_K, (row) =>
-    idOfRow.has(row),
+  const fileHits =
+    files?.vectors && files.dims
+      ? topK(files.vectors, files.dims, vector, SEMANTIC_K, (row) =>
+          idOfRow.has(row),
+        ).flatMap((h) => {
+          const id = idOfRow.get(h.row);
+          return id ? [{ id, score: h.score }] : [];
+        })
+      : [];
+  const noteHits = notes.flatMap(({ id, vector: v }) =>
+    topK(v, embedder.dims, vector, 1).map((h) => ({ id, score: h.score })),
   );
   return {
-    ids: hits
+    ids: [...fileHits, ...noteHits]
       .filter((h) => h.score >= embedder.minScore)
-      .flatMap((h) => idOfRow.get(h.row) ?? []),
+      .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+      .slice(0, SEMANTIC_K)
+      .map((h) => h.id),
   };
 }
 
@@ -196,7 +220,9 @@ export async function runSearch(
   embedder: Embedder,
   gate: Breaker,
 ): Promise<SearchResponse> {
-  const docs = index.docs.filter((doc) => matches(doc, query));
+  const docs = [...index.docs, ...(index.extra?.docs() ?? [])].filter((doc) =>
+    matches(doc, query),
+  );
   const terms = queryTerms(query.text);
   const stale = index.stale ? { stale: index.stale } : {};
   if (terms.length === 0) {
@@ -207,13 +233,7 @@ export async function runSearch(
     return { results: byDay(newest, scores, terms), semantic: 'off', ...stale };
   }
   const lexical = lexicalRank(docs, terms);
-  const semantic = await semanticRank(
-    index,
-    new Set(docs.map((d) => d.id)),
-    query.text,
-    embedder,
-    gate,
-  );
+  const semantic = await semanticRank(index, docs, query.text, embedder, gate);
   const scores = rrf('ids' in semantic ? [lexical, semantic.ids] : [lexical]);
   return {
     results: byDay(docs, scores, terms),
