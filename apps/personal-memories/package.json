@@ -53,6 +53,7 @@
     "@astrojs/react": "^6.0.6",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@rainforest-dev/web-ai": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query": "5.104.1",
     "astro": "^7.3.3",
