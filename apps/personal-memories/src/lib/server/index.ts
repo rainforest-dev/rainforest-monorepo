@@ -1,3 +1,4 @@
+export * from './embed.ts';
 export * from './notes-format.ts';
 export * from './notes-payload.ts';
 export * from './notes-store.ts';
