@@ -45,15 +45,17 @@ RUN pnpm --filter @rainforest-dev/rainforest-react exec vite build
 COPY apps/personal-memories apps/personal-memories
 RUN pnpm --filter @rainforest-monorepo/personal-memories run build
 
-# Create self-contained deployment bundle (resolves pnpm symlinks for runtime)
-RUN pnpm --filter @rainforest-monorepo/personal-memories deploy --prod /deploy --legacy
+# `pnpm deploy --prod` would also ship the workspace root's next and astro's build toolchain.
+WORKDIR /app/apps/personal-memories
+RUN node --input-type=module -e "const { nodeFileTrace } = await import('@vercel/nft'); const { fileList } = await nodeFileTrace(['dist/server/entry.mjs'], { base: '/app' }); console.log([...fileList, 'apps/personal-memories/dist'].join('\n'));" > /tmp/runtime-files \
+    && mkdir /deploy \
+    && tar -C /app -cf - -T /tmp/runtime-files | tar -C /deploy -xf -
 
 # Runtime image
 FROM node:24-alpine AS runtime
-WORKDIR /app
+WORKDIR /app/apps/personal-memories
 
-COPY --from=base /deploy/node_modules ./node_modules
-COPY --from=base /app/apps/personal-memories/dist ./dist
+COPY --from=base /deploy /app
 
 ENV NODE_ENV=production
 # HOST overrides the 127.0.0.1 in astro.config.mjs, which exists to keep the dev
