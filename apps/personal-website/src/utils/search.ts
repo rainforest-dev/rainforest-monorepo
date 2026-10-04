@@ -3,6 +3,7 @@ export interface Searchable {
   kind: 'experience' | 'project' | 'skill' | 'post';
   title: string;
   keywords: string[];
+  expanded?: string[];
   href: string;
 }
 
@@ -17,6 +18,7 @@ export function scoreMatch(
   query: string,
   title: string,
   keywords: string[],
+  expanded: string[] = [],
 ): number {
   const q = query.trim().toLowerCase();
   if (!q) return 1;
@@ -27,6 +29,7 @@ export function scoreMatch(
   if (t.includes(q)) return 50;
   if (keywords.some((k) => k.toLowerCase() === q)) return 30;
   if (keywords.some((k) => k.toLowerCase().includes(q))) return 15;
+  if (expanded.some((k) => k.toLowerCase().includes(q))) return 5;
   return 0;
 }
 
@@ -39,7 +42,12 @@ export function searchRecords<T extends Searchable>(
     records
       .map((record) => ({
         record,
-        score: scoreMatch(query, record.title, record.keywords),
+        score: scoreMatch(
+          query,
+          record.title,
+          record.keywords,
+          record.expanded,
+        ),
       }))
       .filter(({ score }) => score > 0)
       // Array.prototype.sort is stable, so equal scores keep their input order rather than
