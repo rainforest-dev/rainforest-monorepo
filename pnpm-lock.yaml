@@ -215,7 +215,10 @@ importers:
     dependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
-        version: 1.30.0(zod@3.25.76)
+        version: 1.30.0(zod@4.6.5)
+      '@rainforest-dev/mcp-kit':
+        specifier: workspace:*
+        version: link:../../libs/mcp-kit
       '@rainforest-dev/rainforest-react':
         specifier: workspace:*
         version: link:../../libs/rainforest-react
@@ -256,8 +259,8 @@ importers:
         specifier: ^3.5.0
         version: 3.7.0
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.0.0

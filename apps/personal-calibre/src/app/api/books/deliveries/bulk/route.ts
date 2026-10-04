@@ -16,7 +16,10 @@ export const bulkDeliveryBodySchema = z.object({
     .min(1, 'bookIds must be a non-empty array')
     .max(1000, 'bookIds must have at most 1000 items'),
   platformKey: z
-    .string({ required_error: 'platformKey is required' })
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? 'platformKey is required' : undefined,
+    })
     .trim()
     .min(1, 'platformKey is required'),
   note: z.string().trim().max(2000).optional(),

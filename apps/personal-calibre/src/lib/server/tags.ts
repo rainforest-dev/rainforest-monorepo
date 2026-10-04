@@ -1,10 +1,11 @@
+import { ToolInputError } from '@rainforest-dev/mcp-kit';
 import { revalidateTag } from 'next/cache';
 
 import { writableSqlite } from '@/db';
 
 export function getOrCreateTag(name: string): number {
   const trimmed = name.trim();
-  if (!trimmed) throw new Error('Tag name is required');
+  if (!trimmed) throw new ToolInputError('Tag name is required');
 
   // INSERT OR IGNORE is atomic — safe under concurrent requests hitting Calibre's UNIQUE index on tags.name.
   writableSqlite

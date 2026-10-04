@@ -1,3 +1,4 @@
+import { ToolInputError } from '@rainforest-dev/mcp-kit';
 import { and, desc, eq } from 'drizzle-orm';
 import { revalidateTag, unstable_noStore as noStore } from 'next/cache';
 
@@ -66,7 +67,7 @@ export async function createBookDeliveryEvent(
   const platformKey = input.platformKey.trim();
 
   if (!platformKey) {
-    throw new Error('platformKey is required');
+    throw new ToolInputError('platformKey is required');
   }
 
   const externalRef = normalizeExternalRef(input.externalRef);
@@ -78,7 +79,7 @@ export async function createBookDeliveryEvent(
     .get();
 
   if (!platform) {
-    throw new Error('Unknown delivery platform');
+    throw new ToolInputError('Unknown delivery platform');
   }
 
   await appDb.insert(bookDeliveries).values({
@@ -114,7 +115,7 @@ export async function bulkCreateDeliveryEvents(
   const platformKey = input.platformKey.trim();
 
   if (!platformKey) {
-    throw new Error('platformKey is required');
+    throw new ToolInputError('platformKey is required');
   }
 
   const externalRef = normalizeExternalRef(input.externalRef);
@@ -126,7 +127,7 @@ export async function bulkCreateDeliveryEvents(
     .get();
 
   if (!platform) {
-    throw new Error('Unknown delivery platform');
+    throw new ToolInputError('Unknown delivery platform');
   }
 
   const now = new Date().toISOString();

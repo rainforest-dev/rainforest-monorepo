@@ -2,7 +2,11 @@
   "mcpServers": {
     "calibre-mcp": {
       "type": "http",
-      "url": "http://localhost:8080/api/mcp"
+      "url": "http://localhost:8080/api/mcp",
+      "headers": {
+        "x-calibre-gateway": "${CALIBRE_MCP_SECRET:-}",
+        "x-forwarded-login": "${USER:-local}"
+      }
     },
     "nx-mcp": {
       "type": "stdio",

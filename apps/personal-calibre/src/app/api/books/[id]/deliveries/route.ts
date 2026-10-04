@@ -16,7 +16,10 @@ const externalRefSchema = z.preprocess(
 
 export const deliveryBodySchema = z.object({
   platformKey: z
-    .string({ required_error: 'platformKey is required' })
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? 'platformKey is required' : undefined,
+    })
     .trim()
     .min(1, 'platformKey is required'),
   note: z.string().optional(),

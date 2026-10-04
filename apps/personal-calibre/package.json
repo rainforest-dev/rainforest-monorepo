@@ -7,6 +7,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
     "better-sqlite3": "^12.2.0",
@@ -20,7 +21,7 @@
     "react-dom": "catalog:",
     "sanitize-html": "^2.17.5",
     "tailwind-merge": "^3.5.0",
-    "zod": "^3.25.76"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
