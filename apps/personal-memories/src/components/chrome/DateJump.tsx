@@ -55,7 +55,7 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
     [dates, query, today],
   );
   const [composing, setComposing] = useState(false);
-  const people = usePeople(open);
+  const { people, ready: peopleReady } = usePeople(open);
   const numericDate = NUMERIC_DATE.test(query.trim());
   const parsed = useMemo(
     () =>
@@ -70,7 +70,15 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
     () => (dateOnly ? groupByMonth(result.hits.map((hit) => hit.date)) : []),
     [result, dateOnly],
   );
-  const ai = usePromptParse({ raw: query, today, people, open, composing });
+  const ai = usePromptParse({
+    raw: query,
+    today,
+    people,
+    peopleReady,
+    open,
+    composing,
+    skip: dateOnly,
+  });
   const searchQuery = numericDate ? undefined : ai.useAi ? ai.aiQuery : parsed;
   const content = useContentSearch(open ? searchQuery : undefined, composing);
   const pending = content.loading || ai.pending;

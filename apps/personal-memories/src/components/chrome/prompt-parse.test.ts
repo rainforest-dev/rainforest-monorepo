@@ -3,11 +3,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Person } from '@/lib/people.ts';
 
 import {
+  aiParseKey,
+  languagesFor,
+  parseStaleTime,
   parseWithFallback,
   PROMPT_TIMEOUT_MS,
   promptSchema,
   queryLanguage,
   readSwitch,
+  statusFor,
   statusText,
   toSearchQuery,
 } from './prompt-parse.ts';
@@ -141,6 +145,91 @@ describe('parseWithFallback', () => {
       query: { text: 'ramen' },
       status: 'ai-timeout',
     });
+    expect(aborted).toBe(true);
+  });
+});
+
+describe('languagesFor', () => {
+  it('never repeats a language', () => {
+    expect(languagesFor('en')).toEqual({ input: ['en'], output: ['en'] });
+    expect(languagesFor('zh')).toEqual({ input: ['en', 'zh'], output: ['en'] });
+  });
+});
+
+describe('promptSchema keywords', () => {
+  it('leaves people out for an empty roster and sets no length limit', () => {
+    const schema = promptSchema([]) as {
+      properties: Record<string, unknown>;
+    };
+    expect(schema.properties).not.toHaveProperty('people');
+    expect(schema.properties['text']).toEqual({ type: 'string' });
+  });
+});
+
+describe('statusFor', () => {
+  const base = {
+    supported: true,
+    on: true,
+    progress: undefined,
+    lang: 'en' as const,
+    parsed: undefined,
+  };
+
+  it('tells a device that cannot run the model from an unsupported language', () => {
+    expect(statusFor({ ...base, capability: 'unavailable' })).toEqual({
+      kind: 'unavailable',
+    });
+    expect(
+      statusFor({ ...base, lang: 'zh', capability: 'unavailable' }),
+    ).toEqual({ kind: 'unsupported-language', lang: 'zh' });
+  });
+
+  it('reports the parser that ran once the model is ready', () => {
+    expect(statusFor({ ...base, capability: 'ready', parsed: 'ai' })).toEqual({
+      kind: 'ai',
+    });
+    expect(
+      statusFor({ ...base, supported: false, capability: undefined }),
+    ).toEqual({ kind: 'unsupported-browser' });
+  });
+});
+
+describe('aiParseKey and parseStaleTime', () => {
+  it('keys a parse on the roster as well as the text', () => {
+    expect(aiParseKey('ramen', TODAY, PEOPLE)).not.toEqual(
+      aiParseKey('ramen', TODAY, []),
+    );
+  });
+
+  it('keeps only real AI answers', () => {
+    expect(parseStaleTime({ status: 'ai' })).toBe(Infinity);
+    expect(parseStaleTime({ status: 'ai-timeout' })).toBe(0);
+    expect(parseStaleTime({ status: 'local' })).toBe(0);
+    expect(parseStaleTime(undefined)).toBe(0);
+  });
+});
+
+describe('parseWithFallback cancellation', () => {
+  it('aborts the model call when the caller gives up', async () => {
+    let aborted = false;
+    const hang = vi.fn(
+      (_raw: string, signal: AbortSignal) =>
+        new Promise<unknown>(() => {
+          signal.addEventListener('abort', () => {
+            aborted = true;
+          });
+        }),
+    );
+    const outer = new AbortController();
+    const pending = parseWithFallback(
+      'ramen',
+      TODAY,
+      PEOPLE,
+      hang,
+      outer.signal,
+    );
+    outer.abort();
+    await pending.catch(() => undefined);
     expect(aborted).toBe(true);
   });
 });

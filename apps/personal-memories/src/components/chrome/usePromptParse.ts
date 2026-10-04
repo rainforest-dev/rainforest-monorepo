@@ -2,7 +2,6 @@ import {
   acquire,
   detectCapability,
   enableModel,
-  type LanguageOptions,
   selectTool,
 } from '@rainforest-dev/web-ai';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,19 +12,17 @@ import type { SearchQuery } from '@/lib/search';
 
 import { DEBOUNCE_MS } from './content-search.ts';
 import {
+  aiParseKey,
   buildPrompt,
-  type ParseStatus,
+  languagesFor,
+  parseStaleTime,
   parseWithFallback,
   promptSchema,
   queryLanguage,
   readSwitch,
+  statusFor,
   writeSwitch,
 } from './prompt-parse.ts';
-
-const languagesFor = (lang: string): LanguageOptions => ({
-  input: ['en', lang],
-  output: ['en'],
-});
 
 function useDebounced<T>(value: T, ms: number): T {
   const [settled, setSettled] = useState(value);
@@ -40,14 +37,18 @@ export function usePromptParse({
   raw,
   today,
   people,
+  peopleReady,
   open,
   composing,
+  skip,
 }: {
   raw: string;
   today: string;
   people: Person[];
+  peopleReady: boolean;
   open: boolean;
   composing: boolean;
+  skip: boolean;
 }) {
   const client = useQueryClient();
   const [on, setOn] = useState(false);
@@ -70,16 +71,22 @@ export function usePromptParse({
   });
   const ready = capability.data?.kind === 'ready';
   const parse = useQuery({
-    queryKey: ['ai-parse', settled, today],
-    queryFn: () =>
-      parseWithFallback(settled, today, people, (text, signal) =>
-        selectTool(buildPrompt(text, today, people), promptSchema(people), {
-          signal,
-          languages: languagesFor(lang),
-        }),
+    queryKey: aiParseKey(settled, today, people),
+    queryFn: ({ signal }) =>
+      parseWithFallback(
+        settled,
+        today,
+        people,
+        (text, inner) =>
+          selectTool(buildPrompt(text, today, people), promptSchema(people), {
+            signal: inner,
+            languages: languagesFor(lang),
+          }),
+        signal,
       ),
-    enabled: active && ready && Boolean(settled) && !composing,
-    staleTime: Infinity,
+    enabled:
+      active && ready && peopleReady && !skip && Boolean(settled) && !composing,
+    staleTime: (q) => parseStaleTime(q.state.data),
     retry: false,
   });
 
@@ -97,21 +104,16 @@ export function usePromptParse({
     await client.invalidateQueries({ queryKey: ['ai-capability'] });
   };
 
-  let status: ParseStatus = { kind: 'off' };
-  if (!supported) status = { kind: 'unsupported-browser' };
-  else if (!on) status = { kind: 'off' };
-  else if (progress !== undefined) status = { kind: 'downloading', progress };
-  else if (capability.data?.kind === 'unavailable')
-    status = { kind: 'unsupported-language', lang };
-  else if (capability.data?.kind === 'unsupported')
-    status = { kind: 'unavailable' };
-  else if (capability.data?.kind === 'downloadable')
-    status = { kind: 'needs-download' };
-  else if (capability.data?.kind === 'downloading')
-    status = { kind: 'downloading', progress: 0 };
-  else if (parse.data) status = { kind: parse.data.status };
+  const status = statusFor({
+    supported,
+    on,
+    progress,
+    capability: capability.data?.kind,
+    lang,
+    parsed: skip ? undefined : parse.data?.status,
+  });
 
-  const useAi = active && ready && Boolean(raw.trim());
+  const useAi = active && ready && !skip && Boolean(raw.trim());
   const aiQuery: SearchQuery | undefined =
     useAi && settled === raw.trim() ? parse.data?.query : undefined;
   return {

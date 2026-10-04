@@ -14,6 +14,11 @@ export type QueryLanguage = 'zh' | 'en';
 export const queryLanguage = (raw: string): QueryLanguage =>
   HAN.test(raw) ? 'zh' : 'en';
 
+export const languagesFor = (lang: QueryLanguage) => ({
+  input: [...new Set(['en', lang])],
+  output: ['en'],
+});
+
 export type ParseStatus =
   | { kind: 'off' }
   | { kind: 'unsupported-browser' }
@@ -79,16 +84,20 @@ export function promptSchema(
   return {
     type: 'object',
     properties: {
-      text: { type: 'string', maxLength: MAX_TEXT },
+      text: { type: 'string' },
       range: {
         type: 'object',
         properties: { start: date, end: date },
         required: ['start', 'end'],
       },
-      people: {
-        type: 'array',
-        items: { type: 'string', enum: people.map((p) => p.id) },
-      },
+      ...(people.length
+        ? {
+            people: {
+              type: 'array',
+              items: { type: 'string', enum: people.map((p) => p.id) },
+            },
+          }
+        : {}),
       sources: { type: 'array', items: { type: 'string', enum: SOURCES } },
     },
     required: ['text'],
@@ -157,6 +166,61 @@ export function buildPrompt(
   ].join('\n');
 }
 
+export type ParseResult = {
+  query: SearchQuery;
+  status: 'ai' | 'ai-timeout' | 'local';
+};
+
+export const aiParseKey = (
+  text: string,
+  today: string,
+  people: readonly Person[],
+) => ['ai-parse', text, today, people.map((p) => p.id).join(',')] as const;
+
+export const parseStaleTime = (
+  data: Pick<ParseResult, 'status'> | undefined,
+) => (data?.status === 'ai' ? Infinity : 0);
+
+export function statusFor({
+  supported,
+  on,
+  progress,
+  capability,
+  lang,
+  parsed,
+}: {
+  supported: boolean;
+  on: boolean;
+  progress: number | undefined;
+  capability:
+    | 'unsupported'
+    | 'unavailable'
+    | 'downloadable'
+    | 'downloading'
+    | 'ready'
+    | undefined;
+  lang: QueryLanguage;
+  parsed: ParseResult['status'] | undefined;
+}): ParseStatus {
+  if (!supported) return { kind: 'unsupported-browser' };
+  if (!on) return { kind: 'off' };
+  if (progress !== undefined) return { kind: 'downloading', progress };
+  switch (capability) {
+    case 'unavailable':
+      return lang === 'en'
+        ? { kind: 'unavailable' }
+        : { kind: 'unsupported-language', lang };
+    case 'unsupported':
+      return { kind: 'unavailable' };
+    case 'downloadable':
+      return { kind: 'needs-download' };
+    case 'downloading':
+      return { kind: 'downloading', progress: 0 };
+    default:
+      return parsed ? { kind: parsed } : { kind: 'off' };
+  }
+}
+
 export type AiParse = (raw: string, signal: AbortSignal) => Promise<unknown>;
 
 export async function parseWithFallback(
@@ -164,10 +228,12 @@ export async function parseWithFallback(
   today: string,
   people: readonly Person[],
   ai: AiParse | undefined,
-): Promise<{ query: SearchQuery; status: 'ai' | 'ai-timeout' | 'local' }> {
+  signal?: AbortSignal,
+): Promise<ParseResult> {
   const local = () => localParser(raw, today, people);
   if (!ai) return { query: local(), status: 'local' };
   const controller = new AbortController();
+  signal?.addEventListener('abort', () => controller.abort(), { once: true });
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<'timeout'>((resolve) => {
     timer = setTimeout(() => {
