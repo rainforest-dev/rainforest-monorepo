@@ -15,6 +15,7 @@ export function __resetForTests(): void {
   hasSucceededOnce = false;
   session = null;
   sessionLanguages = undefined;
+  queue = Promise.resolve();
   consumers = 0;
 }
 
@@ -97,7 +98,7 @@ export async function enableModel(
 
   // Release any existing session before overwriting the reference — otherwise the old one leaks,
   // which is the exact thing destroy()'s "platform requires explicit release" note warns about.
-  session?.destroy();
+  destroy();
 
   session = (await LanguageModel.create({
     // Output is pinned to English: non-English replies are unreliable on current on-device models.
@@ -158,17 +159,7 @@ function markProbeFailed(): void {
   }
 }
 
-/**
- * One constrained call per turn. `responseConstraint` is *supposed* to guarantee schema-valid
- * JSON by construction — but we parse defensively rather than trust it, because a browser that
- * accepts the option and then ignores it is exactly the failure this function must detect.
- *
- * If the FIRST call fails — including failing to parse — we treat it as rung 3 of the capability
- * ladder failing and degrade to `unsupported`. After one success we never blame the browser again:
- * a later error is transient, not a capability verdict. Aborts are excluded either way, since a
- * timeout says nothing about whether constraints are supported.
- */
-export async function selectTool<T>(
+async function runSelectTool<T>(
   query: string,
   schema: Record<string, unknown>,
   opts: { signal?: AbortSignal; languages?: LanguageOptions } = {},
@@ -214,6 +205,28 @@ export async function selectTool<T>(
     clearTimeout(timer);
     opts.signal?.removeEventListener('abort', onCallerAbort);
   }
+}
+
+let queue: Promise<unknown> = Promise.resolve();
+
+/**
+ * One constrained call per turn. `responseConstraint` is *supposed* to guarantee schema-valid
+ * JSON by construction — but we parse defensively rather than trust it, because a browser that
+ * accepts the option and then ignores it is exactly the failure this function must detect.
+ *
+ * If the FIRST call fails — including failing to parse — we treat it as rung 3 of the capability
+ * ladder failing and degrade to `unsupported`. After one success we never blame the browser again:
+ * a later error is transient, not a capability verdict. Aborts are excluded either way, since a
+ * timeout says nothing about whether constraints are supported.
+ */
+export function selectTool<T>(
+  query: string,
+  schema: Record<string, unknown>,
+  opts: { signal?: AbortSignal; languages?: LanguageOptions } = {},
+): Promise<T> {
+  const run = queue.then(() => runSelectTool<T>(query, schema, opts));
+  queue = run.catch(() => undefined);
+  return run;
 }
 
 /**

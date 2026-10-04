@@ -420,3 +420,57 @@ describe('language options', () => {
     });
   });
 });
+
+describe('session lifecycle across languages', () => {
+  const install = (value: unknown) =>
+    Object.defineProperty(globalThis, 'LanguageModel', {
+      configurable: true,
+      writable: true,
+      value,
+    });
+  const session = (reply: string) => ({
+    prompt: vi.fn(async () => reply),
+    destroy: vi.fn(),
+  });
+  const EN = { input: ['en'], output: ['en'] };
+  const JA = { input: ['en', 'ja'], output: ['en'] };
+
+  it('opens a fresh session after a failed language switch', async () => {
+    const first = session('"en"');
+    const third = session('"en again"');
+    const create = vi
+      .fn()
+      .mockResolvedValueOnce(first)
+      .mockRejectedValueOnce(new Error('NotSupportedError'))
+      .mockResolvedValueOnce(third);
+    install({ availability: vi.fn(async () => 'available'), create });
+
+    await selectTool('q', {}, { languages: EN });
+    await expect(selectTool('q', {}, { languages: JA })).rejects.toThrow();
+    await expect(selectTool('q', {}, { languages: EN })).resolves.toBe(
+      'en again',
+    );
+    expect(create).toHaveBeenCalledTimes(3);
+  });
+
+  it('prompts each overlapping call on a session for its own languages', async () => {
+    const ja = session('"ja"');
+    const en = session('"en"');
+    const create = vi
+      .fn()
+      .mockImplementation(
+        async (opts: { expectedInputs?: { languages: string[] }[] }) =>
+          opts.expectedInputs?.[0]?.languages.includes('ja') ? ja : en,
+      );
+    install({ availability: vi.fn(async () => 'available'), create });
+
+    const [a, b] = await Promise.all([
+      selectTool('q', {}, { languages: JA }),
+      selectTool('q', {}, { languages: EN }),
+    ]);
+    expect([a, b]).toEqual(['ja', 'en']);
+    expect(ja.prompt).toHaveBeenCalledOnce();
+    expect(en.prompt).toHaveBeenCalledOnce();
+    expect(ja.destroy).toHaveBeenCalledOnce();
+  });
+});
