@@ -23,6 +23,12 @@
           "^build"
         ],
         "cache": true
+      },
+      "bundle": {
+        "command": "node tools/app-artifact/bundle.mjs astro apps/rss-manager"
+      },
+      "smoke-artifact": {
+        "command": "node tools/app-artifact/smoke.mjs rss-manager"
       }
     },
     "release": {

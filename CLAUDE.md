@@ -73,8 +73,7 @@ would silently beat `@theme`.
   `data-scheme`; reach for a token before a `dark:` utility. Do not add a `.dark` class variant;
   the plugin never sets one.
 - UI type is Inter (`--font-sans`). Lora is the website's editorial serif only.
-- The plugin resolves from `dist/`, so consuming apps need `dependsOn: ["^build"]`. The two Docker
-  images skip the full library build and emit that one entry with `tsc`; see either Dockerfile.
+- The plugin resolves from `dist/`, so consuming apps need `dependsOn: ["^build"]`.
 
 `personal-liff` is still the unstyled `create-liff-app` scaffold on Mantine and does not load it.
 
@@ -280,6 +279,21 @@ pnpm nx affected -t lint test typecheck
 ```
 
 Caches the pnpm store via `actions/setup-node` with `cache: 'pnpm'`. Nx Cloud distribution across 3 `linux-medium-js` agents is opt-in: it runs only when the repository variable `NX_CLOUD_ENABLED` is `true`, and no such variable is set, so CI runs without Nx Cloud.
+
+### Docker images
+
+The three homelab images (`personal-memories`, `rss-manager`, `personal-calibre`) never build
+inside Docker. `nx bundle <app>` builds the app through the normal `^build` chain and writes a
+self-contained runtime directory to `dist/artifacts/<app>`: the `@vercel/nft` trace of the Astro
+server entry, or Next's standalone output plus `static` and `public`. Its native binaries are
+swapped for linux-arm64-musl, the image platform, and any `.node` or `.so` it cannot place fails the
+bundle. Each Dockerfile only copies that directory onto `node:24-alpine`, and `docker:build` depends
+on `bundle`. The scripts are in [tools/app-artifact/](tools/app-artifact/).
+
+CI runs `nx affected -t smoke-artifact`, which bundles for the host instead, boots the server from
+the artifact with the e2e fixture data and requests a page and an API route. A workspace dependency
+the build cannot resolve, or a runtime file the trace missed, fails there rather than in the
+release image build on `main`.
 
 ## Common Workflows
 

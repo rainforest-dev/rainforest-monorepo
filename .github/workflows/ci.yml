@@ -62,3 +62,8 @@ jobs:
         run: pnpm exec nx affected -t lint test typecheck
         env:
           NX_NO_CLOUD: 'true'
+
+      - name: Boot affected Docker app artifacts
+        run: pnpm exec nx affected -t smoke-artifact
+        env:
+          NX_NO_CLOUD: 'true'
