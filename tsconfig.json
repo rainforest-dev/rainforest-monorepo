@@ -44,6 +44,9 @@
     },
     {
       "path": "./libs/web-ai"
+    },
+    {
+      "path": "./libs/mcp-kit"
     }
   ],
   "compilerOptions": {

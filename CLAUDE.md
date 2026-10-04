@@ -18,6 +18,7 @@ Nx 23.1.0 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **libs/personal-data** - Profile, work history and project data, read by the website and its MCP tools
 - **libs/personal-portfolio** - Case study content and the MCP registrations that expose it
 - **libs/web-ai** - Framework-free Chrome built-in AI helpers (Prompt API probe and sessions), used by the website and personal-memories
+- **libs/mcp-kit** - Framework-free MCP server kit: a stateless `(Request) => Response` handler, `defineTool`/`registerTools` over zod v4 shapes, result and error helpers, and `gatewayAuth` for the OAuth gateway's shared-secret header
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
 
 ## Essential Commands
