@@ -15,25 +15,52 @@ expected layout:
 
 ```text
 $MEMORIES_DATA_DIR/
-  line/*.txt           LINE chat exports
+  line/<chat>/<saved-on>-<hash8>.txt   LINE chat exports, every export of one chat in its folder
+  line/manifest.json   archived exports by SHA-256: chat, header name, saved-on, date range
   slack/               Slack export root (users.json, <channel>/<YYYY-MM-DD>.json)
   photos/index.json    osxphotos metadata
   timeline.json        written by the CLI
+  .ingest.lock         held while an ingest runs
+  .ingest-state.json   fingerprint of the inputs at the last complete ingest
 ```
 
 When a source directory is missing, the CLI prints a notice and moves on to the next source.
 
 ```bash
 MEMORIES_DATA_DIR="$HOME/.local/share/memories" pnpm nx run personal-memories:ingest
+# or, with flags:
+MEMORIES_DATA_DIR=… node apps/personal-memories/src/cli/ingest.ts --add ~/Downloads/export.txt
 ```
+
+- `--add <file>` archives a LINE export (repeatable), then ingests.
+- `--dry-run` prints what would move, be archived or be rebuilt, and writes nothing.
+- `--force` rebuilds even when no input changed.
+
+Only one ingest runs at a time: it creates `.ingest.lock` holding its pid, and a second ingest exits
+with status 75 and names the pid. A lock whose process has died is replaced. Ingest is skipped when
+the path, size and mtime of every file under `line/` and `slack/`, plus `photos/index.json` and
+`people.json`, match the last complete run. A run whose embeddings failed does not count as
+complete, so the next one retries.
 
 ## Exporting the sources
 
-**LINE.** In the chat's settings, choose 匯出聊天記錄 (Export chat history) and save the `.txt`
-into `line/`. The parser reads the English-locale format (`[LINE] Chat history with
+**LINE.** In the chat's settings, choose 匯出聊天記錄 (Export chat history) and pass the `.txt`
+to `ingest --add`. The parser reads the English-locale format (`[LINE] Chat history with
 …`, date headers like `Sat, 11/01/2025`, and `9:30AM<TAB>author<TAB>text` lines). The real
 export uses that format; the zh-TW one is not supported. Stickers, photos and other media appear only
 as placeholders such as `[Photo]`.
+
+`--add` rejects a file that is not `.txt`, lacks the English header or has no messages. A file
+whose bytes are already archived is skipped. Otherwise the header name picks the chat: the one
+archived chat with that name, or a new `chat-<hash8>` id when there is none. A name shared by
+several chats is rejected as ambiguous. Within a chat, ingest orders exports by their `Saved on`
+header (file mtime when it is missing). The newest export supplies every date from its first date
+onward, and each older one only the dates before that, so an export cut short by a reinstall
+cannot erase older history.
+
+A `.txt` placed directly in `line/` still works, with its file name as the chat id. Each ingest
+moves such a file into `line/<name>/` unless that folder exists, checks that every LINE event id
+and chat is unchanged, and moves it back if not, so notes and annotations stay attached.
 
 **Slack.** A workspace export (Workspace settings → Import/Export data) produces the
 `users.json` + `<channel>/<date>.json` layout. Exporting DMs requires a workspace admin or a paid

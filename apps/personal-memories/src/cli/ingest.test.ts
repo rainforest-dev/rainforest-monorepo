@@ -1,9 +1,12 @@
+import { spawnSync } from 'node:child_process';
 import {
+  existsSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -18,7 +21,7 @@ import {
 import { readSearchFiles } from '../lib/server/search-files.ts';
 import type { Timeline } from '../lib/server/timeline.ts';
 import { writeFixtureDataDir } from './fixture.ts';
-import { buildIndex, ingest } from './ingest.ts';
+import { buildIndex, ingest, runIngest } from './ingest.ts';
 
 let root: string | undefined;
 afterEach(() => {
@@ -106,6 +109,152 @@ describe('buildIndex', () => {
     expect(await readSearchFiles(dataRoot)).toBeUndefined();
     expect(log).toHaveBeenCalledWith(
       'search: embeddings skipped (ollama-unreachable: down); lexical search still works',
+    );
+  });
+});
+
+const quiet = () => undefined;
+const withoutGeneratedAt = ({ events }: Timeline) => events;
+
+describe('runIngest', () => {
+  it('migrates the fixture to per-chat folders with an identical timeline', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-run-'));
+    const dataRoot = join(root, 'data');
+    const before = writeFixtureDataDir(dataRoot);
+    expect(before.events.some((e) => e.id.endsWith('-2'))).toBe(true);
+
+    await runIngest(dataRoot, { embedder: fakeEmbedder(), log: quiet });
+
+    expect(readdirSync(join(dataRoot, 'line')).sort()).toEqual([
+      'busy-day',
+      'chat',
+      'manifest.json',
+      'second-week',
+    ]);
+    const after = JSON.parse(
+      readFileSync(join(dataRoot, 'timeline.json'), 'utf8'),
+    ) as Timeline;
+    expect(withoutGeneratedAt(after)).toEqual(withoutGeneratedAt(before));
+    expect(after.events.map((e) => `${e.id} ${e.chat ?? ''}`)).toEqual(
+      before.events.map((e) => `${e.id} ${e.chat ?? ''}`),
+    );
+  });
+
+  it('skips when no input changed and rebuilds on a change or --force', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-run-'));
+    const dataRoot = join(root, 'data');
+    writeFixtureDataDir(dataRoot);
+    const run = (force = false) =>
+      runIngest(dataRoot, { embedder: fakeEmbedder(), log: quiet, force });
+
+    expect((await run()).status).toBe('ingested');
+    expect((await run()).status).toBe('skipped');
+    expect((await run(true)).status).toBe('ingested');
+
+    const people = join(dataRoot, 'people.json');
+    writeFileSync(
+      people,
+      readFileSync(people, 'utf8').replace('"Bob"', '"Bobby"'),
+    );
+    expect((await run()).status).toBe('ingested');
+    expect((await run()).status).toBe('skipped');
+  });
+
+  it('changes nothing on a dry run', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-run-'));
+    const dataRoot = join(root, 'data');
+    writeFixtureDataDir(dataRoot);
+    const listing = () => readdirSync(dataRoot, { recursive: true }).sort();
+    const before = listing();
+    const log = vi.fn();
+
+    const result = await runIngest(dataRoot, {
+      embedder: fakeEmbedder(),
+      log,
+      dryRun: true,
+    });
+
+    expect(result.status).toBe('dry-run');
+    expect(listing()).toEqual(before);
+    expect(log).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^line: would move 3 legacy exports into 3 per-chat folders \(\d+ events\)$/,
+      ),
+    );
+  });
+});
+
+const CLI = join(import.meta.dirname, 'ingest.ts');
+
+describe('ingest CLI', () => {
+  const cli = (dataRoot: string, ...args: string[]) =>
+    spawnSync(process.execPath, [CLI, ...args], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        MEMORIES_DATA_DIR: dataRoot,
+        MEMORIES_EMBED: 'fake',
+      },
+    });
+
+  it('migrates, skips an unchanged rerun, archives --add exports and refuses a held lock', () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-cli-'));
+    const dataRoot = join(root, 'data');
+    writeFixtureDataDir(dataRoot);
+
+    const first = cli(dataRoot);
+    expect(first.stderr).toBe('');
+    expect(first.status).toBe(0);
+    expect(first.stdout).toContain(
+      'line: moved 3 legacy exports into 3 per-chat folders',
+    );
+    expect(first.stdout).toContain(
+      'line: 1 chat headers appear in more than one legacy export',
+    );
+    expect(existsSync(join(dataRoot, '.ingest.lock'))).toBe(false);
+
+    expect(cli(dataRoot).stdout).toContain('ingest: no input changed');
+
+    const newer = join(root, 'export.txt');
+    writeFileSync(
+      newer,
+      '[LINE] Chat history with Alice 🌷\nSaved on: 11/20/2025, 10:00\n\n' +
+        'Sun, 11/02/2025\n8:45PM\tAlice 🌷\t[Voice message]\n\n' +
+        'Wed, 11/19/2025\n9:00AM\tBob\tStill here\n',
+    );
+    const added = cli(dataRoot, '--add', newer);
+    expect(added.status).toBe(0);
+    expect(added.stdout).toMatch(
+      /archived 2 events as chat\/2025-11-20-[0-9a-f]{8}\.txt/,
+    );
+    expect(added.stdout).toMatch(/superseded by newer exports/);
+    const timeline = JSON.parse(
+      readFileSync(join(dataRoot, 'timeline.json'), 'utf8'),
+    ) as Timeline;
+    expect(timeline.events.some((e) => e.text === 'Still here')).toBe(true);
+    expect(timeline.events.some((e) => e.text === 'Still awake?')).toBe(true);
+
+    expect(cli(dataRoot, '--add', newer).stdout).toContain('already archived');
+
+    const ambiguous = join(root, 'ambiguous.txt');
+    writeFileSync(
+      ambiguous,
+      '[LINE] Chat history with Alice\n\nSun, 11/30/2025\n9:00AM\tAlice\thi\n',
+    );
+    const rejected = cli(dataRoot, '--add', ambiguous);
+    expect(rejected.status).toBe(1);
+    expect(rejected.stdout).toContain(
+      'line: rejected ambiguous.txt: header matches 2 chats',
+    );
+
+    writeFileSync(
+      join(dataRoot, '.ingest.lock'),
+      JSON.stringify({ pid: process.pid, startedAt: '2025-11-01T00:00:00Z' }),
+    );
+    const held = cli(dataRoot, '--force');
+    expect(held.status).toBe(75);
+    expect(held.stderr).toContain(
+      `ingest: another ingest is running (pid ${process.pid}`,
     );
   });
 });
