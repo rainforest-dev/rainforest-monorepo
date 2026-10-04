@@ -127,6 +127,15 @@ jobs:
         with:
           base: ${{ steps.base.outputs.base }}
 
+      - name: Build image artifacts
+        env:
+          AFFECTED: ${{ steps.affected_push.outputs.affected || steps.affected.outputs.affected }}
+        run: |
+          if [ -z "$AFFECTED" ]; then
+            exit 0
+          fi
+          pnpm exec nx run-many -t bundle -p "$AFFECTED"
+
       - name: Version, build and publish
         id: release
         env:

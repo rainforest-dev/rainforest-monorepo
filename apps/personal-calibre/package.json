@@ -66,6 +66,12 @@
         "dependsOn": [
           "^build"
         ]
+      },
+      "bundle": {
+        "command": "node tools/app-artifact/bundle.mjs next apps/personal-calibre"
+      },
+      "smoke-artifact": {
+        "command": "node tools/app-artifact/smoke.mjs personal-calibre"
       }
     },
     "release": {

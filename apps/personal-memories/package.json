@@ -40,6 +40,12 @@
           "cwd": "apps/personal-memories",
           "command": "tsc --noEmit -p tsconfig.json"
         }
+      },
+      "bundle": {
+        "command": "node tools/app-artifact/bundle.mjs astro apps/personal-memories"
+      },
+      "smoke-artifact": {
+        "command": "node tools/app-artifact/smoke.mjs personal-memories"
       }
     },
     "release": {

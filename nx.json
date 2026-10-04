@@ -136,6 +136,17 @@
         { "externalDependencies": ["storybook"] }
       ],
       "dependsOn": ["^build"]
+    },
+    "bundle": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "smoke-artifact": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "docker:build": {
+      "dependsOn": ["bundle"]
     }
   },
   "generators": {
