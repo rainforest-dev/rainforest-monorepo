@@ -2,6 +2,7 @@ import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
+import { MCP_SECRET } from './src/support/mcp';
 import { APP_DB_PATH, FIXTURES_DIR } from './src/support/seed';
 
 const PORT = 3333;
@@ -26,6 +27,7 @@ export default defineConfig({
           CALIBRE_LIBRARY_PATH: FIXTURES_DIR,
           CALIBRE_APP_DB_PATH: APP_DB_PATH,
           CALIBRE_E2E: '1',
+          CALIBRE_MCP_SECRET: MCP_SECRET,
         },
       },
   projects: [

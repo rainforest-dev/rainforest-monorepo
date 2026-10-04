@@ -21,5 +21,5 @@ export function safeExternalHref(
 export const httpUrlSchema = z
   .string()
   .trim()
-  .url({ message: 'Reference URL must be a valid URL' })
-  .refine(isHttpUrl, { message: 'Reference URL must use http or https' });
+  .pipe(z.url({ error: 'Reference URL must be a valid URL' }))
+  .refine(isHttpUrl, { error: 'Reference URL must use http or https' });
