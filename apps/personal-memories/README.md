@@ -127,7 +127,8 @@ gets the owner's colour, `chart-2`. Everyone else gets a colour in order of thei
 person keeps one colour across LINE and Slack. Each run also shows the author's initial and name,
 so colour is never the only cue.
 
-The file is validated when the app starts: an id, email or same-platform alias claimed by two
+The file is read and validated once, on the first request after the app starts, so restart the
+app after editing it: an id, email or same-platform alias claimed by two
 people, or an `owner` that is not in `people`, is an error. Without the file, the app falls back
 to the older variables: `MEMORIES_OWNER`, a comma-separated list of the owner's export names, and
 `MEMORIES_AUTHORS` (see [Notes](#notes)).

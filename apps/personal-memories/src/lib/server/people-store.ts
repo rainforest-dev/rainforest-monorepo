@@ -95,12 +95,7 @@ export function loadPeople(
 
 let cached: PeopleConfig | undefined;
 
-export function getPeople(): PeopleConfig {
-  const root = dataDir();
-  if (root && existsSync(join(root, 'people.json')))
-    return (cached ??= loadPeople(root));
-  return loadPeople(undefined);
-}
+export const getPeople = (): PeopleConfig => (cached ??= loadPeople(dataDir()));
 
 export const publicPeople = (config: PeopleConfig): Person[] =>
   config.people.map(({ id, name, aliases }) => ({ id, name, aliases }));
