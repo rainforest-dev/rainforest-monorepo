@@ -1,5 +1,5 @@
-import { withProbeTimeout } from './probe';
-import type { AiState } from './types';
+import type { AiState } from '@rainforest-dev/web-ai';
+import { withProbeTimeout } from '@rainforest-dev/web-ai';
 
 /**
  * The Translator API, wrapped like `summarizer.ts` — same `AiState`, same lazy session, same

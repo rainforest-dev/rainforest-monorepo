@@ -1,11 +1,4 @@
 export { default as AiCapability } from './AiCapability.vue';
-export {
-  destroy,
-  detectCapability,
-  enableModel,
-  selectTool,
-} from './language-model';
-export { PROBE_TIMEOUT_MS, withProbeTimeout } from './probe';
 export type { SummarizeFailure, SummarizeOptions } from './summarizer';
 export {
   destroySummarizer,
@@ -22,8 +15,15 @@ export {
   translateChunks,
   TranslateError,
 } from './translator';
-export type { AiState, ToolDescriptor } from './types';
 export { useLanguageModel } from './use-language-model';
 export { useSummarizer } from './use-summarizer';
 export type { AgentToolRegistration } from './webmcp';
 export { registerAgentTools } from './webmcp';
+export type { AiState, ToolDescriptor } from '@rainforest-dev/web-ai';
+export {
+  destroy,
+  detectCapability,
+  enableModel,
+  selectTool,
+} from '@rainforest-dev/web-ai';
+export { PROBE_TIMEOUT_MS, withProbeTimeout } from '@rainforest-dev/web-ai';

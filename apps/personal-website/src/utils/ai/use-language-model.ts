@@ -1,16 +1,15 @@
-import { onUnmounted, readonly, ref } from 'vue';
-
+import type { AiState } from '@rainforest-dev/web-ai';
 import {
   acquire,
   detectCapability,
   enableModel as enableModelCore,
   selectTool as selectToolCore,
-} from './language-model';
-import type { AiState } from './types';
+} from '@rainforest-dev/web-ai';
+import { onUnmounted, readonly, ref } from 'vue';
 
 /**
  * Vue adapter over the framework-agnostic core. Holds no logic of its own beyond reactivity and
- * cleanup — everything fragile lives in language-model.ts so a React consumer could reuse it.
+ * cleanup — everything fragile lives in @rainforest-dev/web-ai so a React consumer could reuse it.
  *
  * ONE SESSION PER PAGE, shared by every consumer. Teardown is reference-counted via the core's
  * `acquire()`, so the session survives until the last component using it unmounts — a demo
