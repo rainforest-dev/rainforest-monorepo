@@ -143,3 +143,42 @@ export const embedderFromEnv = (
     : ollamaEmbedder(
         env['MEMORIES_OLLAMA_URL'] ? { url: env['MEMORIES_OLLAMA_URL'] } : {},
       );
+
+export function withQueryPriority(embedder: Embedder): {
+  foreground: Embedder;
+  background: Embedder;
+} {
+  let queries = 0;
+  let waiters: (() => void)[] = [];
+  const idle = () => new Promise<void>((resolve) => waiters.push(resolve));
+  return {
+    foreground: {
+      ...embedder,
+      async embed(texts, kind, signal) {
+        queries += 1;
+        try {
+          return await embedder.embed(texts, kind, signal);
+        } finally {
+          queries -= 1;
+          if (queries === 0) {
+            const ready = waiters;
+            waiters = [];
+            ready.forEach((resolve) => resolve());
+          }
+        }
+      },
+    },
+    background: {
+      ...embedder,
+      async embed(texts, kind, signal) {
+        while (queries > 0) await idle();
+        return embedder.embed(texts, kind, signal);
+      },
+    },
+  };
+}
+
+let shared: ReturnType<typeof withQueryPriority> | undefined;
+
+export const sharedEmbedders = () =>
+  (shared ??= withQueryPriority(embedderFromEnv()));

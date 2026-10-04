@@ -1699,3 +1699,22 @@ test('a month cell with a cover shows it edge to edge', async ({ page }) => {
   expect(c && i && Math.abs(c.height - i.height) <= 1).toBe(true);
   await expect(cell).toContainText('則');
 });
+
+test('a word written in a day note finds that day', async ({ page }) => {
+  await page.goto('/day/2025-11-02');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await panel.getByLabel('當天的回憶').fill('今天去看了極光');
+  await expect(panel).toContainText('已儲存');
+
+  await page.goto('/');
+  await expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByPlaceholder(JUMP_PLACEHOLDER).fill('極光');
+  const first = dialog
+    .getByRole('group', { name: '內容' })
+    .getByRole('option')
+    .first();
+  await expect(first).toContainText('2025-11-02');
+  await expect(first).toContainText('今天去看了極光');
+});
