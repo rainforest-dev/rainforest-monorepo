@@ -20,8 +20,11 @@ import {
   monthLabel,
   searchDates,
 } from '@/lib';
+import { localParser } from '@/lib/search';
 
+import { ContentResults } from './ContentResults.tsx';
 import type { DayCount } from './useChrome.ts';
+import { useContentSearch, usePeople } from './useContentSearch.ts';
 
 type Props = {
   open: boolean;
@@ -52,7 +55,17 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
     () => groupByMonth(result.hits.map((hit) => hit.date)),
     [result],
   );
-  const target = groups.length === 0 ? result.target : undefined;
+  const [composing, setComposing] = useState(false);
+  const people = usePeople(open);
+  const parsed = useMemo(
+    () => (query.trim() ? localParser(query, today, people) : undefined),
+    [query, today, people],
+  );
+  const content = useContentSearch(open ? parsed : undefined, composing);
+  const target =
+    groups.length === 0 && content.results.length === 0
+      ? result.target
+      : undefined;
   const missing = result.range
     ? `${query.trim()}（${rangeLabel(result.range)}）沒有紀錄`
     : '沒有這一天';
@@ -74,6 +87,8 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
           placeholder={PLACEHOLDER}
           autoComplete="off"
           spellCheck={false}
+          onCompositionStart={() => setComposing(true)}
+          onCompositionEnd={() => setComposing(false)}
           onKeyDown={(e) => {
             if (e.key !== 'Enter' || isComposing(e.nativeEvent) || !target)
               return;
@@ -94,7 +109,7 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
               載入失敗，請再開一次
             </p>
           )}
-          {Array.isArray(days) && (
+          {Array.isArray(days) && !content.loading && (
             <CommandEmpty>
               {target
                 ? `${missing}，按 Enter 跳到最近的 ${target.date}`
@@ -115,6 +130,11 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
               ))}
             </CommandGroup>
           ))}
+          <ContentResults
+            results={content.results}
+            degraded={content.reason !== undefined}
+            onGo={(date) => onGo(date, false)}
+          />
         </CommandList>
       </Command>
     </CommandDialog>
