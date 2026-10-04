@@ -46,15 +46,17 @@ RUN pnpm --filter @rainforest-dev/rainforest-react exec vite build
 COPY apps/rss-manager apps/rss-manager
 RUN pnpm --filter @rainforest-monorepo/rss-manager run build
 
-# Create self-contained deployment bundle (resolves pnpm symlinks for runtime)
-RUN pnpm --filter @rainforest-monorepo/rss-manager deploy --prod /deploy --legacy
+# `pnpm deploy --prod` would also ship the workspace root's next and astro's build toolchain.
+WORKDIR /app/apps/rss-manager
+RUN node --input-type=module -e "const { nodeFileTrace } = await import('@vercel/nft'); const { fileList } = await nodeFileTrace(['dist/server/entry.mjs'], { base: '/app' }); console.log([...fileList, 'apps/rss-manager/dist'].join('\n'));" > /tmp/runtime-files \
+    && mkdir /deploy \
+    && tar -C /app -cf - -T /tmp/runtime-files | tar -C /deploy -xf -
 
 # Runtime image
 FROM node:24-alpine AS runtime
-WORKDIR /app
+WORKDIR /app/apps/rss-manager
 
-COPY --from=base /deploy/node_modules ./node_modules
-COPY --from=base /app/apps/rss-manager/dist ./dist
+COPY --from=base /deploy /app
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
