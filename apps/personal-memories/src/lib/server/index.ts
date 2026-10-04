@@ -4,6 +4,7 @@ export * from './notes-payload.ts';
 export * from './notes-store.ts';
 export * from './people-store.ts';
 export * from './search-files.ts';
+export * from './search-index.ts';
 export * from './store.ts';
 export * from './thumbs.ts';
 export * from './timeline.ts';
