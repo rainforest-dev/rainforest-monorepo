@@ -130,17 +130,21 @@ export function parseDeskParams(input: URLSearchParams | string): DeskParams {
 export function buildDeskSearch(params: DeskParams): string {
   const sp = new URLSearchParams();
   if (params.tab !== 'sources') sp.set('tab', params.tab);
-  if (params.q) sp.set('q', params.q);
-  for (const key of FACET_KEYS) {
-    if (params[key].length > 0) sp.set(key, params[key].join(','));
+  if (params.tab === 'sources') {
+    if (params.q) sp.set('q', params.q);
+    for (const key of FACET_KEYS) {
+      if (params[key].length > 0) sp.set(key, params[key].join(','));
+    }
+    if (params.page > 1) sp.set('page', String(params.page));
+    if (params.source) sp.set('source', params.source);
+  } else if (params.tab === 'topics') {
+    if (params.tq) sp.set('tq', params.tq);
+    if (params.tstatus) sp.set('tstatus', params.tstatus);
+  } else {
+    if (params.tier) sp.set('tier', String(params.tier));
+    if (params.sort !== 'rank') sp.set('sort', params.sort);
+    if (params.dir !== 'asc') sp.set('dir', params.dir);
   }
-  if (params.page > 1) sp.set('page', String(params.page));
-  if (params.source) sp.set('source', params.source);
-  if (params.tq) sp.set('tq', params.tq);
-  if (params.tstatus) sp.set('tstatus', params.tstatus);
-  if (params.tier) sp.set('tier', String(params.tier));
-  if (params.sort !== 'rank') sp.set('sort', params.sort);
-  if (params.dir !== 'asc') sp.set('dir', params.dir);
   const qs = sp.toString();
   return qs ? `?${qs}` : '';
 }

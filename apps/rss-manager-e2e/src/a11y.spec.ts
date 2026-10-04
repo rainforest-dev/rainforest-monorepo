@@ -139,4 +139,28 @@ test.describe('accessibility', () => {
     await hoverRow(topicRow(page, 'Home lab networking'));
     await expectNoViolations(page);
   });
+
+  test('the Queue tab has no axe violations, sorted and filtered', async ({
+    page,
+  }) => {
+    await gotoTab(page, 'queue');
+    await page
+      .getByRole('columnheader', { name: 'Wiki', exact: true })
+      .getByRole('button')
+      .click();
+    await page
+      .getByRole('columnheader', { name: 'Wiki', exact: true })
+      .getByRole('button')
+      .click();
+    await page.getByRole('button', { name: /^T4:/ }).click();
+    await expect(page).toHaveURL(/\?tab=queue&tier=4&sort=wiki&dir=desc$/);
+    await expect(
+      page.getByRole('columnheader', { name: 'Wiki', exact: true }),
+    ).toHaveAttribute('aria-sort', 'descending');
+    await hoverRow(page.locator('tbody tr').first());
+    await expectNoViolations(page);
+
+    await page.locator('tbody tr').first().focus();
+    await expectNoViolations(page);
+  });
 });

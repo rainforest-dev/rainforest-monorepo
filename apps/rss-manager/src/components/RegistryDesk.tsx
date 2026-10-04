@@ -9,6 +9,7 @@ import { type ReactNode, useRef, useState } from 'react';
 import {
   DeskHeader,
   LoadError,
+  QueueView,
   SourcesView,
   TabSkeleton,
   TopicsView,
@@ -31,8 +32,6 @@ import {
   type DeskTab,
   type FileLoad,
 } from '@/lib/desk';
-
-import { ReadingQueue } from './ReadingQueue';
 
 export interface RegistryDeskProps {
   initialParams: DeskParams;
@@ -76,10 +75,11 @@ export function RegistryDesk({
   const topicSelection = useRowSelection();
   const sourcesKeys = useRef<ViewKeys | null>(null);
   const topicsKeys = useRef<ViewKeys | null>(null);
+  const queueKeys = useRef<ViewKeys | null>(null);
   useDeskShortcuts({
     tab: params.tab,
     onTab: (tab) => navigate({ tab }),
-    views: { sources: sourcesKeys, topics: topicsKeys },
+    views: { sources: sourcesKeys, topics: topicsKeys, queue: queueKeys },
   });
 
   function body<T>(
@@ -164,12 +164,19 @@ export function RegistryDesk({
           ))}
           {!topics.ok && hints('topics')}
         </TabsContent>
-        <TabsContent value="queue" className={padded}>
-          <h2 className="text-lg font-semibold">Reading queue</h2>
+        <TabsContent value="queue" className={queue.ok ? undefined : padded}>
+          {!queue.ok && (
+            <h2 className="text-lg font-semibold">Reading queue</h2>
+          )}
           {body('queue', queue, (data) => (
-            <ReadingQueue data={data} />
+            <QueueView
+              data={data}
+              params={params}
+              navigate={navigate}
+              keys={queueKeys}
+            />
           ))}
-          {hints('queue')}
+          {!queue.ok && hints('queue')}
         </TabsContent>
       </main>
       <Toaster />

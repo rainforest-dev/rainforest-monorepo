@@ -124,6 +124,52 @@ describe('buildDeskSearch', () => {
   });
 });
 
+describe('buildDeskSearch: params are scoped to their tab', () => {
+  const everything = parseDeskParams(
+    'q=css&status=active&stale=feed-dead&cat=Design&tag=x&page=2&source=Lantern%20Notes&tq=edge&tstatus=declined&tier=2&sort=wiki&dir=desc',
+  );
+
+  it.each([
+    [
+      'sources',
+      '?q=css&status=active&stale=feed-dead&cat=Design&tag=x&page=2&source=Lantern+Notes',
+    ],
+    ['topics', '?tab=topics&tq=edge&tstatus=declined'],
+    ['queue', '?tab=queue&tier=2&sort=wiki&dir=desc'],
+  ] as const)('the %s tab writes only its own params', (tab, search) => {
+    expect(buildDeskSearch({ ...everything, tab })).toBe(search);
+  });
+
+  it('a tab change from Sources page 2 does not carry page into the URL', () => {
+    const onPage2 = parseDeskParams('page=2');
+    expect(buildDeskSearch(patchDeskParams(onPage2, { tab: 'topics' }))).toBe(
+      '?tab=topics',
+    );
+    expect(buildDeskSearch(patchDeskParams(onPage2, { tab: 'queue' }))).toBe(
+      '?tab=queue',
+    );
+  });
+
+  it('keeps the other tabs in memory, so coming back restores them', () => {
+    const sorted = parseDeskParams('tab=queue&tier=1&sort=saved&dir=desc');
+    const away = patchDeskParams(patchDeskParams(sorted, { tab: 'sources' }), {
+      q: 'css',
+    });
+    expect(buildDeskSearch(away)).toBe('?q=css');
+    expect(buildDeskSearch(patchDeskParams(away, { tab: 'queue' }))).toBe(
+      '?tab=queue&tier=1&sort=saved&dir=desc',
+    );
+  });
+
+  it('drops a stray param of another tab from an incoming URL', () => {
+    expect(roundTrip('tab=topics&page=2&tier=3')).toBe('?tab=topics');
+    expect(roundTrip('tab=queue&q=css&tstatus=active&dir=desc')).toBe(
+      '?tab=queue&dir=desc',
+    );
+    expect(roundTrip('sort=wiki&tq=edge&page=3')).toBe('?page=3');
+  });
+});
+
 describe('patchDeskParams', () => {
   const onPage3 = parseDeskParams('q=css&status=active&page=3&source=X');
 
@@ -159,9 +205,9 @@ describe('clearSourceFilters', () => {
     const params = parseDeskParams(
       'tab=sources&q=css&status=active&stale=feed-dead&cat=Design&tag=x&page=2&source=Lantern%20Notes&tq=edge',
     );
-    expect(buildDeskSearch(clearSourceFilters(params))).toBe(
-      '?source=Lantern+Notes&tq=edge',
-    );
+    const cleared = clearSourceFilters(params);
+    expect(buildDeskSearch(cleared)).toBe('?source=Lantern+Notes');
+    expect(cleared.tq).toBe('edge');
   });
 });
 

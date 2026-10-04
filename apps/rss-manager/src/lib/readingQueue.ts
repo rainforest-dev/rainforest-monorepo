@@ -1,3 +1,5 @@
+import type { QueueSortKey, SortDir } from './desk/params.js';
+
 const STALE_REASONS = [
   'done-unfiled',
   'expired',
@@ -221,30 +223,34 @@ function checkUniqueIds(queue: QueueItem[], stale: StaleItem[]): void {
   stale.forEach((item, i) => check(item.id, `stale[${i}]`));
 }
 
-export type SortMode = 'default' | 'shortest' | 'newest' | 'thinnest';
-
-export const SORT_MODES: { mode: SortMode; label: string }[] = [
-  { mode: 'default', label: 'Default' },
-  { mode: 'shortest', label: 'Shortest first' },
-  { mode: 'newest', label: 'Newest first' },
-  { mode: 'thinnest', label: 'Thinnest wiki page' },
-];
-
-const SORT_KEYS: Record<
-  Exclude<SortMode, 'default'>,
-  (item: QueueItem) => number
-> = {
-  shortest: (item) => item.sort.readingMinutes,
-  newest: (item) => item.sort.savedDaysAgo,
-  thinnest: (item) => item.sort.wikiSources,
+const DECAY_ORDER: Record<Decay, number> = {
+  'time-sensitive': 0,
+  evergreen: 1,
+  unknown: 2,
 };
 
-/** Returns a new array; ties break by rank so the order is always stable. */
-export function sortQueue(items: QueueItem[], mode: SortMode): QueueItem[] {
-  const sorted = [...items];
-  if (mode === 'default') return sorted.sort((a, b) => a.rank - b.rank);
-  const key = SORT_KEYS[mode];
-  return sorted.sort((a, b) => key(a) - key(b) || a.rank - b.rank);
+const QUEUE_COMPARE: Record<
+  QueueSortKey,
+  (a: QueueItem, b: QueueItem) => number
+> = {
+  rank: (a, b) => a.rank - b.rank,
+  tier: (a, b) => a.tier - b.tier,
+  title: (a, b) => a.title.localeCompare(b.title),
+  decay: (a, b) => DECAY_ORDER[a.decay] - DECAY_ORDER[b.decay],
+  minutes: (a, b) => a.sort.readingMinutes - b.sort.readingMinutes,
+  saved: (a, b) => a.sort.savedDaysAgo - b.sort.savedDaysAgo,
+  wiki: (a, b) => a.sort.wikiSources - b.sort.wikiSources,
+  read: (a, b) => a.sort.progress - b.sort.progress,
+};
+
+export function sortQueue(
+  items: readonly QueueItem[],
+  key: QueueSortKey,
+  dir: SortDir,
+): QueueItem[] {
+  const compare = QUEUE_COMPARE[key];
+  const sign = dir === 'desc' ? -1 : 1;
+  return [...items].sort((a, b) => sign * compare(a, b) || a.rank - b.rank);
 }
 
 export function parseReadingQueue(content: string): ReadingQueue {

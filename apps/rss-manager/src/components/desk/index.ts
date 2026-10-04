@@ -1,5 +1,6 @@
 export * from './DeskHeader';
 export * from './LoadError';
+export * from './QueueView';
 export * from './ReadOnlyBanner';
 export * from './SourcesView';
 export * from './TabSkeleton';

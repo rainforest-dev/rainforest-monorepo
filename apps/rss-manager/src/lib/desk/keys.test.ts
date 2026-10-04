@@ -221,6 +221,65 @@ describe('topic row keys', () => {
   });
 });
 
+const QUEUE: ViewKeyState = {
+  paneOpen: false,
+  hasSelection: false,
+  selectMode: false,
+  page: 1,
+  pageCount: 1,
+  writable: false,
+};
+
+const QUEUE_ROW: RowKeyState = { queueItem: true, pending: false };
+
+const onQueue = (key: string) => resolve(key, { row: QUEUE_ROW, view: QUEUE });
+
+describe('queue row keys', () => {
+  it.each(['ArrowUp', 'ArrowDown', 'Home', 'End'] as const)(
+    '%s moves between rows',
+    (key) => {
+      expect(onQueue(key)).toEqual({ type: 'move', key });
+    },
+  );
+
+  it('Enter opens the item', () => {
+    expect(onQueue('Enter')).toEqual({ type: 'open' });
+  });
+
+  it('the queue is read-only: no selection, writes or pages', () => {
+    for (const key of [
+      'x',
+      ' ',
+      'a',
+      'r',
+      'd',
+      'ArrowLeft',
+      'ArrowRight',
+      '[',
+      ']',
+    ])
+      expect(onQueue(key)).toBeNull();
+    expect(onQueue('Escape')).toBeNull();
+  });
+
+  it('global keys still work on a queue row', () => {
+    expect(onQueue('1')).toEqual({ type: 'tab', tab: 'sources' });
+    expect(onQueue('/')).toEqual({ type: 'focus-search' });
+  });
+
+  it('every key is skipped while typing, in an overlay or with a modifier', () => {
+    for (const guard of [
+      { typing: true },
+      { inOverlay: true },
+      { modified: true },
+    ])
+      for (const key of ['ArrowDown', 'Enter', '2'])
+        expect(
+          resolve(key, { ...guard, row: QUEUE_ROW, view: QUEUE }),
+        ).toBeNull();
+  });
+});
+
 describe('global keys', () => {
   it('/ focuses the search on every tab', () => {
     expect(resolve('/')).toEqual({ type: 'focus-search' });
@@ -309,7 +368,7 @@ describe('key hints', () => {
     );
   });
 
-  it('Topics lists its row keys and the tab keys; Queue only the tab keys', () => {
+  it('Topics lists its row keys and the tab keys; Queue moves, opens and switches tab', () => {
     expect(deskHints('topics', false).map((h) => h.label)).toEqual([
       'Search',
       'Move',
@@ -320,9 +379,11 @@ describe('key hints', () => {
       'Switch tab',
     ]);
     expect(deskHints('queue', true)).toEqual([
+      { keys: ['↑', '↓'], label: 'Move' },
+      { keys: ['Enter'], label: 'Open in Reader' },
       { keys: ['1', '2', '3'], label: 'Switch tab' },
     ]);
-    expect(DESK_HINTS.topics.at(-1)).toBe(DESK_HINTS.queue[0]);
+    expect(DESK_HINTS.topics.at(-1)).toBe(DESK_HINTS.queue.at(-1));
   });
 
   it('hints carry no flags into the row', () => {
