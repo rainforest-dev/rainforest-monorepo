@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { loadPeople, parsePeople, publicPeople } from './people-store.ts';
 
@@ -83,5 +83,20 @@ describe('loadPeople', () => {
       },
     ]);
     expect(loadPeople(undefined, {}).people).toEqual([]);
+  });
+});
+
+describe('getPeople', () => {
+  it('reads the data directory once per process, including when people.json is absent', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'memories-people-cache-'));
+    vi.stubEnv('MEMORIES_DATA_DIR', root);
+    vi.stubEnv('MEMORIES_OWNER', 'Bob');
+    vi.resetModules();
+    const { getPeople } = await import('./people-store.ts');
+    const first = getPeople();
+    expect(first.owners).toEqual(new Set(['Bob']));
+    writeFileSync(join(root, 'people.json'), JSON.stringify(FILE));
+    expect(getPeople()).toBe(first);
+    vi.unstubAllEnvs();
   });
 });
