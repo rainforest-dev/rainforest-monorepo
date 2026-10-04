@@ -15,7 +15,7 @@ export default defineConfig({
     outDir: './dist',
     emptyOutDir: true,
     lib: {
-      entry: { index: 'src/index.ts' },
+      entry: { index: 'src/index.ts', tool: 'src/tool.ts' },
       fileName: (format: string, entryName: string) =>
         `${entryName}.${format === 'es' ? 'js' : 'cjs'}`,
       formats: ['es', 'cjs'],

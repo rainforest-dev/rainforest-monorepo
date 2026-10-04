@@ -47,6 +47,9 @@
     },
     {
       "path": "../../libs/personal-data"
+    },
+    {
+      "path": "../../libs/mcp-kit"
     }
   ]
 }
