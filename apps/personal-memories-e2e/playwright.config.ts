@@ -31,6 +31,8 @@ export default defineConfig({
       MEMORIES_E2E: '1',
       MEMORIES_EMBED: 'fake',
       MEMORIES_AUTHORS: 'alice@example.com=Alice,bob@example.com=Bob',
+      MEMORIES_MCP_SECRET: 'test-secret',
+      MEMORIES_PUBLIC_URL: 'https://memories.example.test',
     },
   },
   projects: [

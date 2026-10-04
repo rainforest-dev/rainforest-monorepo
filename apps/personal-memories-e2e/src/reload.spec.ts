@@ -3,10 +3,13 @@ import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
+import { callTool, mcpClient } from './mcp-client';
+
 const DATA = path.join(__dirname, '..', 'test-output', 'fixture-data');
 const TIMELINE = path.join(DATA, 'timeline.json');
 const PEOPLE = path.join(DATA, 'people.json');
 const NEW_DAY = '2025-11-05';
+const MCP_DAY = '2025-11-06';
 
 type Event = { id: string; at: string; source: string; text?: string };
 
@@ -65,4 +68,31 @@ test('an edited people.json changes /people.json without a restart', async ({
     }[];
     expect(roster.map((p) => p.name)).toContain('Alicia');
   }).toPass({ timeout: 15_000 });
+});
+
+test('get_coverage over MCP reports a new day without a restart', async ({
+  baseURL,
+}) => {
+  const client = await mcpClient(baseURL ?? '');
+  const before = await callTool<{ lastDate: string }>(client, 'get_coverage');
+  expect(before.lastDate < MCP_DAY).toBe(true);
+
+  const parsed = JSON.parse(readFileSync(TIMELINE, 'utf8')) as {
+    events: Event[];
+  };
+  const line = parsed.events.find((e) => e.source === 'line');
+  if (!line) throw new Error('the fixture has no LINE event');
+  parsed.events.push({
+    ...line,
+    id: 'reload-mcp-e2e',
+    at: `${MCP_DAY}T09:00:00+08:00`,
+    text: 'Seen by an agent',
+  });
+  replace(TIMELINE, JSON.stringify(parsed));
+
+  await expect(async () => {
+    const after = await callTool<{ lastDate: string }>(client, 'get_coverage');
+    expect(after.lastDate).toBe(MCP_DAY);
+  }).toPass({ timeout: 10_000 });
+  await client.close();
 });
