@@ -104,7 +104,44 @@ describe('parsePhotoIndex', () => {
       screenshot: false,
       movie: false,
       burstPick: true,
+      meta: { persons: ['A', 'B'] },
     });
+  });
+
+  it('keeps the Photos search metadata, leaving out what is empty', () => {
+    const { events } = parsePhotoIndex(
+      [
+        {
+          uuid: 'M1',
+          date: '2025-11-01T10:15:00+08:00',
+          path: '/lib/m.jpg',
+          persons: ['Bob'],
+          place: { name: 'Tainan' },
+          search_info: {
+            labels: ['Ramen', 'Food'],
+            detected_text: ['MENU'],
+            venues: ['Noodle Bar'],
+          },
+        },
+        {
+          uuid: 'M2',
+          date: '2025-11-01T10:16:00+08:00',
+          path: '/lib/n.jpg',
+          persons: [],
+          place: null,
+          search_info: { labels: [], detected_text: null },
+        },
+      ],
+      anyFile,
+    );
+    expect(events[0]?.photo?.meta).toEqual({
+      labels: ['Ramen', 'Food'],
+      text: ['MENU'],
+      venues: ['Noodle Bar'],
+      place: 'Tainan',
+      persons: ['Bob'],
+    });
+    expect(events[1]?.photo).not.toHaveProperty('meta');
   });
 
   it('defaults missing signals', () => {

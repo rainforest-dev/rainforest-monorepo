@@ -3,6 +3,7 @@ import { statSync } from 'node:fs';
 // Relative, not @/: src/cli runs under plain `node`, which does not read tsconfig paths.
 import {
   makeEvent,
+  type PhotoMeta,
   type PhotoSignals,
   type TimelineEvent,
   type TimelineMedia,
@@ -27,7 +28,33 @@ type OsxPhoto = {
   ismovie?: boolean | null;
   burst?: boolean | null;
   burst_selected?: boolean | null;
+  place?: { name?: string | null } | null;
+  search_info?: {
+    labels?: string[] | null;
+    detected_text?: string[] | null;
+    venues?: string[] | null;
+  } | null;
 };
+
+const nonEmpty = (list: string[] | null | undefined) => {
+  const kept = (list ?? []).filter((s) => typeof s === 'string' && s.trim());
+  return kept.length ? kept : undefined;
+};
+
+function photoMeta(item: OsxPhoto): PhotoMeta | undefined {
+  const meta: PhotoMeta = {};
+  const labels = nonEmpty(item.search_info?.labels);
+  const text = nonEmpty(item.search_info?.detected_text);
+  const venues = nonEmpty(item.search_info?.venues);
+  const persons = nonEmpty(item.persons);
+  const place = item.place?.name?.trim();
+  if (labels) meta.labels = labels;
+  if (text) meta.text = text;
+  if (venues) meta.venues = venues;
+  if (place) meta.place = place;
+  if (persons) meta.persons = persons;
+  return Object.keys(meta).length ? meta : undefined;
+}
 
 export type LocalSize = (path: string) => number | undefined;
 
@@ -122,6 +149,8 @@ export function parsePhotoIndex(
     };
     if (typeof item.score?.overall === 'number')
       photo.score = item.score.overall;
+    const meta = photoMeta(item);
+    if (meta) photo.meta = meta;
 
     result.events.push(
       makeEvent({
