@@ -17,6 +17,7 @@ Nx 23.1.0 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-memories-e2e** - Playwright e2e tests
 - **libs/personal-data** - Profile, work history and project data, read by the website and its MCP tools
 - **libs/personal-portfolio** - Case study content and the MCP registrations that expose it
+- **libs/web-ai** - Framework-free Chrome built-in AI helpers (Prompt API probe and sessions), used by the website and personal-memories
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
 
 ## Essential Commands
