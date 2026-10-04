@@ -41,6 +41,9 @@
     },
     {
       "path": "./apps/rss-manager-e2e"
+    },
+    {
+      "path": "./libs/web-ai"
     }
   ],
   "compilerOptions": {

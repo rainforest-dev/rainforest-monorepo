@@ -464,6 +464,9 @@ importers:
       '@rainforest-dev/rainforest-ui':
         specifier: workspace:*
         version: link:../../libs/rainforest-ui
+      '@rainforest-dev/web-ai':
+        specifier: workspace:*
+        version: link:../../libs/web-ai
       '@sentry/astro':
         specifier: ^10.67.0
         version: 10.75.0(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(astro@7.3.3(@astrojs/markdown-remark@7.3.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@types/node@25.9.7)(@vercel/functions@3.9.8(ws@8.21.3))(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))(rollup@4.63.3)(webpack@5.105.2(@swc/core@1.15.8(@swc/helpers@0.5.18))(esbuild@0.28.2)(postcss@8.5.28))
@@ -562,8 +565,8 @@ importers:
         specifier: 'catalog:'
         version: 0.5.20(tailwindcss@4.2.2)
       '@types/dom-chromium-ai':
-        specifier: ^0.0.13
-        version: 0.0.13
+        specifier: 0.0.17
+        version: 0.0.17
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
@@ -830,6 +833,18 @@ importers:
       vite-bundle-analyzer:
         specifier: ^0.18.0
         version: 0.18.1
+
+  libs/web-ai:
+    devDependencies:
+      '@types/dom-chromium-ai':
+        specifier: 0.0.17
+        version: 0.0.17
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.7
+      vite-plugin-dts:
+        specifier: ^4.5.4
+        version: 4.5.4(@types/node@25.9.7)(rollup@4.63.3)(typescript@6.0.3)(vite@8.3.0(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
 
 packages:
 
@@ -5618,8 +5633,8 @@ packages:
   '@types/doctrine@0.0.9':
     resolution: {integrity: sha512-eOIHzCUSH7SMfonMG1LsC2f8vxBFtho6NGBznK41R84YzPuvSBzrhEps33IsQiOW9+VL6NQ9DbjQJznk/S4uRA==}
 
-  '@types/dom-chromium-ai@0.0.13':
-    resolution: {integrity: sha512-m+CAxlofdsZpP3QVhY9Ys4yUMyRRDfs5kmx+DYywKhNpn9Q6Nt8Gtn3/ayK/rjiHJRY8QJwiNHD6LG55JWibdA==}
+  '@types/dom-chromium-ai@0.0.17':
+    resolution: {integrity: sha512-UnSAIVKONaY2vTAM4TkPpwdKeGgg3tPCwNP3KxR+U8bLYC2rQU7UrgW9LIVx0B02dKZxuPA6a0Q5wvyW5Rk6nw==}
 
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
@@ -19486,7 +19501,7 @@ snapshots:
 
   '@types/doctrine@0.0.9': {}
 
-  '@types/dom-chromium-ai@0.0.13': {}
+  '@types/dom-chromium-ai@0.0.17': {}
 
   '@types/eslint-scope@3.7.7':
     dependencies:

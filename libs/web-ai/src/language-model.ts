@@ -14,6 +14,8 @@ export function __resetForTests(): void {
   probeFailed = false;
   hasSucceededOnce = false;
   session = null;
+  sessionLanguages = undefined;
+  queue = Promise.resolve();
   consumers = 0;
 }
 
@@ -27,17 +29,32 @@ function hasProbeFailure(): boolean {
   }
 }
 
+/** Languages a session reads and writes, as BCP 47 tags; the API rejects ones it does not support. */
+export type LanguageOptions = { input: string[]; output: string[] };
+
+const expected = (languages: LanguageOptions) => ({
+  expectedInputs: [{ type: 'text' as const, languages: languages.input }],
+  expectedOutputs: [{ type: 'text' as const, languages: languages.output }],
+});
+
+const sameLanguages = (a?: LanguageOptions, b?: LanguageOptions) =>
+  JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
 /**
  * Rungs 1 and 2 of the capability ladder. Rung 3 (does `responseConstraint` actually work) needs
  * a session, which needs a download, which needs a user gesture — so it runs in `selectTool()`.
  */
-export async function detectCapability(): Promise<AiState> {
+export async function detectCapability(
+  languages?: LanguageOptions,
+): Promise<AiState> {
   if (typeof LanguageModel === 'undefined') return { kind: 'unsupported' };
   if (hasProbeFailure()) return { kind: 'unsupported' };
 
   // A hung probe is treated as a no — see ./probe.
   const availability = await withProbeTimeout(
-    LanguageModel.availability(),
+    languages
+      ? LanguageModel.availability(expected(languages))
+      : LanguageModel.availability(),
     'unavailable',
   );
   switch (availability) {
@@ -58,6 +75,7 @@ type Session = {
 };
 
 let session: Session | null = null;
+let sessionLanguages: LanguageOptions | undefined;
 
 /**
  * Starts the model download and opens a session.
@@ -72,6 +90,7 @@ let session: Session | null = null;
  */
 export async function enableModel(
   onProgress?: (progress: number) => void,
+  languages?: LanguageOptions,
 ): Promise<void> {
   if (typeof LanguageModel === 'undefined') {
     throw new Error('Prompt API is not available in this browser');
@@ -79,11 +98,13 @@ export async function enableModel(
 
   // Release any existing session before overwriting the reference — otherwise the old one leaks,
   // which is the exact thing destroy()'s "platform requires explicit release" note warns about.
-  session?.destroy();
+  destroy();
 
   session = (await LanguageModel.create({
     // Output is pinned to English: non-English replies are unreliable on current on-device models.
-    expectedOutputs: [{ type: 'text', languages: ['en'] }],
+    ...(languages
+      ? expected(languages)
+      : { expectedOutputs: [{ type: 'text', languages: ['en'] }] }),
     monitor(m: EventTarget) {
       m.addEventListener('downloadprogress', (event) => {
         const { loaded, total } = event as Event & {
@@ -94,6 +115,7 @@ export async function enableModel(
       });
     },
   })) as unknown as Session;
+  sessionLanguages = languages;
 }
 
 /**
@@ -108,8 +130,9 @@ export async function enableModel(
  * downloads nor needs a user gesture — the gesture requirement documented on `enableModel` is
  * about the `downloadable` path, which still goes through the explicit control.
  */
-async function ensureSession(): Promise<Session> {
-  if (!session) await enableModel();
+async function ensureSession(languages?: LanguageOptions): Promise<Session> {
+  if (!session || !sameLanguages(sessionLanguages, languages))
+    await enableModel(undefined, languages);
   if (!session) throw new Error('Could not open a language model session');
   return session;
 }
@@ -136,20 +159,10 @@ function markProbeFailed(): void {
   }
 }
 
-/**
- * One constrained call per turn. `responseConstraint` is *supposed* to guarantee schema-valid
- * JSON by construction — but we parse defensively rather than trust it, because a browser that
- * accepts the option and then ignores it is exactly the failure this function must detect.
- *
- * If the FIRST call fails — including failing to parse — we treat it as rung 3 of the capability
- * ladder failing and degrade to `unsupported`. After one success we never blame the browser again:
- * a later error is transient, not a capability verdict. Aborts are excluded either way, since a
- * timeout says nothing about whether constraints are supported.
- */
-export async function selectTool<T>(
+async function runSelectTool<T>(
   query: string,
   schema: Record<string, unknown>,
-  opts: { signal?: AbortSignal } = {},
+  opts: { signal?: AbortSignal; languages?: LanguageOptions } = {},
 ): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
@@ -168,7 +181,7 @@ export async function selectTool<T>(
   }
 
   try {
-    const active = await ensureSession();
+    const active = await ensureSession(opts.languages);
     // Opening a session is itself awaitable, so the caller can abort while it is in flight. Do
     // not hand an already-aborted signal to `prompt()` and hope: its `abort` event has already
     // fired and fires only once, so an implementation that merely subscribes would hang until
@@ -194,6 +207,28 @@ export async function selectTool<T>(
   }
 }
 
+let queue: Promise<unknown> = Promise.resolve();
+
+/**
+ * One constrained call per turn. `responseConstraint` is *supposed* to guarantee schema-valid
+ * JSON by construction — but we parse defensively rather than trust it, because a browser that
+ * accepts the option and then ignores it is exactly the failure this function must detect.
+ *
+ * If the FIRST call fails — including failing to parse — we treat it as rung 3 of the capability
+ * ladder failing and degrade to `unsupported`. After one success we never blame the browser again:
+ * a later error is transient, not a capability verdict. Aborts are excluded either way, since a
+ * timeout says nothing about whether constraints are supported.
+ */
+export function selectTool<T>(
+  query: string,
+  schema: Record<string, unknown>,
+  opts: { signal?: AbortSignal; languages?: LanguageOptions } = {},
+): Promise<T> {
+  const run = queue.then(() => runSelectTool<T>(query, schema, opts));
+  queue = run.catch(() => undefined);
+  return run;
+}
+
 /**
  * Tears the session down immediately, regardless of how many consumers are live.
  *
@@ -202,6 +237,7 @@ export async function selectTool<T>(
 export function destroy(): void {
   session?.destroy();
   session = null;
+  sessionLanguages = undefined;
 }
 
 let consumers = 0;

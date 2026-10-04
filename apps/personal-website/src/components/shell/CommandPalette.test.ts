@@ -6,7 +6,7 @@
 //
 // The AI composable and the tool catalog are mocked rather than exercised: the point here is the
 // component's own branching, and the catalog's real implementation drags in the content library.
-// selectTool's behaviour has its own tests in utils/ai/language-model.test.ts.
+// selectTool's behaviour has its own tests in libs/web-ai/src/language-model.test.ts.
 import type { AiState } from '@utils/ai';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

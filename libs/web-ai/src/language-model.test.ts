@@ -375,3 +375,102 @@ describe('destroy', () => {
     expect(destroySpy).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('language options', () => {
+  const install = (value: unknown) =>
+    Object.defineProperty(globalThis, 'LanguageModel', {
+      configurable: true,
+      writable: true,
+      value,
+    });
+
+  it('probes availability with the requested languages', async () => {
+    const availability = vi.fn(async () => 'unavailable');
+    install({ availability, create: vi.fn() });
+    expect(
+      await detectCapability({ input: ['en', 'zh'], output: ['en'] }),
+    ).toEqual({ kind: 'unavailable' });
+    expect(availability).toHaveBeenCalledWith({
+      expectedInputs: [{ type: 'text', languages: ['en', 'zh'] }],
+      expectedOutputs: [{ type: 'text', languages: ['en'] }],
+    });
+  });
+
+  it('recreates the session when the languages change', async () => {
+    const destroyFirst = vi.fn();
+    const create = vi
+      .fn()
+      .mockResolvedValueOnce({ prompt: vi.fn(), destroy: destroyFirst })
+      .mockResolvedValueOnce({ prompt: vi.fn(), destroy: vi.fn() });
+    install({ availability: vi.fn(async () => 'available'), create });
+    await enableModel(undefined, { input: ['en'], output: ['en'] });
+    await enableModel(undefined, { input: ['en', 'ja'], output: ['en'] });
+    expect(destroyFirst).toHaveBeenCalledOnce();
+    expect(create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        expectedInputs: [{ type: 'text', languages: ['en', 'ja'] }],
+      }),
+    );
+  });
+
+  it('reports unsupported where LanguageModel is undefined', async () => {
+    stubLanguageModel(null);
+    expect(await detectCapability({ input: ['en'], output: ['en'] })).toEqual({
+      kind: 'unsupported',
+    });
+  });
+});
+
+describe('session lifecycle across languages', () => {
+  const install = (value: unknown) =>
+    Object.defineProperty(globalThis, 'LanguageModel', {
+      configurable: true,
+      writable: true,
+      value,
+    });
+  const session = (reply: string) => ({
+    prompt: vi.fn(async () => reply),
+    destroy: vi.fn(),
+  });
+  const EN = { input: ['en'], output: ['en'] };
+  const JA = { input: ['en', 'ja'], output: ['en'] };
+
+  it('opens a fresh session after a failed language switch', async () => {
+    const first = session('"en"');
+    const third = session('"en again"');
+    const create = vi
+      .fn()
+      .mockResolvedValueOnce(first)
+      .mockRejectedValueOnce(new Error('NotSupportedError'))
+      .mockResolvedValueOnce(third);
+    install({ availability: vi.fn(async () => 'available'), create });
+
+    await selectTool('q', {}, { languages: EN });
+    await expect(selectTool('q', {}, { languages: JA })).rejects.toThrow();
+    await expect(selectTool('q', {}, { languages: EN })).resolves.toBe(
+      'en again',
+    );
+    expect(create).toHaveBeenCalledTimes(3);
+  });
+
+  it('prompts each overlapping call on a session for its own languages', async () => {
+    const ja = session('"ja"');
+    const en = session('"en"');
+    const create = vi
+      .fn()
+      .mockImplementation(
+        async (opts: { expectedInputs?: { languages: string[] }[] }) =>
+          opts.expectedInputs?.[0]?.languages.includes('ja') ? ja : en,
+      );
+    install({ availability: vi.fn(async () => 'available'), create });
+
+    const [a, b] = await Promise.all([
+      selectTool('q', {}, { languages: JA }),
+      selectTool('q', {}, { languages: EN }),
+    ]);
+    expect([a, b]).toEqual(['ja', 'en']);
+    expect(ja.prompt).toHaveBeenCalledOnce();
+    expect(en.prompt).toHaveBeenCalledOnce();
+    expect(ja.destroy).toHaveBeenCalledOnce();
+  });
+});
