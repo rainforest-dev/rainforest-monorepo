@@ -42,10 +42,23 @@ are usually missing from an export. A message that shares a file keeps its text,
 attached only when the named file exists under the export root.
 
 **Photos.** Photos are read in place from the Mac's Photos library. Nothing is copied. Export
-the metadata with
-`uvx osxphotos query --json --library "$HOME/Pictures/Photos Library.photoslibrary" --from-date <date> > photos/index.json`.
+the metadata with osxphotos 0.77.2 or later:
+
+```bash
+uvx osxphotos@0.77.2 query --json \
+  --library "$HOME/Pictures/Photos Library.photoslibrary" \
+  --from-date <the start date of the current export> \
+  >| "$MEMORIES_DATA_DIR/photos/index.json.new" \
+  && mv -f "$MEMORIES_DATA_DIR/photos/index.json.new" "$MEMORIES_DATA_DIR/photos/index.json"
+```
+
 The `--library` flag is required: without it, osxphotos tries to read a Photos preferences file
-that the terminal is not permitted to open. With Optimize Mac Storage an original
+that the terminal is not permitted to open. Earlier osxphotos versions read the Photos search
+index from `database/search/psi.sqlite`, which current Photos replaced with `leo.sqlite`, and
+silently export empty labels; `ingest` warns when no photo has labels. The export goes to a new
+file first and replaces `index.json` only when osxphotos succeeds, so a failed run keeps the
+previous export. `>|` overwrites a leftover `.new` file even when the shell sets `noclobber`,
+under which a plain `>` writes nothing. With Optimize Mac Storage an original
 may live only in iCloud, so `ingest` never assumes it is on disk: it checks each candidate and
 serves the largest local derivative (the JPEG Photos itself displays), falling back to a local
 original or edit. A movie plays from its video only when the video is downloaded; otherwise it
@@ -54,6 +67,15 @@ derivatives, from originals, and how many had nothing local. A file that disappe
 `ingest` (Photos can purge derivatives) shows as an empty tile instead of a broken image. The
 CLI never triggers a download. No API can list Google Photos since 2025. Photos from someone else's phone therefore arrive only
 through the shared iCloud/Photos album.
+
+**Search index.** After writing `timeline.json`, `ingest` builds the content search index in
+`search/`: `docs.json` lists each search document with a hash of its text, and
+`vectors.text.bin` holds one `embeddinggemma` vector per document. Chats are cut into
+conversations, and each photo becomes a document built from its Photos labels, text, venues,
+place, people and albums. The embeddings come from Ollama at `MEMORIES_OLLAMA_URL`
+(`http://localhost:11434` by default). Only new or changed documents are embedded again. When
+Ollama cannot be reached, `ingest` keeps the previous index and says so; lexical search still
+works without one.
 
 ## Browsing
 
