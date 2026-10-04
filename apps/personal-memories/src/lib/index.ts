@@ -8,6 +8,7 @@ export * from './jump.ts';
 export * from './lightbox.ts';
 export * from './month-view.ts';
 export * from './months.ts';
+export * from './natural-date.ts';
 export * from './nav.ts';
 export * from './people.ts';
 export * from './range.ts';

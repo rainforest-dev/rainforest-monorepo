@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { groupByMonth, jumpTarget, matchDates, queryPrefixes } from './jump.ts';
+import {
+  groupByMonth,
+  jumpTarget,
+  matchDates,
+  queryPrefixes,
+  searchDates,
+} from './jump.ts';
 
 const DATES = [
   '2025-10-31',
@@ -74,5 +80,44 @@ describe('jumpTarget', () => {
   it('gives up on nonsense or no data', () => {
     expect(jumpTarget(DATES, 'abc')).toBeUndefined();
     expect(jumpTarget([], '2025-11-01')).toBeUndefined();
+  });
+});
+
+describe('searchDates', () => {
+  const TODAY = '2026-10-01';
+  const hits = (dates: string[]) =>
+    dates.map((date) => ({ kind: 'date', date }));
+
+  it('keeps numeric queries on the prefix path', () => {
+    expect(searchDates(DATES, '2025-11-1', TODAY)).toEqual({
+      hits: hits(['2025-11-01', '2025-11-10']),
+      target: { date: '2025-11-01', exact: true },
+      range: undefined,
+    });
+    expect(searchDates(DATES, '', TODAY).hits).toHaveLength(DATES.length);
+  });
+
+  it('lists the days inside a parsed range', () => {
+    expect(searchDates(DATES, '去年 11 月', TODAY)).toEqual({
+      hits: hits(['2025-11-01', '2025-11-02', '2025-11-10']),
+      target: { date: '2025-11-01', exact: true },
+      range: { start: '2025-11-01', end: '2025-11-30' },
+    });
+  });
+
+  it('falls back to the nearest day when the range is empty', () => {
+    expect(searchDates(DATES, '聖誕節', TODAY)).toEqual({
+      hits: [],
+      target: { date: '2026-01-01', exact: false },
+      range: { start: '2025-12-25', end: '2025-12-25' },
+    });
+  });
+
+  it('gives up on text it cannot read', () => {
+    expect(searchDates(DATES, '吃麵', TODAY)).toEqual({
+      hits: [],
+      target: undefined,
+      range: undefined,
+    });
   });
 });
