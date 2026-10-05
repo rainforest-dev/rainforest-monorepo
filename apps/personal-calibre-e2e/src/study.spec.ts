@@ -8,7 +8,16 @@ import {
   tokenColor,
 } from './support/library';
 import { bookById, BOOKS, SERIES } from './support/seed';
-import { gotoStudy, shelves, studyOptions } from './support/study';
+import {
+  collectConsole,
+  expectPulledFocus,
+  gotoStudy,
+  runName,
+  shelves,
+  startRun,
+  STUDY_RUNS,
+  studyOptions,
+} from './support/study';
 
 const CSS = { renderer: 'css' } as const;
 const PAGE_SIZE = 30;
@@ -42,6 +51,13 @@ function option(page: Page, id: number) {
 }
 
 test.describe('Study', () => {
+  test.beforeEach(() => {
+    test.skip(
+      test.info().project.name !== 'chromium',
+      'renderer-independent and css cases run on chromium',
+    );
+  });
+
   test('entering Study without a group sets groupBy=series', async ({
     page,
   }) => {
@@ -103,32 +119,10 @@ test.describe('Study', () => {
     ).toHaveCount(0);
   });
 
-  test('one listbox of shelves with named groups and options', async ({
+  test('css rows are shelves: arrows cross shelves and ↓ changes shelf', async ({
     page,
   }) => {
     await gotoStudy(page, CSS);
-    await expect(
-      page.getByRole('listbox', { name: 'Bookshelves' }),
-    ).toHaveCount(1);
-    const northbound = SERIES.find((s) => s.name === 'Northbound');
-    await expect(
-      shelves(page).filter({ has: option(page, northbound?.first ?? 0) }),
-    ).toHaveAccessibleName(`Northbound, ${northbound?.count} books`);
-    const book = bookById(seriesOrderedIds()[0] ?? 0);
-    const first = option(page, book.id);
-    await expect(first).toHaveAttribute(
-      'aria-label',
-      new RegExp(`^${book.title}, `),
-    );
-    await expect(first).toHaveAttribute('aria-selected', 'false');
-    await expect(shelves(page)).toHaveCount(3);
-  });
-
-  test('keyboard: arrows, rows, page ends, selection and the pane', async ({
-    page,
-  }) => {
-    await gotoStudy(page, CSS);
-    await expect(page.locator('[role="option"][tabindex="0"]')).toHaveCount(1);
     const firstShelf = shelves(page).first().getByRole('option');
     const secondShelf = shelves(page).nth(1).getByRole('option');
     await firstShelf.last().focus();
@@ -151,26 +145,6 @@ test.describe('Study', () => {
     await expect(secondShelf.last()).toBeFocused();
     await page.keyboard.press('Home');
     await expect(secondShelf.first()).toBeFocused();
-    await page.keyboard.press('Control+End');
-    await expect(studyOptions(page).last()).toBeFocused();
-
-    const target = studyOptions(page).first();
-    await target.focus();
-    await page.keyboard.press('x');
-    await expect(target).toHaveAttribute('aria-selected', 'true');
-    await page.keyboard.press('Space');
-    await expect(target).toHaveAttribute('aria-selected', 'false');
-    const id = await target.getAttribute('data-book-id');
-    await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(new RegExp(`book=${id}`));
-    await expect(pane(page)).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page).not.toHaveURL(/book=/);
-    await expect(target).toBeFocused();
-
-    await page.keyboard.press(']');
-    await expect(page).toHaveURL(/page=2/);
-    await expect(studyOptions(page).first()).toBeFocused();
   });
 
   test('leaving Study with v keeps groupBy=series and the focused book', async ({
@@ -293,3 +267,115 @@ test.describe('Study', () => {
     await expect(cover).toHaveCount(0);
   });
 });
+
+for (const run of STUDY_RUNS) {
+  test.describe(`Study ${runName(run)}`, () => {
+    test.beforeEach(async ({ page }) => {
+      await startRun(page, run);
+    });
+
+    test('one listbox of shelves with named groups and options', async ({
+      page,
+    }) => {
+      await gotoStudy(page, run);
+      await expect(
+        page.getByRole('listbox', { name: 'Bookshelves' }),
+      ).toHaveCount(1);
+      const northbound = SERIES.find((s) => s.name === 'Northbound');
+      await expect(
+        shelves(page).filter({ has: option(page, northbound?.first ?? 0) }),
+      ).toHaveAccessibleName(`Northbound, ${northbound?.count} books`);
+      const book = bookById(seriesOrderedIds()[0] ?? 0);
+      const first = option(page, book.id);
+      await expect(first).toHaveAttribute(
+        'aria-label',
+        new RegExp(`^${book.title}, `),
+      );
+      await expect(first).toHaveAttribute('aria-selected', 'false');
+      await expect(shelves(page)).toHaveCount(3);
+      await expect(page.locator('[data-backend-badge]')).toHaveCount(0);
+    });
+
+    test('keyboard: arrows, row ends, page ends, selection and the pane', async ({
+      page,
+    }) => {
+      const messages = collectConsole(page);
+      await gotoStudy(page, run);
+      const all = studyOptions(page);
+      await expect(page.locator('[role="option"][tabindex="0"]')).toHaveCount(
+        1,
+      );
+      const indexOfFocus = () =>
+        all.evaluateAll((elements) =>
+          elements.indexOf(document.activeElement as HTMLElement),
+        );
+
+      await all.first().focus();
+      await expectPulledFocus(page, run);
+      await page.keyboard.press('ArrowRight');
+      await expect(all.nth(1)).toBeFocused();
+      await expectPulledFocus(page, run);
+
+      await page.keyboard.press('ArrowDown');
+      const below = await indexOfFocus();
+      expect(below).toBeGreaterThan(1);
+      await expectPulledFocus(page, run);
+      await page.keyboard.press('End');
+      const rowEnd = await indexOfFocus();
+      expect(rowEnd).toBeGreaterThanOrEqual(below);
+      await expectPulledFocus(page, run);
+      await page.keyboard.press('Home');
+      const rowStart = await indexOfFocus();
+      expect(rowStart).toBeGreaterThan(1);
+      expect(rowStart).toBeLessThanOrEqual(below);
+      await expectPulledFocus(page, run);
+      await page.keyboard.press('ArrowUp');
+      expect(await indexOfFocus()).toBeLessThan(rowStart);
+      await expectPulledFocus(page, run);
+
+      await page.keyboard.press('Control+End');
+      await expect(all.last()).toBeFocused();
+      await expectPulledFocus(page, run);
+      await page.keyboard.press('Control+Home');
+      await expect(all.first()).toBeFocused();
+      await expectPulledFocus(page, run);
+
+      const target = all.nth(2);
+      await target.focus();
+      await page.keyboard.press('x');
+      await expect(target).toHaveAttribute('aria-selected', 'true');
+      await page.keyboard.press('Space');
+      await expect(target).toHaveAttribute('aria-selected', 'false');
+      const id = await target.getAttribute('data-book-id');
+      await page.keyboard.press('Enter');
+      await expect(page).toHaveURL(new RegExp(`book=${id}`));
+      await expect(pane(page)).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page).not.toHaveURL(/book=/);
+      await expect(target).toBeFocused();
+      await expectPulledFocus(page, run);
+      expect(messages()).toEqual([]);
+    });
+
+    test('pages: ] and [ change the page and focus its first book', async ({
+      page,
+    }) => {
+      const messages = collectConsole(page);
+      await gotoStudy(page, run);
+      await studyOptions(page).nth(1).focus();
+      await page.keyboard.press('[');
+      await expect(page).not.toHaveURL(/page=/);
+      await expect(studyOptions(page).nth(1)).toBeFocused();
+
+      await page.keyboard.press(']');
+      await expect(page).toHaveURL(/page=2/);
+      await expect(studyOptions(page).first()).toBeFocused();
+      await expectPulledFocus(page, run);
+      await page.keyboard.press('[');
+      await expect(page).not.toHaveURL(/page=/);
+      await expect(studyOptions(page).first()).toBeFocused();
+      await expectPulledFocus(page, run);
+      expect(messages()).toEqual([]);
+    });
+  });
+}

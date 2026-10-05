@@ -223,7 +223,7 @@ export function LibraryProvider({
   const fallBackToCss = useCallback(() => {
     if (readStudyFallback()) return;
     writeStudyFallback();
-    toast.info("3D isn't available here, showing the CSS study");
+    toast("3D isn't available here, showing the CSS study");
   }, []);
 
   const togglePanel = useCallback(

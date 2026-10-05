@@ -11,6 +11,14 @@
     "targets": {
       "e2e": {
         "executor": "@nx/playwright:playwright",
+        "dependsOn": [
+          {
+            "projects": [
+              "personal-calibre"
+            ],
+            "target": "build-deps"
+          }
+        ],
         "outputs": [
           "{workspaceRoot}/dist/.playwright/apps/personal-calibre-e2e"
         ],
