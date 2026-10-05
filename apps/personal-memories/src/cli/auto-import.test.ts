@@ -21,6 +21,7 @@ import { fakeEmbedder } from '../lib/server/embed.ts';
 import type { Timeline } from '../lib/server/timeline.ts';
 import {
   type AutoImportOptions,
+  main,
   readAutoImportState,
   runAutoImport,
   STATE_PATH,
@@ -364,6 +365,16 @@ const runCli = (env: Record<string, string>) =>
     },
   );
 
+const runMain = async (env: Record<string, string>) => {
+  let stdout = '';
+  let stderr = '';
+  const code = await main([], env, {
+    out: (line) => (stdout += `${line}\n`),
+    err: (line) => (stderr += `${line}\n`),
+  });
+  return { code, stdout, stderr };
+};
+
 describe('auto-import CLI', () => {
   it('runs end to end with a fake osxphotos and posts a failure to the webhook', async () => {
     const posts: string[] = [];
@@ -386,15 +397,15 @@ describe('auto-import CLI', () => {
     const fake = join(root, 'fake-osxphotos');
     writeFileSync(
       fake,
-      `#!${process.execPath}\n` +
-        "const fs = require('node:fs');\n" +
-        `fs.appendFileSync(${JSON.stringify(argsLog)}, JSON.stringify(process.argv.slice(2)) + '\\n');\n` +
-        `process.stdout.write(fs.readFileSync(${JSON.stringify(fullExport)}));\n`,
+      '#!/bin/sh\n' +
+        `printf '%s\\n' "$@" > '${argsLog}'\n` +
+        `cat '${fullExport}'\n`,
     );
     chmodSync(fake, 0o755);
     drop(DROP_NAME, NEW_EXPORT);
 
     const env = {
+      MEMORIES_EMBED: 'fake',
       MEMORIES_DATA_DIR: data,
       MEMORIES_DROP_DIR: inbox,
       MEMORIES_PHOTOS_CMD: fake,
@@ -403,27 +414,25 @@ describe('auto-import CLI', () => {
       MEMORIES_IMPORT_WEBHOOK: `http://127.0.0.1:${port}/webhook/ha-events`,
     };
     try {
-      const ok = await runCli(env);
+      const ok = await runMain(env);
       expect(ok.stderr).toBe('');
       expect(ok.code).toBe(0);
       expect(ok.stdout).toContain('photos: full export from 2025-01-01');
       expect(ok.stdout).toContain('auto-import: done; line 1 archived');
       expect(readdirSync(inbox)).toEqual([]);
-      expect(readFileSync(argsLog, 'utf8').trim()).toBe(
-        JSON.stringify([
-          'query',
-          '--json',
-          '--library',
-          '/fixture/library',
-          '--from-date',
-          FROM,
-        ]),
-      );
+      expect(readFileSync(argsLog, 'utf8').trim().split('\n')).toEqual([
+        'query',
+        '--json',
+        '--library',
+        '/fixture/library',
+        '--from-date',
+        FROM,
+      ]);
       expect(readAutoImportState(data)?.ok).toBe(true);
       expect(posts).toEqual([]);
 
       writeFileSync(fullExport, '[]');
-      const shrunk = await runCli(env);
+      const shrunk = await runMain(env);
       expect(shrunk.code).toBe(1);
       expect(posts).toHaveLength(1);
       const [line] = posts;
@@ -440,7 +449,7 @@ describe('auto-import CLI', () => {
         join(data, '.ingest.lock'),
         JSON.stringify({ pid: process.pid, startedAt: 'x' }),
       );
-      const busy = await runCli(env);
+      const busy = await runMain(env);
       expect(busy.code).toBe(0);
       expect(busy.stdout).toContain('busy: another ingest is running');
     } finally {
