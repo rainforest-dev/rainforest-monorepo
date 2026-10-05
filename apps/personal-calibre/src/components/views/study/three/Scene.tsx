@@ -13,6 +13,7 @@ import {
   BoxGeometry,
   type InstancedMesh,
   MathUtils,
+  Matrix4,
   type Mesh,
   Object3D,
   type PerspectiveCamera,
@@ -27,20 +28,32 @@ import {
   FRONT_Z,
   type NdcPoint,
   type PlacedBook,
+  projectBox,
   ROW_H,
   type ScreenRect,
   screenRectOf,
   type StudyLayout,
+  type Vec3,
   wheelPan,
 } from '@/lib';
 
 import type { RowAtlas } from './atlas';
+import type { CoverCache } from './covers';
 import type { StudyKit } from './kit';
 import { PulledBook } from './PulledBook';
 import { ShelfRow } from './ShelfRow';
 import { mixRgb, toColor, type Tokens } from './tokens';
 
 export type BookProjector = (bookId: number) => ScreenRect | null;
+
+export interface ProjectedLabel {
+  shelfKey: string;
+  text: string;
+  count: number;
+  continued: boolean;
+  left: number;
+  top: number;
+}
 
 export interface SceneProps {
   layout: StudyLayout;
@@ -51,10 +64,13 @@ export interface SceneProps {
   reducedMotion: boolean;
   pxPerUnit: number;
   atlases: ReadonlyMap<number, RowAtlas>;
+  covers: CoverCache;
   projector: RefObject<BookProjector | null>;
   onPick: (bookId: number) => void;
   onPulled: (bookId: number | null) => void;
   onCamera: (state: CameraState) => void;
+  onFocusRect: (rect: ScreenRect | null) => void;
+  onLabels: (labels: readonly ProjectedLabel[]) => void;
 }
 
 const BOARD_MIX = 0.16;
@@ -67,6 +83,40 @@ const SUN = { position: [3, 6, 8] as const, intensity: 1.4 };
 const LINE_PX = 16;
 const PLACE = new Object3D();
 const CORNER = new Vector3();
+const VIEW_PROJECTION = new Matrix4();
+const OVERLAY_PRIORITY = 0.5;
+const RECT_EPSILON = 0.25;
+
+function boxCorners(matrix: Matrix4): Vec3[] {
+  const corners: Vec3[] = [];
+  for (const x of [-0.5, 0.5]) {
+    for (const y of [-0.5, 0.5]) {
+      for (const z of [-0.5, 0.5]) {
+        CORNER.set(x, y, z).applyMatrix4(matrix);
+        corners.push([CORNER.x, CORNER.y, CORNER.z]);
+      }
+    }
+  }
+  return corners;
+}
+
+function placedMatrix(placed: PlacedBook): Matrix4 {
+  PLACE.position.set(placed.x, placed.y, FRONT_Z - placed.d / 2);
+  PLACE.rotation.set(0, 0, 0);
+  PLACE.scale.set(placed.t, placed.h, placed.d);
+  PLACE.updateMatrix();
+  return PLACE.matrix;
+}
+
+function sameRect(a: ScreenRect | null, b: ScreenRect | null): boolean {
+  if (!a || !b) return a === b;
+  return (
+    Math.abs(a.left - b.left) < RECT_EPSILON &&
+    Math.abs(a.top - b.top) < RECT_EPSILON &&
+    Math.abs(a.width - b.width) < RECT_EPSILON &&
+    Math.abs(a.height - b.height) < RECT_EPSILON
+  );
+}
 
 function rowsOf(layout: StudyLayout): PlacedBook[][] {
   const rows: PlacedBook[][] = Array.from({ length: layout.rows }, () => []);
@@ -83,10 +133,13 @@ export function Scene({
   reducedMotion,
   pxPerUnit,
   atlases,
+  covers,
   projector,
   onPick,
   onPulled,
   onCamera,
+  onFocusRect,
+  onLabels,
 }: SceneProps) {
   const { camera, size, gl, invalidate } = useThree();
   const boards = useRef<InstancedMesh>(null);
@@ -251,10 +304,7 @@ export function Scene({
         mesh.updateMatrixWorld();
         matrix = mesh.matrixWorld;
       } else {
-        PLACE.position.set(placed.x, placed.y, FRONT_Z - placed.d / 2);
-        PLACE.rotation.set(0, 0, 0);
-        PLACE.scale.set(placed.t, placed.h, placed.d);
-        PLACE.updateMatrix();
+        matrix = placedMatrix(placed);
       }
       const points: NdcPoint[] = [];
       for (const x of [-0.5, 0.5]) {
@@ -271,6 +321,59 @@ export function Scene({
       projector.current = null;
     };
   }, [projector, byId, pulledId, camera, gl]);
+
+  const reportedRect = useRef<ScreenRect | null | undefined>(undefined);
+  const reportedLabels = useRef('');
+  useLayoutEffect(() => {
+    reportedRect.current = undefined;
+    reportedLabels.current = '';
+    invalidate();
+  }, [layout, onFocusRect, onLabels, invalidate]);
+
+  useFrame(() => {
+    camera.updateMatrixWorld();
+    VIEW_PROJECTION.multiplyMatrices(
+      camera.projectionMatrix,
+      camera.matrixWorldInverse,
+    );
+    const viewport = { width: size.width, height: size.height };
+    let rect: ScreenRect | null = null;
+    if (focused) {
+      const mesh = pulledMesh.current;
+      let matrix: Matrix4;
+      if (focused.book.id === pulledId && mesh) {
+        mesh.updateMatrixWorld();
+        matrix = mesh.matrixWorld;
+      } else {
+        matrix = placedMatrix(focused);
+      }
+      rect = projectBox(boxCorners(matrix), VIEW_PROJECTION.elements, viewport);
+    }
+    if (
+      reportedRect.current === undefined ||
+      !sameRect(rect, reportedRect.current)
+    ) {
+      reportedRect.current = rect;
+      onFocusRect(rect);
+    }
+    const labelsKey = `${cameraY.current}:${size.width}:${size.height}`;
+    if (labelsKey !== reportedLabels.current) {
+      reportedLabels.current = labelsKey;
+      onLabels(
+        layout.labels.map((label): ProjectedLabel => {
+          CORNER.set(label.x, label.top, FRONT_Z).applyMatrix4(VIEW_PROJECTION);
+          return {
+            shelfKey: label.shelfKey,
+            text: label.text,
+            count: label.count,
+            continued: label.continued,
+            left: ((CORNER.x + 1) / 2) * size.width,
+            top: ((1 - CORNER.y) / 2) * size.height,
+          };
+        }),
+      );
+    }
+  }, OVERLAY_PRIORITY);
 
   const caseHeight = layout.rows * ROW_H;
   return (
@@ -308,6 +411,7 @@ export function Scene({
         width={layout.width}
         kit={kit}
         tokens={tokens}
+        covers={covers}
         meshRef={pulledMesh}
         onPick={onPick}
         onHover={onHover}

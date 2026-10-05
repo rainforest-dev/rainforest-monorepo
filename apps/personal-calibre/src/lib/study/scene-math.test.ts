@@ -12,12 +12,14 @@ import {
   COVER_CACHE_BYTES,
   focusTargetY,
   pickAtlasPpu,
+  projectBox,
   REPORTED_TARGET_BUFFERS,
   rowsInView,
   screenRectOf,
   targetBytes,
   TEXTURE_BUDGET_BYTES,
   type TextureBudgetInput,
+  type Vec3,
   wheelPan,
 } from './scene-math';
 
@@ -155,6 +157,78 @@ describe('screenRectOf', () => {
 
   it('returns null without points', () => {
     expect(screenRectOf([], viewport)).toBeNull();
+  });
+});
+
+const IDENTITY = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+const VIEWPORT = { width: 800, height: 600 };
+
+const box = ([x0, y0, z0]: Vec3, [x1, y1, z1]: Vec3): Vec3[] =>
+  [x0, x1].flatMap((x) =>
+    [y0, y1].flatMap((y) => [z0, z1].map((z): Vec3 => [x, y, z])),
+  );
+
+const perspective = (near: number, far: number): number[] => [
+  1,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0,
+  -(far + near) / (far - near),
+  -1,
+  0,
+  0,
+  (-2 * far * near) / (far - near),
+  0,
+];
+
+describe('projectBox', () => {
+  it('maps the unit cube to the full viewport under an identity view-projection', () => {
+    expect(
+      projectBox(box([-1, -1, -1], [1, 1, 1]), IDENTITY, VIEWPORT),
+    ).toEqual({ left: 0, top: 0, width: 800, height: 600 });
+  });
+
+  it('puts +y at the top of the screen', () => {
+    expect(
+      projectBox(box([-0.5, 0, 0], [0, 0.5, 0]), IDENTITY, VIEWPORT),
+    ).toEqual({ left: 200, top: 150, width: 200, height: 150 });
+  });
+
+  it('returns null for a box behind the camera', () => {
+    const behind = box([-0.5, -0.5, 1], [0.5, 0.5, 2]);
+    expect(projectBox(behind, perspective(0.1, 100), VIEWPORT)).toBeNull();
+  });
+
+  it('divides by w in front of the camera', () => {
+    const front = box([-1, -1, -2], [1, 1, -2]);
+    expect(projectBox(front, perspective(0.1, 100), VIEWPORT)).toEqual({
+      left: 200,
+      top: 150,
+      width: 400,
+      height: 300,
+    });
+  });
+
+  it('clips a box partly off-screen to the viewport', () => {
+    expect(
+      projectBox(box([0.5, -2, 0], [3, 0, 0]), IDENTITY, VIEWPORT),
+    ).toEqual({ left: 600, top: 300, width: 200, height: 300 });
+  });
+
+  it('returns null for a box entirely off-screen', () => {
+    expect(
+      projectBox(box([2, 2, 0], [3, 3, 0]), IDENTITY, VIEWPORT),
+    ).toBeNull();
+  });
+
+  it('returns null for no corners', () => {
+    expect(projectBox([], IDENTITY, VIEWPORT)).toBeNull();
   });
 });
 

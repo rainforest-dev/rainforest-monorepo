@@ -1,4 +1,10 @@
-import { CanvasTexture, Color, type Material, Texture } from 'three';
+import {
+  CanvasTexture,
+  Color,
+  type Material,
+  SRGBColorSpace,
+  Texture,
+} from 'three';
 import { NodeMaterial } from 'three/webgpu';
 import { describe, expect, it } from 'vitest';
 
@@ -104,6 +110,18 @@ describe('createStudyMaterials', () => {
   it('starts the pulled-book cover and spine on different textures', () => {
     const { material } = createStudyMaterials().pulledBook();
     expect(texturesOf(material)).toHaveLength(2);
+  });
+
+  it('starts every placeholder in sRGB, like the atlases and covers', () => {
+    const materials = createStudyMaterials();
+    const placeholders = [
+      ...texturesOf(materials.spine().material),
+      ...texturesOf(materials.pulledBook().material),
+    ];
+    expect(placeholders.length).toBeGreaterThan(0);
+    for (const texture of placeholders) {
+      expect(texture.colorSpace).toBe(SRGBColorSpace);
+    }
   });
 
   it('leaves tone mapping to the renderer and texture transforms unused', () => {

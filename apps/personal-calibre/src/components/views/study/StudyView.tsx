@@ -28,14 +28,21 @@ export interface StudyViewProps {
   entries: LibraryEntry[];
   groupBy: StudyGroupBy;
   page: number;
+  nextPageCoverIds: readonly number[];
 }
 
 interface ThreeHostProps extends StudyRendererProps {
   renderer: ThreeRenderer;
   onNavItems: (items: readonly NavItem[]) => void;
+  nextPageCoverIds: readonly number[];
 }
 
-function ThreeHost({ renderer, onNavItems, ...props }: ThreeHostProps) {
+function ThreeHost({
+  renderer,
+  onNavItems,
+  nextPageCoverIds,
+  ...props
+}: ThreeHostProps) {
   const { fallBackToCss, setBackend } = useLibrary();
   const [capable, setCapable] = useState(false);
   const optionProps = useStudyOptionProps(props.nav);
@@ -64,6 +71,7 @@ function ThreeHost({ renderer, onNavItems, ...props }: ThreeHostProps) {
             {...props}
             renderer={renderer}
             onNavItems={onNavItems}
+            nextPageCoverIds={nextPageCoverIds}
             onBackend={setBackend}
             onStartFailed={fallBackToCss}
           />
@@ -75,7 +83,12 @@ function ThreeHost({ renderer, onNavItems, ...props }: ThreeHostProps) {
   );
 }
 
-export function StudyView({ entries, groupBy, page }: StudyViewProps) {
+export function StudyView({
+  entries,
+  groupBy,
+  page,
+  nextPageCoverIds,
+}: StudyViewProps) {
   const { selected, focusId, renderer, backend } = useLibrary();
   const three = isThreeRenderer(renderer);
   const key = contentKey(entries);
@@ -131,6 +144,7 @@ export function StudyView({ entries, groupBy, page }: StudyViewProps) {
         <ThreeHost
           renderer={renderer}
           onNavItems={onNavItems}
+          nextPageCoverIds={nextPageCoverIds}
           {...rendererProps}
         />
       ) : (

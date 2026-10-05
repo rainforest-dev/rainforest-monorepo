@@ -7,6 +7,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import {
   BoxGeometry,
@@ -14,12 +15,14 @@ import {
   MathUtils,
   type Mesh,
   SRGBColorSpace,
+  type Texture,
   Vector3,
 } from 'three';
 
 import { FRONT_Z, type PlacedBook } from '@/lib';
 
 import { cropSpine, type RowAtlas } from './atlas';
+import type { CoverCache } from './covers';
 import type { StudyKit } from './kit';
 import { sideColor } from './ShelfRow';
 import { toColor, type Tokens } from './tokens';
@@ -30,6 +33,7 @@ export interface PulledBookProps {
   width: number;
   kit: StudyKit;
   tokens: Tokens;
+  covers: CoverCache;
   meshRef: RefObject<Mesh | null>;
   onPick: (bookId: number) => void;
   onHover: (hovering: boolean) => void;
@@ -54,6 +58,7 @@ export function PulledBook({
   width,
   kit,
   tokens,
+  covers,
   meshRef,
   onPick,
   onHover,
@@ -77,6 +82,35 @@ export function PulledBook({
   );
   useEffect(() => () => cropped?.dispose(), [cropped]);
 
+  const [cover, setCover] = useState<{
+    id: number;
+    covers: CoverCache;
+    texture: Texture;
+  } | null>(null);
+  useEffect(() => {
+    if (!book) return;
+    const id = book.book.id;
+    const hit = covers.get(id);
+    if (hit) {
+      setCover({ id, covers, texture: hit });
+      return;
+    }
+    let live = true;
+    covers.ensure(book.book).then(
+      (texture) => {
+        if (live) setCover({ id, covers, texture });
+      },
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [book, covers]);
+  const coverTexture =
+    cover && cover.id === bookId && cover.covers === covers
+      ? cover.texture
+      : null;
+
   useLayoutEffect(() => {
     if (!book) return;
     const side = sideColor(book, tokens);
@@ -89,13 +123,13 @@ export function PulledBook({
       spine.needsUpdate = true;
     }
     pulled.point({
-      cover: null,
+      cover: coverTexture,
       spine: cropped ?? spine,
       side,
       pages: toColor(tokens.card),
     });
     invalidate();
-  }, [book, tokens, spine, cropped, pulled, invalidate]);
+  }, [book, tokens, spine, cropped, coverTexture, pulled, invalidate]);
 
   useLayoutEffect(() => {
     if (!book) return;
