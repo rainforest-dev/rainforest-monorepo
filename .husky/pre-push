@@ -1,8 +1,6 @@
 #!/bin/sh
 # Mirror CI's checks against the whole push range, so commits that each pass
 # individually cannot collectively fail CI.
-#
-# No build target: building inside a git worktree corrupts the shared .nx cache.
 
 set -e
 
