@@ -14,8 +14,10 @@ import {
 } from '@/lib';
 import { useLibrary } from '@/providers';
 
+import { BackendBadge } from './BackendBadge';
 import { BulkToolbar } from './BulkToolbar';
 import { FilterChips } from './FilterChips';
+import { RendererSelect } from './RendererSelect';
 import { GroupSelect, SortControls } from './SortControls';
 
 interface Props {
@@ -79,6 +81,8 @@ export function LibraryToolbar({
         <h1 className="text-heading font-semibold">{scope}</h1>
         <p className="text-muted-foreground text-sm">{total}</p>
         <div className="ml-auto flex items-center gap-2">
+          <BackendBadge />
+          <RendererSelect />
           <GroupSelect className="hidden lg:flex" />
           <SortControls />
         </div>

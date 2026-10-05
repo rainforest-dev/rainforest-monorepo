@@ -9,7 +9,11 @@ export const STUDY_RUNS: readonly StudyRun[] = [
   { renderer: 'css' },
 ];
 
-const CONSOLE_ALLOWLIST: readonly RegExp[] = [/THREE\.Clock/];
+const CONSOLE_ALLOWLIST: readonly RegExp[] = [
+  /THREE\.Clock/,
+  // Headless Chromium logs this for any composited WebGL canvas.
+  /GL Driver Message .*GPU stall due to ReadPixels/,
+];
 
 export function runName(run: StudyRun): string {
   return run.renderer === 'css' ? 'css' : `${run.renderer}-${run.backend}`;
