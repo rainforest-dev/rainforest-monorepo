@@ -59,14 +59,9 @@ deploy/.env
 
 storybook-static
 
-**/nx-rules.mdc
-**/nx.instructions.md
-
 .pnpm-store
 
 
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
 .claude/worktrees
 .claude/settings.local.json
 .nx/polygraph
