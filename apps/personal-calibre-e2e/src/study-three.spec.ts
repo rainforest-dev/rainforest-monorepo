@@ -420,3 +420,109 @@ test.describe('Study three-tsl scene', () => {
       .toBeGreaterThan(60);
   });
 });
+
+interface AtlasInfo {
+  textures: number;
+  texturesSizeReported: number;
+  atlasPpu: number | null;
+  atlasFits: boolean | null;
+  atlasBytes: number;
+  atlasBytesEstimated: number;
+  textureBytesEstimated: number;
+  atlasRows: number;
+  rows: number;
+  lastAtlasAt: number | null;
+  firstFrameAt: number | null;
+}
+
+const ATLAS_PPU_LADDER = [160, 128, 112, 96];
+
+const atlasInfo = (page: Page) =>
+  page.evaluate(() => {
+    const study = (
+      window as Window & {
+        __calibreStudy?: {
+          firstFrameAt: number | null;
+          info: () => Omit<AtlasInfo, 'firstFrameAt'>;
+        };
+      }
+    ).__calibreStudy;
+    return study ? { ...study.info(), firstFrameAt: study.firstFrameAt } : null;
+  });
+
+async function allAtlases(page: Page, timeout = 3_000): Promise<AtlasInfo> {
+  await expect
+    .poll(
+      async () => {
+        const info = await atlasInfo(page);
+        return info !== null && info.rows > 0 && info.atlasRows === info.rows;
+      },
+      { timeout },
+    )
+    .toBe(true);
+  const info = await atlasInfo(page);
+  if (!info) throw new Error('the study probe is missing');
+  return info;
+}
+
+test.describe('Study three-tsl atlas', () => {
+  test('visible rows draw first and every row has an atlas within 3 s', async ({
+    page,
+  }) => {
+    const run = projectRun();
+    await prepare(page, run);
+    await page.setViewportSize({ width: 1100, height: 560 });
+    const messages = collectConsole(page);
+    await gotoStudy(page, run, 'debug=1&__pageSize=250');
+
+    const info = await allAtlases(page);
+    console.log(`[atlas] ${run.backend} ${JSON.stringify(info)}`);
+    expect(info.rows).toBeGreaterThan(2);
+    expect(ATLAS_PPU_LADDER).toContain(info.atlasPpu);
+    expect(info.firstFrameAt).not.toBeNull();
+    expect(info.lastAtlasAt).toBeGreaterThan(info.firstFrameAt ?? Infinity);
+    expect(
+      Math.abs(info.atlasBytes - info.atlasBytesEstimated) /
+        info.atlasBytesEstimated,
+    ).toBeLessThanOrEqual(0.01);
+    expect(messages()).toEqual([]);
+  });
+
+  test('the default page keeps 160 px per unit', async ({ page }) => {
+    const run = projectRun();
+    await prepare(page, run);
+    await gotoStudy(page, run, 'debug=1');
+
+    const info = await allAtlases(page);
+    expect(info.atlasPpu).toBe(160);
+    expect(info.atlasFits).toBe(true);
+    expect(info.atlasBytes).toBeCloseTo(info.atlasBytesEstimated, 0);
+  });
+
+  test('page changes dispose the previous atlases', async ({ page }) => {
+    const run = projectRun();
+    await prepare(page, run);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await gotoStudy(page, run, 'debug=1');
+
+    await studyOptions(page).first().focus();
+    const first = await allAtlases(page);
+    const others = first.textures - first.atlasRows;
+    for (const [key, want] of [
+      [']', 'page=2'],
+      [']', 'page=3'],
+      ['[', 'page=2'],
+    ] as const) {
+      await page.keyboard.press(key);
+      await page.waitForURL((url) => url.search.includes(want));
+      await expect(studyOptions(page).first()).toBeFocused();
+      await allAtlases(page);
+      await expect
+        .poll(async () => {
+          const info = await atlasInfo(page);
+          return info ? info.textures - info.atlasRows : -1;
+        })
+        .toBe(others);
+    }
+  });
+});

@@ -3,11 +3,21 @@ import { describe, expect, it } from 'vitest';
 import { layoutShelves, ROW_H, type StudyLayout } from './layout';
 import { isCjk, spineDims, spineTone, type StudyShelf } from './model';
 import {
+  ATLAS_PPU_LADDER,
+  atlasBytesAt,
+  atlasOrder,
   CAMERA_MARGIN,
   cameraBounds,
   clampCameraY,
+  COVER_CACHE_BYTES,
   focusTargetY,
+  pickAtlasPpu,
+  REPORTED_TARGET_BUFFERS,
+  rowsInView,
   screenRectOf,
+  targetBytes,
+  TEXTURE_BUDGET_BYTES,
+  type TextureBudgetInput,
   wheelPan,
 } from './scene-math';
 
@@ -145,5 +155,135 @@ describe('screenRectOf', () => {
 
   it('returns null without points', () => {
     expect(screenRectOf([], viewport)).toBeNull();
+  });
+});
+
+describe('atlasOrder', () => {
+  it('builds the visible rows first, then the rest nearest first', () => {
+    expect(atlasOrder(6, [2, 3])).toEqual({
+      sync: [2, 3],
+      idle: [1, 4, 0, 5],
+    });
+  });
+
+  it('breaks distance ties towards the lower row', () => {
+    expect(atlasOrder(5, [2]).idle).toEqual([1, 3, 0, 4]);
+  });
+
+  it('builds row 0 synchronously when nothing is visible', () => {
+    expect(atlasOrder(3, [])).toEqual({ sync: [0], idle: [1, 2] });
+  });
+
+  it('ignores rows outside the layout', () => {
+    expect(atlasOrder(3, [-1, 1, 7])).toEqual({ sync: [1], idle: [0, 2] });
+    expect(atlasOrder(3, [9])).toEqual({ sync: [0], idle: [1, 2] });
+    expect(atlasOrder(0, [0])).toEqual({ sync: [], idle: [] });
+  });
+});
+
+describe('rowsInView', () => {
+  it('lists the rows a view centred on the first row can see', () => {
+    expect(rowsInView(fourRows, focusTargetY(fourRows, 0), 3)).toEqual([0, 1]);
+  });
+
+  it('lists every row of a case shorter than the view', () => {
+    expect(rowsInView(fourRows, -ROW_H, 40)).toEqual(
+      Array.from({ length: fourRows.rows }, (_, row) => row),
+    );
+  });
+});
+
+const desktopPage = layoutShelves(
+  [shelf('a', range(1, 20)), shelf('b', range(21, 30))],
+  1144 / 100 - 0.8,
+);
+const phoneLarge = layoutShelves(
+  Array.from({ length: 25 }, (_, i) =>
+    shelf(`s${i}`, range(i * 10 + 1, i * 10 + 10)),
+  ),
+  366 / 80 - 0.8,
+);
+const desktopInput: TextureBudgetInput = {
+  layout: desktopPage,
+  budgetBytes: TEXTURE_BUDGET_BYTES.desktop,
+  canvas: { width: 1144, height: 760, dpr: 2 },
+  targetBuffers: REPORTED_TARGET_BUFFERS,
+  coverCacheBytes: COVER_CACHE_BYTES,
+};
+const fixedBytes = (input: TextureBudgetInput) =>
+  input.coverCacheBytes + targetBytes(input);
+
+describe('atlasBytesAt', () => {
+  it('grows about fourfold from 80 to 160 px per unit', () => {
+    const ratio =
+      atlasBytesAt(desktopPage, 160) / atlasBytesAt(desktopPage, 80);
+    expect(ratio).toBeGreaterThan(3.9);
+    expect(ratio).toBeLessThan(4.1);
+  });
+
+  it('grows with the row count', () => {
+    expect(atlasBytesAt(fourRows, 160)).toBeGreaterThan(
+      atlasBytesAt(layoutShelves([shelf('a', range(1, 3))], 1.6), 160),
+    );
+    expect(atlasBytesAt(fourRows, 160) / fourRows.rows).toBeCloseTo(
+      (Math.ceil(1.6 * 160) * Math.ceil(ROW_H * 160) * 4 * 4) / 3,
+    );
+  });
+});
+
+describe('pickAtlasPpu', () => {
+  it('keeps 160 for a 30-book page on a desktop canvas at @2', () => {
+    expect(pickAtlasPpu(desktopInput)).toEqual({
+      ppu: 160,
+      estimatedBytes: fixedBytes(desktopInput) + atlasBytesAt(desktopPage, 160),
+      fits: true,
+    });
+  });
+
+  it('steps down for 250 books on the phone budget', () => {
+    const pick = pickAtlasPpu({
+      layout: phoneLarge,
+      budgetBytes: TEXTURE_BUDGET_BYTES.phone,
+      canvas: { width: 366, height: 591, dpr: 2 },
+      targetBuffers: REPORTED_TARGET_BUFFERS,
+      coverCacheBytes: COVER_CACHE_BYTES,
+    });
+    expect(phoneLarge.rows).toBeGreaterThan(20);
+    expect(ATLAS_PPU_LADDER).toContain(pick.ppu);
+    expect(pick.ppu).toBeLessThan(160);
+  });
+
+  it('walks down one rung when the budget drops by the difference between two rungs', () => {
+    const exact = fixedBytes(desktopInput) + atlasBytesAt(desktopPage, 160);
+    expect(pickAtlasPpu({ ...desktopInput, budgetBytes: exact }).ppu).toBe(160);
+    const gap = atlasBytesAt(desktopPage, 160) - atlasBytesAt(desktopPage, 128);
+    expect(
+      pickAtlasPpu({ ...desktopInput, budgetBytes: exact - gap }),
+    ).toMatchObject({ ppu: 128, fits: true });
+    expect(
+      pickAtlasPpu({ ...desktopInput, budgetBytes: exact - gap - 1 }).ppu,
+    ).toBe(112);
+  });
+
+  it('returns the floor and says it does not fit when the fixed costs exceed the budget', () => {
+    expect(
+      pickAtlasPpu({
+        ...desktopInput,
+        budgetBytes: fixedBytes(desktopInput) - 1,
+      }),
+    ).toEqual({
+      ppu: 96,
+      estimatedBytes: fixedBytes(desktopInput) + atlasBytesAt(desktopPage, 96),
+      fits: false,
+    });
+  });
+
+  it('counts the canvas targets at dpr squared', () => {
+    expect(
+      targetBytes({
+        canvas: { width: 10, height: 5, dpr: 2 },
+        targetBuffers: 2,
+      }),
+    ).toBe(10 * 5 * 4 * 4 * 2);
   });
 });

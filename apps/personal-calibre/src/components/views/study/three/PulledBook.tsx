@@ -19,12 +19,14 @@ import {
 
 import { FRONT_Z, type PlacedBook } from '@/lib';
 
+import { cropSpine, type RowAtlas } from './atlas';
 import type { StudyKit } from './kit';
 import { sideColor } from './ShelfRow';
 import { toColor, type Tokens } from './tokens';
 
 export interface PulledBookProps {
   book: PlacedBook | null;
+  atlas: RowAtlas | undefined;
   width: number;
   kit: StudyKit;
   tokens: Tokens;
@@ -48,6 +50,7 @@ function spineTexture(): CanvasTexture {
 
 export function PulledBook({
   book,
+  atlas,
   width,
   kit,
   tokens,
@@ -67,25 +70,33 @@ export function PulledBook({
   useEffect(() => () => pulled.material.dispose(), [pulled]);
   useEffect(() => () => spine.dispose(), [spine]);
 
+  const bookId = book?.book.id ?? null;
+  const cropped = useMemo(
+    () => (atlas && bookId !== null ? cropSpine(atlas, bookId) : null),
+    [atlas, bookId],
+  );
+  useEffect(() => () => cropped?.dispose(), [cropped]);
+
   useLayoutEffect(() => {
     if (!book) return;
     const side = sideColor(book, tokens);
-    const ctx = spine.image.getContext('2d');
-    if (ctx) {
-      ctx.fillStyle = `#${side.getHexString(SRGBColorSpace)}`;
-      ctx.fillRect(0, 0, SPINE_PX, SPINE_PX);
+    if (!cropped) {
+      const ctx = spine.image.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = `#${side.getHexString(SRGBColorSpace)}`;
+        ctx.fillRect(0, 0, SPINE_PX, SPINE_PX);
+      }
+      spine.needsUpdate = true;
     }
-    spine.needsUpdate = true;
     pulled.point({
       cover: null,
-      spine,
+      spine: cropped ?? spine,
       side,
       pages: toColor(tokens.card),
     });
     invalidate();
-  }, [book, tokens, spine, pulled, invalidate]);
+  }, [book, tokens, spine, cropped, pulled, invalidate]);
 
-  const bookId = book?.book.id ?? null;
   useLayoutEffect(() => {
     if (!book) return;
     home.set(book.x, book.y, FRONT_Z - book.d / 2);
