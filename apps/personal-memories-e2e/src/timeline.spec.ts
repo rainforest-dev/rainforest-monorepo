@@ -352,6 +352,9 @@ test('the date jump box reads a festival and offers the nearest day when it has 
   await dialog.getByPlaceholder(JUMP_PLACEHOLDER).fill('2025 聖誕節');
   await expect(dialog).toContainText('2025 聖誕節（2025-12-25）沒有紀錄');
   await page.keyboard.press('Enter');
+  await expect(
+    page.getByText('沒有這一天，已跳到最近的 2025-11-03'),
+  ).toBeVisible();
   await expect(page).toHaveURL(/\/day\/2025-11-03$/);
 });
 
@@ -1267,9 +1270,11 @@ test('a long press on a message opens 眉批 and 複製', async ({ page }) => {
 
 test('the next day shows skeleton rows while it loads', async ({ page }) => {
   let requests = 0;
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
   await page.route('**/day/2025-11-03/partial', async (route) => {
     requests += 1;
-    await new Promise((r) => setTimeout(r, 800));
+    await held;
     await route.continue();
   });
   await page.goto('/day/2025-11-02');
@@ -1277,6 +1282,7 @@ test('the next day shows skeleton rows while it loads', async ({ page }) => {
   await expect(
     page.locator('[data-load="next"] [data-skeleton]'),
   ).toBeVisible();
+  release();
   await expect(page.locator('#day-2025-11-03')).toBeAttached();
   await expect(page.locator('[data-load="next"] [data-skeleton]')).toBeHidden();
   expect(requests).toBe(1);
