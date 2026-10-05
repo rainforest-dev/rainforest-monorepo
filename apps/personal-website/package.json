@@ -120,6 +120,16 @@
           "command": "astro check",
           "cwd": "{projectRoot}"
         }
+      },
+      "expand-search-keywords": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^build"
+        ],
+        "options": {
+          "command": "node scripts/expand-search-keywords.ts",
+          "cwd": "{projectRoot}"
+        }
       }
     }
   }

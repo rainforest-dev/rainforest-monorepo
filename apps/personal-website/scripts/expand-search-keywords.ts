@@ -1,15 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 
-import {
-  getProjects,
-  getSkills,
-  getWorkExperience,
-} from '@rainforest-dev/personal-data';
-import fg from 'fast-glob';
-import matter from 'gray-matter';
-
-import { buildPaletteRecords } from '../src/utils/palette-records.ts';
 import type { Searchable } from '../src/utils/search.ts';
 import {
   type ExpansionFile,
@@ -20,16 +10,13 @@ import {
   planExpansion,
   serializeExpansions,
 } from '../src/utils/search-expansions.ts';
+import { EXPANSIONS_PATH, loadPaletteRecords } from './palette-sources.ts';
 
-const OLLAMA_URL = (
-  process.env.OLLAMA_URL ?? 'http://rainforest-mini.local:11434'
-).replace(/\/$/, '');
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL;
-const OUTPUT = resolve(
-  import.meta.dirname,
-  '../src/data/search-expansions.json',
+const OLLAMA_URL = (process.env.OLLAMA_URL ?? 'http://localhost:11434').replace(
+  /\/$/,
+  '',
 );
-const BLOG_DIR = resolve(import.meta.dirname, '../src/data/blog');
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL;
 
 const fail = (message: string): never => {
   console.error(`expand-search-keywords: ${message}`);
@@ -55,40 +42,6 @@ async function assertReachable(): Promise<void> {
     fail(`set OLLAMA_MODEL. Available at ${OLLAMA_URL}: ${models.join(', ')}`);
   else if (!models.includes(OLLAMA_MODEL))
     fail(`model ${OLLAMA_MODEL} is not on ${OLLAMA_URL}: ${models.join(', ')}`);
-}
-
-const LANGS = ['en', 'zh'] as const;
-
-async function loadRecords(): Promise<Searchable[]> {
-  const posts = fg
-    .sync('**/*.{md,mdx}', { cwd: BLOG_DIR })
-    .sort()
-    .map((file) => {
-      const { data } = matter(readFileSync(resolve(BLOG_DIR, file), 'utf8'));
-      return {
-        id: file.replace(/\.mdx?$/, ''),
-        data: {
-          title: String(data.title),
-          tags: (data.tags ?? []) as string[],
-        },
-      };
-    });
-  const byId = new Map<string, Searchable>();
-  for (const lang of LANGS) {
-    const [experiences, projects, skills] = await Promise.all([
-      getWorkExperience({ lang }),
-      getProjects({ lang }),
-      getSkills({ lang }),
-    ]);
-    for (const record of buildPaletteRecords({
-      experiences,
-      projects,
-      skills,
-      posts,
-    }))
-      byId.set(record.id, record);
-  }
-  return [...byId.values()];
 }
 
 async function askForTerms(record: Searchable): Promise<string[]> {
@@ -134,14 +87,15 @@ async function askForTerms(record: Searchable): Promise<string[]> {
 
 function readExisting(): ExpansionFile['records'] {
   try {
-    return (JSON.parse(readFileSync(OUTPUT, 'utf8')) as ExpansionFile).records;
+    return (JSON.parse(readFileSync(EXPANSIONS_PATH, 'utf8')) as ExpansionFile)
+      .records;
   } catch {
     return {};
   }
 }
 
 await assertReachable();
-const records = await loadRecords();
+const records = await loadPaletteRecords();
 const { keep, pending } = planExpansion(records, readExisting());
 console.log(
   `${records.length} records, ${pending.length} to expand, ${records.length - pending.length} unchanged`,
@@ -155,6 +109,6 @@ for (const record of pending) {
 }
 
 writeFileSync(
-  OUTPUT,
+  EXPANSIONS_PATH,
   serializeExpansions({ model: OLLAMA_MODEL as string, records: next }),
 );

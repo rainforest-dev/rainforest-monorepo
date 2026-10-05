@@ -53,6 +53,11 @@ describe('scoreMatch', () => {
     expect(expanded).toBeLessThan(scoreMatch('auth', 'OpenCGT', ['auth0']));
   });
 
+  it('ignores expanded terms for a one-character query', () => {
+    expect(scoreMatch('f', 'OpenCGT', [], ['frontend'])).toBe(0);
+    expect(scoreMatch('fr', 'OpenCGT', [], ['frontend'])).toBeGreaterThan(0);
+  });
+
   it('scores an empty expanded list exactly as before', () => {
     expect(scoreMatch('rust', 'OpenCGT', ['auth0'], [])).toBe(0);
     expect(scoreMatch('auth0', 'OpenCGT', ['auth0'], [])).toBe(

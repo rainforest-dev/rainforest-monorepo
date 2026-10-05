@@ -29,7 +29,8 @@ export function scoreMatch(
   if (t.includes(q)) return 50;
   if (keywords.some((k) => k.toLowerCase() === q)) return 30;
   if (keywords.some((k) => k.toLowerCase().includes(q))) return 15;
-  if (expanded.some((k) => k.toLowerCase().includes(q))) return 5;
+  if (q.length >= 2 && expanded.some((k) => k.toLowerCase().includes(q)))
+    return 5;
   return 0;
 }
 
