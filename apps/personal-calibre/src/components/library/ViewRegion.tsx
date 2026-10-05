@@ -42,7 +42,12 @@ export function ViewRegion({ library, groupBy, platforms, filtered }: Props) {
         <EmptyResult filtered={filtered} />
       ) : view === 'study' ? (
         isStudyGroupBy(groupBy) ? (
-          <StudyView entries={entries} groupBy={groupBy} page={page} />
+          <StudyView
+            entries={entries}
+            groupBy={groupBy}
+            page={page}
+            nextPageCoverIds={library.nextPageCoverIds}
+          />
         ) : (
           <StudySkeleton />
         )

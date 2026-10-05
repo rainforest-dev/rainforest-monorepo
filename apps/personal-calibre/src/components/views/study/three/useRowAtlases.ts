@@ -28,7 +28,9 @@ const IDLE_SLACK_MS = 4;
 
 type IdleHandle = { cancel: () => void };
 
-function whenIdle(callback: (deadline: IdleDeadline) => void): IdleHandle {
+export function whenIdle(
+  callback: (deadline: IdleDeadline) => void,
+): IdleHandle {
   if (typeof window.requestIdleCallback === 'function') {
     const id = window.requestIdleCallback(callback, {
       timeout: IDLE_TIMEOUT_MS,

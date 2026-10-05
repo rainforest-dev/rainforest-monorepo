@@ -28,6 +28,7 @@ import {
   pickAtlasPpu,
   REPORTED_TARGET_BUFFERS,
   rowsInView,
+  type ScreenRect,
   type StudyBackend,
   type StudyLayout,
   studyNavItems,
@@ -36,10 +37,19 @@ import {
 } from '@/lib';
 
 import type { RowAtlas } from './atlas';
+import { type CoverCache, createCoverCache } from './covers';
+import { FocusOverlay } from './FocusOverlay';
 import type { KitCanvasProps, StudyGl, StudyKit } from './kit';
 import { publishProbe, type StudyProbe } from './probe';
-import { type BookProjector, Scene, type SceneProps } from './Scene';
+import {
+  type BookProjector,
+  type ProjectedLabel,
+  Scene,
+  type SceneProps,
+} from './Scene';
+import { type LabelsSink, ShelfLabels } from './ShelfLabels';
 import { useTokens } from './tokens';
+import { useCoverPrewarm } from './useCoverPrewarm';
 import { useRowAtlases } from './useRowAtlases';
 
 type ThreeBackend = Exclude<StudyBackend, 'css'>;
@@ -49,12 +59,14 @@ export interface ThreeStudyProps extends StudyRendererProps {
   onBackend: (backend: ThreeBackend) => void;
   onStartFailed: (error: unknown) => void;
   onNavItems: (items: readonly NavItem[]) => void;
+  nextPageCoverIds: readonly number[];
 }
 
 const CAMERA = { fov: 30, near: 0.1, far: 200 };
 const DPR: [number, number] = [1, 2];
 // fiber sets PCFSoftShadowMap for boolean `shadows`, which WebGPURenderer warns about on every render.
 const SHADOWS = { enabled: false, type: PCFShadowMap };
+const RENDER_SAMPLES = 500;
 
 function atlasInfo({
   pick,
@@ -124,14 +136,18 @@ interface AtlasSceneProps extends Omit<SceneProps, 'atlases'> {
   layoutKey: string;
   visibleRows: readonly number[];
   pick: AtlasPick;
+  nextPageCoverIds: readonly number[];
   onAtlases: (report: AtlasReport) => void;
+  onPrewarmed: () => void;
 }
 
 function AtlasScene({
   layoutKey,
   visibleRows,
   pick,
+  nextPageCoverIds,
   onAtlases,
+  onPrewarmed,
   ...scene
 }: AtlasSceneProps) {
   const maxAnisotropy = useThree((state) =>
@@ -148,6 +164,14 @@ function AtlasScene({
   useEffect(() => {
     onAtlases({ atlases, at: performance.now() });
   }, [atlases, onAtlases]);
+  useCoverPrewarm({
+    layout: scene.layout,
+    focusId: scene.focusId,
+    covers: scene.covers,
+    kit: scene.kit,
+    nextPageCoverIds,
+    onPrewarmed,
+  });
   return <Scene {...scene} atlases={atlases} />;
 }
 
@@ -182,6 +206,7 @@ export default function ThreeStudy({
   onBackend,
   onStartFailed,
   onNavItems,
+  nextPageCoverIds,
 }: ThreeStudyProps) {
   const debug = isDebug(useSearchParams());
   const desktop = useIsDesktop();
@@ -196,6 +221,22 @@ export default function ThreeStudy({
   const gl = useRef<StudyGl | null>(null);
   const kitRef = useRef<StudyKit | null>(null);
   const lastFrame = useRef({ drawCalls: 0, triangles: 0 });
+  const overlay = useRef<HTMLDivElement>(null);
+  const labelsSink = useRef<LabelsSink | null>(null);
+  const [covers, setCovers] = useState<CoverCache | null>(null);
+  const coversRef = useRef(covers);
+  coversRef.current = covers;
+  useEffect(() => {
+    if (!tokens) return;
+    const cache = createCoverCache(tokens, {
+      upload: (texture) => {
+        const renderer = gl.current;
+        if (renderer?.hasInitialized()) renderer.initTexture(texture);
+      },
+    });
+    setCovers(cache);
+    return () => cache.dispose();
+  }, [tokens, model.key]);
   const atlasState = useRef<{
     pick: AtlasPick | null;
     estimated: number;
@@ -210,6 +251,8 @@ export default function ThreeStudy({
     firstRenderMs: null,
     pulledId: null,
     camera: null,
+    prewarmedAt: null,
+    renderMs: [],
     projectBook: (bookId) => projector.current?.(bookId) ?? null,
     info: () => {
       const renderer = gl.current;
@@ -222,7 +265,7 @@ export default function ThreeStudy({
         texturesSizeReported: renderer?.info.memory.texturesSize ?? 0,
         programs: renderer && loaded ? loaded.programsOf(renderer) : 0,
         ...atlasInfo(atlasState.current),
-        coversCached: 0,
+        coversCached: coversRef.current?.size() ?? 0,
         dpr: renderer?.getPixelRatio() ?? window.devicePixelRatio,
       };
     },
@@ -311,7 +354,7 @@ export default function ThreeStudy({
     (bookId: number) => {
       containerRef.current
         ?.querySelector<HTMLElement>(`[data-book-id="${bookId}"]`)
-        ?.focus({ preventScroll: true });
+        ?.focus({ preventScroll: true, focusVisible: false });
     },
     [containerRef],
   );
@@ -321,6 +364,25 @@ export default function ThreeStudy({
   }, []);
   const onCamera = useCallback((state: CameraState) => {
     probe.current.camera = state;
+  }, []);
+
+  const onFocusRect = useCallback((rect: ScreenRect | null) => {
+    const element = overlay.current;
+    if (!element) return;
+    if (!rect) {
+      element.style.display = 'none';
+      return;
+    }
+    element.style.display = '';
+    element.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
+    element.style.width = `${rect.width}px`;
+    element.style.height = `${rect.height}px`;
+  }, []);
+  const onLabels = useCallback((labels: readonly ProjectedLabel[]) => {
+    labelsSink.current?.(labels);
+  }, []);
+  const onPrewarmed = useCallback(() => {
+    probe.current.prewarmedAt = performance.now();
   }, []);
 
   const createGl = useCallback(
@@ -347,6 +409,8 @@ export default function ThreeStudy({
       if (!kit || !gl.current) return;
       const { drawCalls, triangles } = gl.current.info.render;
       lastFrame.current = { drawCalls, triangles };
+      current.renderMs.push(end - start);
+      if (current.renderMs.length > RENDER_SAMPLES) current.renderMs.shift();
       if (current.firstFrameAt !== null) return;
       current.firstFrameAt = end;
       current.firstRenderMs = end - start;
@@ -366,7 +430,7 @@ export default function ThreeStudy({
       data-pulled-id={pulledId ?? ''}
       className="bg-muted relative h-[min(70dvh,640px)] overflow-hidden rounded-lg lg:h-[min(78dvh,760px)]"
     >
-      {kit && layout && tokens && pick && (
+      {kit && layout && tokens && pick && covers && (
         <Canvas
           ref={(canvas) => {
             if (canvas && probe.current.canvasMountAt === 0) {
@@ -386,7 +450,12 @@ export default function ThreeStudy({
             layoutKey={`${model.key}:${layout.width}`}
             visibleRows={visibleRows}
             pick={pick}
+            nextPageCoverIds={nextPageCoverIds}
             onAtlases={onAtlases}
+            onPrewarmed={onPrewarmed}
+            covers={covers}
+            onFocusRect={onFocusRect}
+            onLabels={onLabels}
             layout={layout}
             tokens={tokens}
             kit={kit}
@@ -401,6 +470,8 @@ export default function ThreeStudy({
           />
         </Canvas>
       )}
+      <ShelfLabels sinkRef={labelsSink} />
+      <FocusOverlay ref={overlay} listboxRef={containerRef} />
     </div>
   );
 }

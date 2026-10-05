@@ -1,7 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoViolations } from './support/axe';
-import { readPrefs, setPrefs } from './support/library';
+import { readPrefs, setPrefs, tokenColor } from './support/library';
+import { COVER_IDS } from './support/seed';
 import {
   canvasWrap,
   collectConsole,
@@ -423,6 +424,7 @@ test.describe('Study three-tsl scene', () => {
 
 interface AtlasInfo {
   textures: number;
+  coversCached: number;
   texturesSizeReported: number;
   atlasPpu: number | null;
   atlasFits: boolean | null;
@@ -507,7 +509,7 @@ test.describe('Study three-tsl atlas', () => {
 
     await studyOptions(page).first().focus();
     const first = await allAtlases(page);
-    const others = first.textures - first.atlasRows;
+    const others = first.textures - first.atlasRows - first.coversCached;
     for (const [key, want] of [
       [']', 'page=2'],
       [']', 'page=3'],
@@ -520,9 +522,265 @@ test.describe('Study three-tsl atlas', () => {
       await expect
         .poll(async () => {
           const info = await atlasInfo(page);
-          return info ? info.textures - info.atlasRows : -1;
+          return info ? info.textures - info.atlasRows - info.coversCached : -1;
         })
         .toBe(others);
     }
+  });
+});
+
+type CoverProbeWindow = Window & {
+  __calibreStudy?: {
+    prewarmedAt: number | null;
+    renderMs: number[];
+    info: () => { coversCached: number };
+  };
+};
+
+const coverRequests = (page: Page): (() => number[]) => {
+  const ids: number[] = [];
+  page.on('request', (request) => {
+    const match = /\/api\/books\/(\d+)\/cover$/.exec(
+      new URL(request.url()).pathname,
+    );
+    if (match && request.method() === 'GET') ids.push(Number(match[1]));
+  });
+  return () => [...ids];
+};
+
+const prewarmed = (page: Page) =>
+  expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            (window as CoverProbeWindow).__calibreStudy?.prewarmedAt ?? null,
+        ),
+      { timeout: 10_000 },
+    )
+    .not.toBeNull();
+
+const coversCached = (page: Page) =>
+  page.evaluate(
+    () =>
+      (window as CoverProbeWindow).__calibreStudy?.info().coversCached ?? -1,
+  );
+
+const overlay = (page: Page) => page.locator('[data-focus-overlay]');
+
+async function expectOverlayInCanvas(page: Page): Promise<void> {
+  await expect(overlay(page)).toBeVisible();
+  const box = await overlay(page).boundingBox();
+  const canvas = await canvasWrap(page).boundingBox();
+  if (!box || !canvas) throw new Error('no overlay or canvas box');
+  expect(box.width).toBeGreaterThan(4);
+  expect(box.height).toBeGreaterThan(4);
+  expect(box.x).toBeGreaterThanOrEqual(canvas.x - 0.5);
+  expect(box.y).toBeGreaterThanOrEqual(canvas.y - 0.5);
+  expect(box.x + box.width).toBeLessThanOrEqual(canvas.x + canvas.width + 0.5);
+  expect(box.y + box.height).toBeLessThanOrEqual(
+    canvas.y + canvas.height + 0.5,
+  );
+}
+
+async function tabIntoListbox(page: Page): Promise<void> {
+  for (let i = 0; i < 40; i++) {
+    await page.keyboard.press('Tab');
+    const role = await page.evaluate(() =>
+      document.activeElement?.getAttribute('role'),
+    );
+    if (role === 'option') return;
+  }
+  throw new Error('Tab never reached the listbox');
+}
+
+test.describe('Study three-tsl overlay and headings', () => {
+  test('the focus overlay is visible and inside the canvas', async ({
+    page,
+  }) => {
+    const run = projectRun();
+    await prepare(page, run);
+    const messages = collectConsole(page);
+    await gotoStudy(page, run, 'debug=1');
+
+    await expect(overlay(page)).toBeHidden();
+    await tabIntoListbox(page);
+    await expectOverlayInCanvas(page);
+    const before = await overlay(page).boundingBox();
+
+    await page.keyboard.press('ArrowDown');
+    await settledCamera(page);
+    await expectOverlayInCanvas(page);
+    await expect
+      .poll(async () => (await overlay(page).boundingBox())?.y)
+      .not.toBe(before?.y);
+
+    const ids = await optionIds(page);
+    const id = ids[2];
+    if (id === undefined) throw new Error('no third book');
+    const [rect] = await projectBooks(page, [id]);
+    if (!rect) throw new Error('the probe projects no rect');
+    await page.mouse.click(
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2,
+    );
+    await expect(
+      studyOptions(page).and(page.locator(`[data-book-id="${id}"]`)),
+    ).toBeFocused();
+    await expect(overlay(page)).toBeHidden();
+    expect(messages()).toEqual([]);
+  });
+
+  test('the overlay outline is foreground', async ({ page }) => {
+    const run = projectRun();
+    await prepare(page, run);
+    await gotoStudy(page, run);
+
+    await tabIntoListbox(page);
+    await expect(overlay(page)).toBeVisible();
+    const foreground = await tokenColor(page, '--foreground');
+    const style = await overlay(page).evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        color: computed.outlineColor,
+        width: computed.outlineWidth,
+        bar: getComputedStyle(element.firstElementChild as Element)
+          .backgroundColor,
+      };
+    });
+    expect(style.color).toBe(foreground);
+    expect(Number.parseFloat(style.width)).toBeGreaterThanOrEqual(2);
+    expect(style.bar).toBe(foreground);
+  });
+
+  test('shelf headings show labels and counts', async ({ page }) => {
+    const run = projectRun();
+    await prepare(page, run);
+    await gotoStudy(page, run, 'debug=1');
+
+    const labels = page.locator('[data-shelf-labels]');
+    await expect(labels).toHaveAttribute('aria-hidden', 'true');
+    const northbound = labels
+      .locator('[data-shelf-label]')
+      .filter({ hasText: /^Northbound/ })
+      .first();
+    await expect(northbound).toBeVisible();
+    await expect(northbound).toContainText('20 books');
+    const canvas = await canvasWrap(page).boundingBox();
+    const box = await northbound.boundingBox();
+    if (!canvas || !box) throw new Error('no label box');
+    expect(box.y).toBeGreaterThanOrEqual(canvas.y);
+    expect(box.y).toBeLessThan(canvas.y + canvas.height);
+
+    await gotoStudy(page, run, 'debug=1&page=2');
+    const first = labels.locator('[data-shelf-label]').first();
+    await expect(first).toContainText('(continued)');
+    await expect(first.locator('span').first()).toHaveClass(
+      /text-muted-foreground/,
+    );
+  });
+});
+
+test.describe('Study three-tsl covers', () => {
+  test('the pulled book shows the fixture cover', async ({ page }) => {
+    const run = projectRun();
+    await prepare(page, run);
+    const requests = coverRequests(page);
+    const messages = collectConsole(page);
+    await gotoStudy(page, run, 'debug=1');
+    await prewarmed(page);
+
+    const covered = COVER_IDS[0];
+    if (covered === undefined) throw new Error('no fixture cover');
+    await page.locator(`[role="option"][data-book-id="${covered}"]`).focus();
+    await expect(canvasWrap(page)).toHaveAttribute(
+      'data-pulled-id',
+      `${covered}`,
+    );
+    await expect.poll(() => coversCached(page)).toBeGreaterThanOrEqual(1);
+    expect(requests()).toContain(covered);
+
+    const plain = (await optionIds(page)).find((id) => !COVER_IDS.includes(id));
+    if (plain === undefined) throw new Error('no book without a cover');
+    await page.locator(`[role="option"][data-book-id="${plain}"]`).focus();
+    await expect(canvasWrap(page)).toHaveAttribute(
+      'data-pulled-id',
+      `${plain}`,
+    );
+    await expect.poll(() => coversCached(page)).toBeGreaterThanOrEqual(2);
+    expect(requests()).not.toContain(plain);
+    expect(requests().every((id) => COVER_IDS.includes(id))).toBe(true);
+    expect(messages()).toEqual([]);
+  });
+
+  test("the next page's covers are prefetched", async ({ page, browser }) => {
+    const run = projectRun();
+    const idsOn = async (pageNumber: number) => {
+      const context = await browser.newContext();
+      const probe = await context.newPage();
+      await probe.goto(
+        `/?view=study&groupBy=series&renderer=css&page=${pageNumber}`,
+      );
+      await expect(probe.locator('[data-study-ready]')).toHaveCount(1);
+      const ids = await studyOptions(probe).evaluateAll((elements) =>
+        elements.map((element) =>
+          Number((element as HTMLElement).dataset['bookId']),
+        ),
+      );
+      await context.close();
+      return ids;
+    };
+    const next = await idsOn(2);
+    const nextCovered = next.filter((id) => COVER_IDS.includes(id));
+    expect(nextCovered.length).toBeGreaterThan(0);
+    const lastPage = await idsOn(3);
+
+    await prepare(page, run);
+    const requests = coverRequests(page);
+    await gotoStudy(page, run, 'debug=1');
+    await prewarmed(page);
+    await expect
+      .poll(() => nextCovered.filter((id) => !requests().includes(id)))
+      .toEqual([]);
+    const uncovered = next.filter((id) => !COVER_IDS.includes(id));
+    expect(requests().filter((id) => uncovered.includes(id))).toEqual([]);
+
+    const onLast = coverRequests(page);
+    await gotoStudy(page, run, 'debug=1&page=3');
+    await prewarmed(page);
+    await page.waitForTimeout(1_000);
+    expect(onLast().filter((id) => !lastPage.includes(id))).toEqual([]);
+  });
+
+  test('the first pull after prewarm has no render spike', async ({ page }) => {
+    const run = projectRun();
+    await prepare(page, run);
+    await gotoStudy(page, run, 'debug=1');
+    await prewarmed(page);
+
+    await studyOptions(page).first().focus();
+    await expect(canvasWrap(page)).not.toHaveAttribute('data-pulled-id', '');
+    await page.evaluate(() => {
+      const study = (window as CoverProbeWindow).__calibreStudy;
+      if (study) study.renderMs.length = 0;
+    });
+    for (let pull = 0; pull < 5; pull++) {
+      const before = await activeBookId(page);
+      await page.keyboard.press('ArrowRight');
+      const after = await activeBookId(page);
+      expect(after).not.toBe(before);
+      await expect(canvasWrap(page)).toHaveAttribute(
+        'data-pulled-id',
+        after ?? '',
+      );
+      await page.waitForTimeout(400);
+    }
+    const max = await page.evaluate(() =>
+      Math.max(
+        ...((window as CoverProbeWindow).__calibreStudy?.renderMs ?? []),
+      ),
+    );
+    console.log(`[prewarm] ${run.backend} max render ${max.toFixed(1)} ms`);
+    if (run.backend === 'webgpu') expect(max).toBeLessThanOrEqual(25);
   });
 });

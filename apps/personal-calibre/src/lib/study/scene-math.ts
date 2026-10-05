@@ -20,6 +20,7 @@ export interface ScreenRect {
 }
 
 export type NdcPoint = readonly [number, number];
+export type Vec3 = readonly [number, number, number];
 
 function caseBottom(layout: StudyLayout): number {
   return layout.boards.reduce(
@@ -81,6 +82,34 @@ export function screenRectOf(
     top = Math.min(top, sy);
     bottom = Math.max(bottom, sy);
   }
+  return { left, top, width: right - left, height: bottom - top };
+}
+
+const at = (m: ArrayLike<number>, i: number) => m[i] ?? 0;
+
+export function projectBox(
+  corners: readonly Vec3[],
+  viewProjection: ArrayLike<number>,
+  viewport: { width: number; height: number },
+): ScreenRect | null {
+  if (corners.length === 0) return null;
+  const m = viewProjection;
+  const points: NdcPoint[] = [];
+  for (const [x, y, z] of corners) {
+    const w = at(m, 3) * x + at(m, 7) * y + at(m, 11) * z + at(m, 15);
+    if (w <= 1e-6) return null;
+    points.push([
+      (at(m, 0) * x + at(m, 4) * y + at(m, 8) * z + at(m, 12)) / w,
+      (at(m, 1) * x + at(m, 5) * y + at(m, 9) * z + at(m, 13)) / w,
+    ]);
+  }
+  const rect = screenRectOf(points, { left: 0, top: 0, ...viewport });
+  if (!rect) return null;
+  const left = Math.max(rect.left, 0);
+  const top = Math.max(rect.top, 0);
+  const right = Math.min(rect.left + rect.width, viewport.width);
+  const bottom = Math.min(rect.top + rect.height, viewport.height);
+  if (right <= left || bottom <= top) return null;
   return { left, top, width: right - left, height: bottom - top };
 }
 

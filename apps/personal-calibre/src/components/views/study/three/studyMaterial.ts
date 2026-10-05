@@ -1,4 +1,4 @@
-import { Color, Texture } from 'three';
+import { Color, SRGBColorSpace, Texture } from 'three';
 import {
   attribute,
   dot,
@@ -25,14 +25,20 @@ import {
 const SELECTION_MIX = 0.22;
 const HIGHLIGHT_MIX = 0.45;
 
+function placeholderTexture(): Texture {
+  const texture = new Texture();
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+
 const light = () =>
   float(0.62).add(
     float(0.38).mul(max(dot(normalWorld, normalize(vec3(0.3, 0.5, 1))), 0)),
   );
 
 export function createStudyMaterials(): StudyMaterials {
-  const placeholder = new Texture();
-  const spinePlaceholder = new Texture();
+  const placeholder = placeholderTexture();
+  const spinePlaceholder = placeholderTexture();
 
   const spine = (): SpineMaterial => {
     const rect = attribute(SPINE_ATTRIBUTES.rect, 'vec4');

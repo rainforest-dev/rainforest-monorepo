@@ -8,6 +8,8 @@ export interface StudyProbe {
   firstRenderMs: number | null;
   pulledId: number | null;
   camera: CameraState | null;
+  prewarmedAt: number | null;
+  renderMs: number[];
   info: () => StudyProbeInfo;
   projectBook: (bookId: number) => ScreenRect | null;
 }
