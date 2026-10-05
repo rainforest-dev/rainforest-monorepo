@@ -1,3 +1,5 @@
+import type { CameraState, ScreenRect } from '@/lib';
+
 export interface StudyProbe {
   canvasMountAt: number;
   kitLoadMs: number;
@@ -5,7 +7,9 @@ export interface StudyProbe {
   firstFrameAt: number | null;
   firstRenderMs: number | null;
   pulledId: number | null;
+  camera: CameraState | null;
   info: () => StudyProbeInfo;
+  projectBook: (bookId: number) => ScreenRect | null;
 }
 
 export interface StudyProbeInfo {
