@@ -46,6 +46,24 @@ describe('scoreMatch', () => {
   it('returns 0 when nothing matches', () => {
     expect(scoreMatch('rust', 'OpenCGT', ['auth0'])).toBe(0);
   });
+
+  it('scores an expanded-term hit above 0 and below a keyword substring hit', () => {
+    const expanded = scoreMatch('frontend', 'OpenCGT', ['auth0'], ['frontend']);
+    expect(expanded).toBeGreaterThan(0);
+    expect(expanded).toBeLessThan(scoreMatch('auth', 'OpenCGT', ['auth0']));
+  });
+
+  it('ignores expanded terms for a one-character query', () => {
+    expect(scoreMatch('f', 'OpenCGT', [], ['frontend'])).toBe(0);
+    expect(scoreMatch('fr', 'OpenCGT', [], ['frontend'])).toBeGreaterThan(0);
+  });
+
+  it('scores an empty expanded list exactly as before', () => {
+    expect(scoreMatch('rust', 'OpenCGT', ['auth0'], [])).toBe(0);
+    expect(scoreMatch('auth0', 'OpenCGT', ['auth0'], [])).toBe(
+      scoreMatch('auth0', 'OpenCGT', ['auth0']),
+    );
+  });
 });
 
 describe('searchRecords', () => {
@@ -56,6 +74,24 @@ describe('searchRecords', () => {
 
   it('returns everything for an empty query, so the palette opens populated', () => {
     expect(searchRecords('', RECORDS)).toHaveLength(RECORDS.length);
+  });
+
+  it('finds a record that matches only through an expanded term', () => {
+    const records = [{ ...RECORDS[0], expanded: ['前端'] }, RECORDS[1]];
+    expect(searchRecords('前端', records).map((h) => h.id)).toEqual([
+      'p/opencgt',
+    ]);
+  });
+
+  it('ranks a direct keyword hit above an expansion-only hit', () => {
+    const records = [
+      { ...RECORDS[0], keywords: [], expanded: ['nextjs'] },
+      { ...RECORDS[1], keywords: ['nextjs'] },
+    ];
+    expect(searchRecords('nextjs', records).map((h) => h.id)).toEqual([
+      'p/dex',
+      'p/opencgt',
+    ]);
   });
 
   it('is stable for equal scores', () => {
