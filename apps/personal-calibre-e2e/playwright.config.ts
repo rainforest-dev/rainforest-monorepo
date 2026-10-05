@@ -8,6 +8,22 @@ import { APP_DB_PATH, FIXTURES_DIR } from './src/support/seed';
 const PORT = 3333;
 const externalServer = process.env['BASE_URL'];
 const baseURL = externalServer ?? `http://localhost:${PORT}`;
+const webGpuProjects =
+  process.env['CALIBRE_WEBGPU'] === '1'
+    ? [
+        {
+          name: 'study-webgpu',
+          use: {
+            ...devices['Desktop Chrome'],
+            headless: false,
+            launchOptions: {
+              args: ['--enable-unsafe-webgpu', '--ignore-gpu-blocklist'],
+            },
+          },
+          testMatch: /\/study(-three|-parity)?\.spec\.ts$/,
+        },
+      ]
+    : [];
 
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
@@ -33,8 +49,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-      testIgnore: /\.phone\.spec\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: { args: ['--enable-unsafe-swiftshader'] },
+      },
+      testIgnore: [
+        /\.phone\.spec\.ts$/,
+        /\.no-webgl\.spec\.ts$/,
+        /\/study-parity\.spec\.ts$/,
+      ],
     },
     {
       name: 'phone',
@@ -47,5 +70,14 @@ export default defineConfig({
       },
       testMatch: /\.phone\.spec\.ts$/,
     },
+    {
+      name: 'no-webgl',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: { args: ['--disable-webgl', '--disable-webgl2'] },
+      },
+      testMatch: /\.no-webgl\.spec\.ts$/,
+    },
+    ...webGpuProjects,
   ],
 });

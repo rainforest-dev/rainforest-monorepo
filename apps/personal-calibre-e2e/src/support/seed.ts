@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 
 import Database from 'better-sqlite3';
 
@@ -248,6 +249,12 @@ export function libraryFor(size: FixtureSize): SeedBook[] {
 
 export const BOOKS = libraryFor(fixtureSize());
 
+export const hasCover = (id: number): boolean => id % 10 === 7;
+
+export const COVER_IDS: readonly number[] = BOOKS.filter((b) =>
+  hasCover(b.id),
+).map((b) => b.id);
+
 export function bookById(id: number): SeedBook {
   const book = BOOKS.find((b) => b.id === id);
   if (!book) throw new Error(`No fixture book ${id}`);
@@ -305,7 +312,7 @@ function seedCalibre(books: SeedBook[]): void {
       run(
         `INSERT INTO books (id, title, sort, timestamp, pubdate, series_index,
            author_sort, path, has_cover, uuid, last_modified)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         books.map((b) => [
           b.id,
           b.title,
@@ -317,6 +324,7 @@ function seedCalibre(books: SeedBook[]): void {
             .map((id) => AUTHORS.find((a) => a.id === id)?.sort ?? '')
             .join(' & '),
           bookDir(b.id),
+          hasCover(b.id) ? 1 : 0,
           `fixture-${b.id}`,
           stamp,
         ]),
@@ -366,6 +374,77 @@ function seedCalibre(books: SeedBook[]): void {
   }
 }
 
+type Rgb = readonly [number, number, number];
+
+const COVER_COLOURS: ReadonlyArray<readonly [Rgb, Rgb]> = [
+  [
+    [46, 74, 98],
+    [214, 168, 92],
+  ],
+  [
+    [120, 52, 58],
+    [232, 214, 190],
+  ],
+  [
+    [58, 96, 70],
+    [196, 206, 160],
+  ],
+  [
+    [84, 70, 120],
+    [236, 196, 132],
+  ],
+  [
+    [176, 98, 60],
+    [44, 52, 66],
+  ],
+];
+
+const COVER_WIDTH = 256;
+const COVER_HEIGHT = 384;
+
+function pngChunk(type: string, data: Buffer): Buffer {
+  const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(zlib.crc32(body));
+  return Buffer.concat([length, body, crc]);
+}
+
+export function blockPng(
+  width: number,
+  height: number,
+  blocks: readonly Rgb[],
+): Buffer {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header.set([8, 2, 0, 0, 0], 8);
+  const stride = width * 3 + 1;
+  const pixels = Buffer.alloc(stride * height);
+  for (let y = 0; y < height; y++) {
+    const [r, g, b] =
+      blocks[
+        Math.min(blocks.length - 1, Math.floor((y * blocks.length) / height))
+      ];
+    for (let x = 0; x < width; x++) {
+      pixels.set([r, g, b], y * stride + 1 + x * 3);
+    }
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk('IHDR', header),
+    pngChunk('IDAT', zlib.deflateSync(pixels)),
+    pngChunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+function coverFor(id: number): Buffer {
+  const [top, bottom] =
+    COVER_COLOURS[Math.floor(id / 10) % COVER_COLOURS.length];
+  return blockPng(COVER_WIDTH, COVER_HEIGHT, [top, top, bottom]);
+}
+
 function writeBookFiles(books: SeedBook[]): void {
   for (const book of books) {
     const dir = path.join(FIXTURES_DIR, bookDir(book.id));
@@ -375,6 +454,9 @@ function writeBookFiles(books: SeedBook[]): void {
         path.join(dir, `${bookDir(book.id)}.${format.toLowerCase()}`),
         `made-up ${format} for fixture book ${book.id}\n`,
       );
+    }
+    if (hasCover(book.id)) {
+      fs.writeFileSync(path.join(dir, 'cover.jpg'), coverFor(book.id));
     }
   }
 }
