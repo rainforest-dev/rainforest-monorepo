@@ -5,7 +5,6 @@ import {
   nextView,
   parsePrefs,
   PREFS_COOKIE,
-  resolveRenderer,
   resolveView,
   serializePrefs,
 } from './prefs';
@@ -75,14 +74,6 @@ describe('resolveView', () => {
     expect(resolveView('study', null, ['shelf', 'catalogue', 'study'])).toBe(
       'study',
     );
-  });
-});
-
-describe('resolveRenderer', () => {
-  it('lets ?renderer= override the cookie', () => {
-    expect(resolveRenderer('three-tsl', 'css')).toBe('css');
-    expect(resolveRenderer('css', null)).toBe('css');
-    expect(resolveRenderer('three-glsl', 'bogus')).toBe('three-glsl');
   });
 });
 

@@ -72,13 +72,6 @@ export function resolveView(
   return enabled[0] ?? 'shelf';
 }
 
-export function resolveRenderer(
-  prefRenderer: Renderer,
-  param: string | null,
-): Renderer {
-  return RENDERERS.find((r) => r === param) ?? prefRenderer;
-}
-
 export function nextView(
   view: View,
   enabled: readonly View[] = ENABLED_VIEWS,
