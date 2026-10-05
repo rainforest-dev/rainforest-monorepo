@@ -31,6 +31,15 @@ function subscribeScheme(onChange: () => void) {
 
 export type ToasterProps = SonnerProps;
 
+type RichType = 'success' | 'info' | 'warning' | 'error';
+type Tone = 'success' | 'info' | 'warning' | 'destructive';
+
+const richColors = (type: RichType, tone: Tone) => ({
+  [`--${type}-bg`]: `color-mix(in oklab, var(--${tone}) 12%, var(--popover))`,
+  [`--${type}-border`]: `color-mix(in oklab, var(--${tone}) 40%, var(--popover))`,
+  [`--${type}-text`]: `var(--${tone})`,
+});
+
 /** Mount once per app to show `toast()` messages. Follows `data-scheme` on `<html>`, else the OS. */
 export function Toaster({ theme, ...props }: ToasterProps) {
   const scheme = useSyncExternalStore(
@@ -56,6 +65,10 @@ export function Toaster({ theme, ...props }: ToasterProps) {
           '--normal-text': 'var(--popover-foreground)',
           '--normal-border': 'var(--border)',
           '--border-radius': 'var(--radius)',
+          ...richColors('success', 'success'),
+          ...richColors('info', 'info'),
+          ...richColors('warning', 'warning'),
+          ...richColors('error', 'destructive'),
         } as React.CSSProperties
       }
       {...props}
