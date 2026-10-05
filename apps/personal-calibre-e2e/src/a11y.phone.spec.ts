@@ -14,6 +14,15 @@ test.describe('accessibility on phone', () => {
     await expectNoViolations(page);
   });
 
+  test('the study has no axe violations', async ({ page }) => {
+    await gotoLibrary(page, '/?view=study&groupBy=series');
+    await expectNoViolations(page, {
+      ignore: [
+        { rule: 'scrollable-region-focusable', targetIncludes: '.st-row' },
+      ],
+    });
+  });
+
   test('the filter Sheet has no axe violations', async ({ page }) => {
     await gotoLibrary(page);
     await page.getByRole('button', { name: /^Filters/ }).click();

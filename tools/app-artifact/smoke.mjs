@@ -102,6 +102,7 @@ const APPS = {
         checks: [
           { path: '/' },
           { path: '/books/1' },
+          { path: '/?view=study&groupBy=series' },
           { path: '/api/books', type: 'application/json' },
         ],
       };

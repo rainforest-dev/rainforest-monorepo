@@ -12,8 +12,16 @@ import {
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
-import { GROUP_BYS, parseLibraryParams, SORT_BYS, type SortBy } from '@/lib';
+import {
+  GROUP_BYS,
+  parseLibraryParams,
+  SORT_BYS,
+  type SortBy,
+  STUDY_GROUP_BYS,
+} from '@/lib';
 import { useLibrary } from '@/providers';
+
+const STUDY_GROUP_VALUES: readonly string[] = STUDY_GROUP_BYS;
 
 const GROUP_ITEMS = [
   { value: 'none', label: 'None' },
@@ -32,10 +40,14 @@ const SORT_ITEMS: Array<{ value: SortBy; label: string }> = [
 
 export function GroupSelect({ className }: { className?: string }) {
   const params = parseLibraryParams(useSearchParams());
-  const { replaceParams } = useLibrary();
+  const { replaceParams, view } = useLibrary();
+  const items =
+    view === 'study'
+      ? GROUP_ITEMS.filter((item) => STUDY_GROUP_VALUES.includes(item.value))
+      : GROUP_ITEMS;
   return (
     <Select
-      items={GROUP_ITEMS}
+      items={items}
       value={params.groupBy ?? 'none'}
       onValueChange={(value) => {
         const next = GROUP_BYS.find((g) => g === value) ?? null;
@@ -47,7 +59,7 @@ export function GroupSelect({ className }: { className?: string }) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {GROUP_ITEMS.map((item) => (
+        {items.map((item) => (
           <SelectItem key={item.value} value={item.value}>
             {item.label}
           </SelectItem>

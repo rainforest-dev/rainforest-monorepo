@@ -68,23 +68,25 @@ describe('resolveView', () => {
     expect(resolveView('catalogue', 'nope')).toBe('catalogue');
   });
 
-  it('falls back when a view is not enabled yet', () => {
-    expect(resolveView('study', null)).toBe('shelf');
-    expect(resolveView('catalogue', 'study')).toBe('catalogue');
-    expect(resolveView('study', null, ['shelf', 'catalogue', 'study'])).toBe(
-      'study',
-    );
+  it('resolves Study from the cookie and from ?view=', () => {
+    expect(resolveView('study', null)).toBe('study');
+    expect(resolveView('shelf', 'study')).toBe('study');
+  });
+
+  it('honours a preview view from ?view= only', () => {
+    const enabled = ['shelf', 'catalogue'] as const;
+    expect(resolveView('study', null, enabled, ['study'])).toBe('shelf');
+    expect(resolveView('catalogue', 'study', enabled, ['study'])).toBe('study');
+    expect(resolveView('catalogue', 'study', enabled, [])).toBe('catalogue');
   });
 });
 
 describe('nextView', () => {
   it('cycles the enabled views', () => {
     expect(nextView('shelf')).toBe('catalogue');
-    expect(nextView('catalogue')).toBe('shelf');
-    expect(nextView('catalogue', ['shelf', 'catalogue', 'study'])).toBe(
-      'study',
-    );
-    expect(nextView('study', ['shelf', 'catalogue', 'study'])).toBe('shelf');
+    expect(nextView('catalogue')).toBe('study');
+    expect(nextView('study')).toBe('shelf');
+    expect(nextView('catalogue', ['shelf', 'catalogue'])).toBe('shelf');
   });
 });
 

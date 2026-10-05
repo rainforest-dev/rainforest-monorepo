@@ -2,6 +2,7 @@
 
 import { Skeleton } from '@rainforest-dev/rainforest-react';
 
+import { StudySkeleton } from '@/components/views';
 import { cn } from '@/lib';
 import { useLibrary } from '@/providers';
 
@@ -15,7 +16,9 @@ export function ViewSkeleton() {
       data-skeleton={view}
       className="py-4"
     >
-      {view === 'catalogue' ? (
+      {view === 'study' ? (
+        <StudySkeleton />
+      ) : view === 'catalogue' ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 10 }, (_, i) => (
             <Skeleton

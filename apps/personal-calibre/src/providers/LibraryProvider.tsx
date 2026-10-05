@@ -15,6 +15,7 @@ import {
   addIds,
   buildLibraryHref,
   clearFiltersHref,
+  isStudyGroupBy,
   type ParamPatch,
   parseLibraryParams,
   type Prefs,
@@ -26,7 +27,8 @@ import {
 } from '@/lib';
 
 export type PendingFocus =
-  { kind: 'first'; page: number } | { kind: 'book'; id: number };
+  | { kind: 'first'; page: number }
+  | { kind: 'book'; id: number; orFirst?: true };
 
 export interface PageInfo {
   page: number;
@@ -131,13 +133,29 @@ export function LibraryProvider({
     (next: View) => {
       setViewState(next);
       savePrefs({ view: next });
-      if (searchParams.get('view')) {
+      const staleView = searchParams.get('view') !== null;
+      if (
+        next === 'study' &&
+        !isStudyGroupBy(parseLibraryParams(searchParams).groupBy)
+      ) {
+        replaceParams(
+          staleView ? { groupBy: 'series', view: null } : { groupBy: 'series' },
+        );
+        if (
+          focusId !== null &&
+          document.activeElement?.closest('[data-view-region]')
+        ) {
+          requestFocus({ kind: 'book', id: focusId, orFirst: true });
+        }
+        return;
+      }
+      if (staleView) {
         router.replace(buildLibraryHref(searchParams, { view: null }), {
           scroll: false,
         });
       }
     },
-    [router, savePrefs, searchParams],
+    [focusId, replaceParams, router, savePrefs, searchParams],
   );
 
   const togglePanel = useCallback(

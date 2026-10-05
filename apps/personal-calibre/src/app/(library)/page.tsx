@@ -15,16 +15,20 @@ import {
   FAULT_COOKIE,
   type FilterLabels,
   hasFilters,
+  isStudyGroupBy,
   PAGE_SIZE,
   parseLibraryParams,
   type RawSearchParams,
   readTestHooks,
+  resolveView,
   toLibraryQuery,
+  toSearchParams,
 } from '@/lib';
 import {
   getFilterOptions,
   getLibrary,
   listDeliveryPlatforms,
+  readPrefs,
 } from '@/lib/server';
 
 interface Props {
@@ -44,6 +48,11 @@ async function LibraryContent({ searchParams }: Props) {
   const hooks = readTestHooks(raw, (await cookies()).get(FAULT_COOKIE)?.value);
   await applyTestHooks(hooks, 'list');
   const params = parseLibraryParams(raw);
+  const prefs = await readPrefs();
+  const view = resolveView(prefs.view, toSearchParams(raw).get('view'));
+  if (view === 'study' && !isStudyGroupBy(params.groupBy)) {
+    redirect(buildLibraryHref(raw, { groupBy: 'series' }));
+  }
   const [library, filters, platforms] = await Promise.all([
     getLibrary(toLibraryQuery(params, hooks.pageSize ?? PAGE_SIZE)),
     getFilterOptions(),

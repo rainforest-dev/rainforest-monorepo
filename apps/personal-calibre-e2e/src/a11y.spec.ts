@@ -7,22 +7,29 @@ const panel = (page: Page) => page.locator('#library-filters');
 
 // Roving arrow nav plus scrollIntoView already reach every tile in a group's
 // horizontally-scrolling row, so it needs no tab stop of its own.
-const GROUPED_SHELF_IGNORE: AxeIgnore[] = [
+const SCROLL_ROW_IGNORE: AxeIgnore[] = [
   {
     rule: 'scrollable-region-focusable',
     targetIncludes: 'aria-label="Books —',
   },
+  { rule: 'scrollable-region-focusable', targetIncludes: '.st-row' },
 ];
 
 const PAGES = [
   ['shelf', '/'],
-  ['grouped shelf', '/?groupBy=series', GROUPED_SHELF_IGNORE],
+  ['grouped shelf', '/?groupBy=series', SCROLL_ROW_IGNORE],
   ['catalogue', '/?view=catalogue'],
   ['grouped catalogue', '/?view=catalogue&groupBy=tag'],
   ['shelf with the pane', '/?book=38'],
   ['catalogue with the pane', '/?view=catalogue&book=38'],
   ['permalink', '/books/38'],
   ['empty result', '/?q=zzzz-no-such-book'],
+  ['study', '/?view=study&groupBy=series', SCROLL_ROW_IGNORE],
+  [
+    'study with the pane',
+    '/?view=study&groupBy=series&book=38',
+    SCROLL_ROW_IGNORE,
+  ],
 ] as const satisfies ReadonlyArray<
   readonly [string, string] | readonly [string, string, AxeIgnore[]]
 >;
