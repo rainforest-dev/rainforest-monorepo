@@ -323,6 +323,11 @@ test.describe('queue: stale panel and states', () => {
       'Duplicate of another saved item (1)',
     ]);
     await expect(panel.getByRole('listitem')).toHaveCount(QUEUE.staleCount);
+    const dividers = panel.locator('[data-slot="item-separator"]');
+    await expect(dividers).toHaveCount(QUEUE.staleCount);
+    for (const divider of await dividers.all()) {
+      await expect(divider).toBeHidden();
+    }
     const expired = panel.getByRole('list', {
       name: 'Time-sensitive and past its window (1)',
     });

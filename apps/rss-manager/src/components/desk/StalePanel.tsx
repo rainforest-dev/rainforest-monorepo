@@ -4,8 +4,10 @@ import {
   ItemContent,
   ItemDescription,
   ItemGroup,
+  ItemSeparator,
   ItemTitle,
 } from '@rainforest-dev/rainforest-react';
+import { Fragment } from 'react';
 
 import type { StaleItem } from '@/lib';
 import { groupStale } from '@/lib/desk';
@@ -40,34 +42,32 @@ export function StalePanel({ stale }: { stale: readonly StaleItem[] }) {
             className="gap-0 rounded-lg border"
           >
             {items.map((item) => (
-              <Item
-                key={item.id}
-                role="listitem"
-                size="sm"
-                className="not-last:border-b-border rounded-none"
-              >
-                <ItemContent className="min-w-0">
-                  <ItemTitle className="max-w-full">
-                    <a
-                      href={item.readerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate hover:underline"
-                    >
-                      {item.title}
-                    </a>
-                  </ItemTitle>
-                  <ItemDescription className="line-clamp-1" title={item.why}>
-                    {item.why}
-                  </ItemDescription>
-                </ItemContent>
-                <ItemActions>
-                  <DecayBadge decay={item.decay} />
-                  <span className="text-muted-foreground text-xs tabular-nums">
-                    {item.savedAt}
-                  </span>
-                </ItemActions>
-              </Item>
+              <Fragment key={item.id}>
+                <ItemSeparator />
+                <Item role="listitem" size="sm" className="rounded-none">
+                  <ItemContent className="min-w-0">
+                    <ItemTitle className="max-w-full">
+                      <a
+                        href={item.readerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate hover:underline"
+                      >
+                        {item.title}
+                      </a>
+                    </ItemTitle>
+                    <ItemDescription className="line-clamp-1" title={item.why}>
+                      {item.why}
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <DecayBadge decay={item.decay} />
+                    <span className="text-muted-foreground text-xs tabular-nums">
+                      {item.savedAt}
+                    </span>
+                  </ItemActions>
+                </Item>
+              </Fragment>
             ))}
           </ItemGroup>
         </div>

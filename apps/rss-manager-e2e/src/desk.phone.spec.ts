@@ -23,6 +23,7 @@ import {
   filterSheet,
   gotoPhone,
   hideDevToolbar,
+  itemList,
   openFilterSheet,
   PHONE_HEIGHT,
   queueItems,
@@ -61,6 +62,13 @@ test.describe('Sources on phone', () => {
   }) => {
     await gotoPhone(page);
     await expect(sourceItems(page)).toHaveCount(SOURCES_PAGE_SIZE);
+    const dividers = itemList(page, 'Sources').locator(
+      '[data-slot="item-separator"]',
+    );
+    await expect(dividers).toHaveCount(SOURCES_PAGE_SIZE);
+    await expect(dividers.first()).toBeHidden();
+    await expect(dividers.nth(1)).toBeVisible();
+    await expect(dividers.last()).toBeVisible();
     await expect(page.getByRole('grid')).toHaveCount(0);
     await expect(page.locator('[data-slot="key-hints"]')).toBeHidden();
     await expect(

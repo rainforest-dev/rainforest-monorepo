@@ -13,6 +13,7 @@ import {
   ItemContent,
   ItemDescription,
   ItemGroup,
+  ItemSeparator,
   ItemTitle,
   Popover,
   PopoverContent,
@@ -25,7 +26,7 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useId, useState } from 'react';
+import { Fragment, useId, useState } from 'react';
 
 import {
   formatDeliveryDate,
@@ -71,12 +72,14 @@ export function DeliveryRows({
       </Heading>
       <ItemGroup className="gap-0 rounded-lg border">
         {platforms.map((platform) => (
-          <DeliveryRow
-            key={platform.key}
-            bookId={bookId}
-            platform={platform}
-            latest={latest.get(platform.key) ?? null}
-          />
+          <Fragment key={platform.key}>
+            <ItemSeparator />
+            <DeliveryRow
+              bookId={bookId}
+              platform={platform}
+              latest={latest.get(platform.key) ?? null}
+            />
+          </Fragment>
         ))}
       </ItemGroup>
       {events.length > 0 && (
@@ -144,7 +147,7 @@ function DeliveryRow({
     <Item
       role="listitem"
       data-platform={platform.key}
-      className="not-last:border-b-border rounded-none py-2"
+      className="rounded-none py-2"
     >
       <ItemContent>
         <ItemTitle>
