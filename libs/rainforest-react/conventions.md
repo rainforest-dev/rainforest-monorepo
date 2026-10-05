@@ -129,6 +129,12 @@ The shipped stylesheet includes these, and nothing else beyond what the componen
 - A row of keyboard hints is `KeyHints`, with hints as `{ keys, label }`. It puts every hint's
   keys in a `KbdGroup`, single keys included.
 - List rows with a title, meta and actions are `Item`s inside `ItemGroup`. `ItemGroup` is
-  `role="list"`, so give each `Item` `role="listitem"`; axe reports the list otherwise. For
-  rows stacked inside one bordered box, give the `ItemGroup` `gap-0 rounded-lg border` and each
-  `Item` `not-last:border-b-border rounded-none` to draw the dividers.
+  `role="list"`, so give each `Item` `role="listitem"`; axe reports the list otherwise.
+- Row dividers are `ItemSeparator`s. In a loop, render one before every `Item`, the first
+  included, with no index check: `ItemGroup` hides a separator that is its first or last child,
+  or the first or last child of a wrapper around one row (such as the `display:contents` element
+  a design loop adds), and the second of two adjacent separators. For rows stacked inside one
+  bordered box, give the `ItemGroup` `gap-0 rounded-lg border` and each `Item` `rounded-none`;
+  in a `gap-0` group the separators sit flush on the rows' edge and need no class. Do not draw
+  dividers with `not-last:` or `first:` on the items: a loop wrapper hides the items from each
+  other, so those variants never match.

@@ -24,7 +24,7 @@ Synced with the bundled design-sync skill 2.1.281 (Claude Code 2.1.281), storybo
 The `templates/` in project 4c25a390 are hand-written `.dc.html` files, not converter output, and have no local source. The sync never touches them. On 2026-10-01, calibre-library, rss-manager and personal-memories were redrawn with the #418 components. Traps in the `.dc.html` runtime:
 
 - `class=` on an `<x-import>` replaces the component's own classes instead of merging with them. Use `className=`.
-- `sc-for` wraps each item in a `display:contents` div, so sibling variants (`not-last:`, `first:`) never match across items. Compute per-item classes in the logic, e.g. `border-b-border` on every row but the last.
+- `sc-for` wraps each item in a `display:contents` div, so sibling variants (`not-last:`, `first:`) never match across items. Row dividers are `<ItemSeparator />` before every `Item` inside the loop: `ItemGroup` hides a separator that is the first or last child of a one-row wrapper, so no index logic is needed. For any other per-item difference, compute the class in the logic.
 - The DS global is not reachable from the component logic. A `render` prop gets a plain element carrying `buttonVariants()` classes, read once from the bundle.
 - `componentDidUpdate` is called without `prevProps`; guard before reading `pp.*`.
 - Verify a template by uploading a copy as `_draft-<Name>.dc.html` without its `@template` line, rendering it with `render_preview` plus Playwright, then overwriting the real file and deleting the draft.

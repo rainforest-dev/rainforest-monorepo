@@ -8,6 +8,7 @@ import {
   ItemContent,
   ItemDescription,
   ItemGroup,
+  ItemSeparator,
   ItemTitle,
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ import {
   SelectValue,
 } from '@rainforest-dev/rainforest-react';
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react';
+import { Fragment } from 'react';
 
 import type { QueueItem } from '@/lib';
 import {
@@ -118,36 +120,35 @@ export function QueueList({ items, labelledBy }: QueueListProps) {
       className="gap-0 rounded-lg border lg:hidden"
     >
       {items.map((item) => (
-        <Item
-          key={item.id}
-          role="listitem"
-          className={cn(PHONE_ITEM_CLASS, 'flex-nowrap')}
-        >
-          <span className="text-muted-foreground w-5 shrink-0 self-start text-right text-xs tabular-nums leading-5">
-            <span className="sr-only">Rank </span>
-            {item.rank}
-          </span>
-          <ItemContent className="min-w-0 gap-0.5">
-            <ItemTitle className="max-w-full">
-              <a
-                href={item.readerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary truncate hover:underline"
-              >
-                {item.title}
-              </a>
-            </ItemTitle>
-            <ItemDescription className="line-clamp-1 text-xs">
-              {meta(item)}
-            </ItemDescription>
-          </ItemContent>
-          <ItemActions className="shrink-0 self-start">
-            <Badge variant="muted" title={tierLabel(item.tier)}>
-              T{item.tier}
-            </Badge>
-          </ItemActions>
-        </Item>
+        <Fragment key={item.id}>
+          <ItemSeparator />
+          <Item role="listitem" className={cn(PHONE_ITEM_CLASS, 'flex-nowrap')}>
+            <span className="text-muted-foreground w-5 shrink-0 self-start text-right text-xs tabular-nums leading-5">
+              <span className="sr-only">Rank </span>
+              {item.rank}
+            </span>
+            <ItemContent className="min-w-0 gap-0.5">
+              <ItemTitle className="max-w-full">
+                <a
+                  href={item.readerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary truncate hover:underline"
+                >
+                  {item.title}
+                </a>
+              </ItemTitle>
+              <ItemDescription className="line-clamp-1 text-xs">
+                {meta(item)}
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions className="shrink-0 self-start">
+              <Badge variant="muted" title={tierLabel(item.tier)}>
+                T{item.tier}
+              </Badge>
+            </ItemActions>
+          </Item>
+        </Fragment>
       ))}
     </ItemGroup>
   );

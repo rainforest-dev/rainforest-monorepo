@@ -86,11 +86,24 @@ test.describe('deliveries', () => {
 
   test('delivery rows are separated by a visible divider', async ({ page }) => {
     await gotoLibrary(page, '/?book=1');
-    const borderColor = await row(page, 'kobo').evaluate(
-      (el) => getComputedStyle(el).borderBottomColor,
-    );
-    expect(borderColor).not.toBe('rgba(0, 0, 0, 0)');
-    expect(borderColor).not.toBe('transparent');
+    const list = row(page, 'kobo').locator('xpath=..');
+    const dividers = list.locator('[data-slot="item-separator"]');
+    const rows = list.getByRole('listitem');
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(1);
+    await expect(dividers).toHaveCount(count);
+    await expect(dividers.first()).toBeHidden();
+    for (let i = 1; i < count; i++) {
+      await expect(dividers.nth(i)).toBeVisible();
+      const line = await dividers.nth(i).boundingBox();
+      const above = await rows.nth(i - 1).boundingBox();
+      expect(line?.height).toBe(1);
+      expect(line?.y).toBe((above?.y ?? 0) + (above?.height ?? 0) - 1);
+    }
+    const color = await dividers
+      .nth(1)
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(color).not.toBe('rgba(0, 0, 0, 0)');
   });
 
   test('Save shows a spinner and stays disabled while the request runs', async ({

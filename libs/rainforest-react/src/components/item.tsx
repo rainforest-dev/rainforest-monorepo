@@ -13,6 +13,17 @@ import type * as React from 'react';
 import { cn } from '../lib/cn';
 import { Separator } from './separator';
 
+const SEPARATOR_EDGES = [
+  '[&>[data-slot=item-separator]:first-child]:hidden',
+  '[&>[data-slot=item-separator]:last-child]:hidden',
+  '[&>[data-slot=item-separator]+[data-slot=item-separator]]:hidden',
+  '[&>:first-child>[data-slot=item-separator]:first-child]:hidden',
+  '[&>:last-child>[data-slot=item-separator]:last-child]:hidden',
+  '[&.gap-0]:gap-0',
+  '[&.gap-0>[data-slot=item-separator]]:relative [&.gap-0>[data-slot=item-separator]]:-mt-px [&.gap-0>[data-slot=item-separator]]:mb-0',
+  '[&.gap-0>*>[data-slot=item-separator]]:relative [&.gap-0>*>[data-slot=item-separator]]:-mt-px [&.gap-0>*>[data-slot=item-separator]]:mb-0',
+].join(' ');
+
 function ItemGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -20,6 +31,7 @@ function ItemGroup({ className, ...props }: React.ComponentProps<'div'>) {
       data-slot="item-group"
       className={cn(
         'group/item-group has-data-[size=sm]:gap-2.5 has-data-[size=xs]:gap-2 flex w-full flex-col gap-4',
+        SEPARATOR_EDGES,
         className,
       )}
       {...props}
@@ -35,6 +47,7 @@ function ItemSeparator({
     <Separator
       data-slot="item-separator"
       orientation="horizontal"
+      aria-hidden
       className={cn('my-2', className)}
       {...props}
     />

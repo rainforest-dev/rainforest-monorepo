@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CheckIcon, XIcon } from 'lucide-react';
+import { Fragment } from 'react';
 
 import {
   Badge,
@@ -9,6 +10,7 @@ import {
   ItemContent,
   ItemDescription,
   ItemGroup,
+  ItemSeparator,
   ItemTitle,
 } from '../src';
 
@@ -20,44 +22,59 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const DELIVERIES = [
+  { name: 'Kobo', added: '2026-09-01' },
+  { name: 'NotebookLM', added: null },
+  { name: 'Readwise Reader', added: null },
+];
+
+function DeliveryRow({ name, added }: (typeof DELIVERIES)[number]) {
+  return (
+    <Item role="listitem" className="rounded-none py-2">
+      <ItemContent>
+        <ItemTitle>
+          {name}
+          {added ? (
+            <Badge variant="success">
+              <CheckIcon aria-hidden />
+              {added}
+            </Badge>
+          ) : (
+            <Badge variant="muted">Not added</Badge>
+          )}
+        </ItemTitle>
+      </ItemContent>
+      <ItemActions>
+        <Button variant="outline" size="xs">
+          {added ? 'Log again' : 'Mark added'}
+        </Button>
+      </ItemActions>
+    </Item>
+  );
+}
+
 export const DeliveryRows: Story = {
   render: () => (
     <ItemGroup className="w-96 gap-0 rounded-lg border">
-      <Item
-        role="listitem"
-        className="not-last:border-b-border rounded-none py-2"
-      >
-        <ItemContent>
-          <ItemTitle>
-            Kobo
-            <Badge variant="success">
-              <CheckIcon aria-hidden />
-              2026-09-01
-            </Badge>
-          </ItemTitle>
-        </ItemContent>
-        <ItemActions>
-          <Button variant="outline" size="xs">
-            Log again
-          </Button>
-        </ItemActions>
-      </Item>
-      <Item
-        role="listitem"
-        className="not-last:border-b-border rounded-none py-2"
-      >
-        <ItemContent>
-          <ItemTitle>
-            NotebookLM
-            <Badge variant="muted">Not added</Badge>
-          </ItemTitle>
-        </ItemContent>
-        <ItemActions>
-          <Button variant="outline" size="xs">
-            Mark added
-          </Button>
-        </ItemActions>
-      </Item>
+      {DELIVERIES.map((delivery) => (
+        <Fragment key={delivery.name}>
+          <ItemSeparator />
+          <DeliveryRow {...delivery} />
+        </Fragment>
+      ))}
+    </ItemGroup>
+  ),
+};
+
+export const WrappedRows: Story = {
+  render: () => (
+    <ItemGroup className="w-96 gap-0 rounded-lg border">
+      {DELIVERIES.map((delivery) => (
+        <div key={delivery.name} className="contents">
+          <ItemSeparator />
+          <DeliveryRow {...delivery} />
+        </div>
+      ))}
     </ItemGroup>
   ),
 };
