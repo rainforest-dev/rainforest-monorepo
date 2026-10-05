@@ -10,6 +10,7 @@
     "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@react-three/fiber": "9.8.1",
     "better-sqlite3": "^12.2.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -21,6 +22,7 @@
     "react-dom": "catalog:",
     "sanitize-html": "^2.17.5",
     "tailwind-merge": "^3.5.0",
+    "three": "0.186.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -30,6 +32,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@types/sanitize-html": "^2.16.1",
+    "@types/three": "0.186.0",
     "tailwindcss": "catalog:",
     "typescript": "catalog:"
   },
