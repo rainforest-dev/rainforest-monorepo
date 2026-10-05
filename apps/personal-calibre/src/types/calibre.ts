@@ -62,4 +62,5 @@ export interface LibraryResult {
   matching: number;
   libraryTotal: number;
   matchingIds: number[];
+  nextPageCoverIds: number[];
 }

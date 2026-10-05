@@ -1,9 +1,20 @@
 import { expect, test } from '@playwright/test';
 
 import { gotoLibrary, options, pane } from './support/library';
+import { COVER_IDS } from './support/seed';
 
 const pager = (page: import('@playwright/test').Page) =>
   page.getByRole('navigation', { name: 'Pagination' });
+
+async function payloadCoverIds(
+  request: import('@playwright/test').APIRequestContext,
+  url: string,
+): Promise<number[]> {
+  const res = await request.get(url, { headers: { RSC: '1' } });
+  const match = /"nextPageCoverIds":(\[[\d,]*\])/.exec(await res.text());
+  expect(match, `nextPageCoverIds in the payload of ${url}`).not.toBeNull();
+  return JSON.parse(match?.[1] ?? '[]') as number[];
+}
 
 test.describe('pages', () => {
   test('the pager moves between pages and Back returns', async ({ page }) => {
@@ -54,5 +65,31 @@ test.describe('pages', () => {
     await gotoLibrary(page, '/?series=4');
     await expect(options(page)).toHaveCount(6);
     await expect(pager(page)).toHaveCount(0);
+  });
+
+  test("the page carries the next page's cover ids", async ({
+    page,
+    request,
+  }) => {
+    let compared = 0;
+    for (const query of ['', 'groupBy=series&']) {
+      for (const current of [1, 2]) {
+        await gotoLibrary(page, `/?${query}page=${current + 1}`);
+        const shown = new Set(
+          (
+            await options(page).evaluateAll((els) =>
+              els.map((el) => el.getAttribute('data-book-id')),
+            )
+          ).map(Number),
+        );
+        const expected = COVER_IDS.filter((id) => shown.has(id));
+        const ids = await payloadCoverIds(request, `/?${query}page=${current}`);
+        expect(new Set(ids)).toEqual(new Set(expected));
+        expect(ids).toHaveLength(expected.length);
+        compared += expected.length;
+      }
+      expect(await payloadCoverIds(request, `/?${query}page=3`)).toEqual([]);
+    }
+    expect(compared).toBeGreaterThan(0);
   });
 });

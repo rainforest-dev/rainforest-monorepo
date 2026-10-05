@@ -165,6 +165,7 @@ function emptyResult(page: number, libraryTotal: number): LibraryResult {
     matching: 0,
     libraryTotal,
     matchingIds: [],
+    nextPageCoverIds: [],
   };
 }
 
@@ -215,6 +216,20 @@ async function groupedPage(
       pageOffset(query.page, total, query.pageSize),
     ) as GroupedRow[];
 
+  const pageCount = pageCountFor(total, query.pageSize);
+  const nextRows =
+    query.page < pageCount
+      ? (sqlite
+          .prepare(
+            `${entriesSql}, p AS (SELECT bid, pos FROM r ORDER BY pos LIMIT ? OFFSET ?)
+            SELECT p.bid FROM p JOIN books b ON b.id = p.bid
+            WHERE b.has_cover = 1 GROUP BY p.bid ORDER BY MIN(p.pos)`,
+          )
+          .all(idsJson, query.pageSize, query.page * query.pageSize) as Array<{
+          bid: number;
+        }>)
+      : [];
+
   const hydrated = await hydrateLibraryBooks([
     ...new Set(rows.map((r) => r.bid)),
   ]);
@@ -240,10 +255,11 @@ async function groupedPage(
   return {
     entries,
     page: query.page,
-    pageCount: pageCountFor(total, query.pageSize),
+    pageCount,
     matching: total,
     libraryTotal,
     matchingIds,
+    nextPageCoverIds: nextRows.map((row) => row.bid),
   };
 }
 
@@ -268,13 +284,25 @@ export async function queryLibrary(
 
   const matching = matchingIds.length;
   const pageCount = pageCountFor(matching, query.pageSize);
-  const rows = await db
-    .select({ id: books.id })
-    .from(books)
-    .where(where)
-    .orderBy(buildOrderExpr(query.sortBy, query.sortDir))
-    .limit(query.pageSize)
-    .offset(pageOffset(query.page, matching, query.pageSize));
+  const order = buildOrderExpr(query.sortBy, query.sortDir);
+  const [rows, nextRows] = await Promise.all([
+    db
+      .select({ id: books.id })
+      .from(books)
+      .where(where)
+      .orderBy(order)
+      .limit(query.pageSize)
+      .offset(pageOffset(query.page, matching, query.pageSize)),
+    query.page < pageCount
+      ? db
+          .select({ id: books.id, hasCover: books.hasCover })
+          .from(books)
+          .where(where)
+          .orderBy(order)
+          .limit(query.pageSize)
+          .offset(query.page * query.pageSize)
+      : [],
+  ]);
   return {
     entries: (await hydrateLibraryBooks(rows.map((r) => r.id))).map((book) => ({
       book,
@@ -284,5 +312,6 @@ export async function queryLibrary(
     matching,
     libraryTotal,
     matchingIds,
+    nextPageCoverIds: nextRows.flatMap((row) => (row.hasCover ? [row.id] : [])),
   };
 }
