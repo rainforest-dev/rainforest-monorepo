@@ -6,6 +6,7 @@ import {
   clearFiltersHref,
   filterCount,
   type FilterLabels,
+  isDebug,
   parseLibraryParams,
   scopeTitle,
   toLibraryQuery,
@@ -171,6 +172,33 @@ describe('buildLibraryHref', () => {
       '/?q=salt&page=3&book=38&__delay=10',
     );
   });
+
+  it('sets and removes the renderer without touching page', () => {
+    expect(buildLibraryHref(current, { renderer: 'css' })).toBe(
+      '/?q=salt&page=3&book=38&view=catalogue&__delay=10&renderer=css',
+    );
+    expect(
+      buildLibraryHref(new URLSearchParams('page=2&renderer=three-tsl'), {
+        renderer: null,
+      }),
+    ).toBe('/?page=2');
+  });
+});
+
+describe('isDebug', () => {
+  it('is true for ?debug and ?debug=1', () => {
+    expect(isDebug(new URLSearchParams('debug'))).toBe(true);
+    expect(isDebug(new URLSearchParams('debug=1'))).toBe(true);
+    expect(isDebug({ debug: '' })).toBe(true);
+  });
+
+  it('is false otherwise', () => {
+    expect(isDebug(new URLSearchParams(''))).toBe(false);
+    expect(isDebug(new URLSearchParams('view=study'))).toBe(false);
+    expect(isDebug({})).toBe(false);
+    expect(isDebug(new URLSearchParams('debug=0'))).toBe(false);
+    expect(isDebug(new URLSearchParams('debug=false'))).toBe(false);
+  });
 });
 
 describe('clearFiltersHref', () => {
@@ -182,6 +210,14 @@ describe('clearFiltersHref', () => {
         ),
       ),
     ).toBe('/?book=38&view=catalogue&groupBy=series&sortDir=desc');
+  });
+
+  it('keeps renderer and debug, which are not filters', () => {
+    expect(
+      clearFiltersHref(
+        new URLSearchParams('q=salt&tag=6&renderer=css&debug=1&page=2'),
+      ),
+    ).toBe('/?renderer=css&debug=1');
   });
 });
 

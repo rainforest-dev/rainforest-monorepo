@@ -1,7 +1,7 @@
 import type { LibraryQuery } from '@/lib/server';
 import type { DeliveryPlatform, FilterOptions } from '@/types';
 
-import type { View } from './prefs';
+import type { Renderer, View } from './prefs';
 
 export const PAGE_SIZE = 30;
 
@@ -47,6 +47,7 @@ export interface ParamPatch {
   page?: number | null;
   book?: number | null;
   view?: View | null;
+  renderer?: Renderer | null;
 }
 
 const RESETS_PAGE: ReadonlyArray<keyof ParamPatch> = [
@@ -102,6 +103,11 @@ export function parseLibraryParams(input: SearchParamsInput): LibraryParams {
     page: positiveInt(sp.get('page')) ?? 1,
     book: positiveInt(sp.get('book')),
   };
+}
+
+export function isDebug(input: SearchParamsInput): boolean {
+  const value = toSearchParams(input).get('debug');
+  return value !== null && value !== '0' && value !== 'false';
 }
 
 function isDefault(key: keyof ParamPatch, value: unknown): boolean {

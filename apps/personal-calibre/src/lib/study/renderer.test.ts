@@ -1,0 +1,171 @@
+import { describe, expect, it } from 'vitest';
+
+import { DEFAULT_PREFS } from '@/lib/prefs';
+
+import {
+  backendLabel,
+  ENABLED_RENDERERS,
+  isThreeRenderer,
+  pickRenderer,
+  PREVIEW_RENDERERS,
+  RENDERER_LABELS,
+} from './renderer';
+
+const FINAL = { enabled: ['three-tsl', 'css'], preview: [] } as const;
+const INTERIM = { enabled: ['css'], preview: ['three-tsl'] } as const;
+
+describe('pickRenderer', () => {
+  it('defaults to three-tsl once it is enabled', () => {
+    expect(
+      pickRenderer({
+        param: null,
+        pref: DEFAULT_PREFS.renderer,
+        sessionFallback: false,
+        ...FINAL,
+      }),
+    ).toBe('three-tsl');
+  });
+
+  it('defaults to css while three-tsl is preview only', () => {
+    expect(
+      pickRenderer({
+        param: null,
+        pref: DEFAULT_PREFS.renderer,
+        sessionFallback: false,
+        ...INTERIM,
+      }),
+    ).toBe('css');
+  });
+
+  it('uses the phase-2 interim lists when none are passed', () => {
+    expect(ENABLED_RENDERERS).toEqual(['css']);
+    expect(PREVIEW_RENDERERS).toEqual(['three-tsl']);
+    expect(
+      pickRenderer({ param: null, pref: 'three-tsl', sessionFallback: false }),
+    ).toBe('css');
+    expect(
+      pickRenderer({ param: 'three-tsl', pref: 'css', sessionFallback: false }),
+    ).toBe('three-tsl');
+  });
+
+  it('lets ?renderer=css override the cookie', () => {
+    expect(
+      pickRenderer({
+        param: 'css',
+        pref: 'three-tsl',
+        sessionFallback: false,
+        ...FINAL,
+      }),
+    ).toBe('css');
+  });
+
+  it('honours a preview-only renderer from ?renderer=', () => {
+    expect(
+      pickRenderer({
+        param: 'three-tsl',
+        pref: 'css',
+        sessionFallback: false,
+        ...INTERIM,
+      }),
+    ).toBe('three-tsl');
+  });
+
+  it('ignores ?renderer= values that are neither enabled nor preview', () => {
+    for (const param of ['three-glsl', 'nope', '']) {
+      expect(
+        pickRenderer({ param, pref: 'css', sessionFallback: false, ...FINAL }),
+      ).toBe('css');
+      expect(
+        pickRenderer({
+          param,
+          pref: 'three-tsl',
+          sessionFallback: false,
+          ...FINAL,
+        }),
+      ).toBe('three-tsl');
+      expect(
+        pickRenderer({
+          param,
+          pref: 'css',
+          sessionFallback: false,
+          ...INTERIM,
+        }),
+      ).toBe('css');
+    }
+  });
+
+  it('ignores a cookie naming a preview-only renderer', () => {
+    expect(
+      pickRenderer({
+        param: null,
+        pref: 'three-tsl',
+        sessionFallback: false,
+        ...INTERIM,
+      }),
+    ).toBe('css');
+  });
+
+  it('ignores a cookie naming a renderer in neither list', () => {
+    expect(
+      pickRenderer({
+        param: null,
+        pref: 'three-glsl',
+        sessionFallback: false,
+        ...FINAL,
+      }),
+    ).toBe('three-tsl');
+  });
+
+  it('honours an enabled renderer from the cookie', () => {
+    expect(
+      pickRenderer({
+        param: null,
+        pref: 'css',
+        sessionFallback: false,
+        ...FINAL,
+      }),
+    ).toBe('css');
+  });
+
+  it('returns css for the session fallback whatever the param and cookie say', () => {
+    for (const lists of [FINAL, INTERIM]) {
+      expect(
+        pickRenderer({
+          param: 'three-tsl',
+          pref: 'three-tsl',
+          sessionFallback: true,
+          ...lists,
+        }),
+      ).toBe('css');
+    }
+  });
+});
+
+describe('isThreeRenderer', () => {
+  it('is true for the three.js renderers only', () => {
+    expect(isThreeRenderer('three-tsl')).toBe(true);
+    expect(isThreeRenderer('three-glsl')).toBe(true);
+    expect(isThreeRenderer('css')).toBe(false);
+  });
+});
+
+describe('labels', () => {
+  it('names each renderer for the select', () => {
+    expect(RENDERER_LABELS).toEqual({
+      'three-tsl': 'three.js · WebGPU',
+      css: 'CSS',
+      'three-glsl': 'three.js · GLSL',
+    });
+  });
+
+  it('names the renderer and backend for the debug badge', () => {
+    expect(backendLabel('three-tsl', 'webgpu')).toBe('three-tsl · WebGPU');
+    expect(backendLabel('three-tsl', 'webgl2')).toBe(
+      'three-tsl · WebGL2 fallback',
+    );
+    expect(backendLabel('three-glsl', 'webgl2')).toBe('three-glsl · WebGL2');
+    expect(backendLabel('css', 'css')).toBe('css');
+    expect(backendLabel('three-tsl', 'css')).toBe('css');
+    expect(backendLabel('three-tsl', null)).toBe('three-tsl · starting');
+  });
+});

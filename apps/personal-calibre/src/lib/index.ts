@@ -11,6 +11,7 @@ export * from './prefs';
 export * from './roving';
 export * from './selection';
 export * from './spine';
+export * from './study';
 export * from './test-hooks';
 export * from './url';
 export * from './utils';
