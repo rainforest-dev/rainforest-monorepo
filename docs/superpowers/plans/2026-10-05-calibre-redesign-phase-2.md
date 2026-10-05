@@ -44,9 +44,9 @@ to `@rainforest-dev/rainforest-ui/interaction`. This plan is written against `ma
   code is environment-neutral, Vitest's node environment runs it, and it never imports `three`
   (one type-only import from `@rainforest-dev/rainforest-ui/interaction` is allowed).
 - D2 Preview seam for renderers. `ENABLED_RENDERERS` (offered by the select, honoured from the
-  cookie) and `PREVIEW_RENDERERS` (honoured only from `?renderer=`). Until Task 12,
-  `ENABLED_RENDERERS = ['css']` and `PREVIEW_RENDERERS = ['three-tsl']`, so Tasks 6-11 can land on
-  `main` one by one while users keep the CSS study. Task 12 sets
+  cookie) and `PREVIEW_RENDERERS` (honoured only from `?renderer=`). Until Task 13,
+  `ENABLED_RENDERERS = ['css']` and `PREVIEW_RENDERERS = ['three-tsl']`, so Tasks 6-12 can land on
+  `main` one by one while users keep the CSS study. Task 13 sets
   `ENABLED_RENDERERS = ['three-tsl', 'css']` and `PREVIEW_RENDERERS = []`, which makes P20's
   default real. `three-glsl` is in neither list in phase 2, so a cookie or param asking for it
   resolves as if it were absent.
@@ -55,9 +55,10 @@ to `@rainforest-dev/rainforest-ui/interaction`. This plan is written against `ma
 - D4 "Switches to `css` for the session" (P20) is a provider flag mirrored to `sessionStorage`
   (`calibre-study-fallback=1`), per tab. A reload in the same tab does not retry the renderer that
   just failed or toast again; a new tab tries again. The cookie is never written by a fallback.
-  Listed under open questions for confirmation.
+  Owner decision (PR #484): tab-scoped, as planned.
 - D5 The `ThreeStudy` error boundary's `Use CSS study` button takes the same path as the automatic
-  fallback (session flag, no cookie write). Listed under open questions.
+  fallback (session flag, no cookie write). Owner decision (PR #484): both persist in
+  `sessionStorage` only, never in the cookie.
 - D6 `spineDims(id)` returns prototype pixels: `width = 26 + (id * 7) % 16`,
   `height = 172 + (id * 13) % 38`, `depth = round(height * 0.66)` (`V2Spine` in `v2-views.jsx` and
   the spike's `dimsOf`, which is the same formula over 100). The three.js layout divides by
@@ -72,7 +73,8 @@ to `@rainforest-dev/rainforest-ui/interaction`. This plan is written against `ma
   `{ key, row: placed.row, order, col: placed.x }` items (no rect, so `pickTarget` measures
   vertical distance by `col`) and `scrollOnFocus: false`, because the camera follows focus and an
   `sr-only` option has nothing to scroll to. `css` keeps DOM rects with `data-nav-row` set to the
-  shelf key, so a bay is a row (P10). See open question 3 for `↑`/`↓` across the bay grid.
+  shelf key, so a bay is a row (P10). Owner decision (PR #484): in the css renderer `↓` moves to
+  the next shelf in reading (DOM) order, even when the bay grid places it to the right.
 - D9 P8 on first load is a server redirect. `page.tsx` resolves the view
   (`resolveView(prefs.view, raw.view)`); when it is `study` and `groupBy` is not `series` or
   `author`, it redirects to `buildLibraryHref(raw, { groupBy: 'series' })`, which drops `page`.
@@ -115,7 +117,7 @@ to `@rainforest-dev/rainforest-ui/interaction`. This plan is written against `ma
   mismatched pixel lies within 2 px of a reference pixel whose 3×3 luminance range exceeds 24.
   No `sharp` or `pixelmatch` dependency.
 - D19 Bundle check. Next 16 builds with Turbopack, whose react-loadable manifest may not list the
-  dynamic chunks. Task 11 step 1 checks `.next/react-loadable-manifest.json` after a build. The
+  dynamic chunks. Task 12 step 1 checks `.next/react-loadable-manifest.json` after a build. The
   gating check is a runtime scan that does not depend on the manifest: on `next start`, collect
   every script a route loads and fail if any contains `isWebGLRenderer` (three core) or
   `isWebGPURenderer` (`three/webgpu`). Those property names survive minification.
@@ -125,6 +127,18 @@ to `@rainforest-dev/rainforest-ui/interaction`. This plan is written against `ma
   RSC refresh with equal data rebuilds nothing; a page change disposes every row atlas.
 - D22 One toast per session for the fallback (`3D isn't available here, showing the CSS study`),
   guarded by the same `sessionStorage` flag as D4.
+- D24 Next-page cover ids come from the server (owner decision, PR #484). `LibraryResult` gains
+  `nextPageCoverIds: number[]`: the distinct ids of the books on page `page + 1` that have a
+  cover, in that page's order, in the same grouping and sort; `[]` on the last page. Task 10 adds
+  it to `queryLibrary` in `src/lib/server/library-query.ts`, so `getLibrary` (`'use cache'`, tag
+  `books`) carries it with no new cache key. `BookSummary`, `getBookList`, `getGroupedBookList`,
+  the MCP tools and OPDS are untouched.
+- D25 Atlas resolution under the texture budget (owner decision, PR #484): the budget stays
+  (≤ 50 MB reported on desktop @2x, ≤ 30 MB on phone) and atlas resolution gives way. The
+  pixels per unit come from a fixed ladder `[160, 128, 112, 96]`; `pickAtlasPpu` (Task 9) picks
+  the highest rung whose estimated atlas bytes fit what the budget leaves after the cover cache
+  and the renderer's colour targets. Task 13 verifies the reported number on the large fixture
+  and tunes the estimate's constants, never the budget.
 - D23 Console allowlist for three.js runs: `THREE.Clock` deprecation (spec, accepted). Any other
   warning or error fails the spec. `shadows={false}` on the Canvas removes the
   `PCFSoftShadowMap` warning.
@@ -194,14 +208,14 @@ to `@rainforest-dev/rainforest-ui/interaction`. This plan is written against `ma
 
 1. One focus path. Keyboard focus, pointer picks on the canvas and `Enter` all go through the DOM
    option; `data-pulled-id` always equals the focused option's `data-book-id` after a key press
-   (Task 8 step 1, Task 11 step 2).
+   (Task 8 step 1, Task 12 step 2).
 2. The fallback never writes the cookie and never loops: no WebGPU and no WebGL2, or a throw
    during start, lands on `css` once, with one toast, and a reload in the same tab stays on `css`
-   (Task 6 step 1, Task 11 step 3).
+   (Task 6 step 1, Task 12 step 3).
 3. Nothing from three.js in any first load, including `/` with `view=study` in the cookie while
-   the renderer resolves to `css` (Task 6 step 5, Task 11 step 4).
+   the renderer resolves to `css` (Task 6 step 5, Task 12 step 4).
 4. Programs do not grow during a sweep: selection, highlight, pulled-book changes and atlas
-   arrival only set uniform and texture `.value`s (Task 7, Task 12 step 2).
+   arrival only set uniform and texture `.value`s (Task 7, Task 13 step 2).
 5. P8 round trip: entering Study with no Group or Tag lands on `groupBy=series` page 1 with focus
    on the same book when it is there, else the first book; Back after that does not bounce
    (Task 4 step 1).
@@ -219,13 +233,15 @@ to `@rainforest-dev/rainforest-ui/interaction`. This plan is written against `ma
 | 7    | TSL materials (`studyMaterial.ts`)                   | 6          | PR F (own, preview only)  |
 | 8    | Shared scene: rows, pulled book, camera, pointer     | 7          | PR G (own, preview only)  |
 | 9    | Per-shelf atlas                                      | 8          | PR H (own, preview only)  |
-| 10   | Focus overlay, shelf headings, covers and prewarm    | 9          | PR I (own, preview only)  |
-| 11   | E2E matrix, axe, parity, bundle check                | 10         | PR J (own)                |
-| 12   | Perf sweep, budgets, default flip, captures          | 11         | PR K (own; ships default) |
+| 10   | Next-page cover ids from `getLibrary`                | 3          | PR L (own)                |
+| 11   | Focus overlay, shelf headings, covers and prewarm    | 9, 10      | PR I (own, preview only)  |
+| 12   | E2E matrix, axe, parity, bundle check                | 11         | PR J (own)                |
+| 13   | Perf sweep, budgets, default flip, captures          | 12         | PR K (own; ships default) |
 
-Tasks 1, 2 and 3 are independent and may run in parallel (different files). From Task 4 on they
-run one at a time. Tasks 4 and 5 form one PR because Task 5 is what turns Study on in the switcher;
-Task 4 alone has no reachable UI. Every PR from E to J is safe on `main` because `three-tsl` is
+Tasks 1, 2 and 3 are independent and may run in parallel (different files). Task 10 is a
+server-only change that needs only Task 3 (its e2e uses the fixture covers) and can land any time before Task 11. From Task 4
+on the Study tasks run one at a time. Tasks 4 and 5 form one PR because Task 5 is what turns Study on in the switcher;
+Task 4 alone has no reachable UI. Every Study PR from E to J is safe on `main` because `three-tsl` is
 reachable only through `?renderer=three-tsl` (D2). PR K flips the default, so it carries the
 budgets, the parity numbers and the captures.
 
@@ -237,14 +253,18 @@ Paths under `src/` are relative to `apps/personal-calibre/`; e2e paths are under
 ```
 apps/personal-calibre/
   package.json                          three, @react-three/fiber, @types/three   (T6)
+  src/types/calibre.ts                  LibraryResult.nextPageCoverIds           (T10)
+  src/lib/server/library-query.ts       nextPageCoverIds in queryLibrary         (T10)
+  src/lib/server/library-query.test.ts                                           (T10)
+  src/test/calibre-db.ts                TestBook.hasCover                        (T10)
   src/lib/study/index.ts                barrel                                   (T1)
   src/lib/study/model.ts                buildStudyModel, spineDims, spineTone,
                                         isCjk, isStudyGroupBy                    (T1)
   src/lib/study/layout.ts               layoutShelves, studyNavItems, constants  (T1)
   src/lib/study/renderer.ts             pickRenderer, labels, enabled/preview    (T2)
   src/lib/study/scene-math.ts           atlasOrder, cameraBounds, clampCameraY,
-                                        projectBox                               (T8, T9, T10)
-  src/lib/study/*.test.ts                                                        (T1, T2, T8-T10)
+                                        projectBox, pickAtlasPpu                 (T8, T9, T11)
+  src/lib/study/*.test.ts                                                        (T1, T2, T8-T11)
   src/lib/index.ts                      + export * from './study'                (T1)
   src/lib/prefs.ts                      resolveRenderer removed (moved, T2)      (T2)
   src/lib/library-params.ts             ParamPatch.renderer, isDebug             (T2)
@@ -254,7 +274,7 @@ apps/personal-calibre/
   src/hooks/useRovingNav.ts             items, scrollOnFocus options             (T4)
   src/hooks/useReducedMotion.ts                                                  (T5)
   src/components/library/ViewSwitch.tsx Study item                               (T5)
-  src/components/library/ViewRegion.tsx StudyView branch                         (T4)
+  src/components/library/ViewRegion.tsx StudyView branch; next-page cover ids   (T4, T11)
   src/components/library/ViewSkeleton.tsx Study skeleton                         (T4)
   src/components/library/SortControls.tsx GroupSelect: Series/Author in Study    (T4)
   src/components/library/LibraryToolbar.tsx RendererSelect, BackendBadge         (T6)
@@ -276,25 +296,26 @@ apps/personal-calibre/
   src/components/views/study/three/tokens.ts    readTokens, useTokens            (T8)
   src/components/views/study/three/atlas.ts     drawSpine, buildRowAtlas         (T9)
   src/components/views/study/three/useRowAtlases.ts                              (T9)
-  src/components/views/study/three/covers.ts    LRU, drawCover, loadCover        (T10)
-  src/components/views/study/three/FocusOverlay.tsx, ShelfLabels.tsx             (T10)
+  src/components/views/study/three/covers.ts    LRU, drawCover, loadCover        (T11)
+  src/components/views/study/three/FocusOverlay.tsx, ShelfLabels.tsx             (T11)
   src/components/views/study/three/probe.ts     ?debug probe                     (T6, T8)
   src/app/(library)/page.tsx            P8 redirect                              (T4)
   src/app/globals.css                   st-* css renderer classes                (T5)
 apps/personal-calibre-e2e/
   playwright.config.ts                  swiftshader arg, study-webgpu, no-webgl  (T3)
-  package.json                          perf-study target                        (T12)
+  package.json                          perf-study target                        (T13)
   src/support/seed.ts                   covers for id % 10 === 7                 (T3)
   src/support/study.ts                  Study helpers                            (T3)
-  src/study.spec.ts                     DOM layer, keyboard, P8, pages           (T4, T5, T11)
-  src/study-three.spec.ts               pulled id, overlay, reduced motion, debug (T6, T8, T10, T11)
-  src/study.phone.spec.ts                                                        (T5, T11)
+  src/study.spec.ts                     DOM layer, keyboard, P8, pages           (T4, T5, T12)
+  src/study-three.spec.ts               pulled id, overlay, reduced motion, debug (T6, T8, T11, T12)
+  src/pages.spec.ts                     next-page cover ids in the RSC payload   (T10)
+  src/study.phone.spec.ts                                                        (T5, T12)
   src/study.no-webgl.spec.ts            fallback                                 (T6)
-  src/study-parity.spec.ts              WebGPU vs WebGL2                         (T11)
-  src/study-bundle.spec.ts              first-load scan (CALIBRE_BUDGETS=1)      (T6, T11)
-  src/a11y.spec.ts                      Study pages                              (T5, T11)
-  src/visual.spec.ts                    Study surfaces                           (T12)
-  perf/study-sweep.mjs                  the spike's sweep, moved and reworked    (T12)
+  src/study-parity.spec.ts              WebGPU vs WebGL2                         (T12)
+  src/study-bundle.spec.ts              first-load scan (CALIBRE_BUDGETS=1)      (T6, T12)
+  src/a11y.spec.ts                      Study pages                              (T5, T12)
+  src/visual.spec.ts                    Study surfaces                           (T13)
+  perf/study-sweep.mjs                  the spike's sweep, moved and reworked    (T13)
 tools/app-artifact/smoke.mjs            /?view=study&groupBy=series check        (T5)
 ```
 
@@ -752,7 +773,7 @@ are visible text buttons (a placeholder replaced by `CssStudy` in Task 5). It se
 
 - [ ] **Step 1: Write the failing e2e**
 
-`study.spec.ts` (run `css` only in this task; Task 11 loops it over `STUDY_RUNS`):
+`study.spec.ts` (run `css` only in this task; Task 12 loops it over `STUDY_RUNS`):
 
 - `entering Study without a group sets groupBy=series` (P8): `gotoLibrary(page, '/?page=2')`,
   focus option for book 38 (`Tidewater Cycle · Book 2`), press `v` twice → URL has
@@ -1079,7 +1100,7 @@ Expected: static chunks contain it; the server output prints `none-on-server`. I
 SSR copy of the client chunk despite `ssr: false`, record it in the PR; it is harmless for the
 image size budget but must not be imported at server start (the smoke run proves that).
 Then `pnpm nx smoke-artifact personal-calibre` passes, and the bundle spec passes against the
-artifact server started as in Task 12 step 1.
+artifact server started as in Task 13 step 1.
 
 - [ ] **Step 6: Dev check, comment and MCP checks, commit**
 
@@ -1335,18 +1356,42 @@ light and dark. Fixture: small seed.
 
 Spec: Shared scene fix 4 (one CanvasTexture per row, 160 px per unit, visible rows synchronously
 before the first frame, the rest in `requestIdleCallback` nearest first, side colour until then,
-disposed on page change); P14; Testing › Phase 2 (atlas build order).
+disposed on page change); P14; Testing › Phase 2 (atlas build order); `three-tsl` requirement 6
+and the texture-memory budget, with the owner's rule D25 (keep the budget, lower the atlas
+resolution).
 
 **Files:**
 
 - Create: `src/components/views/study/three/atlas.ts`, `useRowAtlases.ts`
-- Modify: `src/lib/study/scene-math.ts` (`atlasOrder`), `src/lib/study/scene-math.test.ts`
-- Modify: `Scene.tsx`, `ShelfRow.tsx`, `probe.ts` (`atlasBytes`)
+- Modify: `src/lib/study/scene-math.ts` (`atlasOrder`, `ATLAS_PPU_LADDER`, `atlasBytesAt`,
+  `pickAtlasPpu`), `src/lib/study/scene-math.test.ts`
+- Modify: `Scene.tsx`, `ShelfRow.tsx`, `probe.ts` (`atlasBytes`, `atlasPpu`)
 
 **Interfaces:**
 
 ```ts
-export const ATLAS_PPU = 160;
+export const ATLAS_PPU_LADDER = [160, 128, 112, 96] as const;
+export type AtlasPpu = (typeof ATLAS_PPU_LADDER)[number];
+export const TEXTURE_BUDGET_BYTES = {
+  desktop: 50 * 1024 * 1024,
+  phone: 30 * 1024 * 1024,
+} as const;
+
+export interface TextureBudgetInput {
+  layout: StudyLayout;
+  budgetBytes: number;
+  canvas: { width: number; height: number; dpr: number };
+  msaaSamples: number;
+  coverCacheBytes: number;
+}
+
+export function atlasBytesAt(layout: StudyLayout, ppu: number): number;
+export function pickAtlasPpu(input: TextureBudgetInput): {
+  ppu: AtlasPpu;
+  estimatedBytes: number;
+  fits: boolean;
+};
+
 export function atlasOrder(
   rows: number,
   visible: readonly number[],
@@ -1364,6 +1409,7 @@ export function buildRowAtlas(
   rowWidthUnits: number,
   tokens: Tokens,
   maxAnisotropy: number,
+  ppu: AtlasPpu,
 ): RowAtlas;
 export function cropSpine(atlas: RowAtlas, bookId: number): CanvasTexture;
 export function useRowAtlases(args: {
@@ -1372,8 +1418,21 @@ export function useRowAtlases(args: {
   tokens: Tokens;
   visibleRows: readonly number[];
   maxAnisotropy: number;
+  ppu: AtlasPpu;
 }): ReadonlyMap<number, RowAtlas>;
 ```
+
+Resolution rule (D25). `atlasBytesAt(layout, ppu)` sums, over every row, the row canvas
+`ceil(width × ppu) × ceil(ROW_H × ppu) × 4` bytes with a 4/3 mipmap factor, the same count the
+spike's `atlas.bytes` used. `pickAtlasPpu` subtracts the cover cache
+(`COVER_CACHE_MAX × 256 × 384 × 4 × 4/3`) and the colour targets
+(`width × height × dpr² × 4 × (1 + msaaSamples)`, the `UnsignedByteType` output buffer plus its
+MSAA buffer) from `budgetBytes`, and returns the highest ladder rung whose atlas bytes fit; when
+even 96 does not fit it returns 96 with `fits: false`. `ThreeStudy` calls it once per layout key
+with `TEXTURE_BUDGET_BYTES.phone` below `lg` (D20) and `.desktop` otherwise, passes the rung to
+`useRowAtlases`, and the probe reports `atlasPpu`. A `fits: false` result logs nothing at runtime;
+Task 13 treats it as a finding. 96 is the floor because spine text below it stops being legible
+at 1440 @2 (checked in step 2 on the CJK books 44 and 45).
 
 `drawSpine` is the spike's `textures.ts` drawing (stripes, bands, rotated Latin title or upright
 CJK characters, author's last name) over the D7 colours and `FONT_STACK`. `cropSpine` copies one
@@ -1386,27 +1445,141 @@ on token change.
 
 `scene-math.test.ts`: `atlasOrder(6, [2, 3])` is `{ sync: [2, 3], idle: [1, 4, 0, 5] }` (nearest
 first, ties to the lower row); an empty `visible` builds row 0 synchronously; out-of-range rows
-are ignored.
+are ignored. `atlasBytesAt` grows about fourfold from 80 to 160 ppu on the same layout and grows
+with the row count. `pickAtlasPpu` returns 160 for a 30-book layout at 1440×900 @2 with the
+desktop budget; returns a lower rung for a 250-book layout on the phone budget; walks down one
+rung when `budgetBytes` drops by the difference between two rungs; returns
+`{ ppu: 96, fits: false }` for a budget smaller than the fixed costs.
 
 `study-three.spec.ts` (`?debug`, large fixture page size: `?__pageSize=250`, run with
 `CALIBRE_FIXTURE=large` in the e2e env, as phase 1's budget spec does):
 `info().atlasBytes` grows after idle time and every row has an atlas within 3 s;
 the first frame happens before all atlases exist (`firstFrameAt` earlier than the last atlas);
 after `]` the old textures are disposed (`info().textures` does not keep growing over three page
-changes).
+changes). `info().atlasPpu` is one of the ladder rungs, `info().atlasBytes` equals
+`atlasBytesAt(layout, atlasPpu)` within 1%, and on the 30-book default page `atlasPpu` is 160.
 
-- [ ] **Step 2: Implement and run; dev check**
+- [ ] **Step 2: Implement and run; dev check; legibility floor**
+
+Dev server on the large fixture, `?__pageSize=250&debug&renderer=three-tsl`, 1440 @2 and
+390 @3: note `atlasPpu` for each. Force each rung once (a temporary local edit, not committed)
+and capture books 44, 45 and 48 at 96 ppu: the CJK characters and the curly apostrophe stay
+readable. If 96 is not readable, stop and report rather than lowering the floor.
 
 - [ ] **Step 3: Comment and MCP checks, commit**
 
 Commit `feat(personal-calibre): per-shelf spine atlases built visible rows first`.
 
-**Verification:** `atlasOrder` unit tests; `study-three.spec.ts` atlas cases on the large fixture.
-Fixture: large seed (`CALIBRE_FIXTURE=large`, 250 books, `?__pageSize=250`).
+**Verification:** `atlasOrder` and `pickAtlasPpu` unit tests; `study-three.spec.ts` atlas cases
+on the large fixture; the legibility capture. Fixture: large seed (`CALIBRE_FIXTURE=large`,
+250 books, `?__pageSize=250`) and the small seed's default page.
 
 ---
 
-### Task 10: Focus overlay, shelf headings, covers and prewarm
+### Task 10: Next-page cover ids from `getLibrary`
+
+Spec: Shared scene fix 5 ("The pager's next page's covers are prefetched (not uploaded) on
+idle"); Server (`getLibrary` shape); P2 (paging over entries); P14. Owner decision D24 (PR #484):
+the server returns what the prefetch needs.
+
+**Files:**
+
+- Modify: `src/types/calibre.ts` (`LibraryResult.nextPageCoverIds`)
+- Modify: `src/lib/server/library-query.ts` (`queryLibrary`, `groupedPage`, `emptyResult`)
+- Modify: `src/lib/server/library-query.test.ts`
+- Modify: `src/test/calibre-db.ts` (`TestBook.hasCover`, written to `books.has_cover`)
+- Modify: `apps/personal-calibre-e2e/src/pages.spec.ts`
+
+Nothing else changes. `getLibrary` in `src/lib/server/queries.ts` already returns
+`queryLibrary(query)` unchanged, so its `'use cache'` key (the `LibraryQuery`) and tag stay as
+they are. The new code lives in the server-only `src/lib/server/` directory behind its existing
+barrel; the type lives in `src/types/`, which client components already import (`ViewRegion`).
+No file under `src/lib/server/mcp/`, `src/app/mcp/`, `src/app/api/mcp/` or `libs/mcp-kit/` is
+touched: the MCP tools call `getBookList` and `getGroupedBookList`, not `getLibrary`.
+
+**Interfaces:**
+
+```ts
+export interface LibraryResult {
+  entries: LibraryEntry[];
+  page: number;
+  pageCount: number;
+  matching: number;
+  libraryTotal: number;
+  matchingIds: number[];
+  nextPageCoverIds: number[];
+}
+
+export interface TestBook {
+  hasCover?: boolean;
+}
+```
+
+`nextPageCoverIds` holds the distinct ids, in page order, of the books that page `page + 1`
+shows and that have `has_cover = 1`, under the same filters, grouping and sort; `[]` when
+`page >= pageCount` or when nothing matches. It holds at most `pageSize` ids (30 by default,
+250 under `?__pageSize`), so the RSC payload grows by a few hundred bytes at most.
+
+Implementation:
+
+- Ungrouped: a second select over the same `where` and `buildOrderExpr`, `limit(pageSize)`,
+  `offset(page * pageSize)`, selecting `books.id` and `books.hasCover`, filtered to covered ids
+  in order. Skipped when `page >= pageCount`.
+- Grouped: the same `entriesSql` CTE, a second `SELECT DISTINCT`-in-order over
+  `r JOIN books b ON b.id = r.bid WHERE b.has_cover = 1 ORDER BY pos LIMIT ? OFFSET ?` with the
+  next page's offset. A book in two tags appears once.
+- `emptyResult` returns `nextPageCoverIds: []`.
+
+- [ ] **Step 1: Write the failing unit tests**
+
+In `library-query.test.ts`, add `hasCover: true` to a few made-up test books (the file's own
+temp library, no seed data):
+
+- `ungrouped: lists the covered books of the next page in order`: with a page size that splits
+  the test library in three, page 1 returns exactly the covered ids of page 2 in title order;
+  page 2 returns page 3's; the last page returns `[]`.
+- `grouped by series: follows the entry order across a group boundary`: page 1's
+  `nextPageCoverIds` equals the covered books among page 2's entries, in entry order.
+- `grouped by tag: lists a book in two tags once`.
+- `respects filters`: with a tag filter, only filtered covered books appear.
+- `an out-of-range page returns no next-page ids`.
+- The existing ungrouped-order test still matches `getBookList` (`BookSummary` untouched).
+
+- [ ] **Step 2: Run them and see them fail**
+
+Run: `pnpm nx test personal-calibre -- src/lib/server/library-query.test.ts`
+Expected: FAIL on the new cases.
+
+- [ ] **Step 3: Implement; run the unit tests, typecheck and lint**
+
+Run: `pnpm nx test personal-calibre`, `pnpm nx typecheck personal-calibre`,
+`pnpm nx lint personal-calibre`.
+
+- [ ] **Step 4: Write and run the e2e case**
+
+`pages.spec.ts` gains `the page carries the next page's cover ids`: request `/` and
+`/?groupBy=series` with the `RSC: 1` header and read the `nextPageCoverIds` array from the
+payload; compare it as a set with the ids from `COVER_IDS` (Task 3) that page 2 of the same
+listing shows (taken from `/?page=2` in the browser through the options' `data-book-id`). On the
+last page (`/?page=3`) the array is empty.
+
+Run: `pnpm nx e2e personal-calibre-e2e -- --grep "pages|mcp|budgets"` (budgets with
+`CALIBRE_BUDGETS=1` against the artifact server, Task 13 step 1, to confirm the RSC payload of
+`/` is still ≤ 60 KB).
+
+- [ ] **Step 5: Artifact, comment and MCP checks, commit**
+
+Run `pnpm nx smoke-artifact personal-calibre`, the comment grep and the MCP diff check
+(it prints nothing). Commit
+`feat(personal-calibre): return the next page's cover ids with the library page`.
+
+**Verification:** `library-query.test.ts` (temp test library), `pages.spec.ts` and `mcp.spec.ts`
+on the small seed with Task 3's covers, the budgets spec's RSC-payload case, smoke-artifact.
+Fixture: small seed (70 books, covers on ids ending in 7, three pages).
+
+---
+
+### Task 11: Focus overlay, shelf headings, covers and prewarm
 
 Spec: Shared scene fixes 1 (focus ring overlay, `onFocusRect`), 3 (shelf headings, `aria-hidden`,
 `(continued)`), 5 (cover prewarm: `createImageBitmap` 256×384, `initTexture`, `compileAsync`,
@@ -1476,9 +1649,10 @@ export function createCoverCache(tokens: Tokens): CoverCache;
   `drawCover` canvas (title on the spine colour). LRU of 24.
 - Prewarm, after the first frame: `ensure` the focused book ±4 and the first row, upload each
   with `gl.initTexture(texture)`, and `kit.compile` the pulled-book material once
-  (`compileAsync` on `WebGPURenderer`). Next-page prefetch (fetch only, no decode, no upload)
-  needs the next page's book ids, which the page does not have (open question 5). `prefetch`
-  is implemented and unit-sized, but `ThreeStudy` does not call it until that is decided.
+  (`compileAsync` on `WebGPURenderer`). On idle after the prewarm, `prefetch` fetches
+  `/api/books/{id}/cover` for every id in `library.nextPageCoverIds` (Task 10; fetch only, no
+  decode, no upload, so the browser's HTTP cache holds them for the next page). `ViewRegion`
+  passes `nextPageCoverIds` through `StudyView` to `ThreeStudy` as a prop.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1497,6 +1671,10 @@ viewport.
 - `the pulled book shows the fixture cover`: focus book 7 (`hasCover`), `info().coversCached`
   ≥ 1 and a network request to `/api/books/7/cover` happened; book 1 (no cover) issues no cover
   request.
+- `the next page's covers are prefetched`: on a Study page whose next page holds a covered book
+  (pick the page from `BOOKS` and `COVER_IDS` under `groupBy=series`), after idle the network log
+  has a `GET /api/books/{id}/cover` for each id the next page holds with a cover, and none for
+  books without one; on the last page no prefetch request happens.
 - `the first pull after prewarm has no render spike`: with `?debug`, the max of
   `__renderMs` across the first five pulls after the first frame stays ≤ 25 ms on `webgpu`
   (headed only; recorded, not asserted, on headless `webgl2`).
@@ -1512,7 +1690,7 @@ cases on both backends. Fixture: small seed with covers (books 7, 17, 27); North
 
 ---
 
-### Task 11: E2E matrix, axe, visual parity and the bundle check
+### Task 12: E2E matrix, axe, visual parity and the bundle check
 
 Spec: Testing › Playwright › Study (every bullet), axe (wcag2a/aa, wcag21aa, best-practice),
 renderer-bundle check, visual parity ≤ 0.3% edge-only.
@@ -1561,7 +1739,7 @@ motion shows no pull and a visible ring.
 The fallback cases are in Task 6. Extend `study.no-webgl.spec.ts` with: after the fallback the
 `Renderer` select shows `CSS` as the current value while the cookie keeps `three-tsl`; choosing
 `CSS` in the select does write `renderer: 'css'` to the cookie (a user choice, unlike the
-fallback). Both cases need two enabled renderers, so they are `test.fixme` until Task 12 flips
+fallback). Both cases need two enabled renderers, so they are `test.fixme` until Task 13 flips
 `ENABLED_RENDERERS`, which removes the marks.
 
 - [ ] **Step 4: Parity on `study-webgpu`**
@@ -1575,7 +1753,7 @@ on WebGPU and once with `navigator.gpu` deleted; `diffScreenshots` → `ratio �
 
 Run: `pnpm nx e2e personal-calibre-e2e`, `-- --project=phone`, `-- --project=no-webgl`,
 `CALIBRE_WEBGPU=1 pnpm nx e2e personal-calibre-e2e -- --project=study-webgpu`, and the bundle
-spec against the artifact server (Task 12 step 1 commands).
+spec against the artifact server (Task 13 step 1 commands).
 
 - [ ] **Step 6: Comment and MCP checks, commit**
 
@@ -1586,11 +1764,12 @@ seed with covers.
 
 ---
 
-### Task 12: Perf sweep, budgets, the default flip and captures
+### Task 13: Perf sweep, budgets, the default flip and captures
 
 Spec: Performance budgets (Study columns for `three-tsl` WebGPU, WebGL2 fallback and `css`,
 desktop and phone emulation, `?__pageSize=250` on the large fixture); `three-tsl` requirement 6
-(texture memory ≤ 50 MB desktop @2x, ≤ 30 MB phone; drop to `samples: 0` with HalfFloat if
+(texture memory ≤ 50 MB desktop @2x, ≤ 30 MB phone, held by lowering atlas resolution per D25;
+drop to `samples: 0` with HalfFloat if
 `UnsignedByteType` fails parity); P20 default; visual check before each PR.
 
 **Files:**
@@ -1602,7 +1781,7 @@ desktop and phone emulation, `?__pageSize=250` on the large fixture); `three-tsl
   `PREVIEW_RENDERERS = []`), `renderer.test.ts`
 - Modify: `apps/personal-calibre-e2e/src/visual.spec.ts` (Study surfaces, after-only)
 - Modify: `apps/personal-calibre-e2e/src/study*.spec.ts` where a test relied on `css` being
-  the default, and drop the Task 11 `test.fixme` marks
+  the default, and drop the Task 12 `test.fixme` marks
 - Modify: `docs/superpowers/specs/2026-09-29-calibre-redesign-design.md` (status line: phase 2
   shipped, with the measured numbers)
 
@@ -1660,14 +1839,21 @@ only. It writes JSON to `apps/personal-calibre-e2e/test-output/perf/` (git-ignor
 Run: `BASE_URL=http://127.0.0.1:3334 HEADED=1 pnpm nx perf-study personal-calibre-e2e`.
 Expected, per the spec's table: rAF median 16.7 / p95 ≤ 20 ms; dropped ≤ 10; long tasks 0;
 `init()` ≤ 20 ms; first render call ≤ 60 ms (WebGPU) / ≤ 350 ms (WebGL2); mount → first frame
-≤ 300 ms / ≤ 600 ms; render CPU max after prewarm ≤ 25 ms; program growth 0; draw calls ≤ rows
+≤ 300 ms / ≤ 600 ms; render CPU max after prewarm ≤ 25 ms; program growth 0; draw calls at
+most rows plus 6; reported texture memory ≤ 50 MB desktop, ≤ 30 MB phone. A timing miss is a
+finding: report the number, do not raise the budget.
 
-- 6; reported texture memory ≤ 50 MB desktop, ≤ 30 MB phone. A miss is a finding: report the
-  number, do not raise the budget. If texture memory or parity fails with `UnsignedByteType`,
-  apply requirement 6's fallback (`samples: 0`, HalfFloat) in `kitTsl.createRenderer`, rerun the
-  parity spec and the sweep, and restate the budget in the PR.
+Texture memory follows D25 and is never restated. Record `atlasPpu`, `atlasBytes` and
+`texturesSizeReported` per run. If the reported size is over budget while `pickAtlasPpu` said it
+fits, the estimate is wrong: compute the unaccounted bytes (`texturesSizeReported` minus
+`atlasBytes` minus the cover cache), fold that measured overhead into `pickAtlasPpu`'s
+colour-target term as a named constant, update its unit test, and rerun until the reported size
+fits. If it is over budget at 96 ppu, report it as a finding with the numbers. If parity fails
+with `UnsignedByteType`, apply requirement 6's fallback (`samples: 0`, HalfFloat) in
+`kitTsl.createRenderer`, pass `msaaSamples: 0` to `pickAtlasPpu` to match, and rerun the parity
+spec and the sweep.
 
-* [ ] **Step 3: Flip the default**
+- [ ] **Step 3: Flip the default**
 
 Set `ENABLED_RENDERERS = ['three-tsl', 'css']`, `PREVIEW_RENDERERS = []`; update
 `renderer.test.ts` and any spec that assumed `css` by default. The `Renderer` select now shows
@@ -1676,7 +1862,7 @@ Set `ENABLED_RENDERERS = ['three-tsl', 'css']`, `PREVIEW_RENDERERS = []`; update
 - [ ] **Step 4: Full verification**
 
 Run: `pnpm nx run-many -t lint test typecheck -p personal-calibre personal-calibre-e2e`,
-`pnpm nx e2e personal-calibre-e2e` (all projects as in Task 11 step 5),
+`pnpm nx e2e personal-calibre-e2e` (all projects as in Task 12 step 5),
 `pnpm nx smoke-artifact personal-calibre`, the bundle spec, `pnpm format:check`.
 
 - [ ] **Step 5: Captures**
@@ -1706,7 +1892,7 @@ seed for e2e and captures.
 | `shelfLayout.ts` (`layoutShelves`, constants)              | Take, retype  | `src/lib/study/layout.ts` (Task 1). The row-break rule, `ROW_H`, `FRONT_Z`, gaps and boards are measured and fine. Retyped over `StudyShelf`, gains labels and `order`; `nearestInRow` is dropped for `pickTarget` over layout items, so `↑`/`↓`/`Home`/`End` match the other views.                                                           |
 | `textures.ts` `dimsOf`                                     | Take          | `spineDims` (Task 1), same formula in prototype px (D6).                                                                                                                                                                                                                                                                                       |
 | `textures.ts` `readTokens`, `mix`, `FONT_STACK`, CJK regex | Take          | `three/tokens.ts`, `atlas.ts`, `isCjk` (Tasks 1, 8, 9). The probe-and-canvas conversion turns oklch tokens into sRGB bytes reliably.                                                                                                                                                                                                           |
-| `textures.ts` `drawSpine`, `drawCover`                     | Take, adapt   | `atlas.ts`, `covers.ts` (Tasks 9, 10). Drawing is good; colours move to D7 and the cover falls back to it only when the book has no real cover.                                                                                                                                                                                                |
+| `textures.ts` `drawSpine`, `drawCover`                     | Take, adapt   | `atlas.ts`, `covers.ts` (Tasks 9, 11). Drawing is good; colours move to D7 and the cover falls back to it only when the book has no real cover.                                                                                                                                                                                                |
 | `textures.ts` `buildAtlas` (one 2048-wide atlas)           | Rewrite       | Per-row atlases built visible rows first (fix 4). The single atlas cost 300 to 500 ms of every first frame.                                                                                                                                                                                                                                    |
 | `studyMaterial.ts`                                         | Take, rewrite | Keeps the spine node graph (explicit `aRect` UVs, `aCol`, `select` on `aSpine`, the light term). Adds `aSel`, `uHasAtlas`, `uSel` as uniforms; the pulled book becomes one material created once and re-pointed (the spike built a new one per pull from `cover`/`spine` constants).                                                           |
 | `materialSet.ts`                                           | Rewrite       | Becomes `kit.ts` (`StudyKit`, `StudyMaterials`): adds `createRenderer`, `backendOf`, `compile`, `flat`, so phase 3 plugs in a whole kit, not a material set.                                                                                                                                                                                   |
@@ -1717,7 +1903,7 @@ seed for e2e and captures.
 | `StudySpike.tsx`                                           | Rewrite       | Its `nav`/`button` sr-only list, own key handler, dialog stub and scheme buttons are replaced by `StudyListbox` (`role="listbox"`/`group`/`option`), `useRovingNav`, the real pane and the shared theme. The async `gl` factory and `forceWebGL` pattern carry into `kitTsl` and the tests.                                                    |
 | `StudyLoader.tsx`                                          | Take, adapt   | `loadThreeStudy.ts`, with `StudySkeleton` as `loading`.                                                                                                                                                                                                                                                                                        |
 | `fixtures.ts`                                              | Drop          | The app's made-up seed (phase 1 Task 1) and its large mode replace it. The spike's CJK title generator is not needed: books 44 and 45 cover CJK.                                                                                                                                                                                               |
-| `e2e/spike/common.mjs`, `sweep3.mjs`                       | Take, rework  | `perf/study-sweep.mjs` (Task 12): same launch args and sweep, reads the D14 probe, adds program count, css run, writes under `test-output`.                                                                                                                                                                                                    |
+| `e2e/spike/common.mjs`, `sweep3.mjs`                       | Take, rework  | `perf/study-sweep.mjs` (Task 13): same launch args and sweep, reads the D14 probe, adds program count, css run, writes under `test-output`.                                                                                                                                                                                                    |
 | `e2e/spike/keyboard.spec.mjs`                              | Rewrite       | Into `study.spec.ts` / `study-three.spec.ts` over `STUDY_RUNS`. It resolved `axe-core` by a `.pnpm` path; the suite already has `@axe-core/playwright`.                                                                                                                                                                                        |
 | `e2e/spike/diff3.mjs`                                      | Rewrite       | `support/pixels.ts` (D18): in-browser diff, no `sharp` resolved from a `.pnpm` path.                                                                                                                                                                                                                                                           |
 | `shots*.mjs`, `smoke*.mjs`, `sweep.mjs`, `sweep2.mjs`      | Drop          | Earlier rounds, superseded by round 3 and by `visual.spec.ts` captures.                                                                                                                                                                                                                                                                        |
@@ -1751,42 +1937,36 @@ seed for e2e and captures.
 ## Self-review
 
 - Spec coverage. Study view → Tasks 4, 5. Shared model and DOM layer → Tasks 1, 4. `three-tsl`
-  default → Tasks 6-10, flipped in 12. Its WebGL2 fallback backend → Tasks 6, 11 (forced
+  default → Tasks 6-11, flipped in 12. Its WebGL2 fallback backend → Tasks 6, 12 (forced
   `navigator.gpu` deletion), 12 (budgets). `css` alternative → Task 5. Renderer switch, `?renderer`
-  and cookie per P20 → Tasks 2, 6, 12. `?debug` backend label (P23) → Tasks 2, 6, 11. `next/dynamic`
-  only while Study shows → Tasks 6, 11 (bundle check). CSS fallback and toast (P20) → Task 6.
-  `ThreeStudy` error boundary → Task 6. Decision 4 open items: focus ring overlay → Task 10;
-  camera clamp → Task 8; shelf headings → Task 10; per-shelf atlas → Task 9; cover prewarm →
-  Task 10; reduced motion → Tasks 5, 8; tone mapping off → Task 6; uniforms → Task 7; one
+  and cookie per P20 → Tasks 2, 6, 13. `?debug` backend label (P23) → Tasks 2, 6, 12. `next/dynamic`
+  only while Study shows → Tasks 6, 12 (bundle check). CSS fallback and toast (P20) → Task 6.
+  `ThreeStudy` error boundary → Task 6. Decision 4 open items: focus ring overlay → Task 11;
+  camera clamp → Task 8; shelf headings → Task 11; per-shelf atlas → Task 9; cover prewarm →
+  Task 11; reduced motion → Tasks 5, 8; tone mapping off → Task 6; uniforms → Task 7; one
   pulled-book material → Task 7; `aCol` → Task 7. Decision 11 TSL lessons: 1 → Task 6; 2 → Task 7
-  (program count in Tasks 7, 12); 3 → Task 7; 4 → Task 7; 5 → Tasks 7, 9 (`cropSpine`); 6 →
-  Tasks 6, 12. P8 → Task 4. P10 (Study rows) → Tasks 1, 4. P14 → Tasks 1, 9 (D21). P15 → Tasks 1,
+  (program count in Tasks 7, 13); 3 → Task 7; 4 → Task 7; 5 → Tasks 7, 9 (`cropSpine`); 6 →
+  Tasks 6, 13. P8 → Task 4. P10 (Study rows) → Tasks 1, 4. P14 → Tasks 1, 9 (D21). P15 → Tasks 1,
   5, 7. P16 → Tasks 1, 5, 9. P19 → Task 5. Loading (Study skeleton) → Task 4. Copy (Study) →
-  Tasks 4-6. Budgets → Task 12. Testing › Phase 2 unit items → Tasks 1, 2, 8-10; Playwright Study
-  items → Tasks 4-6, 8-11.
+  Tasks 4-6. Budgets → Task 13. Testing › Phase 2 unit items → Tasks 1, 2, 8-11; Playwright Study
+  items → Tasks 4-6, 8-12.
 - Every task names its fixture and a runnable check.
 - Types: `StudyRendererProps` (Task 4) is consumed by `CssStudy` (Task 5) and extended by
   `ThreeStudyProps` (Task 6); `StudyMaterials` is declared in Task 6 and implemented in Task 7;
-  `SceneProps` grows in Tasks 8, 9 (`atlases`) and 10 (`onFocusRect`, `onLabels`); `StudyProbe`
-  grows in Tasks 7 (`programs`), 9 (`atlasBytes`), 10 (`coversCached`).
+  `SceneProps` grows in Tasks 8, 9 (`atlases`) and 11 (`onFocusRect`, `onLabels`); `StudyProbe`
+  grows in Tasks 7 (`programs`), 8 (`projectBook`), 9 (`atlasBytes`, `atlasPpu`) and 11
+  (`coversCached`); `LibraryResult.nextPageCoverIds` (Task 10) is read in Task 11.
+- Owner decisions from PR #484 are recorded as D4, D5, D8 (kept), D24 (Task 10) and D25
+  (Tasks 9, 13); the Study icon stays lucide `Library` (Task 5).
 
-## Open questions (not decided by the spec)
+## Owner decisions (PR #484)
 
-1. D4: should the automatic CSS fallback last for the tab (`sessionStorage`, this plan) or only
-   until the next reload (provider state)?
-2. D5: should `Use CSS study` in the error boundary write `renderer: 'css'` to the cookie (a user
-   choice) or stay session-only like the automatic fallback (this plan)?
-3. D8: in the css renderer the bays sit in a multi-column grid, so `↓` "to the shelf below" can
-   mean the next bay in reading order (which may sit to the right, this plan, matching P10's
-   "each group is one board") or the bay visually below. Which one?
-4. The Study icon in the switcher: the prototype names labels and tooltips but not the lucide
-   icon; this plan uses `Library` (`LibraryBig` is the header's Library link). Confirm or name
-   another.
-5. Fix 5 asks to prefetch the next page's covers. The page knows `matchingIds` but not which ids
-   the next page holds in the current grouping and sort (grouped pages count entries, not books).
-   Either `getLibrary` returns the next page's ids (a server change outside the spec's
-   "unchanged" list) or the prefetch is dropped. This plan skips it until decided.
-6. The spec's texture-memory budget (≤ 50 MB desktop @2x) is stated against the spike's 250-book
-   single atlas; per-row atlases at 160 px/unit for 250 books may land close to it. If the sweep
-   misses, is lowering `ATLAS_PPU` (sharper text traded for memory) acceptable, or must the budget
-   be restated?
+The questions this plan raised were answered by the owner on PR #484:
+
+1. Fallback duration: tab-scoped. The automatic CSS fallback and the `Use CSS study` button both
+   persist in `sessionStorage` only, never in the cookie (D4, D5).
+2. `↓` in the css study moves to the next shelf in reading (DOM) order (D8).
+3. Next-page cover prefetch: the server returns the next page's cover ids (D24, Task 10), and
+   Task 11 prefetches them.
+4. Texture budget: the budget stays; atlas resolution is lowered as needed (D25, Tasks 9 and 13).
+5. Study icon: lucide `Library` (Task 5).
