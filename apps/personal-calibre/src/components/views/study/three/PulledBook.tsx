@@ -1,0 +1,140 @@
+'use client';
+
+import { useFrame, useThree } from '@react-three/fiber';
+import {
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
+import {
+  BoxGeometry,
+  CanvasTexture,
+  MathUtils,
+  type Mesh,
+  SRGBColorSpace,
+  Vector3,
+} from 'three';
+
+import { FRONT_Z, type PlacedBook } from '@/lib';
+
+import type { StudyKit } from './kit';
+import { sideColor } from './ShelfRow';
+import { toColor, type Tokens } from './tokens';
+
+export interface PulledBookProps {
+  book: PlacedBook | null;
+  width: number;
+  kit: StudyKit;
+  tokens: Tokens;
+  meshRef: RefObject<Mesh | null>;
+  onPick: (bookId: number) => void;
+  onHover: (hovering: boolean) => void;
+}
+
+const PULL_RATE = 4;
+const PULL_TURN = (-Math.PI / 2) * 0.78;
+const SPINE_PX = 4;
+
+function spineTexture(): CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = SPINE_PX;
+  canvas.height = SPINE_PX;
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+
+export function PulledBook({
+  book,
+  width,
+  kit,
+  tokens,
+  meshRef,
+  onPick,
+  onHover,
+}: PulledBookProps) {
+  const invalidate = useThree((state) => state.invalidate);
+  const geometry = useMemo(() => new BoxGeometry(1, 1, 1), []);
+  const pulled = useMemo(() => kit.materials.pulledBook(), [kit]);
+  const spine = useMemo(spineTexture, []);
+  const progress = useRef(1);
+  const home = useMemo(() => new Vector3(), []);
+  const out = useMemo(() => new Vector3(), []);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => pulled.material.dispose(), [pulled]);
+  useEffect(() => () => spine.dispose(), [spine]);
+
+  useLayoutEffect(() => {
+    if (!book) return;
+    const side = sideColor(book, tokens);
+    const ctx = spine.image.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = `#${side.getHexString(SRGBColorSpace)}`;
+      ctx.fillRect(0, 0, SPINE_PX, SPINE_PX);
+    }
+    spine.needsUpdate = true;
+    pulled.point({
+      cover: null,
+      spine,
+      side,
+      pages: toColor(tokens.card),
+    });
+    invalidate();
+  }, [book, tokens, spine, pulled, invalidate]);
+
+  const bookId = book?.book.id ?? null;
+  useLayoutEffect(() => {
+    if (!book) return;
+    home.set(book.x, book.y, FRONT_Z - book.d / 2);
+    out.set(
+      MathUtils.clamp(book.x, book.d * 0.45, width - book.d * 0.45),
+      book.y + 0.12,
+      FRONT_Z + book.t + 0.35,
+    );
+    invalidate();
+  }, [book, width, home, out, invalidate]);
+
+  useLayoutEffect(() => {
+    progress.current = 0;
+    const mesh = meshRef.current;
+    if (mesh) {
+      mesh.position.copy(home);
+      mesh.rotation.y = 0;
+    }
+    invalidate();
+  }, [bookId, meshRef, home, invalidate]);
+
+  useFrame((_, delta) => {
+    const mesh = meshRef.current;
+    if (!mesh || !book) return;
+    progress.current = Math.min(1, progress.current + delta * PULL_RATE);
+    const eased = 1 - (1 - progress.current) ** 3;
+    mesh.position.lerpVectors(home, out, eased);
+    mesh.rotation.y = PULL_TURN * eased;
+    if (progress.current < 1) invalidate();
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      frustumCulled={false}
+      geometry={geometry}
+      material={pulled.material}
+      scale={book ? [book.t, book.h, book.d] : 0}
+      onClick={(event) => {
+        if (!book) return;
+        event.stopPropagation();
+        onPick(book.book.id);
+      }}
+      onPointerOver={(event) => {
+        if (!book) return;
+        event.stopPropagation();
+        onHover(true);
+      }}
+      onPointerOut={() => onHover(false)}
+    />
+  );
+}

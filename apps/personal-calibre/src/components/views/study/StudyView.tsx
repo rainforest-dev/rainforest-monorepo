@@ -1,7 +1,8 @@
 'use client';
 
+import type { NavItem } from '@rainforest-dev/rainforest-ui/interaction';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useReducedMotion, useRovingNav } from '@/hooks';
 import {
@@ -29,10 +30,12 @@ export interface StudyViewProps {
   page: number;
 }
 
-function ThreeHost({
-  renderer,
-  ...props
-}: StudyRendererProps & { renderer: ThreeRenderer }) {
+interface ThreeHostProps extends StudyRendererProps {
+  renderer: ThreeRenderer;
+  onNavItems: (items: readonly NavItem[]) => void;
+}
+
+function ThreeHost({ renderer, onNavItems, ...props }: ThreeHostProps) {
   const { fallBackToCss, setBackend } = useLibrary();
   const [capable, setCapable] = useState(false);
   const optionProps = useStudyOptionProps(props.nav);
@@ -60,6 +63,7 @@ function ThreeHost({
           <LoadThreeStudy
             {...props}
             renderer={renderer}
+            onNavItems={onNavItems}
             onBackend={setBackend}
             onStartFailed={fallBackToCss}
           />
@@ -83,11 +87,17 @@ export function StudyView({ entries, groupBy, page }: StudyViewProps) {
     () => model.shelves.flatMap((shelf) => shelf.books.map((b) => b.navKey)),
     [model],
   );
+  const layoutItems = useRef<readonly NavItem[]>([]);
+  const readLayoutItems = useCallback(() => layoutItems.current, []);
+  const onNavItems = useCallback((items: readonly NavItem[]) => {
+    layoutItems.current = items;
+  }, []);
   const nav = useRovingNav<HTMLDivElement>({
     navKeys,
     mode: 'grid',
     page,
     contentKey: key,
+    items: three ? readLayoutItems : undefined,
     scrollOnFocus: !three,
   });
   const openId = parseLibraryParams(useSearchParams()).book;
@@ -118,7 +128,11 @@ export function StudyView({ entries, groupBy, page }: StudyViewProps) {
       className={three ? 'relative' : undefined}
     >
       {three ? (
-        <ThreeHost renderer={renderer} {...rendererProps} />
+        <ThreeHost
+          renderer={renderer}
+          onNavItems={onNavItems}
+          {...rendererProps}
+        />
       ) : (
         <CssStudy {...rendererProps} />
       )}

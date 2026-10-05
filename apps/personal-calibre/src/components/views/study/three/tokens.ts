@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Color, SRGBColorSpace } from 'three';
 
 export type Rgb = readonly [number, number, number];
@@ -40,6 +41,30 @@ export function readTokens(): Tokens {
     TOKEN_NAMES.map((name) => [name, read(name)]),
   ) as Tokens;
   probe.remove();
+  return tokens;
+}
+
+const SCHEME_QUERY = '(prefers-color-scheme: dark)';
+
+export function useTokens(): Tokens | null {
+  const [tokens, setTokens] = useState<Tokens | null>(() =>
+    typeof document === 'undefined' ? null : readTokens(),
+  );
+  useEffect(() => {
+    const reread = () => setTokens(readTokens());
+    const scheme = window.matchMedia(SCHEME_QUERY);
+    scheme.addEventListener('change', reread);
+    const observer = new MutationObserver(reread);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-scheme'],
+      subtree: true,
+    });
+    return () => {
+      scheme.removeEventListener('change', reread);
+      observer.disconnect();
+    };
+  }, []);
   return tokens;
 }
 
