@@ -9,15 +9,24 @@
     "allowJs": true,
     "allowImportingTsExtensions": true,
     "types": ["node"],
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"],
   "references": [
     {
-      "path": "../../libs/rainforest-react"
+      "path": "../../libs/web-ai"
     },
     {
       "path": "../../libs/rainforest-ui"
+    },
+    {
+      "path": "../../libs/rainforest-react"
+    },
+    {
+      "path": "../../libs/mcp-kit"
     }
   ]
 }

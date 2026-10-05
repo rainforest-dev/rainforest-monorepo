@@ -1,4 +1,6 @@
-import type { TimelineEvent, TimelineSource } from './timeline.ts';
+import type { TimelineEvent, TimelineSource } from '@/lib/server';
+
+import { nameOf, type Person } from './people.ts';
 import { taipeiHour, taipeiTime } from './weeks.ts';
 
 export type StreamEvent = TimelineEvent & { showTime: boolean };
@@ -45,17 +47,6 @@ export function groupRuns(events: readonly TimelineEvent[]): Run[] {
   return runs;
 }
 
-export function ownersFromEnv(
-  env: Record<string, string | undefined> = process.env,
-): Set<string> {
-  return new Set(
-    (env['MEMORIES_OWNER'] ?? '')
-      .split(',')
-      .map((name) => name.trim())
-      .filter(Boolean),
-  );
-}
-
 export function hourCounts(events: readonly TimelineEvent[]): number[] {
   const counts = Array.from({ length: 24 }, () => 0);
   for (const event of events) counts[taipeiHour(event.at)] += 1;
@@ -79,40 +70,55 @@ const OWNER_ACCENT: Accent = 2;
 const PARTNER_ACCENT: Accent = 4;
 const LATER_ACCENTS: readonly Accent[] = [1, 3, 5];
 
+const NO_PEOPLE: readonly Person[] = [];
+
 const accentCache = new WeakMap<
   readonly TimelineEvent[],
-  { key: string; accents: Map<string, Accent> }
+  {
+    key: string;
+    people: readonly Person[];
+    accents: Map<string, Accent>;
+  }
 >();
 
 export function authorAccents(
   events: readonly TimelineEvent[],
   owners: ReadonlySet<string>,
+  people: readonly Person[] = NO_PEOPLE,
 ): Map<string, Accent> {
   const key = [...owners].sort().join('\n');
   const hit = accentCache.get(events);
-  if (hit?.key === key) return hit.accents;
+  if (hit?.key === key && hit.people === people) return hit.accents;
   const firstSeen = new Map<string, number>();
+  const personOfRaw = new Map<string, string>();
   for (const e of events) {
     if (e.source === 'photo' || !e.author) continue;
+    const who = nameOf(people, e.source, e.author);
+    personOfRaw.set(e.author, who);
     const t = Date.parse(e.at);
-    const seen = firstSeen.get(e.author);
-    if (seen === undefined || t < seen) firstSeen.set(e.author, t);
+    const seen = firstSeen.get(who);
+    if (seen === undefined || t < seen) firstSeen.set(who, t);
   }
-  const accents = new Map<string, Accent>();
-  for (const author of firstSeen.keys())
-    if (owners.has(author)) accents.set(author, OWNER_ACCENT);
+  const byPerson = new Map<string, Accent>();
+  for (const who of firstSeen.keys())
+    if (owners.has(who)) byPerson.set(who, OWNER_ACCENT);
   [...firstSeen]
-    .filter(([author]) => !owners.has(author))
+    .filter(([who]) => !owners.has(who))
     .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
-    .forEach(([author], i) =>
-      accents.set(
-        author,
+    .forEach(([who], i) =>
+      byPerson.set(
+        who,
         i === 0
           ? PARTNER_ACCENT
           : (LATER_ACCENTS[(i - 1) % LATER_ACCENTS.length] as Accent),
       ),
     );
-  accentCache.set(events, { key, accents });
+  const accents = new Map<string, Accent>();
+  for (const [raw, who] of personOfRaw) {
+    const accent = byPerson.get(who);
+    if (accent) accents.set(raw, accent);
+  }
+  accentCache.set(events, { key, people, accents });
   return accents;
 }
 

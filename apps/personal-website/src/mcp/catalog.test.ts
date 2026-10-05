@@ -8,7 +8,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { PROFILE_TOOLS, toToolDescriptors } from './catalog';
-import { MCP_TOOLS } from './handler';
+import { createProfileMcpHandler, MCP_TOOLS } from './handler';
+import servedDescriptors from './tool-descriptors.json';
 
 /**
  * Characterisation, not specification: this records what the live server at
@@ -70,6 +71,82 @@ describe('toToolDescriptors', () => {
     const descriptors = toToolDescriptors();
     const summary = descriptors.find((d) => d.name === 'get_profile_summary');
     await expect(summary?.execute({ lang: 'fr' })).rejects.toThrow();
+  });
+});
+
+describe('WebMCP JSON Schema parity', () => {
+  it('matches the descriptors served before the move to mcp-kit', () => {
+    const schemas = toToolDescriptors().map(
+      ({ name, description, inputSchema }) => ({
+        name,
+        description,
+        inputSchema,
+      }),
+    );
+    expect(schemas).toStrictEqual(servedDescriptors);
+  });
+
+  it('runs a descriptor through the same catalog tool', async () => {
+    const skills = toToolDescriptors().find((d) => d.name === 'get_skills');
+    const tool = PROFILE_TOOLS.find((t) => t.name === 'get_skills');
+    expect(await skills?.execute({})).toEqual(await tool?.run({}, {}));
+  });
+});
+
+describe('MCP endpoint', () => {
+  const rpc = (method: string, params: Record<string, unknown> = {}) =>
+    createProfileMcpHandler()(
+      new Request('https://rainforest.tools/mcp', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+        },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+      }),
+    ).then((response) => response.json());
+
+  it('marks every tool read-only', async () => {
+    const { result } = await rpc('tools/list');
+    expect(result.tools).toHaveLength(MCP_TOOLS.length);
+    for (const tool of result.tools) {
+      expect(tool.annotations).toEqual({ readOnlyHint: true });
+    }
+  });
+
+  it('keeps the resource templates', async () => {
+    const { result } = await rpc('resources/templates/list');
+    expect(
+      result.resourceTemplates.map(
+        (t: { uriTemplate: string }) => t.uriTemplate,
+      ),
+    ).toEqual([
+      'profile://experience/{+id}',
+      'profile://project/{+id}',
+      'profile://skill/{+id}',
+      'portfolio://case-study/{+slug}',
+    ]);
+  });
+
+  it('answers a tool call with the run result as JSON text', async () => {
+    const { result } = await rpc('tools/call', {
+      name: 'search_by_technology',
+      arguments: { query: 'cobol' },
+    });
+    expect(result.content).toEqual([
+      { type: 'text', text: '{"experiences":[],"projects":[]}' },
+    ]);
+  });
+
+  it('keeps the not-found message for an unknown case study', async () => {
+    const { result } = await rpc('tools/call', {
+      name: 'get_case_study',
+      arguments: { slug: 'nope' },
+    });
+    expect(result).toEqual({
+      content: [{ type: 'text', text: 'Case study not found: nope' }],
+      isError: true,
+    });
   });
 });
 

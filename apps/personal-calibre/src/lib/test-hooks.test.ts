@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { RawSearchParams } from '@/lib/library-params';
-
+import type { RawSearchParams } from './library-params';
 import { applyTestHooks, NO_HOOKS, readTestHooks } from './test-hooks';
 
 describe('readTestHooks', () => {

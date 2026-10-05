@@ -1,6 +1,7 @@
 import { ToggleGroup, ToggleGroupItem } from '@rainforest-dev/rainforest-react';
 
-import { SOURCES } from '../../lib/sources.ts';
+import { SOURCES } from '@/lib';
+
 import { useSourceFilter } from './useSourceFilter.ts';
 
 export function SourceToggles({

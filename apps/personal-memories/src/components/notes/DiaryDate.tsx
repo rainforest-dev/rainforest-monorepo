@@ -1,4 +1,4 @@
-import { diaryDate } from '../../lib/weeks.ts';
+import { diaryDate } from '@/lib';
 
 export function DiaryDate({ date }: { date: string }) {
   const { day, meta } = diaryDate(date);

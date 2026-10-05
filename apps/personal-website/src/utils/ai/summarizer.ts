@@ -1,8 +1,8 @@
-import { withProbeTimeout } from './probe';
-import type { AiState } from './types';
+import type { AiState } from '@rainforest-dev/web-ai';
+import { withProbeTimeout } from '@rainforest-dev/web-ai';
 
 /**
- * The Summarizer API, wrapped the same way `language-model.ts` wraps the Prompt API — same state
+ * The Summarizer API, wrapped the same way `@rainforest-dev/web-ai` wraps the Prompt API — same state
  * union, same lazy-session rule, same "a failure is reported, never swallowed" stance.
  *
  * Why a second module rather than a generalized one: the two APIs share a capability *vocabulary*

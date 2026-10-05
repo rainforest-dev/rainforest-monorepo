@@ -1,4 +1,4 @@
-import type { TimelineSource } from '../timeline.ts';
+import type { TimelineSource } from '@/lib/server';
 
 export type Annotation = {
   eventId: string;

@@ -1,10 +1,10 @@
+import { createMcpFetchHandler } from '@rainforest-dev/mcp-kit';
 import { getProjectGallery } from '@rainforest-dev/personal-data';
 import {
   PORTFOLIO_MCP_RESOURCES,
   PORTFOLIO_MCP_TOOLS,
   registerPortfolioMcp,
 } from '@rainforest-dev/personal-portfolio/mcp';
-import { createMcpHandler } from 'mcp-handler';
 
 import {
   PROFILE_MCP_RESOURCES,
@@ -51,25 +51,12 @@ export function mcpUsageResponse(endpoint: string): Response {
   });
 }
 
-/**
- * Builds an MCP request handler mounted at `${basePath}/mcp` — mcp-handler validates the
- * incoming request's pathname against exactly that computed endpoint (see its
- * `deriveEndpointsFromBasePath`), so basePath must match wherever the caller actually
- * mounts the returned handler (e.g. '/api' for a route at src/pages/api/mcp.ts, or
- * omitted/'' for one at src/pages/mcp.ts). Each call creates an independent handler/server
- * instance — this exists so apps/personal-website can serve the same MCP tool surface at
- * more than one path without relying on vercel.json's host-based rewrite, which doesn't
- * reliably take effect ahead of Astro's own generated routing (see the routing-fix PR).
- */
-export function createProfileMcpHandler(basePath?: string) {
-  return createMcpHandler(
+export function createProfileMcpHandler() {
+  return createMcpFetchHandler(
+    { name: 'rainforest-profile', version: '1.0.0' },
     (server) => {
       registerProfileMcp(server);
       registerPortfolioMcp(server, { getGallery: getProjectGallery });
     },
-    // Without serverInfo, mcp-handler reports its own package default
-    // ("mcp-typescript server on vercel") to every client that connects.
-    { serverInfo: { name: 'rainforest-profile', version: '1.0.0' } },
-    { basePath },
   );
 }

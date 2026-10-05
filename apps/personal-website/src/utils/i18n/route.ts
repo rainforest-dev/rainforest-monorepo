@@ -1,4 +1,5 @@
-import { isServerSide } from '..';
+import { isServerSide } from '@/utils/env';
+
 import { fallbackLng, showDefaultLanguage, supportedLngs } from './settings';
 
 export const persistentLocaleKey = 'locale' as const;

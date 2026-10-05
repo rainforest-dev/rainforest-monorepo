@@ -1,6 +1,6 @@
 'use client';
 
-import { LoadError } from '@/components/library/LoadError';
+import { LoadError } from '@/components/library';
 
 export default function LibraryError({
   error,

@@ -1,7 +1,9 @@
 import { TooltipProvider } from '@rainforest-dev/rainforest-react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import { stepDay } from '../../lib/client/step-day.ts';
-import type { Level, Place } from '../../lib/nav.ts';
+import type { Level, Place } from '@/lib';
+import { stepDay } from '@/lib/client';
+
 import { DateJump } from './DateJump.tsx';
 import { ShortcutsDialog } from './ShortcutsDialog.tsx';
 import { TopBar } from './TopBar.tsx';
@@ -13,32 +15,36 @@ type Props = {
   step?: StepHrefs | undefined;
 };
 
+const queryClient = new QueryClient();
+
 const go = (date: string, nearest: boolean) =>
   location.assign(`/day/${date}${nearest ? '?nearest=1' : ''}`);
 
 export function AppBar({ place, hrefs, step }: Props) {
   const chrome = useChrome(place, hrefs, step);
   return (
-    <TooltipProvider>
-      <TopBar
-        level={place.level}
-        hrefs={chrome.hrefs}
-        back={chrome.back}
-        onJump={() => chrome.setJumpOpen(true)}
-        onKeys={() => chrome.setKeysOpen(true)}
-        onStep={place.level === 'day' ? stepDay : undefined}
-        stepHrefs={chrome.step}
-      />
-      <DateJump
-        open={chrome.jumpOpen}
-        onOpenChange={chrome.setJumpOpen}
-        days={chrome.days}
-        onGo={go}
-      />
-      <ShortcutsDialog
-        open={chrome.keysOpen}
-        onOpenChange={chrome.setKeysOpen}
-      />
-    </TooltipProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <TopBar
+          level={place.level}
+          hrefs={chrome.hrefs}
+          back={chrome.back}
+          onJump={() => chrome.setJumpOpen(true)}
+          onKeys={() => chrome.setKeysOpen(true)}
+          onStep={place.level === 'day' ? stepDay : undefined}
+          stepHrefs={chrome.step}
+        />
+        <DateJump
+          open={chrome.jumpOpen}
+          onOpenChange={chrome.setJumpOpen}
+          days={chrome.days}
+          onGo={go}
+        />
+        <ShortcutsDialog
+          open={chrome.keysOpen}
+          onOpenChange={chrome.setKeysOpen}
+        />
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }

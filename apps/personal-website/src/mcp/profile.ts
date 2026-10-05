@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTools } from '@rainforest-dev/mcp-kit';
 import {
   getExperienceById,
   getProjectById,
@@ -40,18 +41,7 @@ const [experienceResource, projectResource, skillResource] =
  * which only resolves inside the Astro runtime.
  */
 export function registerProfileMcp(server: McpServer): void {
-  for (const tool of PROFILE_TOOLS) {
-    server.registerTool(
-      tool.name,
-      { description: tool.description, inputSchema: tool.params },
-      // The envelope is the MCP surface's concern, not the catalog's — `run` returns plain data.
-      async (args) => ({
-        content: [
-          { type: 'text', text: JSON.stringify(await tool.run(args as never)) },
-        ],
-      }),
-    );
-  }
+  registerTools(server, PROFILE_TOOLS);
 
   // experience/project resources return the same *resolved* shape as the tools above
   // (resolved organization, merged technologies) — not a raw content-collection entry.

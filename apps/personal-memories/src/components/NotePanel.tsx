@@ -1,24 +1,25 @@
 import { Separator, Textarea } from '@rainforest-dev/rainforest-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { dayInUrl } from '../lib/client/day-url.ts';
-import { toggleCover } from '../lib/cover.ts';
-import { coverControl } from '../lib/lightbox.ts';
-import { withCover } from '../lib/notes/draft.ts';
-import type { NotePayload } from '../lib/notes/payload.ts';
-import type { Accent } from '../lib/stream.ts';
-import { Lightbox } from './lightbox/Lightbox.tsx';
-import { useLightbox } from './lightbox/useLightbox.ts';
-import { AnnotationList } from './notes/AnnotationItem.tsx';
-import { ConflictView } from './notes/ConflictView.tsx';
-import { DiaryDate } from './notes/DiaryDate.tsx';
-import { NotesSurface } from './notes/NotesSurface.tsx';
-import { ReadOnlyNotice } from './notes/ReadOnlyNotice.tsx';
-import { CHIPS, LOAD_FAILED, StatusBadge } from './notes/StatusBadge.tsx';
-import { useAuthorName } from './notes/useAuthorName.ts';
-import { useDaySync } from './notes/useDaySync.ts';
-import { useNoteDraft } from './notes/useNoteDraft.ts';
-import { useStreamBridge } from './notes/useStreamBridge.ts';
+import { Lightbox, useLightbox } from '@/components/lightbox';
+import {
+  AnnotationList,
+  CHIPS,
+  ConflictView,
+  DiaryDate,
+  LOAD_FAILED,
+  NotesSurface,
+  ReadOnlyNotice,
+  StatusBadge,
+  useAuthorName,
+  useDaySync,
+  useNoteDraft,
+  useStreamBridge,
+} from '@/components/notes';
+import { type Accent, coverControl, nameOf, toggleCover } from '@/lib';
+import { dayInUrl } from '@/lib/client';
+import { withCover } from '@/lib/notes';
+import type { NotePayload } from '@/lib/server';
 
 const PLACEHOLDER = '這一天想起了什麼？';
 
@@ -62,7 +63,11 @@ export function NotePanel({
   const readOnly = !payload.writable;
   const { date } = payload;
   const locked = readOnly || !hydrated;
-  const author = useAuthorName(payload.viewer);
+  const roster = useMemo(
+    () => payload.people.map((p) => p.name),
+    [payload.people],
+  );
+  const author = useAuthorName(payload.viewer, roster);
   const { reattach, setReattach, setAnnotation, refs } = useStreamBridge({
     date,
     draft,
@@ -177,6 +182,8 @@ export function NotePanel({
           reattach={reattach}
           refs={refs}
           needsName={author.needsName}
+          roster={roster}
+          nameOf={(source, raw) => nameOf(payload.people, source, raw)}
           onName={author.save}
           accentOf={(author) => accents[author]}
           onBody={(i, body) => setAnnotation(date, i, { body })}

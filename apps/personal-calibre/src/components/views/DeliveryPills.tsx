@@ -1,8 +1,8 @@
 import { Badge } from '@rainforest-dev/rainforest-react';
 import { Check } from 'lucide-react';
 
-import { platformName } from '@/lib/platforms';
-import type { DeliveryPlatform } from '@/types/delivery';
+import { platformName } from '@/lib';
+import type { DeliveryPlatform } from '@/types';
 
 export function DeliveryPills({
   keys,

@@ -1,3 +1,4 @@
+import type { AiState } from '@rainforest-dev/web-ai';
 import { onUnmounted, readonly, ref } from 'vue';
 
 import {
@@ -8,7 +9,6 @@ import {
   type SummarizeFailure,
   type SummarizeOptions,
 } from './summarizer';
-import type { AiState } from './types';
 
 /**
  * Vue adapter over `summarizer.ts`. Reactivity and cleanup only — everything fragile stays in the

@@ -1,0 +1,1 @@
+export { EpubReader } from './EpubReader';

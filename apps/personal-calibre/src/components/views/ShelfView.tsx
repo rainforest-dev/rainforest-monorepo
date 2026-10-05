@@ -3,18 +3,18 @@
 import { useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
 
-import { useLibrary } from '@/components/library/LibraryProvider';
-import { useRovingNav } from '@/hooks/useRovingNav';
+import { useRovingNav } from '@/hooks';
 import {
   booksLabel,
   contentKey,
+  type GroupBy,
   groupEntries,
   groupTitle,
   navKey,
-} from '@/lib/group-entries';
-import { type GroupBy, parseLibraryParams } from '@/lib/library-params';
-import type { LibraryEntry } from '@/types/calibre';
-import type { DeliveryPlatform } from '@/types/delivery';
+  parseLibraryParams,
+} from '@/lib';
+import { useLibrary } from '@/providers';
+import type { DeliveryPlatform, LibraryEntry } from '@/types';
 
 import { BookTile } from './BookTile';
 import { GroupHeading } from './GroupHeading';

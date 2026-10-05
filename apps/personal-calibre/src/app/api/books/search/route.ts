@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { appSqlite } from '@/db/client';
+import { appSqlite } from '@/db';
 
 export const querySchema = z.string().trim().max(200);
 

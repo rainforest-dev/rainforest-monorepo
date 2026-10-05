@@ -39,6 +39,7 @@ const xDefaultHref = isLocalized
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
 
   {
     /* Resolve the colour scheme before first paint (no FOUC). Precedence:
@@ -73,6 +74,9 @@ const xDefaultHref = isLocalized
         window.__themeBound = true;
         document.addEventListener('astro:before-swap', (e) => {
           applyTo(e.newDocument.documentElement);
+        });
+        window.addEventListener('pageshow', (e) => {
+          if (e.persisted) applyTo(document.documentElement);
         });
         document.addEventListener('click', (e) => {
           const target = e.target;

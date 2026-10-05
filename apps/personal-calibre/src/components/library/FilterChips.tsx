@@ -4,13 +4,8 @@ import { Button } from '@rainforest-dev/rainforest-react';
 import { X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
-import {
-  activeFilters,
-  type FilterLabels,
-  parseLibraryParams,
-} from '@/lib/library-params';
-
-import { useLibrary } from './LibraryProvider';
+import { activeFilters, type FilterLabels, parseLibraryParams } from '@/lib';
+import { useLibrary } from '@/providers';
 
 export function FilterChips({ labels }: { labels: FilterLabels }) {
   const params = parseLibraryParams(useSearchParams());
@@ -38,7 +33,7 @@ export function FilterChips({ labels }: { labels: FilterLabels }) {
       <Button
         variant="link"
         size="xs"
-        className="text-foreground shrink-0"
+        className="shrink-0"
         onClick={clearFilters}
       >
         Clear all

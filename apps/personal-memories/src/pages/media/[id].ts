@@ -1,26 +1,28 @@
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 
 import type { APIRoute } from 'astro';
 
-import { parseRange } from '../../lib/range.ts';
+import { parseRange } from '@/lib';
 import {
   contentType,
   dataDir,
   getTimeline,
+  localFile,
   mediaFile,
-} from '../../lib/store.ts';
+} from '@/lib/server';
 
 const notFound = () => new Response('Not found', { status: 404 });
 
-export const GET: APIRoute = ({ params, url, request }) => {
+export const GET: APIRoute = async ({ params, url, request }) => {
   const index = Number(url.searchParams.get('n') ?? 0);
   if (!params.id || !Number.isInteger(index) || index < 0) return notFound();
 
-  const path = mediaFile(getTimeline(), dataDir(), params.id, index);
-  if (!path || !existsSync(path)) return notFound();
+  const path = mediaFile(await getTimeline(), dataDir(), params.id, index);
+  const file = path && (await localFile(path));
+  if (!path || !file) return notFound();
 
-  const size = statSync(path).size;
+  const size = file.size;
   const range = parseRange(request.headers.get('range'), size);
   if (range === 'unsatisfiable') {
     return new Response(null, {

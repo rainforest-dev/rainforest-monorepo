@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import type { PhotoSignals, TimelineEvent } from '@/lib/server';
+
 import { pickCover, scoreCover, toggleCover } from './cover.ts';
-import type { PhotoSignals, TimelineEvent } from './timeline.ts';
 
 const SIGNALS: PhotoSignals = {
   favorite: false,

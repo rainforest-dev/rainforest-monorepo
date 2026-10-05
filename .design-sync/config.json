@@ -16,6 +16,10 @@
     "Button": {
       "skip": ["actions-button--dark"]
     },
+    "ButtonGroup": {
+      "skip": ["actions-buttongroup--dark"],
+      "cardMode": "column"
+    },
     "Card": {
       "skip": ["display-card--dark"]
     },
@@ -34,14 +38,30 @@
       "skip": ["overlays-dropdownmenu--dark"],
       "cardMode": "single"
     },
+    "Empty": {
+      "skip": ["feedback-empty--dark"]
+    },
+    "Field": {
+      "skip": ["forms-field--dark"]
+    },
     "Input": {
       "skip": ["forms-input--dark"]
     },
     "InputGroup": {
       "skip": ["forms-inputgroup--dark"]
     },
+    "Item": {
+      "skip": ["display-item--dark"],
+      "cardMode": "column"
+    },
     "Kbd": {
       "skip": ["display-kbd--dark"]
+    },
+    "KeyHints": {
+      "skip": ["display-keyhints--dark"]
+    },
+    "Label": {
+      "skip": ["forms-label--dark"]
     },
     "Popover": {
       "skip": ["overlays-popover--dark"],
@@ -64,6 +84,9 @@
     },
     "Skeleton": {
       "skip": ["feedback-skeleton--dark"]
+    },
+    "Spinner": {
+      "skip": ["feedback-spinner--dark"]
     },
     "Switch": {
       "skip": ["forms-switch--dark"]

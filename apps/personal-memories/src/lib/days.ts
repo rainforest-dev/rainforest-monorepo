@@ -1,4 +1,5 @@
-import type { TimelineEvent, TimelineSource } from './timeline.ts';
+import type { TimelineEvent, TimelineSource } from '@/lib/server';
+
 import { taipeiDate, weekSpan } from './weeks.ts';
 
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

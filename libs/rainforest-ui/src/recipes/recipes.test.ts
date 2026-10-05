@@ -4,10 +4,15 @@ import { join } from 'node:path';
 import {
   alertVariants,
   badgeVariants,
+  buttonGroupVariants,
   buttonVariants,
   cn,
+  emptyMediaVariants,
+  fieldVariants,
   inputGroupAddonVariants,
   inputGroupButtonVariants,
+  itemMediaVariants,
+  itemVariants,
   sheetContentVariants,
   tabsListVariants,
   toggleVariants,
@@ -30,6 +35,29 @@ describe('recipes', () => {
     expect(inputGroupButtonVariants({ size: 'xs' })).toContain('h-6');
     expect(toggleVariants({ variant: 'outline' })).toContain('border-input');
     expect(sheetContentVariants({ side: 'bottom' })).toContain('rounded-t-xl');
+  });
+
+  it('resolve the ButtonGroup orientations', () => {
+    expect(buttonGroupVariants()).toContain('rounded-r-none');
+    expect(buttonGroupVariants({ orientation: 'vertical' })).toContain(
+      'flex-col',
+    );
+  });
+
+  it('resolve the Empty media variants', () => {
+    expect(emptyMediaVariants()).toContain('bg-transparent');
+    expect(emptyMediaVariants({ variant: 'icon' })).toContain('bg-muted');
+  });
+
+  it('resolve the Field orientations', () => {
+    expect(fieldVariants()).toContain('flex-col');
+    expect(fieldVariants({ orientation: 'horizontal' })).toContain('flex-row');
+  });
+
+  it('resolve the Item variants', () => {
+    expect(itemVariants({ variant: 'outline' })).toContain('border-border');
+    expect(itemVariants({ variant: 'muted' })).toContain('bg-muted/50');
+    expect(itemMediaVariants({ variant: 'image' })).toContain('size-10');
   });
 
   it('merge conflicting Tailwind classes with the last one winning', () => {

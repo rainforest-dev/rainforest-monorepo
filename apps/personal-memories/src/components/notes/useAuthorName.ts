@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { cleanName } from '../../lib/notes/authors.ts';
+import { cleanName } from '@/lib/notes';
 
 const KEY = 'memories:author-name';
 
-export function useAuthorName(viewer: string | undefined) {
+export function useAuthorName(
+  viewer: string | undefined,
+  roster: readonly string[],
+) {
   const [stored, setStored] = useState<string>();
   const [resolved, setResolved] = useState(false);
   useEffect(() => {
@@ -25,9 +28,13 @@ export function useAuthorName(viewer: string | undefined) {
       return;
     }
   }, []);
+  const known =
+    stored && (roster.length === 0 || roster.includes(stored))
+      ? stored
+      : undefined;
   return {
-    name: viewer ?? stored,
-    needsName: resolved && !viewer && !stored,
+    name: viewer ?? known,
+    needsName: resolved && !viewer && !known,
     save,
   };
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { TimelineEvent } from '@/lib/server';
+
 import {
   dayForWeek,
   heatLevels,
@@ -8,7 +10,6 @@ import {
   neighbours,
   summarize,
 } from './days.ts';
-import type { TimelineEvent } from './timeline.ts';
 
 const ev = (
   id: string,

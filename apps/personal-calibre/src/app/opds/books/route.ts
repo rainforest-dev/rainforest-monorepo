@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { atomDate, buildAcquisitionEntry } from '@/lib/opds';
-import { getBookList } from '@/lib/queries';
+import { atomDate, buildAcquisitionEntry } from '@/lib';
+import { getBookList } from '@/lib/server';
 
 export async function GET(request: NextRequest) {
   const page = parseInt(request.nextUrl.searchParams.get('page') ?? '1', 10);

@@ -1,11 +1,13 @@
-import { openPreview } from '../lib/client/preview-dom.ts';
-import { LONG_PRESS_MS, movedBeyond, type Point } from '../lib/gestures.ts';
 import {
+  LONG_PRESS_MS,
+  movedBeyond,
   placePreview,
+  type Point,
   PREVIEW_HIDE_MS,
   PREVIEW_MOVE_PX,
   showDelay,
-} from '../lib/hover-preview.ts';
+} from '@/lib';
+import { openPreview } from '@/lib/client';
 
 const CELL = '[data-preview-cell]';
 

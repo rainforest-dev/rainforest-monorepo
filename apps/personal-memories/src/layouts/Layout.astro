@@ -1,10 +1,14 @@
 ---
-import '../styles/global.css';
+import '@/styles/global.css';
 
-import { AppBar } from '../components/chrome/AppBar.tsx';
-import type { Level, Place } from '../lib/nav.ts';
-import { revealScript } from '../lib/reveal.ts';
-import { HIDDEN_KEY, SOURCES } from '../lib/sources.ts';
+import { AppBar } from '@/components/chrome/AppBar.tsx';
+import {
+  HIDDEN_KEY,
+  type Level,
+  type Place,
+  revealScript,
+  SOURCES,
+} from '@/lib';
 
 type Props = {
   title: string;
@@ -59,9 +63,9 @@ const { title, wide = false, bar } = Astro.props;
       import {
         focusWithoutPreview,
         startPreviews,
-      } from '../scripts/previews.ts';
-      import { startShortcuts } from '../scripts/shortcuts.ts';
-      import { startZoom } from '../scripts/zoom.ts';
+      } from '@/scripts/previews.ts';
+      import { startShortcuts } from '@/scripts/shortcuts.ts';
+      import { startZoom } from '@/scripts/zoom.ts';
       startShortcuts();
       startZoom(focusWithoutPreview);
       startPreviews();

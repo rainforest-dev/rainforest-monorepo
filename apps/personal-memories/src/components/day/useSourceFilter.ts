@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { HIDDEN_KEY, hiddenFrom, SOURCES } from '../../lib/sources.ts';
+import { HIDDEN_KEY, hiddenFrom, SOURCES } from '@/lib';
 
 const ALL = SOURCES.map((s) => s.source);
 

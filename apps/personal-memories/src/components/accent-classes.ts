@@ -1,4 +1,4 @@
-import type { Accent } from '../lib/stream.ts';
+import type { Accent } from '@/lib';
 
 const RULE: Record<Accent, string> = {
   1: 'border-chart-1',

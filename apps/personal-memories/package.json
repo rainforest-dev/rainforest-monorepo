@@ -8,6 +8,7 @@
     "build": "astro check && astro build",
     "preview": "astro preview --port 3004 --host 127.0.0.1",
     "ingest": "node src/cli/ingest.ts",
+    "auto-import": "node src/cli/auto-import.ts",
     "fixture": "node src/cli/fixture.ts",
     "docker-smoke": "node src/cli/docker-smoke.ts"
   },
@@ -40,6 +41,12 @@
           "cwd": "apps/personal-memories",
           "command": "tsc --noEmit -p tsconfig.json"
         }
+      },
+      "bundle": {
+        "command": "node tools/app-artifact/bundle.mjs astro apps/personal-memories"
+      },
+      "smoke-artifact": {
+        "command": "node tools/app-artifact/smoke.mjs personal-memories"
       }
     },
     "release": {
@@ -51,8 +58,12 @@
   "dependencies": {
     "@astrojs/node": "^11.1.6",
     "@astrojs/react": "^6.0.6",
+    "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
+    "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@rainforest-dev/web-ai": "workspace:*",
     "@tailwindcss/vite": "catalog:",
+    "@tanstack/react-query": "5.104.1",
     "astro": "^7.3.3",
     "lucide-react": "^1.8.0",
     "react": "catalog:",
@@ -63,10 +74,11 @@
     "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@vercel/nft": "^1.11.0",
     "typescript": "catalog:",
     "vitest": "^3.2.4"
   }

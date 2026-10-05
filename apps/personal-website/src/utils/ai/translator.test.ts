@@ -1,6 +1,6 @@
+import { PROBE_TIMEOUT_MS } from '@rainforest-dev/web-ai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { PROBE_TIMEOUT_MS } from './probe';
 import {
   __resetForTests,
   destroyTranslator,

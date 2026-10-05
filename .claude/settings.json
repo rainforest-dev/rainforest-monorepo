@@ -1,4 +1,8 @@
 {
+  "enabledPlugins": {
+    "nx@nx-claude-plugins": true,
+    "polygraph@nx-claude-plugins": true
+  },
   "extraKnownMarketplaces": {
     "nx-claude-plugins": {
       "source": {
@@ -7,9 +11,14 @@
       }
     }
   },
-  "enabledPlugins": {
-    "nx@nx-claude-plugins": true,
-    "polygraph@nx-claude-plugins": true
+  "sandbox": {
+    "filesystem": {
+      "allowRead": ["/tmp/.nx", "~/.nx"],
+      "allowWrite": ["/tmp/.nx", "~/.nx"]
+    },
+    "network": {
+      "allowUnixSockets": ["/tmp/.nx", "~/.nx"]
+    }
   },
   "hooks": {
     "SessionStart": [

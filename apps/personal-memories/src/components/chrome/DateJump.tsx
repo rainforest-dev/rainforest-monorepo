@@ -9,12 +9,24 @@ import {
   CommandShortcut,
   Skeleton,
 } from '@rainforest-dev/rainforest-react';
+import { isComposing } from '@rainforest-dev/rainforest-ui/interaction';
 import { useMemo, useState } from 'react';
 
-import { groupByMonth, jumpTarget, matchDates } from '../../lib/jump.ts';
-import { monthLabel } from '../../lib/months.ts';
-import { dayHeading } from '../../lib/weeks.ts';
+import {
+  type DateRange,
+  dayHeading,
+  groupByMonth,
+  localISODate,
+  monthLabel,
+  searchDates,
+} from '@/lib';
+import { localParser } from '@/lib/search';
+
+import { AiParseSwitch } from './AiParseSwitch.tsx';
+import { ContentResults } from './ContentResults.tsx';
 import type { DayCount } from './useChrome.ts';
+import { useContentSearch, usePeople } from './useContentSearch.ts';
+import { usePromptParse } from './usePromptParse.ts';
 
 type Props = {
   open: boolean;
@@ -22,6 +34,12 @@ type Props = {
   days: DayCount[] | 'error' | undefined;
   onGo: (date: string, nearest: boolean) => void;
 };
+
+const PLACEHOLDER = '2025-11-08、上週六、中秋';
+const NUMERIC_DATE = /^[\d\s\-/.年月日號]+$/u;
+
+const rangeLabel = ({ start, end }: DateRange) =>
+  start === end ? start : `${start} – ${end}`;
 
 export function DateJump({ open, onOpenChange, days, onGo }: Props) {
   const [query, setQuery] = useState('');
@@ -31,37 +49,71 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
     () => new Map(list.map((d) => [d.date, d.total])),
     [list],
   );
-  const groups = useMemo(
-    () => groupByMonth(matchDates(dates, query)),
-    [dates, query],
+  const today = localISODate(new Date());
+  const result = useMemo(
+    () => searchDates(dates, query, today),
+    [dates, query, today],
   );
-  const target = groups.length === 0 ? jumpTarget(dates, query) : undefined;
+  const [composing, setComposing] = useState(false);
+  const { people, ready: peopleReady } = usePeople(open);
+  const numericDate = NUMERIC_DATE.test(query.trim());
+  const parsed = useMemo(
+    () =>
+      query.trim() && !numericDate
+        ? localParser(query, today, people)
+        : undefined,
+    [query, today, people, numericDate],
+  );
+  const dateOnly =
+    numericDate || !parsed || (!parsed.text && !parsed.people?.length);
+  const groups = useMemo(
+    () => (dateOnly ? groupByMonth(result.hits.map((hit) => hit.date)) : []),
+    [result, dateOnly],
+  );
+  const ai = usePromptParse({
+    raw: query,
+    today,
+    people,
+    peopleReady,
+    open,
+    composing,
+    skip: dateOnly,
+  });
+  const searchQuery = numericDate ? undefined : ai.useAi ? ai.aiQuery : parsed;
+  const content = useContentSearch(open ? searchQuery : undefined, composing);
+  const pending = content.loading || ai.pending;
+  const target =
+    dateOnly && groups.length === 0 && content.results.length === 0 && !pending
+      ? result.target
+      : undefined;
+  const missing = result.range
+    ? `${query.trim()}（${rangeLabel(result.range)}）沒有紀錄`
+    : '沒有這一天';
 
   return (
     <CommandDialog
       open={open}
       onOpenChange={(next) => {
         onOpenChange(next);
-        if (!next) setQuery('');
+        if (!next) {
+          setQuery('');
+          setComposing(false);
+        }
       }}
       title="跳至日期"
-      description="YYYY-MM-DD"
+      description={PLACEHOLDER}
     >
       <Command shouldFilter={false}>
         <CommandInput
           value={query}
           onValueChange={setQuery}
-          placeholder="YYYY-MM-DD"
-          inputMode="numeric"
+          placeholder={PLACEHOLDER}
           autoComplete="off"
           spellCheck={false}
+          onCompositionStart={() => setComposing(true)}
+          onCompositionEnd={() => setComposing(false)}
           onKeyDown={(e) => {
-            if (
-              e.key !== 'Enter' ||
-              e.nativeEvent.isComposing ||
-              e.keyCode === 229 ||
-              !target
-            )
+            if (e.key !== 'Enter' || isComposing(e.nativeEvent) || !target)
               return;
             e.preventDefault();
             onGo(target.date, !target.exact);
@@ -80,11 +132,11 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
               載入失敗，請再開一次
             </p>
           )}
-          {Array.isArray(days) && (
+          {Array.isArray(days) && !pending && (
             <CommandEmpty>
               {target
-                ? `沒有這一天，按 Enter 跳到最近的 ${target.date}`
-                : '沒有這一天'}
+                ? `${missing}，按 Enter 跳到最近的 ${target.date}`
+                : missing}
             </CommandEmpty>
           )}
           {groups.map(({ month, dates: inMonth }) => (
@@ -101,7 +153,23 @@ export function DateJump({ open, onOpenChange, days, onGo }: Props) {
               ))}
             </CommandGroup>
           ))}
+          {content.error && (
+            <p className="text-muted-foreground px-3 pt-2 text-xs">
+              搜尋失敗，請再試一次
+            </p>
+          )}
+          <ContentResults
+            results={content.results}
+            degraded={content.reason !== undefined}
+            onGo={(date) => onGo(date, false)}
+          />
         </CommandList>
+        <AiParseSwitch
+          on={ai.on}
+          supported={ai.supported}
+          status={ai.status}
+          onToggle={(next) => void ai.toggle(next)}
+        />
       </Command>
     </CommandDialog>
   );

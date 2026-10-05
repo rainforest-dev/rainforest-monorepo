@@ -1,15 +1,10 @@
 import { actions } from 'astro:actions';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import {
-  applyStamps,
-  type Draft,
-  saveInput,
-  toDraft,
-} from '../../lib/notes/draft.ts';
-import type { NotePayload } from '../../lib/notes/payload.ts';
+import { applyStamps, type Draft, saveInput, toDraft } from '@/lib/notes';
+import type { NotePayload } from '@/lib/server';
 
-export type { Draft } from '../../lib/notes/draft.ts';
+export type { Draft } from '@/lib/notes';
 export type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict';
 
 const SAVE_DELAY_MS = 1000;

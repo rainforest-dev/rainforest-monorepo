@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { gotoLibrary, options, pane } from './support/library';
+import { gotoLibrary, options, pane, tokenColor } from './support/library';
 
 test.describe('shelf', () => {
   test('shows the first page as a cover grid', async ({ page }) => {
@@ -27,6 +27,22 @@ test.describe('shelf', () => {
     ).toBeVisible();
     await page.goBack();
     await expect(page).not.toHaveURL(/book=/);
+  });
+
+  test('the open tile draws a primary ring above its cover', async ({
+    page,
+  }) => {
+    await gotoLibrary(page);
+    const [first, second] = [options(page).nth(0), options(page).nth(1)];
+    await first.click();
+    await expect(page).toHaveURL(/book=/);
+    const primary = await tokenColor(page, '--primary');
+    const overlayShadow = (tile: typeof first) =>
+      tile
+        .locator('[data-tile-cover]')
+        .evaluate((el) => getComputedStyle(el, '::after').boxShadow);
+    await expect.poll(() => overlayShadow(first)).toContain(primary);
+    expect(await overlayShadow(second)).toBe('none');
   });
 
   test('marks show the platforms a book is on', async ({ page }) => {
@@ -89,6 +105,9 @@ test.describe('shelf', () => {
   test('an empty result offers Clear filters', async ({ page }) => {
     await gotoLibrary(page, '/?q=zzzz-no-such-book');
     await expect(page.getByText('No books match these filters.')).toBeVisible();
+    await expect(
+      page.locator('[data-view-region] [data-slot="empty"]'),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Clear filters' }).click();
     await expect(page).not.toHaveURL(/q=/);
     await expect(options(page)).toHaveCount(30);

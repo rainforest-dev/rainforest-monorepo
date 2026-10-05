@@ -6,11 +6,8 @@ import {
   TableRow,
 } from '@rainforest-dev/rainforest-react';
 
-import { seriesLine, yearOf } from '@/lib/format';
-import { spineClass } from '@/lib/spine';
-import { cn } from '@/lib/utils';
-import type { LibraryBook } from '@/types/calibre';
-import type { DeliveryPlatform } from '@/types/delivery';
+import { cn, seriesLine, spineClass, yearOf } from '@/lib';
+import type { DeliveryPlatform, LibraryBook } from '@/types';
 
 import { DeliveryPills } from './DeliveryPills';
 

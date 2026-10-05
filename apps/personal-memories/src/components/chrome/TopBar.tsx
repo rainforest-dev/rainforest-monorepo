@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
 
-import type { BackLink, Level } from '../../lib/nav.ts';
+import type { BackLink, Level } from '@/lib';
 
 const LEVELS: { value: Level; label: string }[] = [
   { value: 'year', label: '年' },

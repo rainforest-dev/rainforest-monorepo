@@ -1,7 +1,5 @@
-import { setStop } from '../lib/client/roving.ts';
-import { placeOf } from '../lib/nav.ts';
-import { REVEAL_STYLE_ID, revealKey } from '../lib/reveal.ts';
-import { morphKey } from '../lib/zoom.ts';
+import { morphKey, placeOf, REVEAL_STYLE_ID, revealKey } from '@/lib';
+import { setStop } from '@/lib/client';
 
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const MARKABLE = 'a[data-date], a[data-month-row]';

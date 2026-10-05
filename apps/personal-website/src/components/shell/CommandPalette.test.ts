@@ -6,7 +6,7 @@
 //
 // The AI composable and the tool catalog are mocked rather than exercised: the point here is the
 // component's own branching, and the catalog's real implementation drags in the content library.
-// selectTool's behaviour has its own tests in utils/ai/language-model.test.ts.
+// selectTool's behaviour has its own tests in libs/web-ai/src/language-model.test.ts.
 import type { AiState } from '@utils/ai';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,12 +28,12 @@ vi.mock('@utils/ai', () => ({
   registerAgentTools: () => ({ registered: [], dispose: vi.fn() }),
 }));
 
-vi.mock('../../mcp/catalog', () => ({
+vi.mock('@/mcp/catalog', () => ({
   PROFILE_TOOLS: [
     {
       name: 'get_projects',
       description: 'Portfolio projects',
-      params: {},
+      input: {},
       run: vi.fn(),
       summarise: () => 'vue appears in 0 projects.',
     },

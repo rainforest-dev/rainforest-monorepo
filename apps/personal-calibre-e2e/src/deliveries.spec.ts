@@ -19,6 +19,8 @@ test.describe('deliveries', () => {
   }) => {
     await gotoLibrary(page, '/?book=41');
     await expect(row(page, 'kobo')).toContainText('Not added');
+    await expect(row(page, 'kobo')).toHaveAttribute('data-slot', 'item');
+    await expect(row(page, 'kobo')).toHaveAttribute('role', 'listitem');
     await row(page, 'kobo').getByRole('button', { name: 'Mark added' }).click();
     const dialog = page.getByRole('dialog', { name: 'Mark as added to Kobo' });
     await expect(
@@ -29,6 +31,17 @@ test.describe('deliveries', () => {
     await expect(
       dialog.getByText('Reference URL must start with http:// or https://'),
     ).toBeVisible();
+    const errorId = await dialog
+      .getByLabel('Reference URL')
+      .getAttribute('aria-describedby');
+    await expect(dialog.locator(`[id="${errorId}"]`)).toHaveAttribute(
+      'data-slot',
+      'field-error',
+    );
+    await expect(dialog.locator(`[id="${errorId}"]`)).toHaveAttribute(
+      'role',
+      'alert',
+    );
     await expect(row(page, 'kobo')).toContainText('Not added');
     await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0);
     await dialog
@@ -69,5 +82,55 @@ test.describe('deliveries', () => {
     await gotoLibrary(page, '/?book=1');
     await expect(row(page, 'kobo')).toContainText('2026-09-01');
     await expect(row(page, 'readwise-reader')).toContainText('Not added');
+  });
+
+  test('delivery rows are separated by a visible divider', async ({ page }) => {
+    await gotoLibrary(page, '/?book=1');
+    const list = row(page, 'kobo').locator('xpath=..');
+    const dividers = list.locator('[data-slot="item-separator"]');
+    const rows = list.getByRole('listitem');
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(1);
+    await expect(dividers).toHaveCount(count);
+    await expect(dividers.first()).toBeHidden();
+    for (let i = 1; i < count; i++) {
+      await expect(dividers.nth(i)).toBeVisible();
+      const line = await dividers.nth(i).boundingBox();
+      const above = await rows.nth(i - 1).boundingBox();
+      expect(line?.height).toBe(1);
+      expect(line?.y).toBe((above?.y ?? 0) + (above?.height ?? 0) - 1);
+    }
+    const color = await dividers
+      .nth(1)
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(color).not.toBe('rgba(0, 0, 0, 0)');
+  });
+
+  test('Save shows a spinner and stays disabled while the request runs', async ({
+    page,
+  }) => {
+    await gotoLibrary(page, '/?book=42');
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/api/books/42/deliveries', async (route) => {
+      if (route.request().method() === 'POST') await held;
+      await route.continue();
+    });
+    await row(page, 'notebooklm')
+      .getByRole('button', { name: 'Mark added' })
+      .click();
+    const dialog = page.getByRole('dialog', {
+      name: 'Mark as added to NotebookLM',
+    });
+    await expect(dialog.locator('[data-slot="field"]')).toHaveCount(2);
+    const save = dialog.getByRole('button', { name: 'Save' });
+    await save.click();
+    await expect(save).toBeDisabled();
+    await expect(save.locator('[data-slot="spinner"]')).toBeVisible();
+    release();
+    await expect(page.getByText('Logged NotebookLM')).toBeVisible();
+    await expect(row(page, 'notebooklm')).toContainText(today());
   });
 });

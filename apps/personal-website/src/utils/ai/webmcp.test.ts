@@ -1,6 +1,6 @@
+import type { ToolDescriptor } from '@rainforest-dev/web-ai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { ToolDescriptor } from './types';
 import { registerAgentTools } from './webmcp';
 
 const TOOLS: ToolDescriptor[] = [

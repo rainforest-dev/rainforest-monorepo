@@ -11,7 +11,7 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { XIcon } from 'lucide-react';
 
-import { SHORTCUT_GROUPS } from '../../lib/shortcuts.ts';
+import { SHORTCUT_GROUPS } from '@/lib';
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void };
 

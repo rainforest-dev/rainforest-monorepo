@@ -1,5 +1,6 @@
-import type { GroupBy } from '@/lib/library-params';
-import type { LibraryEntry } from '@/types/calibre';
+import type { LibraryEntry } from '@/types';
+
+import type { GroupBy } from './library-params';
 
 export interface EntryGroup {
   key: string;

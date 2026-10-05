@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react';
 
-import {
-  type Level,
-  levelHrefs,
-  monthBack,
-  type Place,
-} from '../../lib/nav.ts';
-import { useActiveDay } from '../useActiveDay.ts';
-import { useOverlay } from '../useOverlay.ts';
+import { useActiveDay } from '@/components/useActiveDay.ts';
+import { useOverlay } from '@/components/useOverlay.ts';
+import { type Level, levelHrefs, monthBack, type Place } from '@/lib';
 
 export type DayCount = { date: string; total: number };
 export type StepHrefs = {

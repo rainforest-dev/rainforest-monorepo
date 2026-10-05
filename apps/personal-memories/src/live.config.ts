@@ -7,10 +7,8 @@ import {
   indexDays,
   neighbours,
   summarize,
-} from './lib/days.ts';
-import { notesStore } from './lib/notes/store.ts';
-import { getTimeline } from './lib/store.ts';
-import type { TimelineEvent } from './lib/timeline.ts';
+} from '@/lib';
+import { getTimeline, notesStore, type TimelineEvent } from '@/lib/server';
 
 export type DayData = {
   summary: DaySummary;
@@ -22,7 +20,7 @@ export type DayData = {
 const daysLoader: LiveLoader<DayData, { date: string }> = {
   name: 'memories-days',
   async loadCollection() {
-    const state = getTimeline();
+    const state = await getTimeline();
     if (state.status !== 'ready') return { entries: [] };
     const index = indexDays(state.timeline.events);
     return {
@@ -33,7 +31,7 @@ const daysLoader: LiveLoader<DayData, { date: string }> = {
     };
   },
   async loadEntry({ filter }) {
-    const state = getTimeline();
+    const state = await getTimeline();
     if (state.status !== 'ready' || !DATE_RE.test(filter.date))
       return undefined;
     const index = indexDays(state.timeline.events);

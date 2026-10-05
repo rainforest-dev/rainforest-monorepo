@@ -1,9 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/",
-      "has": [{ "type": "host", "value": "mcp.rainforest.tools" }],
-      "destination": "/api/mcp"
-    }
-  ]
-}

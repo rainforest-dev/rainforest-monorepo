@@ -1,33 +1,39 @@
-import { type GridKey, gridTarget, isGridLayout } from '../grid-nav.ts';
+import {
+  createRovingController,
+  type RovingController,
+} from '@rainforest-dev/rainforest-ui/interaction';
 
-const CELL = 'a[data-date]';
+import { type GridKey, isGridLayout, slotOf } from '@/lib/grid-nav.ts';
+
+const controllers = new WeakMap<HTMLElement, RovingController>();
+
+function controllerOf(cell: Element): RovingController | undefined {
+  const grid = cell.closest<HTMLElement>('[data-grid]');
+  const layout = grid?.dataset['grid'];
+  if (!grid || !isGridLayout(layout)) return undefined;
+  let controller = controllers.get(grid);
+  if (!controller) {
+    const dateOf = (el: HTMLElement) => el.dataset['date'] ?? '';
+    controller = createRovingController({
+      container: grid,
+      items: 'a[data-date]',
+      keyOf: dateOf,
+      rowOf: (el) => slotOf(dateOf(el), layout).row,
+      colOf: (el) => slotOf(dateOf(el), layout).col,
+      mode: 'grid',
+      homeEnd: 'page',
+    });
+    controllers.set(grid, controller);
+  }
+  return controller;
+}
 
 export function setStop(cell: HTMLElement) {
-  const grid = cell.closest<HTMLElement>('[data-grid]');
-  if (!grid) return;
-  for (const other of grid.querySelectorAll<HTMLElement>(
-    `${CELL}[tabindex="0"]`,
-  ))
-    other.tabIndex = -1;
-  cell.tabIndex = 0;
+  controllerOf(cell)?.setStop(cell);
 }
 
 export function moveInGrid(key: GridKey) {
   const active = document.activeElement;
-  if (!(active instanceof HTMLElement)) return;
-  const grid = active.closest<HTMLElement>('[data-grid]');
-  const layout = grid?.dataset['grid'];
-  const date = active.dataset['date'];
-  if (!grid || !isGridLayout(layout) || !date) return;
-  const cells = [...grid.querySelectorAll<HTMLElement>(CELL)];
-  const target = gridTarget(
-    cells.flatMap((cell) => cell.dataset['date'] ?? []),
-    date,
-    key,
-    layout,
-  );
-  const next = cells.find((cell) => cell.dataset['date'] === target);
-  if (!next) return;
-  setStop(next);
-  next.focus();
+  if (!(active instanceof HTMLElement) || !active.dataset['date']) return;
+  controllerOf(active)?.move(key);
 }

@@ -1,4 +1,4 @@
-import type { DeliveryPlatform } from '@/types/delivery';
+import type { DeliveryPlatform } from '@/types';
 
 const ABBREVIATIONS: Record<string, string> = {
   kobo: 'KB',

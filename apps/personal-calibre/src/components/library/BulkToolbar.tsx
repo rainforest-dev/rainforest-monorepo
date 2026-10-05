@@ -2,22 +2,23 @@
 
 import {
   Button,
+  ButtonGroup,
   Kbd,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Spinner,
   toast,
 } from '@rainforest-dev/rainforest-react';
 import { Download, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
-import { platformName } from '@/lib/platforms';
-import type { DeliveryPlatform } from '@/types/delivery';
-
-import { useLibrary } from './LibraryProvider';
+import { platformName } from '@/lib';
+import { useLibrary } from '@/providers';
+import type { DeliveryPlatform } from '@/types';
 
 const ZIP_FORMATS = ['EPUB', 'PDF', 'MOBI', 'AZW3'];
 
@@ -51,7 +52,8 @@ export function BulkToolbar({
     setSelectMode,
     focusAfterToolbar,
   } = useLibrary();
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<'deliver' | 'zip' | null>(null);
+  const busy = pending !== null;
   const toolbarRef = useRef<HTMLDivElement>(null);
   const platformKey = bulkPlatform || platforms[0]?.key || '';
   const count = selected.size;
@@ -60,7 +62,7 @@ export function BulkToolbar({
 
   async function markDelivered() {
     if (!platformKey) return;
-    setBusy(true);
+    setPending('deliver');
     try {
       const res = await fetch('/api/books/deliveries/bulk', {
         method: 'POST',
@@ -86,12 +88,12 @@ export function BulkToolbar({
     } catch (error) {
       toast.error(`Delivery failed — ${messageOf(error)}`);
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   }
 
   async function downloadZip() {
-    setBusy(true);
+    setPending('zip');
     try {
       const res = await fetch('/api/books/download/bulk', {
         method: 'POST',
@@ -108,7 +110,7 @@ export function BulkToolbar({
     } catch (error) {
       toast.error(`Download failed — ${messageOf(error)}`);
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   }
 
@@ -136,14 +138,13 @@ export function BulkToolbar({
         <Button
           variant="link"
           size="xs"
-          className="text-foreground"
           disabled={busy}
           onClick={() => addMany(matchingIds)}
         >
           Select all {matchingIds.length}
         </Button>
       )}
-      <div className="flex items-center gap-1.5 lg:ml-auto">
+      <ButtonGroup className="lg:ml-auto" aria-label="Deliver to platform">
         <Select
           items={platforms.map((p) => ({ value: p.key, label: p.name }))}
           value={platformKey}
@@ -164,15 +165,15 @@ export function BulkToolbar({
           </SelectContent>
         </Select>
         <Button
-          variant="secondary"
           size="sm"
           disabled={busy || !platformKey}
           onClick={() => void markDelivered()}
         >
+          {pending === 'deliver' && <Spinner data-icon="inline-start" />}
           Mark delivered
         </Button>
-      </div>
-      <div className="flex items-center gap-1.5">
+      </ButtonGroup>
+      <ButtonGroup aria-label="Download format">
         <Select
           items={ZIP_FORMATS.map((f) => ({ value: f, label: f }))}
           value={zipFormat}
@@ -197,10 +198,14 @@ export function BulkToolbar({
           disabled={busy}
           onClick={() => void downloadZip()}
         >
-          <Download aria-hidden />
+          {pending === 'zip' ? (
+            <Spinner data-icon="inline-start" />
+          ) : (
+            <Download aria-hidden />
+          )}
           ZIP
         </Button>
-      </div>
+      </ButtonGroup>
       <span className="text-muted-foreground hidden items-center gap-1 text-xs lg:inline-flex">
         <Kbd>Esc</Kbd> clear
       </span>

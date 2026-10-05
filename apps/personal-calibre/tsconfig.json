@@ -44,10 +44,13 @@
   ],
   "references": [
     {
+      "path": "../../libs/rainforest-ui"
+    },
+    {
       "path": "../../libs/rainforest-react"
     },
     {
-      "path": "../../libs/rainforest-ui"
+      "path": "../../libs/mcp-kit"
     }
   ]
 }

@@ -1,11 +1,23 @@
 import { z } from 'astro/zod';
 import { ActionError, defineAction } from 'astro:actions';
 
-import { DATE_RE, indexDays } from '../lib/days.ts';
-import { originOf, stampAuthors, viewerName } from '../lib/notes/authors.ts';
-import { notePayload, toPayload } from '../lib/notes/payload.ts';
-import { notesStore, UnreadableNoteError } from '../lib/notes/store.ts';
-import { getTimeline } from '../lib/store.ts';
+import { DATE_RE, indexDays } from '@/lib';
+import {
+  originOf,
+  stampAuthors,
+  UnknownAuthorError,
+  viewerName,
+} from '@/lib/notes';
+import {
+  getNoteVectors,
+  getPeople,
+  getTimeline,
+  notePayload,
+  notesStore,
+  publicPeople,
+  toPayload,
+  UnreadableNoteError,
+} from '@/lib/server';
 
 const date = z.string().regex(DATE_RE);
 
@@ -20,8 +32,8 @@ const annotation = z.object({
   origin: z.string().max(64).optional(),
 });
 
-const dayEvents = (d: string) => {
-  const state = getTimeline();
+const dayEvents = async (d: string) => {
+  const state = await getTimeline();
   return state.status === 'ready'
     ? (indexDays(state.timeline.events).byDate.get(d) ?? [])
     : [];
@@ -30,13 +42,16 @@ const dayEvents = (d: string) => {
 export const server = {
   getNote: defineAction({
     input: z.object({ date }),
-    handler: ({ date: d }, context) =>
-      notePayload(
+    handler: async ({ date: d }, context) => {
+      const people = await getPeople();
+      return notePayload(
         notesStore(),
         d,
-        dayEvents(d),
-        viewerName(context.request.headers),
-      ),
+        await dayEvents(d),
+        viewerName(context.request.headers, people.people),
+        publicPeople(people),
+      );
+    },
   }),
   saveNote: defineAction({
     input: z.object({
@@ -46,7 +61,7 @@ export const server = {
       cover: z.string().optional(),
       version: z.string(),
     }),
-    handler: ({ date: d, version, ...edit }, context) => {
+    handler: async ({ date: d, version, ...edit }, context) => {
       const store = notesStore();
       if (!store?.writable) {
         throw new ActionError({
@@ -54,12 +69,20 @@ export const server = {
           message: 'notes are read-only',
         });
       }
-      const viewer = viewerName(context.request.headers);
-      const signedAnnotations = stampAuthors(
-        edit.annotations,
-        store.read(d).note.annotations,
-        viewer,
-      );
+      const people = await getPeople();
+      const viewer = viewerName(context.request.headers, people.people);
+      let signedAnnotations;
+      try {
+        signedAnnotations = stampAuthors(
+          edit.annotations,
+          store.read(d).note.annotations,
+          viewer,
+          new Set(people.people.map((p) => p.name)),
+        );
+      } catch (error) {
+        if (!(error instanceof UnknownAuthorError)) throw error;
+        throw new ActionError({ code: 'BAD_REQUEST', message: error.message });
+      }
       const signed = { ...edit, annotations: signedAnnotations };
       let result;
       try {
@@ -72,6 +95,11 @@ export const server = {
         });
       }
       if (result.ok) {
+        getNoteVectors()
+          .refresh(d)
+          .catch((error: unknown) =>
+            console.error('[memories] note search refresh failed', error),
+          );
         return {
           ok: true as const,
           version: result.version,
@@ -81,7 +109,12 @@ export const server = {
           })),
         };
       }
-      const current = toPayload(result.current, true, dayEvents(d));
+      const current = toPayload(
+        result.current,
+        true,
+        await dayEvents(d),
+        publicPeople(people),
+      );
       if (viewer) current.viewer = viewer;
       return { ok: false as const, current };
     },

@@ -41,6 +41,7 @@ export function writePhotoFixture(root: string) {
       ismissing: false,
       albums: ['Weekend', 'Food'],
       persons: ['Alice'],
+      search_info: { labels: ['Ramen'], detected_text: [], venues: [] },
       favorite: true,
       width: 1,
       height: 1,

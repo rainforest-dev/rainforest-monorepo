@@ -1,10 +1,7 @@
 'use client';
 
-import { seriesLine } from '@/lib/format';
-import { spineClass } from '@/lib/spine';
-import { cn } from '@/lib/utils';
-import type { LibraryBook } from '@/types/calibre';
-import type { DeliveryPlatform } from '@/types/delivery';
+import { cn, seriesLine, spineClass } from '@/lib';
+import type { DeliveryPlatform, LibraryBook } from '@/types';
 
 import { DeliveryMarks } from './DeliveryMarks';
 import { SelectMark } from './SelectMark';
@@ -59,9 +56,9 @@ export function BookTile({
         className={cn(
           'relative aspect-[2/3] overflow-hidden rounded-md',
           'group-focus-visible/tile:outline-foreground group-focus-visible/tile:outline-[2.5px] group-focus-visible/tile:outline-offset-4',
-          selected
-            ? 'ring-primary ring-2'
-            : open && 'ring-accent-foreground/40 ring-2 ring-inset',
+          selected && 'ring-primary ring-2',
+          open &&
+            'after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_0_0_3px_var(--color-primary),inset_0_0_0_4px_var(--color-background)]',
         )}
       >
         {book.hasCover ? (

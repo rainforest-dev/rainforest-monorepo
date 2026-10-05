@@ -1,4 +1,5 @@
-import type { TimelineEvent } from '../timeline.ts';
+import type { TimelineEvent } from '@/lib/server';
+
 import { originOf } from './authors.ts';
 import type { Annotation } from './types.ts';
 

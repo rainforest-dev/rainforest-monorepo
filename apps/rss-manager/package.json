@@ -23,6 +23,12 @@
           "^build"
         ],
         "cache": true
+      },
+      "bundle": {
+        "command": "node tools/app-artifact/bundle.mjs astro apps/rss-manager"
+      },
+      "smoke-artifact": {
+        "command": "node tools/app-artifact/smoke.mjs rss-manager"
       }
     },
     "release": {
@@ -35,6 +41,7 @@
     "@astrojs/node": "^11.1.6",
     "@astrojs/react": "^6.0.6",
     "@rainforest-dev/rainforest-react": "workspace:*",
+    "@rainforest-dev/rainforest-ui": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "astro": "^7.3.3",
     "lucide-react": "^1.8.0",
@@ -43,10 +50,10 @@
     "tailwindcss": "catalog:"
   },
   "devDependencies": {
-    "@rainforest-dev/rainforest-ui": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@vercel/nft": "^1.11.0",
     "typescript": "catalog:",
     "vitest": "^3.2.4"
   }

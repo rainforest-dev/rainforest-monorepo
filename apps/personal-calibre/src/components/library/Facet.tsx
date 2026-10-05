@@ -9,7 +9,7 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { type ReactNode, useId, useState } from 'react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib';
 
 const VISIBLE_OPTIONS = 8;
 
@@ -102,7 +102,7 @@ export function Facet({
         <Button
           variant="link"
           size="xs"
-          className="text-foreground self-start"
+          className="self-start"
           onClick={() => setExpanded((open) => !open)}
         >
           {expanded ? 'Show fewer' : `Show all ${options.length}`}

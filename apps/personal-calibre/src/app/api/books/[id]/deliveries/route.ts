@@ -1,12 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { httpUrlSchema } from '@/lib';
 import {
   createBookDeliveryEvent,
   deleteBookDeliveryEvent,
   listBookDeliveryEvents,
-} from '@/lib/delivery';
-import { httpUrlSchema } from '@/lib/url';
+} from '@/lib/server';
 
 const externalRefSchema = z.preprocess(
   (value) =>
@@ -16,7 +16,10 @@ const externalRefSchema = z.preprocess(
 
 export const deliveryBodySchema = z.object({
   platformKey: z
-    .string({ required_error: 'platformKey is required' })
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? 'platformKey is required' : undefined,
+    })
     .trim()
     .min(1, 'platformKey is required'),
   note: z.string().optional(),

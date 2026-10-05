@@ -11,19 +11,18 @@ import {
 import { useSearchParams } from 'next/navigation';
 import { Fragment, useMemo } from 'react';
 
-import { useLibrary } from '@/components/library/LibraryProvider';
-import { useIsDesktop } from '@/hooks/useIsDesktop';
-import { useRovingNav } from '@/hooks/useRovingNav';
+import { useIsDesktop, useRovingNav } from '@/hooks';
 import {
   contentKey,
   type EntryGroup,
+  type GroupBy,
   groupEntries,
   navKey,
-} from '@/lib/group-entries';
-import { type GroupBy, parseLibraryParams } from '@/lib/library-params';
-import { pageCheckState } from '@/lib/selection';
-import type { LibraryEntry } from '@/types/calibre';
-import type { DeliveryPlatform } from '@/types/delivery';
+  pageCheckState,
+  parseLibraryParams,
+} from '@/lib';
+import { useLibrary } from '@/providers';
+import type { DeliveryPlatform, LibraryEntry } from '@/types';
 
 import { CatalogueRow } from './CatalogueRow';
 import { GroupHeading } from './GroupHeading';

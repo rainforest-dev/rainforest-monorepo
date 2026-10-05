@@ -1,15 +1,24 @@
-import { Button, cn, Input, Textarea } from '@rainforest-dev/rainforest-react';
+import {
+  Button,
+  cn,
+  Field,
+  FieldLabel,
+  Input,
+  Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@rainforest-dev/rainforest-react';
 import { PenLineIcon } from 'lucide-react';
-import type { Ref, RefObject } from 'react';
+import { type Ref, type RefObject, useId } from 'react';
 
-import type { ResolvedAnnotation } from '../../lib/notes/attach.ts';
-import { SOURCE_LABELS } from '../../lib/notes/types.ts';
-import type { Accent } from '../../lib/stream.ts';
-import { taipeiTime } from '../../lib/weeks.ts';
-import { accentRule } from '../accent-classes.ts';
+import { accentRule } from '@/components/accent-classes.ts';
+import { type Accent, taipeiTime } from '@/lib';
+import { type ResolvedAnnotation, SOURCE_LABELS } from '@/lib/notes';
+import type { TimelineSource } from '@/lib/server';
 
 type Props = {
   annotation: ResolvedAnnotation;
+  authorName: string;
   accent: Accent | undefined;
   disabled: boolean;
   readOnly: boolean;
@@ -48,6 +57,7 @@ function UnlinkIcon() {
 
 export function AnnotationItem({
   annotation: a,
+  authorName,
   accent,
   disabled,
   readOnly,
@@ -58,7 +68,7 @@ export function AnnotationItem({
   onDelete,
 }: Props) {
   const attached = a.status !== 'unattached';
-  const meta = [taipeiTime(a.at), SOURCE_LABELS[a.source], a.author].join(
+  const meta = [taipeiTime(a.at), SOURCE_LABELS[a.source], authorName].join(
     ' · ',
   );
   const quote = (
@@ -156,6 +166,8 @@ type ListProps = {
   reattach: number | undefined;
   refs: RefObject<(HTMLTextAreaElement | null)[]>;
   needsName: boolean;
+  roster: readonly string[];
+  nameOf: (source: TimelineSource, raw: string) => string;
   onName: (raw: string) => void;
   onBody: (i: number, body: string) => void;
   onReattach: (i: number) => void;
@@ -168,6 +180,8 @@ export function AnnotationList({
   reattach,
   refs,
   needsName,
+  roster,
+  nameOf,
   onName,
   onBody,
   onReattach,
@@ -175,6 +189,7 @@ export function AnnotationList({
   accentOf,
   ...rest
 }: ListProps) {
+  const nameId = useId();
   if (rest.readOnly && annotations.length === 0) return null;
   const ordered = annotations
     .map((a, i) => ({ a, i }))
@@ -194,18 +209,46 @@ export function AnnotationList({
         )}
       </div>
       {needsName && !rest.readOnly && (
-        <label className="mb-3 flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-xs">眉批署名</span>
-          <Input
-            placeholder="你的名字"
-            className="h-8"
-            disabled={rest.disabled}
-            onBlur={(e) => onName(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onName(e.currentTarget.value);
-            }}
-          />
-        </label>
+        <Field className="mb-3 gap-1.5">
+          <FieldLabel
+            id={`${nameId}-label`}
+            htmlFor={nameId}
+            className="text-muted-foreground text-xs font-normal"
+          >
+            眉批署名
+          </FieldLabel>
+          {roster.length > 0 ? (
+            <ToggleGroup
+              id={nameId}
+              aria-labelledby={`${nameId}-label`}
+              variant="outline"
+              size="sm"
+              value={[]}
+              disabled={rest.disabled}
+              onValueChange={(next) => {
+                const [picked] = next as string[];
+                if (picked) onName(picked);
+              }}
+            >
+              {roster.map((name) => (
+                <ToggleGroupItem key={name} value={name}>
+                  {name}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          ) : (
+            <Input
+              id={nameId}
+              placeholder="你的名字"
+              className="h-8"
+              disabled={rest.disabled}
+              onBlur={(e) => onName(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onName(e.currentTarget.value);
+              }}
+            />
+          )}
+        </Field>
       )}
       {annotations.length === 0 ? (
         <p className="text-muted-foreground text-meta leading-[1.6]">
@@ -217,6 +260,7 @@ export function AnnotationList({
             <AnnotationItem
               key={`${i}-${a.eventId}`}
               annotation={a}
+              authorName={nameOf(a.source, a.author)}
               accent={accentOf(a.author)}
               {...rest}
               reattaching={reattach === i}

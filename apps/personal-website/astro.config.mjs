@@ -45,6 +45,9 @@ export default defineConfig({
   i18n: {
     defaultLocale: fallbackLng,
     locales: [...supportedLngs],
+    // Astro's prefix-other-locales router 404s any path with an `en` segment anywhere
+    // (e.g. /blog/en/<post>), but only on requests it renders, so dev broke while prod did not.
+    routing: 'manual',
   },
   // Back-compat: English used to live under /en/…; it's now canonical at the root.
   // Redirect the previously-shipped English pages to their bare paths. Exact paths

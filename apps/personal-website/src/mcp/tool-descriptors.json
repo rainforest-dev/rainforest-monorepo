@@ -1,0 +1,150 @@
+[
+  {
+    "name": "get_profile_summary",
+    "description": "Professional profile overview: counts and top technologies",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "lang": {
+          "type": "string",
+          "enum": ["en", "zh"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_work_experience",
+    "description": "Work history, optionally filtered by technology",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "technology": {
+          "type": "string",
+          "enum": [
+            "nextjs",
+            "vue",
+            "docker",
+            "flutter",
+            "react",
+            "tailwindcss",
+            "mui",
+            "auth0",
+            "qwik",
+            "playwright",
+            "vitest",
+            "python",
+            "pytorch",
+            "fastapi",
+            "swift",
+            "github-actions",
+            "nodejs",
+            "nx",
+            "vite",
+            "typescript",
+            "express",
+            "terraform"
+          ]
+        },
+        "lang": {
+          "type": "string",
+          "enum": ["en", "zh"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_education",
+    "description": "Academic background",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "lang": {
+          "type": "string",
+          "enum": ["en", "zh"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_projects",
+    "description": "Portfolio projects, optionally filtered by technology",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "technology": {
+          "type": "string",
+          "enum": [
+            "nextjs",
+            "vue",
+            "docker",
+            "flutter",
+            "react",
+            "tailwindcss",
+            "mui",
+            "auth0",
+            "qwik",
+            "playwright",
+            "vitest",
+            "python",
+            "pytorch",
+            "fastapi",
+            "swift",
+            "github-actions",
+            "nodejs",
+            "nx",
+            "vite",
+            "typescript",
+            "express",
+            "terraform"
+          ]
+        },
+        "lang": {
+          "type": "string",
+          "enum": ["en", "zh"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_skills",
+    "description": "Technical skills inventory",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "lang": {
+          "type": "string",
+          "enum": ["en", "zh"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "search_by_technology",
+    "description": "Substring-match a technology name across all experiences and projects",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string",
+          "enum": ["en", "zh"]
+        }
+      },
+      "required": ["query"],
+      "additionalProperties": false
+    }
+  }
+]

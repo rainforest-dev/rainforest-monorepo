@@ -1,10 +1,10 @@
-import type { View } from '@/lib/prefs';
+import type { KeyHint as RowHint } from '@rainforest-dev/rainforest-react';
+
+import type { View } from './prefs';
 
 export interface KeyInput {
   key: string;
-  altKey: boolean;
-  ctrlKey: boolean;
-  metaKey: boolean;
+  modified: boolean;
   typing: boolean;
   inOverlay: boolean;
   paneOpen: boolean;
@@ -21,14 +21,7 @@ export type Shortcut =
   | { type: 'go-to-page'; page: number };
 
 export function resolveShortcut(input: KeyInput): Shortcut | null {
-  if (
-    input.typing ||
-    input.inOverlay ||
-    input.altKey ||
-    input.ctrlKey ||
-    input.metaKey
-  )
-    return null;
+  if (input.typing || input.inOverlay || input.modified) return null;
   switch (input.key) {
     case '/':
       return { type: 'focus-search' };
@@ -50,9 +43,7 @@ export function resolveShortcut(input: KeyInput): Shortcut | null {
   }
 }
 
-export interface KeyHint {
-  keys: readonly string[];
-  label: string;
+export interface KeyHint extends RowHint {
   paged?: true;
 }
 

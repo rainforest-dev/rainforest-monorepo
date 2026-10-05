@@ -8,7 +8,7 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { RotateCw, TriangleAlert } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib';
 
 export function LoadError({
   variant,

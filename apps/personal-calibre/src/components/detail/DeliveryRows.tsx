@@ -3,26 +3,38 @@
 import {
   Badge,
   Button,
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
   Input,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemSeparator,
+  ItemTitle,
   Popover,
   PopoverContent,
   PopoverDescription,
   PopoverHeader,
   PopoverTitle,
   PopoverTrigger,
+  Spinner,
   toast,
 } from '@rainforest-dev/rainforest-react';
 import { Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useId, useState } from 'react';
+import { Fragment, useId, useState } from 'react';
 
 import {
   formatDeliveryDate,
   formatDeliveryTime,
   latestByPlatform,
-} from '@/lib/deliveries';
-import { safeExternalHref } from '@/lib/url';
-import type { BookDeliveryEvent, DeliveryPlatform } from '@/types/delivery';
+  safeExternalHref,
+} from '@/lib';
+import type { BookDeliveryEvent, DeliveryPlatform } from '@/types';
 
 interface Props {
   bookId: number;
@@ -58,26 +70,28 @@ export function DeliveryRows({
       >
         Deliveries
       </Heading>
-      <ul className="divide-y rounded-lg border">
+      <ItemGroup className="gap-0 rounded-lg border">
         {platforms.map((platform) => (
-          <DeliveryRow
-            key={platform.key}
-            bookId={bookId}
-            platform={platform}
-            latest={latest.get(platform.key) ?? null}
-          />
+          <Fragment key={platform.key}>
+            <ItemSeparator />
+            <DeliveryRow
+              bookId={bookId}
+              platform={platform}
+              latest={latest.get(platform.key) ?? null}
+            />
+          </Fragment>
         ))}
-      </ul>
+      </ItemGroup>
       {events.length > 0 && (
         <details className="text-sm">
           <summary className="text-muted-foreground cursor-pointer select-none">
             History ({events.length})
           </summary>
-          <ul className="mt-2 flex flex-col gap-2">
+          <ItemGroup className="mt-2 gap-2">
             {events.map((event) => (
               <HistoryItem key={event.id} bookId={bookId} event={event} />
             ))}
-          </ul>
+          </ItemGroup>
         </details>
       )}
     </section>
@@ -130,84 +144,87 @@ function DeliveryRow({
   }
 
   return (
-    <li
+    <Item
+      role="listitem"
       data-platform={platform.key}
-      className="flex items-center gap-3 px-3 py-2 text-sm"
+      className="rounded-none py-2"
     >
-      <span className="font-medium">{platform.name}</span>
-      {latest ? (
-        <Badge variant="success">
-          <Check aria-hidden />
-          {formatDeliveryDate(latest.addedAt)}
-        </Badge>
-      ) : (
-        <Badge variant="muted">Not added</Badge>
-      )}
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={<Button variant="outline" size="xs" className="ml-auto" />}
-        >
-          {latest ? 'Log again' : 'Mark added'}
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-72">
-          <PopoverHeader>
-            <PopoverTitle>Mark as added to {platform.name}</PopoverTitle>
-            <PopoverDescription>
-              Logs today&apos;s date. Both fields are optional.
-            </PopoverDescription>
-          </PopoverHeader>
-          <form
-            className="flex flex-col gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void save();
-            }}
-          >
-            <label htmlFor={`${fieldId}-ref`} className="text-xs font-medium">
-              Reference URL
-            </label>
-            <Input
-              id={`${fieldId}-ref`}
-              name="externalRef"
-              type="url"
-              value={externalRef}
-              aria-invalid={refError ? true : undefined}
-              aria-describedby={refError ? `${fieldId}-ref-error` : undefined}
-              onChange={(e) => {
-                setExternalRef(e.target.value);
-                if (refError) setRefError(null);
+      <ItemContent>
+        <ItemTitle>
+          {platform.name}
+          {latest ? (
+            <Badge variant="success">
+              <Check aria-hidden />
+              {formatDeliveryDate(latest.addedAt)}
+            </Badge>
+          ) : (
+            <Badge variant="muted">Not added</Badge>
+          )}
+        </ItemTitle>
+      </ItemContent>
+      <ItemActions>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger render={<Button variant="outline" size="xs" />}>
+            {latest ? 'Log again' : 'Mark added'}
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-72">
+            <PopoverHeader>
+              <PopoverTitle>Mark as added to {platform.name}</PopoverTitle>
+              <PopoverDescription>
+                Logs today&apos;s date. Both fields are optional.
+              </PopoverDescription>
+            </PopoverHeader>
+            <form
+              className="flex flex-col gap-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void save();
               }}
-            />
-            {refError && (
-              <p
-                id={`${fieldId}-ref-error`}
-                role="alert"
-                className="text-destructive text-xs"
-              >
-                {refError}
-              </p>
-            )}
-            <label htmlFor={`${fieldId}-note`} className="text-xs font-medium">
-              Note
-            </label>
-            <Input
-              id={`${fieldId}-note`}
-              name="note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-            <Button
-              type="submit"
-              variant="secondary"
-              size="sm"
-              disabled={saving}
             >
-              Save
-            </Button>
-          </form>
-        </PopoverContent>
-      </Popover>
-    </li>
+              <FieldGroup className="gap-3">
+                <Field data-invalid={refError ? true : undefined}>
+                  <FieldLabel htmlFor={`${fieldId}-ref`}>
+                    Reference URL
+                  </FieldLabel>
+                  <Input
+                    id={`${fieldId}-ref`}
+                    name="externalRef"
+                    type="url"
+                    value={externalRef}
+                    aria-invalid={refError ? true : undefined}
+                    aria-describedby={
+                      refError ? `${fieldId}-ref-error` : undefined
+                    }
+                    onChange={(e) => {
+                      setExternalRef(e.target.value);
+                      if (refError) setRefError(null);
+                    }}
+                  />
+                  {refError && (
+                    <FieldError id={`${fieldId}-ref-error`}>
+                      {refError}
+                    </FieldError>
+                  )}
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor={`${fieldId}-note`}>Note</FieldLabel>
+                  <Input
+                    id={`${fieldId}-note`}
+                    name="note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                </Field>
+              </FieldGroup>
+              <Button type="submit" size="sm" disabled={saving}>
+                {saving && <Spinner data-icon="inline-start" />}
+                Save
+              </Button>
+            </form>
+          </PopoverContent>
+        </Popover>
+      </ItemActions>
+    </Item>
   );
 }
 
@@ -244,40 +261,38 @@ function HistoryItem({
   }
 
   return (
-    <li className="flex items-start gap-2 rounded-md border p-2">
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p>
-          <span className="font-medium">{event.platformName}</span>{' '}
-          <span className="text-muted-foreground font-mono text-xs">
+    <Item role="listitem" variant="outline" className="items-start px-2.5 py-2">
+      <ItemContent className="min-w-0">
+        <ItemTitle>
+          {event.platformName}
+          <span className="text-muted-foreground font-mono text-xs font-normal">
             {formatDeliveryTime(event.addedAt)}
           </span>
-        </p>
-        {event.note && <p className="text-muted-foreground">{event.note}</p>}
-        {event.externalRef &&
-          (externalHref ? (
-            <a
-              href={externalHref}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-muted-foreground hover:text-foreground truncate underline"
-            >
-              {event.externalRef}
-            </a>
-          ) : (
-            <p className="text-muted-foreground truncate">
-              {event.externalRef}
-            </p>
-          ))}
-      </div>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={`Remove ${event.platformName} event`}
-        disabled={busy}
-        onClick={() => void remove()}
-      >
-        <X aria-hidden />
-      </Button>
-    </li>
+        </ItemTitle>
+        {event.note && <ItemDescription>{event.note}</ItemDescription>}
+        {event.externalRef && (
+          <ItemDescription className="truncate">
+            {externalHref ? (
+              <a href={externalHref} target="_blank" rel="noreferrer noopener">
+                {event.externalRef}
+              </a>
+            ) : (
+              event.externalRef
+            )}
+          </ItemDescription>
+        )}
+      </ItemContent>
+      <ItemActions>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label={`Remove ${event.platformName} event`}
+          disabled={busy}
+          onClick={() => void remove()}
+        >
+          {busy ? <Spinner /> : <X aria-hidden />}
+        </Button>
+      </ItemActions>
+    </Item>
   );
 }

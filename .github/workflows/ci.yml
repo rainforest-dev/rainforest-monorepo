@@ -28,7 +28,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
@@ -60,5 +60,10 @@ jobs:
       - name: Run affected tasks (local)
         if: vars.NX_CLOUD_ENABLED != 'true'
         run: pnpm exec nx affected -t lint test typecheck
+        env:
+          NX_NO_CLOUD: 'true'
+
+      - name: Boot affected Docker app artifacts
+        run: pnpm exec nx affected -t smoke-artifact
         env:
           NX_NO_CLOUD: 'true'

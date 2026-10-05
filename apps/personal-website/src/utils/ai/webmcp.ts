@@ -1,4 +1,4 @@
-import type { ToolDescriptor } from './types';
+import type { ToolDescriptor } from '@rainforest-dev/web-ai';
 
 type ModelContext = {
   registerTool: (

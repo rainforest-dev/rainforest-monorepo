@@ -1,0 +1,125 @@
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+export type SearchFileHeader = {
+  model: string;
+  dims: number;
+  docs: { id: string; contentHash: string }[];
+};
+
+export type SearchFiles = { header: SearchFileHeader; vectors: Float32Array };
+
+export const searchDir = (root: string) => join(root, 'search');
+const HEADER_FILE = 'docs.json';
+const VECTOR_FILE = 'vectors.text.bin';
+
+function bytesHash(bytes: Uint8Array): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i++) {
+    hash ^= bytes[i] ?? 0;
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `${bytes.length}:${(hash >>> 0).toString(16)}`;
+}
+
+const isHeader = (value: unknown): value is SearchFileHeader => {
+  const h = value as Partial<SearchFileHeader> | null;
+  return (
+    typeof h?.model === 'string' &&
+    typeof h.dims === 'number' &&
+    h.dims > 0 &&
+    Array.isArray(h.docs) &&
+    h.docs.every(
+      (d) => typeof d?.id === 'string' && typeof d.contentHash === 'string',
+    )
+  );
+};
+
+export async function readSearchFiles(
+  root: string,
+): Promise<SearchFiles | undefined> {
+  try {
+    const dir = searchDir(root);
+    const [json, bytes] = await Promise.all([
+      readFile(join(dir, HEADER_FILE), 'utf8'),
+      readFile(join(dir, VECTOR_FILE)),
+    ]);
+    const file = JSON.parse(json) as unknown;
+    if (!isHeader(file)) return undefined;
+    const { vectorsHash, ...header } = file as SearchFileHeader & {
+      vectorsHash?: string;
+    };
+    if (bytes.byteLength !== header.docs.length * header.dims * 4)
+      return undefined;
+    if (vectorsHash !== bytesHash(bytes)) return undefined;
+    const aligned =
+      bytes.byteOffset % Float32Array.BYTES_PER_ELEMENT === 0
+        ? bytes
+        : Uint8Array.from(bytes);
+    return {
+      header,
+      vectors: new Float32Array(
+        aligned.buffer,
+        aligned.byteOffset,
+        aligned.byteLength / Float32Array.BYTES_PER_ELEMENT,
+      ),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeAtomic(path: string, data: string | Uint8Array) {
+  await writeFile(`${path}.tmp`, data);
+  await rename(`${path}.tmp`, path);
+}
+
+export async function writeSearchFiles(
+  root: string,
+  header: SearchFileHeader,
+  vectors: Float32Array,
+): Promise<void> {
+  const dir = searchDir(root);
+  await mkdir(dir, { recursive: true });
+  const bytes = new Uint8Array(
+    vectors.buffer,
+    vectors.byteOffset,
+    vectors.byteLength,
+  );
+  await writeAtomic(join(dir, VECTOR_FILE), bytes);
+  await writeAtomic(
+    join(dir, HEADER_FILE),
+    JSON.stringify({ ...header, vectorsHash: bytesHash(bytes) }),
+  );
+}
+
+export function reuseVectors(
+  previous: SearchFiles | undefined,
+  docs: readonly { id: string; contentHash: string }[],
+  model: string,
+  dims: number,
+): { vectors: Float32Array; missing: number[] } {
+  const vectors = new Float32Array(docs.length * dims);
+  const missing: number[] = [];
+  const usable =
+    previous &&
+    previous.header.model === model &&
+    previous.header.dims === dims;
+  const rowOf = new Map(
+    usable
+      ? previous.header.docs.map((d, i) => [`${d.id}\u0000${d.contentHash}`, i])
+      : [],
+  );
+  docs.forEach((doc, i) => {
+    const row = rowOf.get(`${doc.id}\u0000${doc.contentHash}`);
+    if (row === undefined || !previous) {
+      missing.push(i);
+      return;
+    }
+    vectors.set(
+      previous.vectors.subarray(row * dims, (row + 1) * dims),
+      i * dims,
+    );
+  });
+  return { vectors, missing };
+}

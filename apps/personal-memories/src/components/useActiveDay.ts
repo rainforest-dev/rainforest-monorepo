@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { dayInUrl } from '../lib/client/day-url.ts';
+import { dayInUrl } from '@/lib/client';
 
 export function useActiveDay(initial: string | undefined) {
   const [date, setDate] = useState(initial);

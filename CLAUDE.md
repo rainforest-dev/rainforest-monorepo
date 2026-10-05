@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Monorepo Structure
 
-Nx 23.1.0 monorepo using pnpm workspaces (pnpm@11.7.0):
+Nx 23.2.1 monorepo using pnpm workspaces (pnpm@11.7.0):
 
 - **apps/personal-website** - Astro 6 + SSR personal website (primary app), deployed on Vercel
 - **apps/personal-liff** - Next.js 16 LINE LIFF app (dev port 9000, self-signed HTTPS via `--experimental-https`)
@@ -12,10 +12,13 @@ Nx 23.1.0 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-calibre** - Next.js Calibre library browser, shipped as a Docker image
 - **apps/personal-calibre-e2e** - Playwright e2e tests
 - **apps/rss-manager** - Astro + React RSS registry manager, shipped as a Docker image
+- **apps/rss-manager-e2e** - Playwright e2e tests against a generated fictional vault and a local feed server
 - **apps/personal-memories** - Astro + React memories album (dev port 3004, bound to 127.0.0.1); private data stays outside the repo, and the homelab image mounts it read-only behind the Cloudflare Access gate
 - **apps/personal-memories-e2e** - Playwright e2e tests
 - **libs/personal-data** - Profile, work history and project data, read by the website and its MCP tools
 - **libs/personal-portfolio** - Case study content and the MCP registrations that expose it
+- **libs/web-ai** - Framework-free Chrome built-in AI helpers (Prompt API probe and sessions), used by the website and personal-memories
+- **libs/mcp-kit** - Framework-free MCP server kit: a stateless `(Request) => Response` handler, `defineTool`/`registerTools` over zod v4 shapes, result and error helpers, and `gatewayAuth` for the OAuth gateway's shared-secret header
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
 
 ## Essential Commands
@@ -71,8 +74,7 @@ would silently beat `@theme`.
   `data-scheme`; reach for a token before a `dark:` utility. Do not add a `.dark` class variant;
   the plugin never sets one.
 - UI type is Inter (`--font-sans`). Lora is the website's editorial serif only.
-- The plugin resolves from `dist/`, so consuming apps need `dependsOn: ["^build"]`. The two Docker
-  images skip the full library build and emit that one entry with `tsc`; see either Dockerfile.
+- The plugin resolves from `dist/`, so consuming apps need `dependsOn: ["^build"]`.
 
 `personal-liff` is still the unstyled `create-liff-app` scaffold on Mantine and does not load it.
 
@@ -165,6 +167,35 @@ ESLint uses `simple-import-sort` - imports must be alphabetically sorted:
 pnpm nx lint <project> --fix  # Auto-sort imports
 ```
 
+### Imports
+
+- Apps: `@/*` maps to `src/*` in every app. A cross-directory import uses the alias and goes
+  through that directory's barrel `index.ts` (`@/components/library`), never `../`; lint fails on
+  `../` under `apps/*/src`. A same-directory import uses `./file`. A module never imports its own
+  directory's barrel or an ancestor's: when the target sits in an ancestor directory, import the
+  file itself through the alias (`@/utils/env`, not `@/utils`).
+- A barrel never mixes environments. Server-only modules (DB access, `node:` built-ins,
+  `server-only`) live in their own directory behind their own barrel (`lib/server`), so a client
+  component that imports a barrel cannot drag server code into the browser bundle. In Next.js a
+  barrel must not mix `'use client'` modules with server-only ones. Compare the client bundle
+  before and after adding a barrel: calibre and memories each caught a leak that way.
+- Import these by file, not through a barrel:
+  - Astro islands (components rendered with `client:*`). Astro builds one hydration chunk per
+    import, so a barrel merges every island it re-exports into one chunk that each page loads.
+  - `.astro` components and side-effect scripts (`personal-memories/src/scripts/*`).
+- A Next.js app that uses barrels declares `"sideEffects": ["**/*.css"]` in its `package.json`.
+  Without it Turbopack keeps every re-export of a client-component barrel, as it did in calibre.
+- Relative paths that stay, because the tool cannot resolve the alias:
+  - `personal-memories/src/cli` and `src/lib/ingest`, which plain `node` runs. Their own
+    `eslint.config.js` turns the `../` rule off there.
+  - Tailwind `@reference` in a `<style>` block, and Vite dynamic imports built from a variable
+    (``import(`../locales/${lng}.json`)``), which must start with `./` or `../`.
+- Packages: consumers import the package root or a declared subpath entry
+  (`@rainforest-dev/rainforest-ui/interaction`); deep file paths are not part of the API. Inside
+  `libs/*`, keep relative imports: tsconfig `paths` are not rewritten in the emitted `.d.ts`.
+- `import-x/no-cycle` runs in lint and fails CI on any cycle. Type-only imports (`import type`)
+  do not count as edges, and it cannot see edges inside `.astro` or `.vue` files.
+
 ### Module Boundaries
 
 ESLint enforces Nx module boundaries with `@nx/enforce-module-boundaries` rule. Projects can only import from declared dependencies in package.json.
@@ -241,7 +272,7 @@ Astro markdown configured with:
 
 ## CI/CD
 
-[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on Node 22:
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on Node 24:
 
 ```bash
 pnpm format:check
@@ -249,6 +280,21 @@ pnpm nx affected -t lint test typecheck
 ```
 
 Caches the pnpm store via `actions/setup-node` with `cache: 'pnpm'`. Nx Cloud distribution across 3 `linux-medium-js` agents is opt-in: it runs only when the repository variable `NX_CLOUD_ENABLED` is `true`, and no such variable is set, so CI runs without Nx Cloud.
+
+### Docker images
+
+The three homelab images (`personal-memories`, `rss-manager`, `personal-calibre`) never build
+inside Docker. `nx bundle <app>` builds the app through the normal `^build` chain and writes a
+self-contained runtime directory to `dist/artifacts/<app>`: the `@vercel/nft` trace of the Astro
+server entry, or Next's standalone output plus `static` and `public`. Its native binaries are
+swapped for linux-arm64-musl, the image platform, and any `.node` or `.so` it cannot place fails the
+bundle. Each Dockerfile only copies that directory onto `node:24-alpine`, and `docker:build` depends
+on `bundle`. The scripts are in [tools/app-artifact/](tools/app-artifact/).
+
+CI runs `nx affected -t smoke-artifact`, which bundles for the host instead, boots the server from
+the artifact with the e2e fixture data and requests a page and an API route. A workspace dependency
+the build cannot resolve, or a runtime file the trace missed, fails there rather than in the
+release image build on `main`.
 
 ## Common Workflows
 
@@ -307,7 +353,7 @@ pnpm add <pkg>        # Add dependency (use -w for workspace root)
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
-# General Guidelines for working with Nx
+## General Guidelines for working with Nx
 
 - For navigating/exploring the workspace, invoke the `nx-workspace` skill first - it has patterns for querying projects, targets, and dependencies
 - When running tasks (for example build, lint, test, e2e, etc.), always prefer running the task through `nx` (i.e. `nx run`, `nx run-many`, `nx affected`) instead of using the underlying tooling directly

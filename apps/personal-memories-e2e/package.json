@@ -7,9 +7,17 @@
     "sourceRoot": "apps/personal-memories-e2e/src",
     "implicitDependencies": [
       "personal-memories"
-    ]
+    ],
+    "targets": {
+      "e2e": {
+        "dependsOn": [
+          "^build"
+        ]
+      }
+    }
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@playwright/test": "^1.52.0",
     "@types/node": "catalog:"
   }

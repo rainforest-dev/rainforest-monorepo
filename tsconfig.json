@@ -38,6 +38,15 @@
     },
     {
       "path": "./libs/rainforest-react"
+    },
+    {
+      "path": "./apps/rss-manager-e2e"
+    },
+    {
+      "path": "./libs/web-ai"
+    },
+    {
+      "path": "./libs/mcp-kit"
     }
   ],
   "compilerOptions": {

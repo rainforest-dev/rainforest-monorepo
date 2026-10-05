@@ -9,6 +9,8 @@ import path from 'node:path';
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
+const JUMP_PLACEHOLDER = '2025-11-08、上週六、中秋';
+
 const NOTES = path.join(__dirname, '..', 'test-output', 'notes');
 const noteFile = (date: string) =>
   path.join(NOTES, date.slice(0, 4), `${date}.md`);
@@ -64,12 +66,13 @@ test('the served CSS keeps both the anchored preview and its fallback', async ({
       .filter(
         (rule): rule is CSSSupportsRule => rule instanceof CSSSupportsRule,
       )
-      .map((rule) => ({ condition: rule.conditionText, text: rule.cssText })),
+      .map((rule) => ({
+        condition: rule.conditionText.replace(/\s+/g, ''),
+        text: rule.cssText,
+      })),
   );
-  const anchored = rules.find((r) => r.condition === '(position-area: top)');
-  const fallback = rules.find(
-    (r) => r.condition === 'not (position-area: top)',
-  );
+  const anchored = rules.find((r) => r.condition === '(position-area:top)');
+  const fallback = rules.find((r) => r.condition === 'not(position-area:top)');
   expect(anchored?.text).toMatch(/position: fixed/);
   expect(anchored?.text).toMatch(/position-area: top;/);
   expect(fallback?.text).toMatch(/position: fixed/);
@@ -148,6 +151,7 @@ test('a day shows messages and photos in order, with the source filter', async (
   await expect(day.locator('[data-author-cell]').first()).toContainText(
     'Alice 🌷',
   );
+  await expect(day.locator('[data-author-cell]').first()).toContainText('LINE');
   // content-visibility:auto blanks innerText pre-render; textContent needs no layout.
   const texts = await day
     .locator('[data-event-id]')
@@ -326,16 +330,32 @@ test('the author key is named and each 眉批 button names its message', async (
   expect(new Set(burstIds).size).toBe(burstIds.length);
 });
 
-test('the date jump input asks for digits without autocorrect', async ({
+test('the date jump input takes text, including Chinese, without autocorrect', async ({
   page,
 }) => {
   await page.goto('/');
   await waitForAppBarReady(page);
   await page.getByRole('button', { name: '跳至日期' }).first().click();
-  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
-  await expect(input).toHaveAttribute('inputmode', 'numeric');
+  const input = page.getByRole('dialog').getByPlaceholder(JUMP_PLACEHOLDER);
+  await expect(input).not.toHaveAttribute('inputmode', 'numeric');
   await expect(input).toHaveAttribute('autocomplete', 'off');
   await expect(input).toHaveAttribute('spellcheck', 'false');
+});
+
+test('the date jump box reads a festival and offers the nearest day when it has no record', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await waitForAppBarReady(page);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByPlaceholder(JUMP_PLACEHOLDER).fill('2025 聖誕節');
+  await expect(dialog).toContainText('2025 聖誕節（2025-12-25）沒有紀錄');
+  await page.keyboard.press('Enter');
+  await expect(
+    page.getByText('沒有這一天，已跳到最近的 2025-11-03'),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
 });
 
 test('follow-on times and the 眉批 button appear on hover or focus, beside the text', async ({
@@ -408,6 +428,25 @@ test('a thumbnail request returns a webp image', async ({ request }) => {
   );
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toBe('image/webp');
+});
+
+test('a thumbnail for an id outside the timeline is a 404', async ({
+  request,
+}) => {
+  const response = await request.get('/thumb/NOT-AN-EVENT?w=480');
+  expect(response.status()).toBe(404);
+});
+
+test('the year view loads without fetching any photo', async ({ page }) => {
+  const photoRequests: string[] = [];
+  page.on('request', (r) => {
+    const { pathname } = new URL(r.url());
+    if (/^\/(thumb|media)\//.test(pathname)) photoRequests.push(pathname);
+  });
+  await page.goto('/');
+  await expect(page.locator('[data-heat-cell]').first()).toBeAttached();
+  await page.waitForLoadState('networkidle');
+  expect(photoRequests).toEqual([]);
 });
 
 test('scrolling loads neighbouring days and follows the URL', async ({
@@ -712,7 +751,7 @@ test.describe('an annotation signed through Access', () => {
       .poll(() => readFileSync(noteFile('2025-11-02'), 'utf8'))
       .toMatch(/ src:slack by:Alice %%$/m);
     await expect(panel.getByText('Alice', { exact: true })).toBeVisible();
-    await expect(panel.getByPlaceholder('你的名字')).toHaveCount(0);
+    await expect(panel.getByRole('group', { name: '眉批署名' })).toHaveCount(0);
   });
 
   test('resolving a conflict does not re-prompt a signed-in user for a name', async ({
@@ -736,18 +775,20 @@ test.describe('an annotation signed through Access', () => {
     });
     await obsidianCard.getByRole('button', { name: '保留這個版本' }).click();
     await expect(panel.getByLabel('當天的回憶')).toHaveValue('Obsidian 改的');
-    await expect(panel.getByPlaceholder('你的名字')).toHaveCount(0);
+    await expect(panel.getByRole('group', { name: '眉批署名' })).toHaveCount(0);
   });
 });
 
-test('without an identity, the name set once in the panel signs 眉批', async ({
+test('without an identity, the person picked once in the panel signs 眉批', async ({
   page,
 }) => {
   await page.goto('/day/2025-11-03');
   const panel = page.getByRole('complementary', { name: '筆記' });
   await expect(panel.getByLabel('當天的回憶')).toBeEnabled();
-  await panel.getByPlaceholder('你的名字').fill('Bob');
-  await panel.getByPlaceholder('你的名字').press('Enter');
+  const picker = panel.getByRole('group', { name: '眉批署名' });
+  await expect(picker.getByRole('button')).toHaveText(['Bob', 'Alice']);
+  await picker.getByRole('button', { name: 'Bob' }).click();
+  await expect(picker).toHaveCount(0);
   const message = page.locator('[data-event-id]', { hasText: 'Coffee first' });
   await message.hover();
   await message.getByRole('button', { name: '眉批' }).click();
@@ -800,7 +841,7 @@ test('the date jump opens a typed day, or the nearest one', async ({
   await page.goto('/');
   await waitForAppBarReady(page);
   await page.getByRole('button', { name: '跳至日期' }).first().click();
-  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  const input = page.getByRole('dialog').getByPlaceholder(JUMP_PLACEHOLDER);
   await input.fill('2025-11-0');
   await expect(page.getByRole('dialog').getByRole('option')).toHaveCount(3);
   await input.fill('2025/11/2');
@@ -810,7 +851,7 @@ test('the date jump opens a typed day, or the nearest one', async ({
   await page.getByRole('button', { name: '跳至日期' }).first().click();
   await page
     .getByRole('dialog')
-    .getByPlaceholder('YYYY-MM-DD')
+    .getByPlaceholder(JUMP_PLACEHOLDER)
     .fill('2025-11-20');
   await expect(page.getByRole('dialog')).toContainText(
     '沒有這一天，按 Enter 跳到最近的 2025-11-03',
@@ -908,7 +949,7 @@ test('the date jump ignores an Enter fired mid-IME composition', async ({
   await page.goto('/');
   await waitForAppBarReady(page);
   await page.getByRole('button', { name: '跳至日期' }).first().click();
-  const input = page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD');
+  const input = page.getByRole('dialog').getByPlaceholder(JUMP_PLACEHOLDER);
   // An exact match selects through cmdk's own Enter, not this onKeyDown guard.
   await input.fill('2025-11-20');
   await expect(page.getByRole('dialog')).toContainText(
@@ -956,7 +997,7 @@ test('keys: j and k, n, ? and /, and Escape only when nothing else claims it', a
 
   await page.keyboard.press('/');
   await expect(
-    page.getByRole('dialog').getByPlaceholder('YYYY-MM-DD'),
+    page.getByRole('dialog').getByPlaceholder(JUMP_PLACEHOLDER),
   ).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toBeHidden();
@@ -1229,9 +1270,11 @@ test('a long press on a message opens 眉批 and 複製', async ({ page }) => {
 
 test('the next day shows skeleton rows while it loads', async ({ page }) => {
   let requests = 0;
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
   await page.route('**/day/2025-11-03/partial', async (route) => {
     requests += 1;
-    await new Promise((r) => setTimeout(r, 800));
+    await held;
     await route.continue();
   });
   await page.goto('/day/2025-11-02');
@@ -1239,6 +1282,7 @@ test('the next day shows skeleton rows while it loads', async ({ page }) => {
   await expect(
     page.locator('[data-load="next"] [data-skeleton]'),
   ).toBeVisible();
+  release();
   await expect(page.locator('#day-2025-11-03')).toBeAttached();
   await expect(page.locator('[data-load="next"] [data-skeleton]')).toBeHidden();
   expect(requests).toBe(1);
@@ -1661,4 +1705,23 @@ test('a month cell with a cover shows it edge to edge', async ({ page }) => {
   expect(c && i && Math.abs(c.width - i.width) <= 1).toBe(true);
   expect(c && i && Math.abs(c.height - i.height) <= 1).toBe(true);
   await expect(cell).toContainText('則');
+});
+
+test('a word written in a day note finds that day', async ({ page }) => {
+  await page.goto('/day/2025-11-02');
+  const panel = page.getByRole('complementary', { name: '筆記' });
+  await panel.getByLabel('當天的回憶').fill('今天去看了極光');
+  await expect(panel).toContainText('已儲存');
+
+  await page.goto('/');
+  await expect(page.locator('html[data-appbar-ready]')).toHaveCount(1);
+  await page.getByRole('button', { name: '跳至日期' }).first().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByPlaceholder(JUMP_PLACEHOLDER).fill('極光');
+  const first = dialog
+    .getByRole('group', { name: '內容' })
+    .getByRole('option')
+    .first();
+  await expect(first).toContainText('2025-11-02');
+  await expect(first).toContainText('今天去看了極光');
 });
