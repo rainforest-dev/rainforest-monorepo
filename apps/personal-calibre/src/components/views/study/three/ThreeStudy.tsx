@@ -13,6 +13,7 @@ import {
 } from 'react';
 import {
   BoxGeometry,
+  BufferAttribute,
   InstancedBufferAttribute,
   type InstancedMesh,
   MathUtils,
@@ -33,7 +34,12 @@ import {
   type ThreeRenderer,
 } from '@/lib';
 
-import type { KitCanvasProps, StudyGl, StudyKit } from './kit';
+import {
+  type KitCanvasProps,
+  SPINE_ATTRIBUTES,
+  type StudyGl,
+  type StudyKit,
+} from './kit';
 import { publishProbe, type StudyProbe } from './probe';
 import { mixRgb, readTokens, toColor, type Tokens } from './tokens';
 
@@ -53,6 +59,19 @@ const CAMERA = { fov: 30, near: 0.1, far: 200 };
 const DPR: [number, number] = [1, 2];
 // fiber sets PCFSoftShadowMap for boolean `shadows`, which WebGPURenderer warns about on every render.
 const SHADOWS = { enabled: false, type: PCFShadowMap };
+const AMBIENT = 1.6;
+const SUN = { position: [3, 6, 8] as const, intensity: 1.4 };
+
+function spineGeometry(): BoxGeometry {
+  const geometry = new BoxGeometry(1, 1, 1);
+  const normals = geometry.getAttribute('normal');
+  const front = new Float32Array(normals.count);
+  for (let i = 0; i < normals.count; i++) {
+    front[i] = normals.getZ(i) > 0.5 ? 1 : 0;
+  }
+  geometry.setAttribute(SPINE_ATTRIBUTES.spine, new BufferAttribute(front, 1));
+  return geometry;
+}
 
 function loadKit(renderer: ThreeRenderer): Promise<StudyKit> {
   switch (renderer) {
@@ -88,17 +107,25 @@ function FrameDriver({ onFrame }: { onFrame: (start: number) => void }) {
 
 interface ShelvesProps {
   layout: StudyLayout;
+  selected: ReadonlySet<number>;
   tokens: Tokens;
   kit: StudyKit;
   focusRow: number;
   pxPerUnit: number;
 }
 
-function Shelves({ layout, tokens, kit, focusRow, pxPerUnit }: ShelvesProps) {
+function Shelves({
+  layout,
+  selected,
+  tokens,
+  kit,
+  focusRow,
+  pxPerUnit,
+}: ShelvesProps) {
   const { camera, size, invalidate } = useThree();
   const books = useRef<InstancedMesh>(null);
   const boards = useRef<InstancedMesh>(null);
-  const bookGeometry = useMemo(() => new BoxGeometry(1, 1, 1), []);
+  const bookGeometry = useMemo(spineGeometry, []);
   const boardGeometry = useMemo(() => new BoxGeometry(1, 1, 1), []);
   const spine = useMemo(() => kit.materials.spine(), [kit]);
   const panel = useMemo(
@@ -120,26 +147,62 @@ function Shelves({ layout, tokens, kit, focusRow, pxPerUnit }: ShelvesProps) {
     },
     [bookGeometry, boardGeometry],
   );
-  useEffect(() => () => spine.dispose(), [spine]);
+  useEffect(() => () => spine.material.dispose(), [spine]);
   useEffect(() => () => panel.dispose(), [panel]);
   useEffect(() => () => board.dispose(), [board]);
+
+  useEffect(() => {
+    spine.setHighlight(toColor(tokens.foreground));
+    spine.setSelection(toColor(tokens.primary));
+    invalidate();
+  }, [spine, tokens, invalidate]);
 
   useLayoutEffect(() => {
     const mesh = books.current;
     if (!mesh) return;
-    const sides = new Float32Array(layout.books.length * 3);
+    const count = layout.books.length;
     layout.books.forEach((placed, i) => {
       PLACE.position.set(placed.x, placed.y, FRONT_Z - placed.d / 2);
       PLACE.scale.set(placed.t, placed.h, placed.d);
       PLACE.updateMatrix();
       mesh.setMatrixAt(i, PLACE.matrix);
+    });
+    const attributes = [
+      [SPINE_ATTRIBUTES.rect, 4],
+      [SPINE_ATTRIBUTES.selected, 1],
+      [SPINE_ATTRIBUTES.highlight, 1],
+    ] as const;
+    for (const [name, size] of attributes) {
+      bookGeometry.setAttribute(
+        name,
+        new InstancedBufferAttribute(new Float32Array(count * size), size),
+      );
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    invalidate();
+  }, [layout, bookGeometry, invalidate]);
+
+  useLayoutEffect(() => {
+    const sides = new Float32Array(layout.books.length * 3);
+    layout.books.forEach((placed, i) => {
       const tone = tokens[`chart-${placed.book.tone}`];
       toColor(mixRgb(tone, tokens.muted, SIDE_MIX)).toArray(sides, i * 3);
     });
-    bookGeometry.setAttribute('aCol', new InstancedBufferAttribute(sides, 3));
-    mesh.instanceMatrix.needsUpdate = true;
+    bookGeometry.setAttribute(
+      SPINE_ATTRIBUTES.side,
+      new InstancedBufferAttribute(sides, 3),
+    );
     invalidate();
   }, [layout, tokens, bookGeometry, invalidate]);
+
+  useLayoutEffect(() => {
+    const flags = bookGeometry.getAttribute(SPINE_ATTRIBUTES.selected);
+    layout.books.forEach((placed, i) => {
+      flags.setX(i, selected.has(placed.book.id) ? 1 : 0);
+    });
+    flags.needsUpdate = true;
+    invalidate();
+  }, [layout, selected, bookGeometry, invalidate]);
 
   useLayoutEffect(() => {
     const mesh = boards.current;
@@ -167,6 +230,8 @@ function Shelves({ layout, tokens, kit, focusRow, pxPerUnit }: ShelvesProps) {
   const caseHeight = layout.rows * ROW_H;
   return (
     <>
+      <ambientLight intensity={AMBIENT} />
+      <directionalLight position={SUN.position} intensity={SUN.intensity} />
       <mesh
         material={panel}
         position={[layout.width / 2, ROW_H - caseHeight / 2, PANEL_Z]}
@@ -181,7 +246,7 @@ function Shelves({ layout, tokens, kit, focusRow, pxPerUnit }: ShelvesProps) {
       <instancedMesh
         key={`books-${layout.books.length}`}
         ref={books}
-        args={[bookGeometry, spine, layout.books.length]}
+        args={[bookGeometry, spine.material, layout.books.length]}
       />
     </>
   );
@@ -190,6 +255,7 @@ function Shelves({ layout, tokens, kit, focusRow, pxPerUnit }: ShelvesProps) {
 export default function ThreeStudy({
   renderer,
   model,
+  options,
   focusId,
   onBackend,
   onStartFailed,
@@ -220,7 +286,7 @@ export default function ThreeStudy({
         triangles: lastFrame.current.triangles,
         textures: renderer?.info.memory.textures ?? 0,
         texturesSizeReported: renderer?.info.memory.texturesSize ?? 0,
-        programs: renderer?.info.memory.programs ?? 0,
+        programs: renderer && loaded ? loaded.programsOf(renderer) : 0,
         atlasBytes: 0,
         coversCached: 0,
         dpr: renderer?.getPixelRatio() ?? window.devicePixelRatio,
@@ -247,12 +313,22 @@ export default function ThreeStudy({
     };
   }, [renderer, onStartFailed]);
 
+  useEffect(() => (kit ? () => kit.materials.dispose() : undefined), [kit]);
+
   useEffect(() => (debug ? publishProbe(probe.current) : undefined), [debug]);
 
   const layout = useMemo(
     () =>
       width > 0 ? layoutShelves(model.shelves, width / pxPerUnit - 0.8) : null,
     [model, width, pxPerUnit],
+  );
+  const selectedKey = options
+    .filter((option) => option.selected)
+    .map(({ book }) => book.id)
+    .join(',');
+  const selected = useMemo(
+    () => new Set(selectedKey ? selectedKey.split(',').map(Number) : []),
+    [selectedKey],
   );
   const focusRow =
     layout?.books.find((placed) => placed.book.id === focusId)?.row ?? 0;
@@ -318,6 +394,7 @@ export default function ThreeStudy({
           <FrameDriver onFrame={onFrame} />
           <Shelves
             layout={layout}
+            selected={selected}
             tokens={tokens}
             kit={kit}
             focusRow={focusRow}

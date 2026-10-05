@@ -1,23 +1,26 @@
 import { NoToneMapping, UnsignedByteType } from 'three';
-import {
-  attribute,
-  dot,
-  float,
-  max,
-  normalize,
-  normalWorld,
-  vec3,
-} from 'three/tsl';
-import { MeshBasicNodeMaterial, WebGPURenderer } from 'three/webgpu';
+import { WebGPURenderer } from 'three/webgpu';
 
 import { hasWebGpuApi } from '@/components/views/study/capabilities';
 
-import type { StudyKit } from './kit';
+import type { StudyGl, StudyKit } from './kit';
+import { createStudyMaterials } from './studyMaterial';
 
-const light = () =>
-  float(0.62).add(
-    float(0.38).mul(max(dot(normalWorld, normalize(vec3(0.3, 0.5, 1))), 0)),
-  );
+type ProgramInfo = StudyGl['info'] & {
+  createProgram: (program: unknown) => void;
+};
+
+const createdPrograms = new WeakMap<StudyGl, number>();
+
+function countPrograms(gl: StudyGl): void {
+  const info = gl.info as ProgramInfo;
+  const createProgram = info.createProgram.bind(info);
+  createdPrograms.set(gl, 0);
+  info.createProgram = (program) => {
+    createdPrograms.set(gl, (createdPrograms.get(gl) ?? 0) + 1);
+    createProgram(program);
+  };
+}
 
 const createRenderer: StudyKit['createRenderer'] = async ({
   powerPreference,
@@ -32,6 +35,7 @@ const createRenderer: StudyKit['createRenderer'] = async ({
     forceWebGL: !hasWebGpuApi(),
   });
   gl.toneMapping = NoToneMapping;
+  countPrograms(gl);
   await gl.init();
   return gl;
 };
@@ -43,18 +47,8 @@ export const kit: StudyKit = {
     (gl.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend
       ? 'webgpu'
       : 'webgl2',
-  materials: {
-    spine: () => {
-      const material = new MeshBasicNodeMaterial();
-      material.colorNode = attribute('aCol', 'vec3').mul(light());
-      return material;
-    },
-    surface: (color) => {
-      const material = new MeshBasicNodeMaterial();
-      material.color.copy(color);
-      return material;
-    },
-  },
+  programsOf: (gl) => createdPrograms.get(gl) ?? 0,
+  materials: createStudyMaterials(),
   compile: async (gl, scene, camera) => {
     await gl.compileAsync(scene, camera);
   },

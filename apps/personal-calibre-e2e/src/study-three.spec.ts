@@ -7,6 +7,7 @@ import {
   gotoStudy,
   hasWebGpu,
   prepareRun,
+  studyOptions,
   type StudyRun,
 } from './support/study';
 
@@ -76,6 +77,44 @@ test.describe('Study three-tsl', () => {
     expect(probe?.firstFrameAt).not.toBeNull();
     expect(probe?.backend).toBe(run.backend);
     expect(probe?.drawCalls).toBeGreaterThan(0);
+  });
+
+  test('programs do not grow during a 40-step sweep', async ({ page }) => {
+    const run = projectRun();
+    await prepare(page, run);
+    const messages = collectConsole(page);
+    await gotoStudy(page, run, 'debug=1');
+
+    const programs = () =>
+      page.evaluate(
+        () =>
+          new Promise<number>((resolve) => {
+            requestAnimationFrame(() =>
+              requestAnimationFrame(() => {
+                const study = (
+                  window as Window & {
+                    __calibreStudy?: { info: () => { programs: number } };
+                  }
+                ).__calibreStudy;
+                resolve(study?.info().programs ?? -1);
+              }),
+            );
+          }),
+      );
+    const before = await programs();
+    expect(before).toBeGreaterThan(0);
+
+    await studyOptions(page).first().focus();
+    const keys = ['ArrowRight', 'x', 'ArrowDown', 'ArrowRight', 'x', 'End'];
+    for (let step = 0; step < 40; step++) {
+      await page.keyboard.press(keys[step % keys.length] ?? 'ArrowRight');
+    }
+    await expect(
+      studyOptions(page).and(page.locator('[aria-selected="true"]')),
+    ).not.toHaveCount(0);
+
+    expect(await programs()).toBe(before);
+    expect(messages()).toEqual([]);
   });
 
   test('a renderer that throws while starting falls back to the CSS study', async ({
