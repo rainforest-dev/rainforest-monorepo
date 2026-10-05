@@ -22,6 +22,8 @@ interface Options {
   mode: NavMode;
   page: number;
   contentKey: string;
+  items?: () => readonly NavItem[];
+  scrollOnFocus?: boolean;
 }
 
 function firstVisible(
@@ -55,6 +57,8 @@ export function useRovingNav<T extends HTMLElement>({
   mode,
   page,
   contentKey,
+  items,
+  scrollOnFocus = true,
 }: Options) {
   const containerRef = useRef<T>(null);
   const { focusId, setFocusId, pendingFocus, requestFocus, toggle, openBook } =
@@ -69,11 +73,16 @@ export function useRovingNav<T extends HTMLElement>({
     navKeys[0] ??
     null;
 
-  const focusElement = useCallback((el: HTMLElement | null | undefined) => {
-    if (!el) return;
-    el.focus({ preventScroll: true });
-    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, []);
+  const focusElement = useCallback(
+    (el: HTMLElement | null | undefined) => {
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      if (scrollOnFocus) {
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    },
+    [scrollOnFocus],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -86,10 +95,9 @@ export function useRovingNav<T extends HTMLElement>({
       focusElement(target);
       return;
     }
-    const target = firstVisible(
-      container,
-      `[data-book-id="${pendingFocus.id}"]`,
-    );
+    const target =
+      firstVisible(container, `[data-book-id="${pendingFocus.id}"]`) ??
+      (pendingFocus.orFirst ? firstVisible(container, '[data-nav-key]') : null);
     if (!target) return;
     requestFocus(null);
     focusElement(target);
@@ -158,7 +166,7 @@ export function useRovingNav<T extends HTMLElement>({
         const container = containerRef.current;
         if (!container) return;
         const target = pickTarget(
-          collectItems(container, mode),
+          items ? items() : collectItems(container, mode),
           key,
           event.key,
           { mode, homeEnd: 'row', ctrl: event.ctrlKey || event.metaKey },
@@ -180,7 +188,7 @@ export function useRovingNav<T extends HTMLElement>({
         toggle(bookId);
       }
     },
-    [focusElement, mode, openBook, toggle],
+    [focusElement, items, mode, openBook, toggle],
   );
 
   return { containerRef, stopKey, onItemFocus, onKeyDown };

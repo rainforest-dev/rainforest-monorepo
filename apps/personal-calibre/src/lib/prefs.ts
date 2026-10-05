@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 export const VIEWS = ['shelf', 'catalogue', 'study'] as const;
 export type View = (typeof VIEWS)[number];
-export const ENABLED_VIEWS: readonly View[] = ['shelf', 'catalogue'];
+export const ENABLED_VIEWS: readonly View[] = ['shelf', 'catalogue', 'study'];
+export const PREVIEW_VIEWS: readonly View[] = [];
 export const VIEW_LABELS: Record<View, string> = {
   shelf: 'Shelf',
   catalogue: 'Catalogue',
@@ -65,9 +66,11 @@ export function resolveView(
   prefView: View,
   param: string | null,
   enabled: readonly View[] = ENABLED_VIEWS,
+  preview: readonly View[] = PREVIEW_VIEWS,
 ): View {
   const wanted = VIEWS.find((v) => v === param);
-  if (wanted && enabled.includes(wanted)) return wanted;
+  if (wanted && (enabled.includes(wanted) || preview.includes(wanted)))
+    return wanted;
   if (enabled.includes(prefView)) return prefView;
   return enabled[0] ?? 'shelf';
 }

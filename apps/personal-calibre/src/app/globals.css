@@ -61,3 +61,226 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .st-case {
+    --st-k: 0.82;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+    align-items: end;
+    @variant lg {
+      --st-k: 1;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px 22px;
+    }
+  }
+  .st-bay {
+    position: relative;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 300px;
+    border-radius: 12px 12px 0 0;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--muted) 30%, transparent),
+      color-mix(in oklch, var(--muted) 80%, transparent)
+    );
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .st-row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    min-height: calc(250px * var(--st-k));
+    margin-bottom: -12px;
+    padding: 34px calc(140px * var(--st-k)) 12px 18px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+  .st-board {
+    height: 14px;
+    border-radius: 0 0 6px 6px;
+    background: color-mix(in oklch, var(--foreground) 16%, var(--muted));
+    box-shadow:
+      0 12px 16px -12px color-mix(in oklch, var(--foreground) 45%, transparent),
+      inset 0 2px 0 color-mix(in oklch, var(--foreground) 24%, var(--muted));
+  }
+  .st-slot {
+    position: relative;
+    flex: 0 0 auto;
+    width: calc(var(--st-w) * var(--st-k));
+    height: calc(var(--st-h) * var(--st-k));
+    perspective: 900px;
+    cursor: pointer;
+    outline: none;
+    border-radius: 3px;
+  }
+  .st-slot:hover,
+  .st-slot:focus-visible {
+    z-index: 5;
+  }
+  .st-book {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transform-origin: 50% 100%;
+    transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.25, 1);
+  }
+  .st-slot:hover .st-book,
+  .st-slot:focus-visible .st-book {
+    will-change: transform;
+    transform: translateY(-14px) translateZ(40px) rotateY(-52deg);
+  }
+  .st-spine {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 14px 0 12px;
+    border-radius: 3px 3px 2px 2px;
+    backface-visibility: hidden;
+    background: repeating-linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--st-tone) 24%, var(--muted)) 0 8px,
+      color-mix(in oklch, var(--st-tone) 36%, var(--muted)) 8px 16px
+    );
+    box-shadow:
+      inset 0 7px 0 color-mix(in oklch, var(--st-tone) 55%, var(--muted)),
+      inset 0 -7px 0 color-mix(in oklch, var(--st-tone) 55%, var(--muted)),
+      inset 2px 0 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+      inset -2px 0 0 color-mix(in oklch, var(--foreground) 12%, transparent);
+  }
+  .st-slot:focus-visible .st-spine {
+    outline: 2.5px solid var(--foreground);
+    outline-offset: 4px;
+  }
+  .st-slot[data-selected] .st-spine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
+    box-shadow: inset 0 0 0 2px var(--primary);
+  }
+  .st-title {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 6px 3px;
+    border-radius: 3px;
+    writing-mode: vertical-rl;
+    text-orientation: sideways;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: calc(11.5px * var(--st-k));
+    font-weight: 600;
+    line-height: 1;
+    color: var(--foreground);
+    background: color-mix(in oklch, var(--card) 78%, transparent);
+  }
+  .st-slot[lang] .st-title {
+    text-orientation: upright;
+  }
+  .st-author {
+    writing-mode: vertical-rl;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: calc(9.5px * var(--st-k));
+    color: var(--foreground);
+    opacity: 0.75;
+  }
+  .st-cover {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    width: calc(var(--st-h) * 0.66 * var(--st-k));
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 0 5px 5px 0;
+    transform-origin: left center;
+    transform: rotateY(90deg);
+    backface-visibility: hidden;
+    background: repeating-linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--st-tone) 20%, var(--muted)) 0 8px,
+      color-mix(in oklch, var(--st-tone) 32%, var(--muted)) 8px 16px
+    );
+    box-shadow: inset 4px 0 0
+      color-mix(in oklch, var(--foreground) 14%, transparent);
+  }
+  .st-cover-title {
+    margin: 14px 10px 0 14px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--foreground);
+    background: color-mix(in oklch, var(--card) 82%, transparent);
+  }
+  .st-sel {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .st-sel svg {
+    width: 12px;
+    height: 12px;
+  }
+  .st-slot[data-open]::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: -9px;
+    left: 0;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--primary);
+  }
+  .st-slot:focus-visible::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    bottom: -10px;
+    left: -4px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--foreground);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .st-book {
+      transition: none;
+    }
+    .st-slot:hover .st-book,
+    .st-slot:focus-visible .st-book {
+      will-change: auto;
+      transform: none;
+    }
+    .st-slot:hover .st-spine::before,
+    .st-slot:focus-visible .st-spine::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: color-mix(in oklch, var(--foreground) 12%, transparent);
+    }
+  }
+}

@@ -8,7 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@rainforest-dev/rainforest-react';
-import { LayoutGrid, type LucideIcon, Rows3 } from 'lucide-react';
+import { LayoutGrid, Library, type LucideIcon, Rows3 } from 'lucide-react';
 
 import { cn, ENABLED_VIEWS, isView, type View, VIEW_LABELS } from '@/lib';
 import { useLibrary } from '@/providers';
@@ -16,6 +16,7 @@ import { useLibrary } from '@/providers';
 const ITEMS: Array<{ view: View; tooltip: string; Icon: LucideIcon }> = [
   { view: 'shelf', tooltip: '書架 Shelf', Icon: LayoutGrid },
   { view: 'catalogue', tooltip: '目錄 Catalogue', Icon: Rows3 },
+  { view: 'study', tooltip: '書房 Study', Icon: Library },
 ];
 
 export function ViewSwitch({ className }: { className?: string }) {

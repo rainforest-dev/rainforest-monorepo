@@ -13,8 +13,8 @@ test.describe('shortcuts', () => {
   test('v cycles the views and keeps focus on the same book', async ({
     page,
   }) => {
-    await gotoLibrary(page);
-    const third = options(page).nth(2);
+    await gotoLibrary(page, '/?groupBy=series');
+    const third = page.locator('[role="option"][data-book-id]').nth(2);
     const id = await third.getAttribute('data-book-id');
     await third.focus();
     await page.keyboard.press('v');
@@ -22,6 +22,13 @@ test.describe('shortcuts', () => {
       page.getByRole('region', { name: 'Catalogue view' }),
     ).toBeVisible();
     await expect(page.locator(`tr[data-book-id="${id}"]`)).toBeFocused();
+    await page.keyboard.press('v');
+    await expect(
+      page.getByRole('region', { name: 'Study view' }),
+    ).toBeVisible();
+    await expect(
+      page.locator(`[role="option"][data-book-id="${id}"]`),
+    ).toBeFocused();
     await page.keyboard.press('v');
     await expect(
       page.getByRole('region', { name: 'Shelf view' }),
@@ -34,11 +41,14 @@ test.describe('shortcuts', () => {
   test('v strips a stale ?view= and keeps focus on the same book', async ({
     page,
   }) => {
-    await gotoLibrary(page, '/?view=catalogue');
+    await gotoLibrary(page, '/?view=catalogue&groupBy=series');
     const third = page.locator('tr[data-book-id]').nth(2);
     await third.focus();
     const id = await third.getAttribute('data-book-id');
     await page.keyboard.press('v');
+    await expect(
+      page.getByRole('region', { name: 'Study view' }),
+    ).toBeVisible();
     await expect(page).not.toHaveURL(/view=/);
     await expect(
       page.locator(`[role="option"][data-book-id="${id}"]`),
