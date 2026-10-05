@@ -1,4 +1,3 @@
-import { spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdtempSync,
@@ -21,7 +20,7 @@ import {
 import { readSearchFiles } from '../lib/server/search-files.ts';
 import type { Timeline } from '../lib/server/timeline.ts';
 import { writeFixtureDataDir } from './fixture.ts';
-import { buildIndex, ingest, runIngest } from './ingest.ts';
+import { buildIndex, ingest, main, runIngest } from './ingest.ts';
 
 let root: string | undefined;
 afterEach(() => {
@@ -184,25 +183,27 @@ describe('runIngest', () => {
   });
 });
 
-const CLI = join(import.meta.dirname, 'ingest.ts');
-
 describe('ingest CLI', () => {
-  const cli = (dataRoot: string, ...args: string[]) =>
-    spawnSync(process.execPath, [CLI, ...args], {
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        MEMORIES_DATA_DIR: dataRoot,
-        MEMORIES_EMBED: 'fake',
+  const cli = async (dataRoot: string, ...args: string[]) => {
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const status = await main(
+      args,
+      { MEMORIES_DATA_DIR: dataRoot, MEMORIES_EMBED: 'fake' },
+      {
+        out: (line) => stdout.push(`${line}\n`),
+        err: (line) => stderr.push(`${line}\n`),
       },
-    });
+    );
+    return { status, stdout: stdout.join(''), stderr: stderr.join('') };
+  };
 
-  it('migrates, skips an unchanged rerun, archives --add exports and refuses a held lock', () => {
+  it('migrates, skips an unchanged rerun, archives --add exports and refuses a held lock', async () => {
     root = mkdtempSync(join(tmpdir(), 'memories-cli-'));
     const dataRoot = join(root, 'data');
     writeFixtureDataDir(dataRoot);
 
-    const first = cli(dataRoot);
+    const first = await cli(dataRoot);
     expect(first.stderr).toBe('');
     expect(first.status).toBe(0);
     expect(first.stdout).toContain(
@@ -213,7 +214,7 @@ describe('ingest CLI', () => {
     );
     expect(existsSync(join(dataRoot, '.ingest.lock'))).toBe(false);
 
-    expect(cli(dataRoot).stdout).toContain('ingest: no input changed');
+    expect((await cli(dataRoot)).stdout).toContain('ingest: no input changed');
 
     const newer = join(root, 'export.txt');
     writeFileSync(
@@ -222,7 +223,7 @@ describe('ingest CLI', () => {
         'Sun, 11/02/2025\n8:45PM\tAlice 🌷\t[Voice message]\n\n' +
         'Wed, 11/19/2025\n9:00AM\tBob\tStill here\n',
     );
-    const added = cli(dataRoot, '--add', newer);
+    const added = await cli(dataRoot, '--add', newer);
     expect(added.status).toBe(0);
     expect(added.stdout).toMatch(
       /archived 2 events as chat\/2025-11-20-[0-9a-f]{8}\.txt/,
@@ -234,14 +235,16 @@ describe('ingest CLI', () => {
     expect(timeline.events.some((e) => e.text === 'Still here')).toBe(true);
     expect(timeline.events.some((e) => e.text === 'Still awake?')).toBe(true);
 
-    expect(cli(dataRoot, '--add', newer).stdout).toContain('already archived');
+    expect((await cli(dataRoot, '--add', newer)).stdout).toContain(
+      'already archived',
+    );
 
     const ambiguous = join(root, 'ambiguous.txt');
     writeFileSync(
       ambiguous,
       '[LINE] Chat history with Alice\n\nSun, 11/30/2025\n9:00AM\tAlice\thi\n',
     );
-    const rejected = cli(dataRoot, '--add', ambiguous);
+    const rejected = await cli(dataRoot, '--add', ambiguous);
     expect(rejected.status).toBe(1);
     expect(rejected.stdout).toContain(
       'line: rejected ambiguous.txt: header matches 2 chats',
@@ -251,7 +254,7 @@ describe('ingest CLI', () => {
       join(dataRoot, '.ingest.lock'),
       JSON.stringify({ pid: process.pid, startedAt: '2025-11-01T00:00:00Z' }),
     );
-    const held = cli(dataRoot, '--force');
+    const held = await cli(dataRoot, '--force');
     expect(held.status).toBe(75);
     expect(held.stderr).toContain(
       `ingest: another ingest is running (pid ${process.pid}`,

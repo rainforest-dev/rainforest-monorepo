@@ -42,10 +42,35 @@ const source = z.enum(SOURCES);
 const date = () =>
   z.string().regex(DATE_RE, 'expected a YYYY-MM-DD date in Asia/Taipei');
 
-const EMAIL = /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.[\p{L}]{2,}/gu;
+const LOCAL = String.raw`[\p{L}\p{N}._%+-]+`;
+const DOMAIN = String.raw`@[\p{L}\p{N}.-]+\.[\p{L}]{2,}`;
+const EMAIL_AT = new RegExp(LOCAL + DOMAIN, 'uy');
+const EMAIL_AFTER_BREAK = new RegExp(
+  String.raw`(?<![\p{L}\p{N}._%+-])` + LOCAL + DOMAIN,
+  'gu',
+);
+
+const redactEmails = (text: string) => {
+  let out = '';
+  let from = 0;
+  for (;;) {
+    EMAIL_AT.lastIndex = from;
+    let start = from;
+    if (from === 0 || !EMAIL_AT.test(text)) {
+      EMAIL_AFTER_BREAK.lastIndex = from;
+      const match = EMAIL_AFTER_BREAK.exec(text);
+      if (!match) break;
+      start = match.index;
+      EMAIL_AT.lastIndex = EMAIL_AFTER_BREAK.lastIndex;
+    }
+    out += `${text.slice(from, start)}[email]`;
+    from = EMAIL_AT.lastIndex;
+  }
+  return out + text.slice(from);
+};
 
 const clip = (text: string, max: number) => {
-  const chars = Array.from(text.replace(EMAIL, '[email]'));
+  const chars = Array.from(redactEmails(text));
   return chars.length <= max
     ? chars.join('')
     : `${chars.slice(0, max - 1).join('')}…`;

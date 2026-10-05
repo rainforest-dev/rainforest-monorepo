@@ -308,6 +308,10 @@ describe('get_day clipping', () => {
         const events = [
           event({ text: 'あ'.repeat(TEXT_MAX + 50) }),
           event({
+            id: 'e2',
+            text: `記${'記'.repeat(50)}a@b.com-c@d.com-e@f.com`,
+          }),
+          event({
             id: 'p1',
             source: 'photo',
             author: 'photo',
@@ -355,9 +359,10 @@ describe('get_day clipping', () => {
       events: { text?: string; photo?: { text?: string } }[];
       note: { body: string };
     };
-    const [message, photo] = out.events;
+    const [message, emails, photo] = out.events;
     expect(Array.from(message?.text ?? '')).toHaveLength(TEXT_MAX);
     expect(message?.text?.endsWith('…')).toBe(true);
+    expect(emails?.text).toBe('[email]'.repeat(3));
     expect(Array.from(photo?.photo?.text ?? '')).toHaveLength(OCR_MAX);
     expect(Array.from(out.note.body)).toHaveLength(NOTE_MAX);
     expect(JSON.stringify(result)).not.toContain('/Users/');
