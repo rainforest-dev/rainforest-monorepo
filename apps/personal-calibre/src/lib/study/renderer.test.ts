@@ -37,15 +37,29 @@ describe('pickRenderer', () => {
     ).toBe('css');
   });
 
-  it('uses the phase-2 interim lists when none are passed', () => {
-    expect(ENABLED_RENDERERS).toEqual(['css']);
-    expect(PREVIEW_RENDERERS).toEqual(['three-tsl']);
+  it('ships three-tsl as the default with css as the alternative', () => {
+    expect(ENABLED_RENDERERS).toEqual(['three-tsl', 'css']);
+    expect(PREVIEW_RENDERERS).toEqual([]);
     expect(
-      pickRenderer({ param: null, pref: 'three-tsl', sessionFallback: false }),
+      pickRenderer({
+        param: null,
+        pref: DEFAULT_PREFS.renderer,
+        sessionFallback: false,
+      }),
+    ).toBe('three-tsl');
+    expect(
+      pickRenderer({ param: null, pref: 'css', sessionFallback: false }),
     ).toBe('css');
     expect(
       pickRenderer({ param: 'three-tsl', pref: 'css', sessionFallback: false }),
     ).toBe('three-tsl');
+    expect(
+      pickRenderer({
+        param: 'three-glsl',
+        pref: 'css',
+        sessionFallback: false,
+      }),
+    ).toBe('css');
   });
 
   it('lets ?renderer=css override the cookie', () => {

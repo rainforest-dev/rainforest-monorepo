@@ -26,6 +26,23 @@ function projectRun(): ThreeRun {
     : { renderer: 'three-tsl', backend: 'webgl2' };
 }
 
+const programs = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            const study = (
+              window as Window & {
+                __calibreStudy?: { info: () => { programs: number } };
+              }
+            ).__calibreStudy;
+            resolve(study?.info().programs ?? -1);
+          }),
+        );
+      }),
+  );
+
 test.describe('Study three-tsl', () => {
   test('mounts an aria-hidden canvas on the expected backend', async ({
     page,
@@ -79,23 +96,8 @@ test.describe('Study three-tsl', () => {
     const messages = collectConsole(page);
     await gotoStudy(page, run, 'debug=1');
 
-    const programs = () =>
-      page.evaluate(
-        () =>
-          new Promise<number>((resolve) => {
-            requestAnimationFrame(() =>
-              requestAnimationFrame(() => {
-                const study = (
-                  window as Window & {
-                    __calibreStudy?: { info: () => { programs: number } };
-                  }
-                ).__calibreStudy;
-                resolve(study?.info().programs ?? -1);
-              }),
-            );
-          }),
-      );
-    const before = await programs();
+    await prewarmed(page);
+    const before = await programs(page);
     expect(before).toBeGreaterThan(0);
 
     await studyOptions(page).first().focus();
@@ -107,7 +109,31 @@ test.describe('Study three-tsl', () => {
       studyOptions(page).and(page.locator('[aria-selected="true"]')),
     ).not.toHaveCount(0);
 
-    expect(await programs()).toBe(before);
+    expect(await programs(page)).toBe(before);
+    expect(messages()).toEqual([]);
+  });
+
+  test('programs do not grow during a full-page walk', async ({ page }) => {
+    const run = projectRun();
+    await startRun(page, run);
+    await page.setViewportSize({ width: 1100, height: 560 });
+    const messages = collectConsole(page);
+    await gotoStudy(page, run, 'debug=1&__pageSize=250');
+    const { rows } = await allAtlases(page);
+    expect(rows).toBeGreaterThan(2);
+    await prewarmed(page);
+    const before = await programs(page);
+
+    await studyOptions(page).first().focus();
+    for (let row = 1; row < rows; row++) {
+      await page.keyboard.press('ArrowDown');
+      await settledCamera(page);
+    }
+    const camera = await settledCamera(page);
+    expect(camera.bounds.maxY).toBeGreaterThan(camera.bounds.minY);
+    expect(camera.y).toBeCloseTo(camera.bounds.minY, 2);
+
+    expect(await programs(page)).toBe(before);
     expect(messages()).toEqual([]);
   });
 
@@ -757,6 +783,7 @@ test.describe('Study three-tsl covers', () => {
         `/?view=study&groupBy=series&renderer=css&page=${pageNumber}`,
       );
       await expect(probe.locator('[data-study-ready]')).toHaveCount(1);
+      await expect(studyOptions(probe).first()).toBeVisible();
       const ids = await studyOptions(probe).evaluateAll((elements) =>
         elements.map((element) =>
           Number((element as HTMLElement).dataset['bookId']),

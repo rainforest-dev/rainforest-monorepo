@@ -4,6 +4,19 @@ Date: 2026-09-29. Status: design approved by the owner from the Claude Design pr
 the binding decisions listed under Decisions. This spec maps the prototype onto
 `apps/personal-calibre`.
 
+Phase 2 shipped on 2026-10-05 with `three-tsl` as the default Study renderer and `css` as the
+alternative and fallback. Measured on the large fixture at `?__pageSize=250`, `next start`, headed
+Chromium on an Apple M4 Pro, median of three sweeps:
+
+- Texture memory: 48.2 MiB desktop (1440×900 @2) and 29.7 MiB phone, at 96 px per unit. At
+  1440×1000 the cover cache drops to 23 covers and reports 49.7 MiB.
+- Programs: 18 desktop, 34 phone, flat through the sweep and a walk of every row.
+- `init()`: 5.4 ms on WebGPU and 8.0 ms on WebGL2. First render call: 29.6 ms and 73.1 ms.
+- Mount to first frame: 565 ms on WebGPU and 621 ms on WebGL2, over the 300 ms and 600 ms
+  budgets.
+- rAF: median 16.7 ms on every run.
+- Lazy Study JS: 435.6 KB gzip.
+
 Sources, in order of authority:
 
 1. The owner decisions recorded below.

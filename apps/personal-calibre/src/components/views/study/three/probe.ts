@@ -22,6 +22,7 @@ export interface StudyProbeInfo {
   texturesSizeReported: number;
   programs: number;
   atlasPpu: AtlasPpu | null;
+  coverCacheMax: number | null;
   atlasFits: boolean | null;
   atlasBytes: number;
   atlasBytesEstimated: number;
@@ -31,6 +32,7 @@ export interface StudyProbeInfo {
   rows: number;
   lastAtlasAt: number | null;
   coversCached: number;
+  coverCacheBytes: number;
   dpr: number;
 }
 

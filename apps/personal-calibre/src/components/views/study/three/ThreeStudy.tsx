@@ -21,7 +21,7 @@ import {
   cameraBounds,
   type CameraState,
   clampCameraY,
-  COVER_CACHE_BYTES,
+  COVER_BYTES,
   focusTargetY,
   isDebug,
   layoutShelves,
@@ -82,6 +82,7 @@ function atlasInfo({
   const atlases = report ? [...report.atlases.values()] : [];
   return {
     atlasPpu: pick?.ppu ?? null,
+    coverCacheMax: pick?.covers ?? null,
     atlasFits: pick?.fits ?? null,
     atlasBytes: atlases.reduce((sum, atlas) => sum + atlas.bytes, 0),
     atlasBytesEstimated: estimated,
@@ -227,17 +228,6 @@ export default function ThreeStudy({
   const [covers, setCovers] = useState<CoverCache | null>(null);
   const coversRef = useRef(covers);
   coversRef.current = covers;
-  useEffect(() => {
-    if (!tokens) return;
-    const cache = createCoverCache(tokens, {
-      upload: (texture) => {
-        const renderer = gl.current;
-        if (renderer?.hasInitialized()) renderer.initTexture(texture);
-      },
-    });
-    setCovers(cache);
-    return () => cache.dispose();
-  }, [tokens, model.key]);
   const atlasState = useRef<{
     pick: AtlasPick | null;
     estimated: number;
@@ -267,6 +257,7 @@ export default function ThreeStudy({
         programs: renderer && loaded ? loaded.programsOf(renderer) : 0,
         ...atlasInfo(atlasState.current),
         coversCached: coversRef.current?.size() ?? 0,
+        coverCacheBytes: (coversRef.current?.size() ?? 0) * COVER_BYTES,
         dpr: renderer?.getPixelRatio() ?? window.devicePixelRatio,
       };
     },
@@ -311,11 +302,24 @@ export default function ThreeStudy({
               : TEXTURE_BUDGET_BYTES.phone,
             canvas: { width, height, dpr },
             targetBuffers: REPORTED_TARGET_BUFFERS,
-            coverCacheBytes: COVER_CACHE_BYTES,
+            coverBytes: COVER_BYTES,
           })
         : null,
     [layout, desktop, width, height, dpr],
   );
+  const coverMax = pick?.covers ?? null;
+  useEffect(() => {
+    if (!tokens || coverMax === null) return;
+    const cache = createCoverCache(tokens, {
+      max: coverMax,
+      upload: (texture) => {
+        const renderer = gl.current;
+        if (renderer?.hasInitialized()) renderer.initTexture(texture);
+      },
+    });
+    setCovers(cache);
+    return () => cache.dispose();
+  }, [tokens, model.key, coverMax]);
   const focusRow = useRef(0);
   const focusedRow = layout?.books.find(
     (placed) => placed.book.id === focusId,

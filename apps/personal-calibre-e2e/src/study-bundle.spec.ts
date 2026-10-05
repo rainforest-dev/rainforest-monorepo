@@ -1,3 +1,5 @@
+import { gzipSync } from 'node:zlib';
+
 import { expect, type Page, test } from '@playwright/test';
 
 import { setPrefs } from './support/library';
@@ -8,10 +10,12 @@ test.skip(
 );
 
 const THREE_MARKERS = ['isWebGLRenderer', 'isWebGPURenderer'] as const;
+const LAZY_STUDY_GZIP_BUDGET = 450 * 1024;
 
 interface LoadedScript {
   url: string;
   markers: string[];
+  gzipBytes: number;
 }
 
 async function loadScripts(page: Page, url: string): Promise<LoadedScript[]> {
@@ -24,6 +28,7 @@ async function loadScripts(page: Page, url: string): Promise<LoadedScript[]> {
         .then((body) => ({
           url: response.url(),
           markers: THREE_MARKERS.filter((marker) => body.includes(marker)),
+          gzipBytes: gzipSync(body).length,
         }))
         .catch(() => null),
     );
@@ -44,7 +49,6 @@ test.describe('Study bundle', () => {
     '/',
     '/books/1',
     '/read/1',
-    '/?view=study&groupBy=series',
     '/?view=study&groupBy=series&renderer=css',
   ]) {
     test(`${url} loads nothing from three.js`, async ({ page }) => {
@@ -54,11 +58,11 @@ test.describe('Study bundle', () => {
     });
   }
 
-  test('/ with Study in the cookie loads nothing from three.js', async ({
+  test('/ with Study and css in the cookie loads nothing from three.js', async ({
     page,
     context,
   }) => {
-    await setPrefs(context, { view: 'study' });
+    await setPrefs(context, { view: 'study', renderer: 'css' });
     const scripts = await loadScripts(page, '/?groupBy=series');
     await expect(page.locator('[data-study-ready]')).toHaveAttribute(
       'data-renderer',
@@ -67,14 +71,17 @@ test.describe('Study bundle', () => {
     expect(withThree(scripts)).toEqual([]);
   });
 
-  test('three-tsl loads three.js only after the Study region mounts', async ({
+  test('the default three-tsl study loads three.js only after the Study region mounts', async ({
     page,
     request,
   }) => {
-    const url = '/?view=study&groupBy=series&renderer=three-tsl';
+    const url = '/?view=study&groupBy=series';
     const html = await (await request.get(url)).text();
     const scripts = await loadScripts(page, url);
-    await expect(page.locator('[data-study-canvas]')).toHaveCount(1);
+    await expect(page.locator('[data-study-canvas]')).toHaveAttribute(
+      'data-renderer',
+      'three-tsl',
+    );
 
     const loaded = withThree(scripts);
     expect(loaded.length).toBeGreaterThan(0);
@@ -83,5 +90,11 @@ test.describe('Study bundle', () => {
     }
     const markers = new Set(scripts.flatMap((s) => s.markers));
     expect([...markers].sort()).toEqual([...THREE_MARKERS].sort());
+
+    const lazy = scripts
+      .filter((s) => !html.includes(new URL(s.url).pathname))
+      .reduce((sum, s) => sum + s.gzipBytes, 0);
+    console.log(`[budget] lazy Study JS ${(lazy / 1024).toFixed(1)} KB gzip`);
+    expect(lazy).toBeLessThanOrEqual(LAZY_STUDY_GZIP_BUDGET);
   });
 });

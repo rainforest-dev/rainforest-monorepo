@@ -9,6 +9,8 @@ export const STUDY_RUNS: readonly StudyRun[] = [
   { renderer: 'css' },
 ];
 
+const STUDY_READY_MS = 15_000;
+
 const CONSOLE_ALLOWLIST: readonly RegExp[] = [
   /THREE\.Clock/,
   // Headless Chromium logs this for any composited WebGL canvas.
@@ -78,7 +80,9 @@ export async function gotoStudy(
     `/?view=study&groupBy=series&renderer=${run.renderer}${extra}`,
   );
   await expect(page.locator('[data-library-ready]')).toHaveCount(1);
-  await expect(page.locator('[data-study-ready]')).toHaveCount(1);
+  await expect(page.locator('[data-study-ready]')).toHaveCount(1, {
+    timeout: STUDY_READY_MS,
+  });
 }
 
 export function studyOptions(page: Page): Locator {

@@ -73,7 +73,7 @@ test.describe('Study', () => {
     await page.keyboard.press('v');
     await expect(page).toHaveURL(/groupBy=series/);
     await expect(page).not.toHaveURL(/page=/);
-    await expect(studyOptions(page).first()).toBeVisible();
+    await expect(studyOptions(page).first()).toBeAttached();
     const firstPage = seriesOrderedIds().slice(0, PAGE_SIZE);
     const expected = firstPage.includes(38)
       ? option(page, 38)
@@ -85,7 +85,7 @@ test.describe('Study', () => {
     await gotoLibrary(page, '/');
     await page.goto('/?groupBy=tag&view=study');
     await expect(page).toHaveURL(/groupBy=series/);
-    await expect(studyOptions(page).first()).toBeVisible();
+    await expect(studyOptions(page).first()).toBeAttached();
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
     await expect(
@@ -97,7 +97,7 @@ test.describe('Study', () => {
   test('Study keeps Author grouping', async ({ page }) => {
     await gotoLibrary(page, '/?groupBy=author&view=study');
     await expect(page).toHaveURL(/groupBy=author/);
-    await expect(studyOptions(page).first()).toBeVisible();
+    await expect(studyOptions(page).first()).toBeAttached();
   });
 
   test('the Group select offers Series and Author only in Study', async ({

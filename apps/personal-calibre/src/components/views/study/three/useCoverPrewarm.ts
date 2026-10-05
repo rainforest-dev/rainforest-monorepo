@@ -2,8 +2,14 @@
 
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
+import type { Camera, Object3D, Scene } from 'three';
 
-import { booksInRow, type PlacedBook, type StudyLayout } from '@/lib';
+import {
+  booksInRow,
+  COVER_NEIGHBOURS,
+  type PlacedBook,
+  type StudyLayout,
+} from '@/lib';
 
 import type { CoverCache } from './covers';
 import type { StudyGl, StudyKit } from './kit';
@@ -18,8 +24,6 @@ export interface CoverPrewarmArgs {
   onPrewarmed: () => void;
 }
 
-export const COVER_NEIGHBOURS = 4;
-
 function around(layout: StudyLayout, focusId: number | null): PlacedBook[] {
   const centre =
     layout.books.find((placed) => placed.book.id === focusId)?.order ?? 0;
@@ -30,6 +34,24 @@ function around(layout: StudyLayout, focusId: number | null): PlacedBook[] {
 }
 
 const IDLE_SLACK_MS = 4;
+
+function compileEveryRow(
+  kit: StudyKit,
+  gl: StudyGl,
+  scene: Scene,
+  camera: Camera,
+): Promise<void> {
+  const culled: Object3D[] = [];
+  scene.traverse((object) => {
+    if (!object.frustumCulled) return;
+    culled.push(object);
+    object.frustumCulled = false;
+  });
+  // three's compileAsync culls while it projects, before its first await, so culling can be restored once the call returns.
+  const compiled = kit.compile(gl, scene, camera);
+  for (const object of culled) object.frustumCulled = true;
+  return compiled;
+}
 
 type IdleHandle = ReturnType<typeof whenIdle>;
 
@@ -78,7 +100,7 @@ export function useCoverPrewarm({
   const focusRef = useRef(focusId);
   focusRef.current = focusId;
   const [prewarmed, setPrewarmed] = useState<CoverCache | null>(null);
-  const compiled = useRef(false);
+  const compiled = useRef<StudyLayout | null>(null);
 
   useEffect(() => {
     if (!framed) return;
@@ -90,10 +112,11 @@ export function useCoverPrewarm({
       ...new Set([...firstRow, ...around(layout, focusRef.current)]),
     ];
     const handle = ensureInIdle(covers, books, (loads) => {
-      const compile = compiled.current
-        ? Promise.resolve()
-        : kit.compile(gl as unknown as StudyGl, scene, camera);
-      compiled.current = true;
+      const compile =
+        compiled.current === layout
+          ? Promise.resolve()
+          : compileEveryRow(kit, gl as unknown as StudyGl, scene, camera);
+      compiled.current = layout;
       Promise.allSettled([loads, compile]).then(() => {
         if (!live) return;
         setPrewarmed(covers);

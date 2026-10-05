@@ -25,6 +25,13 @@
         "options": {
           "config": "apps/personal-calibre-e2e/playwright.config.ts"
         }
+      },
+      "perf-study": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node apps/personal-calibre-e2e/perf/study-sweep.mjs"
+        }
       }
     }
   },
