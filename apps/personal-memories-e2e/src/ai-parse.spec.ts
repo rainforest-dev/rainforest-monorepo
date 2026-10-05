@@ -116,5 +116,8 @@ test('with the switch on, a date with no record still offers the nearest day at 
     timeout: 1000,
   });
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/day\/2025-11-03\?nearest=1$/);
+  await expect(
+    page.getByText('沒有這一天，已跳到最近的 2025-11-03'),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
 });
