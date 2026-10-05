@@ -66,12 +66,13 @@ test('the served CSS keeps both the anchored preview and its fallback', async ({
       .filter(
         (rule): rule is CSSSupportsRule => rule instanceof CSSSupportsRule,
       )
-      .map((rule) => ({ condition: rule.conditionText, text: rule.cssText })),
+      .map((rule) => ({
+        condition: rule.conditionText.replace(/\s+/g, ''),
+        text: rule.cssText,
+      })),
   );
-  const anchored = rules.find((r) => r.condition === '(position-area: top)');
-  const fallback = rules.find(
-    (r) => r.condition === 'not (position-area: top)',
-  );
+  const anchored = rules.find((r) => r.condition === '(position-area:top)');
+  const fallback = rules.find((r) => r.condition === 'not(position-area:top)');
   expect(anchored?.text).toMatch(/position: fixed/);
   expect(anchored?.text).toMatch(/position-area: top;/);
   expect(fallback?.text).toMatch(/position: fixed/);
