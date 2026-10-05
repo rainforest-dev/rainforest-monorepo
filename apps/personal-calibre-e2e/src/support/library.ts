@@ -1,6 +1,8 @@
 import { type BrowserContext, expect, type Page } from '@playwright/test';
 
-export const BASE_URL = process.env['BASE_URL'] ?? 'http://localhost:3333';
+import { PORT } from './port';
+
+export const BASE_URL = process.env['BASE_URL'] ?? `http://localhost:${PORT}`;
 export const PREFS_COOKIE = 'calibre-prefs';
 export const FAULT_COOKIE = 'calibre-e2e-fault';
 

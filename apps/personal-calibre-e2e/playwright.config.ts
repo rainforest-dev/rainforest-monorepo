@@ -3,9 +3,9 @@ import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
 import { MCP_SECRET } from './src/support/mcp';
+import { PORT } from './src/support/port';
 import { APP_DB_PATH, FIXTURES_DIR } from './src/support/seed';
 
-const PORT = 3333;
 const externalServer = process.env['BASE_URL'];
 const baseURL = externalServer ?? `http://localhost:${PORT}`;
 const webGpuProjects =
