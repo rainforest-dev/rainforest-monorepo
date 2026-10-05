@@ -16,7 +16,7 @@ const { Content } = await render(Astro.props);
 const tags = _tags.filter((e) => !e.includes(':'));
 ---
 
-<div class="bg-card prose dark:bg-card w-full max-w-none rounded-lg p-10">
+<div class="bg-card prose w-full max-w-none rounded-lg p-10">
   <h1>{title}</h1>
   <p>{format(pubDate, 'd MMM, yyyy')}<br />By {author.name}</p>
   <Content />
