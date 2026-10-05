@@ -30,9 +30,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@playwright/test": "^1.52.0",
-    "@types/better-sqlite3": "^7.6.13",
+    "@playwright/test": "^1.63.0",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "catalog:",
-    "better-sqlite3": "^12.2.0"
+    "better-sqlite3": "^13.0.3"
   }
 }

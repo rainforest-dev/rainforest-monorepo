@@ -28,13 +28,13 @@
     "react-dom": "catalog:"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@testing-library/react": "^16.1.0",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:"

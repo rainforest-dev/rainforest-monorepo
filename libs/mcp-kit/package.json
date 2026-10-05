@@ -28,11 +28,11 @@
     "name": "mcp-kit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "vite-plugin-dts": "^4.5.4"
+    "vite-plugin-dts": "^5.1.2"
   }
 }

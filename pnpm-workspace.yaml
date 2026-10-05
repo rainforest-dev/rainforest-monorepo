@@ -3,21 +3,21 @@ packages:
   - libs/*
 
 catalog:
-  '@material/material-color-utilities': ^0.3.0
-  '@tailwindcss/typography': ^0.5.19
-  '@tailwindcss/vite': 4.2.2
-  vite: 8.0.16
-  '@types/node': ^25.0.10
-  '@types/react': 19.2.9
-  '@types/react-dom': 19.2.3
-  lit: 3.3.2
-  next: 16.3.6
-  react: 19.2.3
-  react-dom: 19.2.3
-  tailwindcss: 4.2.2
-  typescript: 6.0.3
+  '@material/material-color-utilities': ^0.4.0
+  '@tailwindcss/typography': ^0.5.20
+  '@tailwindcss/vite': 4.3.3
+  vite: 8.3.2
+  '@types/node': ^26.6.4
+  '@types/react': 19.3.0
+  '@types/react-dom': 19.3.0
+  lit: 3.3.3
+  next: 16.3.8
+  react: 19.3.0
+  react-dom: 19.3.0
+  tailwindcss: 4.3.3
+  typescript: 7.0.2
   class-variance-authority: ^0.7.1
-  tailwind-merge: ^3.5.0
+  tailwind-merge: ^3.7.0
 
 # pnpm 11 settings (moved from package.json pnpm field)
 peerDependencyRules:

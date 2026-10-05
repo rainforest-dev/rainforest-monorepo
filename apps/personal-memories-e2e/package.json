@@ -17,8 +17,8 @@
     }
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "@playwright/test": "^1.52.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "catalog:"
   }
 }
