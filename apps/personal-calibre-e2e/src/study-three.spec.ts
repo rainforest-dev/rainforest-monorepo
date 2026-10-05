@@ -7,8 +7,8 @@ import {
   canvasWrap,
   collectConsole,
   gotoStudy,
-  hasWebGpu,
   prepareRun,
+  startRun,
   studyOptions,
   type StudyRun,
 } from './support/study';
@@ -26,14 +26,6 @@ function projectRun(): ThreeRun {
     : { renderer: 'three-tsl', backend: 'webgl2' };
 }
 
-async function prepare(page: Page, run: ThreeRun): Promise<void> {
-  await prepareRun(page, run);
-  if (run.backend === 'webgpu') {
-    await page.goto('/favicon.ico');
-    test.skip(!(await hasWebGpu(page)), 'this browser has no WebGPU adapter');
-  }
-}
-
 test.describe('Study three-tsl', () => {
   test('mounts an aria-hidden canvas on the expected backend', async ({
     page,
@@ -41,7 +33,7 @@ test.describe('Study three-tsl', () => {
   }) => {
     const run = projectRun();
     await setPrefs(context, { renderer: 'css' });
-    await prepare(page, run);
+    await startRun(page, run);
     const messages = collectConsole(page);
     await gotoStudy(page, run);
 
@@ -57,7 +49,7 @@ test.describe('Study three-tsl', () => {
 
   test('?debug shows the backend badge and the probe', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await gotoStudy(page, run, 'debug=1');
 
     await expect(page.locator('[data-backend-badge]')).toHaveText(
@@ -83,7 +75,7 @@ test.describe('Study three-tsl', () => {
 
   test('programs do not grow during a 40-step sweep', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     const messages = collectConsole(page);
     await gotoStudy(page, run, 'debug=1');
 
@@ -238,7 +230,7 @@ async function pixelAt(
 test.describe('Study three-tsl scene', () => {
   test('the pulled book follows focus', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     const messages = collectConsole(page);
     await gotoStudy(page, run);
 
@@ -258,7 +250,7 @@ test.describe('Study three-tsl scene', () => {
 
   test('keyboard moves follow the 3D layout rows', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await gotoStudy(page, run, 'debug=1');
 
@@ -296,7 +288,7 @@ test.describe('Study three-tsl scene', () => {
 
   test('a click on a spine focuses its option', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await gotoStudy(page, run, 'debug=1');
 
     const ids = await optionIds(page);
@@ -328,21 +320,24 @@ test.describe('Study three-tsl scene', () => {
     await expect(canvasWrap(page)).toHaveAttribute('data-pulled-id', `${id}`);
   });
 
-  test('reduced motion has no pull', async ({ page }) => {
+  test('reduced motion has no pull and keeps a visible ring', async ({
+    page,
+  }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await gotoStudy(page, run);
 
-    await studyOptions(page).first().focus();
+    await tabIntoListbox(page);
     await page.keyboard.press('ArrowRight');
     await expect(studyOptions(page).nth(1)).toBeFocused();
     await expect(canvasWrap(page)).toHaveAttribute('data-pulled-id', '');
+    await expectOverlayInCanvas(page);
   });
 
   test('the camera follows focus inside the clamp', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await gotoStudy(page, run, 'debug=1');
 
     await studyOptions(page).first().focus();
@@ -351,6 +346,9 @@ test.describe('Study three-tsl scene', () => {
     expect(top.y).toBeCloseTo(top.bounds.maxY, 5);
 
     await page.keyboard.press('Control+End');
+    await expect
+      .poll(async () => (await cameraState(page))?.y)
+      .toBeCloseTo(top.bounds.minY, 5);
     const bottom = await settledCamera(page);
     expect(bottom.y).toBeCloseTo(bottom.bounds.minY, 5);
 
@@ -358,6 +356,9 @@ test.describe('Study three-tsl scene', () => {
     if (!box) throw new Error('no canvas');
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.wheel(0, -10);
+    await expect
+      .poll(async () => (await cameraState(page))?.y)
+      .toBeGreaterThan(bottom.y);
     const panned = await settledCamera(page);
     expect(panned.y).toBeGreaterThan(bottom.y);
     expect(panned.y).toBeLessThanOrEqual(panned.bounds.maxY);
@@ -366,7 +367,7 @@ test.describe('Study three-tsl scene', () => {
 
   test('the wheel scrolls the page at the clamp', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await gotoStudy(page, run, 'debug=1&series=1');
 
     const camera = await settledCamera(page);
@@ -385,7 +386,7 @@ test.describe('Study three-tsl scene', () => {
     page,
   }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await gotoStudy(page, run);
 
     await studyOptions(page).first().focus();
@@ -396,7 +397,7 @@ test.describe('Study three-tsl scene', () => {
 
   test('scheme change recolours', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await page.emulateMedia({ colorScheme: 'light' });
     await gotoStudy(page, run, 'debug=1');
 
@@ -432,12 +433,14 @@ interface AtlasInfo {
   atlasBytesEstimated: number;
   textureBytesEstimated: number;
   atlasRows: number;
+  atlasOrder: number[];
   rows: number;
   lastAtlasAt: number | null;
   firstFrameAt: number | null;
 }
 
 const ATLAS_PPU_LADDER = [160, 128, 112, 96];
+const ATLAS_SETTLE_MS = 30_000;
 
 const atlasInfo = (page: Page) =>
   page.evaluate(() => {
@@ -452,14 +455,14 @@ const atlasInfo = (page: Page) =>
     return study ? { ...study.info(), firstFrameAt: study.firstFrameAt } : null;
   });
 
-async function allAtlases(page: Page, timeout = 3_000): Promise<AtlasInfo> {
+async function allAtlases(page: Page): Promise<AtlasInfo> {
   await expect
     .poll(
       async () => {
         const info = await atlasInfo(page);
         return info !== null && info.rows > 0 && info.atlasRows === info.rows;
       },
-      { timeout },
+      { timeout: ATLAS_SETTLE_MS },
     )
     .toBe(true);
   const info = await atlasInfo(page);
@@ -467,19 +470,51 @@ async function allAtlases(page: Page, timeout = 3_000): Promise<AtlasInfo> {
   return info;
 }
 
+const range = (from: number, to: number) =>
+  Array.from({ length: Math.max(0, to - from) }, (_, i) => from + i);
+
+async function projectedRows(
+  page: Page,
+): Promise<{ rows: number; onScreen: number }> {
+  const canvas = await canvasWrap(page).boundingBox();
+  if (!canvas) throw new Error('no canvas');
+  const rects = await projectBooks(page, await optionIds(page));
+  const rows: { bottom: number; visible: boolean }[] = [];
+  for (const rect of rects) {
+    if (!rect) continue;
+    const bottom = bottomOf(rect);
+    const visible = rect.top < canvas.y + canvas.height && bottom > canvas.y;
+    const row = rows.find((r) => Math.abs(r.bottom - bottom) < 2);
+    if (row) row.visible ||= visible;
+    else rows.push({ bottom, visible });
+  }
+  return {
+    rows: rows.length,
+    onScreen: rows.filter((r) => r.visible).length,
+  };
+}
+
 test.describe('Study three-tsl atlas', () => {
-  test('visible rows draw first and every row has an atlas within 3 s', async ({
+  test('visible rows get their atlas first, then the nearest rows', async ({
     page,
   }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await page.setViewportSize({ width: 1100, height: 560 });
     const messages = collectConsole(page);
     await gotoStudy(page, run, 'debug=1&__pageSize=250');
 
+    const { rows, onScreen: visible } = await projectedRows(page);
     const info = await allAtlases(page);
     console.log(`[atlas] ${run.backend} ${JSON.stringify(info)}`);
     expect(info.rows).toBeGreaterThan(2);
+    expect(rows).toBe(info.rows);
+    expect(visible).toBeGreaterThan(0);
+    expect(visible).toBeLessThan(info.rows);
+    expect(
+      [...info.atlasOrder.slice(0, visible)].sort((a, b) => a - b),
+    ).toEqual(range(0, visible));
+    expect(info.atlasOrder.slice(visible)).toEqual(range(visible, info.rows));
     expect(ATLAS_PPU_LADDER).toContain(info.atlasPpu);
     expect(info.firstFrameAt).not.toBeNull();
     expect(info.lastAtlasAt).toBeGreaterThan(info.firstFrameAt ?? Infinity);
@@ -492,7 +527,7 @@ test.describe('Study three-tsl atlas', () => {
 
   test('the default page keeps 160 px per unit', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await gotoStudy(page, run, 'debug=1');
 
     const info = await allAtlases(page);
@@ -503,7 +538,7 @@ test.describe('Study three-tsl atlas', () => {
 
   test('page changes dispose the previous atlases', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await gotoStudy(page, run, 'debug=1');
 
@@ -599,7 +634,7 @@ test.describe('Study three-tsl overlay and headings', () => {
     page,
   }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     const messages = collectConsole(page);
     await gotoStudy(page, run, 'debug=1');
 
@@ -633,7 +668,7 @@ test.describe('Study three-tsl overlay and headings', () => {
 
   test('the overlay outline is foreground', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await gotoStudy(page, run);
 
     await tabIntoListbox(page);
@@ -655,7 +690,7 @@ test.describe('Study three-tsl overlay and headings', () => {
 
   test('shelf headings show labels and counts', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await gotoStudy(page, run, 'debug=1');
 
     const labels = page.locator('[data-shelf-labels]');
@@ -684,7 +719,7 @@ test.describe('Study three-tsl overlay and headings', () => {
 test.describe('Study three-tsl covers', () => {
   test('the pulled book shows the fixture cover', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     const requests = coverRequests(page);
     const messages = collectConsole(page);
     await gotoStudy(page, run, 'debug=1');
@@ -735,7 +770,7 @@ test.describe('Study three-tsl covers', () => {
     expect(nextCovered.length).toBeGreaterThan(0);
     const lastPage = await idsOn(3);
 
-    await prepare(page, run);
+    await startRun(page, run);
     const requests = coverRequests(page);
     await gotoStudy(page, run, 'debug=1');
     await prewarmed(page);
@@ -754,7 +789,7 @@ test.describe('Study three-tsl covers', () => {
 
   test('the first pull after prewarm has no render spike', async ({ page }) => {
     const run = projectRun();
-    await prepare(page, run);
+    await startRun(page, run);
     await gotoStudy(page, run, 'debug=1');
     await prewarmed(page);
 

@@ -71,6 +71,12 @@
           "^build"
         ]
       },
+      "build-deps": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "^build"
+        ]
+      },
       "bundle": {
         "command": "node tools/app-artifact/bundle.mjs next apps/personal-calibre"
       },

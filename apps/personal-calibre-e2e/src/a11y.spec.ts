@@ -2,6 +2,14 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { type AxeIgnore, expectNoViolations } from './support/axe';
 import { gotoLibrary, options, pane } from './support/library';
+import {
+  canvasWrap,
+  gotoStudy,
+  runName,
+  startRun,
+  STUDY_RUNS,
+  studyOptions,
+} from './support/study';
 
 const panel = (page: Page) => page.locator('#library-filters');
 
@@ -24,17 +32,18 @@ const PAGES = [
   ['catalogue with the pane', '/?view=catalogue&book=38'],
   ['permalink', '/books/38'],
   ['empty result', '/?q=zzzz-no-such-book'],
-  ['study', '/?view=study&groupBy=series', SCROLL_ROW_IGNORE],
-  [
-    'study with the pane',
-    '/?view=study&groupBy=series&book=38',
-    SCROLL_ROW_IGNORE,
-  ],
 ] as const satisfies ReadonlyArray<
   readonly [string, string] | readonly [string, string, AxeIgnore[]]
 >;
 
 test.describe('accessibility', () => {
+  test.beforeEach(() => {
+    test.skip(
+      test.info().project.name !== 'chromium',
+      'only the Study cases run on study-webgpu',
+    );
+  });
+
   for (const [name, url, ignore] of PAGES) {
     test(`${name} has no axe violations`, async ({ page }) => {
       await gotoLibrary(page, url);
@@ -85,3 +94,64 @@ test.describe('accessibility', () => {
     });
   });
 });
+
+for (const run of STUDY_RUNS) {
+  test.describe(`accessibility, Study ${runName(run)}`, () => {
+    const ignore = run.renderer === 'css' ? SCROLL_ROW_IGNORE : [];
+
+    test.beforeEach(async ({ page }) => {
+      await startRun(page, run);
+    });
+
+    test('study has no axe violations', async ({ page }) => {
+      await gotoStudy(page, run);
+      await expectNoViolations(page, { ignore });
+    });
+
+    test('study with a focused book has no axe violations', async ({
+      page,
+    }) => {
+      await gotoStudy(page, run);
+      await studyOptions(page).first().focus();
+      await page.keyboard.press('ArrowRight');
+      await expect(studyOptions(page).nth(1)).toBeFocused();
+      if (run.renderer !== 'css') {
+        await expect(canvasWrap(page)).not.toHaveAttribute(
+          'data-pulled-id',
+          '',
+        );
+      }
+      await expectNoViolations(page, { ignore });
+    });
+
+    test('study under reduced motion has no axe violations', async ({
+      page,
+    }) => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await gotoStudy(page, run);
+      await studyOptions(page).first().focus();
+      await page.keyboard.press('ArrowRight');
+      await expect(studyOptions(page).nth(1)).toBeFocused();
+      await expectNoViolations(page, { ignore });
+    });
+
+    test('study with a selection and ?debug has no axe violations', async ({
+      page,
+    }) => {
+      await gotoStudy(page, run, 'debug=1');
+      await expect(page.locator('[data-backend-badge]')).toBeVisible();
+      await studyOptions(page).first().focus();
+      await page.keyboard.press('x');
+      await expect(
+        page.getByRole('toolbar', { name: 'Bulk actions' }),
+      ).toBeVisible();
+      await expectNoViolations(page, { ignore });
+    });
+
+    test('study with the pane has no axe violations', async ({ page }) => {
+      await gotoStudy(page, run, 'book=38');
+      await expect(pane(page)).toBeVisible();
+      await expectNoViolations(page, { ignore });
+    });
+  });
+}

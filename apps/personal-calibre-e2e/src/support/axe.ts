@@ -13,6 +13,18 @@ export async function expectNoViolations(
   options?: { ignore?: AxeIgnore[] },
 ): Promise<void> {
   await page.waitForLoadState('networkidle');
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) =>
+          Number.isFinite(
+            Number(animation.effect?.getComputedTiming().endTime),
+          ),
+        )
+        .map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
   const { violations } = await new AxeBuilder({ page })
     .withTags(TAGS)
     .analyze();

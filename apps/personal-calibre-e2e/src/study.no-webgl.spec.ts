@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+import { expectNoViolations } from './support/axe';
 import { readPrefs, setPrefs } from './support/library';
 import {
   canvasWrap,
@@ -54,5 +55,53 @@ test.describe('Study without WebGL or WebGPU', () => {
 
     expect((await readPrefs(context))?.['renderer']).toBe('three-tsl');
     expect((await Promise.all(scripts)).filter(Boolean)).toEqual([]);
+  });
+
+  test('the fallback has no axe violations', async ({ page }) => {
+    await prepareRun(page, RUN);
+    await gotoStudy(page, RUN, 'debug=1');
+    await expect(page.locator('[data-study-ready]')).toHaveAttribute(
+      'data-renderer',
+      'css',
+    );
+    await expect(page.getByText(TOAST)).toHaveCount(1);
+    await expect(page.locator('[data-backend-badge]')).toHaveText('css');
+    await expectNoViolations(page, {
+      ignore: [
+        { rule: 'scrollable-region-focusable', targetIncludes: '.st-row' },
+      ],
+    });
+  });
+
+  test.fixme('after the fallback the Renderer select shows CSS and the cookie keeps three-tsl', async ({
+    page,
+    context,
+  }) => {
+    await setPrefs(context, { view: 'study', renderer: 'three-tsl' });
+    await prepareRun(page, RUN);
+    await page.goto('/?groupBy=series');
+    await expect(page.locator('[data-study-ready]')).toHaveAttribute(
+      'data-renderer',
+      'css',
+    );
+    await expect(
+      page.getByRole('combobox', { name: 'Renderer' }),
+    ).toContainText('CSS');
+    expect((await readPrefs(context))?.['renderer']).toBe('three-tsl');
+  });
+
+  test.fixme('choosing CSS in the Renderer select writes it to the cookie', async ({
+    page,
+    context,
+  }) => {
+    await setPrefs(context, { view: 'study', renderer: 'three-tsl' });
+    await prepareRun(page, RUN);
+    await page.goto('/?groupBy=series');
+    await expect(page.locator('[data-study-ready]')).toHaveCount(1);
+    await page.getByRole('combobox', { name: 'Renderer' }).click();
+    await page.getByRole('option', { name: 'CSS', exact: true }).click();
+    await expect
+      .poll(async () => (await readPrefs(context))?.['renderer'])
+      .toBe('css');
   });
 });

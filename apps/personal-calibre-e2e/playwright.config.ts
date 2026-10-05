@@ -20,7 +20,7 @@ const webGpuProjects =
               args: ['--enable-unsafe-webgpu', '--ignore-gpu-blocklist'],
             },
           },
-          testMatch: /\/study(-three|-parity)?\.spec\.ts$/,
+          testMatch: /\/(study(-three|-parity)?|a11y)\.spec\.ts$/,
         },
       ]
     : [];
@@ -34,7 +34,7 @@ export default defineConfig({
   webServer: externalServer
     ? undefined
     : {
-        command: `pnpm exec nx dev personal-calibre --port=${PORT}`,
+        command: `pnpm --dir apps/personal-calibre exec next dev -p ${PORT}`,
         url: `http://localhost:${PORT}/favicon.ico`,
         reuseExistingServer: false,
         timeout: 180_000,
@@ -67,6 +67,7 @@ export default defineConfig({
         isMobile: true,
         hasTouch: true,
         deviceScaleFactor: 2,
+        launchOptions: { args: ['--enable-unsafe-swiftshader'] },
       },
       testMatch: /\.phone\.spec\.ts$/,
     },

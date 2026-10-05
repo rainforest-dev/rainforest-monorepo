@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-import { gotoStudy, studyOptions } from './support/study';
+import {
+  canvasWrap,
+  collectConsole,
+  expectPulledFocus,
+  gotoStudy,
+  prepareRun,
+  studyOptions,
+} from './support/study';
 
 const CSS = { renderer: 'css' } as const;
 
@@ -38,5 +45,39 @@ test.describe('Study on phone', () => {
     await first.click();
     await expect(first).toHaveAttribute('aria-selected', 'true');
     await expect(page).not.toHaveURL(/book=/);
+  });
+});
+
+test.describe('Study three-tsl on phone', () => {
+  const run = { renderer: 'three-tsl', backend: 'webgl2' } as const;
+
+  test('a phone-height canvas, no page scroll, the pulled book follows focus', async ({
+    page,
+  }) => {
+    await prepareRun(page, run);
+    const messages = collectConsole(page);
+    await gotoStudy(page, run);
+
+    const wrap = canvasWrap(page);
+    await expect(wrap).toHaveAttribute('data-backend', 'webgl2');
+    const box = await wrap.boundingBox();
+    const viewport = page.viewportSize();
+    if (!box || !viewport) throw new Error('no canvas or viewport');
+    expect(
+      Math.abs(box.height - Math.min(viewport.height * 0.7, 640)),
+    ).toBeLessThan(1);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await expect(page.getByText('Along shelf')).toBeHidden();
+
+    await studyOptions(page).first().focus();
+    await expectPulledFocus(page, run);
+    await page.keyboard.press('ArrowRight');
+    await expect(studyOptions(page).nth(1)).toBeFocused();
+    await expectPulledFocus(page, run);
+    expect(messages()).toEqual([]);
   });
 });

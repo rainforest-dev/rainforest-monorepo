@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { gotoLibrary, options } from './support/library';
+import { gotoStudy, prepareRun, type StudyRun } from './support/study';
 
 test.skip(
   process.env['CALIBRE_BUDGETS'] !== '1',
@@ -78,5 +79,37 @@ test.describe('budgets', () => {
     console.log(`[budget] view switch ${elapsed.toFixed(0)} ms`);
     expect(elapsed).toBeLessThanOrEqual(100);
     expect(requests).toEqual([]);
+  });
+
+  test('every Study row has its atlas within 3 s of the first frame', async ({
+    page,
+  }) => {
+    const run: StudyRun = { renderer: 'three-tsl', backend: 'webgl2' };
+    await prepareRun(page, run);
+    await page.setViewportSize({ width: 1100, height: 560 });
+    await gotoStudy(page, run, 'debug=1&__pageSize=250');
+    const timing = () =>
+      page.evaluate(() => {
+        const study = (
+          window as Window & {
+            __calibreStudy?: {
+              firstFrameAt: number | null;
+              info: () => {
+                rows: number;
+                atlasRows: number;
+                lastAtlasAt: number | null;
+              };
+            };
+          }
+        ).__calibreStudy;
+        const info = study?.info();
+        return info && info.rows > 0 && info.atlasRows === info.rows
+          ? (info.lastAtlasAt ?? Infinity) - (study?.firstFrameAt ?? Infinity)
+          : null;
+      });
+    await expect.poll(timing, { timeout: 30_000 }).not.toBeNull();
+    const elapsed = (await timing()) ?? Infinity;
+    console.log(`[budget] all row atlases ${elapsed.toFixed(0)} ms`);
+    expect(elapsed).toBeLessThanOrEqual(3_000);
   });
 });

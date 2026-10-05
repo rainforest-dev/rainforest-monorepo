@@ -87,6 +87,7 @@ function atlasInfo({
     atlasBytesEstimated: estimated,
     textureBytesEstimated: pick?.estimatedBytes ?? 0,
     atlasRows: atlases.length,
+    atlasOrder: report ? [...report.atlases.keys()] : [],
     rows,
     lastAtlasAt: report?.at ?? null,
   };

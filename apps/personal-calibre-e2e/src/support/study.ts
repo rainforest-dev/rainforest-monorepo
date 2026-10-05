@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 export type StudyRun =
   { renderer: 'css' } | { renderer: 'three-tsl'; backend: 'webgpu' | 'webgl2' };
@@ -17,6 +17,44 @@ const CONSOLE_ALLOWLIST: readonly RegExp[] = [
 
 export function runName(run: StudyRun): string {
   return run.renderer === 'css' ? 'css' : `${run.renderer}-${run.backend}`;
+}
+
+const PROJECT_RUNS: Readonly<Record<string, readonly string[]>> = {
+  chromium: ['css', 'three-tsl-webgl2'],
+  'study-webgpu': ['three-tsl-webgpu'],
+};
+
+export function runsOn(project: string, run: StudyRun): boolean {
+  return PROJECT_RUNS[project]?.includes(runName(run)) ?? false;
+}
+
+export async function startRun(page: Page, run: StudyRun): Promise<void> {
+  const project = test.info().project.name;
+  test.skip(
+    !runsOn(project, run),
+    `${runName(run)} does not run on ${project}`,
+  );
+  await prepareRun(page, run);
+  if (run.renderer === 'three-tsl' && run.backend === 'webgpu') {
+    await page.goto('/favicon.ico');
+    test.skip(!(await hasWebGpu(page)), 'this browser has no WebGPU adapter');
+  }
+}
+
+export async function expectPulledFocus(
+  page: Page,
+  run: StudyRun,
+): Promise<void> {
+  const active = await page.evaluate(
+    () => (document.activeElement as HTMLElement | null)?.dataset['bookId'],
+  );
+  expect(active).toBeDefined();
+  if (run.renderer !== 'css') {
+    await expect(canvasWrap(page)).toHaveAttribute(
+      'data-pulled-id',
+      active ?? '',
+    );
+  }
 }
 
 export async function prepareRun(page: Page, run: StudyRun): Promise<void> {

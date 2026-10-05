@@ -27,6 +27,7 @@ export interface StudyProbeInfo {
   atlasBytesEstimated: number;
   textureBytesEstimated: number;
   atlasRows: number;
+  atlasOrder: number[];
   rows: number;
   lastAtlasAt: number | null;
   coversCached: number;
