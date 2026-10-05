@@ -1,7 +1,7 @@
 'use client';
 
 import type { NavItem } from '@rainforest-dev/rainforest-ui/interaction';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useSearchParams } from 'next/navigation';
 import {
   type RefObject,
@@ -16,18 +16,31 @@ import { PCFShadowMap } from 'three';
 import type { StudyRendererProps } from '@/components/views/study/StudyListbox';
 import { useIsDesktop } from '@/hooks';
 import {
+  atlasBytesAt,
+  type AtlasPick,
+  cameraBounds,
   type CameraState,
+  clampCameraY,
+  COVER_CACHE_BYTES,
+  focusTargetY,
   isDebug,
   layoutShelves,
+  pickAtlasPpu,
+  REPORTED_TARGET_BUFFERS,
+  rowsInView,
   type StudyBackend,
+  type StudyLayout,
   studyNavItems,
+  TEXTURE_BUDGET_BYTES,
   type ThreeRenderer,
 } from '@/lib';
 
+import type { RowAtlas } from './atlas';
 import type { KitCanvasProps, StudyGl, StudyKit } from './kit';
 import { publishProbe, type StudyProbe } from './probe';
-import { type BookProjector, Scene } from './Scene';
+import { type BookProjector, Scene, type SceneProps } from './Scene';
 import { useTokens } from './tokens';
+import { useRowAtlases } from './useRowAtlases';
 
 type ThreeBackend = Exclude<StudyBackend, 'css'>;
 
@@ -43,6 +56,30 @@ const DPR: [number, number] = [1, 2];
 // fiber sets PCFSoftShadowMap for boolean `shadows`, which WebGPURenderer warns about on every render.
 const SHADOWS = { enabled: false, type: PCFShadowMap };
 
+function atlasInfo({
+  pick,
+  estimated,
+  rows,
+  report,
+}: {
+  pick: AtlasPick | null;
+  estimated: number;
+  rows: number;
+  report: AtlasReport | null;
+}) {
+  const atlases = report ? [...report.atlases.values()] : [];
+  return {
+    atlasPpu: pick?.ppu ?? null,
+    atlasFits: pick?.fits ?? null,
+    atlasBytes: atlases.reduce((sum, atlas) => sum + atlas.bytes, 0),
+    atlasBytesEstimated: estimated,
+    textureBytesEstimated: pick?.estimatedBytes ?? 0,
+    atlasRows: atlases.length,
+    rows,
+    lastAtlasAt: report?.at ?? null,
+  };
+}
+
 function loadKit(renderer: ThreeRenderer): Promise<StudyKit> {
   switch (renderer) {
     case 'three-tsl':
@@ -52,18 +89,78 @@ function loadKit(renderer: ThreeRenderer): Promise<StudyKit> {
   }
 }
 
-function useWidth(ref: RefObject<HTMLDivElement | null>): number {
-  const [width, setWidth] = useState(0);
+interface Size {
+  width: number;
+  height: number;
+}
+
+function useSize(ref: RefObject<HTMLDivElement | null>): Size {
+  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
     const observer = new ResizeObserver(([entry]) => {
-      if (entry) setWidth(Math.floor(entry.contentRect.width));
+      if (!entry) return;
+      const width = Math.floor(entry.contentRect.width);
+      const height = Math.floor(entry.contentRect.height);
+      setSize((prev) =>
+        prev.width === width && prev.height === height
+          ? prev
+          : { width, height },
+      );
     });
     observer.observe(element);
     return () => observer.disconnect();
   }, [ref]);
-  return width;
+  return size;
+}
+
+interface AtlasReport {
+  atlases: ReadonlyMap<number, RowAtlas>;
+  at: number;
+}
+
+interface AtlasSceneProps extends Omit<SceneProps, 'atlases'> {
+  layoutKey: string;
+  visibleRows: readonly number[];
+  pick: AtlasPick;
+  onAtlases: (report: AtlasReport) => void;
+}
+
+function AtlasScene({
+  layoutKey,
+  visibleRows,
+  pick,
+  onAtlases,
+  ...scene
+}: AtlasSceneProps) {
+  const maxAnisotropy = useThree((state) =>
+    (state.gl as unknown as StudyGl).getMaxAnisotropy(),
+  );
+  const atlases = useRowAtlases({
+    layout: scene.layout,
+    layoutKey,
+    tokens: scene.tokens,
+    visibleRows,
+    maxAnisotropy,
+    ppu: pick.ppu,
+  });
+  useEffect(() => {
+    onAtlases({ atlases, at: performance.now() });
+  }, [atlases, onAtlases]);
+  return <Scene {...scene} atlases={atlases} />;
+}
+
+function initialRows(
+  layout: StudyLayout,
+  focusRow: number,
+  viewUnits: number,
+): number[] {
+  const y = clampCameraY(
+    focusTargetY(layout, focusRow),
+    cameraBounds(layout, viewUnits),
+  );
+  return rowsInView(layout, y, viewUnits);
 }
 
 function FrameDriver({ onFrame }: { onFrame: (start: number) => void }) {
@@ -87,9 +184,10 @@ export default function ThreeStudy({
   onNavItems,
 }: ThreeStudyProps) {
   const debug = isDebug(useSearchParams());
-  const pxPerUnit = useIsDesktop() ? 100 : 80;
+  const desktop = useIsDesktop();
+  const pxPerUnit = desktop ? 100 : 80;
   const wrap = useRef<HTMLDivElement>(null);
-  const width = useWidth(wrap);
+  const { width, height } = useSize(wrap);
   const [kit, setKit] = useState<StudyKit | null>(null);
   const tokens = useTokens();
   const [backend, setBackend] = useState<ThreeBackend | null>(null);
@@ -98,6 +196,12 @@ export default function ThreeStudy({
   const gl = useRef<StudyGl | null>(null);
   const kitRef = useRef<StudyKit | null>(null);
   const lastFrame = useRef({ drawCalls: 0, triangles: 0 });
+  const atlasState = useRef<{
+    pick: AtlasPick | null;
+    estimated: number;
+    rows: number;
+    report: AtlasReport | null;
+  }>({ pick: null, estimated: 0, rows: 0, report: null });
   const probe = useRef<StudyProbe>({
     canvasMountAt: 0,
     kitLoadMs: 0,
@@ -117,7 +221,7 @@ export default function ThreeStudy({
         textures: renderer?.info.memory.textures ?? 0,
         texturesSizeReported: renderer?.info.memory.texturesSize ?? 0,
         programs: renderer && loaded ? loaded.programsOf(renderer) : 0,
-        atlasBytes: 0,
+        ...atlasInfo(atlasState.current),
         coversCached: 0,
         dpr: renderer?.getPixelRatio() ?? window.devicePixelRatio,
       };
@@ -152,6 +256,43 @@ export default function ThreeStudy({
       width > 0 ? layoutShelves(model.shelves, width / pxPerUnit - 0.8) : null,
     [model, width, pxPerUnit],
   );
+  const dpr = Math.min(window.devicePixelRatio || 1, DPR[1]);
+  const pick = useMemo(
+    () =>
+      layout
+        ? pickAtlasPpu({
+            layout,
+            budgetBytes: desktop
+              ? TEXTURE_BUDGET_BYTES.desktop
+              : TEXTURE_BUDGET_BYTES.phone,
+            canvas: { width, height, dpr },
+            targetBuffers: REPORTED_TARGET_BUFFERS,
+            coverCacheBytes: COVER_CACHE_BYTES,
+          })
+        : null,
+    [layout, desktop, width, height, dpr],
+  );
+  const focusRow = useRef(0);
+  const focusedRow = layout?.books.find(
+    (placed) => placed.book.id === focusId,
+  )?.row;
+  focusRow.current = focusedRow ?? focusRow.current;
+  const visibleRows = useMemo(
+    () =>
+      layout ? initialRows(layout, focusRow.current, height / pxPerUnit) : [],
+    [layout, height, pxPerUnit],
+  );
+  useEffect(() => {
+    atlasState.current = {
+      ...atlasState.current,
+      pick,
+      estimated: layout && pick ? atlasBytesAt(layout, pick.ppu) : 0,
+      rows: layout?.rows ?? 0,
+    };
+  }, [layout, pick]);
+  const onAtlases = useCallback((report: AtlasReport) => {
+    atlasState.current = { ...atlasState.current, report };
+  }, []);
   const selectedKey = options
     .filter((option) => option.selected)
     .map(({ book }) => book.id)
@@ -225,7 +366,7 @@ export default function ThreeStudy({
       data-pulled-id={pulledId ?? ''}
       className="bg-muted relative h-[min(70dvh,640px)] overflow-hidden rounded-lg lg:h-[min(78dvh,760px)]"
     >
-      {kit && layout && tokens && (
+      {kit && layout && tokens && pick && (
         <Canvas
           ref={(canvas) => {
             if (canvas && probe.current.canvasMountAt === 0) {
@@ -241,7 +382,11 @@ export default function ThreeStudy({
           aria-hidden="true"
         >
           <FrameDriver onFrame={onFrame} />
-          <Scene
+          <AtlasScene
+            layoutKey={`${model.key}:${layout.width}`}
+            visibleRows={visibleRows}
+            pick={pick}
+            onAtlases={onAtlases}
             layout={layout}
             tokens={tokens}
             kit={kit}

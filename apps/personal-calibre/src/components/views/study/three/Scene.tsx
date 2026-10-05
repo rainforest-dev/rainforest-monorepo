@@ -34,6 +34,7 @@ import {
   wheelPan,
 } from '@/lib';
 
+import type { RowAtlas } from './atlas';
 import type { StudyKit } from './kit';
 import { PulledBook } from './PulledBook';
 import { ShelfRow } from './ShelfRow';
@@ -49,6 +50,7 @@ export interface SceneProps {
   selected: ReadonlySet<number>;
   reducedMotion: boolean;
   pxPerUnit: number;
+  atlases: ReadonlyMap<number, RowAtlas>;
   projector: RefObject<BookProjector | null>;
   onPick: (bookId: number) => void;
   onPulled: (bookId: number | null) => void;
@@ -80,6 +82,7 @@ export function Scene({
   selected,
   reducedMotion,
   pxPerUnit,
+  atlases,
   projector,
   onPick,
   onPulled,
@@ -289,6 +292,7 @@ export function Scene({
         <ShelfRow
           key={row}
           books={books}
+          atlas={atlases.get(row)}
           kit={kit}
           tokens={tokens}
           selected={selected}
@@ -300,6 +304,7 @@ export function Scene({
       ))}
       <PulledBook
         book={pulled}
+        atlas={pulled ? atlases.get(pulled.row) : undefined}
         width={layout.width}
         kit={kit}
         tokens={tokens}

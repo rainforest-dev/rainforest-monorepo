@@ -1,4 +1,4 @@
-import type { CameraState, ScreenRect } from '@/lib';
+import type { AtlasPpu, CameraState, ScreenRect } from '@/lib';
 
 export interface StudyProbe {
   canvasMountAt: number;
@@ -19,7 +19,14 @@ export interface StudyProbeInfo {
   textures: number;
   texturesSizeReported: number;
   programs: number;
+  atlasPpu: AtlasPpu | null;
+  atlasFits: boolean | null;
   atlasBytes: number;
+  atlasBytesEstimated: number;
+  textureBytesEstimated: number;
+  atlasRows: number;
+  rows: number;
+  lastAtlasAt: number | null;
   coversCached: number;
   dpr: number;
 }

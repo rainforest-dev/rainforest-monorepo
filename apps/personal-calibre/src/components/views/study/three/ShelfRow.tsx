@@ -13,11 +13,13 @@ import {
 
 import { FRONT_Z, type PlacedBook } from '@/lib';
 
+import type { RowAtlas } from './atlas';
 import { SPINE_ATTRIBUTES, type StudyKit } from './kit';
 import { mixRgb, toColor, type Tokens } from './tokens';
 
 export interface ShelfRowProps {
   books: readonly PlacedBook[];
+  atlas: RowAtlas | undefined;
   kit: StudyKit;
   tokens: Tokens;
   selected: ReadonlySet<number>;
@@ -50,6 +52,7 @@ export function sideColor(book: PlacedBook, tokens: Tokens) {
 
 export function ShelfRow({
   books,
+  atlas,
   kit,
   tokens,
   selected,
@@ -97,6 +100,18 @@ export function ShelfRow({
     sides.needsUpdate = true;
     invalidate();
   }, [books, tokens, geometry, count, invalidate]);
+
+  useLayoutEffect(() => {
+    const rects = geometry.getAttribute(SPINE_ATTRIBUTES.rect);
+    books.forEach((placed, i) => {
+      const [u = 0, v = 0, du = 0, dv = 0] =
+        atlas?.rects.get(placed.book.id) ?? [];
+      rects.setXYZW(i, u, v, du, dv);
+    });
+    rects.needsUpdate = true;
+    spine.setAtlas(atlas?.texture ?? null);
+    invalidate();
+  }, [books, atlas, spine, geometry, count, invalidate]);
 
   useLayoutEffect(() => {
     const flags = geometry.getAttribute(SPINE_ATTRIBUTES.selected);
