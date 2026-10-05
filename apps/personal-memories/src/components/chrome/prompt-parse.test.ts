@@ -211,6 +211,7 @@ describe('aiParseKey and parseStaleTime', () => {
 
 describe('parseWithFallback cancellation', () => {
   it('aborts the model call when the caller gives up', async () => {
+    vi.useFakeTimers();
     let aborted = false;
     const hang = vi.fn(
       (_raw: string, signal: AbortSignal) =>
@@ -229,7 +230,8 @@ describe('parseWithFallback cancellation', () => {
       outer.signal,
     );
     outer.abort();
-    await pending.catch(() => undefined);
     expect(aborted).toBe(true);
+    await vi.advanceTimersByTimeAsync(PROMPT_TIMEOUT_MS);
+    await pending;
   });
 });
