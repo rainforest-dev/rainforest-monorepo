@@ -101,6 +101,11 @@ describe('createStudyMaterials', () => {
     expect(cacheKey(material)).toBe(key);
   });
 
+  it('starts the pulled-book cover and spine on different textures', () => {
+    const { material } = createStudyMaterials().pulledBook();
+    expect(texturesOf(material)).toHaveLength(2);
+  });
+
   it('leaves tone mapping to the renderer and texture transforms unused', () => {
     const materials = createStudyMaterials();
     const spine = materials.spine();

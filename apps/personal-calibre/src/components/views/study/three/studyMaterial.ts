@@ -32,6 +32,7 @@ const light = () =>
 
 export function createStudyMaterials(): StudyMaterials {
   const placeholder = new Texture();
+  const spinePlaceholder = new Texture();
 
   const spine = (): SpineMaterial => {
     const rect = attribute(SPINE_ATTRIBUTES.rect, 'vec4');
@@ -74,7 +75,7 @@ export function createStudyMaterials(): StudyMaterials {
 
   const pulledBook: StudyMaterials['pulledBook'] = () => {
     const cover = texture(placeholder);
-    const spineFace = texture(placeholder);
+    const spineFace = texture(spinePlaceholder);
     const hasCover = uniform(0);
     const side = uniform(new Color());
     const pages = uniform(new Color());
@@ -108,6 +109,9 @@ export function createStudyMaterials(): StudyMaterials {
       return material;
     },
     pulledBook,
-    dispose: () => placeholder.dispose(),
+    dispose: () => {
+      placeholder.dispose();
+      spinePlaceholder.dispose();
+    },
   };
 }
