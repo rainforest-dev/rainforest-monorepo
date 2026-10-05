@@ -70,6 +70,7 @@ export interface SceneProps {
   onPulled: (bookId: number | null) => void;
   onCamera: (state: CameraState) => void;
   onFocusRect: (rect: ScreenRect | null) => void;
+  onPulledRect: (rect: ScreenRect | null) => void;
   onLabels: (labels: readonly ProjectedLabel[]) => void;
 }
 
@@ -139,6 +140,7 @@ export function Scene({
   onPulled,
   onCamera,
   onFocusRect,
+  onPulledRect,
   onLabels,
 }: SceneProps) {
   const { camera, size, gl, invalidate } = useThree();
@@ -323,12 +325,14 @@ export function Scene({
   }, [projector, byId, pulledId, camera, gl]);
 
   const reportedRect = useRef<ScreenRect | null | undefined>(undefined);
+  const reportedPulled = useRef<ScreenRect | null | undefined>(undefined);
   const reportedLabels = useRef('');
   useLayoutEffect(() => {
     reportedRect.current = undefined;
+    reportedPulled.current = undefined;
     reportedLabels.current = '';
     invalidate();
-  }, [layout, onFocusRect, onLabels, invalidate]);
+  }, [layout, onFocusRect, onPulledRect, onLabels, invalidate]);
 
   useFrame(() => {
     camera.updateMatrixWorld();
@@ -338,16 +342,26 @@ export function Scene({
     );
     const viewport = { width: size.width, height: size.height };
     let rect: ScreenRect | null = null;
+    let pulledRect: ScreenRect | null = null;
     if (focused) {
       const mesh = pulledMesh.current;
+      const isPulled = focused.book.id === pulledId && mesh !== null;
       let matrix: Matrix4;
-      if (focused.book.id === pulledId && mesh) {
+      if (isPulled) {
         mesh.updateMatrixWorld();
         matrix = mesh.matrixWorld;
       } else {
         matrix = placedMatrix(focused);
       }
       rect = projectBox(boxCorners(matrix), VIEW_PROJECTION.elements, viewport);
+      if (isPulled) pulledRect = rect;
+    }
+    if (
+      reportedPulled.current === undefined ||
+      !sameRect(pulledRect, reportedPulled.current)
+    ) {
+      reportedPulled.current = pulledRect;
+      onPulledRect(pulledRect);
     }
     if (
       reportedRect.current === undefined ||

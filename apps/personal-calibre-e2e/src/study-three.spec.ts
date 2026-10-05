@@ -7,6 +7,7 @@ import {
   canvasWrap,
   collectConsole,
   gotoStudy,
+  headingFade,
   prepareRun,
   startRun,
   studyOptions,
@@ -690,6 +691,30 @@ test.describe('Study three-tsl overlay and headings', () => {
     ).toBeFocused();
     await expect(overlay(page)).toBeHidden();
     expect(messages()).toEqual([]);
+  });
+
+  test('headings fade exactly where the pulled book covers them', async ({
+    page,
+  }) => {
+    const run = projectRun();
+    await startRun(page, run);
+    await gotoStudy(page, run, 'debug=1');
+    const consistent = async () => {
+      const state = await headingFade(page);
+      return (
+        state.pulledId !== '' &&
+        state.hiddenOpacity &&
+        state.faded.join() === state.overlapping.join()
+      );
+    };
+
+    await studyOptions(page).first().focus();
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(consistent).toBe(true);
+    await page.keyboard.press('ArrowDown');
+    await expect.poll(consistent).toBe(true);
+    await page.keyboard.press('Control+Home');
+    await expect.poll(consistent).toBe(true);
   });
 
   test('the overlay outline is foreground', async ({ page }) => {

@@ -83,6 +83,7 @@ export async function gotoStudy(
   await expect(page.locator('[data-study-ready]')).toHaveCount(1, {
     timeout: STUDY_READY_MS,
   });
+  await expect(page.locator('[data-view-ready]')).toHaveCount(1);
 }
 
 export function studyOptions(page: Page): Locator {
@@ -127,5 +128,49 @@ export async function hasWebGpu(page: Page): Promise<boolean> {
     } catch {
       return false;
     }
+  });
+}
+
+export interface HeadingFade {
+  pulledId: string;
+  overlapping: number[];
+  faded: number[];
+  hiddenOpacity: boolean;
+}
+
+export function headingFade(page: Page): Promise<HeadingFade> {
+  return page.evaluate(() => {
+    type Rect = { left: number; top: number; width: number; height: number };
+    const probe = (
+      window as Window & {
+        __calibreStudy?: { projectBook: (id: number) => Rect | null };
+      }
+    ).__calibreStudy;
+    const pulledId =
+      document
+        .querySelector('[data-study-canvas]')
+        ?.getAttribute('data-pulled-id') ?? '';
+    const book = pulledId ? probe?.projectBook(Number(pulledId)) : null;
+    const labels = [
+      ...document.querySelectorAll<HTMLElement>('[data-shelf-label]'),
+    ];
+    const overlaps = (a: Rect, b: DOMRect) =>
+      a.left < b.right &&
+      b.left < a.left + a.width &&
+      a.top < b.bottom &&
+      b.top < a.top + a.height;
+    const indices = (keep: (label: HTMLElement) => boolean) =>
+      labels.flatMap((label, i) => (keep(label) ? [i] : []));
+    const faded = indices((label) => label.hasAttribute('data-faded'));
+    return {
+      pulledId,
+      overlapping: indices(
+        (label) => !!book && overlaps(book, label.getBoundingClientRect()),
+      ),
+      faded,
+      hiddenOpacity: faded.every(
+        (i) => getComputedStyle(labels[i] as HTMLElement).opacity === '0',
+      ),
+    };
   });
 }

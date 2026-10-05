@@ -5,6 +5,7 @@ import {
   collectConsole,
   expectPulledFocus,
   gotoStudy,
+  headingFade,
   prepareRun,
   studyOptions,
 } from './support/study';
@@ -79,5 +80,59 @@ test.describe('Study three-tsl on phone', () => {
     await expect(studyOptions(page).nth(1)).toBeFocused();
     await expectPulledFocus(page, run);
     expect(messages()).toEqual([]);
+  });
+
+  test('the pulled book fades only the headings it covers', async ({
+    page,
+  }) => {
+    await prepareRun(page, run);
+    const messages = collectConsole(page);
+    await gotoStudy(page, run, 'debug=1');
+    const fadeOf = () => headingFade(page);
+
+    await studyOptions(page).first().focus();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowLeft');
+    await expect
+      .poll(async () => {
+        const state = await fadeOf();
+        return (
+          state.faded.length > 0 &&
+          state.hiddenOpacity &&
+          state.faded.join() === state.overlapping.join()
+        );
+      })
+      .toBe(true);
+    const covered = (await fadeOf()).faded;
+    expect(covered).toContain(0);
+    expect(await page.locator('[data-shelf-label]').count()).toBeGreaterThan(
+      covered.length,
+    );
+
+    await page.keyboard.press('ArrowDown');
+    await expect
+      .poll(async () => {
+        const state = await fadeOf();
+        return (
+          !state.faded.includes(0) &&
+          state.faded.join() === state.overlapping.join()
+        );
+      })
+      .toBe(true);
+    await expect(page.locator('[data-shelf-label]').first()).toHaveCSS(
+      'opacity',
+      '1',
+    );
+    expect(messages()).toEqual([]);
+  });
+
+  test('reduced motion fades no heading', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await prepareRun(page, run);
+    await gotoStudy(page, run, 'debug=1');
+    await studyOptions(page).first().focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(500);
+    expect((await headingFade(page)).faded).toEqual([]);
   });
 });

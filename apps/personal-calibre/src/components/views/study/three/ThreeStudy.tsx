@@ -47,7 +47,11 @@ import {
   Scene,
   type SceneProps,
 } from './Scene';
-import { type LabelsSink, ShelfLabels } from './ShelfLabels';
+import {
+  type LabelsSink,
+  type PulledRectSink,
+  ShelfLabels,
+} from './ShelfLabels';
 import { useTokens } from './tokens';
 import { useCoverPrewarm } from './useCoverPrewarm';
 import { useRowAtlases } from './useRowAtlases';
@@ -225,6 +229,7 @@ export default function ThreeStudy({
   const lastFrame = useRef({ drawCalls: 0, triangles: 0 });
   const overlay = useRef<HTMLDivElement>(null);
   const labelsSink = useRef<LabelsSink | null>(null);
+  const pulledSink = useRef<PulledRectSink | null>(null);
   const [covers, setCovers] = useState<CoverCache | null>(null);
   const coversRef = useRef(covers);
   coversRef.current = covers;
@@ -383,6 +388,9 @@ export default function ThreeStudy({
     element.style.width = `${rect.width}px`;
     element.style.height = `${rect.height}px`;
   }, []);
+  const onPulledRect = useCallback((rect: ScreenRect | null) => {
+    pulledSink.current?.(rect);
+  }, []);
   const onLabels = useCallback((labels: readonly ProjectedLabel[]) => {
     labelsSink.current?.(labels);
   }, []);
@@ -460,6 +468,7 @@ export default function ThreeStudy({
             onPrewarmed={onPrewarmed}
             covers={covers}
             onFocusRect={onFocusRect}
+            onPulledRect={onPulledRect}
             onLabels={onLabels}
             layout={layout}
             tokens={tokens}
@@ -475,7 +484,7 @@ export default function ThreeStudy({
           />
         </Canvas>
       )}
-      <ShelfLabels sinkRef={labelsSink} />
+      <ShelfLabels sinkRef={labelsSink} pulledSinkRef={pulledSink} />
       <FocusOverlay ref={overlay} listboxRef={containerRef} />
     </div>
   );
