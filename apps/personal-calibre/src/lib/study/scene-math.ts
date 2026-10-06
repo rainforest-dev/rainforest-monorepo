@@ -220,3 +220,98 @@ export function rowsInView(
     (row) => (1 - row) * ROW_H > bottom && -row * ROW_H - 0.1 < top,
   );
 }
+
+export interface ScreenPoint {
+  x: number;
+  y: number;
+}
+
+export interface ScreenSize {
+  width: number;
+  height: number;
+}
+
+export const FLOAT_GAP_PX = 28;
+export const FLOAT_MARGIN_PX = 8;
+const FLOAT_HEIGHT_SHARE = 0.34;
+const FLOAT_HEIGHT_MIN_PX = 150;
+const FLOAT_HEIGHT_MAX_PX = 240;
+
+export function floatHeightPx(viewport: ScreenSize): number {
+  const fit = Math.max(0, viewport.height - 2 * FLOAT_MARGIN_PX);
+  const wanted = Math.min(
+    Math.max(viewport.height * FLOAT_HEIGHT_SHARE, FLOAT_HEIGHT_MIN_PX),
+    FLOAT_HEIGHT_MAX_PX,
+  );
+  return Math.min(wanted, fit);
+}
+
+function clampSpan(
+  centre: number,
+  half: number,
+  extent: number,
+  margin: number,
+) {
+  const low = margin + half;
+  const high = extent - margin - half;
+  return low > high ? extent / 2 : Math.min(Math.max(centre, low), high);
+}
+
+export function floatCentre(
+  finger: ScreenPoint,
+  size: ScreenSize,
+  viewport: ScreenSize,
+  gap = FLOAT_GAP_PX,
+  margin = FLOAT_MARGIN_PX,
+): ScreenPoint {
+  const halfH = size.height / 2;
+  const above = finger.y - gap - halfH;
+  const below = finger.y + gap + halfH;
+  const fitsAbove = above - halfH >= margin;
+  const fitsBelow = below + halfH <= viewport.height - margin;
+  const y = fitsAbove || !fitsBelow ? above : below;
+  return {
+    x: clampSpan(finger.x, size.width / 2, viewport.width, margin),
+    y: clampSpan(y, halfH, viewport.height, margin),
+  };
+}
+
+export function pxPerUnitAt(
+  pxPerUnit: number,
+  cameraZ: number,
+  z: number,
+): number {
+  return cameraZ - z <= 1e-6 ? Infinity : (pxPerUnit * cameraZ) / (cameraZ - z);
+}
+
+export function approach(rate: number, delta: number, instant = false): number {
+  return instant ? 1 : 1 - Math.exp(-rate * Math.max(delta, 0));
+}
+
+export interface Carry<T> {
+  items: readonly [T | null, T | null];
+  active: 0 | 1;
+}
+
+export function nextCarry<T>(
+  carry: Carry<T>,
+  next: T | null,
+  same: (a: T, b: T) => boolean,
+  keepLeaving: boolean,
+): Carry<T> {
+  const { items, active } = carry;
+  const other = active === 0 ? 1 : 0;
+  const current = items[active];
+  const leaving = items[other];
+  const fresh = (slot: 0 | 1, item: T | null, rest: T | null): Carry<T> => ({
+    items: slot === 0 ? [item, rest] : [rest, item],
+    active: slot,
+  });
+  if (next !== null && current !== null && same(current, next)) {
+    return fresh(active, next, keepLeaving ? leaving : null);
+  }
+  if (!keepLeaving || next === null || current === null) {
+    return fresh(active, next, null);
+  }
+  return fresh(other, next, current);
+}

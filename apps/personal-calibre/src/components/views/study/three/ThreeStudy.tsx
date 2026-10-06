@@ -42,6 +42,7 @@ import { type CoverCache, createCoverCache } from './covers';
 import { FocusOverlay } from './FocusOverlay';
 import type { KitCanvasProps, StudyGl, StudyKit } from './kit';
 import { publishProbe, type StudyProbe } from './probe';
+import type { ScrubPointer } from './PulledBook';
 import {
   type BookProjector,
   type ProjectedLabel,
@@ -170,6 +171,7 @@ function AtlasScene({
   useCoverPrewarm({
     layout: scene.layout,
     focusId: scene.focusId,
+    scrubbing: scene.scrubbing,
     covers: scene.covers,
     kit: scene.kit,
     nextPageCoverIds,
@@ -221,6 +223,13 @@ export default function ThreeStudy({
   const tokens = useTokens();
   const [backend, setBackend] = useState<ThreeBackend | null>(null);
   const [pulledId, setPulledId] = useState<number | null>(null);
+  const [floatingId, setFloatingId] = useState<number | null>(null);
+  const pointer = useRef<ScrubPointer>({
+    x: 0,
+    y: 0,
+    invalidate: () => undefined,
+  });
+  const pointerOrigin = useRef({ left: 0, top: 0 });
   const projector = useRef<BookProjector | null>(null);
   const gl = useRef<StudyGl | null>(null);
   const kitRef = useRef<StudyKit | null>(null);
@@ -243,6 +252,7 @@ export default function ThreeStudy({
     firstFrameAt: null,
     firstRenderMs: null,
     pulledId: null,
+    floatingId: null,
     camera: null,
     prewarmedAt: null,
     renderMs: [],
@@ -373,11 +383,28 @@ export default function ThreeStudy({
     surfaceRef: wrap,
     hitTest: (x, y) => hitTester.current?.(x, y) ?? null,
     onPull: pullAt,
-    onScrubbing: setScrubbing,
+    onScrubbing: (scrubbing) => {
+      const rect = wrap.current?.getBoundingClientRect();
+      if (scrubbing && rect) {
+        pointerOrigin.current.left = rect.left;
+        pointerOrigin.current.top = rect.top;
+      }
+      setScrubbing(scrubbing);
+    },
+    onMove: (x, y) => {
+      const at = pointer.current;
+      at.x = x - pointerOrigin.current.left;
+      at.y = y - pointerOrigin.current.top;
+      at.invalidate();
+    },
   });
   const onPulled = useCallback((bookId: number | null) => {
     probe.current.pulledId = bookId;
     setPulledId(bookId);
+  }, []);
+  const onFloating = useCallback((bookId: number | null) => {
+    probe.current.floatingId = bookId;
+    setFloatingId(bookId);
   }, []);
   const onCamera = useCallback((state: CameraState) => {
     probe.current.camera = state;
@@ -445,6 +472,7 @@ export default function ThreeStudy({
       data-renderer={renderer}
       data-backend={backend ?? undefined}
       data-pulled-id={pulledId ?? ''}
+      data-floating-id={floatingId ?? undefined}
       className="bg-muted relative h-[min(70dvh,640px)] overflow-hidden rounded-lg lg:h-[min(78dvh,760px)]"
     >
       {kit && layout && tokens && pick && covers && (
@@ -481,12 +509,14 @@ export default function ThreeStudy({
             pulledId={pull.pulledId}
             scrubbing={pull.scrubbing}
             hitTester={hitTester}
+            pointer={pointer}
             selected={selected}
             reducedMotion={reducedMotion}
             pxPerUnit={pxPerUnit}
             projector={projector}
             onPick={onPick}
             onPulled={onPulled}
+            onFloating={onFloating}
             onCamera={onCamera}
           />
         </Canvas>
