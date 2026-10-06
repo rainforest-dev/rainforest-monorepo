@@ -11,7 +11,11 @@ export function BackendBadge() {
   const { view, renderer, backend } = useLibrary();
   if (!debug || view !== 'study') return null;
   return (
-    <Badge variant="outline" className="font-mono" data-backend-badge="">
+    <Badge
+      variant="outline"
+      className="block max-w-full truncate font-mono"
+      data-backend-badge=""
+    >
       {backendLabel(renderer, backend)}
     </Badge>
   );

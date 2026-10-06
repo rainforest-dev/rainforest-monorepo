@@ -99,4 +99,23 @@ test.describe('Study three-tsl on phone', () => {
       await page.mouse.wheel(0, 300);
     }
   });
+
+  for (const width of [375, 390]) {
+    test(`?debug keeps the page inside a ${width}px screen`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await prepareRun(page, run);
+      await gotoStudy(page, run, 'debug=1');
+      await expect(page.locator('[data-backend-badge]')).toBeVisible();
+      await expect(canvasWrap(page)).toHaveAttribute('data-backend', 'webgl2');
+      const widths = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth,
+        inner: window.innerWidth,
+      }));
+      expect(widths).toEqual({ scroll: width, inner: width });
+      const badge = await page.locator('[data-backend-badge]').boundingBox();
+      expect((badge?.x ?? 0) + (badge?.width ?? 0)).toBeLessThanOrEqual(width);
+    });
+  }
 });
