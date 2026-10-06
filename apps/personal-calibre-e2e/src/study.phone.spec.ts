@@ -5,7 +5,7 @@ import {
   collectConsole,
   expectPulledFocus,
   gotoStudy,
-  headingFade,
+  headingCollisions,
   prepareRun,
   studyOptions,
 } from './support/study';
@@ -82,57 +82,21 @@ test.describe('Study three-tsl on phone', () => {
     expect(messages()).toEqual([]);
   });
 
-  test('the pulled book fades only the headings it covers', async ({
-    page,
-  }) => {
+  test('author headings on a shared row never overlap', async ({ page }) => {
     await prepareRun(page, run);
-    const messages = collectConsole(page);
-    await gotoStudy(page, run, 'debug=1');
-    const fadeOf = () => headingFade(page);
-
-    await studyOptions(page).first().focus();
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('ArrowLeft');
-    await expect
-      .poll(async () => {
-        const state = await fadeOf();
-        return (
-          state.faded.length > 0 &&
-          state.hiddenOpacity &&
-          state.faded.join() === state.overlapping.join()
-        );
-      })
-      .toBe(true);
-    const covered = (await fadeOf()).faded;
-    expect(covered).toContain(0);
-    expect(await page.locator('[data-shelf-label]').count()).toBeGreaterThan(
-      covered.length,
+    await gotoStudy(page, run, 'groupBy=author&page=2');
+    const labels = page.locator('[data-shelf-label]');
+    await expect(labels.first()).toBeVisible();
+    const tops = await labels.evaluateAll((elements) =>
+      elements.map((element) =>
+        Math.round(element.getBoundingClientRect().top),
+      ),
     );
-
-    await page.keyboard.press('ArrowDown');
-    await expect
-      .poll(async () => {
-        const state = await fadeOf();
-        return (
-          !state.faded.includes(0) &&
-          state.faded.join() === state.overlapping.join()
-        );
-      })
-      .toBe(true);
-    await expect(page.locator('[data-shelf-label]').first()).toHaveCSS(
-      'opacity',
-      '1',
-    );
-    expect(messages()).toEqual([]);
-  });
-
-  test('reduced motion fades no heading', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await prepareRun(page, run);
-    await gotoStudy(page, run, 'debug=1');
-    await studyOptions(page).first().focus();
-    await page.keyboard.press('ArrowRight');
-    await page.waitForTimeout(500);
-    expect((await headingFade(page)).faded).toEqual([]);
+    expect(new Set(tops).size).toBeLessThan(tops.length);
+    for (let i = 0; i < 4; i += 1) {
+      expect(await headingCollisions(page, '[data-shelf-label]')).toEqual([]);
+      await canvasWrap(page).hover();
+      await page.mouse.wheel(0, 300);
+    }
   });
 });

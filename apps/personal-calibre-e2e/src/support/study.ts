@@ -75,10 +75,13 @@ export async function gotoStudy(
   run: StudyRun,
   query?: string,
 ): Promise<void> {
-  const extra = query ? `&${query.replace(/^[?&]/, '')}` : '';
-  await page.goto(
-    `/?view=study&groupBy=series&renderer=${run.renderer}${extra}`,
-  );
+  const params = new URLSearchParams({
+    view: 'study',
+    groupBy: 'series',
+    renderer: run.renderer,
+  });
+  new URLSearchParams(query).forEach((value, key) => params.set(key, value));
+  await page.goto(`/?${params.toString().replace(/=(?=&|$)/g, '')}`);
   await expect(page.locator('[data-library-ready]')).toHaveCount(1);
   await expect(page.locator('[data-study-ready]')).toHaveCount(1, {
     timeout: STUDY_READY_MS,
@@ -131,46 +134,30 @@ export async function hasWebGpu(page: Page): Promise<boolean> {
   });
 }
 
-export interface HeadingFade {
-  pulledId: string;
-  overlapping: number[];
-  faded: number[];
-  hiddenOpacity: boolean;
-}
-
-export function headingFade(page: Page): Promise<HeadingFade> {
-  return page.evaluate(() => {
-    type Rect = { left: number; top: number; width: number; height: number };
-    const probe = (
-      window as Window & {
-        __calibreStudy?: { projectBook: (id: number) => Rect | null };
-      }
-    ).__calibreStudy;
-    const pulledId =
-      document
-        .querySelector('[data-study-canvas]')
-        ?.getAttribute('data-pulled-id') ?? '';
-    const book = pulledId ? probe?.projectBook(Number(pulledId)) : null;
-    const labels = [
-      ...document.querySelectorAll<HTMLElement>('[data-shelf-label]'),
-    ];
-    const overlaps = (a: Rect, b: DOMRect) =>
-      a.left < b.right &&
-      b.left < a.left + a.width &&
-      a.top < b.bottom &&
-      b.top < a.top + a.height;
-    const indices = (keep: (label: HTMLElement) => boolean) =>
-      labels.flatMap((label, i) => (keep(label) ? [i] : []));
-    const faded = indices((label) => label.hasAttribute('data-faded'));
-    return {
-      pulledId,
-      overlapping: indices(
-        (label) => !!book && overlaps(book, label.getBoundingClientRect()),
-      ),
-      faded,
-      hiddenOpacity: faded.every(
-        (i) => getComputedStyle(labels[i] as HTMLElement).opacity === '0',
-      ),
-    };
-  });
+export function headingCollisions(
+  page: Page,
+  selector: string,
+): Promise<string[]> {
+  return page.evaluate((selector) => {
+    const boxes = [...document.querySelectorAll<HTMLElement>(selector)]
+      .map((element) => ({
+        text: element.textContent ?? '',
+        rect: element.getBoundingClientRect(),
+      }))
+      .filter(({ rect }) => rect.width > 0 && rect.height > 0);
+    const collisions: string[] = [];
+    boxes.forEach((a, i) => {
+      boxes.slice(i + 1).forEach((b) => {
+        if (
+          a.rect.left < b.rect.right - 0.5 &&
+          b.rect.left < a.rect.right - 0.5 &&
+          a.rect.top < b.rect.bottom - 0.5 &&
+          b.rect.top < a.rect.bottom - 0.5
+        ) {
+          collisions.push(`${a.text} × ${b.text}`);
+        }
+      });
+    });
+    return collisions;
+  }, selector);
 }

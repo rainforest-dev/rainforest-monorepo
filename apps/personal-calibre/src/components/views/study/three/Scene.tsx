@@ -53,6 +53,7 @@ export interface ProjectedLabel {
   continued: boolean;
   left: number;
   top: number;
+  width: number;
 }
 
 export interface SceneProps {
@@ -70,7 +71,6 @@ export interface SceneProps {
   onPulled: (bookId: number | null) => void;
   onCamera: (state: CameraState) => void;
   onFocusRect: (rect: ScreenRect | null) => void;
-  onPulledRect: (rect: ScreenRect | null) => void;
   onLabels: (labels: readonly ProjectedLabel[]) => void;
 }
 
@@ -140,7 +140,6 @@ export function Scene({
   onPulled,
   onCamera,
   onFocusRect,
-  onPulledRect,
   onLabels,
 }: SceneProps) {
   const { camera, size, gl, invalidate } = useThree();
@@ -325,14 +324,12 @@ export function Scene({
   }, [projector, byId, pulledId, camera, gl]);
 
   const reportedRect = useRef<ScreenRect | null | undefined>(undefined);
-  const reportedPulled = useRef<ScreenRect | null | undefined>(undefined);
   const reportedLabels = useRef('');
   useLayoutEffect(() => {
     reportedRect.current = undefined;
-    reportedPulled.current = undefined;
     reportedLabels.current = '';
     invalidate();
-  }, [layout, onFocusRect, onPulledRect, onLabels, invalidate]);
+  }, [layout, onFocusRect, onLabels, invalidate]);
 
   useFrame(() => {
     camera.updateMatrixWorld();
@@ -342,26 +339,16 @@ export function Scene({
     );
     const viewport = { width: size.width, height: size.height };
     let rect: ScreenRect | null = null;
-    let pulledRect: ScreenRect | null = null;
     if (focused) {
       const mesh = pulledMesh.current;
-      const isPulled = focused.book.id === pulledId && mesh !== null;
       let matrix: Matrix4;
-      if (isPulled) {
+      if (focused.book.id === pulledId && mesh) {
         mesh.updateMatrixWorld();
         matrix = mesh.matrixWorld;
       } else {
         matrix = placedMatrix(focused);
       }
       rect = projectBox(boxCorners(matrix), VIEW_PROJECTION.elements, viewport);
-      if (isPulled) pulledRect = rect;
-    }
-    if (
-      reportedPulled.current === undefined ||
-      !sameRect(pulledRect, reportedPulled.current)
-    ) {
-      reportedPulled.current = pulledRect;
-      onPulledRect(pulledRect);
     }
     if (
       reportedRect.current === undefined ||
@@ -375,14 +362,20 @@ export function Scene({
       reportedLabels.current = labelsKey;
       onLabels(
         layout.labels.map((label): ProjectedLabel => {
+          CORNER.set(label.x + label.width, label.top, FRONT_Z).applyMatrix4(
+            VIEW_PROJECTION,
+          );
+          const right = ((CORNER.x + 1) / 2) * size.width;
           CORNER.set(label.x, label.top, FRONT_Z).applyMatrix4(VIEW_PROJECTION);
+          const left = ((CORNER.x + 1) / 2) * size.width;
           return {
             shelfKey: label.shelfKey,
             text: label.text,
             count: label.count,
             continued: label.continued,
-            left: ((CORNER.x + 1) / 2) * size.width,
+            left,
             top: ((1 - CORNER.y) / 2) * size.height,
+            width: right - left,
           };
         }),
       );

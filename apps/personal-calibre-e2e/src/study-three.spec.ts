@@ -7,7 +7,7 @@ import {
   canvasWrap,
   collectConsole,
   gotoStudy,
-  headingFade,
+  headingCollisions,
   prepareRun,
   startRun,
   studyOptions,
@@ -693,30 +693,6 @@ test.describe('Study three-tsl overlay and headings', () => {
     expect(messages()).toEqual([]);
   });
 
-  test('headings fade exactly where the pulled book covers them', async ({
-    page,
-  }) => {
-    const run = projectRun();
-    await startRun(page, run);
-    await gotoStudy(page, run, 'debug=1');
-    const consistent = async () => {
-      const state = await headingFade(page);
-      return (
-        state.pulledId !== '' &&
-        state.hiddenOpacity &&
-        state.faded.join() === state.overlapping.join()
-      );
-    };
-
-    await studyOptions(page).first().focus();
-    await page.keyboard.press('ArrowRight');
-    await expect.poll(consistent).toBe(true);
-    await page.keyboard.press('ArrowDown');
-    await expect.poll(consistent).toBe(true);
-    await page.keyboard.press('Control+Home');
-    await expect.poll(consistent).toBe(true);
-  });
-
   test('the overlay outline is foreground', async ({ page }) => {
     const run = projectRun();
     await startRun(page, run);
@@ -737,6 +713,23 @@ test.describe('Study three-tsl overlay and headings', () => {
     expect(style.color).toBe(foreground);
     expect(Number.parseFloat(style.width)).toBeGreaterThanOrEqual(2);
     expect(style.bar).toBe(foreground);
+  });
+
+  test('headings of small groups sharing a row never overlap', async ({
+    page,
+  }) => {
+    const run = projectRun();
+    await startRun(page, run);
+    await gotoStudy(page, run, 'groupBy=author');
+    const labels = page.locator('[data-shelf-label]');
+    await expect(labels.first()).toBeVisible();
+    const tops = await labels.evaluateAll((elements) =>
+      elements.map((element) =>
+        Math.round(element.getBoundingClientRect().top),
+      ),
+    );
+    expect(new Set(tops).size).toBeLessThan(tops.length);
+    expect(await headingCollisions(page, '[data-shelf-label]')).toEqual([]);
   });
 
   test('shelf headings show labels and counts', async ({ page }) => {

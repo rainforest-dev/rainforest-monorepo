@@ -85,15 +85,6 @@ export function screenRectOf(
   return { left, top, width: right - left, height: bottom - top };
 }
 
-export function rectsOverlap(a: ScreenRect, b: ScreenRect): boolean {
-  return (
-    a.left < b.left + b.width &&
-    b.left < a.left + a.width &&
-    a.top < b.top + b.height &&
-    b.top < a.top + a.height
-  );
-}
-
 const at = (m: ArrayLike<number>, i: number) => m[i] ?? 0;
 
 export function projectBox(

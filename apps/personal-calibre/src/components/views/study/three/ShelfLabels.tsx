@@ -1,53 +1,45 @@
 'use client';
 
-import {
-  type RefObject,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type RefObject, useEffect, useState } from 'react';
 
-import { booksLabel, cn, rectsOverlap, type ScreenRect } from '@/lib';
+import { booksLabel, cn, type StudyShelf } from '@/lib';
 
 import type { ProjectedLabel } from './Scene';
 
 export type LabelsSink = (labels: readonly ProjectedLabel[]) => void;
-export type PulledRectSink = (rect: ScreenRect | null) => void;
+
+const LABEL_CLASS =
+  'absolute left-0 top-0 flex items-baseline gap-2 overflow-hidden whitespace-nowrap pl-0.5 pt-2 text-sm';
+
+const labelText = (text: string, continued: boolean) =>
+  continued ? `${text} (continued)` : text;
+
+export function measureLabelPx(
+  element: HTMLElement,
+): (shelf: StudyShelf, continued: boolean) => number {
+  return (shelf, continued) => {
+    const probe = document.createElement('div');
+    probe.className = LABEL_CLASS;
+    probe.style.visibility = 'hidden';
+    const name = probe.appendChild(document.createElement('span'));
+    name.className = 'font-semibold';
+    name.textContent = labelText(shelf.label, continued);
+    probe.appendChild(document.createElement('span')).textContent = booksLabel(
+      shelf.count,
+    );
+    element.appendChild(probe);
+    const width = probe.getBoundingClientRect().width;
+    probe.remove();
+    return Math.ceil(width);
+  };
+}
 
 export function ShelfLabels({
   sinkRef,
-  pulledSinkRef,
 }: {
   sinkRef: RefObject<LabelsSink | null>;
-  pulledSinkRef: RefObject<PulledRectSink | null>;
 }) {
   const [labels, setLabels] = useState<readonly ProjectedLabel[]>([]);
-  const container = useRef<HTMLDivElement>(null);
-  const pulled = useRef<ScreenRect | null>(null);
-
-  const fade = useCallback(() => {
-    const rect = pulled.current;
-    const elements =
-      container.current?.querySelectorAll<HTMLElement>('[data-shelf-label]') ??
-      [];
-    elements.forEach((element, i) => {
-      const label = labels[i];
-      const overlaps =
-        rect !== null &&
-        label !== undefined &&
-        rectsOverlap(rect, {
-          left: label.left,
-          top: label.top,
-          width: element.offsetWidth,
-          height: element.offsetHeight,
-        });
-      if (overlaps) element.dataset['faded'] = '';
-      else delete element.dataset['faded'];
-    });
-  }, [labels]);
-
   useEffect(() => {
     sinkRef.current = setLabels;
     return () => {
@@ -55,21 +47,8 @@ export function ShelfLabels({
     };
   }, [sinkRef]);
 
-  useEffect(() => {
-    pulledSinkRef.current = (rect) => {
-      pulled.current = rect;
-      fade();
-    };
-    return () => {
-      pulledSinkRef.current = null;
-    };
-  }, [pulledSinkRef, fade]);
-
-  useLayoutEffect(fade, [fade]);
-
   return (
     <div
-      ref={container}
       aria-hidden="true"
       data-shelf-labels
       className="pointer-events-none absolute inset-0"
@@ -78,18 +57,21 @@ export function ShelfLabels({
         <div
           key={`${label.shelfKey}:${i}`}
           data-shelf-label={label.shelfKey}
-          style={{ transform: `translate(${label.left}px, ${label.top}px)` }}
-          className="data-faded:opacity-0 absolute left-0 top-0 flex items-baseline gap-2 whitespace-nowrap pl-0.5 pt-2 text-sm transition-opacity duration-150 motion-reduce:transition-none"
+          style={{
+            transform: `translate(${label.left}px, ${label.top}px)`,
+            maxWidth: `${label.width}px`,
+          }}
+          className={LABEL_CLASS}
         >
           <span
             className={cn(
-              'font-semibold',
+              'min-w-0 truncate font-semibold',
               label.continued ? 'text-muted-foreground' : 'text-foreground',
             )}
           >
-            {label.continued ? `${label.text} (continued)` : label.text}
+            {labelText(label.text, label.continued)}
           </span>
-          <span className="text-muted-foreground">
+          <span className="text-muted-foreground shrink-0">
             {booksLabel(label.count)}
           </span>
         </div>

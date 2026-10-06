@@ -47,11 +47,7 @@ import {
   Scene,
   type SceneProps,
 } from './Scene';
-import {
-  type LabelsSink,
-  type PulledRectSink,
-  ShelfLabels,
-} from './ShelfLabels';
+import { type LabelsSink, measureLabelPx, ShelfLabels } from './ShelfLabels';
 import { useTokens } from './tokens';
 import { useCoverPrewarm } from './useCoverPrewarm';
 import { useRowAtlases } from './useRowAtlases';
@@ -229,7 +225,6 @@ export default function ThreeStudy({
   const lastFrame = useRef({ drawCalls: 0, triangles: 0 });
   const overlay = useRef<HTMLDivElement>(null);
   const labelsSink = useRef<LabelsSink | null>(null);
-  const pulledSink = useRef<PulledRectSink | null>(null);
   const [covers, setCovers] = useState<CoverCache | null>(null);
   const coversRef = useRef(covers);
   coversRef.current = covers;
@@ -291,11 +286,16 @@ export default function ThreeStudy({
 
   useEffect(() => (debug ? publishProbe(probe.current) : undefined), [debug]);
 
-  const layout = useMemo(
-    () =>
-      width > 0 ? layoutShelves(model.shelves, width / pxPerUnit - 0.8) : null,
-    [model, width, pxPerUnit],
-  );
+  const layout = useMemo(() => {
+    const element = wrap.current;
+    if (width <= 0 || !element) return null;
+    const labelPx = measureLabelPx(element);
+    return layoutShelves(
+      model.shelves,
+      width / pxPerUnit - 0.8,
+      (shelf, continued) => labelPx(shelf, continued) / pxPerUnit,
+    );
+  }, [model, width, pxPerUnit]);
   const dpr = Math.min(window.devicePixelRatio || 1, DPR[1]);
   const pick = useMemo(
     () =>
@@ -388,9 +388,6 @@ export default function ThreeStudy({
     element.style.width = `${rect.width}px`;
     element.style.height = `${rect.height}px`;
   }, []);
-  const onPulledRect = useCallback((rect: ScreenRect | null) => {
-    pulledSink.current?.(rect);
-  }, []);
   const onLabels = useCallback((labels: readonly ProjectedLabel[]) => {
     labelsSink.current?.(labels);
   }, []);
@@ -468,7 +465,6 @@ export default function ThreeStudy({
             onPrewarmed={onPrewarmed}
             covers={covers}
             onFocusRect={onFocusRect}
-            onPulledRect={onPulledRect}
             onLabels={onLabels}
             layout={layout}
             tokens={tokens}
@@ -484,7 +480,7 @@ export default function ThreeStudy({
           />
         </Canvas>
       )}
-      <ShelfLabels sinkRef={labelsSink} pulledSinkRef={pulledSink} />
+      <ShelfLabels sinkRef={labelsSink} />
       <FocusOverlay ref={overlay} listboxRef={containerRef} />
     </div>
   );

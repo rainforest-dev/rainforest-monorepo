@@ -16,7 +16,6 @@ import {
   focusTargetY,
   pickAtlasPpu,
   projectBox,
-  rectsOverlap,
   REPORTED_TARGET_BUFFERS,
   rowsInView,
   screenRectOf,
@@ -409,30 +408,5 @@ describe('pickAtlasPpu', () => {
         targetBuffers: 2,
       }),
     ).toBe(10 * 5 * 4 * 4 * 2);
-  });
-});
-
-describe('rectsOverlap', () => {
-  const box = { left: 10, top: 10, width: 20, height: 10 };
-
-  it('is true when the rects share an area', () => {
-    expect(
-      rectsOverlap(box, { left: 25, top: 15, width: 20, height: 20 }),
-    ).toBe(true);
-    expect(
-      rectsOverlap(box, { left: 0, top: 0, width: 100, height: 100 }),
-    ).toBe(true);
-  });
-
-  it('is false when the rects only touch or are apart', () => {
-    expect(rectsOverlap(box, { left: 30, top: 10, width: 5, height: 5 })).toBe(
-      false,
-    );
-    expect(rectsOverlap(box, { left: 10, top: 20, width: 5, height: 5 })).toBe(
-      false,
-    );
-    expect(rectsOverlap(box, { left: 50, top: 50, width: 5, height: 5 })).toBe(
-      false,
-    );
   });
 });
