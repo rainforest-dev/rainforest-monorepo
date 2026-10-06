@@ -2,7 +2,7 @@
 
 import { Button } from '@rainforest-dev/rainforest-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { type PointerEvent, useRef } from 'react';
+import { type PointerEvent, type RefObject, useRef } from 'react';
 
 import { cn, type StudyBook } from '@/lib';
 
@@ -13,6 +13,9 @@ export interface StudyCardProps {
   hasPrevious: boolean;
   hasNext: boolean;
   scrubbing: boolean;
+  inspecting: boolean;
+  thumbRef: RefObject<HTMLButtonElement | null>;
+  onInspect: () => void;
   onStep: (delta: -1 | 1) => void;
   onOpen: (bookId: number) => void;
 }
@@ -22,6 +25,9 @@ export function StudyCard({
   hasPrevious,
   hasNext,
   scrubbing,
+  inspecting,
+  thumbRef,
+  onInspect,
   onStep,
   onOpen,
 }: StudyCardProps) {
@@ -58,10 +64,16 @@ export function StudyCard({
           className={cn(
             'bg-card text-card-foreground pointer-events-auto flex w-full max-w-md touch-pan-y select-none items-center gap-3 rounded-xl border p-2 shadow-lg',
             scrubbing && 'ring-primary ring-2',
+            inspecting && 'invisible',
           )}
         >
-          <div
-            className="relative h-16 w-11 shrink-0 overflow-hidden rounded-sm"
+          <button
+            ref={thumbRef}
+            type="button"
+            aria-label={`Inspect ${book.title} in 3D`}
+            data-study-card-thumb
+            onClick={onInspect}
+            className="focus-visible:ring-ring relative h-16 w-11 shrink-0 cursor-zoom-in overflow-hidden rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             style={{ background: `var(--chart-${book.tone})` }}
           >
             {book.hasCover && (
@@ -72,7 +84,7 @@ export function StudyCard({
                 className="size-full object-cover"
               />
             )}
-          </div>
+          </button>
           <div
             className="min-w-0 flex-1"
             lang={book.cjk ? 'zh-Hant' : undefined}

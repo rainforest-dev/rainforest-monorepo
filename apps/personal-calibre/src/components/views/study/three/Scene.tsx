@@ -12,17 +12,23 @@ import {
 } from 'react';
 import {
   BoxGeometry,
+  CanvasTexture,
+  type Color,
   type InstancedMesh,
+  type Material,
   MathUtils,
   Matrix4,
   type Mesh,
   Object3D,
   type PerspectiveCamera,
+  SRGBColorSpace,
   Vector3,
 } from 'three';
 
 import type { ScrubHitTest } from '@/components/views/study/useScrub';
+import type { InspectStage } from '@/components/views/study/useStudyInspect';
 import {
+  approach,
   BOOK_GAP,
   cameraBounds,
   type CameraState,
@@ -30,6 +36,7 @@ import {
   clampCameraY,
   focusTargetY,
   FRONT_Z,
+  INSPECT_DIM,
   type NdcPoint,
   nextCarry,
   type PlacedBook,
@@ -43,7 +50,7 @@ import {
 } from '@/lib';
 
 import type { RowAtlas } from './atlas';
-import type { CoverCache } from './covers';
+import { type CoverCache, drawBack } from './covers';
 import type { StudyKit } from './kit';
 import { PulledBook, type ScrubPointer } from './PulledBook';
 import { ShelfRow } from './ShelfRow';
@@ -71,6 +78,8 @@ export interface SceneProps {
   focusId: number | null;
   pulledId: number | null;
   scrubbing: boolean;
+  inspecting: boolean;
+  stage: RefObject<InspectStage>;
   hitTester: RefObject<ScrubHitTest | null>;
   pointer: RefObject<ScrubPointer>;
   selected: ReadonlySet<number>;
@@ -102,6 +111,15 @@ const OVERLAY_PRIORITY = 0.5;
 const RECT_EPSILON = 0.25;
 const NO_CARRY: Carry<PlacedBook> = { items: [null, null], active: 0 };
 const sameBook = (a: PlacedBook, b: PlacedBook) => a.book.id === b.book.id;
+const DIM_RATE = 9;
+const DIM_EPSILON = 0.002;
+type Tinted = Material & { color: Color };
+
+function backTexture(): CanvasTexture {
+  const texture = new CanvasTexture(document.createElement('canvas'));
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
 
 function boxCorners(matrix: Matrix4): Vec3[] {
   const corners: Vec3[] = [];
@@ -147,6 +165,8 @@ export function Scene({
   focusId,
   pulledId: pullId,
   scrubbing,
+  inspecting,
+  stage,
   hitTester,
   pointer,
   selected,
@@ -174,7 +194,7 @@ export function Scene({
   );
   const focused = focusId === null ? undefined : byId.get(focusId);
   const pulling = pullId === null ? undefined : byId.get(pullId);
-  const still = reducedMotion && !scrubbing;
+  const still = reducedMotion && !scrubbing && !inspecting;
   const pulled = still ? null : (pulling ?? null);
   const pulledId = pulled?.book.id ?? null;
   const highlightId = still ? (pulling?.book.id ?? null) : null;
@@ -194,18 +214,25 @@ export function Scene({
     });
   }, []);
   const floatingId = scrubbing ? pulledId : null;
+  const inspected = inspecting ? pulled : null;
+  const back = useMemo(backTexture, []);
+  useEffect(() => () => back.dispose(), [back]);
 
+  const panelColor = useMemo(() => toColor(tokens.muted), [tokens]);
+  const boardColor = useMemo(
+    () => toColor(mixRgb(tokens.foreground, tokens.muted, BOARD_MIX)),
+    [tokens],
+  );
   const panel = useMemo(
-    () => kit.materials.surface(toColor(tokens.muted)),
-    [kit, tokens],
+    () => kit.materials.surface(panelColor) as Tinted,
+    [kit, panelColor],
   );
   const board = useMemo(
-    () =>
-      kit.materials.surface(
-        toColor(mixRgb(tokens.foreground, tokens.muted, BOARD_MIX)),
-      ),
-    [kit, tokens],
+    () => kit.materials.surface(boardColor) as Tinted,
+    [kit, boardColor],
   );
+  const dim = useRef(0);
+  const dimApplied = useRef(Number.NaN);
   useEffect(() => () => boardGeometry.dispose(), [boardGeometry]);
   useEffect(() => () => panel.dispose(), [panel]);
   useEffect(() => () => board.dispose(), [board]);
@@ -215,6 +242,37 @@ export function Scene({
   useLayoutEffect(() => {
     pointer.current.invalidate = invalidate;
   }, [pointer, invalidate]);
+  useLayoutEffect(() => {
+    stage.current.invalidate = invalidate;
+    stage.current.bookRect = () =>
+      pulledId === null ? null : (projector.current?.(pulledId, 'box') ?? null);
+  }, [stage, invalidate, pulledId, projector]);
+  useLayoutEffect(() => {
+    if (!inspected) return;
+    drawBack(inspected.book, tokens, back.image as HTMLCanvasElement);
+    back.needsUpdate = true;
+    invalidate();
+  }, [inspected, tokens, back, invalidate]);
+  useLayoutEffect(() => {
+    dimApplied.current = Number.NaN;
+    invalidate();
+  }, [panel, board, invalidate]);
+  useEffect(() => () => kit.materials.setDim(0), [kit]);
+
+  useFrame((_, delta) => {
+    const goal = inspecting ? INSPECT_DIM : 0;
+    let next =
+      dim.current +
+      (goal - dim.current) * approach(DIM_RATE, delta, reducedMotion);
+    if (Math.abs(goal - next) < DIM_EPSILON) next = goal;
+    dim.current = next;
+    if (next === dimApplied.current) return;
+    dimApplied.current = next;
+    kit.materials.setDim(next);
+    panel.color.copy(panelColor).multiplyScalar(1 - next);
+    board.color.copy(boardColor).multiplyScalar(1 - next);
+    if (next !== goal) invalidate();
+  });
 
   useLayoutEffect(() => {
     const mesh = boards.current;
@@ -416,7 +474,7 @@ export function Scene({
     );
     const viewport = { width: size.width, height: size.height };
     let rect: ScreenRect | null = null;
-    if (focused) {
+    if (focused && !inspecting) {
       const mesh = pulledMesh.current;
       let matrix: Matrix4;
       if (focused.book.id === pulledId && mesh) {
@@ -496,9 +554,19 @@ export function Scene({
           <PulledBook
             key={slot}
             book={book}
-            mode={slot !== carry.active ? 'home' : scrubbing ? 'float' : 'pull'}
+            mode={
+              slot !== carry.active
+                ? 'home'
+                : inspecting
+                  ? 'inspect'
+                  : scrubbing
+                    ? 'float'
+                    : 'pull'
+            }
             instant={reducedMotion}
             pointer={pointer}
+            stage={stage}
+            back={slot === carry.active && inspected ? back : null}
             pxPerUnit={pxPerUnit}
             onHome={onHome}
             atlas={book ? atlases.get(book.row) : undefined}

@@ -19,12 +19,14 @@ import type { LibraryEntry } from '@/types';
 
 import { canStartThree } from './capabilities';
 import { CssStudy } from './css/CssStudy';
+import { InspectDialog } from './InspectDialog';
 import { StudyCard } from './StudyCard';
 import { StudyListbox, type StudyRendererProps } from './StudyListbox';
 import { type StudyOptionState, useStudyOptionProps } from './StudyOption';
 import { StudySkeleton } from './StudySkeleton';
 import { LoadThreeStudy } from './three/loadThreeStudy';
 import { ThreeStudyBoundary } from './three/ThreeStudyBoundary';
+import { useStudyInspect } from './useStudyInspect';
 import { useStudyPull } from './useStudyPull';
 
 export interface StudyViewProps {
@@ -123,8 +125,37 @@ export function StudyView({
     containerRef: nav.containerRef,
     scrollOnStep: !three,
   });
+  const inspect = useStudyInspect(pull.pulledId);
   const books = model.shelves.flatMap((shelf) => shelf.books);
   const pulledIndex = books.findIndex((book) => book.id === pull.pulledId);
+  const pulledBook = books[pulledIndex] ?? null;
+  const root = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLButtonElement>(null);
+  const { containerRef } = nav;
+  const pulledId = pull.pulledId;
+  const surface = useCallback(
+    () =>
+      three
+        ? (root.current?.querySelector<HTMLElement>('[data-study-canvas]') ??
+          null)
+        : containerRef.current,
+    [three, containerRef],
+  );
+  const slotRect = useCallback(() => {
+    const spine = containerRef.current?.querySelector(
+      `[role="option"][data-book-id="${pulledId}"] [data-spine]`,
+    );
+    if (!spine) return null;
+    const { left, top, width, height } = spine.getBoundingClientRect();
+    return { left, top, width, height };
+  }, [containerRef, pulledId]);
+  const wasInspecting = useRef(false);
+  useEffect(() => {
+    if (wasInspecting.current && !inspect.open) {
+      thumbRef.current?.focus({ preventScroll: true });
+    }
+    wasInspecting.current = inspect.open;
+  }, [inspect.open]);
   const options = model.shelves.flatMap((shelf) =>
     shelf.books.map((book): StudyOptionState => ({
       book,
@@ -143,10 +174,12 @@ export function StudyView({
     reducedMotion,
     nav,
     pull,
+    inspect,
   };
 
   return (
     <div
+      ref={root}
       data-study-ready={!three || backend !== null || undefined}
       data-renderer={renderer}
       data-backend={three ? undefined : 'css'}
@@ -170,13 +203,28 @@ export function StudyView({
         <CssStudy {...rendererProps} />
       )}
       <StudyCard
-        book={books[pulledIndex] ?? null}
+        book={pulledBook}
         hasPrevious={pulledIndex > 0}
         hasNext={pulledIndex >= 0 && pulledIndex < books.length - 1}
         scrubbing={pull.scrubbing}
+        inspecting={inspect.open}
+        thumbRef={thumbRef}
+        onInspect={inspect.show}
         onStep={pull.step}
         onOpen={openBook}
       />
+      {inspect.open && pulledBook && (
+        <InspectDialog
+          key={pulledBook.id}
+          book={pulledBook}
+          three={three}
+          reducedMotion={reducedMotion}
+          stage={inspect.stage}
+          surface={surface}
+          slotRect={slotRect}
+          onClose={inspect.close}
+        />
+      )}
     </div>
   );
 }

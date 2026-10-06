@@ -537,6 +537,36 @@ The pull is now the same in every renderer:
     keyboard never float.
   - Reduced motion: the float pose is shown at once with no turn (three) and no keyframe (css);
     after the scrub the reduced-motion highlight returns.
+- 3D inspect (added 2026-10-06). The card's cover thumbnail is a button named
+  `Inspect {title} in 3D`. It opens a modal `<dialog>` named `{title}, 3D view`.
+  - The pulled book flies from its slot to the centre of the Study area. Its height is 62% of
+    the area, or less if the cover would take more than 72% of the width (`inspectHeightPx`).
+    Everything else dims to 45%.
+  - Drag (finger or mouse) turns the book: 0.012 rad per px, with a gentle inertia on release.
+    Pitch is clamped to ±0.6 rad, so it never ends upside down; yaw is free.
+  - The turning surface is a `role="slider"`. Its value is the yaw in degrees, and its
+    `aria-valuetext` names the face toward the viewer (`Front cover`, `Spine`, `Back cover`,
+    `Page edges`). Arrow keys turn it by 15° (yaw) and 10° (pitch), and `Home` faces the front.
+  - Tapping outside the book, the dialog's close button, or `Esc` flies it back to the small
+    pull. The card, hidden while open, shows again and focus returns to the thumbnail.
+  - Being a modal, the dialog makes the shelf inert. The scrub listener is also disabled while
+    it is open.
+  - three: the active pulled-book carrier eases to an `inspect` pose 3 units in front of the
+    shelf, using the same material.
+    - Faces: the front is the cached 256×384 cover (no larger fetch), the spine is the atlas
+      crop, and the back is one shared 256×384 canvas with the title and authors on the
+      book's tint. The back is reserved in the texture budget (`reservedBytes` in
+      `pickAtlasPpu`).
+    - Dimming is one shared `dim` uniform in the spine graph, plus scaling the panel and board
+      colours. There is no transparent scrim mesh, so the program count stays where it was.
+    - Outside the canvas, a DOM box-shadow scrim dims the page. `data-inspecting-id` and
+      `inspectingId` in the probe name the book.
+  - css (and so `no-webgl`): the same `CssBook` (front, back, spine, fore edge, top, bottom)
+    over a DOM scrim. The fly-in and fly-back are a Web Animations FLIP from the slotted
+    spine.
+  - The drag cancels `touchmove` with a non-passive listener, as the scrub does, so iOS does
+    not scroll the page.
+  - Reduced motion: no fly-in and no inertia; the end pose is shown at once.
 - Keyboard and listbox semantics are unchanged: arrows move the pull, `Enter` opens the pane.
 
 ### Renderer selection and loading

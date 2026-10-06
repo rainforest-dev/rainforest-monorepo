@@ -18,6 +18,7 @@ export function CssStudy({
   options,
   nav,
   pull,
+  inspect,
 }: StudyRendererProps): ReactNode {
   const optionProps = useStudyOptionProps(nav, pull);
   const pointer = useRef<ScreenPoint>({ x: 0, y: 0 });
@@ -27,6 +28,7 @@ export function CssStudy({
     : undefined;
   useScrub({
     surfaceRef: nav.containerRef,
+    enabled: !inspect.open,
     hitTest: (x, y) => {
       const option = document
         .elementFromPoint(x, y)

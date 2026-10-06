@@ -6,6 +6,7 @@ import { GroupHeading } from '@/components/views/GroupHeading';
 import { booksLabel, cn, type StudyModel, type StudyShelf } from '@/lib';
 
 import type { StudyNav, StudyOptionState } from './StudyOption';
+import type { StudyInspect } from './useStudyInspect';
 import type { StudyPull } from './useStudyPull';
 
 export interface StudyRendererProps {
@@ -16,6 +17,7 @@ export interface StudyRendererProps {
   reducedMotion: boolean;
   nav: StudyNav;
   pull: StudyPull;
+  inspect: StudyInspect;
 }
 
 export interface StudyListboxProps {

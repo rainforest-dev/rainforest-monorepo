@@ -11,14 +11,18 @@ import {
   CAMERA_MARGIN,
   cameraBounds,
   clampCameraY,
+  clampPitch,
   COVER_BYTES,
   COVER_CACHE_MAX,
   COVER_CACHE_MIN,
+  faceAt,
   FLOAT_GAP_PX,
   FLOAT_MARGIN_PX,
   floatCentre,
   floatHeightPx,
   focusTargetY,
+  INSPECT_PITCH_MAX,
+  inspectHeightPx,
   nextCarry,
   pickAtlasPpu,
   projectBox,
@@ -31,6 +35,8 @@ import {
   type TextureBudgetInput,
   type Vec3,
   wheelPan,
+  wrapYaw,
+  yawDegrees,
 } from './scene-math';
 
 const shelf = (key: string, ids: number[]): StudyShelf => ({
@@ -316,6 +322,12 @@ describe('atlasBytesAt', () => {
 });
 
 describe('pickAtlasPpu', () => {
+  it('counts reserved bytes before atlases and covers', () => {
+    const base = pickAtlasPpu(desktopInput);
+    const reserved = pickAtlasPpu({ ...desktopInput, reservedBytes: 1024 });
+    expect(reserved.estimatedBytes).toBe(base.estimatedBytes + 1024);
+  });
+
   it('keeps 160 for a 30-book page on a desktop canvas at @2', () => {
     expect(pickAtlasPpu(desktopInput)).toEqual({
       ppu: 160,
@@ -541,5 +553,47 @@ describe('nextCarry', () => {
       items: [null, null],
       active: 1,
     });
+  });
+});
+
+describe('inspectHeightPx', () => {
+  it('takes 62% of the stage height when the width allows', () => {
+    expect(inspectHeightPx({ width: 390, height: 590 }, 0.66)).toBeCloseTo(
+      590 * 0.62,
+    );
+  });
+
+  it('shrinks so a wide cover keeps 72% of the stage width', () => {
+    expect(inspectHeightPx({ width: 300, height: 900 }, 1)).toBeCloseTo(
+      300 * 0.72,
+    );
+  });
+
+  it('never goes negative', () => {
+    expect(inspectHeightPx({ width: 0, height: 0 }, 0.7)).toBe(0);
+  });
+});
+
+describe('inspect rotation', () => {
+  it('clamps pitch so the book never turns upside down', () => {
+    expect(clampPitch(2)).toBe(INSPECT_PITCH_MAX);
+    expect(clampPitch(-2)).toBe(-INSPECT_PITCH_MAX);
+    expect(clampPitch(0.2)).toBe(0.2);
+    expect(INSPECT_PITCH_MAX).toBeLessThan(Math.PI / 2);
+  });
+
+  it('wraps yaw into one turn', () => {
+    expect(wrapYaw(-Math.PI / 2)).toBeCloseTo((3 * Math.PI) / 2);
+    expect(wrapYaw(5 * Math.PI)).toBeCloseTo(Math.PI);
+    expect(yawDegrees(-Math.PI / 180)).toBe(359);
+    expect(yawDegrees(2 * Math.PI - 1e-9)).toBe(0);
+  });
+
+  it('names the face toward the viewer', () => {
+    expect(faceAt(0)).toBe('front');
+    expect(faceAt(Math.PI / 2)).toBe('spine');
+    expect(faceAt(Math.PI)).toBe('back');
+    expect(faceAt(-Math.PI / 2)).toBe('edge');
+    expect(faceAt(-0.3)).toBe('front');
   });
 });
