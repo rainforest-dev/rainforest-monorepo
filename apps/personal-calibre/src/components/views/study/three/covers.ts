@@ -27,6 +27,51 @@ const css = (rgb: Rgb) => `rgb(${rgb.map((v) => Math.round(v)).join(',')})`;
 
 export const coverUrl = (id: number) => `/api/books/${id}/cover`;
 
+function wrapTitle(
+  ctx: CanvasRenderingContext2D,
+  book: StudyBook,
+  top: number,
+  lineHeight: number,
+): number {
+  const words = book.cjk ? [...book.title] : book.title.split(' ');
+  let line = '';
+  let y = top;
+  for (const word of words) {
+    const next = book.cjk ? line + word : line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > COVER_W - PAD * 2 && line) {
+      ctx.fillText(line, PAD, y);
+      y += lineHeight;
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  ctx.fillText(line, PAD, y);
+  return y + lineHeight;
+}
+
+export function drawBack(
+  book: StudyBook,
+  tokens: Tokens,
+  canvas: HTMLCanvasElement,
+): void {
+  canvas.width = COVER_W;
+  canvas.height = COVER_H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const tone = tokens[`chart-${book.tone}`];
+  ctx.fillStyle = css(mixRgb(tone, tokens.muted, SIDE_MIX));
+  ctx.fillRect(0, 0, COVER_W, COVER_H);
+  ctx.fillStyle = css(tokens.foreground);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.font = `600 ${book.cjk ? 24 : 20}px ${FONT_STACK}`;
+  const below = wrapTitle(ctx, book, 36, book.cjk ? 30 : 26);
+  ctx.font = `400 16px ${FONT_STACK}`;
+  ctx.globalAlpha = TEXT_ALPHA;
+  ctx.fillText(book.authors.join(', '), PAD, below + 10, COVER_W - PAD * 2);
+}
+
 export function drawCover(book: StudyBook, tokens: Tokens): CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = COVER_W;
@@ -43,21 +88,7 @@ export function drawCover(book: StudyBook, tokens: Tokens): CanvasTexture {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.font = `700 ${book.cjk ? 34 : 28}px ${FONT_STACK}`;
-    const words = book.cjk ? [...book.title] : book.title.split(' ');
-    const lineHeight = book.cjk ? 42 : 34;
-    let line = '';
-    let y = 28;
-    for (const word of words) {
-      const next = book.cjk ? line + word : line ? `${line} ${word}` : word;
-      if (ctx.measureText(next).width > COVER_W - PAD * 2 && line) {
-        ctx.fillText(line, PAD, y);
-        y += lineHeight;
-        line = word;
-      } else {
-        line = next;
-      }
-    }
-    ctx.fillText(line, PAD, y);
+    wrapTitle(ctx, book, 28, book.cjk ? 42 : 34);
     ctx.font = `400 18px ${FONT_STACK}`;
     ctx.globalAlpha = TEXT_ALPHA;
     ctx.fillText(book.authors[0] ?? '', PAD, band + 18, COVER_W - PAD * 2);

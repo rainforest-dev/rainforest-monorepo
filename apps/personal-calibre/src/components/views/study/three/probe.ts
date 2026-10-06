@@ -8,6 +8,7 @@ export interface StudyProbe {
   firstRenderMs: number | null;
   pulledId: number | null;
   floatingId: number | null;
+  inspectingId: number | null;
   camera: CameraState | null;
   prewarmedAt: number | null;
   renderMs: number[];

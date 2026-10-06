@@ -29,6 +29,7 @@ export interface SpineMaterial {
 
 export interface PulledBookFaces {
   cover: Texture | null;
+  back: Texture | null;
   spine: Texture;
   side: Color;
   pages: Color;
@@ -43,6 +44,7 @@ export interface StudyMaterials {
   spine: () => SpineMaterial;
   surface: (color: Color) => Material;
   pulledBook: () => PulledBookMaterial;
+  setDim: (amount: number) => void;
   dispose: () => void;
 }
 

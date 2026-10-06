@@ -24,6 +24,7 @@ import {
   clampCameraY,
   COVER_BYTES,
   focusTargetY,
+  INSPECT_BACK_BYTES,
   isDebug,
   layoutShelves,
   pickAtlasPpu,
@@ -209,6 +210,7 @@ export default function ThreeStudy({
   reducedMotion,
   nav,
   pull,
+  inspect,
   onBackend,
   onStartFailed,
   onNavItems,
@@ -253,6 +255,7 @@ export default function ThreeStudy({
     firstRenderMs: null,
     pulledId: null,
     floatingId: null,
+    inspectingId: null,
     camera: null,
     prewarmedAt: null,
     renderMs: [],
@@ -321,6 +324,7 @@ export default function ThreeStudy({
             canvas: { width, height, dpr },
             targetBuffers: REPORTED_TARGET_BUFFERS,
             coverBytes: COVER_BYTES,
+            reservedBytes: INSPECT_BACK_BYTES,
           })
         : null,
     [layout, desktop, width, height, dpr],
@@ -379,8 +383,13 @@ export default function ThreeStudy({
     [activate, isPulled],
   );
   const hitTester = useRef<ScrubHitTest | null>(null);
+  const inspectingId = inspect.open ? pull.pulledId : null;
+  useEffect(() => {
+    probe.current.inspectingId = inspectingId;
+  }, [inspectingId]);
   useScrub({
     surfaceRef: wrap,
+    enabled: !inspect.open,
     hitTest: (x, y) => hitTester.current?.(x, y) ?? null,
     onPull: pullAt,
     onScrubbing: (scrubbing) => {
@@ -473,7 +482,8 @@ export default function ThreeStudy({
       data-backend={backend ?? undefined}
       data-pulled-id={pulledId ?? ''}
       data-floating-id={floatingId ?? undefined}
-      className="bg-muted relative h-[min(70dvh,640px)] overflow-hidden rounded-lg lg:h-[min(78dvh,760px)]"
+      data-inspecting-id={inspectingId ?? undefined}
+      className="bg-muted relative h-[min(70dvh,640px)] overflow-hidden rounded-lg transition-colors data-[inspecting-id]:bg-[color-mix(in_oklab,var(--muted)_45%,black)] motion-reduce:transition-none lg:h-[min(78dvh,760px)]"
     >
       {kit && layout && tokens && pick && covers && (
         <Canvas
@@ -508,6 +518,8 @@ export default function ThreeStudy({
             focusId={focusId}
             pulledId={pull.pulledId}
             scrubbing={pull.scrubbing}
+            inspecting={inspect.open}
+            stage={inspect.stage}
             hitTester={hitTester}
             pointer={pointer}
             selected={selected}

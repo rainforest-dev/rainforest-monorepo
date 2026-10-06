@@ -237,8 +237,12 @@
   [data-study-canvas] [data-shelf-label] {
     transition: opacity 0.15s;
   }
-  [data-study-canvas][data-floating-id] [data-shelf-label] {
+  [data-study-canvas][data-floating-id] [data-shelf-label],
+  [data-study-canvas][data-inspecting-id] [data-shelf-label] {
     opacity: 0;
+  }
+  .bk-inspect {
+    will-change: transform;
   }
   .bk-float {
     position: fixed;

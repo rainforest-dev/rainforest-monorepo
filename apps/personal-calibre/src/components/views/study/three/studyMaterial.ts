@@ -39,6 +39,8 @@ const light = () =>
 export function createStudyMaterials(): StudyMaterials {
   const placeholder = placeholderTexture();
   const spinePlaceholder = placeholderTexture();
+  const backPlaceholder = placeholderTexture();
+  const dim = uniform(0);
 
   const spine = (): SpineMaterial => {
     const rect = attribute(SPINE_ATTRIBUTES.rect, 'vec4');
@@ -63,7 +65,7 @@ export function createStudyMaterials(): StudyMaterials {
       ),
       highlight,
       attribute(SPINE_ATTRIBUTES.highlight, 'float').mul(HIGHLIGHT_MIX),
-    );
+    ).mul(float(1).sub(dim));
     return {
       material,
       setAtlas: (next) => {
@@ -82,7 +84,9 @@ export function createStudyMaterials(): StudyMaterials {
   const pulledBook: StudyMaterials['pulledBook'] = () => {
     const cover = texture(placeholder);
     const spineFace = texture(spinePlaceholder);
+    const back = texture(backPlaceholder);
     const hasCover = uniform(0);
+    const hasBack = uniform(0);
     const side = uniform(new Color());
     const pages = uniform(new Color());
     const material = new MeshLambertNodeMaterial();
@@ -90,9 +94,13 @@ export function createStudyMaterials(): StudyMaterials {
       normalLocal.x.greaterThan(0.5),
       select(hasCover.greaterThan(0.5), cover.rgb, side.rgb),
       select(
-        normalLocal.z.greaterThan(0.5),
-        spineFace.rgb,
-        select(normalLocal.y.abs().greaterThan(0.5), pages.rgb, side.rgb),
+        normalLocal.x.lessThan(-0.5),
+        select(hasBack.greaterThan(0.5), back.rgb, side.rgb),
+        select(
+          normalLocal.z.greaterThan(0.5),
+          spineFace.rgb,
+          select(normalLocal.y.abs().greaterThan(0.5), pages.rgb, side.rgb),
+        ),
       ),
     );
     return {
@@ -100,6 +108,8 @@ export function createStudyMaterials(): StudyMaterials {
       point: (faces) => {
         cover.value = faces.cover ?? placeholder;
         hasCover.value = faces.cover ? 1 : 0;
+        back.value = faces.back ?? backPlaceholder;
+        hasBack.value = faces.back ? 1 : 0;
         spineFace.value = faces.spine;
         side.value.copy(faces.side);
         pages.value.copy(faces.pages);
@@ -115,9 +125,13 @@ export function createStudyMaterials(): StudyMaterials {
       return material;
     },
     pulledBook,
+    setDim: (amount) => {
+      dim.value = amount;
+    },
     dispose: () => {
       placeholder.dispose();
       spinePlaceholder.dispose();
+      backPlaceholder.dispose();
     },
   };
 }

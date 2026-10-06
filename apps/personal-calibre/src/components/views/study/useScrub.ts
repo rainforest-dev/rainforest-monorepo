@@ -13,15 +13,17 @@ export function useScrub({
   onPull,
   onScrubbing,
   onMove,
+  enabled = true,
 }: {
   surfaceRef: RefObject<HTMLElement | null>;
   hitTest: ScrubHitTest;
   onPull: (bookId: number) => void;
   onScrubbing: (scrubbing: boolean) => void;
   onMove?: (clientX: number, clientY: number) => void;
+  enabled?: boolean;
 }): void {
-  const latest = useRef({ hitTest, onPull, onScrubbing, onMove });
-  latest.current = { hitTest, onPull, onScrubbing, onMove };
+  const latest = useRef({ hitTest, onPull, onScrubbing, onMove, enabled });
+  latest.current = { hitTest, onPull, onScrubbing, onMove, enabled };
 
   useEffect(() => {
     const surface = surfaceRef.current;
@@ -56,7 +58,9 @@ export function useScrub({
     const onTouchStart = (event: TouchEvent) => {
       reset();
       const touch = event.touches[0];
-      if (event.touches.length !== 1 || !touch) return;
+      if (!latest.current.enabled || event.touches.length !== 1 || !touch) {
+        return;
+      }
       start = { x: touch.clientX, y: touch.clientY };
       point = { ...start };
       timer = window.setTimeout(() => {

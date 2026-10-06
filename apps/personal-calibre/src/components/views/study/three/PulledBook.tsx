@@ -20,11 +20,13 @@ import {
   Vector3,
 } from 'three';
 
+import type { InspectStage } from '@/components/views/study/useStudyInspect';
 import {
   approach,
   floatCentre,
   floatHeightPx,
   FRONT_Z,
+  inspectHeightPx,
   type PlacedBook,
   pxPerUnitAt,
 } from '@/lib';
@@ -35,7 +37,7 @@ import type { StudyKit } from './kit';
 import { sideColor } from './ShelfRow';
 import { toColor, type Tokens } from './tokens';
 
-export type CarrierMode = 'pull' | 'float' | 'home';
+export type CarrierMode = 'pull' | 'float' | 'inspect' | 'home';
 
 export interface ScrubPointer {
   x: number;
@@ -48,6 +50,8 @@ export interface PulledBookProps {
   mode: CarrierMode;
   instant: boolean;
   pointer: RefObject<ScrubPointer>;
+  stage: RefObject<InspectStage>;
+  back: Texture | null;
   pxPerUnit: number;
   onHome: (bookId: number) => void;
   atlas: RowAtlas | undefined;
@@ -65,6 +69,9 @@ const PULL_LIFT = 0.12;
 const FLOAT_Z = 1.6;
 const FLOAT_TURN = -Math.PI / 2 + 0.32;
 const FLOAT_TILT = -0.06;
+const INSPECT_Z = 3;
+const AIM = new Euler();
+const AIMED = new Quaternion();
 const SETTLED = 1e-4;
 const SPINE_PX = 4;
 const NO_HIT = () => undefined;
@@ -87,6 +94,8 @@ export function PulledBook({
   mode,
   instant,
   pointer,
+  stage,
+  back,
   pxPerUnit,
   onHome,
   atlas,
@@ -162,12 +171,13 @@ export function PulledBook({
     }
     pulled.point({
       cover: coverTexture,
+      back,
       spine: cropped ?? spine,
       side,
       pages: toColor(tokens.card),
     });
     invalidate();
-  }, [book, tokens, spine, cropped, coverTexture, pulled, invalidate]);
+  }, [book, tokens, spine, cropped, coverTexture, back, pulled, invalidate]);
 
   useLayoutEffect(() => {
     if (!book) return;
@@ -207,15 +217,20 @@ export function PulledBook({
         .add(home);
       target.y += PULL_LIFT;
     } else {
-      const z = FRONT_Z + FLOAT_Z;
-      const heightPx = floatHeightPx(size);
+      const inspecting = mode === 'inspect';
+      const z = FRONT_Z + (inspecting ? INSPECT_Z : FLOAT_Z);
+      const heightPx = inspecting
+        ? inspectHeightPx(size, book.d / book.h)
+        : floatHeightPx(size);
       scale =
         heightPx / (book.h * pxPerUnitAt(pxPerUnit, camera.position.z, z));
-      const centre = floatCentre(
-        pointer.current,
-        { width: (heightPx * book.d) / book.h, height: heightPx },
-        size,
-      );
+      const centre = inspecting
+        ? { x: size.width / 2, y: size.height / 2 }
+        : floatCentre(
+            pointer.current,
+            { width: (heightPx * book.d) / book.h, height: heightPx },
+            size,
+          );
       ray
         .set(
           (centre.x / size.width) * 2 - 1,
@@ -228,7 +243,12 @@ export function PulledBook({
       target
         .copy(camera.position)
         .addScaledVector(ray, (z - camera.position.z) / ray.z);
-      turn = FLOATING;
+      if (inspecting) {
+        AIM.set(stage.current.pitch, -Math.PI / 2 + stage.current.yaw, 0);
+        turn = AIMED.setFromEuler(AIM);
+      } else {
+        turn = FLOATING;
+      }
     }
     const k = approach(POSE_RATE, delta, instant);
     mesh.position.lerp(target, k);

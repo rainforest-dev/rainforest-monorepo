@@ -133,6 +133,7 @@ export interface TextureBudgetInput {
   canvas: { width: number; height: number; dpr: number };
   targetBuffers: number;
   coverBytes: number;
+  reservedBytes?: number;
 }
 
 export interface AtlasPick {
@@ -145,6 +146,7 @@ export interface AtlasPick {
 const withMipmaps = (bytes: number) => (bytes * 4) / 3;
 
 export const COVER_BYTES = withMipmaps(COVER_W * COVER_H * 4);
+export const INSPECT_BACK_BYTES = COVER_BYTES;
 
 export function rowAtlasSize(
   widthUnits: number,
@@ -173,7 +175,7 @@ export function targetBytes({
 }
 
 export function pickAtlasPpu(input: TextureBudgetInput): AtlasPick {
-  const targets = targetBytes(input);
+  const targets = targetBytes(input) + (input.reservedBytes ?? 0);
   const estimate = (ppu: AtlasPpu, covers: number) =>
     targets + covers * input.coverBytes + atlasBytesAt(input.layout, ppu);
   const pick = (ppu: AtlasPpu, covers: number, fits: boolean): AtlasPick => ({
@@ -314,4 +316,42 @@ export function nextCarry<T>(
     return fresh(active, next, null);
   }
   return fresh(other, next, current);
+}
+
+export const INSPECT_DRAG_RAD_PER_PX = 0.012;
+export const INSPECT_KEY_YAW = Math.PI / 12;
+export const INSPECT_KEY_PITCH = Math.PI / 18;
+export const INSPECT_PITCH_MAX = 0.6;
+export const INSPECT_DIM = 0.55;
+const INSPECT_HEIGHT_SHARE = 0.62;
+const INSPECT_WIDTH_SHARE = 0.72;
+const TURN = Math.PI * 2;
+
+export type InspectFace = 'front' | 'spine' | 'back' | 'edge';
+
+export function inspectHeightPx(stage: ScreenSize, aspect: number): number {
+  const byHeight = stage.height * INSPECT_HEIGHT_SHARE;
+  const byWidth =
+    aspect > 0 ? (stage.width * INSPECT_WIDTH_SHARE) / aspect : byHeight;
+  return Math.max(0, Math.min(byHeight, byWidth));
+}
+
+export function clampPitch(pitch: number): number {
+  return Math.min(Math.max(pitch, -INSPECT_PITCH_MAX), INSPECT_PITCH_MAX);
+}
+
+export function wrapYaw(yaw: number): number {
+  return ((yaw % TURN) + TURN) % TURN;
+}
+
+export function yawDegrees(yaw: number): number {
+  return Math.round((wrapYaw(yaw) * 180) / Math.PI) % 360;
+}
+
+export function faceAt(yaw: number): InspectFace {
+  const degrees = yawDegrees(yaw);
+  if (degrees < 45 || degrees >= 315) return 'front';
+  if (degrees < 135) return 'spine';
+  if (degrees < 225) return 'back';
+  return 'edge';
 }

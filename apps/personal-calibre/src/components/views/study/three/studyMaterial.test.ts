@@ -49,6 +49,7 @@ function texturesOf(material: Material): Texture[] {
 function faces(seed: number) {
   return {
     cover: seed % 2 === 0 ? new CanvasTexture({} as HTMLCanvasElement) : null,
+    back: seed % 3 === 0 ? new CanvasTexture({} as HTMLCanvasElement) : null,
     spine: new CanvasTexture({} as HTMLCanvasElement),
     side: new Color(seed / 10, 0.2, 0.3),
     pages: new Color(0.9, 0.9, seed / 10),
@@ -107,9 +108,23 @@ describe('createStudyMaterials', () => {
     expect(cacheKey(material)).toBe(key);
   });
 
-  it('starts the pulled-book cover and spine on different textures', () => {
+  it('starts the pulled-book cover, back and spine on different textures', () => {
     const { material } = createStudyMaterials().pulledBook();
-    expect(texturesOf(material)).toHaveLength(2);
+    expect(texturesOf(material)).toHaveLength(3);
+  });
+
+  it('dims every spine through one shared value', () => {
+    const materials = createStudyMaterials();
+    const a = materials.spine().material;
+    const b = materials.spine().material;
+    const keys = [cacheKey(a), cacheKey(b)];
+    const versions = [a.version, b.version];
+
+    materials.setDim(0.55);
+    materials.setDim(0);
+
+    expect([cacheKey(a), cacheKey(b)]).toEqual(keys);
+    expect([a.version, b.version]).toEqual(versions);
   });
 
   it('starts every placeholder in sRGB, like the atlases and covers', () => {
