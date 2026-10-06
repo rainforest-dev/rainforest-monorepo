@@ -9,6 +9,8 @@ export const STUDY_RUNS: readonly StudyRun[] = [
   { renderer: 'css' },
 ];
 
+const STUDY_READY_MS = 15_000;
+
 const CONSOLE_ALLOWLIST: readonly RegExp[] = [
   /THREE\.Clock/,
   // Headless Chromium logs this for any composited WebGL canvas.
@@ -73,12 +75,18 @@ export async function gotoStudy(
   run: StudyRun,
   query?: string,
 ): Promise<void> {
-  const extra = query ? `&${query.replace(/^[?&]/, '')}` : '';
-  await page.goto(
-    `/?view=study&groupBy=series&renderer=${run.renderer}${extra}`,
-  );
+  const params = new URLSearchParams({
+    view: 'study',
+    groupBy: 'series',
+    renderer: run.renderer,
+  });
+  new URLSearchParams(query).forEach((value, key) => params.set(key, value));
+  await page.goto(`/?${params.toString().replace(/=(?=&|$)/g, '')}`);
   await expect(page.locator('[data-library-ready]')).toHaveCount(1);
-  await expect(page.locator('[data-study-ready]')).toHaveCount(1);
+  await expect(page.locator('[data-study-ready]')).toHaveCount(1, {
+    timeout: STUDY_READY_MS,
+  });
+  await expect(page.locator('[data-view-ready]')).toHaveCount(1);
 }
 
 export function studyOptions(page: Page): Locator {
@@ -124,4 +132,32 @@ export async function hasWebGpu(page: Page): Promise<boolean> {
       return false;
     }
   });
+}
+
+export function headingCollisions(
+  page: Page,
+  selector: string,
+): Promise<string[]> {
+  return page.evaluate((selector) => {
+    const boxes = [...document.querySelectorAll<HTMLElement>(selector)]
+      .map((element) => ({
+        text: element.textContent ?? '',
+        rect: element.getBoundingClientRect(),
+      }))
+      .filter(({ rect }) => rect.width > 0 && rect.height > 0);
+    const collisions: string[] = [];
+    boxes.forEach((a, i) => {
+      boxes.slice(i + 1).forEach((b) => {
+        if (
+          a.rect.left < b.rect.right - 0.5 &&
+          b.rect.left < a.rect.right - 0.5 &&
+          a.rect.top < b.rect.bottom - 0.5 &&
+          b.rect.top < a.rect.bottom - 0.5
+        ) {
+          collisions.push(`${a.text} × ${b.text}`);
+        }
+      });
+    });
+    return collisions;
+  }, selector);
 }

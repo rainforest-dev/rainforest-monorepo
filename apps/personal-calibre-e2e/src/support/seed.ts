@@ -44,6 +44,14 @@ export const AUTHORS = [
   { id: 8, name: '林霧川', sort: '林霧川' },
   { id: 9, name: 'Wren Adeyo-Holt', sort: 'Adeyo-Holt, Wren' },
   { id: 10, name: 'Soren Ilves', sort: 'Ilves, Soren' },
+  { id: 11, name: 'Brannoch Teale', sort: 'Teale, Brannoch' },
+  { id: 12, name: 'Liesl Marrowby', sort: 'Marrowby, Liesl' },
+  { id: 13, name: 'Kestrel Odunmore', sort: 'Odunmore, Kestrel' },
+  { id: 14, name: 'Imre Saltash', sort: 'Saltash, Imre' },
+  { id: 15, name: 'Noor Fenwhistle', sort: 'Fenwhistle, Noor' },
+  { id: 16, name: '秋瀬灯里', sort: '秋瀬灯里' },
+  { id: 17, name: 'Dagny Holloway-Pryce', sort: 'Holloway-Pryce, Dagny' },
+  { id: 18, name: 'Teodor Vashlind', sort: 'Vashlind, Teodor' },
 ] as const;
 
 export const SERIES = [
@@ -147,6 +155,17 @@ const OVERRIDES: Record<number, Partial<SeedBook> & { title: string }> = {
   48: { title: 'The Lamplighter’s Year' },
 };
 
+const SINGLE_BOOK_AUTHORS: Record<number, number> = {
+  49: 11,
+  50: 12,
+  51: 13,
+  52: 14,
+  53: 15,
+  54: 16,
+  55: 17,
+  56: 18,
+};
+
 const STANDALONE_AUTHORS = [5, 6, 7, 9, 10, 1, 2, 3];
 
 const CALIBRE_DDL = `
@@ -214,7 +233,9 @@ function makeBook(id: number): SeedBook {
     title,
     sort: titleSort(title),
     authorIds: override?.authorIds ?? [
-      series?.authorId ?? STANDALONE_AUTHORS[id % STANDALONE_AUTHORS.length],
+      series?.authorId ??
+        SINGLE_BOOK_AUTHORS[id] ??
+        STANDALONE_AUTHORS[id % STANDALONE_AUTHORS.length],
     ],
     seriesId: series?.id ?? null,
     seriesIndex: series ? id - series.first + 1 : null,

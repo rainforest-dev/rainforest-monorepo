@@ -15,8 +15,28 @@ interface Surface {
   url: string;
   afterOnly?: true;
   phoneOnly?: true;
+  init?: (page: Page) => Promise<void>;
   act?: (page: Page, phone: boolean) => Promise<void>;
 }
+
+const STUDY = '/?view=study&groupBy=series';
+
+const studyReady = async (page: Page) => {
+  await expect(page.locator('[data-study-ready]')).toHaveCount(1);
+  const canvas = page.locator('[data-study-canvas]');
+  if ((await canvas.count()) > 0) {
+    await expect(canvas).toHaveAttribute('data-backend', /webgpu|webgl2/);
+  }
+};
+
+const withoutWebGpu = async (page: Page) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'gpu', {
+      get: () => undefined,
+      configurable: true,
+    });
+  });
+};
 
 const SURFACES: Surface[] = [
   { name: 'library', url: '/' },
@@ -45,6 +65,26 @@ const SURFACES: Surface[] = [
         await page.keyboard.press('x');
       }
     },
+  },
+  { name: 'study', url: STUDY, act: studyReady },
+  {
+    name: 'study-css',
+    url: `${STUDY}&renderer=css`,
+    afterOnly: true,
+    act: studyReady,
+  },
+  {
+    name: 'study-tsl-webgl2',
+    url: STUDY,
+    afterOnly: true,
+    init: withoutWebGpu,
+    act: studyReady,
+  },
+  {
+    name: 'study-pane',
+    url: `${STUDY}&book=38`,
+    afterOnly: true,
+    act: studyReady,
   },
   {
     name: 'filters-sheet',
@@ -84,6 +124,7 @@ for (const scheme of SCHEMES) {
         test(surface.name, async ({ page }) => {
           test.skip(PHASE === 'before' && !!surface.afterOnly, 'after-only');
           test.skip(!!surface.phoneOnly && !vp.isMobile, 'phone-only');
+          await surface.init?.(page);
           await page.goto(surface.url);
           await settle(page);
           await surface.act?.(page, vp.isMobile);

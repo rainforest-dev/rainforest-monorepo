@@ -16,6 +16,7 @@ export interface CoverCache {
 
 export interface CoverCacheOptions {
   upload?: (texture: Texture) => void;
+  max?: number;
 }
 
 const BAND_MIX = 0.7;
@@ -89,7 +90,7 @@ async function loadCover(id: number): Promise<Texture> {
 
 export function createCoverCache(
   tokens: Tokens,
-  { upload }: CoverCacheOptions = {},
+  { upload, max = COVER_CACHE_MAX }: CoverCacheOptions = {},
 ): CoverCache {
   const ready = new Map<number, Texture>();
   const pending = new Map<number, Promise<Texture>>();
@@ -99,7 +100,7 @@ export function createCoverCache(
   const touch = (id: number, texture: Texture) => {
     ready.delete(id);
     ready.set(id, texture);
-    while (ready.size > COVER_CACHE_MAX) {
+    while (ready.size > max) {
       const [oldest] = ready.keys();
       if (oldest === undefined) break;
       ready.get(oldest)?.dispose();

@@ -5,6 +5,7 @@ import {
   collectConsole,
   expectPulledFocus,
   gotoStudy,
+  headingCollisions,
   prepareRun,
   studyOptions,
 } from './support/study';
@@ -80,4 +81,41 @@ test.describe('Study three-tsl on phone', () => {
     await expectPulledFocus(page, run);
     expect(messages()).toEqual([]);
   });
+
+  test('author headings on a shared row never overlap', async ({ page }) => {
+    await prepareRun(page, run);
+    await gotoStudy(page, run, 'groupBy=author&page=2');
+    const labels = page.locator('[data-shelf-label]');
+    await expect(labels.first()).toBeVisible();
+    const tops = await labels.evaluateAll((elements) =>
+      elements.map((element) =>
+        Math.round(element.getBoundingClientRect().top),
+      ),
+    );
+    expect(new Set(tops).size).toBeLessThan(tops.length);
+    for (let i = 0; i < 4; i += 1) {
+      expect(await headingCollisions(page, '[data-shelf-label]')).toEqual([]);
+      await canvasWrap(page).hover();
+      await page.mouse.wheel(0, 300);
+    }
+  });
+
+  for (const width of [375, 390]) {
+    test(`?debug keeps the page inside a ${width}px screen`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await prepareRun(page, run);
+      await gotoStudy(page, run, 'debug=1');
+      await expect(page.locator('[data-backend-badge]')).toBeVisible();
+      await expect(canvasWrap(page)).toHaveAttribute('data-backend', 'webgl2');
+      const widths = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth,
+        inner: window.innerWidth,
+      }));
+      expect(widths).toEqual({ scroll: width, inner: width });
+      const badge = await page.locator('[data-backend-badge]').boundingBox();
+      expect((badge?.x ?? 0) + (badge?.width ?? 0)).toBeLessThanOrEqual(width);
+    });
+  }
 });

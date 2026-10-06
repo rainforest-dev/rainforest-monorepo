@@ -5,6 +5,7 @@ import {
   BOOK_GAP,
   booksInRow,
   GROUP_GAP,
+  LABEL_GAP,
   layoutShelves,
   MODEL_PX_PER_UNIT,
   ROW_H,
@@ -148,6 +149,58 @@ describe('layoutShelves', () => {
     for (const label of wrapped) {
       expect(label).toMatchObject({ shelfKey: 'b', continued: true, x: 0 });
       expect(label.top).toBeCloseTo((1 - label.row) * ROW_H);
+    }
+  });
+});
+
+describe('layoutShelves with heading widths', () => {
+  const small = range(1, 12).map((i) => shelf(`s${i}`, [i]));
+  const wide = () => 1.6;
+
+  it('keeps the headings on one row apart, each inside its own slot', () => {
+    const layout = layoutShelves(small, 4, wide);
+    for (let row = 0; row < layout.rows; row += 1) {
+      const labels = layout.labels.filter((label) => label.row === row);
+      labels.forEach((label, i) => {
+        const next = labels[i + 1];
+        expect(label.width).toBeGreaterThan(0);
+        expect(label.x + label.width).toBeLessThanOrEqual(
+          next ? next.x - LABEL_GAP + 1e-9 : 4 + 1e-9,
+        );
+        if (next) expect(next.x - label.x).toBeGreaterThanOrEqual(1.6);
+      });
+    }
+  });
+
+  it('starts a group after the previous heading and puts the divider before it', () => {
+    const layout = layoutShelves(small.slice(0, 2), 4, wide);
+    const [a, b] = layout.labels;
+    expect(b?.row).toBe(0);
+    expect(b?.x).toBeCloseTo((a?.x ?? 0) + 1.6 + LABEL_GAP);
+    const divider = layout.boards.find(isDivider);
+    expect(divider?.x).toBeCloseTo((b?.x ?? 0) - GROUP_GAP / 2);
+  });
+
+  it('gives a heading wider than the row a row of its own', () => {
+    const layout = layoutShelves(small.slice(0, 3), 4, () => 9);
+    expect(layout.labels.map((label) => label.row)).toEqual([0, 1, 2]);
+    for (const label of layout.labels) {
+      expect(label.width).toBeCloseTo(4);
+    }
+  });
+
+  it('reserves the continued heading of a wrapped group too', () => {
+    const layout = layoutShelves(
+      [shelf('a', range(1, 14)), shelf('b', [20])],
+      3,
+      wide,
+    );
+    const b = layout.labels.find((label) => label.shelfKey === 'b');
+    const before = layout.labels.find(
+      (label) => label.row === b?.row && label.shelfKey === 'a',
+    );
+    if (b && before) {
+      expect(b.x).toBeGreaterThanOrEqual(before.x + 1.6 + LABEL_GAP - 1e-9);
     }
   });
 });

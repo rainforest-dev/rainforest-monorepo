@@ -6,6 +6,7 @@ import { GroupHeading } from '@/components/views/GroupHeading';
 import { booksLabel, cn, type StudyModel, type StudyShelf } from '@/lib';
 
 import type { StudyNav, StudyOptionState } from './StudyOption';
+import type { StudyPull } from './useStudyPull';
 
 export interface StudyRendererProps {
   model: StudyModel;
@@ -14,6 +15,7 @@ export interface StudyRendererProps {
   focusId: number | null;
   reducedMotion: boolean;
   nav: StudyNav;
+  pull: StudyPull;
 }
 
 export interface StudyListboxProps {
@@ -24,6 +26,7 @@ export interface StudyListboxProps {
   shelfClassName?: string;
   renderOption: (state: StudyOptionState) => ReactNode;
   renderShelf?: (shelf: StudyShelf, options: ReactNode) => ReactNode;
+  onBackgroundClick?: () => void;
   nav: StudyNav;
 }
 
@@ -38,6 +41,7 @@ export function StudyListbox({
   shelfClassName,
   renderOption,
   renderShelf,
+  onBackgroundClick,
   nav,
 }: StudyListboxProps) {
   return (
@@ -47,6 +51,10 @@ export function StudyListbox({
       aria-label="Bookshelves"
       aria-multiselectable="true"
       onKeyDown={nav.onKeyDown}
+      onClick={(event) => {
+        const target = event.target as Element;
+        if (!target.closest('[role="option"]')) onBackgroundClick?.();
+      }}
       className={className}
     >
       {model.shelves.map((shelf) => {

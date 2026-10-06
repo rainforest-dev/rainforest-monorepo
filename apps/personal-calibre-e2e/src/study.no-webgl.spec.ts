@@ -57,23 +57,29 @@ test.describe('Study without WebGL or WebGPU', () => {
     expect((await Promise.all(scripts)).filter(Boolean)).toEqual([]);
   });
 
-  test('the fallback has no axe violations', async ({ page }) => {
-    await prepareRun(page, RUN);
-    await gotoStudy(page, RUN, 'debug=1');
-    await expect(page.locator('[data-study-ready]')).toHaveAttribute(
-      'data-renderer',
-      'css',
-    );
-    await expect(page.getByText(TOAST)).toHaveCount(1);
-    await expect(page.locator('[data-backend-badge]')).toHaveText('css');
-    await expectNoViolations(page, {
-      ignore: [
-        { rule: 'scrollable-region-focusable', targetIncludes: '.st-row' },
-      ],
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`the fallback has no axe violations in ${scheme}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await prepareRun(page, RUN);
+      await gotoStudy(page, RUN, 'debug=1');
+      await expect(page.locator('[data-study-ready]')).toHaveAttribute(
+        'data-renderer',
+        'css',
+      );
+      await expect(page.getByText(TOAST)).toHaveCount(1);
+      await page.locator('[data-sonner-toast]').hover();
+      await expect(page.locator('[data-backend-badge]')).toHaveText('css');
+      await expectNoViolations(page, {
+        ignore: [
+          { rule: 'scrollable-region-focusable', targetIncludes: '.st-row' },
+        ],
+      });
     });
-  });
+  }
 
-  test.fixme('after the fallback the Renderer select shows CSS and the cookie keeps three-tsl', async ({
+  test('after the fallback the Renderer select shows CSS and the cookie keeps three-tsl', async ({
     page,
     context,
   }) => {
@@ -90,7 +96,7 @@ test.describe('Study without WebGL or WebGPU', () => {
     expect((await readPrefs(context))?.['renderer']).toBe('three-tsl');
   });
 
-  test.fixme('choosing CSS in the Renderer select writes it to the cookie', async ({
+  test('choosing CSS in the Renderer select writes it to the cookie', async ({
     page,
     context,
   }) => {

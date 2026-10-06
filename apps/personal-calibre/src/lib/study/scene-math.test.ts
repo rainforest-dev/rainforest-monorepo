@@ -3,13 +3,16 @@ import { describe, expect, it } from 'vitest';
 import { layoutShelves, ROW_H, type StudyLayout } from './layout';
 import { isCjk, spineDims, spineTone, type StudyShelf } from './model';
 import {
+  ATLAS_PPU_FLOOR,
   ATLAS_PPU_LADDER,
   atlasBytesAt,
   atlasOrder,
   CAMERA_MARGIN,
   cameraBounds,
   clampCameraY,
-  COVER_CACHE_BYTES,
+  COVER_BYTES,
+  COVER_CACHE_MAX,
+  COVER_CACHE_MIN,
   focusTargetY,
   pickAtlasPpu,
   projectBox,
@@ -282,10 +285,10 @@ const desktopInput: TextureBudgetInput = {
   budgetBytes: TEXTURE_BUDGET_BYTES.desktop,
   canvas: { width: 1144, height: 760, dpr: 2 },
   targetBuffers: REPORTED_TARGET_BUFFERS,
-  coverCacheBytes: COVER_CACHE_BYTES,
+  coverBytes: COVER_BYTES,
 };
-const fixedBytes = (input: TextureBudgetInput) =>
-  input.coverCacheBytes + targetBytes(input);
+const fixedBytes = (input: TextureBudgetInput, covers = COVER_CACHE_MAX) =>
+  covers * input.coverBytes + targetBytes(input);
 
 describe('atlasBytesAt', () => {
   it('grows about fourfold from 80 to 160 px per unit', () => {
@@ -309,6 +312,7 @@ describe('pickAtlasPpu', () => {
   it('keeps 160 for a 30-book page on a desktop canvas at @2', () => {
     expect(pickAtlasPpu(desktopInput)).toEqual({
       ppu: 160,
+      covers: COVER_CACHE_MAX,
       estimatedBytes: fixedBytes(desktopInput) + atlasBytesAt(desktopPage, 160),
       fits: true,
     });
@@ -320,7 +324,7 @@ describe('pickAtlasPpu', () => {
       budgetBytes: TEXTURE_BUDGET_BYTES.phone,
       canvas: { width: 366, height: 591, dpr: 2 },
       targetBuffers: REPORTED_TARGET_BUFFERS,
-      coverCacheBytes: COVER_CACHE_BYTES,
+      coverBytes: COVER_BYTES,
     });
     expect(phoneLarge.rows).toBeGreaterThan(20);
     expect(ATLAS_PPU_LADDER).toContain(pick.ppu);
@@ -339,15 +343,60 @@ describe('pickAtlasPpu', () => {
     ).toBe(112);
   });
 
-  it('returns the floor and says it does not fit when the fixed costs exceed the budget', () => {
+  it('keeps the full cover cache whenever a rung fits', () => {
+    const exact = fixedBytes(desktopInput) + atlasBytesAt(desktopPage, 96);
+    expect(pickAtlasPpu({ ...desktopInput, budgetBytes: exact })).toMatchObject(
+      { ppu: 96, covers: COVER_CACHE_MAX, fits: true },
+    );
+  });
+
+  it('shrinks the cover cache at the floor until the estimate fits', () => {
+    const atFloor = atlasBytesAt(desktopPage, ATLAS_PPU_FLOOR);
+    const full = fixedBytes(desktopInput) + atFloor;
+    const pick = pickAtlasPpu({ ...desktopInput, budgetBytes: full - 1 });
+    expect(pick).toEqual({
+      ppu: ATLAS_PPU_FLOOR,
+      covers: COVER_CACHE_MAX - 1,
+      estimatedBytes: fixedBytes(desktopInput, COVER_CACHE_MAX - 1) + atFloor,
+      fits: true,
+    });
+    expect(pick.estimatedBytes).toBeLessThanOrEqual(full - 1);
+
+    const lowest = fixedBytes(desktopInput, COVER_CACHE_MIN) + atFloor;
     expect(
-      pickAtlasPpu({
-        ...desktopInput,
-        budgetBytes: fixedBytes(desktopInput) - 1,
-      }),
-    ).toEqual({
-      ppu: 96,
-      estimatedBytes: fixedBytes(desktopInput) + atlasBytesAt(desktopPage, 96),
+      pickAtlasPpu({ ...desktopInput, budgetBytes: lowest }),
+    ).toMatchObject({
+      ppu: ATLAS_PPU_FLOOR,
+      covers: COVER_CACHE_MIN,
+      fits: true,
+    });
+  });
+
+  it('holds the 250-book desktop page under budget at 96 by dropping covers', () => {
+    const large = layoutShelves(
+      Array.from({ length: 25 }, (_, i) =>
+        shelf(`s${i}`, range(i * 10 + 1, i * 10 + 10)),
+      ),
+      1144 / 100 - 0.8,
+    );
+    const pick = pickAtlasPpu({ ...desktopInput, layout: large });
+    expect(pick.ppu).toBe(ATLAS_PPU_FLOOR);
+    expect(pick.fits).toBe(true);
+    expect(pick.covers).toBeLessThan(COVER_CACHE_MAX);
+    expect(pick.covers).toBeGreaterThanOrEqual(COVER_CACHE_MIN);
+    expect(pick.estimatedBytes).toBeLessThanOrEqual(
+      TEXTURE_BUDGET_BYTES.desktop,
+    );
+  });
+
+  it('returns the floor with the smallest cache and says it does not fit when even that misses', () => {
+    const lowest =
+      fixedBytes(desktopInput, COVER_CACHE_MIN) +
+      atlasBytesAt(desktopPage, ATLAS_PPU_FLOOR);
+    expect(pickAtlasPpu({ ...desktopInput, budgetBytes: lowest - 1 })).toEqual({
+      ppu: ATLAS_PPU_FLOOR,
+      covers: COVER_CACHE_MIN,
+      estimatedBytes: lowest,
       fits: false,
     });
   });

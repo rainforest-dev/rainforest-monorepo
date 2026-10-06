@@ -884,6 +884,8 @@ Rendering, per the spec's css section and the prototype's `V2Study`/`V2Spine`:
   `translateZ(40px)`, `rotateY(-52deg)`; `will-change: transform` only then; the cover face
   (`rotateY(90deg)` hinged on the right edge) mounts only then, showing
   `/api/books/{id}/cover` when `hasCover`, else the stripe with the title.
+  Superseded on 2026-10-06: the pulled spine slides 12px up and the cover moves to the Study card
+  (spec, Pull and the Study card).
 - Cues: focus `outline-[2.5px] outline-foreground outline-offset-4` plus a 4px `foreground` bar;
   selection a `primary` inset ring and the `primary` check badge; open a 3px `primary` bar.
 - Reduced motion: no transform; the spine brightens
@@ -1306,6 +1308,8 @@ Behaviour:
   calls `point()` and re-targets its tween (`home` → `out`, the spike's ease-out cubic, 4/s,
   rotation `-π/2 × 0.78`). Under reduced motion there is no pulled book (`onPulled(null)` and the
   `aHi` cue instead). `data-pulled-id` mirrors `onPulled`.
+  Superseded on 2026-10-06: the book slides toward the camera without turning, a tap on the
+  pulled book opens the pane, and a card shows it (spec, Pull and the Study card).
 - Camera: x centred (`layout.width / 2`), y tweens to `focusTargetY` of the focused row and is
   clamped by `cameraBounds` (top and bottom board plus 0.3 units); under reduced motion it jumps.
   Distance from `pxPerUnit` and `fov` as in the spike. Wheel and touch call `wheelPan`; at a clamp

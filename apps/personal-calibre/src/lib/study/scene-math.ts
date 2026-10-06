@@ -123,6 +123,8 @@ export const TEXTURE_BUDGET_BYTES = {
 export const COVER_W = 256;
 export const COVER_H = 384;
 export const COVER_CACHE_MAX = 24;
+export const COVER_NEIGHBOURS = 4;
+export const COVER_CACHE_MIN = 2 * COVER_NEIGHBOURS + 1;
 export const REPORTED_TARGET_BUFFERS = 2;
 
 export interface TextureBudgetInput {
@@ -130,20 +132,19 @@ export interface TextureBudgetInput {
   budgetBytes: number;
   canvas: { width: number; height: number; dpr: number };
   targetBuffers: number;
-  coverCacheBytes: number;
+  coverBytes: number;
 }
 
 export interface AtlasPick {
   ppu: AtlasPpu;
+  covers: number;
   estimatedBytes: number;
   fits: boolean;
 }
 
 const withMipmaps = (bytes: number) => (bytes * 4) / 3;
 
-export const COVER_CACHE_BYTES = withMipmaps(
-  COVER_CACHE_MAX * COVER_W * COVER_H * 4,
-);
+export const COVER_BYTES = withMipmaps(COVER_W * COVER_H * 4);
 
 export function rowAtlasSize(
   widthUnits: number,
@@ -172,18 +173,24 @@ export function targetBytes({
 }
 
 export function pickAtlasPpu(input: TextureBudgetInput): AtlasPick {
-  const fixed = input.coverCacheBytes + targetBytes(input);
-  const estimate = (ppu: AtlasPpu) => fixed + atlasBytesAt(input.layout, ppu);
+  const targets = targetBytes(input);
+  const estimate = (ppu: AtlasPpu, covers: number) =>
+    targets + covers * input.coverBytes + atlasBytesAt(input.layout, ppu);
+  const pick = (ppu: AtlasPpu, covers: number, fits: boolean): AtlasPick => ({
+    ppu,
+    covers,
+    estimatedBytes: estimate(ppu, covers),
+    fits,
+  });
   const ppu = ATLAS_PPU_LADDER.find(
-    (rung) => estimate(rung) <= input.budgetBytes,
+    (rung) => estimate(rung, COVER_CACHE_MAX) <= input.budgetBytes,
   );
-  return ppu === undefined
-    ? {
-        ppu: ATLAS_PPU_FLOOR,
-        estimatedBytes: estimate(ATLAS_PPU_FLOOR),
-        fits: false,
-      }
-    : { ppu, estimatedBytes: estimate(ppu), fits: true };
+  if (ppu !== undefined) return pick(ppu, COVER_CACHE_MAX, true);
+  const room = input.budgetBytes - estimate(ATLAS_PPU_FLOOR, 0);
+  const covers = Math.min(COVER_CACHE_MAX, Math.floor(room / input.coverBytes));
+  return covers >= COVER_CACHE_MIN
+    ? pick(ATLAS_PPU_FLOOR, covers, true)
+    : pick(ATLAS_PPU_FLOOR, COVER_CACHE_MIN, false);
 }
 
 export function atlasOrder(

@@ -73,7 +73,7 @@ test.describe('Study', () => {
     await page.keyboard.press('v');
     await expect(page).toHaveURL(/groupBy=series/);
     await expect(page).not.toHaveURL(/page=/);
-    await expect(studyOptions(page).first()).toBeVisible();
+    await expect(studyOptions(page).first()).toBeAttached();
     const firstPage = seriesOrderedIds().slice(0, PAGE_SIZE);
     const expected = firstPage.includes(38)
       ? option(page, 38)
@@ -85,7 +85,7 @@ test.describe('Study', () => {
     await gotoLibrary(page, '/');
     await page.goto('/?groupBy=tag&view=study');
     await expect(page).toHaveURL(/groupBy=series/);
-    await expect(studyOptions(page).first()).toBeVisible();
+    await expect(studyOptions(page).first()).toBeAttached();
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
     await expect(
@@ -97,7 +97,7 @@ test.describe('Study', () => {
   test('Study keeps Author grouping', async ({ page }) => {
     await gotoLibrary(page, '/?groupBy=author&view=study');
     await expect(page).toHaveURL(/groupBy=author/);
-    await expect(studyOptions(page).first()).toBeVisible();
+    await expect(studyOptions(page).first()).toBeAttached();
   });
 
   test('the Group select offers Series and Author only in Study', async ({
@@ -254,17 +254,24 @@ test.describe('Study', () => {
     expect(await orientation(48)).toBe('sideways');
   });
 
-  test('the cover face shows the fixture cover on focus only', async ({
+  test('the card shows the pulled book with its fixture cover', async ({
     page,
   }) => {
     await gotoStudy(page, CSS);
-    const book = option(page, 7);
-    const cover = book.locator('img[src="/api/books/7/cover"]');
-    await expect(cover).toHaveCount(0);
-    await book.focus();
-    await expect(cover).toHaveCount(1);
+    const card = page.getByRole('region', { name: 'Pulled book' });
+    await expect(card).toHaveCount(0);
+    await option(page, 7).focus();
+    await expect(option(page, 7)).toHaveAttribute('data-pulled', 'true');
+    await expect(card.locator('img')).toHaveAttribute(
+      'src',
+      '/api/books/7/cover',
+    );
+    await expect(option(page, 7).locator('img, [data-cover-face]')).toHaveCount(
+      0,
+    );
     await studyOptions(page).first().focus();
-    await expect(cover).toHaveCount(0);
+    await expect(option(page, 7)).not.toHaveAttribute('data-pulled', 'true');
+    await expect(card.locator('img')).toHaveCount(0);
   });
 });
 

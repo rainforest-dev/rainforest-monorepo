@@ -14,6 +14,7 @@ import {
 import { PCFShadowMap } from 'three';
 
 import type { StudyRendererProps } from '@/components/views/study/StudyListbox';
+import { type ScrubHitTest, useScrub } from '@/components/views/study/useScrub';
 import { useIsDesktop } from '@/hooks';
 import {
   atlasBytesAt,
@@ -21,7 +22,7 @@ import {
   cameraBounds,
   type CameraState,
   clampCameraY,
-  COVER_CACHE_BYTES,
+  COVER_BYTES,
   focusTargetY,
   isDebug,
   layoutShelves,
@@ -47,7 +48,7 @@ import {
   Scene,
   type SceneProps,
 } from './Scene';
-import { type LabelsSink, ShelfLabels } from './ShelfLabels';
+import { type LabelsSink, measureLabelPx, ShelfLabels } from './ShelfLabels';
 import { useTokens } from './tokens';
 import { useCoverPrewarm } from './useCoverPrewarm';
 import { useRowAtlases } from './useRowAtlases';
@@ -82,6 +83,7 @@ function atlasInfo({
   const atlases = report ? [...report.atlases.values()] : [];
   return {
     atlasPpu: pick?.ppu ?? null,
+    coverCacheMax: pick?.covers ?? null,
     atlasFits: pick?.fits ?? null,
     atlasBytes: atlases.reduce((sum, atlas) => sum + atlas.bytes, 0),
     atlasBytesEstimated: estimated,
@@ -204,6 +206,7 @@ export default function ThreeStudy({
   focusId,
   reducedMotion,
   nav,
+  pull,
   onBackend,
   onStartFailed,
   onNavItems,
@@ -227,17 +230,6 @@ export default function ThreeStudy({
   const [covers, setCovers] = useState<CoverCache | null>(null);
   const coversRef = useRef(covers);
   coversRef.current = covers;
-  useEffect(() => {
-    if (!tokens) return;
-    const cache = createCoverCache(tokens, {
-      upload: (texture) => {
-        const renderer = gl.current;
-        if (renderer?.hasInitialized()) renderer.initTexture(texture);
-      },
-    });
-    setCovers(cache);
-    return () => cache.dispose();
-  }, [tokens, model.key]);
   const atlasState = useRef<{
     pick: AtlasPick | null;
     estimated: number;
@@ -254,7 +246,8 @@ export default function ThreeStudy({
     camera: null,
     prewarmedAt: null,
     renderMs: [],
-    projectBook: (bookId) => projector.current?.(bookId) ?? null,
+    projectBook: (bookId) => projector.current?.(bookId, 'box') ?? null,
+    projectFront: (bookId) => projector.current?.(bookId, 'front') ?? null,
     info: () => {
       const renderer = gl.current;
       const loaded = kitRef.current;
@@ -267,6 +260,7 @@ export default function ThreeStudy({
         programs: renderer && loaded ? loaded.programsOf(renderer) : 0,
         ...atlasInfo(atlasState.current),
         coversCached: coversRef.current?.size() ?? 0,
+        coverCacheBytes: (coversRef.current?.size() ?? 0) * COVER_BYTES,
         dpr: renderer?.getPixelRatio() ?? window.devicePixelRatio,
       };
     },
@@ -295,11 +289,16 @@ export default function ThreeStudy({
 
   useEffect(() => (debug ? publishProbe(probe.current) : undefined), [debug]);
 
-  const layout = useMemo(
-    () =>
-      width > 0 ? layoutShelves(model.shelves, width / pxPerUnit - 0.8) : null,
-    [model, width, pxPerUnit],
-  );
+  const layout = useMemo(() => {
+    const element = wrap.current;
+    if (width <= 0 || !element) return null;
+    const labelPx = measureLabelPx(element);
+    return layoutShelves(
+      model.shelves,
+      width / pxPerUnit - 0.8,
+      (shelf, continued) => labelPx(shelf, continued) / pxPerUnit,
+    );
+  }, [model, width, pxPerUnit]);
   const dpr = Math.min(window.devicePixelRatio || 1, DPR[1]);
   const pick = useMemo(
     () =>
@@ -311,11 +310,24 @@ export default function ThreeStudy({
               : TEXTURE_BUDGET_BYTES.phone,
             canvas: { width, height, dpr },
             targetBuffers: REPORTED_TARGET_BUFFERS,
-            coverCacheBytes: COVER_CACHE_BYTES,
+            coverBytes: COVER_BYTES,
           })
         : null,
     [layout, desktop, width, height, dpr],
   );
+  const coverMax = pick?.covers ?? null;
+  useEffect(() => {
+    if (!tokens || coverMax === null) return;
+    const cache = createCoverCache(tokens, {
+      max: coverMax,
+      upload: (texture) => {
+        const renderer = gl.current;
+        if (renderer?.hasInitialized()) renderer.initTexture(texture);
+      },
+    });
+    setCovers(cache);
+    return () => cache.dispose();
+  }, [tokens, model.key, coverMax]);
   const focusRow = useRef(0);
   const focusedRow = layout?.books.find(
     (placed) => placed.book.id === focusId,
@@ -351,14 +363,18 @@ export default function ThreeStudy({
   }, [layout, onNavItems]);
 
   const { containerRef } = nav;
+  const { activate, isPulled, dismiss, pullAt, setScrubbing } = pull;
   const onPick = useCallback(
-    (bookId: number) => {
-      containerRef.current
-        ?.querySelector<HTMLElement>(`[data-book-id="${bookId}"]`)
-        ?.focus({ preventScroll: true, focusVisible: false });
-    },
-    [containerRef],
+    (bookId: number) => activate(bookId, isPulled(bookId)),
+    [activate, isPulled],
   );
+  const hitTester = useRef<ScrubHitTest | null>(null);
+  useScrub({
+    surfaceRef: wrap,
+    hitTest: (x, y) => hitTester.current?.(x, y) ?? null,
+    onPull: pullAt,
+    onScrubbing: setScrubbing,
+  });
   const onPulled = useCallback((bookId: number | null) => {
     probe.current.pulledId = bookId;
     setPulledId(bookId);
@@ -444,6 +460,7 @@ export default function ThreeStudy({
           camera={CAMERA}
           shadows={SHADOWS}
           flat={kit.flat}
+          onPointerMissed={dismiss}
           aria-hidden="true"
         >
           <FrameDriver onFrame={onFrame} />
@@ -461,6 +478,9 @@ export default function ThreeStudy({
             tokens={tokens}
             kit={kit}
             focusId={focusId}
+            pulledId={pull.pulledId}
+            scrubbing={pull.scrubbing}
+            hitTester={hitTester}
             selected={selected}
             reducedMotion={reducedMotion}
             pxPerUnit={pxPerUnit}

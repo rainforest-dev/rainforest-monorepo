@@ -12,7 +12,6 @@ import {
 import {
   BoxGeometry,
   CanvasTexture,
-  MathUtils,
   type Mesh,
   SRGBColorSpace,
   type Texture,
@@ -30,7 +29,6 @@ import { toColor, type Tokens } from './tokens';
 export interface PulledBookProps {
   book: PlacedBook | null;
   atlas: RowAtlas | undefined;
-  width: number;
   kit: StudyKit;
   tokens: Tokens;
   covers: CoverCache;
@@ -40,7 +38,8 @@ export interface PulledBookProps {
 }
 
 const PULL_RATE = 4;
-const PULL_TURN = (-Math.PI / 2) * 0.78;
+const PULL_DEPTH = 0.5;
+const PULL_LIFT = 0.12;
 const SPINE_PX = 4;
 
 function spineTexture(): CanvasTexture {
@@ -55,7 +54,6 @@ function spineTexture(): CanvasTexture {
 export function PulledBook({
   book,
   atlas,
-  width,
   kit,
   tokens,
   covers,
@@ -64,6 +62,7 @@ export function PulledBook({
   onHover,
 }: PulledBookProps) {
   const invalidate = useThree((state) => state.invalidate);
+  const camera = useThree((state) => state.camera);
   const geometry = useMemo(() => new BoxGeometry(1, 1, 1), []);
   const pulled = useMemo(() => kit.materials.pulledBook(), [kit]);
   const spine = useMemo(spineTexture, []);
@@ -134,31 +133,27 @@ export function PulledBook({
   useLayoutEffect(() => {
     if (!book) return;
     home.set(book.x, book.y, FRONT_Z - book.d / 2);
-    out.set(
-      MathUtils.clamp(book.x, book.d * 0.45, width - book.d * 0.45),
-      book.y + 0.12,
-      FRONT_Z + book.t + 0.35,
-    );
     invalidate();
-  }, [book, width, home, out, invalidate]);
+  }, [book, home, invalidate]);
 
   useLayoutEffect(() => {
     progress.current = 0;
-    const mesh = meshRef.current;
-    if (mesh) {
-      mesh.position.copy(home);
-      mesh.rotation.y = 0;
-    }
+    meshRef.current?.position.copy(home);
     invalidate();
   }, [bookId, meshRef, home, invalidate]);
 
   useFrame((_, delta) => {
     const mesh = meshRef.current;
     if (!mesh || !book) return;
+    out
+      .set(book.x, book.y + book.h / 2, FRONT_Z)
+      .sub(camera.position)
+      .setLength(-PULL_DEPTH)
+      .add(home);
+    out.y += PULL_LIFT;
     progress.current = Math.min(1, progress.current + delta * PULL_RATE);
     const eased = 1 - (1 - progress.current) ** 3;
     mesh.position.lerpVectors(home, out, eased);
-    mesh.rotation.y = PULL_TURN * eased;
     if (progress.current < 1) invalidate();
   });
 
