@@ -12,13 +12,22 @@ import {
 import {
   BoxGeometry,
   CanvasTexture,
-  type Mesh,
+  Euler,
+  Mesh,
+  Quaternion,
   SRGBColorSpace,
   type Texture,
   Vector3,
 } from 'three';
 
-import { FRONT_Z, type PlacedBook } from '@/lib';
+import {
+  approach,
+  floatCentre,
+  floatHeightPx,
+  FRONT_Z,
+  type PlacedBook,
+  pxPerUnitAt,
+} from '@/lib';
 
 import { cropSpine, type RowAtlas } from './atlas';
 import type { CoverCache } from './covers';
@@ -26,8 +35,21 @@ import type { StudyKit } from './kit';
 import { sideColor } from './ShelfRow';
 import { toColor, type Tokens } from './tokens';
 
+export type CarrierMode = 'pull' | 'float' | 'home';
+
+export interface ScrubPointer {
+  x: number;
+  y: number;
+  invalidate: () => void;
+}
+
 export interface PulledBookProps {
   book: PlacedBook | null;
+  mode: CarrierMode;
+  instant: boolean;
+  pointer: RefObject<ScrubPointer>;
+  pxPerUnit: number;
+  onHome: (bookId: number) => void;
   atlas: RowAtlas | undefined;
   kit: StudyKit;
   tokens: Tokens;
@@ -37,10 +59,19 @@ export interface PulledBookProps {
   onHover: (hovering: boolean) => void;
 }
 
-const PULL_RATE = 4;
+const POSE_RATE = 14;
 const PULL_DEPTH = 0.5;
 const PULL_LIFT = 0.12;
+const FLOAT_Z = 1.6;
+const FLOAT_TURN = -Math.PI / 2 + 0.32;
+const FLOAT_TILT = -0.06;
+const SETTLED = 1e-4;
 const SPINE_PX = 4;
+const NO_HIT = () => undefined;
+const UPRIGHT = new Quaternion();
+const FLOATING = new Quaternion().setFromEuler(
+  new Euler(FLOAT_TILT, FLOAT_TURN, 0),
+);
 
 function spineTexture(): CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -53,6 +84,11 @@ function spineTexture(): CanvasTexture {
 
 export function PulledBook({
   book,
+  mode,
+  instant,
+  pointer,
+  pxPerUnit,
+  onHome,
   atlas,
   kit,
   tokens,
@@ -63,12 +99,15 @@ export function PulledBook({
 }: PulledBookProps) {
   const invalidate = useThree((state) => state.invalidate);
   const camera = useThree((state) => state.camera);
+  const size = useThree((state) => state.size);
   const geometry = useMemo(() => new BoxGeometry(1, 1, 1), []);
   const pulled = useMemo(() => kit.materials.pulledBook(), [kit]);
   const spine = useMemo(spineTexture, []);
-  const progress = useRef(1);
   const home = useMemo(() => new Vector3(), []);
-  const out = useMemo(() => new Vector3(), []);
+  const target = useMemo(() => new Vector3(), []);
+  const ray = useMemo(() => new Vector3(), []);
+  const grow = useRef(1);
+  const arrived = useRef<number | null>(null);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(() => () => pulled.material.dispose(), [pulled]);
@@ -137,24 +176,86 @@ export function PulledBook({
   }, [book, home, invalidate]);
 
   useLayoutEffect(() => {
-    progress.current = 0;
-    meshRef.current?.position.copy(home);
+    const mesh = meshRef.current;
+    grow.current = 1;
+    arrived.current = null;
+    if (!mesh) return;
+    mesh.position.copy(home);
+    mesh.quaternion.identity();
+    if (book) mesh.scale.set(book.t, book.h, book.d);
+    else mesh.scale.setScalar(0);
     invalidate();
   }, [bookId, meshRef, home, invalidate]);
+
+  useLayoutEffect(() => {
+    arrived.current = null;
+    invalidate();
+  }, [mode, invalidate]);
 
   useFrame((_, delta) => {
     const mesh = meshRef.current;
     if (!mesh || !book) return;
-    out
-      .set(book.x, book.y + book.h / 2, FRONT_Z)
-      .sub(camera.position)
-      .setLength(-PULL_DEPTH)
-      .add(home);
-    out.y += PULL_LIFT;
-    progress.current = Math.min(1, progress.current + delta * PULL_RATE);
-    const eased = 1 - (1 - progress.current) ** 3;
-    mesh.position.lerpVectors(home, out, eased);
-    if (progress.current < 1) invalidate();
+    let turn = UPRIGHT;
+    let scale = 1;
+    if (mode === 'home') {
+      target.copy(home);
+    } else if (mode === 'pull') {
+      target
+        .set(book.x, book.y + book.h / 2, FRONT_Z)
+        .sub(camera.position)
+        .setLength(-PULL_DEPTH)
+        .add(home);
+      target.y += PULL_LIFT;
+    } else {
+      const z = FRONT_Z + FLOAT_Z;
+      const heightPx = floatHeightPx(size);
+      scale =
+        heightPx / (book.h * pxPerUnitAt(pxPerUnit, camera.position.z, z));
+      const centre = floatCentre(
+        pointer.current,
+        { width: (heightPx * book.d) / book.h, height: heightPx },
+        size,
+      );
+      ray
+        .set(
+          (centre.x / size.width) * 2 - 1,
+          1 - (centre.y / size.height) * 2,
+          0.5,
+        )
+        .unproject(camera)
+        .sub(camera.position)
+        .normalize();
+      target
+        .copy(camera.position)
+        .addScaledVector(ray, (z - camera.position.z) / ray.z);
+      turn = FLOATING;
+    }
+    const k = approach(POSE_RATE, delta, instant);
+    mesh.position.lerp(target, k);
+    mesh.quaternion.slerp(turn, k);
+    grow.current += (scale - grow.current) * k;
+    const settled =
+      mesh.position.distanceToSquared(target) < SETTLED &&
+      mesh.quaternion.angleTo(turn) < SETTLED &&
+      Math.abs(scale - grow.current) < SETTLED;
+    if (settled) {
+      mesh.position.copy(target);
+      mesh.quaternion.copy(turn);
+      grow.current = scale;
+    }
+    mesh.scale.set(
+      book.t * grow.current,
+      book.h * grow.current,
+      book.d * grow.current,
+    );
+    if (!settled) {
+      invalidate();
+      return;
+    }
+    if (mode === 'home' && arrived.current !== book.book.id) {
+      arrived.current = book.book.id;
+      onHome(book.book.id);
+    }
   });
 
   return (
@@ -163,7 +264,8 @@ export function PulledBook({
       frustumCulled={false}
       geometry={geometry}
       material={pulled.material}
-      scale={book ? [book.t, book.h, book.d] : 0}
+      scale={0}
+      raycast={mode === 'home' ? NO_HIT : Mesh.prototype.raycast}
       onClick={(event) => {
         if (!book) return;
         event.stopPropagation();

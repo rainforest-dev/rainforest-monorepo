@@ -18,19 +18,23 @@ import { whenIdle } from './useRowAtlases';
 export interface CoverPrewarmArgs {
   layout: StudyLayout;
   focusId: number | null;
+  scrubbing: boolean;
   covers: CoverCache;
   kit: StudyKit;
   nextPageCoverIds: readonly number[];
   onPrewarmed: () => void;
 }
 
-function around(layout: StudyLayout, focusId: number | null): PlacedBook[] {
+const SCRUB_NEIGHBOURS = 2;
+
+function around(
+  layout: StudyLayout,
+  focusId: number | null,
+  reach = COVER_NEIGHBOURS,
+): PlacedBook[] {
   const centre =
     layout.books.find((placed) => placed.book.id === focusId)?.order ?? 0;
-  return layout.books.slice(
-    Math.max(0, centre - COVER_NEIGHBOURS),
-    centre + COVER_NEIGHBOURS + 1,
-  );
+  return layout.books.slice(Math.max(0, centre - reach), centre + reach + 1);
 }
 
 const IDLE_SLACK_MS = 4;
@@ -83,6 +87,7 @@ function ensureInIdle(
 export function useCoverPrewarm({
   layout,
   focusId,
+  scrubbing,
   covers,
   kit,
   nextPageCoverIds,
@@ -134,6 +139,13 @@ export function useCoverPrewarm({
     const handle = whenIdle(() => covers.prefetch(nextPageCoverIds));
     return () => handle.cancel();
   }, [prewarmed, covers, nextPageCoverIds]);
+
+  useEffect(() => {
+    if (!scrubbing || focusId === null) return;
+    for (const placed of around(layout, focusId, SCRUB_NEIGHBOURS)) {
+      covers.ensure(placed.book).catch(() => undefined);
+    }
+  }, [scrubbing, covers, layout, focusId]);
 
   useEffect(() => {
     if (prewarmed !== covers || focusId === null) return;

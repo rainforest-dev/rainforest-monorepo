@@ -512,6 +512,31 @@ The pull is now the same in every renderer:
   per animation frame). Lifting keeps the last book; `touchcancel` ends the scrub. A swipe that
   moves before the hold still scrolls (css) or pans (three). While scrubbing the camera does not
   follow focus, and the card shows a `primary` ring as feedback, since iOS has no vibration API.
+- Scrub cover-out (added 2026-10-06, owner: "I still want the book cover could be look on 3d").
+  While the finger is down, the book under it turns its front cover to the viewer and floats
+  above the shelf. Covering other books does not matter then, since nobody is tapping. The float
+  sits above the touch point with a 28px gap (below it when there is no room above), clamped
+  8px inside the canvas (three) or viewport (css), and its cover is 34% of that height, clamped
+  to 150 to 240px (`floatCentre`, `floatHeightPx` in `scene-math.ts`).
+  - three: the pulled-book mesh eases to a pose 1.6 units in front of the shelf, turned
+    `-π/2 + 0.32` so a sliver of spine shows, scaled to the target height
+    (`pxPerUnitAt`). Moving to another book swaps between two pulled-book carriers: the new
+    one turns out, the previous one eases back into its slot and is not hit-testable on the
+    way. Both carriers share one material graph, so the program count does not change. Shelf
+    labels fade while a book floats, because they are DOM above the canvas.
+    `data-floating-id` on the canvas wrapper and `floatingId` in the `?debug` probe name the
+    floating book. The cover cache ensures the pulled book ±2 immediately during a scrub, on
+    top of the idle ±4 prewarm.
+  - css: a CSS 3D book (front, back, spine, fore edge, top and bottom faces) in a fixed,
+    `pointer-events: none` layer, turned 24° so the spine shows, with a turn-out keyframe per
+    book. The slotted spine keeps its 12px pull. `[data-floating-cover]` names the book.
+  - Hit-testing still uses the slotted books' rects (three: projected slot bounds; css:
+    `elementFromPoint`, which skips the `pointer-events: none` float), so a scrub never sticks
+    on the enlarged book.
+  - Lifting eases the book back to the small pull and the card stays. A plain tap and the
+    keyboard never float.
+  - Reduced motion: the float pose is shown at once with no turn (three) and no keyframe (css);
+    after the scrub the reduced-motion highlight returns.
 - Keyboard and listbox semantics are unchanged: arrows move the pull, `Enter` opens the pane.
 
 ### Renderer selection and loading

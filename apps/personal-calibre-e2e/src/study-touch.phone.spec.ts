@@ -119,6 +119,92 @@ const overlaps = (a: Rect, b: Rect) =>
   a.top < b.top + b.height - 0.5 &&
   b.top < a.top + a.height - 0.5;
 
+const contains = (rect: Rect, point: Point) =>
+  point.x >= rect.left &&
+  point.x <= rect.left + rect.width &&
+  point.y >= rect.top &&
+  point.y <= rect.top + rect.height;
+
+async function floatingId(page: Page, run: StudyRun): Promise<string> {
+  if (run.renderer !== 'css') {
+    return (await canvasWrap(page).getAttribute('data-floating-id')) ?? '';
+  }
+  const ids = await page
+    .locator('[data-floating-cover]')
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute('data-book-id') ?? ''),
+    );
+  return ids.join(',');
+}
+
+function floatingRect(page: Page, run: StudyRun, id: number): Promise<Rect> {
+  return page.evaluate(
+    ({ id, three }) => {
+      if (three) {
+        const probe = (
+          window as Window & {
+            __calibreStudy?: { projectBook: (id: number) => Rect | null };
+          }
+        ).__calibreStudy;
+        const rect = probe?.projectBook(id);
+        if (!rect) throw new Error(`book ${id} is not on screen`);
+        return rect;
+      }
+      const element = document.querySelector(
+        `[data-floating-cover][data-book-id="${id}"] [data-face="front"]`,
+      );
+      if (!element) throw new Error(`no floating cover ${id}`);
+      const { left, top, width, height } = element.getBoundingClientRect();
+      return { left, top, width, height };
+    },
+    { id, three: run.renderer !== 'css' },
+  );
+}
+
+async function expectFloating(
+  page: Page,
+  run: StudyRun,
+  id: number,
+  finger: Point,
+) {
+  await expect.poll(() => floatingId(page, run)).toBe(`${id}`);
+  await expect
+    .poll(async () => {
+      const rect = await floatingRect(page, run, id);
+      return rect.width > 90 && rect.height > 140 && !contains(rect, finger);
+    })
+    .toBe(true);
+  if (run.renderer === 'css') {
+    await expect(
+      page.locator(`[data-floating-cover][data-book-id="${id}"]`),
+    ).toBeVisible();
+  }
+}
+
+async function expectClearOfOthers(page: Page, run: StudyRun, id: number) {
+  const ids = await optionIds(page);
+  const pulled = await frontRect(page, run, id);
+  const others = await Promise.all(
+    ids
+      .filter((other) => other !== id)
+      .slice(0, 12)
+      .map((other) => frontRect(page, run, other)),
+  );
+  for (const other of others) expect(overlaps(pulled, other)).toBe(false);
+  const headings = await page
+    .locator(
+      run.renderer === 'css' ? '[role="group"] h2' : '[data-shelf-label]',
+    )
+    .evaluateAll((elements) =>
+      elements.map((element) => {
+        const { left, top, width, height } = element.getBoundingClientRect();
+        return { left, top, width, height };
+      }),
+    );
+  expect(headings.length).toBeGreaterThan(0);
+  for (const heading of headings) expect(overlaps(pulled, heading)).toBe(false);
+}
+
 for (const run of [THREE, CSS]) {
   const name = run.renderer;
   test.describe(`Study ${name} touch on phone`, () => {
@@ -212,33 +298,27 @@ for (const run of [THREE, CSS]) {
     test('the pulled book covers no other book and no heading', async ({
       page,
     }) => {
-      const ids = await optionIds(page);
-      const a = ids[2];
+      const a = (await optionIds(page))[2];
       if (a === undefined) throw new Error('no book');
       await tapBook(page, run, a);
       await expectPulled(page, run, a);
       await page.waitForTimeout(600);
-      const pulled = await frontRect(page, run, a);
-      const others = await Promise.all(
-        ids
-          .filter((id) => id !== a)
-          .slice(0, 12)
-          .map((id) => frontRect(page, run, id)),
-      );
-      for (const other of others) expect(overlaps(pulled, other)).toBe(false);
-      const headings = await page
-        .locator(name === 'css' ? '[role="group"] h2' : '[data-shelf-label]')
-        .evaluateAll((elements) =>
-          elements.map((element) => {
-            const { left, top, width, height } =
-              element.getBoundingClientRect();
-            return { left, top, width, height };
-          }),
-        );
-      expect(headings.length).toBeGreaterThan(0);
-      for (const heading of headings) {
-        expect(overlaps(pulled, heading)).toBe(false);
-      }
+      await expectClearOfOthers(page, run, a);
+    });
+
+    test('a plain tap or the keyboard pulls without a cover-out', async ({
+      page,
+    }) => {
+      const [a] = (await optionIds(page)).slice(1, 2);
+      if (a === undefined) throw new Error('no book');
+      await tapBook(page, run, a);
+      await expectPulled(page, run, a);
+      await page.waitForTimeout(600);
+      expect(await floatingId(page, run)).toBe('');
+      await page.keyboard.press('ArrowRight');
+      await expect.poll(() => pulledId(page, run)).not.toBe(`${a}`);
+      await page.waitForTimeout(300);
+      expect(await floatingId(page, run)).toBe('');
     });
 
     test('long-press then slide scrubs and keeps the last book', async ({
@@ -258,18 +338,46 @@ for (const run of [THREE, CSS]) {
       await page.waitForTimeout(HOLD_MS);
       await expect(card(page)).toHaveAttribute('data-scrubbing', 'true');
       await expectPulled(page, run, a);
-      for (const to of [pb, pc]) {
+      await expectFloating(page, run, a, pa);
+      for (const [id, to] of [
+        [b, pb],
+        [c, pc],
+      ] as const) {
         await touch(cdp, 'touchMove', { x: to.x, y: to.y + 4 });
         await touch(cdp, 'touchMove', to);
-        await page.waitForTimeout(150);
+        await expectPulled(page, run, id);
+        await expectFloating(page, run, id, to);
+        expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
       }
-      await expectPulled(page, run, c);
       await touch(cdp, 'touchMove', { x: pc.x, y: pc.y - 400 });
       await touch(cdp, 'touchEnd');
       await expectPulled(page, run, c);
       await expect(card(page)).not.toHaveAttribute('data-scrubbing', 'true');
+      await expect.poll(() => floatingId(page, run)).toBe('');
       expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
       await expect(page).not.toHaveURL(/book=/);
+      await page.waitForTimeout(600);
+      await expectClearOfOthers(page, run, c);
+    });
+
+    test('with reduced motion a scrub shows the cover-out at once', async ({
+      page,
+    }) => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      const [a] = (await optionIds(page)).slice(1, 2);
+      if (a === undefined) throw new Error('no book');
+      const pa = centreOf(await frontRect(page, run, a));
+      const cdp = await page.context().newCDPSession(page);
+      await touch(cdp, 'touchStart', pa);
+      await page.waitForTimeout(HOLD_MS);
+      await expectFloating(page, run, a, pa);
+      if (run.renderer === 'css') {
+        await expect(
+          page.locator('[data-floating-cover] [data-css-book]'),
+        ).toHaveCSS('animation-name', 'none');
+      }
+      await touch(cdp, 'touchEnd');
+      await expect.poll(() => floatingId(page, run)).toBe('');
     });
   });
 }

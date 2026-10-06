@@ -24,6 +24,7 @@ export interface ShelfRowProps {
   tokens: Tokens;
   selected: ReadonlySet<number>;
   pulledId: number | null;
+  leavingId: number | null;
   highlightId: number | null;
   onPick: (bookId: number) => void;
   onHover: (hovering: boolean) => void;
@@ -57,6 +58,7 @@ export function ShelfRow({
   tokens,
   selected,
   pulledId,
+  leavingId,
   highlightId,
   onPick,
   onHover,
@@ -135,7 +137,7 @@ export function ShelfRow({
     const target = mesh.current;
     if (!target) return;
     books.forEach((placed, i) => {
-      if (placed.book.id === pulledId) {
+      if (placed.book.id === pulledId || placed.book.id === leavingId) {
         target.setMatrixAt(i, HIDDEN);
         return;
       }
@@ -148,7 +150,7 @@ export function ShelfRow({
     target.computeBoundingBox();
     target.computeBoundingSphere();
     invalidate();
-  }, [books, pulledId, count, invalidate]);
+  }, [books, pulledId, leavingId, count, invalidate]);
 
   const bookAt = (event: ThreeEvent<MouseEvent>) =>
     event.instanceId === undefined ? undefined : books[event.instanceId];

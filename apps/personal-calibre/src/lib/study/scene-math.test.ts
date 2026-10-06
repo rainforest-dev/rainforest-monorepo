@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { layoutShelves, ROW_H, type StudyLayout } from './layout';
 import { isCjk, spineDims, spineTone, type StudyShelf } from './model';
 import {
+  approach,
   ATLAS_PPU_FLOOR,
   ATLAS_PPU_LADDER,
   atlasBytesAt,
@@ -13,9 +14,15 @@ import {
   COVER_BYTES,
   COVER_CACHE_MAX,
   COVER_CACHE_MIN,
+  FLOAT_GAP_PX,
+  FLOAT_MARGIN_PX,
+  floatCentre,
+  floatHeightPx,
   focusTargetY,
+  nextCarry,
   pickAtlasPpu,
   projectBox,
+  pxPerUnitAt,
   REPORTED_TARGET_BUFFERS,
   rowsInView,
   screenRectOf,
@@ -408,5 +415,131 @@ describe('pickAtlasPpu', () => {
         targetBuffers: 2,
       }),
     ).toBe(10 * 5 * 4 * 4 * 2);
+  });
+});
+
+describe('floatHeightPx', () => {
+  it('scales with the viewport between a floor and a ceiling', () => {
+    expect(floatHeightPx({ width: 390, height: 590 })).toBeCloseTo(590 * 0.34);
+    expect(floatHeightPx({ width: 390, height: 300 })).toBe(150);
+    expect(floatHeightPx({ width: 1440, height: 900 })).toBe(240);
+  });
+
+  it('never exceeds the viewport minus its margins', () => {
+    expect(floatHeightPx({ width: 390, height: 120 })).toBe(
+      120 - 2 * FLOAT_MARGIN_PX,
+    );
+  });
+});
+
+describe('floatCentre', () => {
+  const viewport = { width: 390, height: 590 };
+  const size = { width: 130, height: 200 };
+
+  it('floats above the finger with a gap so the finger leaves the cover clear', () => {
+    const finger = { x: 200, y: 400 };
+    const centre = floatCentre(finger, size, viewport);
+    expect(centre.x).toBe(200);
+    expect(centre.y + size.height / 2).toBe(finger.y - FLOAT_GAP_PX);
+  });
+
+  it('drops below the finger when there is no room above', () => {
+    const finger = { x: 200, y: 120 };
+    const centre = floatCentre(finger, size, viewport);
+    expect(centre.y - size.height / 2).toBe(finger.y + FLOAT_GAP_PX);
+  });
+
+  it('clamps inside the viewport horizontally', () => {
+    expect(floatCentre({ x: 4, y: 400 }, size, viewport).x).toBe(
+      FLOAT_MARGIN_PX + size.width / 2,
+    );
+    expect(floatCentre({ x: 389, y: 400 }, size, viewport).x).toBe(
+      viewport.width - FLOAT_MARGIN_PX - size.width / 2,
+    );
+  });
+
+  it('stays inside vertically when neither side fits', () => {
+    const tall = { width: 130, height: 400 };
+    const centre = floatCentre({ x: 200, y: 300 }, tall, viewport);
+    expect(centre.y - tall.height / 2).toBeGreaterThanOrEqual(FLOAT_MARGIN_PX);
+    expect(centre.y + tall.height / 2).toBeLessThanOrEqual(
+      viewport.height - FLOAT_MARGIN_PX,
+    );
+  });
+
+  it('centres an item larger than the viewport', () => {
+    const huge = { width: 500, height: 700 };
+    expect(floatCentre({ x: 10, y: 10 }, huge, viewport)).toEqual({
+      x: viewport.width / 2,
+      y: viewport.height / 2,
+    });
+  });
+});
+
+describe('pxPerUnitAt', () => {
+  it('is the base scale on the z = 0 plane and grows toward the camera', () => {
+    expect(pxPerUnitAt(80, 14, 0)).toBe(80);
+    expect(pxPerUnitAt(80, 14, 7)).toBe(160);
+  });
+
+  it('is unbounded at or behind the camera', () => {
+    expect(pxPerUnitAt(80, 14, 14)).toBe(Infinity);
+  });
+});
+
+describe('approach', () => {
+  it('eases toward 1 with time and jumps when instant', () => {
+    expect(approach(10, 0)).toBe(0);
+    expect(approach(10, 0.1)).toBeCloseTo(1 - Math.exp(-1));
+    expect(approach(10, 0.016, true)).toBe(1);
+    expect(approach(10, -1)).toBe(0);
+  });
+});
+
+describe('nextCarry', () => {
+  const same = (a: string, b: string) => a === b;
+  const empty = { items: [null, null], active: 0 } as const;
+
+  it('pulls into the active slot', () => {
+    expect(nextCarry(empty, 'a', same, true)).toEqual({
+      items: ['a', null],
+      active: 0,
+    });
+  });
+
+  it('swaps slots and keeps the previous item leaving while scrubbing', () => {
+    const a = nextCarry(empty, 'a', same, true);
+    const b = nextCarry(a, 'b', same, true);
+    expect(b).toEqual({ items: ['a', 'b'], active: 1 });
+    const c = nextCarry(b, 'c', same, true);
+    expect(c).toEqual({ items: ['c', 'b'], active: 0 });
+  });
+
+  it('turns back to a leaving item in its own slot', () => {
+    const b = { items: ['a', 'b'], active: 1 } as const;
+    expect(nextCarry(b, 'a', same, true)).toEqual({
+      items: ['a', 'b'],
+      active: 0,
+    });
+  });
+
+  it('drops the leaving item when not scrubbing', () => {
+    const b = { items: ['a', 'b'], active: 1 } as const;
+    expect(nextCarry(b, 'c', same, false)).toEqual({
+      items: [null, 'c'],
+      active: 1,
+    });
+    expect(nextCarry(b, 'b', same, false)).toEqual({
+      items: [null, 'b'],
+      active: 1,
+    });
+  });
+
+  it('empties the active slot when nothing is pulled', () => {
+    const b = { items: ['a', 'b'], active: 1 } as const;
+    expect(nextCarry(b, null, same, false)).toEqual({
+      items: [null, null],
+      active: 1,
+    });
   });
 });

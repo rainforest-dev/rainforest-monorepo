@@ -8,6 +8,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import {
   BoxGeometry,
@@ -25,10 +26,12 @@ import {
   BOOK_GAP,
   cameraBounds,
   type CameraState,
+  type Carry,
   clampCameraY,
   focusTargetY,
   FRONT_Z,
   type NdcPoint,
+  nextCarry,
   type PlacedBook,
   projectBox,
   ROW_H,
@@ -42,7 +45,7 @@ import {
 import type { RowAtlas } from './atlas';
 import type { CoverCache } from './covers';
 import type { StudyKit } from './kit';
-import { PulledBook } from './PulledBook';
+import { PulledBook, type ScrubPointer } from './PulledBook';
 import { ShelfRow } from './ShelfRow';
 import { mixRgb, toColor, type Tokens } from './tokens';
 
@@ -69,6 +72,7 @@ export interface SceneProps {
   pulledId: number | null;
   scrubbing: boolean;
   hitTester: RefObject<ScrubHitTest | null>;
+  pointer: RefObject<ScrubPointer>;
   selected: ReadonlySet<number>;
   reducedMotion: boolean;
   pxPerUnit: number;
@@ -77,6 +81,7 @@ export interface SceneProps {
   projector: RefObject<BookProjector | null>;
   onPick: (bookId: number) => void;
   onPulled: (bookId: number | null) => void;
+  onFloating: (bookId: number | null) => void;
   onCamera: (state: CameraState) => void;
   onFocusRect: (rect: ScreenRect | null) => void;
   onLabels: (labels: readonly ProjectedLabel[]) => void;
@@ -95,6 +100,8 @@ const CORNER = new Vector3();
 const VIEW_PROJECTION = new Matrix4();
 const OVERLAY_PRIORITY = 0.5;
 const RECT_EPSILON = 0.25;
+const NO_CARRY: Carry<PlacedBook> = { items: [null, null], active: 0 };
+const sameBook = (a: PlacedBook, b: PlacedBook) => a.book.id === b.book.id;
 
 function boxCorners(matrix: Matrix4): Vec3[] {
   const corners: Vec3[] = [];
@@ -141,6 +148,7 @@ export function Scene({
   pulledId: pullId,
   scrubbing,
   hitTester,
+  pointer,
   selected,
   reducedMotion,
   pxPerUnit,
@@ -149,13 +157,15 @@ export function Scene({
   projector,
   onPick,
   onPulled,
+  onFloating,
   onCamera,
   onFocusRect,
   onLabels,
 }: SceneProps) {
   const { camera, size, gl, invalidate } = useThree();
   const boards = useRef<InstancedMesh>(null);
-  const pulledMesh = useRef<Mesh>(null);
+  const carrierA = useRef<Mesh>(null);
+  const carrierB = useRef<Mesh>(null);
   const boardGeometry = useMemo(() => new BoxGeometry(1, 1, 1), []);
   const rows = useMemo(() => rowsOf(layout), [layout]);
   const byId = useMemo(
@@ -164,9 +174,26 @@ export function Scene({
   );
   const focused = focusId === null ? undefined : byId.get(focusId);
   const pulling = pullId === null ? undefined : byId.get(pullId);
-  const pulled = reducedMotion ? null : (pulling ?? null);
+  const still = reducedMotion && !scrubbing;
+  const pulled = still ? null : (pulling ?? null);
   const pulledId = pulled?.book.id ?? null;
-  const highlightId = reducedMotion ? (pulling?.book.id ?? null) : null;
+  const highlightId = still ? (pulling?.book.id ?? null) : null;
+  const [carry, setCarry] = useState(NO_CARRY);
+  if (carry.items[carry.active] !== pulled) {
+    setCarry(nextCarry(carry, pulled, sameBook, scrubbing && !reducedMotion));
+  }
+  const leaving = carry.items[carry.active === 0 ? 1 : 0] ?? null;
+  const pulledMesh = carry.active === 0 ? carrierA : carrierB;
+  const onHome = useCallback((bookId: number) => {
+    setCarry((current) => {
+      const other = current.active === 0 ? 1 : 0;
+      if (current.items[other]?.book.id !== bookId) return current;
+      const items: Carry<PlacedBook>['items'] =
+        other === 0 ? [null, current.items[1]] : [current.items[0], null];
+      return { items, active: current.active };
+    });
+  }, []);
+  const floatingId = scrubbing ? pulledId : null;
 
   const panel = useMemo(
     () => kit.materials.surface(toColor(tokens.muted)),
@@ -184,6 +211,10 @@ export function Scene({
   useEffect(() => () => board.dispose(), [board]);
 
   useEffect(() => onPulled(pulledId), [pulledId, onPulled]);
+  useEffect(() => onFloating(floatingId), [floatingId, onFloating]);
+  useLayoutEffect(() => {
+    pointer.current.invalidate = invalidate;
+  }, [pointer, invalidate]);
 
   useLayoutEffect(() => {
     const mesh = boards.current;
@@ -338,7 +369,7 @@ export function Scene({
     return () => {
       projector.current = null;
     };
-  }, [projector, byId, pulledId, camera, gl]);
+  }, [projector, byId, pulledId, pulledMesh, camera, gl]);
 
   useEffect(() => {
     const toScreen = (x: number, y: number, viewport: DOMRect) => {
@@ -453,21 +484,33 @@ export function Scene({
           tokens={tokens}
           selected={selected}
           pulledId={pulledId}
+          leavingId={leaving?.book.id ?? null}
           highlightId={highlightId}
           onPick={onPick}
           onHover={onHover}
         />
       ))}
-      <PulledBook
-        book={pulled}
-        atlas={pulled ? atlases.get(pulled.row) : undefined}
-        kit={kit}
-        tokens={tokens}
-        covers={covers}
-        meshRef={pulledMesh}
-        onPick={onPick}
-        onHover={onHover}
-      />
+      {([0, 1] as const).map((slot) => {
+        const book = carry.items[slot] ?? null;
+        return (
+          <PulledBook
+            key={slot}
+            book={book}
+            mode={slot !== carry.active ? 'home' : scrubbing ? 'float' : 'pull'}
+            instant={reducedMotion}
+            pointer={pointer}
+            pxPerUnit={pxPerUnit}
+            onHome={onHome}
+            atlas={book ? atlases.get(book.row) : undefined}
+            kit={kit}
+            tokens={tokens}
+            covers={covers}
+            meshRef={slot === 0 ? carrierA : carrierB}
+            onPick={onPick}
+            onHover={onHover}
+          />
+        );
+      })}
     </>
   );
 }

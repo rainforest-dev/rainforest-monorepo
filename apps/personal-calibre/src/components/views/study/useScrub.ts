@@ -12,14 +12,16 @@ export function useScrub({
   hitTest,
   onPull,
   onScrubbing,
+  onMove,
 }: {
   surfaceRef: RefObject<HTMLElement | null>;
   hitTest: ScrubHitTest;
   onPull: (bookId: number) => void;
   onScrubbing: (scrubbing: boolean) => void;
+  onMove?: (clientX: number, clientY: number) => void;
 }): void {
-  const latest = useRef({ hitTest, onPull, onScrubbing });
-  latest.current = { hitTest, onPull, onScrubbing };
+  const latest = useRef({ hitTest, onPull, onScrubbing, onMove });
+  latest.current = { hitTest, onPull, onScrubbing, onMove };
 
   useEffect(() => {
     const surface = surfaceRef.current;
@@ -33,6 +35,7 @@ export function useScrub({
 
     const pullAtPoint = () => {
       frame = 0;
+      latest.current.onMove?.(point.x, point.y);
       const id = latest.current.hitTest(point.x, point.y);
       if (id === null || id === lastId) return;
       lastId = id;
