@@ -14,6 +14,7 @@ import {
 import { PCFShadowMap } from 'three';
 
 import type { StudyRendererProps } from '@/components/views/study/StudyListbox';
+import { type ScrubHitTest, useScrub } from '@/components/views/study/useScrub';
 import { useIsDesktop } from '@/hooks';
 import {
   atlasBytesAt,
@@ -205,6 +206,7 @@ export default function ThreeStudy({
   focusId,
   reducedMotion,
   nav,
+  pull,
   onBackend,
   onStartFailed,
   onNavItems,
@@ -244,7 +246,8 @@ export default function ThreeStudy({
     camera: null,
     prewarmedAt: null,
     renderMs: [],
-    projectBook: (bookId) => projector.current?.(bookId) ?? null,
+    projectBook: (bookId) => projector.current?.(bookId, 'box') ?? null,
+    projectFront: (bookId) => projector.current?.(bookId, 'front') ?? null,
     info: () => {
       const renderer = gl.current;
       const loaded = kitRef.current;
@@ -360,14 +363,18 @@ export default function ThreeStudy({
   }, [layout, onNavItems]);
 
   const { containerRef } = nav;
+  const { activate, isPulled, dismiss, pullAt, setScrubbing } = pull;
   const onPick = useCallback(
-    (bookId: number) => {
-      containerRef.current
-        ?.querySelector<HTMLElement>(`[data-book-id="${bookId}"]`)
-        ?.focus({ preventScroll: true, focusVisible: false });
-    },
-    [containerRef],
+    (bookId: number) => activate(bookId, isPulled(bookId)),
+    [activate, isPulled],
   );
+  const hitTester = useRef<ScrubHitTest | null>(null);
+  useScrub({
+    surfaceRef: wrap,
+    hitTest: (x, y) => hitTester.current?.(x, y) ?? null,
+    onPull: pullAt,
+    onScrubbing: setScrubbing,
+  });
   const onPulled = useCallback((bookId: number | null) => {
     probe.current.pulledId = bookId;
     setPulledId(bookId);
@@ -453,6 +460,7 @@ export default function ThreeStudy({
           camera={CAMERA}
           shadows={SHADOWS}
           flat={kit.flat}
+          onPointerMissed={dismiss}
           aria-hidden="true"
         >
           <FrameDriver onFrame={onFrame} />
@@ -470,6 +478,9 @@ export default function ThreeStudy({
             tokens={tokens}
             kit={kit}
             focusId={focusId}
+            pulledId={pull.pulledId}
+            scrubbing={pull.scrubbing}
+            hitTester={hitTester}
             selected={selected}
             reducedMotion={reducedMotion}
             pxPerUnit={pxPerUnit}

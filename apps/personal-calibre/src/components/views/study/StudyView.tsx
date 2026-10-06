@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion, useRovingNav } from '@/hooks';
 import {
   buildStudyModel,
+  cn,
   contentKey,
   isThreeRenderer,
   parseLibraryParams,
@@ -18,11 +19,13 @@ import type { LibraryEntry } from '@/types';
 
 import { canStartThree } from './capabilities';
 import { CssStudy } from './css/CssStudy';
+import { StudyCard } from './StudyCard';
 import { StudyListbox, type StudyRendererProps } from './StudyListbox';
 import { type StudyOptionState, useStudyOptionProps } from './StudyOption';
 import { StudySkeleton } from './StudySkeleton';
 import { LoadThreeStudy } from './three/loadThreeStudy';
 import { ThreeStudyBoundary } from './three/ThreeStudyBoundary';
+import { useStudyPull } from './useStudyPull';
 
 export interface StudyViewProps {
   entries: LibraryEntry[];
@@ -45,7 +48,7 @@ function ThreeHost({
 }: ThreeHostProps) {
   const { fallBackToCss, setBackend } = useLibrary();
   const [capable, setCapable] = useState(false);
-  const optionProps = useStudyOptionProps(props.nav);
+  const optionProps = useStudyOptionProps(props.nav, props.pull);
 
   useEffect(() => {
     if (canStartThree()) setCapable(true);
@@ -89,7 +92,7 @@ export function StudyView({
   page,
   nextPageCoverIds,
 }: StudyViewProps) {
-  const { selected, focusId, renderer, backend } = useLibrary();
+  const { selected, focusId, renderer, backend, openBook } = useLibrary();
   const three = isThreeRenderer(renderer);
   const key = contentKey(entries);
   const model = useMemo(
@@ -115,12 +118,20 @@ export function StudyView({
   });
   const openId = parseLibraryParams(useSearchParams()).book;
   const reducedMotion = useReducedMotion();
+  const pull = useStudyPull({
+    navKeys,
+    containerRef: nav.containerRef,
+    scrollOnStep: !three,
+  });
+  const books = model.shelves.flatMap((shelf) => shelf.books);
+  const pulledIndex = books.findIndex((book) => book.id === pull.pulledId);
   const options = model.shelves.flatMap((shelf) =>
     shelf.books.map((book): StudyOptionState => ({
       book,
       shelfKey: shelf.key,
       selected: selected.has(book.id),
       open: openId === book.id,
+      pulled: pull.pulledId === book.id,
       tabIndex: book.navKey === nav.stopKey ? 0 : -1,
     })),
   );
@@ -131,6 +142,7 @@ export function StudyView({
     focusId,
     reducedMotion,
     nav,
+    pull,
   };
 
   return (
@@ -138,7 +150,14 @@ export function StudyView({
       data-study-ready={!three || backend !== null || undefined}
       data-renderer={renderer}
       data-backend={three ? undefined : 'css'}
-      className={three ? 'relative' : undefined}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && openId === null) pull.dismiss();
+      }}
+      // iOS Safari opens its callout and selects text on a long press, which would hijack the scrub.
+      className={cn(
+        'select-none [-webkit-touch-callout:none]',
+        three && 'relative',
+      )}
     >
       {three ? (
         <ThreeHost
@@ -150,6 +169,14 @@ export function StudyView({
       ) : (
         <CssStudy {...rendererProps} />
       )}
+      <StudyCard
+        book={books[pulledIndex] ?? null}
+        hasPrevious={pulledIndex > 0}
+        hasNext={pulledIndex >= 0 && pulledIndex < books.length - 1}
+        scrubbing={pull.scrubbing}
+        onStep={pull.step}
+        onOpen={openBook}
+      />
     </div>
   );
 }

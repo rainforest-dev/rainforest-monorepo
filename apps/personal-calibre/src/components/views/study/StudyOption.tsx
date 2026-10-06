@@ -1,16 +1,18 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 import type { useRovingNav } from '@/hooks';
 import type { StudyBook } from '@/lib';
-import { useLibrary } from '@/providers';
+
+import type { StudyPull } from './useStudyPull';
 
 export interface StudyOptionState {
   book: StudyBook;
   shelfKey: string;
   selected: boolean;
   open: boolean;
+  pulled: boolean;
   tabIndex: 0 | -1;
 }
 
@@ -28,14 +30,17 @@ export interface StudyOptionAttributes {
   lang: 'zh-Hant' | undefined;
   tabIndex: 0 | -1;
   onFocus: () => void;
+  onPointerDown: () => void;
   onClick: () => void;
 }
 
 export function useStudyOptionProps(
   nav: StudyNav,
+  pull: StudyPull,
 ): (state: StudyOptionState) => StudyOptionAttributes {
-  const { selectMode, toggle, openBook } = useLibrary();
   const { onItemFocus } = nav;
+  const { isPulled, activate, onOptionFocus } = pull;
+  const pressed = useRef<{ id: number; wasPulled: boolean } | null>(null);
   return useCallback(
     ({ book, shelfKey, selected, open, tabIndex }) => ({
       role: 'option',
@@ -48,9 +53,22 @@ export function useStudyOptionProps(
       'data-selected': selected || undefined,
       lang: book.cjk ? 'zh-Hant' : undefined,
       tabIndex,
-      onFocus: () => onItemFocus(book.navKey),
-      onClick: () => (selectMode ? toggle(book.id) : openBook(book.id)),
+      onFocus: () => {
+        onItemFocus(book.navKey);
+        onOptionFocus();
+      },
+      onPointerDown: () => {
+        pressed.current = { id: book.id, wasPulled: isPulled(book.id) };
+      },
+      onClick: () => {
+        const press = pressed.current;
+        pressed.current = null;
+        activate(
+          book.id,
+          press?.id === book.id ? press.wasPulled : isPulled(book.id),
+        );
+      },
     }),
-    [onItemFocus, openBook, selectMode, toggle],
+    [onItemFocus, onOptionFocus, isPulled, activate],
   );
 }

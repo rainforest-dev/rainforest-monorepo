@@ -254,17 +254,24 @@ test.describe('Study', () => {
     expect(await orientation(48)).toBe('sideways');
   });
 
-  test('the cover face shows the fixture cover on focus only', async ({
+  test('the card shows the pulled book with its fixture cover', async ({
     page,
   }) => {
     await gotoStudy(page, CSS);
-    const book = option(page, 7);
-    const cover = book.locator('img[src="/api/books/7/cover"]');
-    await expect(cover).toHaveCount(0);
-    await book.focus();
-    await expect(cover).toHaveCount(1);
+    const card = page.getByRole('region', { name: 'Pulled book' });
+    await expect(card).toHaveCount(0);
+    await option(page, 7).focus();
+    await expect(option(page, 7)).toHaveAttribute('data-pulled', 'true');
+    await expect(card.locator('img')).toHaveAttribute(
+      'src',
+      '/api/books/7/cover',
+    );
+    await expect(option(page, 7).locator('img, [data-cover-face]')).toHaveCount(
+      0,
+    );
     await studyOptions(page).first().focus();
-    await expect(cover).toHaveCount(0);
+    await expect(option(page, 7)).not.toHaveAttribute('data-pulled', 'true');
+    await expect(card.locator('img')).toHaveCount(0);
   });
 });
 

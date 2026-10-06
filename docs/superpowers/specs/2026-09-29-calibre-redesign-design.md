@@ -206,8 +206,8 @@ Measured against the current app:
   delivered platforms, joined), not from array identity, so an RSC refresh that returns equal
   data never rebuilds a Study atlas or loses scroll position.
 - **P15. Spines.** Spine thickness and height come from the book id, as in the prototype and the
-  spike. Spine colour is `chart-(id % 5 + 1)` mixed with `muted`. The Study cover face shows the
-  real cover (`/api/books/[id]/cover`) when there is one, else the spine colour with the title.
+  spike. Spine colour is `chart-(id % 5 + 1)` mixed with `muted`. The Study card shows the real
+  cover (`/api/books/[id]/cover`) when there is one, else the spine colour.
 - **P16. Vertical titles.** Latin titles get `text-orientation: sideways` so curly quotes and
   apostrophes rotate with the rest of the line (review.md risk). Titles matching the spike's CJK
   test keep `upright`.
@@ -488,7 +488,31 @@ behave the same in every renderer. The pager sits under the Study region as in t
 
 - `css`: the options are the visible spines.
 - `three-*`: the options are visually hidden (`sr-only`) `div`s over the canvas; the canvas is
-  `aria-hidden="true"`. A pointer pick focuses the matching option, so there is one focus path.
+  `aria-hidden="true"`. A pointer pick goes through the matching option, so there is one focus path.
+
+#### Pull and the Study card (revised 2026-10-06)
+
+Tested on an iPhone, the first pull (the book turned to face out, enlarged, cover forward) covered
+its neighbours and the shelf below, so they could not be tapped, and a tap never opened the pane.
+The pull is now the same in every renderer:
+
+- Pulling slides the book a little out of its slot toward the viewer (three: 0.5 units along the
+  camera ray plus a 0.12 unit lift; css: 12px up). It does not turn or grow, and covers no other
+  book and no heading.
+- The pulled book is the focused book unless it was put back. Tapping a book pulls it; tapping
+  another switches directly; tapping the pulled book opens the pane (in Select mode a tap toggles
+  selection). Tapping empty space or `Esc` (when the pane is closed) puts it back.
+- A card docked at the bottom of the Study area (`sticky`) shows the pulled book: cover
+  thumbnail, title, authors, `Open details`, and `Previous book` / `Next book` buttons; a
+  horizontal swipe on the card steps the same way, in reading order, moving the pull with it. The
+  card is a region named `Pulled book`; a polite live region announces the title and authors when
+  the pull changes.
+- Scrub: on touch, holding a book for 400 ms starts scrubbing; while the finger stays down the
+  book under it is pulled and the card follows (hit-tested against the books' screen rects, once
+  per animation frame). Lifting keeps the last book; `touchcancel` ends the scrub. A swipe that
+  moves before the hold still scrolls (css) or pans (three). While scrubbing the camera does not
+  follow focus, and the card shows a `primary` ring as feedback, since iOS has no vibration API.
+- Keyboard and listbox semantics are unchanged: arrows move the pull, `Enter` opens the pane.
 
 ### Renderer selection and loading
 
@@ -587,7 +611,10 @@ Fixes for the spike's open items (decision 4), for every three.js renderer:
 3. **Shelf headings.** DOM labels (`{label}` and `{count} books`, `text-sm`), `aria-hidden` (the
    DOM layer has the real headings), positioned by projecting each group's first book's top left
    corner on camera change. A group that wraps onto a new row, or continues from the previous
-   page, repeats its label in `text-muted-foreground` with `(continued)`.
+   page, repeats its label in `text-muted-foreground` with `(continued)`. The layout reserves each
+   heading's measured width, so the next group on the row starts after it (or wraps), and each
+   label is capped to the room before the next one and ellipsizes its name: headings never
+   overlap.
 4. **Per-shelf atlas.** One CanvasTexture per row (row width × `ROW_H`, 160 px per unit), bound
    to that row's `InstancedMesh`. Rows inside the frustum are drawn first, synchronously before
    the first frame; the rest in `requestIdleCallback` batches, nearest row first. A row without
@@ -610,15 +637,10 @@ Dependencies (phase 2), pinned as in the spike: `three` 0.186.1, `@react-three/f
 
 As the prototype: a grid of bays (`auto-fill, minmax(300px, 1fr)`, one per shelf,
 `align-items: end`), each a `muted` gradient back panel, a horizontally scrolling row of spines,
-and a board (`foreground` 16% into `muted`). Each spine slot has `perspective: 900px`; on hover
-or focus the book lifts 14px, moves `translateZ(40px)` and turns `rotateY(-52deg)` to show the
-cover, which is hinged on the spine's right edge at `rotateY(90deg)`. Changes from the prototype,
-from review.md:
+and a board (`foreground` 16% into `muted`). The pulled spine (`data-pulled`) slides 12px up;
+there is no cover face (see Pull and the Study card). Changes from the prototype, from review.md:
 
 - Bays use `content-visibility: auto` with `contain-intrinsic-size: auto 300px`.
-- `will-change: transform` only on the hovered or focused slot.
-- The cover face mounts only on hover or focus.
-- Rows get `padding-inline-end` of one cover width, so the last book's cover is not clipped.
 - Phone: one bay per row, spines at 0.82 scale, horizontal scroll.
 - Reduced motion: no transform; the spine brightens and the focus ring and bar stay.
 

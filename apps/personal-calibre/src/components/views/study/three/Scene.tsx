@@ -20,7 +20,9 @@ import {
   Vector3,
 } from 'three';
 
+import type { ScrubHitTest } from '@/components/views/study/useScrub';
 import {
+  BOOK_GAP,
   cameraBounds,
   type CameraState,
   clampCameraY,
@@ -44,7 +46,10 @@ import { PulledBook } from './PulledBook';
 import { ShelfRow } from './ShelfRow';
 import { mixRgb, toColor, type Tokens } from './tokens';
 
-export type BookProjector = (bookId: number) => ScreenRect | null;
+export type BookProjector = (
+  bookId: number,
+  face: 'box' | 'front',
+) => ScreenRect | null;
 
 export interface ProjectedLabel {
   shelfKey: string;
@@ -61,6 +66,9 @@ export interface SceneProps {
   tokens: Tokens;
   kit: StudyKit;
   focusId: number | null;
+  pulledId: number | null;
+  scrubbing: boolean;
+  hitTester: RefObject<ScrubHitTest | null>;
   selected: ReadonlySet<number>;
   reducedMotion: boolean;
   pxPerUnit: number;
@@ -130,6 +138,9 @@ export function Scene({
   tokens,
   kit,
   focusId,
+  pulledId: pullId,
+  scrubbing,
+  hitTester,
   selected,
   reducedMotion,
   pxPerUnit,
@@ -152,9 +163,10 @@ export function Scene({
     [layout],
   );
   const focused = focusId === null ? undefined : byId.get(focusId);
-  const pulled = reducedMotion ? null : (focused ?? null);
+  const pulling = pullId === null ? undefined : byId.get(pullId);
+  const pulled = reducedMotion ? null : (pulling ?? null);
   const pulledId = pulled?.book.id ?? null;
-  const highlightId = reducedMotion ? (focused?.book.id ?? null) : null;
+  const highlightId = reducedMotion ? (pulling?.book.id ?? null) : null;
 
   const panel = useMemo(
     () => kit.materials.surface(toColor(tokens.muted)),
@@ -201,12 +213,17 @@ export function Scene({
   const targetY = useRef(0);
   const reported = useRef<number | null>(null);
 
+  const scrubbingRef = useRef(scrubbing);
+  scrubbingRef.current = scrubbing;
+
   useLayoutEffect(() => {
     boundsRef.current = bounds;
-    targetY.current = clampCameraY(
-      focusTargetY(layout, focused?.row ?? 0),
-      bounds,
-    );
+    if (!scrubbingRef.current || cameraY.current === null) {
+      targetY.current = clampCameraY(
+        focusTargetY(layout, focused?.row ?? 0),
+        bounds,
+      );
+    }
     if (cameraY.current === null || reducedMotion) {
       cameraY.current = targetY.current;
     } else {
@@ -295,7 +312,7 @@ export function Scene({
   useEffect(() => () => onHover(false), [onHover]);
 
   useEffect(() => {
-    projector.current = (bookId) => {
+    projector.current = (bookId, face) => {
       const placed = byId.get(bookId);
       if (!placed) return null;
       camera.updateMatrixWorld();
@@ -310,7 +327,7 @@ export function Scene({
       const points: NdcPoint[] = [];
       for (const x of [-0.5, 0.5]) {
         for (const y of [-0.5, 0.5]) {
-          for (const z of [-0.5, 0.5]) {
+          for (const z of face === 'front' ? [0.5] : [-0.5, 0.5]) {
             CORNER.set(x, y, z).applyMatrix4(matrix).project(camera);
             points.push([CORNER.x, CORNER.y]);
           }
@@ -322,6 +339,35 @@ export function Scene({
       projector.current = null;
     };
   }, [projector, byId, pulledId, camera, gl]);
+
+  useEffect(() => {
+    const toScreen = (x: number, y: number, viewport: DOMRect) => {
+      CORNER.set(x, y, FRONT_Z).project(camera);
+      return {
+        x: viewport.left + ((CORNER.x + 1) / 2) * viewport.width,
+        y: viewport.top + ((1 - CORNER.y) / 2) * viewport.height,
+      };
+    };
+    hitTester.current = (clientX, clientY) => {
+      camera.updateMatrixWorld();
+      const viewport = gl.domElement.getBoundingClientRect();
+      const row = rows.findIndex((_, r) => {
+        const top = toScreen(0, (1 - r) * ROW_H, viewport).y;
+        const bottom = toScreen(0, -r * ROW_H, viewport).y;
+        return clientY >= top && clientY < bottom;
+      });
+      const hit = rows[row]?.find((placed) => {
+        const half = placed.t / 2 + BOOK_GAP / 2;
+        const left = toScreen(placed.x - half, 0, viewport).x;
+        const right = toScreen(placed.x + half, 0, viewport).x;
+        return clientX >= left && clientX < right;
+      });
+      return hit?.book.id ?? null;
+    };
+    return () => {
+      hitTester.current = null;
+    };
+  }, [hitTester, rows, camera, gl]);
 
   const reportedRect = useRef<ScreenRect | null | undefined>(undefined);
   const reportedLabels = useRef('');
@@ -415,7 +461,6 @@ export function Scene({
       <PulledBook
         book={pulled}
         atlas={pulled ? atlases.get(pulled.row) : undefined}
-        width={layout.width}
         kit={kit}
         tokens={tokens}
         covers={covers}

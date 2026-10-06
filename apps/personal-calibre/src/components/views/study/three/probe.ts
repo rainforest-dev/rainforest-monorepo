@@ -12,6 +12,7 @@ export interface StudyProbe {
   renderMs: number[];
   info: () => StudyProbeInfo;
   projectBook: (bookId: number) => ScreenRect | null;
+  projectFront: (bookId: number) => ScreenRect | null;
 }
 
 export interface StudyProbeInfo {
