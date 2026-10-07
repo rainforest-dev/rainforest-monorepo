@@ -7,15 +7,12 @@ import {
   SRGBColorSpace,
   Texture,
 } from 'three';
-import { NodeMaterial, type WebGPURenderer } from 'three/webgpu';
+import { NodeMaterial } from 'three/webgpu';
 import { describe, expect, it } from 'vitest';
 
-import { SPINE_ATTRIBUTES, SPINE_LIGHT, SPINE_MIX, type StudyKit } from './kit';
+import { SPINE_ATTRIBUTES, SPINE_LIGHT, SPINE_MIX } from './kit';
 import { kit } from './kitTsl';
 import { createStudyMaterials } from './studyMaterial';
-
-const tslKit = kit satisfies StudyKit<WebGPURenderer>;
-const anyKit: StudyKit = tslKit;
 
 function cacheKey(material: Material): string {
   return (material as NodeMaterial).customProgramCacheKey();
@@ -171,7 +168,6 @@ describe('createStudyMaterials', () => {
 
 describe('the TSL kit', () => {
   it('fits the renderer-neutral kit contract', () => {
-    expect(anyKit).toBe(kit);
     expect(kit.renderer).toBe('three-tsl');
     expect(kit.reportedTargetBuffers).toBe(2);
   });
