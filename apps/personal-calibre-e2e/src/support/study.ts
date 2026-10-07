@@ -1,12 +1,21 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
 export type StudyRun =
-  { renderer: 'css' } | { renderer: 'three-tsl'; backend: 'webgpu' | 'webgl2' };
+  | { renderer: 'css' }
+  | { renderer: 'three-tsl'; backend: 'webgpu' | 'webgl2' }
+  | { renderer: 'three-glsl'; backend: 'webgl2' };
+export type ThreeRun = Exclude<StudyRun, { renderer: 'css' }>;
 
 export const STUDY_RUNS: readonly StudyRun[] = [
   { renderer: 'three-tsl', backend: 'webgpu' },
   { renderer: 'three-tsl', backend: 'webgl2' },
   { renderer: 'css' },
+];
+
+export const THREE_RUNS: readonly ThreeRun[] = [
+  { renderer: 'three-tsl', backend: 'webgpu' },
+  { renderer: 'three-tsl', backend: 'webgl2' },
+  { renderer: 'three-glsl', backend: 'webgl2' },
 ];
 
 const STUDY_READY_MS = 15_000;
@@ -22,8 +31,8 @@ export function runName(run: StudyRun): string {
 }
 
 const PROJECT_RUNS: Readonly<Record<string, readonly string[]>> = {
-  chromium: ['css', 'three-tsl-webgl2'],
-  'study-webgpu': ['three-tsl-webgpu'],
+  chromium: ['css', 'three-tsl-webgl2', 'three-glsl-webgl2'],
+  'study-webgpu': ['three-tsl-webgpu', 'three-glsl-webgl2'],
 };
 
 export function runsOn(project: string, run: StudyRun): boolean {

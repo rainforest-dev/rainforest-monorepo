@@ -17,7 +17,7 @@ import {
 import { useLibrary } from '@/providers';
 import type { LibraryEntry } from '@/types';
 
-import { canStartThree } from './capabilities';
+import { canStartRenderer } from './capabilities';
 import { CssStudy } from './css/CssStudy';
 import { InspectDialog } from './InspectDialog';
 import { StudyCard } from './StudyCard';
@@ -53,9 +53,9 @@ function ThreeHost({
   const optionProps = useStudyOptionProps(props.nav, props.pull);
 
   useEffect(() => {
-    if (canStartThree()) setCapable(true);
+    if (canStartRenderer(renderer)) setCapable(true);
     else fallBackToCss();
-  }, [fallBackToCss]);
+  }, [renderer, fallBackToCss]);
   useEffect(() => () => setBackend(null), [renderer, setBackend]);
 
   return (

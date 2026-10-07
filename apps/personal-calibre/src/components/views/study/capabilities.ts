@@ -1,3 +1,5 @@
+import type { ThreeRenderer } from '@/lib';
+
 export function hasWebGpuApi(): boolean {
   return (
     typeof navigator !== 'undefined' &&
@@ -15,6 +17,11 @@ export function canUseWebGL2(): boolean {
   }
 }
 
-export function canStartThree(): boolean {
-  return hasWebGpuApi() || canUseWebGL2();
+export function canStartRenderer(renderer: ThreeRenderer): boolean {
+  switch (renderer) {
+    case 'three-tsl':
+      return hasWebGpuApi() || canUseWebGL2();
+    case 'three-glsl':
+      return canUseWebGL2();
+  }
 }

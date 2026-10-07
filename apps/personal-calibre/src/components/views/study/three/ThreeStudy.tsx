@@ -104,7 +104,7 @@ function loadKit(renderer: ThreeRenderer): Promise<StudyKit> {
     case 'three-tsl':
       return import('./kitTsl').then((module) => module.kit);
     case 'three-glsl':
-      return Promise.reject(new Error('three-glsl is not available yet'));
+      return import('./kitGlsl').then((module) => module.kit);
   }
 }
 
