@@ -1,7 +1,7 @@
 'use client';
 
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 import type { Camera, Object3D, Scene } from 'three';
 
 import {
@@ -22,6 +22,7 @@ export interface CoverPrewarmArgs {
   covers: CoverCache;
   kit: StudyKit;
   nextPageCoverIds: readonly number[];
+  compiling: RefObject<Promise<void> | null>;
   onPrewarmed: () => void;
 }
 
@@ -91,6 +92,7 @@ export function useCoverPrewarm({
   covers,
   kit,
   nextPageCoverIds,
+  compiling,
   onPrewarmed,
 }: CoverPrewarmArgs): void {
   const { gl, scene, camera } = useThree();
@@ -122,6 +124,7 @@ export function useCoverPrewarm({
           ? Promise.resolve()
           : compileEveryRow(kit, gl, scene, camera);
       compiled.current = layout;
+      compiling.current = compile;
       Promise.allSettled([loads, compile]).then(() => {
         if (!live) return;
         setPrewarmed(covers);
@@ -132,7 +135,7 @@ export function useCoverPrewarm({
       live = false;
       handle.cancel();
     };
-  }, [framed, layout, covers, kit, gl, scene, camera, onPrewarmed]);
+  }, [framed, layout, covers, kit, gl, scene, camera, compiling, onPrewarmed]);
 
   useEffect(() => {
     if (prewarmed !== covers) return;

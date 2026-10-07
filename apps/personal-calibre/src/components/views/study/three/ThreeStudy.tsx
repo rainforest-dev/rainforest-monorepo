@@ -158,6 +158,7 @@ function AtlasScene({
   ...scene
 }: AtlasSceneProps) {
   const maxAnisotropy = useThree((state) => scene.kit.maxAnisotropy(state.gl));
+  const compiling = useRef<Promise<void> | null>(null);
   const atlases = useRowAtlases({
     layout: scene.layout,
     layoutKey,
@@ -165,6 +166,7 @@ function AtlasScene({
     visibleRows,
     maxAnisotropy,
     ppu: pick.ppu,
+    compiling,
   });
   useEffect(() => {
     onAtlases({ atlases, at: performance.now() });
@@ -176,6 +178,7 @@ function AtlasScene({
     covers: scene.covers,
     kit: scene.kit,
     nextPageCoverIds,
+    compiling,
     onPrewarmed,
   });
   return <Scene {...scene} atlases={atlases} />;

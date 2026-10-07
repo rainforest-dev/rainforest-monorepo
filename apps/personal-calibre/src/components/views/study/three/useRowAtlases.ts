@@ -1,7 +1,7 @@
 'use client';
 
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import { atlasOrder, type AtlasPpu, booksInRow, type StudyLayout } from '@/lib';
 
@@ -15,6 +15,7 @@ export interface RowAtlasesArgs {
   visibleRows: readonly number[];
   maxAnisotropy: number;
   ppu: AtlasPpu;
+  compiling: RefObject<Promise<void> | null>;
 }
 
 interface AtlasSet {
@@ -51,6 +52,7 @@ export function useRowAtlases({
   visibleRows,
   maxAnisotropy,
   ppu,
+  compiling,
 }: RowAtlasesArgs): ReadonlyMap<number, RowAtlas> {
   const set = useMemo<AtlasSet>(() => {
     const build = (row: number) =>
@@ -108,9 +110,15 @@ export function useRowAtlases({
 
   useEffect(
     () => () => {
-      for (const atlas of set.atlases.values()) atlas.texture.dispose();
+      const textures = [...set.atlases.values()].map((atlas) => atlas.texture);
+      const dispose = () => {
+        for (const texture of textures) texture.dispose();
+      };
+      dispose();
+      // compileAsync binds textures after it yields, so an in-flight compile re-uploads an atlas disposed here.
+      compiling.current?.then(dispose, dispose);
     },
-    [set],
+    [set, compiling],
   );
 
   return current.atlases;
