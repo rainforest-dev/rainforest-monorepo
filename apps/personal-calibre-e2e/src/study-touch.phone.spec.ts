@@ -5,15 +5,17 @@ import {
   collectConsole,
   gotoStudy,
   prepareRun,
+  runName,
   shelves,
   studyOptions,
   type StudyRun,
+  THREE_RUNS,
 } from './support/study';
 
 type Rect = { left: number; top: number; width: number; height: number };
 type Point = { x: number; y: number };
 
-const THREE: StudyRun = { renderer: 'three-tsl', backend: 'webgl2' };
+const WEBGL2_RUNS = THREE_RUNS.filter((run) => run.backend === 'webgl2');
 const CSS: StudyRun = { renderer: 'css' };
 const HOLD_MS = 600;
 
@@ -205,9 +207,8 @@ async function expectClearOfOthers(page: Page, run: StudyRun, id: number) {
   for (const heading of headings) expect(overlaps(pulled, heading)).toBe(false);
 }
 
-for (const run of [THREE, CSS]) {
-  const name = run.renderer;
-  test.describe(`Study ${name} touch on phone`, () => {
+for (const run of [...WEBGL2_RUNS, CSS]) {
+  test.describe(`Study ${runName(run)} touch on phone`, () => {
     test.beforeEach(async ({ page }) => {
       await prepareRun(page, run);
       await gotoStudy(page, run, 'debug=1');
@@ -403,32 +404,34 @@ test('a quick swipe scrolls the css study and does not scrub', async ({
   await expect(card(page)).toHaveCount(0);
 });
 
-test('a quick swipe pans the three study and does not scrub', async ({
-  page,
-}) => {
-  await prepareRun(page, THREE);
-  await gotoStudy(page, THREE, 'debug=1');
-  const box = await canvasWrap(page).boundingBox();
-  if (!box) throw new Error('no canvas');
-  const cameraY = () =>
-    page.evaluate(
-      () =>
-        (
-          window as Window & {
-            __calibreStudy?: { camera: { y: number } | null };
-          }
-        ).__calibreStudy?.camera?.y ?? null,
-    );
-  const before = await cameraY();
-  const cdp = await page.context().newCDPSession(page);
-  const x = box.x + box.width / 2;
-  const y = box.y + box.height * 0.6;
-  await touch(cdp, 'touchStart', { x, y });
-  for (let step = 1; step <= 8; step += 1) {
-    await touch(cdp, 'touchMove', { x, y: y - step * 30 });
-  }
-  await touch(cdp, 'touchEnd');
-  await expect.poll(cameraY).not.toBe(before);
-  await expect(canvasWrap(page)).toHaveAttribute('data-pulled-id', '');
-  await expect(card(page)).toHaveCount(0);
-});
+for (const run of WEBGL2_RUNS) {
+  test(`a quick swipe pans the ${runName(run)} study and does not scrub`, async ({
+    page,
+  }) => {
+    await prepareRun(page, run);
+    await gotoStudy(page, run, 'debug=1');
+    const box = await canvasWrap(page).boundingBox();
+    if (!box) throw new Error('no canvas');
+    const cameraY = () =>
+      page.evaluate(
+        () =>
+          (
+            window as Window & {
+              __calibreStudy?: { camera: { y: number } | null };
+            }
+          ).__calibreStudy?.camera?.y ?? null,
+      );
+    const before = await cameraY();
+    const cdp = await page.context().newCDPSession(page);
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height * 0.6;
+    await touch(cdp, 'touchStart', { x, y });
+    for (let step = 1; step <= 8; step += 1) {
+      await touch(cdp, 'touchMove', { x, y: y - step * 30 });
+    }
+    await touch(cdp, 'touchEnd');
+    await expect.poll(cameraY).not.toBe(before);
+    await expect(canvasWrap(page)).toHaveAttribute('data-pulled-id', '');
+    await expect(card(page)).toHaveCount(0);
+  });
+}
