@@ -7,7 +7,7 @@ export const ENABLED_RENDERERS: readonly Renderer[] = ['three-tsl', 'css'];
 export const PREVIEW_RENDERERS: readonly Renderer[] = [];
 
 export const RENDERER_LABELS: Record<Renderer, string> = {
-  'three-tsl': 'three.js · WebGPU',
+  'three-tsl': 'three.js · TSL',
   css: 'CSS',
   'three-glsl': 'three.js · GLSL',
 };
@@ -43,6 +43,15 @@ const BACKEND_NAMES: Record<Exclude<StudyBackend, 'css'>, string> = {
   webgpu: 'WebGPU',
   webgl2: 'WebGL2',
 };
+
+export function rendererLabel(
+  renderer: Renderer,
+  backend: StudyBackend | null,
+): string {
+  const label = RENDERER_LABELS[renderer];
+  if (renderer === 'css' || backend === null || backend === 'css') return label;
+  return `${label} · ${BACKEND_NAMES[backend]}`;
+}
 
 export function backendLabel(
   renderer: Renderer,

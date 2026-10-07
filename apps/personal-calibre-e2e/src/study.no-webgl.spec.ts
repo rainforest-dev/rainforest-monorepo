@@ -90,9 +90,9 @@ test.describe('Study without WebGL or WebGPU', () => {
       'data-renderer',
       'css',
     );
-    await expect(
-      page.getByRole('combobox', { name: 'Renderer' }),
-    ).toContainText('CSS');
+    const trigger = page.getByRole('combobox', { name: 'Renderer' });
+    await expect(trigger).toContainText('CSS');
+    await expect(trigger).not.toContainText('three.js');
     expect((await readPrefs(context))?.['renderer']).toBe('three-tsl');
   });
 

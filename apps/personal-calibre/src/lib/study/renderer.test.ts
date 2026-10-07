@@ -9,6 +9,7 @@ import {
   pickRenderer,
   PREVIEW_RENDERERS,
   RENDERER_LABELS,
+  rendererLabel,
 } from './renderer';
 
 const FINAL = { enabled: ['three-tsl', 'css'], preview: [] } as const;
@@ -166,10 +167,34 @@ describe('isThreeRenderer', () => {
 describe('labels', () => {
   it('names each renderer for the select', () => {
     expect(RENDERER_LABELS).toEqual({
-      'three-tsl': 'three.js · WebGPU',
+      'three-tsl': 'three.js · TSL',
       css: 'CSS',
       'three-glsl': 'three.js · GLSL',
     });
+  });
+
+  it('appends the live backend to the select trigger', () => {
+    const cases = [
+      ['three-tsl', 'webgpu', 'three.js · TSL · WebGPU'],
+      ['three-tsl', 'webgl2', 'three.js · TSL · WebGL2'],
+      ['three-tsl', 'css', 'three.js · TSL'],
+      ['three-tsl', null, 'three.js · TSL'],
+      ['three-glsl', 'webgpu', 'three.js · GLSL · WebGPU'],
+      ['three-glsl', 'webgl2', 'three.js · GLSL · WebGL2'],
+      ['three-glsl', 'css', 'three.js · GLSL'],
+      ['three-glsl', null, 'three.js · GLSL'],
+      ['css', 'webgpu', 'CSS'],
+      ['css', 'webgl2', 'CSS'],
+      ['css', 'css', 'CSS'],
+      ['css', null, 'CSS'],
+    ] as const;
+    for (const [renderer, backend, label] of cases) {
+      expect(rendererLabel(renderer, backend)).toBe(label);
+    }
+  });
+
+  it('never names WebGPU while three-tsl runs on WebGL2', () => {
+    expect(rendererLabel('three-tsl', 'webgl2')).not.toContain('WebGPU');
   });
 
   it('names the renderer and backend for the debug badge', () => {
