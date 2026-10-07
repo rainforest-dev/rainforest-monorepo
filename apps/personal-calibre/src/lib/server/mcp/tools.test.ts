@@ -91,7 +91,7 @@ describe('calibre MCP tools', () => {
       expect(tool.annotations).toEqual(expected.annotations);
       expect(Object.keys(tool.input)).toEqual(expected.input);
       const required = Object.entries(tool.input)
-        .filter(([, schema]) => !schema.safeParse(undefined).success)
+        .filter(([, schema]) => !z.safeParse(schema, undefined).success)
         .map(([key]) => key);
       expect(required).toEqual(expected.required);
     },
