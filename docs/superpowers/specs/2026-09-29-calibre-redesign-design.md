@@ -741,27 +741,29 @@ is not used for timing). "Sweep" is the spike's 40-step keyboard sweep at 150 ms
 Study budgets are measured at `?__pageSize=250` on the large fixture (P22), the spike's load, so
 a normal 30-book page has headroom.
 
-| Measure                             | `three-tsl` WebGPU (spike) | `three-tsl` WebGL2 fallback (spike) | `css`          | `three-glsl` (spike)                       |
-| ----------------------------------- | -------------------------- | ----------------------------------- | -------------- | ------------------------------------------ |
-| Extra JS, gzip, lazy                | ≤ 450 KB (443.2)           | same chunk                          | 0              | re-measure in phase 3 Task 6 (spike 253.4) |
-| three.js in first load of any route | none                       | none                                | none           | none                                       |
-| rAF median / p95, sweep             | 16.7 / ≤ 20 ms (16.6/18.7) | 16.7 / ≤ 20 ms (16.7/18.7)          | 16.7 / ≤ 20 ms | 16.7 / ≤ 20 ms (16.7/18.6)                 |
-| Dropped frames per sweep            | ≤ 10 (2)                   | ≤ 10 (3)                            | ≤ 10           | ≤ 10 (3)                                   |
-| Long tasks during sweep             | 0                          | 0                                   | 0              | 0                                          |
-| `init()`, desktop                   | ≤ 20 ms (12.1)             | ≤ 20 ms (7.4)                       | n/a            | n/a                                        |
-| First render call, desktop          | ≤ 60 ms (42)               | ≤ 350 ms (327)                      | n/a            | ≤ 60 ms (35)                               |
-| Mount → first frame, desktop        | ≤ 300 ms (513)             | ≤ 600 ms (842)                      | n/a            | ≤ 200 ms (300)                             |
-| Render CPU max after prewarm        | ≤ 25 ms (4.8)              | ≤ 25 ms (19.1)                      | n/a            | ≤ 25 ms (23.8)                             |
-| Program count growth during sweep   | 0                          | 0                                   | n/a            | 0                                          |
-| Draw calls                          | ≤ rows + 6                 | ≤ rows + 6                          | n/a            | ≤ rows + 6                                 |
-| Texture memory                      | ≤ 50 MB reported (90.5)    | ≤ 50 MB reported (90.5)             | n/a            | ≤ 50 MiB est. (~35)                        |
+| Measure                             | `three-tsl` WebGPU (spike) | `three-tsl` WebGL2 fallback (spike) | `css`          | `three-glsl` (spike)       |
+| ----------------------------------- | -------------------------- | ----------------------------------- | -------------- | -------------------------- |
+| Extra JS, gzip, lazy                | ≤ 450 KB (443.2)           | same chunk                          | 0              | ≤ 260 KB (252.9)           |
+| three.js in first load of any route | none                       | none                                | none           | none                       |
+| rAF median / p95, sweep             | 16.7 / ≤ 20 ms (16.6/18.7) | 16.7 / ≤ 20 ms (16.7/18.7)          | 16.7 / ≤ 20 ms | 16.7 / ≤ 20 ms (16.7/18.6) |
+| Dropped frames per sweep            | ≤ 10 (2)                   | ≤ 10 (3)                            | ≤ 10           | ≤ 10 (3)                   |
+| Long tasks during sweep             | 0                          | 0                                   | 0              | 0                          |
+| `init()`, desktop                   | ≤ 20 ms (12.1)             | ≤ 20 ms (7.4)                       | n/a            | n/a                        |
+| First render call, desktop          | ≤ 60 ms (42)               | ≤ 350 ms (327)                      | n/a            | ≤ 60 ms (35)               |
+| Mount → first frame, desktop        | ≤ 300 ms (513)             | ≤ 600 ms (842)                      | n/a            | ≤ 200 ms (300)             |
+| Render CPU max after prewarm        | ≤ 25 ms (4.8)              | ≤ 25 ms (19.1)                      | n/a            | ≤ 25 ms (23.8)             |
+| Program count growth during sweep   | 0                          | 0                                   | n/a            | 0                          |
+| Draw calls                          | ≤ rows + 6                 | ≤ rows + 6                          | n/a            | ≤ rows + 6                 |
+| Texture memory                      | ≤ 50 MB reported (90.5)    | ≤ 50 MB reported (90.5)             | n/a            | ≤ 50 MiB est. (~35)        |
 
 The first-frame targets are below the spike's numbers because the spike spent 300 to 500 ms
 drawing the whole 250-spine atlas before its first frame, and the per-shelf atlas draws only the
 visible rows first. The phone-emulation budgets are the same except texture memory (≤ 30 MB, an
-estimate for `three-glsl` as for desktop). The `three-glsl` lazy JS budget dates from the spike,
-before the shared scene, scrub, cover-out and inspect code grew the base chunk; phase 3 Task 6
-measures it and writes the re-baselined number here.
+estimate for `three-glsl` as for desktop). The `three-glsl` lazy JS budget was re-baselined in
+phase 3 Task 6, after the shared scene, scrub, cover-out and inspect code grew the base chunk:
+252.9 KB gzip in each of three builds (the spike measured 253.4), rounded up to 260 KB. The GLSL
+kit's own chunk is 1.9 KB; the rest is three.js core, fiber and the shared Study chunk, which
+`three-tsl` loads too (437.7 KB on the same builds).
 
 Phase 1 budgets, on the large fixture at the normal page size:
 

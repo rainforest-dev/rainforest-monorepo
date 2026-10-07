@@ -53,11 +53,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         launchOptions: { args: ['--enable-unsafe-swiftshader'] },
       },
-      testIgnore: [
-        /\.phone\.spec\.ts$/,
-        /\.no-webgl\.spec\.ts$/,
-        /\/study-parity\.spec\.ts$/,
-      ],
+      testIgnore: [/\.phone\.spec\.ts$/, /\.no-webgl\.spec\.ts$/],
     },
     {
       name: 'phone',
