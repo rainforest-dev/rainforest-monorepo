@@ -308,26 +308,32 @@ export const DEFAULT_PHOTOS_LIBRARY = join(
   'Photos Library.photoslibrary',
 );
 
-if (import.meta.main) {
-  const env = process.env;
+type Io = { out: Log; err: Log };
+
+export async function main(
+  args: string[],
+  env: Record<string, string | undefined>,
+  { out, err }: Io = { out: console.log, err: console.error },
+): Promise<number> {
   const root = env['MEMORIES_DATA_DIR'];
   if (!root) {
-    console.error(
+    err(
       'MEMORIES_DATA_DIR is not set; point it at the data root outside the repository.',
     );
-    process.exit(2);
+    return 2;
   }
   const { values } = parseArgs({
+    args,
     options: {
       'dry-run': { type: 'boolean' },
       only: { type: 'string' },
     },
   });
   if (values.only !== undefined && !['line', 'photos'].includes(values.only)) {
-    console.error('--only takes line or photos');
-    process.exit(2);
+    err('--only takes line or photos');
+    return 2;
   }
-  const log: Log = (line) => console.log(`${new Date().toISOString()} ${line}`);
+  const log: Log = (line) => out(`${new Date().toISOString()} ${line}`);
   const command = env['MEMORIES_PHOTOS_CMD'];
   const options: AutoImportOptions = {
     dropDir: env['MEMORIES_DROP_DIR'] || DEFAULT_DROP_DIR,
@@ -336,7 +342,7 @@ if (import.meta.main) {
       library: env['MEMORIES_PHOTOS_LIBRARY'] || DEFAULT_PHOTOS_LIBRARY,
       exporter: commandExporter(command ? [command] : OSXPHOTOS, log),
     },
-    embedder: embedderFromEnv(),
+    embedder: embedderFromEnv(env),
     log,
   };
   if (values.only) options.only = values.only as 'line' | 'photos';
@@ -345,5 +351,9 @@ if (import.meta.main) {
   if (env['MEMORIES_IMPORT_WEBHOOK'])
     options.webhook = env['MEMORIES_IMPORT_WEBHOOK'];
   const { status } = await runAutoImport(root, options);
-  if (status === 'failed') process.exitCode = 1;
+  return status === 'failed' ? 1 : 0;
+}
+
+if (import.meta.main) {
+  process.exitCode = await main(process.argv.slice(2), process.env);
 }

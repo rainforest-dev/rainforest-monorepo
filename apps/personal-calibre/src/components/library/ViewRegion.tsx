@@ -2,8 +2,13 @@
 
 import { useEffect } from 'react';
 
-import { CatalogueView, ShelfView } from '@/components/views';
-import { cn, type GroupBy, VIEW_LABELS } from '@/lib';
+import {
+  CatalogueView,
+  ShelfView,
+  StudySkeleton,
+  StudyView,
+} from '@/components/views';
+import { cn, type GroupBy, isStudyGroupBy, VIEW_LABELS } from '@/lib';
 import { useLibrary } from '@/providers';
 import type { DeliveryPlatform, LibraryResult } from '@/types';
 
@@ -35,6 +40,17 @@ export function ViewRegion({ library, groupBy, platforms, filtered }: Props) {
     >
       {entries.length === 0 ? (
         <EmptyResult filtered={filtered} />
+      ) : view === 'study' ? (
+        isStudyGroupBy(groupBy) ? (
+          <StudyView
+            entries={entries}
+            groupBy={groupBy}
+            page={page}
+            nextPageCoverIds={library.nextPageCoverIds}
+          />
+        ) : (
+          <StudySkeleton />
+        )
       ) : view === 'catalogue' ? (
         <CatalogueView
           entries={entries}

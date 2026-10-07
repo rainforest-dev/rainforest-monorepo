@@ -1,0 +1,629 @@
+{
+  "model": "qwen3:14b",
+  "records": {
+    "experience/en/2": {
+      "hash": "e1d4714bad769cc8",
+      "terms": [
+        "JavaScript",
+        "前端",
+        "後端",
+        "框架",
+        "應用程式",
+        "開發工具",
+        "版本控制",
+        "雲端"
+      ]
+    },
+    "experience/en/4": {
+      "hash": "edbce7df66569c49",
+      "terms": [
+        "前端",
+        "JavaScript",
+        "框架",
+        "component",
+        "組件",
+        "UI",
+        "介面",
+        "SPA"
+      ]
+    },
+    "experience/en/5": {
+      "hash": "d172b55986f52717",
+      "terms": [
+        "frontend",
+        "前端",
+        "mobile",
+        "移動應用",
+        "framework",
+        "框架",
+        "application",
+        "應用程式"
+      ]
+    },
+    "experience/en/6": {
+      "hash": "8707fe303dfecb0b",
+      "terms": [
+        "UI",
+        "component",
+        "testing",
+        "JavaScript",
+        "框架",
+        "驗證",
+        "設計"
+      ]
+    },
+    "experience/en/7": {
+      "hash": "b41efee646213844",
+      "terms": [
+        "框架",
+        "authentication",
+        "工具鏈",
+        "testing",
+        "後端",
+        "容器化",
+        "Infrastructure"
+      ]
+    },
+    "experience/zh/2": {
+      "hash": "dc41634361a85cab",
+      "terms": [
+        "前端",
+        "後端",
+        "框架",
+        "應用程式",
+        "開發工具",
+        "用戶界面",
+        "移動應用",
+        "資料處理"
+      ]
+    },
+    "experience/zh/4": {
+      "hash": "c7d7151b59d34b67",
+      "terms": [
+        "前端",
+        "實習",
+        "JavaScript",
+        "框架",
+        "開發經驗",
+        "網頁",
+        "技術",
+        "實習生"
+      ]
+    },
+    "experience/zh/5": {
+      "hash": "490bbbb9d0868237",
+      "terms": [
+        "前端",
+        "後端",
+        "JavaScript",
+        "跨平台",
+        "應用程式",
+        "框架",
+        "UI設計",
+        "資料庫"
+      ]
+    },
+    "experience/zh/6": {
+      "hash": "cad95d52209b6241",
+      "terms": [
+        "前端框架",
+        "UI庫",
+        "測試工具",
+        "身份驗證",
+        "元件庫",
+        "網頁開發",
+        "自動化測試",
+        "JavaScript庫"
+      ]
+    },
+    "experience/zh/7": {
+      "hash": "df2564e7731fb522",
+      "terms": [
+        "前端框架",
+        "身份驗證",
+        "模組化開發",
+        "自動化測試",
+        "後端整合",
+        "容器化",
+        "Infrastructure as Code"
+      ]
+    },
+    "post/en/deconstruct-personal-website/project-init": {
+      "hash": "29ca57df4585e98d",
+      "terms": [
+        "portfolio",
+        "靜態網站",
+        "前端框架",
+        "模組化開發",
+        "網站構建",
+        "網站架構",
+        "網站設計",
+        "網站優化"
+      ]
+    },
+    "post/en/deconstruct-personal-website/theming": {
+      "hash": "e50815a9f74327e0",
+      "terms": [
+        "utility-first",
+        "component-library",
+        "design-system",
+        "responsive-layout",
+        "tailwind-configuration",
+        "material-colors",
+        "css-framework",
+        "astro-components"
+      ]
+    },
+    "post/en/quick-posts/keyboard-enter": {
+      "hash": "822df04dd6cb61ba",
+      "terms": [
+        "keyboard navigation",
+        "user experience",
+        "accessibility standards",
+        "界面設計",
+        "鍵盤操作",
+        "可訪問性"
+      ]
+    },
+    "post/en/quick-posts/skeleton": {
+      "hash": "2ff567b87dcbd43a",
+      "terms": [
+        "loading",
+        "UI component",
+        "前端元件",
+        "performance",
+        "頁面加載",
+        "CSS framework",
+        "響應式設計"
+      ]
+    },
+    "post/en/quick-posts/tailwindcss-lit": {
+      "hash": "1e45fcd7fa732228",
+      "terms": [
+        "utility class",
+        "Web Components",
+        "CSS framework",
+        "前端框架",
+        "高效開發",
+        "元件庫",
+        "前端技術",
+        "模組化"
+      ]
+    },
+    "post/en/quick-posts/weather-forecast": {
+      "hash": "ed71b5cb68a468c0",
+      "terms": ["天氣", "元件", "tailwind", "前端"]
+    },
+    "post/web-ai": {
+      "hash": "c8ff318445f37166",
+      "terms": [
+        "machine learning",
+        "深度學習",
+        "neural network",
+        "神經網絡",
+        "web assembly",
+        "網頁組件",
+        "cloud computing",
+        "雲端計算"
+      ]
+    },
+    "project/en/hashgreen-dex": {
+      "hash": "2d537cd2fcffcab1",
+      "terms": [
+        "decentralized",
+        "去中心化",
+        "交易",
+        "frontend",
+        "前端",
+        "blockchain",
+        "區塊鏈"
+      ]
+    },
+    "project/en/hashgreen-swap": {
+      "hash": "15e137617229b412",
+      "terms": [
+        "frontend",
+        "UI",
+        "testing",
+        "JavaScript",
+        "component",
+        "framework",
+        "utility",
+        "tooling"
+      ]
+    },
+    "project/en/hoogii-wallet": {
+      "hash": "b0bf65b2d3330166",
+      "terms": [
+        "frontend",
+        "前端",
+        "錢包",
+        "application",
+        "應用程式",
+        "framework",
+        "框架",
+        "UI library"
+      ]
+    },
+    "project/en/opencgt": {
+      "hash": "1e2ee400dabc1514",
+      "terms": [
+        "frontend",
+        "後端",
+        "authentication",
+        "測試",
+        "component",
+        "框架",
+        "UI library",
+        "開發工具"
+      ]
+    },
+    "project/zh/hashgreen-dex": {
+      "hash": "2d537cd2fcffcab1",
+      "terms": [
+        "decentralized",
+        "去中心化",
+        "交易",
+        "frontend",
+        "前端",
+        "blockchain",
+        "區塊鏈"
+      ]
+    },
+    "project/zh/hashgreen-swap": {
+      "hash": "15e137617229b412",
+      "terms": [
+        "frontend",
+        "UI",
+        "testing",
+        "JavaScript",
+        "component",
+        "framework",
+        "utility",
+        "tooling"
+      ]
+    },
+    "project/zh/hoogii-wallet": {
+      "hash": "b0bf65b2d3330166",
+      "terms": [
+        "frontend",
+        "前端",
+        "錢包",
+        "application",
+        "應用程式",
+        "framework",
+        "框架",
+        "UI library"
+      ]
+    },
+    "project/zh/opencgt": {
+      "hash": "1e2ee400dabc1514",
+      "terms": [
+        "frontend",
+        "後端",
+        "authentication",
+        "測試",
+        "component",
+        "框架",
+        "UI library",
+        "開發工具"
+      ]
+    },
+    "skill/en/docker": {
+      "hash": "11513337a8c46686",
+      "terms": [
+        "container",
+        "容器",
+        "image",
+        "映像",
+        "orchestration",
+        "編排",
+        "virtualization",
+        "虛擬化"
+      ]
+    },
+    "skill/en/express": {
+      "hash": "9550cd3db16e3253",
+      "terms": [
+        "Node.js",
+        "REST",
+        "API",
+        "路由",
+        "模組",
+        "中間件",
+        "JSON",
+        "伺服器"
+      ]
+    },
+    "skill/en/fastapi": {
+      "hash": "9a7939a12dc65264",
+      "terms": ["API", "REST", "Python", "異步", "性能", "框架", "路由", "請求"]
+    },
+    "skill/en/flutter": {
+      "hash": "e17414d149fcbed9",
+      "terms": [
+        "mobile",
+        "跨平台",
+        "UI",
+        "框架",
+        "Dart",
+        "應用程式",
+        "前端開發",
+        "用戶界面"
+      ]
+    },
+    "skill/en/github-actions": {
+      "hash": "f7649da6378d1836",
+      "terms": [
+        "CI/CD",
+        "自動化",
+        "工作流程",
+        "持續整合",
+        "持續部署",
+        "腳本",
+        "建置",
+        "測試"
+      ]
+    },
+    "skill/en/nextjs": {
+      "hash": "c3e211f68342ac8b",
+      "terms": [
+        "React",
+        "JavaScript",
+        "前端框架",
+        "SPA",
+        "服務端渲染",
+        "靜態生成",
+        "SEO",
+        "應用程式"
+      ]
+    },
+    "skill/en/nodejs": {
+      "hash": "349c959fab4708ea",
+      "terms": [
+        "JavaScript",
+        "後端",
+        "異步",
+        "模塊",
+        "NPM",
+        "服務器",
+        "API",
+        "Express"
+      ]
+    },
+    "skill/en/nx": {
+      "hash": "a5dab58f3756d7ed",
+      "terms": [
+        "模組化",
+        "workspace",
+        "專案管理",
+        "依賴管理",
+        "構建工具",
+        "多專案",
+        "模組"
+      ]
+    },
+    "skill/en/python": {
+      "hash": "c61abfd947e158af",
+      "terms": [
+        "scripting",
+        "數據處理",
+        "機器學習",
+        "自動化",
+        "資料分析",
+        "模塊化",
+        "異步處理",
+        "數據科學"
+      ]
+    },
+    "skill/en/terraform": {
+      "hash": "a1475531a18ccd54",
+      "terms": [
+        "infrastructure",
+        "自動化",
+        "cloud",
+        "雲端",
+        "configuration",
+        "設定",
+        "provisioning",
+        "佈建"
+      ]
+    },
+    "skill/en/ts": {
+      "hash": "63309ba9a617f51c",
+      "terms": [
+        "JavaScript",
+        "ES6",
+        "編程",
+        "類型檢查",
+        "前端開發",
+        "靜態類型",
+        "模塊系統"
+      ]
+    },
+    "skill/en/vite": {
+      "hash": "d576cb35926e8227",
+      "terms": [
+        "build tool",
+        "前端工具",
+        "JavaScript",
+        "模組化",
+        "熱更新",
+        "開發環境",
+        "性能優化",
+        "靜態資源"
+      ]
+    },
+    "skill/en/vue": {
+      "hash": "b895b6b18891fadc",
+      "terms": [
+        "JavaScript",
+        "前端框架",
+        "響應式設計",
+        "組件化開發",
+        "虛擬 DOM",
+        "單頁應用",
+        "SPA",
+        "前端庫"
+      ]
+    },
+    "skill/zh/docker": {
+      "hash": "11513337a8c46686",
+      "terms": [
+        "container",
+        "容器",
+        "image",
+        "映像",
+        "orchestration",
+        "編排",
+        "virtualization",
+        "虛擬化"
+      ]
+    },
+    "skill/zh/express": {
+      "hash": "9550cd3db16e3253",
+      "terms": [
+        "Node.js",
+        "REST",
+        "API",
+        "路由",
+        "模組",
+        "中間件",
+        "JSON",
+        "伺服器"
+      ]
+    },
+    "skill/zh/fastapi": {
+      "hash": "9a7939a12dc65264",
+      "terms": ["API", "REST", "Python", "異步", "性能", "框架", "路由", "請求"]
+    },
+    "skill/zh/flutter": {
+      "hash": "e17414d149fcbed9",
+      "terms": [
+        "mobile",
+        "跨平台",
+        "UI",
+        "框架",
+        "Dart",
+        "應用程式",
+        "前端開發",
+        "用戶界面"
+      ]
+    },
+    "skill/zh/github-actions": {
+      "hash": "f7649da6378d1836",
+      "terms": [
+        "CI/CD",
+        "自動化",
+        "工作流程",
+        "持續整合",
+        "持續部署",
+        "腳本",
+        "建置",
+        "測試"
+      ]
+    },
+    "skill/zh/nextjs": {
+      "hash": "c3e211f68342ac8b",
+      "terms": [
+        "React",
+        "JavaScript",
+        "前端框架",
+        "SPA",
+        "服務端渲染",
+        "靜態生成",
+        "SEO",
+        "應用程式"
+      ]
+    },
+    "skill/zh/nodejs": {
+      "hash": "349c959fab4708ea",
+      "terms": [
+        "JavaScript",
+        "後端",
+        "異步",
+        "模塊",
+        "NPM",
+        "服務器",
+        "API",
+        "Express"
+      ]
+    },
+    "skill/zh/nx": {
+      "hash": "a5dab58f3756d7ed",
+      "terms": [
+        "模組化",
+        "workspace",
+        "專案管理",
+        "依賴管理",
+        "構建工具",
+        "多專案",
+        "模組"
+      ]
+    },
+    "skill/zh/python": {
+      "hash": "c61abfd947e158af",
+      "terms": [
+        "scripting",
+        "數據處理",
+        "機器學習",
+        "自動化",
+        "資料分析",
+        "模塊化",
+        "異步處理",
+        "數據科學"
+      ]
+    },
+    "skill/zh/terraform": {
+      "hash": "a1475531a18ccd54",
+      "terms": [
+        "infrastructure",
+        "自動化",
+        "cloud",
+        "雲端",
+        "configuration",
+        "設定",
+        "provisioning",
+        "佈建"
+      ]
+    },
+    "skill/zh/ts": {
+      "hash": "63309ba9a617f51c",
+      "terms": [
+        "JavaScript",
+        "ES6",
+        "編程",
+        "類型檢查",
+        "前端開發",
+        "靜態類型",
+        "模塊系統"
+      ]
+    },
+    "skill/zh/vite": {
+      "hash": "d576cb35926e8227",
+      "terms": [
+        "build tool",
+        "前端工具",
+        "JavaScript",
+        "模組化",
+        "熱更新",
+        "開發環境",
+        "性能優化",
+        "靜態資源"
+      ]
+    },
+    "skill/zh/vue": {
+      "hash": "b895b6b18891fadc",
+      "terms": [
+        "JavaScript",
+        "前端框架",
+        "響應式設計",
+        "組件化開發",
+        "虛擬 DOM",
+        "單頁應用",
+        "SPA",
+        "前端庫"
+      ]
+    }
+  }
+}

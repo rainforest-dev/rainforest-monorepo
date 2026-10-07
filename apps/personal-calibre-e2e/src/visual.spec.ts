@@ -2,6 +2,8 @@ import path from 'node:path';
 
 import { expect, type Page, test } from '@playwright/test';
 
+import { COVER_IDS } from './support/seed';
+
 const PHASE = process.env['CALIBRE_VISUAL'];
 const OUT = path.join(__dirname, '..', 'test-output', 'visual');
 const SCHEMES = ['light', 'dark'] as const;
@@ -15,8 +17,67 @@ interface Surface {
   url: string;
   afterOnly?: true;
   phoneOnly?: true;
+  viewportOnly?: true;
+  init?: (page: Page) => Promise<void>;
   act?: (page: Page, phone: boolean) => Promise<void>;
 }
+
+const STUDY = '/?view=study&groupBy=series';
+
+const studyReady = async (page: Page) => {
+  await expect(page.locator('[data-study-ready]')).toHaveCount(1);
+  const canvas = page.locator('[data-study-canvas]');
+  if ((await canvas.count()) > 0) {
+    await expect(canvas).toHaveAttribute('data-backend', /webgpu|webgl2/);
+  }
+};
+
+const withoutWebGpu = async (page: Page) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'gpu', {
+      get: () => undefined,
+      configurable: true,
+    });
+  });
+};
+
+const studyOptions = (page: Page) =>
+  page.getByRole('listbox', { name: 'Bookshelves' }).getByRole('option');
+
+const pullThird = async (page: Page) => {
+  await studyReady(page);
+  await studyOptions(page).first().focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  const id = await studyOptions(page).nth(2).getAttribute('data-book-id');
+  await expect(page.locator('[data-study-canvas]')).toHaveAttribute(
+    'data-pulled-id',
+    id ?? '',
+  );
+};
+
+const inspectCovered = async (page: Page) => {
+  await studyReady(page);
+  const ids = await studyOptions(page).evaluateAll((elements) =>
+    elements.map((element) => Number(element.getAttribute('data-book-id'))),
+  );
+  const covered = ids.find((id) => COVER_IDS.includes(id));
+  if (covered === undefined) throw new Error('no covered book on the page');
+  await page.locator(`[role="option"][data-book-id="${covered}"]`).focus();
+  const card = page.locator('[data-study-card]');
+  await expect(card).toHaveAttribute('data-book-id', `${covered}`);
+  await card.locator('[data-study-card-thumb]').click();
+  await expect(page.locator('[data-study-canvas]')).toHaveAttribute(
+    'data-inspecting-id',
+    `${covered}`,
+  );
+};
+
+const openRendererSelect = async (page: Page) => {
+  await studyReady(page);
+  await page.getByRole('combobox', { name: 'Renderer' }).click();
+  await expect(page.getByRole('option', { name: 'CSS' })).toBeVisible();
+};
 
 const SURFACES: Surface[] = [
   { name: 'library', url: '/' },
@@ -45,6 +106,60 @@ const SURFACES: Surface[] = [
         await page.keyboard.press('x');
       }
     },
+  },
+  { name: 'study', url: STUDY, act: studyReady },
+  {
+    name: 'study-css',
+    url: `${STUDY}&renderer=css`,
+    afterOnly: true,
+    act: studyReady,
+  },
+  {
+    name: 'study-tsl-webgl2',
+    url: STUDY,
+    afterOnly: true,
+    init: withoutWebGpu,
+    act: studyReady,
+  },
+  {
+    name: 'study-tsl-select',
+    url: STUDY,
+    afterOnly: true,
+    viewportOnly: true,
+    act: openRendererSelect,
+  },
+  {
+    name: 'study-glsl',
+    url: `${STUDY}&renderer=three-glsl`,
+    afterOnly: true,
+    act: studyReady,
+  },
+  {
+    name: 'study-glsl-pulled',
+    url: `${STUDY}&renderer=three-glsl`,
+    afterOnly: true,
+    viewportOnly: true,
+    act: pullThird,
+  },
+  {
+    name: 'study-glsl-inspect',
+    url: `${STUDY}&renderer=three-glsl`,
+    afterOnly: true,
+    viewportOnly: true,
+    act: inspectCovered,
+  },
+  {
+    name: 'study-glsl-select',
+    url: `${STUDY}&renderer=three-glsl`,
+    afterOnly: true,
+    viewportOnly: true,
+    act: openRendererSelect,
+  },
+  {
+    name: 'study-pane',
+    url: `${STUDY}&book=38`,
+    afterOnly: true,
+    act: studyReady,
   },
   {
     name: 'filters-sheet',
@@ -84,6 +199,7 @@ for (const scheme of SCHEMES) {
         test(surface.name, async ({ page }) => {
           test.skip(PHASE === 'before' && !!surface.afterOnly, 'after-only');
           test.skip(!!surface.phoneOnly && !vp.isMobile, 'phone-only');
+          await surface.init?.(page);
           await page.goto(surface.url);
           await settle(page);
           await surface.act?.(page, vp.isMobile);
@@ -93,7 +209,7 @@ for (const scheme of SCHEMES) {
               OUT,
               `${PHASE}-${surface.name}-${scheme}-${vp.width}.png`,
             ),
-            fullPage: true,
+            fullPage: !surface.viewportOnly,
           });
         });
       }

@@ -6,9 +6,9 @@ You are the orchestrator for monitoring Nx Cloud CI pipeline executions and hand
 
 ## Context
 
-- **Current Branch:** !`git branch --show-current`
-- **Current Commit:** !`git rev-parse --short HEAD`
-- **Remote Status:** !`git status -sb | head -1`
+- **Current Branch:** !{git branch --show-current}
+- **Current Commit:** !{git rev-parse --short HEAD}
+- **Remote Status:** !{git status -sb | head -1}
 
 ## User Instructions
 

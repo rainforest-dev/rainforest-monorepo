@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from '@rainforest-dev/rainforest-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   createContext,
@@ -8,6 +9,7 @@ import {
   useContext,
   useMemo,
   useState,
+  useSyncExternalStore,
   useTransition,
 } from 'react';
 
@@ -15,18 +17,23 @@ import {
   addIds,
   buildLibraryHref,
   clearFiltersHref,
+  isStudyGroupBy,
   type ParamPatch,
   parseLibraryParams,
+  pickRenderer,
   type Prefs,
   removeIds,
+  type Renderer,
   resolveView,
   serializePrefs,
+  type StudyBackend,
   toggleId,
   type View,
 } from '@/lib';
 
 export type PendingFocus =
-  { kind: 'first'; page: number } | { kind: 'book'; id: number };
+  | { kind: 'first'; page: number }
+  | { kind: 'book'; id: number; orFirst?: true };
 
 export interface PageInfo {
   page: number;
@@ -36,6 +43,12 @@ export interface PageInfo {
 interface LibraryContextValue {
   view: View;
   setView: (view: View) => void;
+  renderer: Renderer;
+  setRenderer: (renderer: Renderer) => void;
+  studyFallback: boolean;
+  fallBackToCss: () => void;
+  backend: StudyBackend | null;
+  setBackend: (backend: StudyBackend | null) => void;
   panelOpen: boolean;
   togglePanel: () => void;
   filtersOpen: boolean;
@@ -73,6 +86,34 @@ function isBookOnPage(id: number): boolean {
   );
 }
 
+const STUDY_FALLBACK_KEY = 'calibre-study-fallback';
+const fallbackListeners = new Set<() => void>();
+let fallbackInMemory = false;
+
+function readStudyFallback(): boolean {
+  if (fallbackInMemory) return true;
+  try {
+    return sessionStorage.getItem(STUDY_FALLBACK_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeStudyFallback(): void {
+  fallbackInMemory = true;
+  try {
+    sessionStorage.setItem(STUDY_FALLBACK_KEY, '1');
+  } catch {
+    // sessionStorage throws when the browser blocks site data.
+  }
+  for (const listener of fallbackListeners) listener();
+}
+
+function subscribeStudyFallback(listener: () => void): () => void {
+  fallbackListeners.add(listener);
+  return () => fallbackListeners.delete(listener);
+}
+
 const LibraryContext = createContext<LibraryContextValue | null>(null);
 
 export function useLibrary(): LibraryContextValue {
@@ -108,6 +149,17 @@ export function LibraryProvider({
     pageCount: 1,
   });
   const [isPending, startTransition] = useTransition();
+  const studyFallback = useSyncExternalStore(
+    subscribeStudyFallback,
+    readStudyFallback,
+    () => false,
+  );
+  const [backend, setBackend] = useState<StudyBackend | null>(null);
+  const renderer = pickRenderer({
+    param: searchParams.get('renderer'),
+    pref: prefs.renderer,
+    sessionFallback: studyFallback,
+  });
 
   const savePrefs = useCallback(
     (patch: Partial<Prefs>) => {
@@ -131,14 +183,48 @@ export function LibraryProvider({
     (next: View) => {
       setViewState(next);
       savePrefs({ view: next });
-      if (searchParams.get('view')) {
+      const staleView = searchParams.get('view') !== null;
+      if (
+        next === 'study' &&
+        !isStudyGroupBy(parseLibraryParams(searchParams).groupBy)
+      ) {
+        replaceParams(
+          staleView ? { groupBy: 'series', view: null } : { groupBy: 'series' },
+        );
+        if (
+          focusId !== null &&
+          document.activeElement?.closest('[data-view-region]')
+        ) {
+          requestFocus({ kind: 'book', id: focusId, orFirst: true });
+        }
+        return;
+      }
+      if (staleView) {
         router.replace(buildLibraryHref(searchParams, { view: null }), {
+          scroll: false,
+        });
+      }
+    },
+    [focusId, replaceParams, router, savePrefs, searchParams],
+  );
+
+  const setRenderer = useCallback(
+    (next: Renderer) => {
+      savePrefs({ renderer: next });
+      if (searchParams.get('renderer') !== null) {
+        router.replace(buildLibraryHref(searchParams, { renderer: null }), {
           scroll: false,
         });
       }
     },
     [router, savePrefs, searchParams],
   );
+
+  const fallBackToCss = useCallback(() => {
+    if (readStudyFallback()) return;
+    writeStudyFallback();
+    toast("3D isn't available here, showing the CSS study");
+  }, []);
 
   const togglePanel = useCallback(
     () => savePrefs({ panel: !prefs.panel }),
@@ -204,6 +290,12 @@ export function LibraryProvider({
     () => ({
       view,
       setView,
+      renderer,
+      setRenderer,
+      studyFallback,
+      fallBackToCss,
+      backend,
+      setBackend,
       panelOpen: prefs.panel,
       togglePanel,
       filtersOpen,
@@ -236,6 +328,11 @@ export function LibraryProvider({
     [
       view,
       setView,
+      renderer,
+      setRenderer,
+      studyFallback,
+      fallBackToCss,
+      backend,
       prefs.panel,
       togglePanel,
       filtersOpen,

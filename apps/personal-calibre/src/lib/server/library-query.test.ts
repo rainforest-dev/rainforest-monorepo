@@ -26,6 +26,8 @@ beforeAll(() => {
     tags: [
       [1, 'sea'],
       [2, 'winter'],
+      [3, 'yew'],
+      [4, 'zephyr'],
     ],
     books: [
       {
@@ -42,6 +44,7 @@ beforeAll(() => {
         authorIds: [1],
         seriesId: 1,
         seriesIndex: 1,
+        hasCover: true,
       },
       {
         id: 3,
@@ -64,15 +67,29 @@ beforeAll(() => {
         authorIds: [2],
         seriesId: 2,
         seriesIndex: 2,
+        hasCover: true,
       },
-      { id: 6, title: 'Harbour Ledger', authorIds: [1], tagIds: [1] },
+      {
+        id: 6,
+        title: 'Harbour Ledger',
+        authorIds: [1],
+        tagIds: [1],
+        hasCover: true,
+      },
       { id: 7, title: 'Iron Tide Almanac', authorIds: [2], tagIds: [2] },
-      { id: 8, title: 'Juniper Signal', authorIds: [] },
+      {
+        id: 8,
+        title: 'Juniper Signal',
+        authorIds: [],
+        tagIds: [3, 4],
+        hasCover: true,
+      },
       {
         id: 9,
         title: 'Kelp Forest Letters',
         authorIds: [2, 1],
         pubdate: '2001-04-15T00:00:00+00:00',
+        hasCover: true,
       },
     ],
   });
@@ -185,13 +202,14 @@ describe('queryLibrary, grouped', () => {
       'tag:1:6',
       'tag:2:1',
       'tag:2:7',
+      'tag:3:8',
+      'tag:4:8',
       'tag:none:2',
       'tag:none:3',
       'tag:none:5',
-      'tag:none:8',
       'tag:none:9',
     ]);
-    expect(result.matching).toBe(10);
+    expect(result.matching).toBe(11);
     expect(result.matchingIds).toHaveLength(9);
     expect(result.entries.at(-1)?.group?.label).toBe('Untagged');
   });
@@ -226,6 +244,81 @@ describe('queryLibrary, grouped', () => {
       'series:2:4',
       'series:none:6',
     ]);
+  });
+});
+
+describe('queryLibrary, next-page cover ids', () => {
+  const COVERED = new Set([2, 5, 6, 8, 9]);
+  const coveredIds = (r: Awaited<ReturnType<typeof queryLibrary>>) => [
+    ...new Set(ids(r).filter((id) => COVERED.has(id))),
+  ];
+
+  it('ungrouped: lists the covered books of the next page in order', async () => {
+    const page1 = await queryLibrary(base);
+    const page2 = await queryLibrary({ ...base, page: 2 });
+    const page3 = await queryLibrary({ ...base, page: 3 });
+    expect(page1.nextPageCoverIds).toEqual([5, 6, 8]);
+    expect(page1.nextPageCoverIds).toEqual(coveredIds(page2));
+    expect(page2.nextPageCoverIds).toEqual([9]);
+    expect(page2.nextPageCoverIds).toEqual(coveredIds(page3));
+    expect(page3.nextPageCoverIds).toEqual([]);
+  });
+
+  it('ungrouped: follows the sort direction', async () => {
+    const desc = { ...base, sortDir: 'desc' as const };
+    const page1 = await queryLibrary(desc);
+    expect(page1.nextPageCoverIds).toEqual([5, 2]);
+    expect(page1.nextPageCoverIds).toEqual(
+      coveredIds(await queryLibrary({ ...desc, page: 2 })),
+    );
+  });
+
+  it('grouped by series: follows the entry order across a group boundary', async () => {
+    const query = { ...base, groupBy: 'series' as const };
+    const page1 = await queryLibrary(query);
+    const page2 = await queryLibrary({ ...query, page: 2 });
+    expect(page2.entries.map((e) => e.group?.key)).toEqual([
+      'series:2',
+      'series:none',
+      'series:none',
+      'series:none',
+    ]);
+    expect(page1.nextPageCoverIds).toEqual([5, 6, 8]);
+    expect(page1.nextPageCoverIds).toEqual(coveredIds(page2));
+    expect(page2.nextPageCoverIds).toEqual([9]);
+    expect(
+      (await queryLibrary({ ...query, page: 3 })).nextPageCoverIds,
+    ).toEqual([]);
+  });
+
+  it('grouped by tag: lists a book in two tags once', async () => {
+    const query = { ...base, groupBy: 'tag' as const };
+    const page2 = await queryLibrary({ ...query, page: 2 });
+    expect(ids(page2)).toEqual([7, 8, 8, 2]);
+    expect((await queryLibrary(query)).nextPageCoverIds).toEqual([8, 2]);
+  });
+
+  it('respects filters', async () => {
+    const query = { ...base, pageSize: 2, tagId: 1 };
+    expect((await queryLibrary(query)).nextPageCoverIds).toEqual([6]);
+    expect(
+      (await queryLibrary({ ...query, groupBy: 'series' })).nextPageCoverIds,
+    ).toEqual([6]);
+    expect(
+      (await queryLibrary({ ...base, tagId: 999 })).nextPageCoverIds,
+    ).toEqual([]);
+  });
+
+  it('an out-of-range page returns no next-page ids', async () => {
+    for (const page of [5, 1e20]) {
+      expect((await queryLibrary({ ...base, page })).nextPageCoverIds).toEqual(
+        [],
+      );
+      expect(
+        (await queryLibrary({ ...base, groupBy: 'series', page }))
+          .nextPageCoverIds,
+      ).toEqual([]);
+    }
   });
 });
 

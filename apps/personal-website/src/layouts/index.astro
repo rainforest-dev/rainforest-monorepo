@@ -10,11 +10,15 @@ import {
   getSkills,
   getWorkExperience,
 } from '@rainforest-dev/personal-data';
+import { buildPaletteRecords } from '@utils/palette-records';
 import type { Searchable } from '@utils/search';
+import type { ExpansionFile } from '@utils/search-expansions';
 import SpeedInsights from '@vercel/speed-insights/astro';
 import { getCollection } from 'astro:content';
 import { ClientRouter } from 'astro:transitions';
 import { dir as _dir } from 'i18next';
+
+import searchExpansions from '@/data/search-expansions.json';
 
 import Head from './head.astro';
 import type { Props } from './types';
@@ -40,36 +44,15 @@ const [experiences, projects, skills, posts] = await Promise.all([
   getCollection('blog'),
 ]);
 
-const paletteRecords: Searchable[] = [
-  ...experiences.map((experience) => ({
-    id: `experience/${experience.id}`,
-    kind: 'experience' as const,
-    title: `${experience.position} · ${experience.organization.name}`,
-    keywords: experience.technologies,
-    href: '/resume',
-  })),
-  ...projects.map((project) => ({
-    id: `project/${project.id}`,
-    kind: 'project' as const,
-    title: project.name,
-    keywords: project.technologies,
-    href: `/portfolio/${project.id.split('/').pop()}`,
-  })),
-  ...skills.map((skill) => ({
-    id: `skill/${skill.id}`,
-    kind: 'skill' as const,
-    title: skill.name,
-    keywords: skill.tags,
-    href: '/#skills',
-  })),
-  ...posts.map((post) => ({
-    id: `post/${post.id}`,
-    kind: 'post' as const,
-    title: post.data.title,
-    keywords: post.data.tags,
-    href: `/blog/${post.id}`,
-  })),
-];
+const paletteRecords: Searchable[] = buildPaletteRecords({
+  experiences,
+  projects,
+  skills,
+  posts,
+}).map((record) => ({
+  ...record,
+  expanded: (searchExpansions as ExpansionFile).records[record.id]?.terms,
+}));
 ---
 
 <!doctype html>

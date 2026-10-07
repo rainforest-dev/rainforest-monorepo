@@ -11,7 +11,7 @@ export default getViteConfig({
     // jsdom rather than node: the on-device AI capability core (src/utils/ai/) caches a
     // failed capability probe in sessionStorage, which node's environment doesn't provide.
     environment: 'jsdom',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
     // Task 8 (2026-07-07 personal-data-library plan) deleted this app's only local test
     // files (mcp/smoke.test.ts, mcp/profile-data.test.ts) — their replacements now live
     // in libs/personal-data, which apps/personal-website consumes rather than defining

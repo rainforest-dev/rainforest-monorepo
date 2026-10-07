@@ -295,15 +295,22 @@ export async function runIngest(
   return { status: 'ingested', rejected, added };
 }
 
-if (import.meta.main) {
-  const root = process.env['MEMORIES_DATA_DIR'];
+type Io = { out: Log; err: Log };
+
+export async function main(
+  args: string[],
+  env: Record<string, string | undefined>,
+  { out, err }: Io = { out: console.log, err: console.error },
+): Promise<number> {
+  const root = env['MEMORIES_DATA_DIR'];
   if (!root) {
-    console.error(
+    err(
       'MEMORIES_DATA_DIR is not set; point it at the data root outside the repository.',
     );
-    process.exit(2);
+    return 2;
   }
   const { values } = parseArgs({
+    args,
     options: {
       add: { type: 'string', multiple: true },
       'dry-run': { type: 'boolean' },
@@ -314,16 +321,21 @@ if (import.meta.main) {
     add: (values.add ?? []).map((path) => resolve(path)),
     dryRun: values['dry-run'] ?? false,
     force: values.force ?? false,
-    embedder: embedderFromEnv(),
+    embedder: embedderFromEnv(env),
+    log: out,
   };
   try {
     const { rejected } = options.dryRun
       ? await runIngest(root, options)
       : await withIngestLock(root, () => runIngest(root, options));
-    if (rejected) process.exitCode = 1;
+    return rejected ? 1 : 0;
   } catch (error) {
     if (!(error instanceof IngestLockHeld)) throw error;
-    console.error(`ingest: ${error.message}`);
-    process.exit(75);
+    err(`ingest: ${error.message}`);
+    return 75;
   }
+}
+
+if (import.meta.main) {
+  process.exitCode = await main(process.argv.slice(2), process.env);
 }

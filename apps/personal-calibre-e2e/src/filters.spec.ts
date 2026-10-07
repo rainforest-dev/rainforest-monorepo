@@ -30,7 +30,7 @@ test.describe('filters', () => {
     await gotoLibrary(page);
     await panel(page)
       .getByRole('region', { name: 'Authors' })
-      .getByRole('button', { name: 'Show all 10' })
+      .getByRole('button', { name: 'Show all 18' })
       .click();
     await panel(page).getByPlaceholder('Filter authors').fill('Ilv');
     await panel(page).getByRole('option', { name: 'Soren Ilves' }).click();

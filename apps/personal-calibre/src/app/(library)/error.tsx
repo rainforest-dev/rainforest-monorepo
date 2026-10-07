@@ -4,12 +4,10 @@ import { LoadError } from '@/components/library';
 
 export default function LibraryError({
   error,
-  unstable_retry,
+  retry,
 }: {
   error: Error & { digest?: string };
-  unstable_retry: () => void;
+  retry: () => void;
 }) {
-  return (
-    <LoadError variant="page" digest={error.digest} onRetry={unstable_retry} />
-  );
+  return <LoadError variant="page" digest={error.digest} onRetry={retry} />;
 }
