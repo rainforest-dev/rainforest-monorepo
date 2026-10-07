@@ -8,7 +8,7 @@ export interface PixelDiff {
 }
 
 export const PARITY_TOLERANCE = 12;
-const EDGE_LUMINANCE_RANGE = 12;
+const EDGE_CHANNEL_RANGE = 12;
 const EDGE_REACH = 2;
 
 export async function diffScreenshots(
@@ -36,29 +36,24 @@ export async function diffScreenshots(
         );
       }
       const { width, height } = a;
-      const luma = new Float32Array(width * height);
-      for (let i = 0; i < width * height; i++) {
-        luma[i] =
-          0.2126 * (a.data[i * 4] ?? 0) +
-          0.7152 * (a.data[i * 4 + 1] ?? 0) +
-          0.0722 * (a.data[i * 4 + 2] ?? 0);
-      }
       const edge = new Uint8Array(width * height);
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-          let min = Infinity;
-          let max = -Infinity;
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              const nx = x + dx;
-              const ny = y + dy;
-              if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
-              const v = luma[ny * width + nx] ?? 0;
-              if (v < min) min = v;
-              if (v > max) max = v;
+          for (let c = 0; c < 3 && !edge[y * width + x]; c++) {
+            let min = Infinity;
+            let max = -Infinity;
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+                const v = a.data[(ny * width + nx) * 4 + c] ?? 0;
+                if (v < min) min = v;
+                if (v > max) max = v;
+              }
             }
+            if (max - min > edgeRange) edge[y * width + x] = 1;
           }
-          if (max - min > edgeRange) edge[y * width + x] = 1;
         }
       }
       const nearEdge = (x: number, y: number) => {
@@ -97,7 +92,7 @@ export async function diffScreenshots(
       reference: reference.toString('base64'),
       candidate: candidate.toString('base64'),
       tolerance,
-      edgeRange: EDGE_LUMINANCE_RANGE,
+      edgeRange: EDGE_CHANNEL_RANGE,
       reach: EDGE_REACH,
     },
   );
