@@ -125,7 +125,6 @@ export const COVER_H = 384;
 export const COVER_CACHE_MAX = 24;
 export const COVER_NEIGHBOURS = 4;
 export const COVER_CACHE_MIN = 2 * COVER_NEIGHBOURS + 1;
-export const REPORTED_TARGET_BUFFERS = 2;
 
 export interface TextureBudgetInput {
   layout: StudyLayout;
@@ -143,9 +142,11 @@ export interface AtlasPick {
   fits: boolean;
 }
 
-const withMipmaps = (bytes: number) => (bytes * 4) / 3;
+export function textureBytes(width: number, height: number): number {
+  return (width * height * 4 * 4) / 3;
+}
 
-export const COVER_BYTES = withMipmaps(COVER_W * COVER_H * 4);
+export const COVER_BYTES = textureBytes(COVER_W, COVER_H);
 export const INSPECT_BACK_BYTES = COVER_BYTES;
 
 export function rowAtlasSize(
@@ -160,7 +161,7 @@ export function rowAtlasSize(
 
 export function rowAtlasBytes(widthUnits: number, ppu: number): number {
   const { width, height } = rowAtlasSize(widthUnits, ppu);
-  return withMipmaps(width * height * 4);
+  return textureBytes(width, height);
 }
 
 export function atlasBytesAt(layout: StudyLayout, ppu: number): number {

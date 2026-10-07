@@ -6,6 +6,7 @@ import {
   type PlacedBook,
   rowAtlasBytes,
   rowAtlasSize,
+  textureBytes,
 } from '@/lib';
 
 import { mixRgb, type Rgb, type Tokens } from './tokens';
@@ -186,11 +187,38 @@ export function buildRowAtlas(
   };
 }
 
-export function cropSpine(atlas: RowAtlas, bookId: number): CanvasTexture {
+function cropBox(atlas: RowAtlas, bookId: number) {
   const source = atlas.texture.image as HTMLCanvasElement;
   const [u, v, du, dv] = atlas.rects.get(bookId) ?? [0, 0, 1, 1];
-  const w = Math.max(1, Math.round(du * source.width));
-  const h = Math.max(1, Math.round(dv * source.height));
+  return {
+    source,
+    u,
+    v,
+    dv,
+    w: Math.max(1, Math.round(du * source.width)),
+    h: Math.max(1, Math.round(dv * source.height)),
+  };
+}
+
+export function spineCropBytes(
+  atlases: ReadonlyMap<number, RowAtlas> | undefined,
+  bookIds: ReadonlySet<number | null>,
+): number {
+  let bytes = 0;
+  for (const bookId of bookIds) {
+    if (bookId === null) continue;
+    for (const atlas of atlases?.values() ?? []) {
+      if (!atlas.rects.has(bookId)) continue;
+      const { w, h } = cropBox(atlas, bookId);
+      bytes += textureBytes(w, h);
+      break;
+    }
+  }
+  return bytes;
+}
+
+export function cropSpine(atlas: RowAtlas, bookId: number): CanvasTexture {
+  const { source, u, v, dv, w, h } = cropBox(atlas, bookId);
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;

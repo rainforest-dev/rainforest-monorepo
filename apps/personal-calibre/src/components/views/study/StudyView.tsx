@@ -73,6 +73,7 @@ function ThreeHost({
       <ThreeStudyBoundary onUseCss={fallBackToCss}>
         {capable ? (
           <LoadThreeStudy
+            key={renderer}
             {...props}
             renderer={renderer}
             onNavItems={onNavItems}

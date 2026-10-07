@@ -138,6 +138,31 @@ test.describe('Study three-tsl', () => {
     expect(messages()).toEqual([]);
   });
 
+  test.fixme('switching between three.js renderers mounts a new canvas', async ({
+    page,
+  }) => {
+    const run = projectRun();
+    await startRun(page, run);
+    await gotoStudy(page, run, 'debug=1');
+    const wrap = canvasWrap(page);
+    await expect(wrap).toHaveAttribute('data-backend', run.backend);
+    const before = await wrap.locator('canvas').elementHandle();
+
+    await page.evaluate(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('renderer', 'three-glsl');
+      window.history.replaceState(null, '', url);
+    });
+
+    await expect(wrap).toHaveAttribute('data-renderer', 'three-glsl');
+    await expect(wrap).toHaveAttribute('data-backend', 'webgl2');
+    const after = await wrap.locator('canvas').elementHandle();
+    expect(await before?.evaluate((canvas) => canvas.isConnected)).toBe(false);
+    expect(
+      await page.evaluate(([a, b]) => a !== b, [before, after] as const),
+    ).toBe(true);
+  });
+
   test('a renderer that throws while starting falls back to the CSS study', async ({
     page,
     context,

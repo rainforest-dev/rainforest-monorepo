@@ -28,21 +28,25 @@ import {
   isDebug,
   layoutShelves,
   pickAtlasPpu,
-  REPORTED_TARGET_BUFFERS,
   rowsInView,
   type ScreenRect,
-  type StudyBackend,
   type StudyLayout,
   studyNavItems,
   TEXTURE_BUDGET_BYTES,
   type ThreeRenderer,
 } from '@/lib';
 
-import type { RowAtlas } from './atlas';
+import { type RowAtlas, spineCropBytes } from './atlas';
 import { type CoverCache, createCoverCache } from './covers';
 import { FocusOverlay } from './FocusOverlay';
-import type { KitCanvasProps, StudyGl, StudyKit } from './kit';
-import { publishProbe, type StudyProbe } from './probe';
+import type {
+  KitCanvasProps,
+  KitFrameInfo,
+  StudyGl,
+  StudyKit,
+  ThreeBackend,
+} from './kit';
+import { publishProbe, type StudyProbe, type StudyProbeInfo } from './probe';
 import type { ScrubPointer } from './PulledBook';
 import {
   type BookProjector,
@@ -54,8 +58,6 @@ import { type LabelsSink, measureLabelPx, ShelfLabels } from './ShelfLabels';
 import { useTokens } from './tokens';
 import { useCoverPrewarm } from './useCoverPrewarm';
 import { useRowAtlases } from './useRowAtlases';
-
-type ThreeBackend = Exclude<StudyBackend, 'css'>;
 
 export interface ThreeStudyProps extends StudyRendererProps {
   renderer: ThreeRenderer;
@@ -155,9 +157,7 @@ function AtlasScene({
   onPrewarmed,
   ...scene
 }: AtlasSceneProps) {
-  const maxAnisotropy = useThree((state) =>
-    (state.gl as unknown as StudyGl).getMaxAnisotropy(),
-  );
+  const maxAnisotropy = useThree((state) => scene.kit.maxAnisotropy(state.gl));
   const atlases = useRowAtlases({
     layout: scene.layout,
     layoutKey,
@@ -235,7 +235,7 @@ export default function ThreeStudy({
   const projector = useRef<BookProjector | null>(null);
   const gl = useRef<StudyGl | null>(null);
   const kitRef = useRef<StudyKit | null>(null);
-  const lastFrame = useRef({ drawCalls: 0, triangles: 0 });
+  const lastFrame = useRef<KitFrameInfo>({ drawCalls: 0, triangles: 0 });
   const overlay = useRef<HTMLDivElement>(null);
   const labelsSink = useRef<LabelsSink | null>(null);
   const [covers, setCovers] = useState<CoverCache | null>(null);
@@ -261,19 +261,35 @@ export default function ThreeStudy({
     renderMs: [],
     projectBook: (bookId) => projector.current?.(bookId, 'box') ?? null,
     projectFront: (bookId) => projector.current?.(bookId, 'front') ?? null,
-    info: () => {
+    info: (): StudyProbeInfo => {
       const renderer = gl.current;
       const loaded = kitRef.current;
+      const atlas = atlasInfo(atlasState.current);
+      const coverCacheBytes = (coversRef.current?.size() ?? 0) * COVER_BYTES;
+      const memory =
+        renderer && loaded
+          ? loaded.textureMemory(renderer)
+          : { textures: 0, bytes: 0 };
+      const carried = new Set([
+        probe.current.pulledId,
+        probe.current.floatingId,
+      ]);
       return {
         backend: renderer && loaded ? loaded.backendOf(renderer) : 'starting',
         drawCalls: lastFrame.current.drawCalls,
         triangles: lastFrame.current.triangles,
-        textures: renderer?.info.memory.textures ?? 0,
-        texturesSizeReported: renderer?.info.memory.texturesSize ?? 0,
+        textures: memory.textures,
+        texturesSizeReported:
+          memory.bytes ??
+          atlas.atlasBytes +
+            coverCacheBytes +
+            INSPECT_BACK_BYTES +
+            spineCropBytes(atlasState.current.report?.atlases, carried),
+        texturesSizeSource: memory.bytes === null ? 'estimated' : 'reported',
         programs: renderer && loaded ? loaded.programsOf(renderer) : 0,
-        ...atlasInfo(atlasState.current),
+        ...atlas,
         coversCached: coversRef.current?.size() ?? 0,
-        coverCacheBytes: (coversRef.current?.size() ?? 0) * COVER_BYTES,
+        coverCacheBytes,
         dpr: renderer?.getPixelRatio() ?? window.devicePixelRatio,
       };
     },
@@ -315,19 +331,19 @@ export default function ThreeStudy({
   const dpr = Math.min(window.devicePixelRatio || 1, DPR[1]);
   const pick = useMemo(
     () =>
-      layout
+      layout && kit
         ? pickAtlasPpu({
             layout,
             budgetBytes: desktop
               ? TEXTURE_BUDGET_BYTES.desktop
               : TEXTURE_BUDGET_BYTES.phone,
             canvas: { width, height, dpr },
-            targetBuffers: REPORTED_TARGET_BUFFERS,
+            targetBuffers: kit.reportedTargetBuffers,
             coverBytes: COVER_BYTES,
             reservedBytes: INSPECT_BACK_BYTES,
           })
         : null,
-    [layout, desktop, width, height, dpr],
+    [layout, desktop, width, height, dpr, kit],
   );
   const coverMax = pick?.covers ?? null;
   useEffect(() => {
@@ -336,7 +352,8 @@ export default function ThreeStudy({
       max: coverMax,
       upload: (texture) => {
         const renderer = gl.current;
-        if (renderer?.hasInitialized()) renderer.initTexture(texture);
+        const loaded = kitRef.current;
+        if (renderer && loaded) loaded.uploadTexture(renderer, texture);
       },
     });
     setCovers(cache);
@@ -460,8 +477,7 @@ export default function ThreeStudy({
       const end = performance.now();
       const current = probe.current;
       if (!kit || !gl.current) return;
-      const { drawCalls, triangles } = gl.current.info.render;
-      lastFrame.current = { drawCalls, triangles };
+      lastFrame.current = kit.frameInfo(gl.current);
       current.renderMs.push(end - start);
       if (current.renderMs.length > RENDER_SAMPLES) current.renderMs.shift();
       if (current.firstFrameAt !== null) return;

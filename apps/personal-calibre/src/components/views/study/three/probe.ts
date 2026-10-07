@@ -23,6 +23,7 @@ export interface StudyProbeInfo {
   triangles: number;
   textures: number;
   texturesSizeReported: number;
+  texturesSizeSource: 'reported' | 'estimated';
   programs: number;
   atlasPpu: AtlasPpu | null;
   coverCacheMax: number | null;
