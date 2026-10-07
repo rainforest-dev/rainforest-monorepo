@@ -197,8 +197,15 @@ function initialRows(
   return rowsInView(layout, y, viewUnits);
 }
 
-function FrameDriver({ onFrame }: { onFrame: (start: number) => void }) {
+function FrameDriver({
+  ready,
+  onFrame,
+}: {
+  ready: boolean;
+  onFrame: (start: number) => void;
+}) {
   useFrame(({ gl, scene, camera }) => {
+    if (!ready) return;
     const start = performance.now();
     gl.render(scene, camera);
     onFrame(start);
@@ -238,6 +245,9 @@ export default function ThreeStudy({
   const pointerOrigin = useRef({ left: 0, top: 0 });
   const projector = useRef<BookProjector | null>(null);
   const gl = useRef<StudyGl | null>(null);
+  const glInit = useRef<Promise<void> | null>(null);
+  const glReady = useRef(false);
+  const [ready, setReady] = useState(false);
   const kitRef = useRef<StudyKit | null>(null);
   const lastFrame = useRef<KitFrameInfo>({ drawCalls: 0, triangles: 0 });
   const overlay = useRef<HTMLDivElement>(null);
@@ -319,6 +329,20 @@ export default function ThreeStudy({
   }, [renderer, onStartFailed]);
 
   useEffect(() => (kit ? () => kit.materials.dispose() : undefined), [kit]);
+
+  useEffect(
+    () => () => {
+      const created = gl.current;
+      const init = glInit.current;
+      // fiber skips dispose() on a renderer whose init() is still pending at teardown.
+      if (created && init && !glReady.current)
+        void init.then(
+          () => created.dispose(),
+          () => undefined,
+        );
+    },
+    [],
+  );
 
   useEffect(() => (debug ? publishProbe(probe.current) : undefined), [debug]);
 
@@ -461,17 +485,22 @@ export default function ThreeStudy({
   }, []);
 
   const createGl = useCallback(
-    async (props: unknown) => {
+    (props: unknown) => {
       if (!kit) throw new Error('the study kit is not loaded');
       const start = performance.now();
       try {
-        const created = await kit.createRenderer(props as KitCanvasProps);
-        probe.current.initMs = performance.now() - start;
+        const created = kit.createRenderer(props as KitCanvasProps);
         gl.current = created;
+        glInit.current = kit.init(created).then(() => {
+          probe.current.initMs = performance.now() - start;
+          glReady.current = true;
+          setReady(true);
+        });
+        glInit.current.catch(onStartFailed);
         return created;
       } catch (error) {
         onStartFailed(error);
-        return new Promise<never>(() => undefined);
+        throw error;
       }
     },
     [kit, onStartFailed],
@@ -522,36 +551,38 @@ export default function ThreeStudy({
           onPointerMissed={dismiss}
           aria-hidden="true"
         >
-          <FrameDriver onFrame={onFrame} />
-          <AtlasScene
-            layoutKey={`${model.key}:${layout.width}`}
-            visibleRows={visibleRows}
-            pick={pick}
-            nextPageCoverIds={nextPageCoverIds}
-            onAtlases={onAtlases}
-            onPrewarmed={onPrewarmed}
-            covers={covers}
-            onFocusRect={onFocusRect}
-            onLabels={onLabels}
-            layout={layout}
-            tokens={tokens}
-            kit={kit}
-            focusId={focusId}
-            pulledId={pull.pulledId}
-            scrubbing={pull.scrubbing}
-            inspecting={inspect.open}
-            stage={inspect.stage}
-            hitTester={hitTester}
-            pointer={pointer}
-            selected={selected}
-            reducedMotion={reducedMotion}
-            pxPerUnit={pxPerUnit}
-            projector={projector}
-            onPick={onPick}
-            onPulled={onPulled}
-            onFloating={onFloating}
-            onCamera={onCamera}
-          />
+          <FrameDriver ready={ready} onFrame={onFrame} />
+          {ready && (
+            <AtlasScene
+              layoutKey={`${model.key}:${layout.width}`}
+              visibleRows={visibleRows}
+              pick={pick}
+              nextPageCoverIds={nextPageCoverIds}
+              onAtlases={onAtlases}
+              onPrewarmed={onPrewarmed}
+              covers={covers}
+              onFocusRect={onFocusRect}
+              onLabels={onLabels}
+              layout={layout}
+              tokens={tokens}
+              kit={kit}
+              focusId={focusId}
+              pulledId={pull.pulledId}
+              scrubbing={pull.scrubbing}
+              inspecting={inspect.open}
+              stage={inspect.stage}
+              hitTester={hitTester}
+              pointer={pointer}
+              selected={selected}
+              reducedMotion={reducedMotion}
+              pxPerUnit={pxPerUnit}
+              projector={projector}
+              onPick={onPick}
+              onPulled={onPulled}
+              onFloating={onFloating}
+              onCamera={onCamera}
+            />
+          )}
         </Canvas>
       )}
       <ShelfLabels sinkRef={labelsSink} />

@@ -22,12 +22,18 @@ function countPrograms(gl: WebGPURenderer): void {
   };
 }
 
+function disposeOnce(gl: WebGPURenderer): void {
+  const dispose = gl.dispose.bind(gl);
+  let disposing: Promise<void> | null = null;
+  gl.dispose = () => (disposing ??= dispose());
+}
+
 export const kit: StudyKit<WebGPURenderer> = {
   renderer: 'three-tsl',
   flat: true,
   reportedTargetBuffers: 2,
   materials: createStudyMaterials(),
-  async createRenderer({ powerPreference, ...props }) {
+  createRenderer({ powerPreference, ...props }) {
     const gl = new WebGPURenderer({
       ...props,
       powerPreference:
@@ -38,8 +44,11 @@ export const kit: StudyKit<WebGPURenderer> = {
     });
     gl.toneMapping = NoToneMapping;
     countPrograms(gl);
-    await gl.init();
+    disposeOnce(gl);
     return gl;
+  },
+  init: async (gl) => {
+    await gl.init();
   },
   backendOf: (gl) =>
     (gl.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend

@@ -16,7 +16,7 @@ export const kit: StudyKit<WebGLRenderer> = {
   flat: true,
   reportedTargetBuffers: 0,
   materials: createGlslMaterials(),
-  async createRenderer({ powerPreference, ...props }) {
+  createRenderer({ powerPreference, ...props }) {
     const gl = new WebGLRenderer({
       ...props,
       antialias: true,
@@ -25,6 +25,7 @@ export const kit: StudyKit<WebGLRenderer> = {
     gl.toneMapping = NoToneMapping;
     return gl;
   },
+  init: async () => undefined,
   backendOf: () => 'webgl2',
   programsOf: (gl) => {
     notePrograms(gl);
