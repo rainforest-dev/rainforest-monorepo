@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import {
   CanvasTexture,
   Color,
@@ -5,11 +7,15 @@ import {
   SRGBColorSpace,
   Texture,
 } from 'three';
-import { NodeMaterial } from 'three/webgpu';
+import { NodeMaterial, type WebGPURenderer } from 'three/webgpu';
 import { describe, expect, it } from 'vitest';
 
-import { SPINE_ATTRIBUTES } from './kit';
+import { SPINE_ATTRIBUTES, SPINE_LIGHT, SPINE_MIX, type StudyKit } from './kit';
+import { kit } from './kitTsl';
 import { createStudyMaterials } from './studyMaterial';
+
+const tslKit = kit satisfies StudyKit<WebGPURenderer>;
+const anyKit: StudyKit = tslKit;
 
 function cacheKey(material: Material): string {
   return (material as NodeMaterial).customProgramCacheKey();
@@ -160,5 +166,25 @@ describe('createStudyMaterials', () => {
       }
     }
     expect(texturesOf(spine.material)).toContain(atlas);
+  });
+});
+
+describe('the TSL kit', () => {
+  it('fits the renderer-neutral kit contract', () => {
+    expect(anyKit).toBe(kit);
+    expect(kit.renderer).toBe('three-tsl');
+    expect(kit.reportedTargetBuffers).toBe(2);
+  });
+
+  it('takes the spine mixes and light term from the kit constants', () => {
+    expect(SPINE_MIX).toEqual({ selection: 0.22, highlight: 0.45 });
+    expect(SPINE_LIGHT).toEqual({ base: 0.62, gain: 0.38, dir: [0.3, 0.5, 1] });
+    const source = readFileSync(
+      new URL('./studyMaterial.ts', import.meta.url),
+      'utf8',
+    );
+    for (const literal of ['0.22', '0.45', '0.62', '0.38']) {
+      expect(source).not.toContain(literal);
+    }
   });
 });

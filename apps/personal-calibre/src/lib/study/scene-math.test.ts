@@ -27,7 +27,6 @@ import {
   pickAtlasPpu,
   projectBox,
   pxPerUnitAt,
-  REPORTED_TARGET_BUFFERS,
   rowsInView,
   screenRectOf,
   targetBytes,
@@ -297,7 +296,7 @@ const desktopInput: TextureBudgetInput = {
   layout: desktopPage,
   budgetBytes: TEXTURE_BUDGET_BYTES.desktop,
   canvas: { width: 1144, height: 760, dpr: 2 },
-  targetBuffers: REPORTED_TARGET_BUFFERS,
+  targetBuffers: 2,
   coverBytes: COVER_BYTES,
 };
 const fixedBytes = (input: TextureBudgetInput, covers = COVER_CACHE_MAX) =>
@@ -342,7 +341,7 @@ describe('pickAtlasPpu', () => {
       layout: phoneLarge,
       budgetBytes: TEXTURE_BUDGET_BYTES.phone,
       canvas: { width: 366, height: 591, dpr: 2 },
-      targetBuffers: REPORTED_TARGET_BUFFERS,
+      targetBuffers: 2,
       coverBytes: COVER_BYTES,
     });
     expect(phoneLarge.rows).toBeGreaterThan(20);
@@ -418,6 +417,23 @@ describe('pickAtlasPpu', () => {
       estimatedBytes: lowest,
       fits: false,
     });
+  });
+
+  it('picks at least as high a rung when the renderer reports no target buffers', () => {
+    for (const input of [
+      desktopInput,
+      {
+        ...desktopInput,
+        layout: phoneLarge,
+        budgetBytes: TEXTURE_BUDGET_BYTES.phone,
+        canvas: { width: 366, height: 591, dpr: 2 },
+      },
+    ]) {
+      const withTargets = pickAtlasPpu({ ...input, targetBuffers: 2 });
+      const without = pickAtlasPpu({ ...input, targetBuffers: 0 });
+      expect(without.ppu).toBeGreaterThanOrEqual(withTargets.ppu);
+      expect(without.covers).toBeGreaterThanOrEqual(withTargets.covers);
+    }
   });
 
   it('counts the canvas targets at dpr squared', () => {

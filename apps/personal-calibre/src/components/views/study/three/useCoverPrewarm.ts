@@ -120,7 +120,7 @@ export function useCoverPrewarm({
       const compile =
         compiled.current === layout
           ? Promise.resolve()
-          : compileEveryRow(kit, gl as unknown as StudyGl, scene, camera);
+          : compileEveryRow(kit, gl, scene, camera);
       compiled.current = layout;
       Promise.allSettled([loads, compile]).then(() => {
         if (!live) return;

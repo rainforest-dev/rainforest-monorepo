@@ -18,12 +18,11 @@ import { MeshBasicNodeMaterial, MeshLambertNodeMaterial } from 'three/webgpu';
 
 import {
   SPINE_ATTRIBUTES,
+  SPINE_LIGHT,
+  SPINE_MIX,
   type SpineMaterial,
   type StudyMaterials,
 } from './kit';
-
-const SELECTION_MIX = 0.22;
-const HIGHLIGHT_MIX = 0.45;
 
 function placeholderTexture(): Texture {
   const texture = new Texture();
@@ -32,8 +31,10 @@ function placeholderTexture(): Texture {
 }
 
 const light = () =>
-  float(0.62).add(
-    float(0.38).mul(max(dot(normalWorld, normalize(vec3(0.3, 0.5, 1))), 0)),
+  float(SPINE_LIGHT.base).add(
+    float(SPINE_LIGHT.gain).mul(
+      max(dot(normalWorld, normalize(vec3(...SPINE_LIGHT.dir))), 0),
+    ),
   );
 
 export function createStudyMaterials(): StudyMaterials {
@@ -61,10 +62,10 @@ export function createStudyMaterials(): StudyMaterials {
       mix(
         base.mul(light()),
         selection,
-        attribute(SPINE_ATTRIBUTES.selected, 'float').mul(SELECTION_MIX),
+        attribute(SPINE_ATTRIBUTES.selected, 'float').mul(SPINE_MIX.selection),
       ),
       highlight,
-      attribute(SPINE_ATTRIBUTES.highlight, 'float').mul(HIGHLIGHT_MIX),
+      attribute(SPINE_ATTRIBUTES.highlight, 'float').mul(SPINE_MIX.highlight),
     ).mul(float(1).sub(dim));
     return {
       material,
