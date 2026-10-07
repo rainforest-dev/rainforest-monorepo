@@ -40,7 +40,7 @@ describe('pickRenderer', () => {
 
   it('ships three-tsl as the default with three-glsl and css as alternatives', () => {
     expect(ENABLED_RENDERERS).toEqual(['three-tsl', 'three-glsl', 'css']);
-    expect(PREVIEW_RENDERERS).toEqual([]);
+    expect(PREVIEW_RENDERERS).toEqual(['three-pathtrace']);
     expect(
       pickRenderer({
         param: null,
@@ -176,6 +176,60 @@ describe('pickRenderer', () => {
   });
 });
 
+describe('spike renderers', () => {
+  it('honours each spike renderer from ?renderer= on desktop', () => {
+    for (const param of PREVIEW_RENDERERS) {
+      expect(
+        pickRenderer({ param, pref: 'three-tsl', sessionFallback: false }),
+      ).toBe(param);
+    }
+  });
+
+  it('falls back to three-tsl for a spike renderer off desktop', () => {
+    for (const param of PREVIEW_RENDERERS) {
+      expect(
+        pickRenderer({
+          param,
+          pref: 'css',
+          sessionFallback: false,
+          desktop: false,
+        }),
+      ).toBe('three-tsl');
+    }
+  });
+
+  it('keeps enabled renderers on phones', () => {
+    expect(
+      pickRenderer({
+        param: 'three-glsl',
+        pref: 'three-tsl',
+        sessionFallback: false,
+        desktop: false,
+      }),
+    ).toBe('three-glsl');
+  });
+
+  it('never resolves a spike renderer from the cookie', () => {
+    for (const pref of PREVIEW_RENDERERS) {
+      expect(pickRenderer({ param: null, pref, sessionFallback: false })).toBe(
+        'three-tsl',
+      );
+    }
+  });
+
+  it('is never offered in the renderer select', () => {
+    for (const renderer of PREVIEW_RENDERERS) {
+      expect(ENABLED_RENDERERS).not.toContain(renderer);
+    }
+  });
+
+  it('labels three-pathtrace on WebGL2 as a fallback', () => {
+    expect(backendLabel('three-pathtrace', 'webgl2')).toBe(
+      'three-pathtrace · WebGL2 fallback',
+    );
+  });
+});
+
 describe('isThreeRenderer', () => {
   it('is true for the three.js renderers only', () => {
     expect(isThreeRenderer('three-tsl')).toBe(true);
@@ -190,6 +244,7 @@ describe('labels', () => {
       'three-tsl': 'three.js · TSL',
       css: 'CSS',
       'three-glsl': 'three.js · GLSL',
+      'three-pathtrace': 'three.js · TSL · path traced still',
     });
   });
 

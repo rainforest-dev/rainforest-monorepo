@@ -73,6 +73,38 @@ export interface StudyMaterials {
   dispose: () => void;
 }
 
+export type PhotoState = 'building' | 'tracing' | 'done' | 'stopped';
+
+export interface PhotoOptions {
+  maxSamples: number;
+  renderScale: number;
+  denoise: boolean;
+  frameBudget: number;
+}
+
+export interface PhotoProgress {
+  state: PhotoState;
+  startedAt: number;
+  options: PhotoOptions;
+  buildMs: number | null;
+  samples: number;
+  presentedAt: number | null;
+  settledAt: number | null;
+  samplesAt: readonly (readonly [number, number])[];
+  frameMs: readonly number[];
+  triangles: number;
+  memoryBytes: number | null;
+  memoryPeakBytes: number | null;
+}
+
+export interface KitPhoto {
+  start(overrides?: Partial<PhotoOptions>): void;
+  stop(): void;
+  dispose(): void;
+}
+
+export type PhotoReport = (progress: PhotoProgress) => void;
+
 export interface StudyKit<Gl extends StudyGl = StudyGl> {
   readonly renderer: ThreeRenderer;
   readonly flat: boolean;
@@ -87,4 +119,10 @@ export interface StudyKit<Gl extends StudyGl = StudyGl> {
   maxAnisotropy(gl: Gl): number;
   uploadTexture(gl: Gl, texture: Texture): void;
   compile(gl: Gl, scene: Scene, camera: Camera): Promise<void>;
+  createPhoto?(
+    gl: Gl,
+    scene: Scene,
+    camera: Camera,
+    report: PhotoReport,
+  ): KitPhoto | null;
 }

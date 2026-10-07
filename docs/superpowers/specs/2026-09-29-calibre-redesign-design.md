@@ -781,6 +781,64 @@ It also matches what #505 and #506 added to the TSL kit:
   the spine crop. It counts no render targets, since the canvas's default framebuffer is not a
   texture.
 
+### Photo mode preview (`three-pathtrace`)
+
+A preview renderer, reachable only with `?renderer=three-pathtrace` (#518). It is the `three-tsl`
+kit plus a path-traced still. It is never the default and never in the `Renderer` select. A
+cookie naming it resolves to the default, and it falls back to `three-tsl` unless the device is a
+fine-pointer desktop. The still only runs on the WebGPU backend; on the WebGL2 fallback it is plain
+`three-tsl`.
+
+How it works:
+
+- After 600 ms with no frame, the live scene is copied into `MeshStandardMaterial` meshes. Spines
+  are merged per row with their atlas UVs, then the boards, the back panel and the pulled book are
+  added.
+- `WebGPUPathTracer` from `three-gpu-pathtracer` 0.0.26 traces 8 samples per pixel with a frame
+  budget of 1M paths and at most 4 bounces.
+- The OIDN denoiser (`oidn-web` 0.4.0, loaded lazily) then cleans the result, guided by albedo
+  and normals. The live render stays on screen until the denoised image is ready, then the still
+  fades over it in 250 ms.
+- Any frame of the live renderer stops the still and disposes the tracer, the denoiser and the
+  copied scene.
+
+Decisions:
+
+- **Denoiser weights.** The weights are committed at
+  `apps/personal-calibre/public/oidn/rt_hdr_alb_nrm_small.tza`. They come from RenderKit/oidn-weights at commit
+  `28883d1769d5930e13cf7f1676dd852bd81ed9e7` (641,480 bytes, SHA-256
+  `980ea307e7825cae23ed8b1addf8de62ece84b61094795a5631ebf1c91b2e1a7`) and are Apache-2.0, with
+  `LICENSE.txt` and `NOTICE` in the same folder. If the file is missing, the still traces 256
+  samples undenoised instead.
+- **Default of 8 samples.** 4 samples settles in about 4.7 s but leaves the board shadows slightly
+  blotchy.
+- **Look.** Lighting is tuned to stay near the flat token colours: a near-uniform environment at
+  intensity 0.92, a low frontal key light, matte surfaces, and a small emissive fill on the panel
+  (22% of its colour) and boards (12%).
+- **Label backdrop.** While a still is on screen, the canvas wrapper carries `data-photo` and each
+  shelf label gets a backdrop mixed 75% from the panel colour and 25% from the page background,
+  because the traced panel under a board is darker than the flat one.
+- **Rejected.** Half-resolution tracing and the package's FSR upscaler: text came out soft, and FSR
+  also lost the transparent background. Screen-space GTAO and SSGI, and the WebGL path tracer, were
+  measured in #518 round one and dropped.
+
+Measured headless (`channel: 'chromium'`, Apple M4 Pro), large fixture, desktop 1440×900 at DPR 2,
+with `perf/study-photo.mjs`:
+
+| Measure                                                | Value                                                              |
+| ------------------------------------------------------ | ------------------------------------------------------------------ |
+| Idle to settled still                                  | 6.6 s (128 undenoised samples took 159 s before this round)        |
+| RMSE vs an undenoised 512-sample still (0 to 255)      | 3.10                                                               |
+| Mean colour ΔE vs `three-tsl`: panel / boards / spines | light 2.1 / 0.9 / 0.8, dark 2.7 / 1.3 / 1.4                        |
+| Label count-text contrast                              | 5.65 light, 5.00 dark (`three-tsl`: 4.70, 4.89)                    |
+| Peak renderer memory while tracing                     | 480 MiB (`info.memory.total`; 211 MiB of it textures)              |
+| Texture memory once the live renderer is back          | 35.3 MiB                                                           |
+| Lazy JS, gzip                                          | 526.5 KB (`three-tsl` 438.9 KB); `oidn-web` adds 25.3 KB on demand |
+
+The 480 MiB peak is idle-only. It exists only while the view is still and a still is on screen,
+and it is outside the 50 MiB interactive texture budget below, which the live renderer still
+meets because every photo-mode buffer is released on its first frame.
+
 ## Performance budgets
 
 From the spike (headed Chromium on an Apple M4 Pro; headless throttles rAF to about 12 fps, so it

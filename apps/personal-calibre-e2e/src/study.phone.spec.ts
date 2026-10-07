@@ -36,6 +36,23 @@ test.describe('Study on phone', () => {
     expect(box?.width).toBeCloseTo((26 + ((id * 7) % 16)) * 0.82, 0);
   });
 
+  test('a spike renderer falls back to three-tsl on a phone', async ({
+    page,
+  }) => {
+    for (const renderer of ['three-pathtrace']) {
+      await page.goto(`/?view=study&groupBy=series&renderer=${renderer}`);
+      await expect(page.locator('[data-study-ready]')).toHaveAttribute(
+        'data-renderer',
+        'three-tsl',
+        { timeout: 30_000 },
+      );
+      await expect(canvasWrap(page)).toHaveAttribute(
+        'data-renderer',
+        'three-tsl',
+      );
+    }
+  });
+
   test('key hints are hidden', async ({ page }) => {
     await gotoStudy(page, CSS);
     await expect(page.getByText('Along shelf')).toBeHidden();

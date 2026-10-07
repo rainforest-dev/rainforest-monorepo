@@ -20,6 +20,7 @@ export function canUseWebGL2(): boolean {
 export function canStartRenderer(renderer: ThreeRenderer): boolean {
   switch (renderer) {
     case 'three-tsl':
+    case 'three-pathtrace':
       return hasWebGpuApi() || canUseWebGL2();
     case 'three-glsl':
       return canUseWebGL2();

@@ -52,6 +52,7 @@ import type { ScrubPointer } from './PulledBook';
 import {
   type BookProjector,
   type ProjectedLabel,
+  type RegionProjector,
   Scene,
   type SceneProps,
 } from './Scene';
@@ -73,6 +74,7 @@ const DPR: [number, number] = [1, 2];
 // fiber sets PCFSoftShadowMap for boolean `shadows`, which WebGPURenderer warns about on every render.
 const SHADOWS = { enabled: false, type: PCFShadowMap };
 const RENDER_SAMPLES = 500;
+const PHOTO_IDLE_MS = 600;
 
 function atlasInfo({
   pick,
@@ -106,6 +108,8 @@ function loadKit(renderer: ThreeRenderer): Promise<StudyKit> {
       return import('./kitTsl').then((module) => module.kit);
     case 'three-glsl':
       return import('./kitGlsl').then((module) => module.kit);
+    case 'three-pathtrace':
+      return import('./kitPathtrace').then((module) => module.kit);
   }
 }
 
@@ -213,6 +217,49 @@ function FrameDriver({
   return null;
 }
 
+function PhotoDriver({
+  kit,
+  probe,
+  onShown,
+}: {
+  kit: StudyKit;
+  probe: RefObject<StudyProbe>;
+  onShown: (shown: boolean) => void;
+}) {
+  const gl = useThree((state) => state.gl);
+  const scene = useThree((state) => state.scene);
+  const camera = useThree((state) => state.camera);
+  const photo = useMemo(
+    () =>
+      kit.createPhoto?.(gl, scene, camera, (progress) => {
+        probe.current.photo = progress;
+        onShown(
+          progress.state === 'done' ||
+            (progress.state === 'tracing' && progress.presentedAt !== null),
+        );
+      }) ?? null,
+    [kit, gl, scene, camera, probe, onShown],
+  );
+  const timer = useRef(0);
+  useEffect(
+    () => () => {
+      window.clearTimeout(timer.current);
+      photo?.dispose();
+    },
+    [photo],
+  );
+  useFrame(() => {
+    if (!photo) return;
+    photo.stop();
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(
+      () => photo.start(probe.current.photoOptions ?? undefined),
+      PHOTO_IDLE_MS,
+    );
+  }, 2);
+  return null;
+}
+
 export default function ThreeStudy({
   renderer,
   model,
@@ -244,6 +291,7 @@ export default function ThreeStudy({
   });
   const pointerOrigin = useRef({ left: 0, top: 0 });
   const projector = useRef<BookProjector | null>(null);
+  const regions = useRef<RegionProjector | null>(null);
   const gl = useRef<StudyGl | null>(null);
   const glInit = useRef<Promise<void> | null>(null);
   const glReady = useRef(false);
@@ -273,8 +321,11 @@ export default function ThreeStudy({
     camera: null,
     prewarmedAt: null,
     renderMs: [],
+    photo: null,
+    photoOptions: null,
     projectBook: (bookId) => projector.current?.(bookId, 'box') ?? null,
     projectFront: (bookId) => projector.current?.(bookId, 'front') ?? null,
+    regions: () => regions.current?.() ?? null,
     info: (): StudyProbeInfo => {
       const renderer = gl.current;
       const loaded = kitRef.current;
@@ -480,6 +531,9 @@ export default function ThreeStudy({
   const onLabels = useCallback((labels: readonly ProjectedLabel[]) => {
     labelsSink.current?.(labels);
   }, []);
+  const onPhotoShown = useCallback((shown: boolean) => {
+    wrap.current?.toggleAttribute('data-photo', shown);
+  }, []);
   const onPrewarmed = useCallback(() => {
     probe.current.prewarmedAt = performance.now();
   }, []);
@@ -552,6 +606,9 @@ export default function ThreeStudy({
           aria-hidden="true"
         >
           <FrameDriver ready={ready} onFrame={onFrame} />
+          {ready && kit.createPhoto && (
+            <PhotoDriver kit={kit} probe={probe} onShown={onPhotoShown} />
+          )}
           {ready && (
             <AtlasScene
               layoutKey={`${model.key}:${layout.width}`}
@@ -577,6 +634,7 @@ export default function ThreeStudy({
               reducedMotion={reducedMotion}
               pxPerUnit={pxPerUnit}
               projector={projector}
+              regions={regions}
               onPick={onPick}
               onPulled={onPulled}
               onFloating={onFloating}

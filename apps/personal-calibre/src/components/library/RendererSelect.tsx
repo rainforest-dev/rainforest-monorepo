@@ -10,7 +10,6 @@ import {
 
 import {
   ENABLED_RENDERERS,
-  type Renderer,
   RENDERER_LABELS,
   rendererLabel,
   RENDERERS,
@@ -20,10 +19,7 @@ import { useLibrary } from '@/providers';
 export function RendererSelect() {
   const { view, renderer, backend, setRenderer } = useLibrary();
   if (view !== 'study' || ENABLED_RENDERERS.length < 2) return null;
-  const shown: readonly Renderer[] = ENABLED_RENDERERS.includes(renderer)
-    ? ENABLED_RENDERERS
-    : [...ENABLED_RENDERERS, renderer];
-  const items = shown.map((value) => ({
+  const items = ENABLED_RENDERERS.map((value) => ({
     value,
     label: RENDERER_LABELS[value],
   }));
