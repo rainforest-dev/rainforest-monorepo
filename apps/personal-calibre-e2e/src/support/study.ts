@@ -9,6 +9,7 @@ export type ThreeRun = Exclude<StudyRun, { renderer: 'css' }>;
 export const STUDY_RUNS: readonly StudyRun[] = [
   { renderer: 'three-tsl', backend: 'webgpu' },
   { renderer: 'three-tsl', backend: 'webgl2' },
+  { renderer: 'three-glsl', backend: 'webgl2' },
   { renderer: 'css' },
 ];
 

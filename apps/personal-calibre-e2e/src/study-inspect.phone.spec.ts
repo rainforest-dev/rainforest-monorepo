@@ -6,14 +6,16 @@ import {
   collectConsole,
   gotoStudy,
   prepareRun,
+  runName,
   studyOptions,
   type StudyRun,
+  THREE_RUNS,
 } from './support/study';
 
 type Rect = { left: number; top: number; width: number; height: number };
 type Point = { x: number; y: number };
 
-const THREE: StudyRun = { renderer: 'three-tsl', backend: 'webgl2' };
+const WEBGL2_RUNS = THREE_RUNS.filter((run) => run.backend === 'webgl2');
 const CSS: StudyRun = { renderer: 'css' };
 const HOLD_MS = 600;
 
@@ -135,8 +137,8 @@ function inspectedRect(page: Page, run: StudyRun, id: number): Promise<Rect> {
   );
 }
 
-for (const run of [THREE, CSS]) {
-  test.describe(`Study ${run.renderer} inspect on phone`, () => {
+for (const run of [...WEBGL2_RUNS, CSS]) {
+  test.describe(`Study ${runName(run)} inspect on phone`, () => {
     test.beforeEach(async ({ page }) => {
       await prepareRun(page, run);
       await gotoStudy(page, run, 'debug=1');
