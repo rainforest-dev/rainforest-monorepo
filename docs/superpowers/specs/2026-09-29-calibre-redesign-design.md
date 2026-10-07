@@ -12,8 +12,13 @@ Chromium on an Apple M4 Pro, median of three sweeps:
   1440×1000 the cover cache drops to 23 covers and reports 49.7 MiB.
 - Programs: 18 desktop, 34 phone, flat through the sweep and a walk of every row.
 - `init()`: 5.4 ms on WebGPU and 8.0 ms on WebGL2. First render call: 29.6 ms and 73.1 ms.
-- Mount to first frame: 565 ms on WebGPU and 621 ms on WebGL2, over the 300 ms and 600 ms
-  budgets.
+- Mount to first frame: 565 ms on WebGPU and 621 ms on WebGL2 (medians; single runs ranged from
+  442 to 621 ms), over the 300 ms and 600 ms budgets.
+- Render CPU max after prewarm, phone emulation: 32.8 ms, over the 25 ms budget.
+
+The timing misses are tracked in a separate ticket; phase 3 adds a mount-to-first-frame breakdown
+to the sweep and does not change the TSL path (owner decision, PR #507).
+
 - rAF: median 16.7 ms on every run.
 - Lazy Study JS: 435.6 KB gzip.
 
@@ -222,7 +227,10 @@ Measured against the current app:
   decision). The alternatives are chosen from a `Renderer` select in the Study toolbar (stored in
   the cookie) or `?renderer=`. Fallbacks: `three-tsl` uses WebGPU, else its own WebGL2 backend;
   if WebGL2 is unavailable too (or the renderer throws while starting), Study switches to `css`
-  for the session with a toast and does not write the cookie.
+  for the session with a toast and does not write the cookie. `three-glsl` needs WebGL2; without
+  it, or when it throws while starting, Study goes straight to `css` the same way and never tries
+  `three-tsl` (owner decision, PR #507). The `three-tsl` WebGL2 fallback stays as it is in phase
+  3; whether it should hand over to `three-glsl` is decided on the phase 3 sweep numbers.
 - **P21. `LibraryBook` is a new type.** The UI query returns `BookSummary` plus `seriesId`,
   `authorIds`, `tags: {id, name}[]` and `pubdate`. `BookSummary`, `getBookList` and the MCP and
   OPDS outputs stay byte-identical.
@@ -572,7 +580,10 @@ The pull is now the same in every renderer:
 ### Renderer selection and loading
 
 P20 picks the renderer; the default is `three-tsl`. The Study toolbar gets a `Renderer` Select
-(`three.js · WebGPU`, `CSS`, and from phase 3 `three.js · GLSL`), shown only in Study. `StudyView`
+(`three.js · TSL`, `CSS`, and from phase 3 `three.js · GLSL`), shown only in Study. Items are named by
+shader path; the trigger appends the live backend once it is known (`three.js · TSL · WebGPU`,
+`three.js · TSL · WebGL2`, `three.js · GLSL · WebGL2`), so it never names a backend the page is
+not using. Phase 2 shipped the item as `three.js · WebGPU`; phase 3 Task 4 renames it. `StudyView`
 renders `CssStudy` directly, or `ThreeStudy`, a
 `next/dynamic(() => import('./three/ThreeStudy'), { ssr: false, loading: StudySkeleton })`.
 Inside it the variant kit is a second dynamic import: `kitTsl` (`three/webgpu`, `WebGPURenderer`,
@@ -706,6 +717,23 @@ contract as the TSL kit: `aCol`, `aSel`, `aHi` attributes, one pulled-book mater
 face by `vNormal`, `flat` tone mapping. It reuses the shared scene and every fix above. The
 `Renderer` select gains `three.js · GLSL`.
 
+It also matches what #505 and #506 added to the TSL kit:
+
+- The pulled-book material has five faces: front cover (or the side colour without one), back
+  (the shared 256×384 inspect canvas, or the side colour), spine crop, pages and side. It is a
+  `MeshLambertMaterial` with `onBeforeCompile` and a constant `customProgramCacheKey`, so it uses
+  three's Lambert lighting as `MeshLambertNodeMaterial` does.
+- The two pulled-book carriers (scrub cover-out) each hold a material with the same source and
+  cache key, so they share one program. `point()` only writes uniform values; it never sets
+  `.map` or `needsUpdate`, so the program count does not grow on a carrier swap, a float or an
+  inspect.
+- Inspect dimming is one `{ value }` uniform object (`uDim`) placed in every spine material's
+  uniforms, plus the panel and board colour scaling in the shared scene. There is no scrim mesh.
+- `WebGLRenderer` reports no texture bytes (`info.memory` has no `texturesSize`), so the GLSL
+  texture number is an estimate: the measured atlas bytes, the cover cache, the inspect back and
+  the spine crop. It counts no render targets, since the canvas's default framebuffer is not a
+  texture.
+
 ## Performance budgets
 
 From the spike (headed Chromium on an Apple M4 Pro; headless throttles rAF to about 12 fps, so it
@@ -713,24 +741,27 @@ is not used for timing). "Sweep" is the spike's 40-step keyboard sweep at 150 ms
 Study budgets are measured at `?__pageSize=250` on the large fixture (P22), the spike's load, so
 a normal 30-book page has headroom.
 
-| Measure                             | `three-tsl` WebGPU (spike) | `three-tsl` WebGL2 fallback (spike) | `css`          | `three-glsl` (spike)       |
-| ----------------------------------- | -------------------------- | ----------------------------------- | -------------- | -------------------------- |
-| Extra JS, gzip, lazy                | ≤ 450 KB (443.2)           | same chunk                          | 0              | ≤ 260 KB (253.4)           |
-| three.js in first load of any route | none                       | none                                | none           | none                       |
-| rAF median / p95, sweep             | 16.7 / ≤ 20 ms (16.6/18.7) | 16.7 / ≤ 20 ms (16.7/18.7)          | 16.7 / ≤ 20 ms | 16.7 / ≤ 20 ms (16.7/18.6) |
-| Dropped frames per sweep            | ≤ 10 (2)                   | ≤ 10 (3)                            | ≤ 10           | ≤ 10 (3)                   |
-| Long tasks during sweep             | 0                          | 0                                   | 0              | 0                          |
-| `init()`, desktop                   | ≤ 20 ms (12.1)             | ≤ 20 ms (7.4)                       | n/a            | n/a                        |
-| First render call, desktop          | ≤ 60 ms (42)               | ≤ 350 ms (327)                      | n/a            | ≤ 60 ms (35)               |
-| Mount → first frame, desktop        | ≤ 300 ms (513)             | ≤ 600 ms (842)                      | n/a            | ≤ 200 ms (300)             |
-| Render CPU max after prewarm        | ≤ 25 ms (4.8)              | ≤ 25 ms (19.1)                      | n/a            | ≤ 25 ms (23.8)             |
-| Program count growth during sweep   | 0                          | 0                                   | n/a            | 0                          |
-| Draw calls                          | ≤ rows + 6                 | ≤ rows + 6                          | n/a            | ≤ rows + 6                 |
-| Texture memory                      | ≤ 50 MB reported (90.5)    | ≤ 50 MB reported (90.5)             | n/a            | ≤ 40 MB est. (~35)         |
+| Measure                             | `three-tsl` WebGPU (spike) | `three-tsl` WebGL2 fallback (spike) | `css`          | `three-glsl` (spike)                       |
+| ----------------------------------- | -------------------------- | ----------------------------------- | -------------- | ------------------------------------------ |
+| Extra JS, gzip, lazy                | ≤ 450 KB (443.2)           | same chunk                          | 0              | re-measure in phase 3 Task 6 (spike 253.4) |
+| three.js in first load of any route | none                       | none                                | none           | none                                       |
+| rAF median / p95, sweep             | 16.7 / ≤ 20 ms (16.6/18.7) | 16.7 / ≤ 20 ms (16.7/18.7)          | 16.7 / ≤ 20 ms | 16.7 / ≤ 20 ms (16.7/18.6)                 |
+| Dropped frames per sweep            | ≤ 10 (2)                   | ≤ 10 (3)                            | ≤ 10           | ≤ 10 (3)                                   |
+| Long tasks during sweep             | 0                          | 0                                   | 0              | 0                                          |
+| `init()`, desktop                   | ≤ 20 ms (12.1)             | ≤ 20 ms (7.4)                       | n/a            | n/a                                        |
+| First render call, desktop          | ≤ 60 ms (42)               | ≤ 350 ms (327)                      | n/a            | ≤ 60 ms (35)                               |
+| Mount → first frame, desktop        | ≤ 300 ms (513)             | ≤ 600 ms (842)                      | n/a            | ≤ 200 ms (300)                             |
+| Render CPU max after prewarm        | ≤ 25 ms (4.8)              | ≤ 25 ms (19.1)                      | n/a            | ≤ 25 ms (23.8)                             |
+| Program count growth during sweep   | 0                          | 0                                   | n/a            | 0                                          |
+| Draw calls                          | ≤ rows + 6                 | ≤ rows + 6                          | n/a            | ≤ rows + 6                                 |
+| Texture memory                      | ≤ 50 MB reported (90.5)    | ≤ 50 MB reported (90.5)             | n/a            | ≤ 50 MiB est. (~35)                        |
 
 The first-frame targets are below the spike's numbers because the spike spent 300 to 500 ms
 drawing the whole 250-spine atlas before its first frame, and the per-shelf atlas draws only the
-visible rows first. The phone-emulation budgets are the same except texture memory (≤ 30 MB).
+visible rows first. The phone-emulation budgets are the same except texture memory (≤ 30 MB, an
+estimate for `three-glsl` as for desktop). The `three-glsl` lazy JS budget dates from the spike,
+before the shared scene, scrub, cover-out and inspect code grew the base chunk; phase 3 Task 6
+measures it and writes the re-baselined number here.
 
 Phase 1 budgets, on the large fixture at the normal page size:
 
@@ -784,11 +815,13 @@ New strings (English UI, as today):
   `History ({N})`, `Remove {platform} event`, `Description`, `Logged {platform}` (toast).
 - Marks: `On {platform}` (title and accessible name), `Not delivered`.
 - States: as in the section above.
-- Study (phase 2): `Bookshelves`, `{label}, {N} books`, `Renderer`, `three.js · WebGPU`, `CSS`,
+- Study (phase 2): `Bookshelves`, `{label}, {N} books`, `Renderer`, `three.js · TSL` (shipped as
+  `three.js · WebGPU`, renamed in phase 3), `CSS`,
   `Couldn't start the 3D renderer`, `Use CSS study`,
   `3D isn't available here, showing the CSS study` (toast); debug badge
-  `three-tsl · WebGPU`, `three-tsl · WebGL2 fallback`, `css`. Phase 3 adds `three.js · GLSL` and
-  `three-glsl · WebGL2`.
+  `three-tsl · WebGPU`, `three-tsl · WebGL2 fallback`, `css`. Phase 3 adds `three.js · GLSL`, the
+  trigger texts `three.js · TSL · WebGPU`, `three.js · TSL · WebGL2` and
+  `three.js · GLSL · WebGL2`, and the badge `three-glsl · WebGL2`.
 
 ## Fixtures
 
@@ -875,6 +908,11 @@ phone specs; add `@axe-core/playwright`):
     `three-glsl` path.
   - Visual parity: `three-tsl` WebGPU vs WebGL2 fallback captures differ by ≤ 0.3% of pixels, on
     edges only (the spike measured 0.028% / 0.038%).
+  - Phase 3 parity, light and dark, 1440×900 @2, reduced motion: `three-glsl` against `three-tsl`
+    on WebGL2 (headless and headed) and against `three-tsl` on WebGPU (headed). Three poses: the
+    shelf with the first book focused, a pulled book, and the inspect end pose facing front.
+    Shelf and pulled: ≤ 0.3% of pixels, edges only. Inspect: ≤ 0.5%, edges only, since the
+    enlarged lit book puts more edge on screen (owner decision, PR #507).
 
 Budgets are measured by a headed script (the spike's sweep, moved to
 `apps/personal-calibre-e2e/perf/`), not in CI, for every renderer and for both `three-tsl`
