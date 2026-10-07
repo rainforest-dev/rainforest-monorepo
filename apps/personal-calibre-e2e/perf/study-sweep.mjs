@@ -4,7 +4,6 @@ import { join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
 
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:3334';
-const HEADED = Boolean(process.env.HEADED);
 const OUT = resolve(import.meta.dirname, '..', 'test-output', 'perf');
 const ONLY = process.env.SWEEP_ONLY?.split(',') ?? null;
 const STEPS = 40;
@@ -57,7 +56,7 @@ const stats = (values) => {
 
 const launch = () =>
   chromium.launch({
-    headless: !HEADED,
+    channel: 'chromium',
     args: [
       '--enable-unsafe-webgpu',
       '--ignore-gpu-blocklist',
