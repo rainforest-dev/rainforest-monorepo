@@ -211,12 +211,46 @@ test.describe('Study three-tsl', () => {
       await expect(trigger).not.toContainText('WebGPU');
 
     await trigger.click();
+    for (const name of ['three.js · TSL', 'three.js · GLSL', 'CSS']) {
+      await expect(
+        page.getByRole('option', { name, exact: true }),
+      ).toBeVisible();
+    }
+  });
+
+  test('choosing three.js · GLSL writes the cookie and mounts a new canvas', async ({
+    page,
+    context,
+  }) => {
+    const run = projectRun();
+    await setPrefs(context, { renderer: 'three-tsl' });
+    await startRun(page, run);
+    await gotoStudy(page, run, 'debug=1');
+    const wrap = canvasWrap(page);
+    await expect(wrap).toHaveAttribute('data-backend', run.backend);
+    const before = await wrap.locator('canvas').elementHandle();
+
+    await page.getByRole('combobox', { name: 'Renderer' }).click();
+    await page
+      .getByRole('option', { name: 'three.js · GLSL', exact: true })
+      .click();
+
+    await expect
+      .poll(async () => (await readPrefs(context))?.['renderer'])
+      .toBe('three-glsl');
+    await expect
+      .poll(() => new URL(page.url()).searchParams.has('renderer'))
+      .toBe(false);
+    await expect(wrap).toHaveAttribute('data-renderer', 'three-glsl');
+    await expect(wrap).toHaveAttribute('data-backend', 'webgl2');
     await expect(
-      page.getByRole('option', { name: 'three.js · TSL', exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('option', { name: 'CSS', exact: true }),
-    ).toBeVisible();
+      page.getByRole('combobox', { name: 'Renderer' }),
+    ).toContainText('three.js · GLSL · WebGL2');
+    const after = await wrap.locator('canvas').elementHandle();
+    expect(await before?.evaluate((canvas) => canvas.isConnected)).toBe(false);
+    expect(
+      await page.evaluate(([a, b]) => a !== b, [before, after] as const),
+    ).toBe(true);
   });
 
   test('switching between three.js renderers mounts a new canvas', async ({

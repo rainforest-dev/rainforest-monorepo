@@ -38,9 +38,9 @@ describe('pickRenderer', () => {
     ).toBe('css');
   });
 
-  it('ships three-tsl as the default with css as the alternative', () => {
-    expect(ENABLED_RENDERERS).toEqual(['three-tsl', 'css']);
-    expect(PREVIEW_RENDERERS).toEqual(['three-glsl']);
+  it('ships three-tsl as the default with three-glsl and css as alternatives', () => {
+    expect(ENABLED_RENDERERS).toEqual(['three-tsl', 'three-glsl', 'css']);
+    expect(PREVIEW_RENDERERS).toEqual([]);
     expect(
       pickRenderer({
         param: null,
@@ -56,7 +56,10 @@ describe('pickRenderer', () => {
     ).toBe('three-tsl');
   });
 
-  it('previews three-glsl through ?renderer= only', () => {
+  it('honours three-glsl from the cookie and from ?renderer=', () => {
+    expect(
+      pickRenderer({ param: null, pref: 'three-glsl', sessionFallback: false }),
+    ).toBe('three-glsl');
     expect(
       pickRenderer({
         param: 'three-glsl',
@@ -66,11 +69,11 @@ describe('pickRenderer', () => {
     ).toBe('three-glsl');
     expect(
       pickRenderer({
-        param: null,
+        param: 'css',
         pref: 'three-glsl',
         sessionFallback: false,
       }),
-    ).toBe('three-tsl');
+    ).toBe('css');
     expect(
       pickRenderer({
         param: 'three-glsl',

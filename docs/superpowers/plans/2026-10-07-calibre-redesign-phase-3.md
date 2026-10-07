@@ -1,5 +1,8 @@
 # personal-calibre redesign, phase 3 Implementation Plan
 
+**Status:** done on 2026-10-07. Tasks 1 to 6 landed in #509, #510, #511, #508, #513 and #512;
+Task 7 enables `three-glsl`. The measured numbers are in the spec's status section.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `three-glsl`, the second switchable alternative for 書房 Study: `WebGLRenderer`

@@ -22,6 +22,31 @@ to the sweep and does not change the TSL path (owner decision, PR #507).
 - rAF: median 16.7 ms on every run.
 - Lazy Study JS: 435.6 KB gzip.
 
+Phase 3 shipped on 2026-10-07 with `three-glsl` as a second alternative in the Renderer select;
+`three-tsl` stays the default and `css` the fallback. Same setup as phase 2, median of three
+sweeps, desktop 1440×900 @2 and phone 390×844 @3 with CPU ×4:
+
+| Run               | Programs | Draw calls (rows) | Texture MiB    | Mount → first frame | Frame CPU p95 / max |
+| ----------------- | -------- | ----------------- | -------------- | ------------------- | ------------------- |
+| TSL WebGPU, desk  | 18       | 12 (9)            | 48.2 reported  | 474 ms              | 0.8 / 2.8 ms        |
+| TSL WebGPU, phone | 35       | 10 (26)           | 29.1 reported  | 439 ms              | 3.2 / 12.0 ms       |
+| TSL WebGL2, desk  | 18       | 12 (9)            | 48.2 reported  | 511 ms              | 0.7 / 2.2 ms        |
+| TSL WebGL2, phone | 35       | 10 (26)           | 29.1 reported  | 470 ms              | 3.1 / 7.0 ms        |
+| GLSL, desk        | 4        | 11 (9)            | 45.0 estimated | 457 ms              | 0.4 / 2.0 ms        |
+| GLSL, phone       | 4        | 9 (26)            | 28.9 estimated | 450 ms              | 1.5 / 4.8 ms        |
+
+- `three-glsl` meets every budget in its column except mount to first frame (457 and 450 ms
+  against 200 ms). Programs stay at 4 through the sweep and a walk of every row. First render
+  call 23 and 21 ms. Lazy JS 253.0 KB gzip. Its estimate leaves room for 160 px per unit on
+  desktop and 112 on phone, where the TSL runs settle on 96.
+- Mount to first frame, every three.js run: the renderer context is requested 64 to 75 ms after
+  the canvas mounts, `init()` takes 4 to 12 ms, and the visible rows' atlases start drawing at
+  381 to 403 ms. The main thread is idle in between: fiber 9.8.1 gates an async `gl` factory
+  behind a `Suspense` boundary, and React 19 holds the reveal of a boundary until 300 ms after
+  its fallback committed. Atlas drawing and the commit then take about 20 ms and the first
+  render call 21 to 75 ms. The separate timing ticket starts from that 300 ms.
+- The phone render CPU miss from phase 2 did not reproduce: 12.0 ms max on TSL WebGPU.
+
 Sources, in order of authority:
 
 1. The owner decisions recorded below.
