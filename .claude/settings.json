@@ -18,5 +18,19 @@
     "network": {
       "allowUnixSockets": ["/tmp/.nx", "~/.nx"]
     }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/tools/cloud/session-start.sh",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
   }
 }
