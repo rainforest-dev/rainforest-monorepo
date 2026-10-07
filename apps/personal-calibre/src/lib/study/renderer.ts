@@ -3,8 +3,12 @@ import { type Renderer, RENDERERS } from '@/lib/prefs';
 export type ThreeRenderer = Exclude<Renderer, 'css'>;
 export type StudyBackend = 'webgpu' | 'webgl2' | 'css';
 
-export const ENABLED_RENDERERS: readonly Renderer[] = ['three-tsl', 'css'];
-export const PREVIEW_RENDERERS: readonly Renderer[] = ['three-glsl'];
+export const ENABLED_RENDERERS: readonly Renderer[] = [
+  'three-tsl',
+  'three-glsl',
+  'css',
+];
+export const PREVIEW_RENDERERS: readonly Renderer[] = [];
 
 export const RENDERER_LABELS: Record<Renderer, string> = {
   'three-tsl': 'three.js · TSL',

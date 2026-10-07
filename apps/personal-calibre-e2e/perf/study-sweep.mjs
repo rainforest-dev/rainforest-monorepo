@@ -10,8 +10,11 @@ const ONLY = process.env.SWEEP_ONLY?.split(',') ?? null;
 const STEPS = 40;
 const STEP_MS = 150;
 const ROW_SETTLE_MS = 400;
+const ATLAS_MIN_WIDTH = 256;
+const REPEAT = Number(process.env.SWEEP_REPEAT ?? 3);
 
 const RENDERERS = [
+  { name: 'three-glsl-webgl2', renderer: 'three-glsl', backend: 'webgl2' },
   { name: 'three-tsl-webgpu', renderer: 'three-tsl', backend: 'webgpu' },
   { name: 'three-tsl-webgl2', renderer: 'three-tsl', backend: 'webgl2' },
   { name: 'css', renderer: 'css', backend: 'css' },
@@ -82,6 +85,27 @@ async function open(browser, run, profile) {
       });
     });
   }
+  await page.addInitScript((atlasMinWidth) => {
+    const contexts = [];
+    window.__contexts = contexts;
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+      const atlas = this.width >= atlasMinWidth && this.width > this.height;
+      if (type !== '2d' || atlas) {
+        contexts.push({ type, at: performance.now() });
+      }
+      return getContext.call(this, type, ...rest);
+    };
+    const watch = () => {
+      const at = window.__calibreStudy?.info().lastAtlasAt ?? null;
+      if (at === null) {
+        requestAnimationFrame(watch);
+        return;
+      }
+      window.__firstAtlasAt = at;
+    };
+    requestAnimationFrame(watch);
+  }, ATLAS_MIN_WIDTH);
   const logs = [];
   page.on('console', (message) => {
     if (!['error', 'warning'].includes(message.type())) return;
@@ -231,6 +255,24 @@ async function measure(run, profile) {
         firstRenderCallMs: probe?.firstRenderMs ?? null,
         initMs: probe?.initMs ?? null,
         kitLoadMs: probe?.kitLoadMs ?? null,
+        atlasFirstRowsMs:
+          probe && window.__firstAtlasAt != null
+            ? window.__firstAtlasAt - probe.canvasMountAt
+            : null,
+        ...(() => {
+          if (!probe) return {};
+          const after = (window.__contexts ?? []).filter(
+            (entry) => entry.at >= probe.canvasMountAt,
+          );
+          const gl = after.find((entry) =>
+            ['webgl2', 'webgpu'].includes(entry.type),
+          );
+          const atlas = after.find((entry) => entry.type === '2d');
+          return {
+            glContextMs: gl ? gl.at - probe.canvasMountAt : null,
+            firstAtlasDrawMs: atlas ? atlas.at - probe.canvasMountAt : null,
+          };
+        })(),
         backend: root?.getAttribute('data-backend') ?? null,
       };
     });
@@ -257,8 +299,12 @@ async function measure(run, profile) {
         firstRenderCallMs: round(boot.firstRenderCallMs),
         initMs: round(boot.initMs),
         kitLoadMs: round(boot.kitLoadMs),
+        atlasFirstRowsMs: round(boot.atlasFirstRowsMs),
+        glContextMs: round(boot.glContextMs),
+        firstAtlasDrawMs: round(boot.firstAtlasDrawMs),
         backend: boot.backend,
       },
+      texturesSizeSource: after?.texturesSizeSource ?? null,
       ...swept,
       programsBefore: before?.programs ?? null,
       programsAfter: after?.programs ?? null,
@@ -275,19 +321,75 @@ async function measure(run, profile) {
   }
 }
 
+const MEDIAN_PATHS = [
+  'boot.canvasMountToFirstFrameMs',
+  'boot.kitLoadMs',
+  'boot.initMs',
+  'boot.glContextMs',
+  'boot.firstAtlasDrawMs',
+  'boot.atlasFirstRowsMs',
+  'boot.firstRenderCallMs',
+  'rafDelta.median',
+  'rafDelta.p95',
+  'renderCpuMs.p95',
+  'renderCpuMs.max',
+  'dropped',
+  'longTasks',
+  'focusPulledMismatches',
+  'programsBefore',
+  'programsAfter',
+  'programsAfterWalk',
+  'drawCalls',
+  'rows',
+  'texturesSizeReported',
+  'memoryAfterWalk.texturesSizeReported',
+];
+
+const at = (value, path) =>
+  path.split('.').reduce((node, key) => node?.[key] ?? null, value);
+
+const median = (values) => {
+  const present = values.filter((value) => typeof value === 'number');
+  if (present.length === 0) return null;
+  const sorted = [...present].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
+};
+
+const summarize = (samples) => ({
+  label: samples[0].label,
+  samples: samples.length,
+  backend: samples[0].boot.backend,
+  texturesSizeSource: samples[0].texturesSizeSource,
+  ...Object.fromEntries(
+    MEDIAN_PATHS.map((path) => [
+      path,
+      median(samples.map((sample) => at(sample, path))),
+    ]),
+  ),
+  console: [...new Set(samples.flatMap((sample) => sample.console))],
+});
+
 mkdirSync(OUT, { recursive: true });
 const results = [];
+const summary = [];
 for (const run of RENDERERS) {
   for (const profile of PROFILES) {
     const label = `${run.name} ${profile.name}`;
     if (ONLY && !ONLY.some((part) => label.includes(part))) continue;
-    const result = await measure(run, profile);
-    results.push(result);
-    console.log(JSON.stringify(result));
+    const samples = [];
+    for (let repeat = 0; repeat < REPEAT; repeat++) {
+      const result = await measure(run, profile);
+      samples.push(result);
+      results.push(result);
+      console.log(JSON.stringify(result));
+    }
+    const medians = summarize(samples);
+    summary.push(medians);
+    console.log(JSON.stringify(medians));
   }
 }
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 writeFileSync(
   join(OUT, `study-sweep-${stamp}.json`),
-  JSON.stringify(results, null, 1),
+  JSON.stringify({ summary, results }, null, 1),
 );

@@ -103,6 +103,23 @@ test.describe('Study without WebGL or WebGPU', () => {
     expect((await readPrefs(context))?.['renderer']).toBe('three-tsl');
   });
 
+  test('a three-glsl cookie falls back to the CSS study and keeps the cookie', async ({
+    page,
+    context,
+  }) => {
+    await setPrefs(context, { view: 'study', renderer: 'three-glsl' });
+    await page.goto('/?groupBy=series');
+    const study = page.locator('[data-study-ready]');
+    await expect(study).toHaveAttribute('data-renderer', 'css');
+    await expect(study).toHaveAttribute('data-backend', 'css');
+    await expect(canvasWrap(page)).toHaveCount(0);
+    await expect(page.getByText(TOAST)).toHaveCount(1);
+    await expect(
+      page.getByRole('combobox', { name: 'Renderer' }),
+    ).toContainText('CSS');
+    expect((await readPrefs(context))?.['renderer']).toBe('three-glsl');
+  });
+
   test('choosing CSS in the Renderer select writes it to the cookie', async ({
     page,
     context,
