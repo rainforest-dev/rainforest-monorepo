@@ -54,7 +54,7 @@ project instructions.
 - `VAULT_PATH`. The Obsidian vault is not reachable; rss-manager runs on fixtures.
 - firefox and webkit. The e2e projects that cloud sessions run use chromium only.
 - `personal-liff` and `personal-liff-e2e`, which are unmaintained.
-- Plugins, including the `nx` and `polygraph` plugins `.claude/settings.json` enables. Cloud
+- Plugins, including the `nx` plugin `.claude/settings.json` enables. Cloud
   sessions install neither user-scoped plugins nor the ones a repository turns on, whatever
   marketplace it declares. The user-scoped MCP servers on the laptop are absent too;
   `.mcp.json` here still loads.
