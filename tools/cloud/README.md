@@ -31,9 +31,8 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
 ```
 
 Values here are readable by every command a session runs. Nothing secret belongs in this
-list. `NEXT_PUBLIC_LIFF_ID` stays unset until a LIFF id is chosen for the cloud.
-`GA_API_SECRET` and the Sentry and Clarity ids are deliberately absent: builds work without
-them.
+list. `GA_API_SECRET` and the Sentry and Clarity ids are deliberately absent: builds work
+without them.
 
 **Setup script** the contents of [`setup-script.sh`](./setup-script.sh).
 
@@ -53,8 +52,8 @@ project instructions.
 
 - Nx Cloud (`*.nx.app` is not allowlisted; `NX_NO_CLOUD=true` keeps Nx from waiting on it).
 - `VAULT_PATH`. The Obsidian vault is not reachable; rss-manager runs on fixtures.
-- firefox and webkit. Add them to both scripts if personal-liff-e2e's other projects matter
-  more than setup time.
+- firefox and webkit. The e2e projects that cloud sessions run use chromium only.
+- `personal-liff` and `personal-liff-e2e`, which are unmaintained.
 - Plugins, including the `nx` and `polygraph` plugins `.claude/settings.json` enables. Cloud
   sessions install neither user-scoped plugins nor the ones a repository turns on, whatever
   marketplace it declares. The user-scoped MCP servers on the laptop are absent too;
@@ -76,8 +75,7 @@ Session `session_015ZGKrnv2Wcu6afdD7op9rf`, 2026-10-07, before Node 24 was added
   `playwright.download.prss.microsoft.com` is ffmpeg's first fallback.
 - The image is Ubuntu 24.04 on x86_64 with Node 20, 21 and 22 under `/opt`. `nodejs.org` is
   reachable on this network setting.
-- `pnpm nx test rainforest-ui` passes. `personal-liff-e2e` fails on any machine: its scaffold
-  test expects a "Welcome" heading the app no longer renders.
+- `pnpm nx test rainforest-ui` passes.
 
 Session `session_01GWWJHsZvFsoXV9YmfLEAkU`, 2026-10-07, with Node 24: `node` resolves to
 `/opt/node24/bin/node` (v24.21.0) in Claude's own commands, pnpm 11.7.0 runs on it, the
