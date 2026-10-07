@@ -29,6 +29,7 @@ import {
   pxPerUnitAt,
   rowsInView,
   screenRectOf,
+  snapRect,
   targetBytes,
   TEXTURE_BUDGET_BYTES,
   type TextureBudgetInput,
@@ -244,6 +245,28 @@ describe('projectBox', () => {
 
   it('returns null for no corners', () => {
     expect(projectBox([], IDENTITY, VIEWPORT)).toBeNull();
+  });
+});
+
+describe('snapRect', () => {
+  it('snaps every edge to the device pixel grid', () => {
+    expect(
+      snapRect(
+        { left: 179.292, top: 157.789, width: 68.4732, height: 182.504 },
+        2,
+      ),
+    ).toEqual({ left: 179.5, top: 158, width: 68.5, height: 182.5 });
+  });
+
+  it('snaps edges rather than the size, so the right edge does not drift', () => {
+    expect(snapRect({ left: 10.4, top: 0, width: 10.4, height: 1 }, 1)).toEqual(
+      { left: 10, top: 0, width: 11, height: 1 },
+    );
+  });
+
+  it('leaves a rect already on the grid unchanged', () => {
+    const rect = { left: 12.5, top: 3, width: 40.5, height: 7 };
+    expect(snapRect(rect, 2)).toEqual(rect);
   });
 });
 

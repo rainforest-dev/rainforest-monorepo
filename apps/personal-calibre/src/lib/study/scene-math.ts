@@ -113,6 +113,18 @@ export function projectBox(
   return { left, top, width: right - left, height: bottom - top };
 }
 
+export function snapRect(rect: ScreenRect, dpr: number): ScreenRect {
+  const snap = (value: number) => Math.round(value * dpr) / dpr;
+  const left = snap(rect.left);
+  const top = snap(rect.top);
+  return {
+    left,
+    top,
+    width: snap(rect.left + rect.width) - left,
+    height: snap(rect.top + rect.height) - top,
+  };
+}
+
 export const ATLAS_PPU_LADDER = [160, 128, 112, 96] as const;
 export type AtlasPpu = (typeof ATLAS_PPU_LADDER)[number];
 export const ATLAS_PPU_FLOOR: AtlasPpu = 96;
