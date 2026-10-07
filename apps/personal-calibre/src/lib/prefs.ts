@@ -10,7 +10,12 @@ export const VIEW_LABELS: Record<View, string> = {
   study: 'Study',
 };
 
-export const RENDERERS = ['css', 'three-glsl', 'three-tsl'] as const;
+export const RENDERERS = [
+  'css',
+  'three-glsl',
+  'three-tsl',
+  'three-pathtrace',
+] as const;
 export type Renderer = (typeof RENDERERS)[number];
 
 export const PREFS_COOKIE = 'calibre-prefs';

@@ -61,6 +61,14 @@ export type BookProjector = (
   face: 'box' | 'front',
 ) => ScreenRect | null;
 
+export interface SceneRegions {
+  panel: ScreenRect | null;
+  boards: ScreenRect[];
+  books: ScreenRect[];
+}
+
+export type RegionProjector = () => SceneRegions;
+
 export interface ProjectedLabel {
   shelfKey: string;
   text: string;
@@ -88,6 +96,7 @@ export interface SceneProps {
   atlases: ReadonlyMap<number, RowAtlas>;
   covers: CoverCache;
   projector: RefObject<BookProjector | null>;
+  regions?: RefObject<RegionProjector | null>;
   onPick: (bookId: number) => void;
   onPulled: (bookId: number | null) => void;
   onFloating: (bookId: number | null) => void;
@@ -175,6 +184,7 @@ export function Scene({
   atlases,
   covers,
   projector,
+  regions,
   onPick,
   onPulled,
   onFloating,
@@ -428,6 +438,44 @@ export function Scene({
       projector.current = null;
     };
   }, [projector, byId, pulledId, pulledMesh, camera, gl]);
+
+  useEffect(() => {
+    if (!regions) return;
+    const rectOf = (matrix: Matrix4) => {
+      const points: NdcPoint[] = [];
+      for (const x of [-0.5, 0.5]) {
+        for (const y of [-0.5, 0.5]) {
+          for (const z of [-0.5, 0.5]) {
+            CORNER.set(x, y, z).applyMatrix4(matrix).project(camera);
+            points.push([CORNER.x, CORNER.y]);
+          }
+        }
+      }
+      return screenRectOf(points, gl.domElement.getBoundingClientRect());
+    };
+    const box = new Object3D();
+    const caseHeight = layout.rows * ROW_H;
+    regions.current = () => {
+      camera.updateMatrixWorld();
+      box.position.set(layout.width / 2, ROW_H - caseHeight / 2, PANEL_Z);
+      box.scale.set(layout.width + 0.6, caseHeight + 0.2, 0);
+      box.updateMatrix();
+      const panel = rectOf(box.matrix);
+      const boards = layout.boards.flatMap((b) => {
+        box.position.set(b.x, b.y, b.z);
+        box.scale.set(b.sx, b.sy, b.sz);
+        box.updateMatrix();
+        return rectOf(box.matrix) ?? [];
+      });
+      const books = layout.books.flatMap(
+        (placed) => projector.current?.(placed.book.id, 'box') ?? [],
+      );
+      return { panel, boards, books };
+    };
+    return () => {
+      regions.current = null;
+    };
+  }, [regions, layout, projector, camera, gl]);
 
   useEffect(() => {
     const toScreen = (x: number, y: number, viewport: DOMRect) => {

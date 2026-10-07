@@ -13,6 +13,7 @@ import {
   useTransition,
 } from 'react';
 
+import { useIsFinePointerDesktop } from '@/hooks/useIsDesktop';
 import {
   addIds,
   buildLibraryHref,
@@ -155,10 +156,12 @@ export function LibraryProvider({
     () => false,
   );
   const [backend, setBackend] = useState<StudyBackend | null>(null);
+  const desktop = useIsFinePointerDesktop();
   const renderer = pickRenderer({
     param: searchParams.get('renderer'),
     pref: prefs.renderer,
     sessionFallback: studyFallback,
+    desktop,
   });
 
   const savePrefs = useCallback(

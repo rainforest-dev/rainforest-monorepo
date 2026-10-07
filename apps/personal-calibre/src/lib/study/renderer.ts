@@ -8,18 +8,23 @@ export const ENABLED_RENDERERS: readonly Renderer[] = [
   'three-glsl',
   'css',
 ];
-export const PREVIEW_RENDERERS: readonly Renderer[] = [];
+export const PREVIEW_RENDERERS: readonly Renderer[] = ['three-pathtrace'];
+export const DESKTOP_ONLY_RENDERERS: readonly Renderer[] = PREVIEW_RENDERERS;
+const PHONE_FALLBACK: Renderer = 'three-tsl';
+const WEBGPU_FIRST: readonly Renderer[] = ['three-tsl', 'three-pathtrace'];
 
 export const RENDERER_LABELS: Record<Renderer, string> = {
   'three-tsl': 'three.js · TSL',
   css: 'CSS',
   'three-glsl': 'three.js · GLSL',
+  'three-pathtrace': 'three.js · TSL · path traced still',
 };
 
 export interface RendererInput {
   param: string | null;
   pref: Renderer;
   sessionFallback: boolean;
+  desktop?: boolean;
   enabled?: readonly Renderer[];
   preview?: readonly Renderer[];
 }
@@ -28,11 +33,14 @@ export function pickRenderer({
   param,
   pref,
   sessionFallback,
+  desktop = true,
   enabled = ENABLED_RENDERERS,
   preview = PREVIEW_RENDERERS,
 }: RendererInput): Renderer {
   if (sessionFallback) return 'css';
   const wanted = RENDERERS.find((r) => r === param);
+  if (wanted && !desktop && DESKTOP_ONLY_RENDERERS.includes(wanted))
+    return PHONE_FALLBACK;
   if (wanted && (enabled.includes(wanted) || preview.includes(wanted)))
     return wanted;
   if (enabled.includes(pref)) return pref;
@@ -64,7 +72,7 @@ export function backendLabel(
   if (renderer === 'css' || backend === 'css') return 'css';
   if (backend === null) return `${renderer} · starting`;
   const name = BACKEND_NAMES[backend];
-  return renderer === 'three-tsl' && backend === 'webgl2'
+  return WEBGPU_FIRST.includes(renderer) && backend === 'webgl2'
     ? `${renderer} · ${name} fallback`
     : `${renderer} · ${name}`;
 }

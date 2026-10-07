@@ -10,6 +10,8 @@ export type LabelsSink = (labels: readonly ProjectedLabel[]) => void;
 
 const LABEL_CLASS =
   'absolute left-0 top-0 flex items-baseline gap-2 overflow-hidden whitespace-nowrap pl-0.5 pt-2 text-sm';
+const PHOTO_SCRIM_CLASS =
+  'rounded-sm in-data-[photo]:bg-[color-mix(in_oklab,var(--muted)_75%,var(--background))]';
 
 const labelText = (text: string, continued: boolean) =>
   continued ? `${text} (continued)` : text;
@@ -61,7 +63,7 @@ export function ShelfLabels({
             transform: `translate(${label.left}px, ${label.top}px)`,
             maxWidth: `${label.width}px`,
           }}
-          className={LABEL_CLASS}
+          className={cn(LABEL_CLASS, PHOTO_SCRIM_CLASS)}
         >
           <span
             className={cn(

@@ -1,5 +1,8 @@
 import type { AtlasPpu, CameraState, ScreenRect } from '@/lib';
 
+import type { PhotoOptions, PhotoProgress } from './kit';
+import type { SceneRegions } from './Scene';
+
 export interface StudyProbe {
   canvasMountAt: number;
   kitLoadMs: number;
@@ -12,9 +15,12 @@ export interface StudyProbe {
   camera: CameraState | null;
   prewarmedAt: number | null;
   renderMs: number[];
+  photo: PhotoProgress | null;
+  photoOptions: Partial<PhotoOptions> | null;
   info: () => StudyProbeInfo;
   projectBook: (bookId: number) => ScreenRect | null;
   projectFront: (bookId: number) => ScreenRect | null;
+  regions: () => SceneRegions | null;
 }
 
 export interface StudyProbeInfo {
