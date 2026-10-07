@@ -40,7 +40,7 @@ describe('pickRenderer', () => {
 
   it('ships three-tsl as the default with css as the alternative', () => {
     expect(ENABLED_RENDERERS).toEqual(['three-tsl', 'css']);
-    expect(PREVIEW_RENDERERS).toEqual([]);
+    expect(PREVIEW_RENDERERS).toEqual(['three-glsl']);
     expect(
       pickRenderer({
         param: null,
@@ -54,11 +54,28 @@ describe('pickRenderer', () => {
     expect(
       pickRenderer({ param: 'three-tsl', pref: 'css', sessionFallback: false }),
     ).toBe('three-tsl');
+  });
+
+  it('previews three-glsl through ?renderer= only', () => {
     expect(
       pickRenderer({
         param: 'three-glsl',
         pref: 'css',
         sessionFallback: false,
+      }),
+    ).toBe('three-glsl');
+    expect(
+      pickRenderer({
+        param: null,
+        pref: 'three-glsl',
+        sessionFallback: false,
+      }),
+    ).toBe('three-tsl');
+    expect(
+      pickRenderer({
+        param: 'three-glsl',
+        pref: 'three-glsl',
+        sessionFallback: true,
       }),
     ).toBe('css');
   });

@@ -9,24 +9,33 @@ import {
   gotoStudy,
   headingCollisions,
   prepareRun,
+  runName,
+  runsOn,
   startRun,
   studyOptions,
-  type StudyRun,
+  THREE_RUNS,
+  type ThreeRun,
 } from './support/study';
 
-type ThreeRun = Extract<StudyRun, { renderer: 'three-tsl' }>;
+type TslRun = Extract<ThreeRun, { renderer: 'three-tsl' }>;
 
-const BADGES = {
-  webgpu: 'three-tsl · WebGPU',
-  webgl2: 'three-tsl · WebGL2 fallback',
-} as const;
+const BADGES: Record<string, string> = {
+  'three-tsl-webgpu': 'three-tsl · WebGPU',
+  'three-tsl-webgl2': 'three-tsl · WebGL2 fallback',
+  'three-glsl-webgl2': 'three-glsl · WebGL2',
+};
 
 const TRIGGERS = {
   webgpu: 'three.js · TSL · WebGPU',
   webgl2: 'three.js · TSL · WebGL2',
 } as const;
 
-function projectRun(): ThreeRun {
+const TEXTURE_SIZE_SOURCES = {
+  'three-tsl': 'reported',
+  'three-glsl': 'estimated',
+} as const;
+
+function projectRun(): TslRun {
   return test.info().project.name === 'study-webgpu'
     ? { renderer: 'three-tsl', backend: 'webgpu' }
     : { renderer: 'three-tsl', backend: 'webgl2' };
@@ -49,53 +58,147 @@ const programs = (page: Page) =>
       }),
   );
 
-test.describe('Study three-tsl', () => {
-  test('mounts an aria-hidden canvas on the expected backend', async ({
-    page,
-    context,
-  }) => {
-    const run = projectRun();
-    await setPrefs(context, { renderer: 'css' });
-    await startRun(page, run);
-    const messages = collectConsole(page);
-    await gotoStudy(page, run);
+const FORCED_FAILURES: Record<ThreeRun['renderer'], readonly string[]> = {
+  'three-tsl': ['webgl2', 'webgpu'],
+  'three-glsl': ['webgl2'],
+};
 
-    const wrap = canvasWrap(page);
-    await expect(wrap).toHaveAttribute('data-renderer', 'three-tsl');
-    await expect(wrap).toHaveAttribute('data-backend', run.backend);
-    await expect(wrap.locator('[aria-hidden="true"] canvas')).toHaveCount(1);
-    await expect(page.locator('[data-backend-badge]')).toHaveCount(0);
-    expect(await page.evaluate(() => '__calibreStudy' in window)).toBe(false);
-    expect((await readPrefs(context))?.['renderer']).toBe('css');
-    expect(messages()).toEqual([]);
-  });
+for (const run of THREE_RUNS) {
+  test.describe(`Study three ${runName(run)}`, () => {
+    test('mounts an aria-hidden canvas on the expected backend', async ({
+      page,
+      context,
+    }) => {
+      await setPrefs(context, { renderer: 'css' });
+      await startRun(page, run);
+      const messages = collectConsole(page);
+      await gotoStudy(page, run);
 
-  test('?debug shows the backend badge and the probe', async ({ page }) => {
-    const run = projectRun();
-    await startRun(page, run);
-    await gotoStudy(page, run, 'debug=1');
-
-    await expect(page.locator('[data-backend-badge]')).toHaveText(
-      BADGES[run.backend],
-    );
-    const probe = await page.evaluate(() => {
-      const study = (
-        window as Window & {
-          __calibreStudy?: {
-            firstFrameAt: number | null;
-            info: () => { backend: string; drawCalls: number };
-          };
-        }
-      ).__calibreStudy;
-      return study
-        ? { firstFrameAt: study.firstFrameAt, ...study.info() }
-        : null;
+      const wrap = canvasWrap(page);
+      await expect(wrap).toHaveAttribute('data-renderer', run.renderer);
+      await expect(wrap).toHaveAttribute('data-backend', run.backend);
+      await expect(wrap.locator('[aria-hidden="true"] canvas')).toHaveCount(1);
+      await expect(page.locator('[data-backend-badge]')).toHaveCount(0);
+      expect(await page.evaluate(() => '__calibreStudy' in window)).toBe(false);
+      expect((await readPrefs(context))?.['renderer']).toBe('css');
+      expect(messages()).toEqual([]);
     });
-    expect(probe?.firstFrameAt).not.toBeNull();
-    expect(probe?.backend).toBe(run.backend);
-    expect(probe?.drawCalls).toBeGreaterThan(0);
-  });
 
+    test('?debug shows the backend badge and the probe', async ({ page }) => {
+      await startRun(page, run);
+      await gotoStudy(page, run, 'debug=1');
+
+      await expect(page.locator('[data-backend-badge]')).toHaveText(
+        BADGES[runName(run)] ?? '',
+      );
+      const probe = await page.evaluate(() => {
+        const study = (
+          window as Window & {
+            __calibreStudy?: {
+              firstFrameAt: number | null;
+              info: () => {
+                backend: string;
+                drawCalls: number;
+                texturesSizeSource: string;
+              };
+            };
+          }
+        ).__calibreStudy;
+        return study
+          ? { firstFrameAt: study.firstFrameAt, ...study.info() }
+          : null;
+      });
+      expect(probe?.firstFrameAt).not.toBeNull();
+      expect(probe?.backend).toBe(run.backend);
+      expect(probe?.drawCalls).toBeGreaterThan(0);
+      expect(probe?.texturesSizeSource).toBe(
+        TEXTURE_SIZE_SOURCES[run.renderer],
+      );
+    });
+
+    test('programs do not grow during a 40-step sweep', async ({ page }) => {
+      await startRun(page, run);
+      const messages = collectConsole(page);
+      await gotoStudy(page, run, 'debug=1');
+
+      await prewarmed(page);
+      const before = await programs(page);
+      expect(before).toBeGreaterThan(0);
+
+      await studyOptions(page).first().focus();
+      const keys = ['ArrowRight', 'x', 'ArrowDown', 'ArrowRight', 'x', 'End'];
+      for (let step = 0; step < 40; step++) {
+        await page.keyboard.press(keys[step % keys.length] ?? 'ArrowRight');
+      }
+      await expect(
+        studyOptions(page).and(page.locator('[aria-selected="true"]')),
+      ).not.toHaveCount(0);
+
+      expect(await programs(page)).toBe(before);
+      expect(messages()).toEqual([]);
+    });
+
+    test('programs do not grow during a full-page walk', async ({ page }) => {
+      await startRun(page, run);
+      await page.setViewportSize({ width: 1100, height: 560 });
+      const messages = collectConsole(page);
+      await gotoStudy(page, run, 'debug=1&__pageSize=250');
+      const { rows } = await allAtlases(page);
+      expect(rows).toBeGreaterThan(2);
+      await prewarmed(page);
+      const before = await programs(page);
+
+      await studyOptions(page).first().focus();
+      for (let row = 1; row < rows; row++) {
+        await page.keyboard.press('ArrowDown');
+        await settledCamera(page);
+      }
+      const camera = await settledCamera(page);
+      expect(camera.bounds.maxY).toBeGreaterThan(camera.bounds.minY);
+      expect(camera.y).toBeCloseTo(camera.bounds.minY, 2);
+
+      expect(await programs(page)).toBe(before);
+      expect(messages()).toEqual([]);
+    });
+
+    test('a renderer that throws while starting falls back to the CSS study', async ({
+      page,
+      context,
+    }) => {
+      test.skip(
+        test.info().project.name !== 'chromium' || !runsOn('chromium', run),
+        'the forced failure runs on the chromium project only',
+      );
+      await setPrefs(context, { renderer: 'three-tsl' });
+      await prepareRun(page, run);
+      await page.addInitScript((types) => {
+        const getContext = HTMLCanvasElement.prototype.getContext;
+        Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+          configurable: true,
+          value: function (this: HTMLCanvasElement, type: string, ...rest: []) {
+            if (this.isConnected && types.includes(type)) {
+              throw new Error('forced start failure');
+            }
+            return getContext.call(this, type as '2d', ...rest);
+          },
+        });
+      }, FORCED_FAILURES[run.renderer]);
+      await page.goto(`/?view=study&groupBy=series&renderer=${run.renderer}`);
+
+      await expect(page.locator('[data-study-ready]')).toHaveAttribute(
+        'data-renderer',
+        'css',
+      );
+      await expect(
+        page.getByText("3D isn't available here, showing the CSS study"),
+      ).toHaveCount(1);
+      await expect(canvasWrap(page)).toHaveCount(0);
+      expect((await readPrefs(context))?.['renderer']).toBe('three-tsl');
+    });
+  });
+}
+
+test.describe('Study three-tsl', () => {
   test('the Renderer select names the active backend', async ({ page }) => {
     const run = projectRun();
     await startRun(page, run);
@@ -116,54 +219,7 @@ test.describe('Study three-tsl', () => {
     ).toBeVisible();
   });
 
-  test('programs do not grow during a 40-step sweep', async ({ page }) => {
-    const run = projectRun();
-    await startRun(page, run);
-    const messages = collectConsole(page);
-    await gotoStudy(page, run, 'debug=1');
-
-    await prewarmed(page);
-    const before = await programs(page);
-    expect(before).toBeGreaterThan(0);
-
-    await studyOptions(page).first().focus();
-    const keys = ['ArrowRight', 'x', 'ArrowDown', 'ArrowRight', 'x', 'End'];
-    for (let step = 0; step < 40; step++) {
-      await page.keyboard.press(keys[step % keys.length] ?? 'ArrowRight');
-    }
-    await expect(
-      studyOptions(page).and(page.locator('[aria-selected="true"]')),
-    ).not.toHaveCount(0);
-
-    expect(await programs(page)).toBe(before);
-    expect(messages()).toEqual([]);
-  });
-
-  test('programs do not grow during a full-page walk', async ({ page }) => {
-    const run = projectRun();
-    await startRun(page, run);
-    await page.setViewportSize({ width: 1100, height: 560 });
-    const messages = collectConsole(page);
-    await gotoStudy(page, run, 'debug=1&__pageSize=250');
-    const { rows } = await allAtlases(page);
-    expect(rows).toBeGreaterThan(2);
-    await prewarmed(page);
-    const before = await programs(page);
-
-    await studyOptions(page).first().focus();
-    for (let row = 1; row < rows; row++) {
-      await page.keyboard.press('ArrowDown');
-      await settledCamera(page);
-    }
-    const camera = await settledCamera(page);
-    expect(camera.bounds.maxY).toBeGreaterThan(camera.bounds.minY);
-    expect(camera.y).toBeCloseTo(camera.bounds.minY, 2);
-
-    expect(await programs(page)).toBe(before);
-    expect(messages()).toEqual([]);
-  });
-
-  test.fixme('switching between three.js renderers mounts a new canvas', async ({
+  test('switching between three.js renderers mounts a new canvas', async ({
     page,
   }) => {
     const run = projectRun();
@@ -186,41 +242,6 @@ test.describe('Study three-tsl', () => {
     expect(
       await page.evaluate(([a, b]) => a !== b, [before, after] as const),
     ).toBe(true);
-  });
-
-  test('a renderer that throws while starting falls back to the CSS study', async ({
-    page,
-    context,
-  }) => {
-    test.skip(
-      test.info().project.name !== 'chromium',
-      'the forced failure runs on the WebGL2 path only',
-    );
-    await setPrefs(context, { renderer: 'three-tsl' });
-    await prepareRun(page, { renderer: 'three-tsl', backend: 'webgl2' });
-    await page.addInitScript(() => {
-      const getContext = HTMLCanvasElement.prototype.getContext;
-      Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
-        configurable: true,
-        value: function (this: HTMLCanvasElement, type: string, ...rest: []) {
-          if (this.isConnected && (type === 'webgl2' || type === 'webgpu')) {
-            throw new Error('forced start failure');
-          }
-          return getContext.call(this, type as '2d', ...rest);
-        },
-      });
-    });
-    await page.goto('/?view=study&groupBy=series&renderer=three-tsl');
-
-    await expect(page.locator('[data-study-ready]')).toHaveAttribute(
-      'data-renderer',
-      'css',
-    );
-    await expect(
-      page.getByText("3D isn't available here, showing the CSS study"),
-    ).toHaveCount(1);
-    await expect(canvasWrap(page)).toHaveCount(0);
-    expect((await readPrefs(context))?.['renderer']).toBe('three-tsl');
   });
 });
 
