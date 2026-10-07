@@ -6,6 +6,9 @@ export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/opt/ms-playwright}
 log=/tmp/cloud-session-start.log
 problems=""
 
+grep -q 'exit=[1-9]' /var/log/cloud-setup.log 2>/dev/null &&
+  problems="${problems}- environment setup had failing steps; see /var/log/cloud-setup.log\n"
+
 pnpm install --frozen-lockfile >"$log" 2>&1 ||
   problems="${problems}- pnpm install failed; see ${log}\n"
 

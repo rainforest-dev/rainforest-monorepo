@@ -28,12 +28,12 @@ The other two serve Playwright's browser downloads.
 NX_NO_CLOUD=true
 ASTRO_TELEMETRY_DISABLED=1
 PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
-NEXT_PUBLIC_LIFF_ID=<public LIFF id>
 ```
 
 Values here are readable by every command a session runs. Nothing secret belongs in this
-list. `GA_API_SECRET` and the Sentry and Clarity ids are deliberately absent: builds work
-without them.
+list. `NEXT_PUBLIC_LIFF_ID` stays unset until a LIFF id is chosen for the cloud.
+`GA_API_SECRET` and the Sentry and Clarity ids are deliberately absent: builds work without
+them.
 
 **Setup script** the contents of [`setup-script.sh`](./setup-script.sh).
 
@@ -41,7 +41,7 @@ without them.
 
 |                    | Runs                                                                                                                                     | Does                                                                                                                           |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `setup-script.sh`  | Once per environment, as root, before Claude launches. Snapshotted for about 7 days; rebuilt when the script or the allowed hosts change | pnpm, Playwright system packages, a chromium pre-warm                                                                          |
+| `setup-script.sh`  | Once per environment, as root, before Claude launches. Snapshotted for about 7 days; rebuilt when the script or the allowed hosts change | pnpm and a chromium pre-warm, each step's exit code in `/var/log/cloud-setup.log`                                              |
 | `session-start.sh` | Every session start and resume, via the hook in `.claude/settings.json`. Exits at once outside the cloud                                 | `pnpm install --frozen-lockfile`, the chromium revision the lockfile wants, and a short briefing printed into Claude's context |
 
 The hook only runs in a session with this repository alone. A session or Projects thread
