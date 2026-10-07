@@ -15,6 +15,7 @@ const BUNDLE_MARKERS = {
   webgpu: 'isWebGPURenderer',
   tsl: 'isTextureNode',
   glsl: 'calibre-pulled-book-glsl',
+  pathtracer: 'Shadow Ray Queue',
 } as const;
 
 type MarkerName = keyof typeof BUNDLE_MARKERS;
@@ -154,5 +155,28 @@ test.describe('Study bundle', () => {
     expect(markersOf(scripts)).toEqual(['glsl', 'three']);
     const lazy = lazyGzip('glsl', lazyScripts(scripts, html));
     expect(lazy).toBeLessThanOrEqual(LAZY_GLSL_GZIP_BUDGET);
+  });
+
+  test('the three-pathtrace spike adds only its own lazy chunks to the TSL kit', async ({
+    page,
+    request,
+  }) => {
+    const url = '/?view=study&groupBy=series&renderer=three-pathtrace';
+    const html = await (await request.get(url)).text();
+    const scripts = await loadScripts(page, url, () =>
+      expect(canvasWrap(page)).toHaveAttribute('data-backend', /.+/),
+    );
+    await expect(canvasWrap(page)).toHaveAttribute(
+      'data-renderer',
+      'three-pathtrace',
+    );
+
+    expect(markersOf(scripts)).toEqual([
+      'pathtracer',
+      'three',
+      'tsl',
+      'webgpu',
+    ]);
+    lazyGzip('three-pathtrace', lazyScripts(scripts, html));
   });
 });
