@@ -79,7 +79,6 @@ Session `session_015ZGKrnv2Wcu6afdD7op9rf`, 2026-10-07, before Node 24 was added
 - `pnpm nx test rainforest-ui` passes. `personal-liff-e2e` fails on any machine: its scaffold
   test expects a "Welcome" heading the app no longer renders.
 
-## Unverified until the next session
-
-- Node 24 from the setup script ends up first on `PATH` for Claude's commands, through
-  `CLAUDE_ENV_FILE`.
+Session `session_01GWWJHsZvFsoXV9YmfLEAkU`, 2026-10-07, with Node 24: `node` resolves to
+`/opt/node24/bin/node` (v24.21.0) in Claude's own commands, pnpm 11.7.0 runs on it, the
+install log has no engine warnings, and `pnpm nx test rainforest-ui` passes 90/90.
