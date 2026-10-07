@@ -239,7 +239,7 @@ test.describe('Study parity', () => {
         }, testInfo) => {
           test.skip(
             needsWebGpu(pair) && testInfo.project.name !== 'study-webgpu',
-            'WebGPU pairs run on the headed study-webgpu project',
+            'WebGPU pairs run on the study-webgpu project',
           );
           await page.goto('/favicon.ico');
           if (needsWebGpu(pair)) {

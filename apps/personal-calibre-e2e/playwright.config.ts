@@ -15,7 +15,8 @@ const webGpuProjects =
           name: 'study-webgpu',
           use: {
             ...devices['Desktop Chrome'],
-            headless: false,
+            // Full Chromium's new headless mode keeps the real GPU; the default headless shell only has SwiftShader.
+            channel: 'chromium',
             launchOptions: {
               args: ['--enable-unsafe-webgpu', '--ignore-gpu-blocklist'],
             },
