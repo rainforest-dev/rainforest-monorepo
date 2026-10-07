@@ -30,6 +30,7 @@ import {
   pickAtlasPpu,
   rowsInView,
   type ScreenRect,
+  snapRect,
   type StudyLayout,
   studyNavItems,
   TEXTURE_BUDGET_BYTES,
@@ -446,10 +447,11 @@ export default function ThreeStudy({
       element.style.display = 'none';
       return;
     }
+    const snapped = snapRect(rect, window.devicePixelRatio);
     element.style.display = '';
-    element.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
-    element.style.width = `${rect.width}px`;
-    element.style.height = `${rect.height}px`;
+    element.style.transform = `translate(${snapped.left}px, ${snapped.top}px)`;
+    element.style.width = `${snapped.width}px`;
+    element.style.height = `${snapped.height}px`;
   }, []);
   const onLabels = useCallback((labels: readonly ProjectedLabel[]) => {
     labelsSink.current?.(labels);
