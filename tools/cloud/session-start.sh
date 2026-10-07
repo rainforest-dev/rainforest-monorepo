@@ -6,6 +6,13 @@ export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/opt/ms-playwright}
 log=/tmp/cloud-session-start.log
 problems=""
 
+if [ -x /opt/node24/bin/node ]; then
+  export PATH="/opt/node24/bin:$PATH"
+  [ -n "${CLAUDE_ENV_FILE:-}" ] && echo 'export PATH="/opt/node24/bin:$PATH"' >>"$CLAUDE_ENV_FILE"
+else
+  problems="${problems}- Node 24 is missing from /opt/node24; commands run on the image's Node 22\n"
+fi
+
 grep -q 'exit=[1-9]' /var/log/cloud-setup.log 2>/dev/null &&
   problems="${problems}- environment setup had failing steps; see /var/log/cloud-setup.log\n"
 

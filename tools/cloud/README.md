@@ -39,10 +39,10 @@ them.
 
 ## How the pieces divide
 
-|                    | Runs                                                                                                                                     | Does                                                                                                                           |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `setup-script.sh`  | Once per environment, as root, before Claude launches. Snapshotted for about 7 days; rebuilt when the script or the allowed hosts change | pnpm and a chromium pre-warm, each step's exit code in `/var/log/cloud-setup.log`                                              |
-| `session-start.sh` | Every session start and resume, via the hook in `.claude/settings.json`. Exits at once outside the cloud                                 | `pnpm install --frozen-lockfile`, the chromium revision the lockfile wants, and a short briefing printed into Claude's context |
+|                    | Runs                                                                                                                                     | Does                                                                                                                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup-script.sh`  | Once per environment, as root, before Claude launches. Snapshotted for about 7 days; rebuilt when the script or the allowed hosts change | Node 24 from nodejs.org, pnpm and a chromium pre-warm, each step's exit code in `/var/log/cloud-setup.log`                                                                                                      |
+| `session-start.sh` | Every session start and resume, via the hook in `.claude/settings.json`. Exits at once outside the cloud                                 | Node 24 ahead of the image's Node 22 on `PATH` (also through `CLAUDE_ENV_FILE`), `pnpm install --frozen-lockfile`, the chromium revision the lockfile wants, and a short briefing printed into Claude's context |
 
 The hook only runs in a session with this repository alone. A session or Projects thread
 that clones several repositories starts above the clones and reads no repository's
@@ -67,9 +67,19 @@ On another environment built the same way (2026-09-29): sessions run as root, th
 `/opt/pw-browsers` (chromium-1194), and the platform's instructions to Claude point there and
 say not to run `playwright install`; `PLAYWRIGHT_BROWSERS_PATH` overrides that path.
 
-## Unverified until the first session
+## Verified in the cloud
 
-- Whether corepack's pnpm shim is on the session's `PATH`.
+Session `session_015ZGKrnv2Wcu6afdD7op9rf`, 2026-10-07, before Node 24 was added:
 
-Ask the first session to run `pnpm -v`, `node -v` and
-`pnpm exec playwright install --dry-run chromium`, and fix this file from what it reports.
+- corepack's pnpm 11.7.0 is on the session's `PATH`, under `/opt/node22/bin`.
+- `cdn.playwright.dev` serves chromium, the headless shell and ffmpeg;
+  `playwright.download.prss.microsoft.com` is ffmpeg's first fallback.
+- The image is Ubuntu 24.04 on x86_64 with Node 20, 21 and 22 under `/opt`. `nodejs.org` is
+  reachable on this network setting.
+- `pnpm nx test rainforest-ui` passes. `personal-liff-e2e` fails on any machine: its scaffold
+  test expects a "Welcome" heading the app no longer renders.
+
+## Unverified until the next session
+
+- Node 24 from the setup script ends up first on `PATH` for Claude's commands, through
+  `CLAUDE_ENV_FILE`.
