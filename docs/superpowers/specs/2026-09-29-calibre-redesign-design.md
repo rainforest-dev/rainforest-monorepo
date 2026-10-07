@@ -47,6 +47,28 @@ sweeps, desktop 1440×900 @2 and phone 390×844 @3 with CPU ×4:
   render call 21 to 75 ms. The separate timing ticket starts from that 300 ms.
 - The phone render CPU miss from phase 2 did not reproduce: 12.0 ms max on TSL WebGPU.
 
+The mount fix shipped on 2026-10-07. `StudyKit.createRenderer` now returns the renderer
+synchronously and `init()` runs separately, so fiber configures the root without its `Suspense`
+gate and the scene mounts when `init()` resolves. Medians of three sweeps on the host artifact,
+mount to first frame:
+
+| Run               | Headed, before | Headed, after | New headless, before | New headless, after | Budget |
+| ----------------- | -------------- | ------------- | -------------------- | ------------------- | ------ |
+| TSL WebGPU, desk  | 448 ms         | 186 ms        | 492 ms               | 312 ms              | 300 ms |
+| TSL WebGPU, phone | 428 ms         | 140 ms        | 543 ms               | 303 ms              | 300 ms |
+| TSL WebGL2, desk  | 522 ms         | 380 ms        | 594 ms               | 263 ms              | 600 ms |
+| TSL WebGL2, phone | 463 ms         | 180 ms        | 536 ms               | 205 ms              | 600 ms |
+| GLSL, desk        | 457 ms         | 184 ms        | 533 ms               | 254 ms              | 200 ms |
+| GLSL, phone       | 430 ms         | 126 ms        | 481 ms               | 260 ms              | 200 ms |
+
+- Headed Chromium meets every mount budget. The visible rows' atlases now start drawing 70 to
+  112 ms after the canvas mounts, against 376 to 396 ms before.
+- New headless (Playwright `channel: 'chromium'`, the sweep's launcher from this change on)
+  paces `requestAnimationFrame` at 33 to 83 ms, so its frame and mount numbers run high. It still
+  shows the drop, and TSL WebGL2 meets its budget there; TSL WebGPU and GLSL sit 3 to 60 ms over.
+  Frame metrics from the new-headless sweep are not comparable with the headed ones above.
+- Programs, draw calls and texture memory are unchanged.
+
 Sources, in order of authority:
 
 1. The owner decisions recorded below.

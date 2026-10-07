@@ -78,7 +78,8 @@ export interface StudyKit<Gl extends StudyGl = StudyGl> {
   readonly flat: boolean;
   readonly reportedTargetBuffers: number;
   readonly materials: StudyMaterials;
-  createRenderer(props: KitCanvasProps): Promise<Gl>;
+  createRenderer(props: KitCanvasProps): Gl;
+  init(gl: Gl): Promise<void>;
   backendOf(gl: Gl): ThreeBackend;
   programsOf(gl: Gl): number;
   frameInfo(gl: Gl): KitFrameInfo;
