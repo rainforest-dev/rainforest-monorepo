@@ -12,12 +12,13 @@ import {
   ENABLED_RENDERERS,
   type Renderer,
   RENDERER_LABELS,
+  rendererLabel,
   RENDERERS,
 } from '@/lib';
 import { useLibrary } from '@/providers';
 
 export function RendererSelect() {
-  const { view, renderer, setRenderer } = useLibrary();
+  const { view, renderer, backend, setRenderer } = useLibrary();
   if (view !== 'study' || ENABLED_RENDERERS.length < 2) return null;
   const shown: readonly Renderer[] = ENABLED_RENDERERS.includes(renderer)
     ? ENABLED_RENDERERS
@@ -37,7 +38,7 @@ export function RendererSelect() {
     >
       <SelectTrigger size="sm" aria-label="Renderer">
         <span className="text-muted-foreground text-xs">Renderer</span>
-        <SelectValue />
+        <SelectValue>{rendererLabel(renderer, backend)}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {items.map((item) => (

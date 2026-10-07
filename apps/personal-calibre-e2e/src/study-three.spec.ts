@@ -21,6 +21,11 @@ const BADGES = {
   webgl2: 'three-tsl · WebGL2 fallback',
 } as const;
 
+const TRIGGERS = {
+  webgpu: 'three.js · TSL · WebGPU',
+  webgl2: 'three.js · TSL · WebGL2',
+} as const;
+
 function projectRun(): ThreeRun {
   return test.info().project.name === 'study-webgpu'
     ? { renderer: 'three-tsl', backend: 'webgpu' }
@@ -89,6 +94,26 @@ test.describe('Study three-tsl', () => {
     expect(probe?.firstFrameAt).not.toBeNull();
     expect(probe?.backend).toBe(run.backend);
     expect(probe?.drawCalls).toBeGreaterThan(0);
+  });
+
+  test('the Renderer select names the active backend', async ({ page }) => {
+    const run = projectRun();
+    await startRun(page, run);
+    await gotoStudy(page, run);
+    await expect(canvasWrap(page)).toHaveAttribute('data-backend', run.backend);
+
+    const trigger = page.getByRole('combobox', { name: 'Renderer' });
+    await expect(trigger).toContainText(TRIGGERS[run.backend]);
+    if (run.backend === 'webgl2')
+      await expect(trigger).not.toContainText('WebGPU');
+
+    await trigger.click();
+    await expect(
+      page.getByRole('option', { name: 'three.js · TSL', exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('option', { name: 'CSS', exact: true }),
+    ).toBeVisible();
   });
 
   test('programs do not grow during a 40-step sweep', async ({ page }) => {
