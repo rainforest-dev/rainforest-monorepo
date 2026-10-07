@@ -28,7 +28,7 @@
     "react-dom": "catalog:"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "zod": "^4.6.5"
