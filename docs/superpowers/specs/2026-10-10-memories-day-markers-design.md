@@ -14,8 +14,8 @@ one-off spreadsheet of about 110 messages; the other person has left the workspa
 history is static.
 
 Two things block this today. The messages are not in the album at all. And a message is often
-posted on one day about another: an evening message says 「3/7 請假一天」, a 00:04 message says
-「今天（11/20）WFH」, a message names a range such as 「6/2-6/5 休假」. Placing the raw message on
+posted on one day about another: a 3/3 evening message says 「3/7 請假一天」, a message says
+「明天 14 點要回診，回診完 WFH」, a message names a range such as 「6/2-6/5 休假」. Placing the raw message on
 the day it was posted does not show which days were affected.
 
 ## Owner decisions (2026-10-10, final)
@@ -72,8 +72,10 @@ the day it was posted does not show which days were affected.
 
 Judgement rules for preparing the file:
 
-- A message posted before 05:00 refers to the day that is ending: 「今天」 is the previous
-  calendar date at 00:04, 「明早」 is the next calendar day.
+- An explicit date in the message wins. Otherwise relative words count from the posting date.
+- A message posted between 00:00 and 05:00 that uses a relative day goes on the ambiguous
+  list with a proposed reading. Late-night usage is mixed: 「今天（11/20）」 at 00:04 means
+  the posting date, while 「明早」 at 01:37 means the morning of the posting date.
 - A plan that the thread itself retracts or moves (struck-through text, 「移到明天」) is marked
   where it actually happened.
 - Ambiguous readings are listed for the owner to confirm before the file goes into the data
