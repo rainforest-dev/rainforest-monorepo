@@ -7,9 +7,12 @@ import {
   burstLayout,
   dayHeading,
   firstEventPerHour,
+  firstLink,
   groupRuns,
   hourCounts,
   initialOf,
+  LINK_CLASS,
+  linkSegments,
   morphAttrs,
   nameOf,
   pickCover,
@@ -317,8 +320,25 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                         <p
                           id={`msg-${event.id}`}
                           class="text-body whitespace-pre-wrap text-pretty break-words"
-                          set:text={event.text}
-                        />
+                        >
+                          {linkSegments(event.text).map((segment) =>
+                            segment.kind === 'link' ? (
+                              <a
+                                href={segment.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class={LINK_CLASS}
+                              >
+                                {segment.text}
+                              </a>
+                            ) : (
+                              segment.text
+                            ),
+                          )}
+                        </p>
+                      )}
+                      {event.text && firstLink(event.text) && (
+                        <div data-link-preview={firstLink(event.text)} hidden />
                       )}
                       {event.media?.map(({ path, width, height }, n) =>
                         IMAGE.test(path) ? (
