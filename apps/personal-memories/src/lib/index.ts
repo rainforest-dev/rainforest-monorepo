@@ -6,6 +6,7 @@ export * from './grid-nav.ts';
 export * from './hover-preview.ts';
 export * from './jump.ts';
 export * from './lightbox.ts';
+export * from './markers.ts';
 export * from './month-view.ts';
 export * from './months.ts';
 export * from './natural-date.ts';
