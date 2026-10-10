@@ -1,13 +1,10 @@
 ---
-import { dayForWeek, indexDays } from '@/lib';
-import { getTimeline } from '@/lib/server';
+import { dayForWeek } from '@/lib';
+import { getDayIndex } from '@/lib/server';
 
 const { isoWeek = '' } = Astro.params;
-const state = await getTimeline();
-const day =
-  state.status === 'ready'
-    ? dayForWeek(indexDays(state.timeline.events), isoWeek)
-    : undefined;
+const index = await getDayIndex();
+const day = index ? dayForWeek(index, isoWeek) : undefined;
 if (day) return Astro.redirect(`/day/${day}`, 301);
 return new Response('Not found', { status: 404 });
 ---

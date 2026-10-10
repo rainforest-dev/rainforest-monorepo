@@ -1,3 +1,4 @@
+export * from './day-index.ts';
 export * from './embed.ts';
 export * from './markers-store.ts';
 export * from './note-vectors.ts';

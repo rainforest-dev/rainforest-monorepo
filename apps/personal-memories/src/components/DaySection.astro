@@ -25,7 +25,9 @@ import {
   notePreviews,
   resolveAnnotations,
 } from '@/lib/notes';
+import DayMarkers from '@/components/day/DayMarkers.astro';
 import {
+  getMarkerViews,
   getPeople,
   getTimeline,
   isVideo,
@@ -70,6 +72,7 @@ const PILL = `${PILL_BASE} pointer-coarse:pointer-events-none pointer-coarse:gro
 const PHOTO_PILL = `${PILL_BASE} pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto`;
 
 const people = await getPeople();
+const markerViews = (await getMarkerViews()).get(date) ?? [];
 const roster = publicPeople(people);
 const runs = groupRuns(events);
 const timeline = await getTimeline();
@@ -160,6 +163,7 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
         )
       }
     </div>
+    <DayMarkers date={date} views={markerViews} />
     {
       hours && firsts && (
         <nav
