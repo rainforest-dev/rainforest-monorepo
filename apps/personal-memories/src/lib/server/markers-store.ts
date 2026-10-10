@@ -130,13 +130,21 @@ export function markerSource(
     { log, ...(checkEveryMs === undefined ? {} : { checkEveryMs }) },
   );
   const resolved = new WeakMap<Loaded, WeakMap<PeopleConfig, MarkerSet>>();
+  const peopleFailed = new WeakSet<Loaded>();
   return {
     async get(): Promise<MarkerSet> {
-      const [loaded, config] = await Promise.all([
-        file.get().catch(() => EMPTY),
-        people(),
-      ]);
+      const loaded = await file.get().catch(() => EMPTY);
       if (loaded === EMPTY) return NO_MARKERS;
+      let config: PeopleConfig;
+      try {
+        config = await people();
+      } catch (error) {
+        if (!peopleFailed.has(loaded)) {
+          peopleFailed.add(loaded);
+          log(`[memories] ${path} is ignored: ${String(error)}`);
+        }
+        return NO_MARKERS;
+      }
       let byPeople = resolved.get(loaded);
       if (!byPeople) resolved.set(loaded, (byPeople = new WeakMap()));
       let set = byPeople.get(config);

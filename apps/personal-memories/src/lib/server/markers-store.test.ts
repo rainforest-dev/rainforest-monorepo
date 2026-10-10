@@ -151,6 +151,33 @@ describe('markerSource', () => {
     expect(log).toHaveBeenCalledTimes(1);
   });
 
+  it('serves no markers, without touching people, when there is no file', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'memories-markers-'));
+    const people = vi.fn(async () => {
+      throw new Error('people.json is unreadable');
+    });
+    const source = markerSource(join(dir, 'markers.json'), people, {
+      checkEveryMs: 0,
+    });
+    expect(await source.get()).toBe(NO_MARKERS);
+    expect(people).not.toHaveBeenCalled();
+  });
+
+  it('serves no markers, logged once, when people.json cannot be read', async () => {
+    const { path } = tempFile({ markers: [m()] });
+    const log = vi.fn();
+    const source = markerSource(
+      path,
+      async () => {
+        throw new Error('people.json is unreadable');
+      },
+      { checkEveryMs: 0, log },
+    );
+    expect(await source.get()).toBe(NO_MARKERS);
+    expect(await source.get()).toBe(NO_MARKERS);
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
   it('returns the same set while nothing changes', async () => {
     const { path } = tempFile({ markers: [m()] });
     const source = markerSource(path, people, { checkEveryMs: 0 });
