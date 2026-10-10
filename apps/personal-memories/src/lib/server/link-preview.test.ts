@@ -9,6 +9,7 @@ import {
   isPrivateAddress,
   isPublicDestination,
   parsePreview,
+  pinnedFetch,
   previewCache,
 } from './link-preview.ts';
 
@@ -42,6 +43,10 @@ describe('isPrivateAddress', () => {
     '::ffff:7f00:1',
     '::ffff:a9fe:a9fe',
     '64:ff9b::a00:1',
+    '64:ff9b:1::a00:1',
+    '2001:0:4136:e378::1',
+    '100::1',
+    '192.88.99.1',
     'not-an-ip',
   ])('blocks %s', (address) => {
     expect(isPrivateAddress(address)).toBe(true);
@@ -55,6 +60,17 @@ describe('isPrivateAddress', () => {
     '::ffff:8.8.8.8',
   ])('allows %s', (address) => {
     expect(isPrivateAddress(address)).toBe(false);
+  });
+});
+
+describe('pinnedFetch', () => {
+  it('refuses to connect when the name resolves to a private address', async () => {
+    await expect(
+      pinnedFetch(new URL('http://localhost:9/'), {
+        signal: AbortSignal.timeout(2000),
+        headers: {},
+      }),
+    ).rejects.toThrow(/refused localhost/);
   });
 });
 

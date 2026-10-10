@@ -1,12 +1,25 @@
+import { lookup as dnsLookupCallback } from 'node:dns';
 import { lookup as dnsLookup } from 'node:dns/promises';
-import { isIP } from 'node:net';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+import { isIP, type LookupFunction } from 'node:net';
+import { Readable } from 'node:stream';
 
 import type { LinkPreview } from '@/lib/links.ts';
 
 export type LookupAll = (hostname: string) => Promise<string[]>;
 
+type FetchLike = (
+  url: URL,
+  init: {
+    redirect?: 'manual';
+    signal: AbortSignal;
+    headers: Record<string, string>;
+  },
+) => Promise<Response>;
+
 type FetchDeps = {
-  fetch?: typeof fetch;
+  fetch?: FetchLike;
   lookup?: LookupAll;
   timeoutMs?: number;
   maxBytes?: number;
@@ -48,6 +61,7 @@ function isPrivateIPv4(address: string): boolean {
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 0 && c === 0) ||
     (a === 192 && b === 0 && c === 2) ||
+    (a === 192 && b === 88 && c === 99) ||
     (a === 192 && b === 168) ||
     (a === 198 && (b === 18 || b === 19)) ||
     (a === 198 && b === 51 && c === 100) ||
@@ -90,6 +104,9 @@ function isPrivateIPv6(address: string): boolean {
     return isPrivateIPv4(embedded);
   return (
     zero(0, 6) ||
+    (h0 === 0x64 && h1 === 0xff9b) ||
+    (h0 === 0x0100 && zero(1, 4)) ||
+    (h0 === 0x2001 && h1 === 0) ||
     (h0 & 0xfe00) === 0xfc00 ||
     (h0 & 0xffc0) === 0xfe80 ||
     (h0 & 0xffc0) === 0xfec0 ||
@@ -153,6 +170,65 @@ export async function isPublicDestination(
     return false;
   }
 }
+
+// Connects only to an address that passed the check, so a second DNS answer cannot rebind it.
+const pinnedLookup: LookupFunction = (hostname, options, callback) => {
+  dnsLookupCallback(
+    hostname,
+    { ...options, all: true, verbatim: true },
+    (err, addresses) => {
+      if (err) return callback(err, '', 0);
+      const list = Array.isArray(addresses) ? addresses : [];
+      const first = list[0];
+      if (!first || list.some((a) => isPrivateAddress(a.address)))
+        return callback(
+          Object.assign(new Error(`refused ${hostname}`), { code: 'EREFUSED' }),
+          '',
+          0,
+        );
+      if (options.all) return callback(null, [first] as never, 0);
+      callback(null, first.address, first.family);
+    },
+  );
+};
+
+const NULL_BODY = new Set([101, 103, 204, 205, 304]);
+
+export const pinnedFetch = (
+  url: URL,
+  init: { signal: AbortSignal; headers: Record<string, string> },
+): Promise<Response> =>
+  new Promise((resolve, reject) => {
+    const request = (url.protocol === 'https:' ? httpsRequest : httpRequest)(
+      url,
+      { headers: init.headers, signal: init.signal, lookup: pinnedLookup },
+      (res) => {
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(res.headers))
+          if (value !== undefined)
+            headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+        const status = res.statusCode ?? 500;
+        if (NULL_BODY.has(status) || status < 200 || status > 599) {
+          res.resume();
+          resolve(
+            new Response(null, {
+              status: status < 200 ? 502 : status,
+              headers,
+            }),
+          );
+          return;
+        }
+        resolve(
+          new Response(Readable.toWeb(res) as ReadableStream<Uint8Array>, {
+            status,
+            headers,
+          }),
+        );
+      },
+    );
+    request.on('error', reject);
+    request.end();
+  });
 
 const NAMED: Record<string, string> = {
   amp: '&',
@@ -295,7 +371,7 @@ function decode(bytes: Uint8Array, charset: string): string {
 export async function fetchPreview(
   target: string,
   {
-    fetch: fetchImpl = fetch,
+    fetch: fetchImpl = pinnedFetch,
     lookup = systemLookup,
     timeoutMs = TIMEOUT_MS,
     maxBytes = MAX_BYTES,
