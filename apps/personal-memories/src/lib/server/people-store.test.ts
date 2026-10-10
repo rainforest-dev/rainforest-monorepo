@@ -45,7 +45,7 @@ describe('parsePeople', () => {
     expect(() => parsePeople({ ...FILE, owner: 'eve' })).toThrow(/eve/);
   });
 
-  it('keeps devices and rejects one claimed twice', () => {
+  it('keeps devices, which two people may share', () => {
     const withDevices = {
       ...FILE,
       people: [
@@ -66,7 +66,7 @@ describe('parsePeople', () => {
           { ...FILE.people[1], devices: ['Pixel 5'] },
         ],
       }),
-    ).toThrow(/Pixel 5/);
+    ).not.toThrow();
   });
 
   it('keeps emails out of what the browser receives', () => {

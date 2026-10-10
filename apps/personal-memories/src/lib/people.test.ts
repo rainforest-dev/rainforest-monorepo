@@ -39,5 +39,9 @@ describe('photographerOf', () => {
     expect(photographerOf(people, 'Pixel 5')?.id).toBe('carol');
     expect(photographerOf(people, 'iPhone 16 Pro')).toBeUndefined();
     expect(photographerOf(people, undefined)).toBeUndefined();
+    const shared = people.map((p) =>
+      p.id === 'bob' ? { ...p, devices: ['Pixel 5'] } : p,
+    );
+    expect(photographerOf(shared, 'Pixel 5')).toBeUndefined();
   });
 });

@@ -75,6 +75,14 @@ export const diskSize: LocalSize = (path) => {
   }
 };
 
+const STILL = /\.(jpe?g|heic|png|webp)$/i;
+
+const largest = (paths: readonly string[], size: LocalSize) =>
+  paths
+    .map((path) => ({ path, bytes: size(path) }))
+    .filter((d): d is { path: string; bytes: number } => d.bytes !== undefined)
+    .sort((a, b) => b.bytes - a.bytes)[0]?.path;
+
 export type LocalMedia = {
   path: string;
   from: 'derivative' | 'original';
@@ -86,10 +94,7 @@ export function resolvePhotoMedia(
   item: OsxPhoto,
   size: LocalSize = diskSize,
 ): LocalMedia | undefined {
-  const derivative = (item.path_derivatives ?? [])
-    .map((path) => ({ path, bytes: size(path) }))
-    .filter((d): d is { path: string; bytes: number } => d.bytes !== undefined)
-    .sort((a, b) => b.bytes - a.bytes)[0]?.path;
+  const derivative = largest(item.path_derivatives ?? [], size);
   const originals = [item.path_edited, item.path].filter(
     (p): p is string => !!p,
   );
@@ -98,10 +103,15 @@ export function resolvePhotoMedia(
       ? undefined
       : originals.find((p) => size(p) !== undefined);
 
-  if (item.ismovie === true && original)
-    return derivative
-      ? { path: original, from: 'original', poster: derivative }
+  if (item.ismovie === true && original) {
+    const poster = largest(
+      (item.path_derivatives ?? []).filter((p) => STILL.test(p)),
+      size,
+    );
+    return poster
+      ? { path: original, from: 'original', poster }
       : { path: original, from: 'original' };
+  }
   if (derivative) return { path: derivative, from: 'derivative' };
   if (original) return { path: original, from: 'original' };
   return undefined;

@@ -38,6 +38,9 @@ describe('pickCover', () => {
     const scored = photo('hi', { score: 0.95, highlight: 0.5 });
     const highlight = photo('hl', { score: 0.4, highlight: 0.9 });
     expect(pickCover([scored, highlight])?.id).toBe('hl');
+    const shot = photo('shot', { screenshot: true, highlight: 0.9 });
+    const burst = photo('burst', { burstPick: false, highlight: 0.9 });
+    expect(pickCover([shot, burst, scored])?.id).toBe('hi');
     expect(
       pickCover([highlight, photo('fav', { favorite: true, score: 0.1 })])?.id,
     ).toBe('fav');

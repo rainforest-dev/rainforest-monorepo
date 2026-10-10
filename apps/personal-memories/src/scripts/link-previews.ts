@@ -14,6 +14,9 @@ function load(href: string): Promise<LinkPreview | undefined> {
       .then(asLinkPreview)
       .catch(() => undefined);
     requests.set(href, request);
+    void request.then((preview) => {
+      if (!preview?.title) requests.delete(href);
+    });
   }
   return request;
 }

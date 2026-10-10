@@ -204,10 +204,10 @@ describe('parsePhotoIndex camera', () => {
           date: '2025-11-01T09:00:00+08:00',
           ismovie: true,
           path: '/m.mov',
-          path_derivatives: ['/m.jpeg'],
+          path_derivatives: ['/m.jpeg', '/m_preview.mov'],
         },
       ],
-      anyFile,
+      sizes({ '/m.mov': 9, '/m_preview.mov': 5, '/m.jpeg': 1 }),
     ).events;
     expect(movie?.media).toEqual([{ path: '/m.mov', poster: '/m.jpeg' }]);
   });

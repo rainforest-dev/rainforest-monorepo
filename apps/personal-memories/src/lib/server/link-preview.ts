@@ -394,6 +394,7 @@ export async function fetchPreview(
         signal,
         headers: {
           accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
+          'accept-encoding': 'identity',
           'accept-language': 'zh-TW,zh;q=0.9,en;q=0.8',
           'user-agent': USER_AGENT,
         },
@@ -491,5 +492,9 @@ export async function handleLinkPreview(
       headers: { ...JSON_HEADERS, 'cache-control': 'no-store' },
     });
   const preview = await cache.get(target.href);
-  return new Response(JSON.stringify(preview), { headers: JSON_HEADERS });
+  return new Response(JSON.stringify(preview), {
+    headers: preview.title
+      ? JSON_HEADERS
+      : { ...JSON_HEADERS, 'cache-control': 'no-store' },
+  });
 }

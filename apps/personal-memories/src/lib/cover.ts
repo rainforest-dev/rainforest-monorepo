@@ -15,8 +15,13 @@ export function scoreCover(photo: PhotoSignals | undefined): number {
 
 export const HIGHLIGHT_MIN = 0.8;
 
-const coverTier = (photo: PhotoSignals | undefined) =>
-  photo?.favorite ? 2 : (photo?.highlight ?? 0) >= HIGHLIGHT_MIN ? 1 : 0;
+function coverTier(photo: PhotoSignals | undefined): number {
+  if (photo?.favorite) return 2;
+  const highlighted = (photo?.highlight ?? 0) >= HIGHLIGHT_MIN;
+  return highlighted && !photo?.screenshot && photo?.burstPick !== false
+    ? 1
+    : 0;
+}
 
 export type CoverPick = { id: string; manual: boolean };
 

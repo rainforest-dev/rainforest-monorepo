@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 
 import { LINK_CLASS, linkSegments } from '@/lib';
 
-export function LinkedText({ text }: { text: string }) {
+function segments(text: string) {
   return linkSegments(text).map((segment, i) =>
     segment.kind === 'link' ? (
       <a
@@ -17,5 +17,25 @@ export function LinkedText({ text }: { text: string }) {
     ) : (
       <Fragment key={i}>{segment.text}</Fragment>
     ),
+  );
+}
+
+export function LinkedText({ text }: { text: string }) {
+  return segments(text);
+}
+
+export function LinkedParagraph({
+  text,
+  id,
+  className,
+}: {
+  text: string;
+  id?: string;
+  className?: string;
+}) {
+  return (
+    <p id={id} className={className}>
+      {segments(text)}
+    </p>
   );
 }

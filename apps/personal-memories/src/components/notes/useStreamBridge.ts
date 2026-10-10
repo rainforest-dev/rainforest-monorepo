@@ -1,7 +1,7 @@
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import { taipeiDate } from '@/lib';
-import { paintNotes } from '@/lib/client';
+import { markCover, paintNotes } from '@/lib/client';
 import {
   type Annotation,
   notePreviews,
@@ -138,7 +138,9 @@ export function useStreamBridge(o: Options) {
     const onRestored = (e: Event) => {
       const { draft, payload } = latest.current.current.current;
       const date = (e as CustomEvent<{ date?: string } | null>).detail?.date;
-      if (date === payload.date) markAnnotated(payload.date, draft.annotations);
+      if (date !== payload.date) return;
+      markAnnotated(payload.date, draft.annotations);
+      markCover(payload.date, draft.cover);
     };
     document.addEventListener('memories:day-restored', onRestored);
     return () =>

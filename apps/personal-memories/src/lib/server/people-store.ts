@@ -52,7 +52,6 @@ const fileSchema = z
         ctx.addIssue({ code: 'custom', message: `duplicate id ${p.id}` });
       ids.add(p.id);
       for (const email of p.emails) claim(`email:${email}`, email, p.id);
-      for (const device of p.devices) claim(`device:${device}`, device, p.id);
       for (const [source, list] of Object.entries(p.aliases))
         for (const alias of [p.name, ...(list ?? [])])
           claim(`${source}:${alias}`, alias, p.id);

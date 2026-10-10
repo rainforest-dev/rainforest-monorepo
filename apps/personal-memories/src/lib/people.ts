@@ -23,7 +23,11 @@ export const nameOf = (
   raw: string,
 ) => personOf(people, source, raw)?.name ?? raw;
 
-export const photographerOf = (
+export function photographerOf(
   people: readonly Person[],
   camera: string | undefined,
-) => (camera ? people.find((p) => p.devices?.includes(camera)) : undefined);
+): Person | undefined {
+  if (!camera) return undefined;
+  const owners = people.filter((p) => p.devices?.includes(camera));
+  return owners.length === 1 ? owners[0] : undefined;
+}

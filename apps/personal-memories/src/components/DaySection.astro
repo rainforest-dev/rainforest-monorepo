@@ -12,8 +12,6 @@ import {
   groupRuns,
   hourCounts,
   initialOf,
-  LINK_CLASS,
-  linkSegments,
   morphAttrs,
   nameOf,
   type Person,
@@ -43,6 +41,7 @@ import {
 } from '@/lib/server';
 
 import { accentChip, accentRule } from './accent-classes.ts';
+import { LinkedParagraph } from './LinkedText.tsx';
 import { COVER_BADGE } from './cover-badge.ts';
 
 type Props = {
@@ -243,6 +242,9 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
             <ol>
               {run.events.map((event) => {
                 const excerpt = excerptOf(event);
+                const previewHref = event.text
+                  ? firstLink(event.text)
+                  : undefined;
                 return (
                   <li
                     id={`ev-${event.id}`}
@@ -334,28 +336,14 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                         </div>
                       )}
                       {event.text && (
-                        <p
+                        <LinkedParagraph
                           id={`msg-${event.id}`}
-                          class="text-body whitespace-pre-wrap text-pretty break-words"
-                        >
-                          {linkSegments(event.text).map((segment) =>
-                            segment.kind === 'link' ? (
-                              <a
-                                href={segment.href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class={LINK_CLASS}
-                              >
-                                {segment.text}
-                              </a>
-                            ) : (
-                              segment.text
-                            ),
-                          )}
-                        </p>
+                          className="text-body whitespace-pre-wrap text-pretty break-words"
+                          text={event.text}
+                        />
                       )}
-                      {event.text && firstLink(event.text) && (
-                        <div data-link-preview={firstLink(event.text)} hidden />
+                      {previewHref && (
+                        <div data-link-preview={previewHref} hidden />
                       )}
                       {event.media?.map(({ path, width, height }, n) =>
                         IMAGE.test(path) ? (

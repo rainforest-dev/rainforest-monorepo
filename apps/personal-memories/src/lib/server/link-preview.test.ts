@@ -412,4 +412,17 @@ describe('handleLinkPreview', () => {
       title: 'T',
     });
   });
+
+  it('lets the browser cache a preview but not a failure', async () => {
+    const at = (cached: { get: (url: string) => Promise<LinkPreview> }) =>
+      handleLinkPreview(
+        new URL(
+          `http://memories.test/link-preview.json?url=${encodeURIComponent('https://example.com/b')}`,
+        ),
+        cached,
+      );
+    expect((await at(cache)).headers.get('cache-control')).toContain('max-age');
+    const failed = { get: async (url: string) => ({ url }) };
+    expect((await at(failed)).headers.get('cache-control')).toBe('no-store');
+  });
 });
