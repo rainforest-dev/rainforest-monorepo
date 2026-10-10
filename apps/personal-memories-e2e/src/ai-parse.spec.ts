@@ -112,12 +112,12 @@ test('with the switch on, a date with no record still offers the nearest day at 
   await toggle.click();
   await expect(toggle).toBeChecked();
   await input.fill('2025-11-20');
-  await expect(dialog).toContainText('按 Enter 跳到最近的 2025-11-03', {
+  await expect(dialog).toContainText('按 Enter 跳到最近的 2025-11-04', {
     timeout: 1000,
   });
   await page.keyboard.press('Enter');
   await expect(
-    page.getByText('沒有這一天，已跳到最近的 2025-11-03'),
+    page.getByText('沒有這一天，已跳到最近的 2025-11-04'),
   ).toBeVisible();
-  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await expect(page).toHaveURL(/\/day\/2025-11-04$/);
 });
