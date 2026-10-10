@@ -135,7 +135,10 @@ function dayNodesOf(stream: HTMLElement): HTMLElement[] {
   ];
 }
 
-function activeDayOf(nodes: readonly HTMLElement[]): string | undefined {
+function activeDayOf(
+  stream: HTMLElement,
+  nodes: readonly HTMLElement[],
+): string | undefined {
   const days = nodes.flatMap((node) => {
     const date = dayDateOf(node);
     return date ? [{ date, top: node.getBoundingClientRect().top }] : [];
@@ -143,7 +146,13 @@ function activeDayOf(nodes: readonly HTMLElement[]): string | undefined {
   const remaining =
     document.documentElement.scrollHeight -
     (window.scrollY + window.innerHeight);
-  return activeDayAt(days, window.innerHeight, remaining);
+  const next = stream.querySelector<HTMLElement>('[data-load="next"]');
+  return activeDayAt(
+    days,
+    window.innerHeight,
+    remaining,
+    !next?.dataset['date'],
+  );
 }
 
 function holdLandedDay() {
@@ -344,7 +353,7 @@ function watchActiveDay(stream: HTMLElement, windowManager: WindowManager) {
   const apply = () => {
     queued = false;
     const nodes = dayNodesOf(stream);
-    const date = landedDay(nodes) ?? activeDayOf(nodes);
+    const date = landedDay(nodes) ?? activeDayOf(stream, nodes);
     if (date) {
       windowManager.manage(nodes, date);
       markHour(stream, date);

@@ -6,9 +6,10 @@ export function activeDayAt(
   days: readonly DayBox[],
   viewportHeight: number,
   remaining: number,
+  atEnd: boolean,
 ): string | undefined {
   const runway = viewportHeight * (1 - LINE);
-  const progress = Math.min(1, Math.max(0, 1 - remaining / runway));
+  const progress = atEnd ? Math.min(1, Math.max(0, 1 - remaining / runway)) : 0;
   const line = viewportHeight * LINE + runway * progress;
   let current = days[0];
   for (const day of days) {

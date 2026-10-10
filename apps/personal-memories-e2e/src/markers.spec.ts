@@ -100,8 +100,10 @@ test('landing on a day keeps its URL while the stream loads the next one', async
 }) => {
   await page.goto('/day/2025-11-03');
   await expect(page.locator('#day-2025-11-04')).toBeAttached();
+  await expect(page.locator('#day-2025-11-02')).toBeAttached();
   await frames(page);
-  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await page.waitForTimeout(500);
+  expect(new URL(page.url()).pathname).toBe('/day/2025-11-03');
 });
 
 test('scrolling to the end passes through each short trailing day', async ({
