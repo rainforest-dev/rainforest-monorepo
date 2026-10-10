@@ -68,25 +68,29 @@ the day it was posted does not show which days were affected.
   nearer half day.
 - `event`: the id of the Slack event the marker was read from. One message may yield several
   markers; a range expands to one marker per working day, skipping weekends.
-- The pair `(date, person)` is unique.
+- The triple `(date, person, part)` is unique, and a `full` marker excludes `am` and `pm` for
+  the same person and date. 「上午請假，下午 WFH」 is two markers: `leave` `am` and `wfh` `pm`.
 
-Judgement rules for preparing the file:
+### Judgement
 
-- An explicit date in the message wins. Otherwise relative words count from the posting date.
-- A message posted between 00:00 and 05:00 that uses a relative day goes on the ambiguous
-  list with a proposed reading. Late-night usage is mixed: 「今天（11/20）」 at 00:04 means
-  the posting date, while 「明早」 at 01:37 means the morning of the posting date.
-- A plan that the thread itself retracts or moves (struck-through text, 「移到明天」) is marked
-  where it actually happened.
-- Ambiguous readings are listed for the owner to confirm before the file goes into the data
-  directory.
+Each message is read on its own, against the messages around it, the thread it starts, the
+weekday and the posting time. No rule is applied across messages: the same words point at
+different days in different messages. 「今天（11/20）」 posted at 00:04 means the posting date,
+while 「明早」 posted at 01:37 means the morning of the posting date, and 「明天早上」 posted at
+00:06 could mean either of two days.
+
+Every reading that is not certain from the text goes on an ambiguous list with the message, the
+proposed reading and the alternative. This covers late-night relative days, ranges without a
+month (「26-27」), plans the thread retracts or moves (struck-through text, 「移到明天」), and a
+weekday name that could be this week or next. The owner confirms the list before the file goes
+into the data directory.
 
 ### Loading
 
 `src/lib/server/markers-store.ts` follows `people-store.ts`: `cachedFile` with an mtime check,
 parsed by a zod schema. A missing file means no markers. A file that fails validation is
-rejected whole and logged; markers are never half-loaded. An unknown `person` or a duplicate
-`(date, person)` is a validation error.
+rejected whole and logged; markers are never half-loaded. An unknown `person`, a duplicate
+`(date, person, part)` or a `full` marker beside a half-day one is a validation error.
 
 ## Display
 
@@ -94,10 +98,12 @@ Colour tokens: `wfh` uses `info`, `leave` uses `warning`, both from the shared s
 they follow the seed and the colour scheme.
 
 - **Year heatmap.** A 3 px bar along the bottom of the 24 px cell: full width for `full`, the
-  left half for `am`, the right half for `pm`. The noted dot stays in the centre. Two people on
-  one day stack two bars, the owner's on top. The tooltip and hover preview add a line per
-  marker, such as 「<name> 請假・下午」. On phones, where a cell is 8 px wide, a single dot in the
-  marker colour sits under the bar, without the part.
+  left half for `am`, the right half for `pm`, so a morning of leave and an afternoon at home
+  show as one bar in two colours. The noted dot stays in the centre. Two people on one day
+  stack two bars, the owner's on top. The tooltip and hover preview add a line per marker,
+  such as 「<name> 請假・下午」. On phones, where a cell is 8 px wide, a single dot sits under
+  the bar, without the part, in the `leave` colour when the day has any leave and the `wfh`
+  colour otherwise.
 - **Month view.** A small badge under the date, such as 「WFH・下午」, with the person's initial;
   the full name is in its title.
 - **Day view.** A row at the top of the day section per marker: 「<name> 請假（全天）→ 原訊息」.
@@ -119,7 +125,8 @@ shows attendance.
 
 ## Testing
 
-- Unit: the store's schema (unknown person, bad date, duplicate pair, missing file, reload on
+- Unit: the store's schema (unknown person, bad date, duplicate triple, `full` beside a half
+  day, missing file, reload on
   mtime) and the pure functions that merge markers into day and month data, including a day
   with markers only.
 - MCP: `tools.test.ts` covers `get_day.markers` and the `list_markers` filters;
