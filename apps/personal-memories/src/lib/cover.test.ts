@@ -34,6 +34,15 @@ describe('pickCover', () => {
     expect(pickCover(events)).toEqual({ id: 'fav', manual: false });
   });
 
+  it('prefers a Photos highlight over a higher score, below a favourite', () => {
+    const scored = photo('hi', { score: 0.95, highlight: 0.5 });
+    const highlight = photo('hl', { score: 0.4, highlight: 0.9 });
+    expect(pickCover([scored, highlight])?.id).toBe('hl');
+    expect(
+      pickCover([highlight, photo('fav', { favorite: true, score: 0.1 })])?.id,
+    ).toBe('fav');
+  });
+
   it('ranks by score, with a bonus for people and penalties for screenshots and unpicked burst frames', () => {
     expect(
       pickCover([photo('a', { score: 0.5 }), photo('b', { score: 0.7 })])?.id,

@@ -11,6 +11,7 @@ export type MonthCell = {
   total: number;
   noted: boolean;
   cover?: string;
+  coverManual?: true;
   memory?: string;
   excerpt?: string;
 };
@@ -53,6 +54,7 @@ export function dayCell(
   const note = result && !result.parseError ? result.note : undefined;
   const cover = pickCover(events, note?.cover);
   if (cover) cell.cover = cover.id;
+  if (cover?.manual) cell.coverManual = true;
   const memory = note && firstLine(note.body);
   if (memory) cell.memory = memory;
   const message = events.find((e) => e.source !== 'photo' && e.text?.trim());

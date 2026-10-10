@@ -22,7 +22,10 @@ type OsxPhoto = {
   width?: number | null;
   height?: number | null;
   favorite?: boolean | null;
-  score?: { overall?: number | null } | null;
+  score?: {
+    overall?: number | null;
+    highlight_visibility?: number | null;
+  } | null;
   persons?: string[] | null;
   screenshot?: boolean | null;
   ismovie?: boolean | null;
@@ -161,6 +164,8 @@ export function parsePhotoIndex(
     };
     const camera = item.exif_info?.camera_model?.replace(/\s+/g, ' ').trim();
     if (camera) photo.camera = camera;
+    if (typeof item.score?.highlight_visibility === 'number')
+      photo.highlight = item.score.highlight_visibility;
     if (typeof item.score?.overall === 'number')
       photo.score = item.score.overall;
     const meta = photoMeta(item);

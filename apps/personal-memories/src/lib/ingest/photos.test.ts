@@ -185,12 +185,14 @@ describe('parsePhotoIndex camera', () => {
           date: '2025-11-01T09:00:00+08:00',
           path: '/a.jpg',
           exif_info: { camera_model: 'RICOH GR IIIx      ' },
+          score: { overall: 0.6, highlight_visibility: 0.9 },
         },
         { uuid: 'b', date: '2025-11-01T09:00:00+08:00', path: '/b.jpg' },
       ],
       anyFile,
     ).events;
     expect(withCamera?.photo?.camera).toBe('RICOH GR IIIx');
+    expect(withCamera?.photo?.highlight).toBe(0.9);
     expect(without?.photo).not.toHaveProperty('camera');
   });
 

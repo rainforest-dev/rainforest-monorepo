@@ -3,6 +3,8 @@ import { badgeVariants, Skeleton } from '@rainforest-dev/rainforest-react';
 
 import { type MonthCell, thumbSrcset, thumbUrl } from '@/lib';
 
+import { COVER_BADGE } from '@/components/cover-badge.ts';
+
 type Props = { cell: MonthCell; layout: 'cell' | 'row' };
 
 const { cell, layout } = Astro.props;
@@ -22,6 +24,11 @@ const showText = row || !cell.cover;
         loading="lazy"
         class="absolute inset-0 size-full object-cover"
       />
+      {cell.coverManual && (
+        <span class={`${COVER_BADGE} bottom-1.5 left-1.5 hidden sm:block`}>
+          封面
+        </span>
+      )}
     </span>
   )
 }

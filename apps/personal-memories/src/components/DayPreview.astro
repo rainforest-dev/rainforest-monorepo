@@ -1,6 +1,8 @@
 ---
 import { dayHeading, type MonthCell, thumbUrl } from '@/lib';
 
+import { COVER_BADGE } from './cover-badge.ts';
+
 type Props = {
   date: string;
   detail: string;
@@ -22,13 +24,18 @@ const { date, detail, anchor, cell } = Astro.props;
   <span class="text-muted-foreground">{detail}</span>
   {
     cell?.cover ? (
-      <img
-        src={thumbUrl(cell.cover, 0, 240)}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        class="bg-muted mt-1 aspect-video w-full rounded-sm object-cover"
-      />
+      <span class="relative mt-1 block">
+        <img
+          src={thumbUrl(cell.cover, 0, 240)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          class="bg-muted aspect-video w-full rounded-sm object-cover"
+        />
+        {cell.coverManual && (
+          <span class={`${COVER_BADGE} bottom-1 left-1`}>封面</span>
+        )}
+      </span>
     ) : cell?.memory ? (
       <span class="text-meta line-clamp-2">{cell.memory}</span>
     ) : cell?.excerpt ? (

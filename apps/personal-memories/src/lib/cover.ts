@@ -13,6 +13,11 @@ export function scoreCover(photo: PhotoSignals | undefined): number {
   );
 }
 
+export const HIGHLIGHT_MIN = 0.8;
+
+const coverTier = (photo: PhotoSignals | undefined) =>
+  photo?.favorite ? 2 : (photo?.highlight ?? 0) >= HIGHLIGHT_MIN ? 1 : 0;
+
 export type CoverPick = { id: string; manual: boolean };
 
 export function pickCover(
@@ -26,7 +31,7 @@ export function pickCover(
   let bestTier = -1;
   let bestScore = -Infinity;
   for (const e of candidates) {
-    const tier = e.photo?.favorite ? 1 : 0;
+    const tier = coverTier(e.photo);
     const score = scoreCover(e.photo);
     if (tier > bestTier || (tier === bestTier && score > bestScore)) {
       best = e;

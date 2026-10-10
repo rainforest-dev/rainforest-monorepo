@@ -41,6 +41,7 @@ import {
 } from '@/lib/server';
 
 import { accentChip, accentRule } from './accent-classes.ts';
+import { COVER_BADGE } from './cover-badge.ts';
 
 type Props = {
   date: string;
@@ -532,7 +533,7 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                           data-cover-badge
                           class="ring-primary group-data-cover:block pointer-events-none absolute inset-0 hidden rounded-md ring-2 ring-inset"
                         >
-                          <span class="bg-primary text-primary-foreground absolute bottom-1 left-1 rounded-sm px-1 text-xs font-medium leading-4">
+                          <span class={`${COVER_BADGE} bottom-1 left-1`}>
                             封面
                           </span>
                         </span>
