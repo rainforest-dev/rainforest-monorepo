@@ -1,3 +1,4 @@
+export * from './active-day.ts';
 export * from './cover.ts';
 export * from './days.ts';
 export * from './diff.ts';

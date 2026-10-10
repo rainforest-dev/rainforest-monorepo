@@ -24,9 +24,15 @@
   }
 }
 
-:root[data-hide-line] [data-stream] [data-source='line'],
-:root[data-hide-slack] [data-stream] [data-source='slack'],
-:root[data-hide-photo] [data-stream] [data-source='photo'] {
+:root[data-hide-line]
+  [data-stream]
+  [data-source='line']:not(:target, :has(:target)),
+:root[data-hide-slack]
+  [data-stream]
+  [data-source='slack']:not(:target, :has(:target)),
+:root[data-hide-photo]
+  [data-stream]
+  [data-source='photo']:not(:target, :has(:target)) {
   display: none;
 }
 

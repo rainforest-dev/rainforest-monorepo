@@ -1,4 +1,5 @@
 import {
+  activeDayAt,
   DATA_LIGHTBOX_READY,
   distance,
   isZoomOutPinch,
@@ -12,7 +13,7 @@ import {
   taipeiHour,
   zoomOutHref,
 } from '@/lib';
-import { type AnnotateDetail, isOverlayOpen } from '@/lib/client';
+import { type AnnotateDetail, dayInUrl, isOverlayOpen } from '@/lib/client';
 
 const RETRY_DELAY_MS = 2000;
 const UNZOOMED_SCALE = 1.01;
@@ -25,9 +26,12 @@ function notifyDayRestored(date: string) {
   );
 }
 
+let streamScrollY: number | undefined;
+
 function compensateScroll(delta: number) {
   if (delta === 0) return;
   window.scrollBy(0, delta);
+  streamScrollY = window.scrollY;
 }
 
 type DayFetchResult =
@@ -132,18 +136,32 @@ function dayNodesOf(stream: HTMLElement): HTMLElement[] {
 }
 
 function activeDayOf(nodes: readonly HTMLElement[]): string | undefined {
-  if (!nodes.length) return undefined;
-  const last = nodes[nodes.length - 1];
-  const atBottom =
-    last.getBoundingClientRect().bottom <= window.innerHeight + 4;
-  if (atBottom) return dayDateOf(last);
-  const threshold = window.innerHeight * 0.4;
-  let current = nodes[0];
-  for (const node of nodes) {
-    if (node.getBoundingClientRect().top > threshold) break;
-    current = node;
-  }
-  return dayDateOf(current);
+  const days = nodes.flatMap((node) => {
+    const date = dayDateOf(node);
+    return date ? [{ date, top: node.getBoundingClientRect().top }] : [];
+  });
+  const remaining =
+    document.documentElement.scrollHeight -
+    (window.scrollY + window.innerHeight);
+  return activeDayAt(days, window.innerHeight, remaining);
+}
+
+function holdLandedDay() {
+  const landed = dayInUrl();
+  let held = landed !== undefined;
+  const restY = window.scrollY;
+  const onScroll = () => {
+    if (Math.abs(window.scrollY - (streamScrollY ?? restY)) <= 1) return;
+    held = false;
+    window.removeEventListener('scroll', onScroll);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  return (nodes: readonly HTMLElement[]): string | undefined => {
+    if (!held) return undefined;
+    if (nodes.some((node) => dayDateOf(node) === landed)) return landed;
+    held = false;
+    return undefined;
+  };
 }
 
 type WindowManager = {
@@ -321,11 +339,12 @@ function markHour(stream: HTMLElement, date: string) {
 function watchActiveDay(stream: HTMLElement, windowManager: WindowManager) {
   let active = '';
   let queued = false;
+  const landedDay = holdLandedDay();
 
   const apply = () => {
     queued = false;
     const nodes = dayNodesOf(stream);
-    const date = activeDayOf(nodes);
+    const date = landedDay(nodes) ?? activeDayOf(nodes);
     if (date) {
       windowManager.manage(nodes, date);
       markHour(stream, date);

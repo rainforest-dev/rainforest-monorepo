@@ -454,12 +454,17 @@ test('scrolling loads neighbouring days and follows the URL', async ({
 }) => {
   await page.goto('/day/2025-11-02');
   await expect(page.locator('#day-2025-11-01')).toBeAttached();
-  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(async () => {
+    await page.mouse.wheel(0, 400);
+    await expect(page.locator('#day-2025-11-04')).toBeAttached({
+      timeout: 500,
+    });
+  }).toPass();
   await expect(page.locator('#day-2025-11-03')).toBeAttached();
-  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
-  await expect(page.locator('#day-2025-11-04')).toBeAttached();
-  await page.locator('#day-2025-11-04').scrollIntoViewIfNeeded();
-  await expect(page).toHaveURL(/\/day\/2025-11-04$/);
+  await expect(async () => {
+    await page.mouse.wheel(0, 400);
+    await expect(page).toHaveURL(/\/day\/2025-11-04$/, { timeout: 500 });
+  }).toPass();
 });
 
 test('a day note and an annotation are saved to the vault folder', async ({
@@ -654,16 +659,11 @@ test('a note typed just before scrolling stays on its own day', async ({
   await expect(body).toBeEnabled();
   await body.fill('十一月二日的筆記');
 
+  await page.mouse.move(400, 400);
   await expect(async () => {
-    await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
-    await expect(page.locator('#day-2025-11-04')).toBeAttached({
-      timeout: 1000,
-    });
+    await page.mouse.wheel(0, 400);
+    await expect(panel).toContainText('11 月 4 日', { timeout: 500 });
   }).toPass();
-  await page
-    .locator('#day-2025-11-04')
-    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
-  await expect(panel).toContainText('11 月 4 日');
   await expect(body).toHaveValue('');
 
   const read = (date: string) =>

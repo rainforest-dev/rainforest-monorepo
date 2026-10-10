@@ -216,18 +216,21 @@ const monthKey = (row: MonthRow) =>
           const lvl = level(cell.total);
           const kind = dominantKind(viewsOf(cell.date));
           return (
-            <span class="flex flex-col items-center gap-px">
-              <span
-                class={`flex h-4 w-2 items-end justify-center rounded-[2px] pb-px ${LEVEL[lvl]}`}
-              >
-                {isNoted && (
-                  <span class={`size-1 rounded-full ${dotClass(lvl)}`} />
-                )}
-              </span>
-              <span
-                data-marker-dot={kind}
-                class:list={['size-1 rounded-full', kind && KIND_BG[kind]]}
-              />
+            <span
+              class={`relative flex h-4 w-2 items-end justify-center rounded-[2px] pb-px ${LEVEL[lvl]}`}
+            >
+              {isNoted && (
+                <span class={`size-1 rounded-full ${dotClass(lvl)}`} />
+              )}
+              {kind && (
+                <span
+                  data-marker-dot={kind}
+                  class:list={[
+                    'absolute left-1/2 top-full mt-px size-1 -translate-x-1/2 rounded-full',
+                    KIND_BG[kind],
+                  ]}
+                />
+              )}
             </span>
           );
         });
