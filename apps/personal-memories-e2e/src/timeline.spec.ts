@@ -978,10 +978,10 @@ test('keys: j and k, n, ? and /, and Escape only when nothing else claims it', a
 }) => {
   await page.goto('/day/2025-11-02');
   await waitForAppBarReady(page);
-  await page.keyboard.press('j');
-  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
-  await waitForAppBarReady(page);
   await page.keyboard.press('k');
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await waitForAppBarReady(page);
+  await page.keyboard.press('j');
   await expect(page).toHaveURL(/\/day\/2025-11-02$/);
   await waitForAppBarReady(page);
 
