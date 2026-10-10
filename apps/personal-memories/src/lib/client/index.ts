@@ -1,5 +1,6 @@
 export * from './day-url.ts';
 export * from './events.ts';
+export * from './mark-cover.ts';
 export * from './overlays.ts';
 export * from './paint-notes.ts';
 export * from './preview-dom.ts';

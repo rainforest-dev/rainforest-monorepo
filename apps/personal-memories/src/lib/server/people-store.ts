@@ -31,6 +31,7 @@ const fileSchema = z
         aliases: z
           .object({ line: names, slack: names, photo: names })
           .default({}),
+        devices: z.array(z.string().trim().min(1)).default([]),
       }),
     ),
   })
@@ -51,6 +52,7 @@ const fileSchema = z
         ctx.addIssue({ code: 'custom', message: `duplicate id ${p.id}` });
       ids.add(p.id);
       for (const email of p.emails) claim(`email:${email}`, email, p.id);
+      for (const device of p.devices) claim(`device:${device}`, device, p.id);
       for (const [source, list] of Object.entries(p.aliases))
         for (const alias of [p.name, ...(list ?? [])])
           claim(`${source}:${alias}`, alias, p.id);
@@ -64,8 +66,9 @@ const fileSchema = z
 
 export function parsePeople(json: unknown): PeopleConfig {
   const file = fileSchema.parse(json);
-  const people = file.people.map(({ aliases, ...p }) => ({
+  const people = file.people.map(({ aliases, devices, ...p }) => ({
     ...p,
+    ...(devices.length ? { devices } : {}),
     aliases: Object.fromEntries(
       Object.entries(aliases).filter(([, list]) => list?.length),
     ),
@@ -115,4 +118,6 @@ export const getPeople = (): Promise<PeopleConfig> =>
   )).get();
 
 export const publicPeople = (config: PeopleConfig): Person[] =>
-  config.people.map(({ id, name, aliases }) => ({ id, name, aliases }));
+  config.people.map(({ id, name, aliases, devices }) =>
+    devices ? { id, name, aliases, devices } : { id, name, aliases },
+  );

@@ -31,6 +31,7 @@ type Props = {
   items: readonly LightboxItem[] | undefined;
   index: number;
   cover: CoverControl;
+  coverId?: string | undefined;
   finalFocus: RefObject<HTMLElement | null>;
   onStep: (delta: number) => void;
   onSelect: (index: number) => void;
@@ -74,6 +75,7 @@ export function Lightbox({
   items,
   index,
   cover,
+  coverId,
   finalFocus,
   onStep,
   onSelect,
@@ -109,6 +111,7 @@ export function Lightbox({
                 </DialogTitle>
                 <span className="text-muted-foreground text-xs tabular-nums">
                   {positionLabel(index, count)}
+                  {item.by && ` · ${item.by} 拍攝`}
                 </span>
               </div>
               <CoverButton state={cover} onToggle={onToggleCover} />
@@ -164,10 +167,10 @@ export function Lightbox({
                       <button
                         ref={i === index ? active : undefined}
                         type="button"
-                        aria-label={positionLabel(i, count)}
+                        aria-label={`${positionLabel(i, count)}${it.id === coverId ? '，封面' : ''}`}
                         aria-current={i === index}
                         onClick={() => onSelect(i)}
-                        className={`bg-muted focus-visible:ring-ring block size-14 overflow-hidden rounded-md outline-none focus-visible:ring-2 ${i === index ? 'ring-ring ring-2' : 'opacity-65'}`}
+                        className={`bg-muted focus-visible:ring-ring relative block size-14 overflow-hidden rounded-md outline-none focus-visible:ring-2 ${i === index ? 'ring-ring ring-2' : 'opacity-65'}`}
                       >
                         <img
                           src={thumbUrl(it.id, 0, 240)}
@@ -175,6 +178,11 @@ export function Lightbox({
                           loading="lazy"
                           className="size-full object-cover"
                         />
+                        {it.id === coverId && (
+                          <span className="bg-primary text-primary-foreground leading-3.5 absolute bottom-0.5 left-0.5 rounded-sm px-1 text-[10px] font-medium">
+                            封面
+                          </span>
+                        )}
                       </button>
                     </li>
                   ))}

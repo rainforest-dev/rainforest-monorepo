@@ -28,6 +28,7 @@ type OsxPhoto = {
   ismovie?: boolean | null;
   burst?: boolean | null;
   burst_selected?: boolean | null;
+  exif_info?: { camera_model?: string | null } | null;
   place?: { name?: string | null } | null;
   search_info?: {
     labels?: string[] | null;
@@ -71,7 +72,11 @@ export const diskSize: LocalSize = (path) => {
   }
 };
 
-export type LocalMedia = { path: string; from: 'derivative' | 'original' };
+export type LocalMedia = {
+  path: string;
+  from: 'derivative' | 'original';
+  poster?: string;
+};
 
 // iCloud "Optimize Mac Storage" leaves originals cloud-only while Photos keeps JPEG derivatives on disk.
 export function resolvePhotoMedia(
@@ -91,7 +96,9 @@ export function resolvePhotoMedia(
       : originals.find((p) => size(p) !== undefined);
 
   if (item.ismovie === true && original)
-    return { path: original, from: 'original' };
+    return derivative
+      ? { path: original, from: 'original', poster: derivative }
+      : { path: original, from: 'original' };
   if (derivative) return { path: derivative, from: 'derivative' };
   if (original) return { path: original, from: 'original' };
   return undefined;
@@ -140,6 +147,7 @@ export function parsePhotoIndex(
     else result.fromDerivative++;
 
     const media: TimelineMedia = { path: local.path };
+    if (local.poster) media.poster = local.poster;
     if (item.width && item.height) {
       media.width = item.width;
       media.height = item.height;
@@ -151,6 +159,8 @@ export function parsePhotoIndex(
       movie: item.ismovie === true,
       burstPick: item.burst !== true || item.burst_selected === true,
     };
+    const camera = item.exif_info?.camera_model?.replace(/\s+/g, ' ').trim();
+    if (camera) photo.camera = camera;
     if (typeof item.score?.overall === 'number')
       photo.score = item.score.overall;
     const meta = photoMeta(item);

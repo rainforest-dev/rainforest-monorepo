@@ -4,6 +4,7 @@ export type Person = {
   id: string;
   name: string;
   aliases: Partial<Record<TimelineSource, string[]>>;
+  devices?: string[];
 };
 
 export function personOf(
@@ -21,3 +22,8 @@ export const nameOf = (
   source: TimelineSource,
   raw: string,
 ) => personOf(people, source, raw)?.name ?? raw;
+
+export const photographerOf = (
+  people: readonly Person[],
+  camera: string | undefined,
+) => (camera ? people.find((p) => p.devices?.includes(camera)) : undefined);

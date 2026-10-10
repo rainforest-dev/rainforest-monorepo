@@ -33,7 +33,9 @@ export const GET: APIRoute = async ({ params, url }) => {
   const width = parseWidth(url.searchParams.get('w'));
   if (!width) return badRequest();
 
-  const src = mediaFile(await getTimeline(), dataDir(), params.id, index);
+  const src = mediaFile(await getTimeline(), dataDir(), params.id, index, {
+    poster: true,
+  });
   if (!src) return notFound();
   const source = await localFile(src);
   if (!source) return notLocal();

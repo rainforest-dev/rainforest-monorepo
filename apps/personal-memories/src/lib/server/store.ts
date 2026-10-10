@@ -92,9 +92,11 @@ export function mediaFile(
   root: string | undefined,
   id: string,
   index = 0,
+  { poster = false }: { poster?: boolean } = {},
 ): string | undefined {
   if (state.status !== 'ready' || !root) return undefined;
-  const path = state.byId.get(id)?.media?.[index]?.path;
+  const media = state.byId.get(id)?.media?.[index];
+  const path = (poster && media?.poster) || media?.path;
   if (!path) return undefined;
   return isAbsolute(path) ? path : join(root, 'slack', path);
 }

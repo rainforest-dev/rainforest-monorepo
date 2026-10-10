@@ -176,6 +176,41 @@ describe('parsePhotoIndex', () => {
   });
 });
 
+describe('parsePhotoIndex camera', () => {
+  it('keeps the EXIF camera model, collapsing padding', () => {
+    const [withCamera, without] = parsePhotoIndex(
+      [
+        {
+          uuid: 'a',
+          date: '2025-11-01T09:00:00+08:00',
+          path: '/a.jpg',
+          exif_info: { camera_model: 'RICOH GR IIIx      ' },
+        },
+        { uuid: 'b', date: '2025-11-01T09:00:00+08:00', path: '/b.jpg' },
+      ],
+      anyFile,
+    ).events;
+    expect(withCamera?.photo?.camera).toBe('RICOH GR IIIx');
+    expect(without?.photo).not.toHaveProperty('camera');
+  });
+
+  it('stores the still as the poster of a playable movie', () => {
+    const [movie] = parsePhotoIndex(
+      [
+        {
+          uuid: 'm',
+          date: '2025-11-01T09:00:00+08:00',
+          ismovie: true,
+          path: '/m.mov',
+          path_derivatives: ['/m.jpeg'],
+        },
+      ],
+      anyFile,
+    ).events;
+    expect(movie?.media).toEqual([{ path: '/m.mov', poster: '/m.jpeg' }]);
+  });
+});
+
 describe('resolvePhotoMedia', () => {
   const ORIGINAL = '/lib/originals/A.heic';
   const BIG = '/lib/resources/derivatives/A_1_105_c.jpeg';
@@ -231,7 +266,7 @@ describe('resolvePhotoMedia', () => {
         { ismovie: true, path: video, path_derivatives: [poster] },
         sizes({ [video]: 9_000_000, [poster]: 200_000 }),
       ),
-    ).toEqual({ path: video, from: 'original' });
+    ).toEqual({ path: video, from: 'original', poster });
     expect(
       resolvePhotoMedia(
         {

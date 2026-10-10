@@ -10,7 +10,10 @@ export function LightboxImage({ item }: { item: LightboxItem }) {
     return (
       <video
         controls
+        muted
+        playsInline
         preload="metadata"
+        poster={thumbUrl(item.id, 0, 960)}
         src={`/media/${encodeURIComponent(item.id)}`}
         className="max-h-[70vh] w-full rounded-lg"
       />
