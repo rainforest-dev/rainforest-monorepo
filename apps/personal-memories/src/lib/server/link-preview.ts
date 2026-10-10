@@ -203,27 +203,33 @@ export const pinnedFetch = (
       url,
       { headers: init.headers, signal: init.signal, lookup: pinnedLookup },
       (res) => {
-        const headers = new Headers();
-        for (const [key, value] of Object.entries(res.headers))
-          if (value !== undefined)
-            headers.set(key, Array.isArray(value) ? value.join(', ') : value);
-        const status = res.statusCode ?? 500;
-        if (NULL_BODY.has(status) || status < 200 || status > 599) {
-          res.resume();
+        res.on('error', () => undefined);
+        try {
+          const headers = new Headers();
+          for (const [key, value] of Object.entries(res.headers))
+            if (value !== undefined)
+              headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+          const status = res.statusCode ?? 500;
+          if (NULL_BODY.has(status) || status < 200 || status > 599) {
+            res.resume();
+            resolve(
+              new Response(null, {
+                status: status < 200 || status > 599 ? 502 : status,
+                headers,
+              }),
+            );
+            return;
+          }
           resolve(
-            new Response(null, {
-              status: status < 200 ? 502 : status,
+            new Response(Readable.toWeb(res) as ReadableStream<Uint8Array>, {
+              status,
               headers,
             }),
           );
-          return;
+        } catch (err) {
+          res.destroy();
+          reject(err);
         }
-        resolve(
-          new Response(Readable.toWeb(res) as ReadableStream<Uint8Array>, {
-            status,
-            headers,
-          }),
-        );
       },
     );
     request.on('error', reject);
