@@ -1,4 +1,5 @@
 export * from './embed.ts';
+export * from './link-preview.ts';
 export * from './note-vectors.ts';
 export * from './notes-format.ts';
 export * from './notes-payload.ts';
