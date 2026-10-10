@@ -1,7 +1,9 @@
 ---
 import DayPreview from '@/components/DayPreview.astro';
 import {
+  dayDetail,
   dayHeading,
+  hasDay,
   type MonthCell,
   type MonthView,
   morphAttrs,
@@ -15,10 +17,10 @@ type Props = { view: MonthView; morph?: string | undefined };
 const { view, morph } = Astro.props;
 const FOCUS =
   'focus-visible:ring-ring focus-visible:ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
-const detail = (c: MonthCell) => `${c.total} 則${c.noted ? ' · 已寫回憶' : ''}`;
+const detail = (c: MonthCell) => dayDetail(c.total, c.noted, c.markers);
 const label = (c: MonthCell) => `${dayHeading(c.date)}，${detail(c)}`;
 const days = view.weeks.flat().filter((c): c is MonthCell => c !== null);
-const stop = days.filter((c) => c.total > 0).at(-1)?.date;
+const stop = days.filter(hasDay).at(-1)?.date;
 const monthKey = `month-${view.month}`;
 const anchorOf = (c: MonthCell, layout: 'cell' | 'row') =>
   `--${layout === 'cell' ? 'm' : 'l'}${c.date.replaceAll('-', '')}`;
@@ -54,7 +56,7 @@ const cellAttrs = (c: MonthCell, layout: 'cell' | 'row') => {
             <li aria-hidden="true" />
           ) : (
             <li>
-              {cell.total > 0 ? (
+              {hasDay(cell) ? (
                 <a
                   href={`/day/${cell.date}`}
                   data-date={cell.date}
@@ -93,7 +95,7 @@ const cellAttrs = (c: MonthCell, layout: 'cell' | 'row') => {
   <ol data-grid="list" class="divide-border flex flex-col divide-y sm:hidden">
     {
       days.map((cell) =>
-        cell.total > 0 ? (
+        hasDay(cell) ? (
           <li>
             <a
               href={`/day/${cell.date}`}

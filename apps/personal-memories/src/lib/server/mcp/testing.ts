@@ -9,6 +9,7 @@ import { writeFixtureDataDir } from '@/cli/fixture.ts';
 import { buildIndex } from '@/cli/ingest.ts';
 import { buildSearchDocs } from '@/lib/ingest';
 import { fakeEmbedder } from '@/lib/server/embed.ts';
+import { loadMarkers } from '@/lib/server/markers-store.ts';
 import { noteVectors } from '@/lib/server/note-vectors.ts';
 import { createNotesStore } from '@/lib/server/notes-store.ts';
 import { loadPeople } from '@/lib/server/people-store.ts';
@@ -63,6 +64,7 @@ export async function buildFixture(): Promise<Fixture> {
   const timeline = loadTimeline(data);
   if (timeline.status !== 'ready') throw new Error('fixture has no timeline');
   const people = loadPeople(data);
+  const markers = loadMarkers(data, people);
   const ramen = timeline.timeline.events.find((e) => e.text?.includes('拉麵'));
   if (!ramen) throw new Error('fixture has no ramen message');
   const store = createNotesStore(notesDir);
@@ -105,6 +107,7 @@ export async function buildFixture(): Promise<Fixture> {
     deps: {
       timeline: async () => timeline,
       people: async () => people,
+      markers: async () => markers,
       notes: () => store,
       searchIndex: async () => ({ ...index, extra: vectors }),
       embedder,

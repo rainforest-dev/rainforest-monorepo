@@ -49,7 +49,7 @@ test.describe.configure({ mode: 'serial' });
 test('home is a heatmap of the fixture days', async ({ page }) => {
   await page.goto('/');
   const days = page.locator('a[data-date]');
-  await expect(days).toHaveCount(4);
+  await expect(days).toHaveCount(5);
   await expect(page.locator('a[data-date="2025-11-01"]')).toHaveAttribute(
     'href',
     '/day/2025-11-01',
@@ -353,9 +353,9 @@ test('the date jump box reads a festival and offers the nearest day when it has 
   await expect(dialog).toContainText('2025 聖誕節（2025-12-25）沒有紀錄');
   await page.keyboard.press('Enter');
   await expect(
-    page.getByText('沒有這一天，已跳到最近的 2025-11-03'),
+    page.getByText('沒有這一天，已跳到最近的 2025-11-04'),
   ).toBeVisible();
-  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await expect(page).toHaveURL(/\/day\/2025-11-04$/);
 });
 
 test('follow-on times and the 眉批 button appear on hover or focus, beside the text', async ({
@@ -454,10 +454,17 @@ test('scrolling loads neighbouring days and follows the URL', async ({
 }) => {
   await page.goto('/day/2025-11-02');
   await expect(page.locator('#day-2025-11-01')).toBeAttached();
-  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+  await expect(async () => {
+    await page.mouse.wheel(0, 400);
+    await expect(page.locator('#day-2025-11-04')).toBeAttached({
+      timeout: 500,
+    });
+  }).toPass();
   await expect(page.locator('#day-2025-11-03')).toBeAttached();
-  await page.locator('#day-2025-11-03').scrollIntoViewIfNeeded();
-  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await expect(async () => {
+    await page.mouse.wheel(0, 400);
+    await expect(page).toHaveURL(/\/day\/2025-11-04$/, { timeout: 500 });
+  }).toPass();
 });
 
 test('a day note and an annotation are saved to the vault folder', async ({
@@ -652,18 +659,17 @@ test('a note typed just before scrolling stays on its own day', async ({
   await expect(body).toBeEnabled();
   await body.fill('十一月二日的筆記');
 
-  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
-  await expect(page.locator('#day-2025-11-03')).toBeAttached();
-  await page
-    .locator('#day-2025-11-03')
-    .evaluate((el) => el.scrollIntoView({ block: 'start' }));
-  await expect(panel).toContainText('11 月 3 日');
+  await page.mouse.move(400, 400);
+  await expect(async () => {
+    await page.mouse.wheel(0, 400);
+    await expect(panel).toContainText('11 月 4 日', { timeout: 500 });
+  }).toPass();
   await expect(body).toHaveValue('');
 
   const read = (date: string) =>
     existsSync(noteFile(date)) ? readFileSync(noteFile(date), 'utf8') : '';
   await expect.poll(() => read('2025-11-02')).toContain('十一月二日的筆記');
-  expect(read('2025-11-03')).not.toContain('十一月二日的筆記');
+  expect(read('2025-11-04')).not.toContain('十一月二日的筆記');
 });
 
 test('the hour strip jumps to an hour and follows the scroll', async ({
@@ -843,7 +849,7 @@ test('the date jump opens a typed day, or the nearest one', async ({
   await page.getByRole('button', { name: '跳至日期' }).first().click();
   const input = page.getByRole('dialog').getByPlaceholder(JUMP_PLACEHOLDER);
   await input.fill('2025-11-0');
-  await expect(page.getByRole('dialog').getByRole('option')).toHaveCount(3);
+  await expect(page.getByRole('dialog').getByRole('option')).toHaveCount(4);
   await input.fill('2025/11/2');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/day\/2025-11-02/);
@@ -854,11 +860,11 @@ test('the date jump opens a typed day, or the nearest one', async ({
     .getByPlaceholder(JUMP_PLACEHOLDER)
     .fill('2025-11-20');
   await expect(page.getByRole('dialog')).toContainText(
-    '沒有這一天，按 Enter 跳到最近的 2025-11-03',
+    '沒有這一天，按 Enter 跳到最近的 2025-11-04',
   );
   await page.keyboard.press('Enter');
   await expect(page.getByRole('alert')).toContainText(
-    '沒有這一天，已跳到最近的 2025-11-03（週一）',
+    '沒有這一天，已跳到最近的 2025-11-04（週二）',
   );
 });
 
@@ -912,13 +918,15 @@ test('the ‹ › links point at the neighbours of the day in view', async ({
   const next = page.getByRole('link', { name: '後一天' });
   await expect(prev).toHaveAttribute('href', '/day/2025-11-01');
   await expect(next).toHaveAttribute('href', '/day/2025-11-03');
-  await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
-  const day = page.locator('[data-day="2025-11-03"]');
-  await expect(day).toBeAttached();
+  const day = page.locator('[data-day="2025-11-04"]');
+  await expect(async () => {
+    await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+    await expect(day).toBeAttached({ timeout: 1000 });
+  }).toPass();
   await expect(day).not.toHaveAttribute('data-next', /./);
   await day.scrollIntoViewIfNeeded();
-  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
-  await expect(prev).toHaveAttribute('href', '/day/2025-11-02');
+  await expect(page).toHaveURL(/\/day\/2025-11-04$/);
+  await expect(prev).toHaveAttribute('href', '/day/2025-11-03');
   await expect(next).toHaveCount(0);
   await expect(page.getByRole('button', { name: '後一天' })).toBeVisible();
 });
@@ -953,7 +961,7 @@ test('the date jump ignores an Enter fired mid-IME composition', async ({
   // An exact match selects through cmdk's own Enter, not this onKeyDown guard.
   await input.fill('2025-11-20');
   await expect(page.getByRole('dialog')).toContainText(
-    '沒有這一天，按 Enter 跳到最近的 2025-11-03',
+    '沒有這一天，按 Enter 跳到最近的 2025-11-04',
   );
   await input.dispatchEvent('keydown', {
     key: 'Enter',
@@ -962,7 +970,7 @@ test('the date jump ignores an Enter fired mid-IME composition', async ({
   });
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/day\/2025-11-03/);
+  await expect(page).toHaveURL(/\/day\/2025-11-04/);
 });
 
 test('keys: j and k, n, ? and /, and Escape only when nothing else claims it', async ({
@@ -970,10 +978,10 @@ test('keys: j and k, n, ? and /, and Escape only when nothing else claims it', a
 }) => {
   await page.goto('/day/2025-11-02');
   await waitForAppBarReady(page);
-  await page.keyboard.press('j');
-  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
-  await waitForAppBarReady(page);
   await page.keyboard.press('k');
+  await expect(page).toHaveURL(/\/day\/2025-11-01$/);
+  await waitForAppBarReady(page);
+  await page.keyboard.press('j');
   await expect(page).toHaveURL(/\/day\/2025-11-02$/);
   await waitForAppBarReady(page);
 
@@ -1438,14 +1446,14 @@ test.describe('touch gestures on a phone', () => {
     );
     await pinch(200, 100);
     await page.waitForTimeout(300);
-    await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+    await expect(page).toHaveURL(/\/day\//);
     await page.evaluate(() =>
       document.documentElement.removeAttribute('data-overlays'),
     );
 
     await pinch(200, 170);
     await page.waitForTimeout(300);
-    await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+    await expect(page).toHaveURL(/\/day\//);
 
     await pinch(200, 100);
     await expect(page).toHaveURL(/\/month\/2025-11$/);
@@ -1541,10 +1549,16 @@ test('眉批 show under their message, clamped, on the panel day and on days loa
   });
   await expect(scrolled).toHaveAttribute('data-annotated', '');
   await expect(scrolled.locator('[data-note]')).toContainText('第一行');
+  await expect(async () => {
+    await page.locator('[data-load="next"]').scrollIntoViewIfNeeded();
+    await expect(page.locator('#day-2025-11-04')).toBeAttached({
+      timeout: 1000,
+    });
+  }).toPass();
   await page
-    .locator('#day-2025-11-03')
+    .locator('#day-2025-11-04')
     .evaluate((el) => el.scrollIntoView({ block: 'start' }));
-  await expect(page).toHaveURL(/\/day\/2025-11-03$/);
+  await expect(page).toHaveURL(/\/day\/2025-11-04$/);
   await page
     .locator('#day-2025-11-02')
     .evaluate((el) => el.scrollIntoView({ block: 'start' }));

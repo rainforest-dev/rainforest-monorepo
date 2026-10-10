@@ -13,7 +13,6 @@ import Layout from '@/layouts/Layout.astro';
 import {
   authorAccents,
   dayHeading,
-  indexDays,
   levelHrefs,
   morphFromRequest,
   nearestDate,
@@ -22,6 +21,7 @@ import {
 } from '@/lib';
 import { viewerName } from '@/lib/notes';
 import {
+  getDayIndex,
   getPeople,
   getTimeline,
   notePayload,
@@ -49,18 +49,15 @@ const initial = day?.events
     )
   : undefined;
 
-const dates =
-  state.status === 'ready' ? indexDays(state.timeline.events).dates : [];
+const index = await getDayIndex();
+const dates = index?.dates ?? [];
 const accents =
   state.status === 'ready'
     ? Object.fromEntries(
         authorAccents(state.timeline.events, people.owners, roster),
       )
     : {};
-const months =
-  state.status === 'ready'
-    ? scrubberMonths(summarize(indexDays(state.timeline.events)))
-    : [];
+const months = index ? scrubberMonths(summarize(index)) : [];
 const nearest = !day?.events ? nearestDate(dates, date) : undefined;
 const jumped = Astro.url.searchParams.has('nearest') && !!day?.events;
 const bar = {

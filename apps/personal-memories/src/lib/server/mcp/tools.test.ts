@@ -58,13 +58,14 @@ const errorText = async (name: string, args: Record<string, unknown>) => {
 };
 
 describe('tools/list', () => {
-  it('lists the four tools, all read-only and closed-world', async () => {
+  it('lists the five tools, all read-only and closed-world', async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual([
       'search_memories',
       'get_day',
       'list_people',
       'get_coverage',
+      'list_markers',
     ]);
     for (const tool of tools) {
       expect(tool.annotations).toEqual({
@@ -279,7 +280,7 @@ describe('get_day', () => {
     });
     expect(await ok('get_day', { date: '2030-01-01' })).toEqual({
       date: '2030-01-01',
-      prev: RAMEN_DAY,
+      prev: '2025-11-04',
     });
   });
 
@@ -481,4 +482,115 @@ describe('privacy', () => {
       expect(json).not.toMatch(/"chat"/);
     },
   );
+});
+
+describe('markers', () => {
+  it('get_day returns the markers of a day with events', async () => {
+    const out = await ok('get_day', { date: '2025-11-03' });
+    expect(out['markers']).toEqual([
+      {
+        person: 'Alice',
+        personId: 'alice',
+        kind: 'leave',
+        part: 'am',
+        eventId: expect.any(String),
+        postedOn: '2025-11-02',
+      },
+      expect.objectContaining({ kind: 'wfh', part: 'pm' }),
+    ]);
+  });
+
+  it('get_day opens a day that only has markers', async () => {
+    const out = await ok('get_day', { date: '2025-11-04' });
+    expect(out).toMatchObject({
+      date: '2025-11-04',
+      prev: '2025-11-03',
+      counts: { line: 0, slack: 0, photo: 0 },
+      events: [],
+      markers: [expect.objectContaining({ kind: 'leave', part: 'full' })],
+    });
+  });
+
+  it('get_day ignores the source filter for markers', async () => {
+    const out = await ok('get_day', { date: '2025-11-01', sources: ['photo'] });
+    expect(out['markers']).toEqual([
+      expect.objectContaining({
+        person: 'Bob',
+        kind: 'wfh',
+        postedOn: '2025-11-01',
+      }),
+    ]);
+  });
+
+  it('list_markers filters by range, person and kind', async () => {
+    const all = await ok('list_markers');
+    expect((all['markers'] as unknown[]).length).toBe(4);
+    const leave = await ok('list_markers', {
+      person: 'alice',
+      kind: 'leave',
+      from: '2025-11-04',
+    });
+    expect(leave['markers']).toEqual([
+      expect.objectContaining({ date: '2025-11-04', part: 'full' }),
+    ]);
+  });
+
+  it('list_markers rejects an unknown person and a reversed range', async () => {
+    expect(await errorText('list_markers', { person: 'carol' })).toMatch(
+      /list_people/,
+    );
+    expect(
+      await errorText('list_markers', { from: '2025-11-04', to: '2025-11-01' }),
+    ).toMatch(/after/);
+  });
+
+  it('list_markers leaves postedOn out when the source message is gone', async () => {
+    const other = await connect(
+      handlerFor({
+        ...fixture.deps,
+        markers: async () => ({
+          markers: [
+            {
+              date: '2025-11-05',
+              person: 'bob',
+              kind: 'wfh',
+              part: 'am',
+              event: 'gone',
+            },
+          ],
+          byDate: new Map(),
+          dates: [],
+        }),
+      }),
+    );
+    const result = await other.callTool({
+      name: 'list_markers',
+      arguments: {},
+    });
+    await other.close();
+    const [marker] = (result.structuredContent as { markers: object[] })
+      .markers;
+    expect(marker).not.toHaveProperty('postedOn');
+  });
+});
+
+describe('get_day reads', () => {
+  it('reads the timeline once per call', async () => {
+    let reads = 0;
+    const counted = await connect(
+      handlerFor({
+        ...fixture.deps,
+        timeline: async () => {
+          reads++;
+          return fixture.deps.timeline();
+        },
+      }),
+    );
+    await counted.callTool({
+      name: 'get_day',
+      arguments: { date: '2025-11-03' },
+    });
+    await counted.close();
+    expect(reads).toBe(1);
+  });
 });

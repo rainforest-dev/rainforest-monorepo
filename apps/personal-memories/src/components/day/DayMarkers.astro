@@ -1,0 +1,46 @@
+---
+import { KIND_BG } from '@/components/marker-classes.ts';
+import { KIND_LABEL, type MarkerView, PART_LABEL } from '@/lib';
+
+type Props = { date: string; views: readonly MarkerView[] };
+
+const { date, views } = Astro.props;
+
+const sourceHref = (v: MarkerView) =>
+  v.postedOn === date ? `#ev-${v.event}` : `/day/${v.postedOn}#ev-${v.event}`;
+---
+
+{
+  views.length > 0 && (
+    <ul
+      data-day-markers
+      aria-label="出勤"
+      class="text-meta flex flex-wrap gap-x-4 gap-y-1"
+    >
+      {views.map((v) => (
+        <li
+          data-marker-kind={v.kind}
+          data-marker-part={v.part}
+          class="flex items-center gap-1.5"
+        >
+          <span
+            aria-hidden="true"
+            class:list={['size-2 rounded-full', KIND_BG[v.kind]]}
+          />
+          <span>
+            {v.name} {KIND_LABEL[v.kind]}（{PART_LABEL[v.part]}）
+          </span>
+          {v.postedOn && (
+            <a
+              href={sourceHref(v)}
+              data-marker-source
+              class="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+            >
+              → 原訊息
+            </a>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}

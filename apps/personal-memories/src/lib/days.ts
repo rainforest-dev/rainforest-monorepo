@@ -15,10 +15,19 @@ export type DayIndex = {
   byDate: Map<string, TimelineEvent[]>;
 };
 
-const cache = new WeakMap<readonly TimelineEvent[], DayIndex>();
+const NO_DATES: readonly string[] = [];
 
-export function indexDays(events: readonly TimelineEvent[]): DayIndex {
-  const hit = cache.get(events);
+const cache = new WeakMap<
+  readonly TimelineEvent[],
+  WeakMap<readonly string[], DayIndex>
+>();
+
+export function indexDays(
+  events: readonly TimelineEvent[],
+  extraDates: readonly string[] = NO_DATES,
+): DayIndex {
+  let byExtra = cache.get(events);
+  const hit = byExtra?.get(extraDates);
   if (hit) return hit;
   const byDate = new Map<string, TimelineEvent[]>();
   const sorted = events
@@ -30,8 +39,10 @@ export function indexDays(events: readonly TimelineEvent[]): DayIndex {
     if (list) list.push(event);
     else byDate.set(date, [event]);
   }
+  for (const date of extraDates) if (!byDate.has(date)) byDate.set(date, []);
   const index = { dates: [...byDate.keys()].sort(), byDate };
-  cache.set(events, index);
+  if (!byExtra) cache.set(events, (byExtra = new WeakMap()));
+  byExtra.set(extraDates, index);
   return index;
 }
 

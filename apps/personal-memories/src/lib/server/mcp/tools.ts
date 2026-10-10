@@ -6,8 +6,10 @@ import {
 import { z } from 'astro/zod';
 
 import { DATE_RE, type DayIndex, indexDays, summarize } from '@/lib/days.ts';
+import type { DayMarker } from '@/lib/markers.ts';
 import { nameOf, type Person, photographerOf } from '@/lib/people.ts';
 import type { Embedder } from '@/lib/server/embed.ts';
+import { type MarkerSet, postedOnLookup } from '@/lib/server/markers-store.ts';
 import type { NotesStore } from '@/lib/server/notes-store.ts';
 import type { PeopleConfig } from '@/lib/server/people-store.ts';
 import {
@@ -29,6 +31,7 @@ export type LastImport = { at: string; ok: boolean };
 export type McpDeps = {
   timeline: () => Promise<TimelineState>;
   people: () => Promise<PeopleConfig>;
+  markers: () => Promise<MarkerSet>;
   notes: () => NotesStore | undefined;
   searchIndex: () => Promise<SearchIndex | undefined>;
   embedder: Embedder;
@@ -76,12 +79,15 @@ const clip = (text: string, max: number) => {
     : `${chars.slice(0, max - 1).join('')}…`;
 };
 
-async function readyTimeline(deps: McpDeps) {
+async function readyState(deps: McpDeps) {
   const state = await deps.timeline();
   if (state.status !== 'ready')
     throw new ToolInputError('The album has no timeline yet.');
-  return state.timeline;
+  return state;
 }
+
+const readyTimeline = async (deps: McpDeps) =>
+  (await readyState(deps)).timeline;
 
 function checkRange(from: string | undefined, to: string | undefined) {
   if (from && to && from > to)
@@ -219,6 +225,33 @@ function noteView(
 
 const timelineSource = z.enum(['line', 'slack', 'photo']);
 
+const markerKind = z.enum(['wfh', 'leave']);
+
+const markerOutput = {
+  person: z.string(),
+  personId: z.string(),
+  kind: markerKind,
+  part: z.enum(['full', 'am', 'pm']),
+  eventId: z.string(),
+  postedOn: z.string().optional(),
+};
+
+function markerView(
+  marker: DayMarker,
+  people: readonly Person[],
+  postedOn: (eventId: string) => string | undefined,
+) {
+  const posted = postedOn(marker.event);
+  return {
+    person: people.find((p) => p.id === marker.person)?.name ?? marker.person,
+    personId: marker.person,
+    kind: marker.kind,
+    part: marker.part,
+    eventId: marker.event,
+    ...(posted ? { postedOn: posted } : {}),
+  };
+}
+
 const getDay = (deps: McpDeps) =>
   defineTool({
     name: 'get_day',
@@ -228,6 +261,7 @@ const getDay = (deps: McpDeps) =>
       'photo metadata (labels, place, people, OCR text; never the image), and the diary note with its annotations. ' +
       'Events page with cursor and limit; follow nextCursor for more. ' +
       'A day with no records returns only the nearest prev and next days. ' +
+      'Also returns the leave and WFH markers that apply to the day, whatever sources say. ' +
       'url opens the day for a human; it sits behind a login and cannot be fetched.',
     input: {
       date: date(),
@@ -280,12 +314,16 @@ const getDay = (deps: McpDeps) =>
           ),
         })
         .optional(),
+      markers: z.array(z.object(markerOutput)).optional(),
       nextCursor: z.number().optional(),
     },
     annotations: { readOnlyHint: true, openWorldHint: false },
     run: async ({ date: day, sources, cursor, limit }) => {
-      const timeline = await readyTimeline(deps);
-      const index = indexDays(timeline.events);
+      const [state, markers] = await Promise.all([
+        readyState(deps),
+        deps.markers(),
+      ]);
+      const index = indexDays(state.timeline.events, markers.dates);
       const all = index.byDate.get(day);
       if (!all) return { date: day, ...neighboursOf(index, day) };
       const people = (await deps.people()).people;
@@ -294,6 +332,10 @@ const getDay = (deps: McpDeps) =>
         ? all.filter((e) => sources.includes(e.source))
         : all;
       const page = shown.slice(cursor, cursor + limit);
+      const postedOn = postedOnLookup(state);
+      const dayMarkers = (markers.byDate.get(day) ?? []).map((m) =>
+        markerView(m, people, postedOn),
+      );
       const note =
         !sources?.length || sources.includes('note')
           ? noteView(deps.notes(), day, people)
@@ -304,6 +346,7 @@ const getDay = (deps: McpDeps) =>
         ...neighboursOf(index, day),
         url: `${deps.publicUrl?.replace(/\/+$/, '') ?? ''}/day/${day}`,
         events: page.map((e) => eventView(e, people)),
+        ...(dayMarkers.length ? { markers: dayMarkers } : {}),
         ...(note ? { note } : {}),
         ...(cursor + limit < shown.length
           ? { nextCursor: cursor + limit }
@@ -455,9 +498,57 @@ const getCoverage = (deps: McpDeps) =>
     },
   });
 
+const listMarkers = (deps: McpDeps) =>
+  defineTool({
+    name: 'list_markers',
+    title: 'List leave and WFH days',
+    description:
+      'Lists attendance markers: the days a person was on leave or worked from home, read from their work-chat messages. ' +
+      'date is the day a marker applies to; postedOn is the day its source message was posted, when that message is in the album. ' +
+      'from and to (YYYY-MM-DD) narrow the dates; person takes an id from list_people; kind is leave or wfh.',
+    input: {
+      from: date().optional(),
+      to: date().optional(),
+      person: z.string().optional(),
+      kind: markerKind.optional(),
+    },
+    output: {
+      markers: z.array(z.object({ date: z.string(), ...markerOutput })),
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+    run: async ({ from, to, person, kind }) => {
+      checkRange(from, to);
+      const [state, people, markers] = await Promise.all([
+        deps.timeline(),
+        deps.people(),
+        deps.markers(),
+      ]);
+      if (person !== undefined && !people.people.some((p) => p.id === person))
+        throw new ToolInputError(
+          `Unknown person id ${person}; list_people names the ids.`,
+        );
+      const postedOn = postedOnLookup(state);
+      return {
+        markers: markers.markers
+          .filter(
+            (m) =>
+              (!from || m.date >= from) &&
+              (!to || m.date <= to) &&
+              (!person || m.person === person) &&
+              (!kind || m.kind === kind),
+          )
+          .map((m) => ({
+            date: m.date,
+            ...markerView(m, people.people, postedOn),
+          })),
+      };
+    },
+  });
+
 export const memoriesTools = (deps: McpDeps): McpTool[] => [
   searchMemories(deps),
   getDay(deps),
   listPeople(deps),
   getCoverage(deps),
+  listMarkers(deps),
 ];

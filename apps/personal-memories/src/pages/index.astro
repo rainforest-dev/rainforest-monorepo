@@ -7,12 +7,16 @@ import Layout from '@/layouts/Layout.astro';
 import {
   dayCells,
   heatLevels,
-  indexDays,
   levelHrefs,
   monthRows,
   morphFromRequest,
 } from '@/lib';
-import { getTimeline, notesStore } from '@/lib/server';
+import {
+  getDayIndex,
+  getMarkerViews,
+  getTimeline,
+  notesStore,
+} from '@/lib/server';
 
 const state = await getTimeline();
 const { entries: days = [] } = await getLiveCollection('days');
@@ -25,10 +29,9 @@ const level = heatLevels([...totals.values()]);
 const noted = new Set(notes.map((n) => n.id));
 const morph = morphFromRequest(Astro.request, Astro.url);
 const store = notesStore();
-const index =
-  state.status === 'ready' ? indexDays(state.timeline.events) : undefined;
+const [index, markers] = await Promise.all([getDayIndex(), getMarkerViews()]);
 const previews = index
-  ? dayCells(index, noted, (d) => store?.read(d))
+  ? dayCells(index, noted, (d) => store?.read(d), markers)
   : new Map();
 ---
 
@@ -54,6 +57,7 @@ const previews = index
         noted={noted}
         morph={morph}
         previews={previews}
+        markers={markers}
       />
     )
   }

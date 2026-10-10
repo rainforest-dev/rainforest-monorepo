@@ -42,6 +42,30 @@ describe('days', () => {
     expect(indexDays(EVENTS)).toBe(index);
   });
 
+  it('adds extra dates as days without events, and caches per date list', () => {
+    const extra = ['2025-10-30', '2025-11-03'];
+    const withMarkers = indexDays(EVENTS, extra);
+    expect(withMarkers.dates).toEqual([
+      '2025-10-30',
+      '2025-11-01',
+      '2025-11-03',
+    ]);
+    expect(withMarkers.byDate.get('2025-10-30')).toEqual([]);
+    expect(withMarkers.byDate.get('2025-11-03')?.map((e) => e.id)).toEqual([
+      'c',
+    ]);
+    expect(indexDays(EVENTS, extra)).toBe(withMarkers);
+    expect(indexDays(EVENTS)).toBe(index);
+    expect(neighbours(withMarkers, '2025-11-01')).toEqual({
+      prev: '2025-10-30',
+      next: '2025-11-03',
+    });
+    expect(summarize(withMarkers)[0]).toMatchObject({
+      date: '2025-10-30',
+      total: 0,
+    });
+  });
+
   it('summarizes counts', () => {
     expect(summarize(index)[0]).toEqual({
       date: '2025-11-01',
