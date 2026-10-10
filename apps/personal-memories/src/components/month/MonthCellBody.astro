@@ -3,11 +3,14 @@ import { badgeVariants, Skeleton } from '@rainforest-dev/rainforest-react';
 
 import { type MonthCell, thumbSrcset, thumbUrl } from '@/lib';
 
+import MonthBadges from './MonthBadges.astro';
+
 type Props = { cell: MonthCell; layout: 'cell' | 'row' };
 
 const { cell, layout } = Astro.props;
 const row = layout === 'row';
 const showText = row || !cell.cover;
+const markers = cell.markers ?? [];
 ---
 
 {
@@ -59,6 +62,18 @@ const showText = row || !cell.cover;
   }
 </span>
 {
+  !row && markers.length > 0 && (
+    <span
+      class:list={[
+        'relative mx-1.5 flex w-fit flex-wrap gap-1 rounded-md',
+        cell.cover && 'bg-background/90 p-0.5',
+      ]}
+    >
+      <MonthBadges views={markers} />
+    </span>
+  )
+}
+{
   row &&
     (cell.cover ? (
       <span class="relative block size-12 overflow-hidden rounded-md">
@@ -77,23 +92,33 @@ const showText = row || !cell.cover;
     ))
 }
 {
-  showText &&
+  !row &&
+    showText &&
     (cell.memory ? (
-      <span class:list={['text-meta line-clamp-3', !row && 'px-2.5 pb-2.5']}>
-        {cell.memory}
-      </span>
+      <span class="text-meta line-clamp-3 px-2.5 pb-2.5">{cell.memory}</span>
     ) : cell.excerpt ? (
-      <span
-        class:list={[
-          'text-meta text-muted-foreground line-clamp-3',
-          !row && 'px-2.5 pb-2.5',
-        ]}
-      >
+      <span class="text-meta text-muted-foreground line-clamp-3 px-2.5 pb-2.5">
         「{cell.excerpt}」
       </span>
-    ) : (
-      row && <span />
-    ))
+    ) : null)
+}
+{
+  row && (
+    <span class="flex min-w-0 flex-col gap-1">
+      {markers.length > 0 && (
+        <span class="flex flex-wrap gap-1">
+          <MonthBadges views={markers} />
+        </span>
+      )}
+      {cell.memory ? (
+        <span class="text-meta line-clamp-3">{cell.memory}</span>
+      ) : cell.excerpt ? (
+        <span class="text-meta text-muted-foreground line-clamp-3">
+          「{cell.excerpt}」
+        </span>
+      ) : null}
+    </span>
+  )
 }
 {
   row && (

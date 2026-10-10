@@ -1,0 +1,41 @@
+---
+import { markerBars, type MarkerPart, type MarkerView } from '@/lib';
+
+import { KIND_BG } from './marker-classes.ts';
+
+type Props = { views: readonly MarkerView[] };
+
+const bars = markerBars(Astro.props.views);
+
+const SPAN: Record<MarkerPart, string> = {
+  full: 'inset-x-0',
+  am: 'left-0 w-1/2',
+  pm: 'right-0 w-1/2',
+};
+---
+
+{
+  bars.length > 0 && (
+    <span
+      aria-hidden="true"
+      data-marker-bars
+      class="absolute inset-x-0.5 bottom-0.5 flex flex-col gap-px"
+    >
+      {bars.map((bar) => (
+        <span data-marker-bar={bar.person} class="relative h-[3px]">
+          {bar.segments.map((s) => (
+            <span
+              data-kind={s.kind}
+              data-part={s.part}
+              class:list={[
+                'absolute inset-y-0 rounded-[1px]',
+                SPAN[s.part],
+                KIND_BG[s.kind],
+              ]}
+            />
+          ))}
+        </span>
+      ))}
+    </span>
+  )
+}

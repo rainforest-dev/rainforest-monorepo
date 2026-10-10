@@ -6,7 +6,6 @@ import { MonthNav } from '@/components/month/MonthNav.tsx';
 import Layout from '@/layouts/Layout.astro';
 import {
   dayHeading,
-  indexDays,
   levelHrefs,
   MONTH_HINTS,
   MONTH_RE,
@@ -15,16 +14,26 @@ import {
   morphFromRequest,
   nearestDate,
 } from '@/lib';
-import { getTimeline, notesStore } from '@/lib/server';
+import {
+  getDayIndex,
+  getMarkerViews,
+  getTimeline,
+  notesStore,
+} from '@/lib/server';
 
 const { month = '' } = Astro.params;
 const morph = morphFromRequest(Astro.request, Astro.url);
 const state = await getTimeline();
-const index =
-  state.status === 'ready' ? indexDays(state.timeline.events) : undefined;
+const [index, markers] = await Promise.all([getDayIndex(), getMarkerViews()]);
 const store = notesStore();
 const view = index
-  ? monthView(index, month, store?.dates() ?? new Set(), (d) => store?.read(d))
+  ? monthView(
+      index,
+      month,
+      store?.dates() ?? new Set(),
+      (d) => store?.read(d),
+      markers,
+    )
   : undefined;
 const nearest =
   index && !view

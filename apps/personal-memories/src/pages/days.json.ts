@@ -1,17 +1,13 @@
 import type { APIRoute } from 'astro';
 
-import { indexDays, summarize } from '@/lib';
-import { getTimeline } from '@/lib/server';
+import { summarize } from '@/lib';
+import { getDayIndex } from '@/lib/server';
 
 export const GET: APIRoute = async () => {
-  const state = await getTimeline();
-  const days =
-    state.status === 'ready'
-      ? summarize(indexDays(state.timeline.events)).map(({ date, total }) => ({
-          date,
-          total,
-        }))
-      : [];
+  const index = await getDayIndex();
+  const days = index
+    ? summarize(index).map(({ date, total }) => ({ date, total }))
+    : [];
   return Response.json(days, {
     headers: { 'Cache-Control': 'private, no-cache' },
   });

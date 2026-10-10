@@ -1,6 +1,9 @@
 ---
 import {
+  dayDetail,
   dayHeading,
+  dominantKind,
+  type MarkerView,
   type MonthCell,
   monthLabel,
   type MonthRow,
@@ -9,7 +12,9 @@ import {
 } from '@/lib';
 
 import DayPreview from './DayPreview.astro';
+import HeatBars from './HeatBars.astro';
 import KeyHints from './KeyHints.astro';
+import { KIND_BG } from './marker-classes.ts';
 
 type Props = {
   rows: MonthRow[];
@@ -17,13 +22,16 @@ type Props = {
   noted: Set<string>;
   morph?: string | undefined;
   previews: Map<string, MonthCell>;
+  markers: Map<string, MarkerView[]>;
 };
 
-const { rows, level, noted, morph, previews } = Astro.props;
+const { rows, level, noted, morph, previews, markers } = Astro.props;
+
+const viewsOf = (date: string) => markers.get(date) ?? [];
 
 const stop = rows
   .flatMap((row) => row.cells)
-  .filter((cell) => cell !== null && cell.total > 0)
+  .filter((cell) => cell !== null && (cell.total > 0 || markers.has(cell.date)))
   .at(-1)?.date;
 
 const LEVEL = [
@@ -49,9 +57,14 @@ const rangeLabel = (() => {
 const dotClass = (lvl: 0 | 1 | 2 | 3 | 4) =>
   lvl >= 3 ? 'bg-primary-foreground' : 'bg-foreground';
 
-const tooltip = (date: string, total: number, isNoted: boolean) => ({
+const tooltip = (
+  date: string,
+  total: number,
+  isNoted: boolean,
+  views: readonly MarkerView[],
+) => ({
   date: dayHeading(date),
-  detail: `${total} 則${isNoted ? ' · 已寫回憶' : ''}`,
+  detail: dayDetail(total, isNoted, views),
 });
 
 const monthKey = (row: MonthRow) =>
@@ -116,7 +129,8 @@ const monthKey = (row: MonthRow) =>
                   if (!cell) return <span class="size-6" />;
                   const isNoted = noted.has(cell.date);
                   const lvl = level(cell.total);
-                  const tip = tooltip(cell.date, cell.total, isNoted);
+                  const views = viewsOf(cell.date);
+                  const tip = tooltip(cell.date, cell.total, isNoted, views);
                   const anchor = `--d${cell.date.replaceAll('-', '')}`;
                   const key = `day-${cell.date}`;
                   const { style: morphStyle, ...morphRest } = morphAttrs(
@@ -138,7 +152,7 @@ const monthKey = (row: MonthRow) =>
                   const dot = isNoted && (
                     <span class={`size-1.5 rounded-full ${dotClass(lvl)}`} />
                   );
-                  return cell.total > 0 ? (
+                  return cell.total > 0 || views.length > 0 ? (
                     <a
                       href={`/day/${cell.date}`}
                       data-date={cell.date}
@@ -153,6 +167,7 @@ const monthKey = (row: MonthRow) =>
                       {...morphRest}
                     >
                       {dot}
+                      <HeatBars views={views} />
                       {preview}
                     </a>
                   ) : (
@@ -169,6 +184,7 @@ const monthKey = (row: MonthRow) =>
                       {...morphRest}
                     >
                       {dot}
+                      <HeatBars views={views} />
                       {preview}
                     </span>
                   );
@@ -191,17 +207,29 @@ const monthKey = (row: MonthRow) =>
     {
       rows.map((row, i) => {
         const showYear = i === 0 || row.year !== rows[i - 1].year;
-        const hasEvents = row.cells.some((c) => c !== null && c.total > 0);
+        const hasEvents = row.cells.some(
+          (c) => c !== null && (c.total > 0 || markers.has(c.date)),
+        );
         const bars = row.cells.map((cell) => {
           if (!cell) return <span class="h-4 w-2" />;
           const isNoted = noted.has(cell.date);
           const lvl = level(cell.total);
+          const kind = dominantKind(viewsOf(cell.date));
           return (
             <span
-              class={`flex h-4 w-2 items-end justify-center rounded-[2px] pb-px ${LEVEL[lvl]}`}
+              class={`relative flex h-4 w-2 items-end justify-center rounded-[2px] pb-px ${LEVEL[lvl]}`}
             >
               {isNoted && (
                 <span class={`size-1 rounded-full ${dotClass(lvl)}`} />
+              )}
+              {kind && (
+                <span
+                  data-marker-dot={kind}
+                  class:list={[
+                    'absolute left-1/2 top-full mt-px size-1 -translate-x-1/2 rounded-full',
+                    KIND_BG[kind],
+                  ]}
+                />
               )}
             </span>
           );

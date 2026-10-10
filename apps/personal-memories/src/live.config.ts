@@ -1,14 +1,8 @@
 import type { LiveLoader } from 'astro/loaders';
 import { defineLiveCollection } from 'astro:content';
 
-import {
-  DATE_RE,
-  type DaySummary,
-  indexDays,
-  neighbours,
-  summarize,
-} from '@/lib';
-import { getTimeline, notesStore, type TimelineEvent } from '@/lib/server';
+import { DATE_RE, type DaySummary, neighbours, summarize } from '@/lib';
+import { getDayIndex, notesStore, type TimelineEvent } from '@/lib/server';
 
 export type DayData = {
   summary: DaySummary;
@@ -20,9 +14,8 @@ export type DayData = {
 const daysLoader: LiveLoader<DayData, { date: string }> = {
   name: 'memories-days',
   async loadCollection() {
-    const state = await getTimeline();
-    if (state.status !== 'ready') return { entries: [] };
-    const index = indexDays(state.timeline.events);
+    const index = await getDayIndex();
+    if (!index) return { entries: [] };
     return {
       entries: summarize(index).map((summary) => ({
         id: summary.date,
@@ -31,12 +24,10 @@ const daysLoader: LiveLoader<DayData, { date: string }> = {
     };
   },
   async loadEntry({ filter }) {
-    const state = await getTimeline();
-    if (state.status !== 'ready' || !DATE_RE.test(filter.date))
-      return undefined;
-    const index = indexDays(state.timeline.events);
-    const events = index.byDate.get(filter.date);
-    if (!events) return undefined;
+    if (!DATE_RE.test(filter.date)) return undefined;
+    const index = await getDayIndex();
+    const events = index?.byDate.get(filter.date);
+    if (!index || !events) return undefined;
     const [summary] = summarize({ dates: [filter.date], byDate: index.byDate });
     return {
       id: filter.date,

@@ -6,6 +6,7 @@ import { indexDays } from './days.ts';
 import {
   dayCells,
   firstLine,
+  hasDay,
   monthView,
   type NoteReader,
 } from './month-view.ts';
@@ -159,5 +160,37 @@ describe('dayCells', () => {
       memory: '咖啡',
       excerpt: 'Coffee first',
     });
+  });
+});
+
+describe('markers on month cells', () => {
+  const view = {
+    person: 'alice',
+    name: 'Alice',
+    owner: false,
+    kind: 'leave',
+    part: 'full',
+    event: 'e1',
+  } as const;
+
+  it('attaches markers and treats a marker-only day as a day', () => {
+    const index = indexDays([], ['2025-11-04']);
+    const markers = new Map([['2025-11-04', [view]]]);
+    const cells = dayCells(index, new Set(), () => undefined, markers);
+    const cell = cells.get('2025-11-04');
+    expect(cell?.total).toBe(0);
+    expect(cell?.markers).toEqual([view]);
+    expect(cell && hasDay(cell)).toBe(true);
+    expect(hasDay({ total: 0 })).toBe(false);
+    expect(hasDay({ total: 2 })).toBe(true);
+    const month = monthView(
+      index,
+      '2025-11',
+      new Set(),
+      () => undefined,
+      markers,
+    );
+    const found = month?.weeks.flat().find((c) => c?.date === '2025-11-04');
+    expect(found?.markers).toEqual([view]);
   });
 });

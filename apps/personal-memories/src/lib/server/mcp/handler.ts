@@ -9,6 +9,7 @@ import {
 import { z } from 'astro/zod';
 
 import { sharedEmbedders } from '@/lib/server/embed.ts';
+import { getMarkers } from '@/lib/server/markers-store.ts';
 import { getNoteVectors } from '@/lib/server/note-vectors.ts';
 import { notesStore } from '@/lib/server/notes-store.ts';
 import { getPeople } from '@/lib/server/people-store.ts';
@@ -48,6 +49,7 @@ export async function readLastImport(
 export const liveDeps = (env: Record<string, string | undefined>): McpDeps => ({
   timeline: getTimeline,
   people: getPeople,
+  markers: getMarkers,
   notes: notesStore,
   searchIndex: async () => {
     const index = await getSearchIndex();

@@ -69,7 +69,7 @@ describe('auth', () => {
     const response = await handlerFor(fixture.deps)(rpc(AUTHED));
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.result.tools).toHaveLength(4);
+    expect(body.result.tools).toHaveLength(5);
   });
 
   it('answers 405 to GET once authenticated', async () => {

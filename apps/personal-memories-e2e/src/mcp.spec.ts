@@ -48,15 +48,16 @@ test('answers tools/list over raw JSON-RPC with the gateway headers', async ({
   });
   expect(response.status()).toBe(200);
   const body = (await response.json()) as { result: { tools: unknown[] } };
-  expect(body.result.tools).toHaveLength(4);
+  expect(body.result.tools).toHaveLength(5);
 });
 
-test('initializes and lists four read-only tools', async () => {
+test('initializes and lists five read-only tools', async () => {
   expect(client.getServerVersion()).toMatchObject({ name: 'memories' });
   const { tools } = await client.listTools();
   expect(tools.map((t) => t.name).sort()).toEqual([
     'get_coverage',
     'get_day',
+    'list_markers',
     'list_people',
     'search_memories',
   ]);

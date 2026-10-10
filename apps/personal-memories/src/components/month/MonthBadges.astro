@@ -1,0 +1,22 @@
+---
+import { badgeVariants } from '@rainforest-dev/rainforest-react';
+
+import { KIND_BADGE } from '@/components/marker-classes.ts';
+import { initialOf, markerLabel, type MarkerView } from '@/lib';
+
+type Props = { views: readonly MarkerView[] };
+
+const { views } = Astro.props;
+---
+
+{
+  views.map((v) => (
+    <span
+      data-marker-badge={v.kind}
+      title={`${v.name} ${markerLabel(v)}`}
+      class={badgeVariants({ variant: KIND_BADGE[v.kind] })}
+    >
+      {initialOf(v.name)} {markerLabel(v)}
+    </span>
+  ))
+}
