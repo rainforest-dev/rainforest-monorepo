@@ -573,3 +573,24 @@ describe('markers', () => {
     expect(marker).not.toHaveProperty('postedOn');
   });
 });
+
+describe('get_day reads', () => {
+  it('reads the timeline once per call', async () => {
+    let reads = 0;
+    const counted = await connect(
+      handlerFor({
+        ...fixture.deps,
+        timeline: async () => {
+          reads++;
+          return fixture.deps.timeline();
+        },
+      }),
+    );
+    await counted.callTool({
+      name: 'get_day',
+      arguments: { date: '2025-11-03' },
+    });
+    await counted.close();
+    expect(reads).toBe(1);
+  });
+});

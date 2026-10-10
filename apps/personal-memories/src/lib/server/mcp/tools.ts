@@ -79,12 +79,15 @@ const clip = (text: string, max: number) => {
     : `${chars.slice(0, max - 1).join('')}…`;
 };
 
-async function readyTimeline(deps: McpDeps) {
+async function readyState(deps: McpDeps) {
   const state = await deps.timeline();
   if (state.status !== 'ready')
     throw new ToolInputError('The album has no timeline yet.');
-  return state.timeline;
+  return state;
 }
+
+const readyTimeline = async (deps: McpDeps) =>
+  (await readyState(deps)).timeline;
 
 function checkRange(from: string | undefined, to: string | undefined) {
   if (from && to && from > to)
@@ -256,7 +259,7 @@ const getDay = (deps: McpDeps) =>
       'photo metadata (labels, place, people, OCR text; never the image), and the diary note with its annotations. ' +
       'Events page with cursor and limit; follow nextCursor for more. ' +
       'A day with no records returns only the nearest prev and next days. ' +
-      'Also returns the leave and WFH markers that apply to the day, whatever sources says. ' +
+      'Also returns the leave and WFH markers that apply to the day, whatever sources say. ' +
       'url opens the day for a human; it sits behind a login and cannot be fetched.',
     input: {
       date: date(),
@@ -313,12 +316,11 @@ const getDay = (deps: McpDeps) =>
     },
     annotations: { readOnlyHint: true, openWorldHint: false },
     run: async ({ date: day, sources, cursor, limit }) => {
-      const timeline = await readyTimeline(deps);
       const [state, markers] = await Promise.all([
-        deps.timeline(),
+        readyState(deps),
         deps.markers(),
       ]);
-      const index = indexDays(timeline.events, markers.dates);
+      const index = indexDays(state.timeline.events, markers.dates);
       const all = index.byDate.get(day);
       if (!all) return { date: day, ...neighboursOf(index, day) };
       const people = (await deps.people()).people;
