@@ -27,6 +27,8 @@ import { dayInUrl, markCover } from '@/lib/client';
 import { withCover } from '@/lib/notes';
 import type { NotePayload } from '@/lib/server';
 
+import { LinkedText } from './LinkedText.tsx';
+
 const PLACEHOLDER = '這一天想起了什麼？';
 
 export function NotePanel({
@@ -161,7 +163,7 @@ export function NotePanel({
               data-ruled
               className="text-body whitespace-pre-wrap border px-1"
             >
-              {draft.body}
+              <LinkedText text={draft.body} />
             </div>
           )
         ) : (
