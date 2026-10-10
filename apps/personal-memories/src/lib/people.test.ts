@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { nameOf, type Person, personOf } from './people.ts';
+import { nameOf, type Person, personOf, photographerOf } from './people.ts';
 
 const PEOPLE: Person[] = [
   {
@@ -27,5 +27,21 @@ describe('personOf and nameOf', () => {
     expect(nameOf(PEOPLE, 'line', 'Bobby 🌷')).toBe('Bob');
     expect(nameOf(PEOPLE, 'line', 'Carol')).toBe('Carol');
     expect(nameOf([], 'line', 'Carol')).toBe('Carol');
+  });
+});
+
+describe('photographerOf', () => {
+  it('maps a camera model to the person who owns the device', () => {
+    const people: Person[] = [
+      ...PEOPLE,
+      { id: 'carol', name: 'Carol', aliases: {}, devices: ['Pixel 5'] },
+    ];
+    expect(photographerOf(people, 'Pixel 5')?.id).toBe('carol');
+    expect(photographerOf(people, 'iPhone 16 Pro')).toBeUndefined();
+    expect(photographerOf(people, undefined)).toBeUndefined();
+    const shared = people.map((p) =>
+      p.id === 'bob' ? { ...p, devices: ['Pixel 5'] } : p,
+    );
+    expect(photographerOf(shared, 'Pixel 5')).toBeUndefined();
   });
 });

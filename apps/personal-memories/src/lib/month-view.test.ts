@@ -96,6 +96,7 @@ describe('monthView', () => {
       total: 3,
       noted: true,
       cover: 'p2',
+      coverManual: true,
     });
     expect(cellOf(view, '2025-11-02')).toEqual({
       date: '2025-11-02',
@@ -110,9 +111,12 @@ describe('monthView', () => {
       date === '2025-11-01'
         ? { note: { ...emptyNote(date), cover: 'gone' } }
         : read(date);
-    expect(
-      cellOf(monthView(index, '2025-11', noted, stale), '2025-11-01')?.cover,
-    ).toBe('p1');
+    const cell = cellOf(
+      monthView(index, '2025-11', noted, stale),
+      '2025-11-01',
+    );
+    expect(cell?.cover).toBe('p1');
+    expect(cell).not.toHaveProperty('coverManual');
   });
 
   it('takes the first memory line and the first message excerpt', () => {

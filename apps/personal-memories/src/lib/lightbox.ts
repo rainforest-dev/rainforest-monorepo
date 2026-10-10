@@ -7,6 +7,7 @@ export type LightboxItem = {
   width?: number | undefined;
   height?: number | undefined;
   video: boolean;
+  by?: string | undefined;
 };
 
 export type LightboxRequest = {
@@ -34,6 +35,7 @@ export function itemFromDataset(
     width: positive(d['width']),
     height: positive(d['height']),
     video: d['video'] !== undefined,
+    by: d['by'] || undefined,
   };
 }
 
@@ -63,4 +65,12 @@ export function coverControl(o: {
   if (o.cover === o.item.id) return 'manual';
   if ((!o.cover || !o.coverOnDay) && o.autoCover === o.item.id) return 'auto';
   return 'other';
+}
+
+export function effectiveCover(o: {
+  cover: string | undefined;
+  coverOnDay: boolean;
+  autoCover: string | undefined;
+}): string | undefined {
+  return o.cover && o.coverOnDay ? o.cover : o.autoCover;
 }

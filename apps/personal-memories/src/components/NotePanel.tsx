@@ -16,10 +16,18 @@ import {
   useNoteDraft,
   useStreamBridge,
 } from '@/components/notes';
-import { type Accent, coverControl, nameOf, toggleCover } from '@/lib';
-import { dayInUrl } from '@/lib/client';
+import {
+  type Accent,
+  coverControl,
+  effectiveCover,
+  nameOf,
+  toggleCover,
+} from '@/lib';
+import { dayInUrl, markCover } from '@/lib/client';
 import { withCover } from '@/lib/notes';
 import type { NotePayload } from '@/lib/server';
+
+import { LinkedText } from './LinkedText.tsx';
 
 const PLACEHOLDER = '這一天想起了什麼？';
 
@@ -78,6 +86,9 @@ export function NotePanel({
     onAnnotate: () => setOpen(true),
     author: author.name,
   });
+  useEffect(() => {
+    if (hydrated && status !== 'conflict') markCover(date, draft.cover);
+  }, [hydrated, date, draft.cover, status]);
   const lightbox = useLightbox();
   const shown = lightbox.request;
   useEffect(() => {
@@ -152,7 +163,7 @@ export function NotePanel({
               data-ruled
               className="text-body whitespace-pre-wrap border px-1"
             >
-              {draft.body}
+              <LinkedText text={draft.body} />
             </div>
           )
         ) : (
@@ -201,6 +212,14 @@ export function NotePanel({
         items={shown?.items}
         index={shown?.index ?? 0}
         cover={cover}
+        coverId={
+          shown &&
+          effectiveCover({
+            cover: draft.cover,
+            coverOnDay,
+            autoCover: shown.autoCover,
+          })
+        }
         finalFocus={lightbox.trigger}
         onStep={lightbox.step}
         onSelect={lightbox.select}

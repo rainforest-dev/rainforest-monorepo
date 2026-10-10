@@ -45,6 +45,30 @@ describe('parsePeople', () => {
     expect(() => parsePeople({ ...FILE, owner: 'eve' })).toThrow(/eve/);
   });
 
+  it('keeps devices, which two people may share', () => {
+    const withDevices = {
+      ...FILE,
+      people: [
+        { ...FILE.people[0], devices: ['iPhone 16 Pro'] },
+        { ...FILE.people[1], devices: ['Pixel 5', 'Pixel 7 Pro'] },
+      ],
+    };
+    const config = parsePeople(withDevices);
+    expect(publicPeople(config).map((p) => p.devices)).toEqual([
+      ['iPhone 16 Pro'],
+      ['Pixel 5', 'Pixel 7 Pro'],
+    ]);
+    expect(() =>
+      parsePeople({
+        ...FILE,
+        people: [
+          { ...FILE.people[0], devices: ['Pixel 5'] },
+          { ...FILE.people[1], devices: ['Pixel 5'] },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
   it('keeps emails out of what the browser receives', () => {
     expect(publicPeople(parsePeople(FILE))).toEqual([
       {

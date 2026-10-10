@@ -22,12 +22,16 @@ type OsxPhoto = {
   width?: number | null;
   height?: number | null;
   favorite?: boolean | null;
-  score?: { overall?: number | null } | null;
+  score?: {
+    overall?: number | null;
+    highlight_visibility?: number | null;
+  } | null;
   persons?: string[] | null;
   screenshot?: boolean | null;
   ismovie?: boolean | null;
   burst?: boolean | null;
   burst_selected?: boolean | null;
+  exif_info?: { camera_model?: string | null } | null;
   place?: { name?: string | null } | null;
   search_info?: {
     labels?: string[] | null;
@@ -71,17 +75,26 @@ export const diskSize: LocalSize = (path) => {
   }
 };
 
-export type LocalMedia = { path: string; from: 'derivative' | 'original' };
+const STILL = /\.(jpe?g|heic|png|webp)$/i;
+
+const largest = (paths: readonly string[], size: LocalSize) =>
+  paths
+    .map((path) => ({ path, bytes: size(path) }))
+    .filter((d): d is { path: string; bytes: number } => d.bytes !== undefined)
+    .sort((a, b) => b.bytes - a.bytes)[0]?.path;
+
+export type LocalMedia = {
+  path: string;
+  from: 'derivative' | 'original';
+  poster?: string;
+};
 
 // iCloud "Optimize Mac Storage" leaves originals cloud-only while Photos keeps JPEG derivatives on disk.
 export function resolvePhotoMedia(
   item: OsxPhoto,
   size: LocalSize = diskSize,
 ): LocalMedia | undefined {
-  const derivative = (item.path_derivatives ?? [])
-    .map((path) => ({ path, bytes: size(path) }))
-    .filter((d): d is { path: string; bytes: number } => d.bytes !== undefined)
-    .sort((a, b) => b.bytes - a.bytes)[0]?.path;
+  const derivative = largest(item.path_derivatives ?? [], size);
   const originals = [item.path_edited, item.path].filter(
     (p): p is string => !!p,
   );
@@ -90,8 +103,15 @@ export function resolvePhotoMedia(
       ? undefined
       : originals.find((p) => size(p) !== undefined);
 
-  if (item.ismovie === true && original)
-    return { path: original, from: 'original' };
+  if (item.ismovie === true && original) {
+    const poster = largest(
+      (item.path_derivatives ?? []).filter((p) => STILL.test(p)),
+      size,
+    );
+    return poster
+      ? { path: original, from: 'original', poster }
+      : { path: original, from: 'original' };
+  }
   if (derivative) return { path: derivative, from: 'derivative' };
   if (original) return { path: original, from: 'original' };
   return undefined;
@@ -140,6 +160,7 @@ export function parsePhotoIndex(
     else result.fromDerivative++;
 
     const media: TimelineMedia = { path: local.path };
+    if (local.poster) media.poster = local.poster;
     if (item.width && item.height) {
       media.width = item.width;
       media.height = item.height;
@@ -151,6 +172,10 @@ export function parsePhotoIndex(
       movie: item.ismovie === true,
       burstPick: item.burst !== true || item.burst_selected === true,
     };
+    const camera = item.exif_info?.camera_model?.replace(/\s+/g, ' ').trim();
+    if (camera) photo.camera = camera;
+    if (typeof item.score?.highlight_visibility === 'number')
+      photo.highlight = item.score.highlight_visibility;
     if (typeof item.score?.overall === 'number')
       photo.score = item.score.overall;
     const meta = photoMeta(item);

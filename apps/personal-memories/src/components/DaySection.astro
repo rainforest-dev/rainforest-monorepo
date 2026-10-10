@@ -8,11 +8,14 @@ import {
   burstLayout,
   dayHeading,
   firstEventPerHour,
+  firstLink,
   groupRuns,
   hourCounts,
   initialOf,
   morphAttrs,
   nameOf,
+  type Person,
+  photographerOf,
   pickCover,
   rowLabel,
   taipeiTime,
@@ -38,6 +41,8 @@ import {
 } from '@/lib/server';
 
 import { accentChip, accentRule } from './accent-classes.ts';
+import { LinkedParagraph } from './LinkedText.tsx';
+import { COVER_BADGE } from './cover-badge.ts';
 
 type Props = {
   date: string;
@@ -93,6 +98,16 @@ const dayAuthors = [
   ),
 ];
 const stored = notesStore()?.read(date);
+const coverId = pickCover(
+  events,
+  stored && !stored.parseError ? stored.note.cover : undefined,
+)?.id;
+const photographer = (event: TimelineEvent) =>
+  photographerOf(roster, event.photo?.camera);
+const accentOfPerson = (person: Person) =>
+  [person.name, ...Object.values(person.aliases).flat()]
+    .map((raw) => accents.get(raw))
+    .find(Boolean);
 const previews =
   stored && !stored.parseError
     ? notePreviews(resolveAnnotations(stored.note.annotations, events))
@@ -227,6 +242,9 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
             <ol>
               {run.events.map((event) => {
                 const excerpt = excerptOf(event);
+                const previewHref = event.text
+                  ? firstLink(event.text)
+                  : undefined;
                 return (
                   <li
                     id={`ev-${event.id}`}
@@ -318,11 +336,14 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                         </div>
                       )}
                       {event.text && (
-                        <p
+                        <LinkedParagraph
                           id={`msg-${event.id}`}
-                          class="text-body whitespace-pre-wrap text-pretty break-words"
-                          set:text={event.text}
+                          className="text-body whitespace-pre-wrap text-pretty break-words"
+                          text={event.text}
                         />
+                      )}
+                      {previewHref && (
+                        <div data-link-preview={previewHref} hidden />
                       )}
                       {event.media?.map(({ path, width, height }, n) =>
                         IMAGE.test(path) ? (
@@ -444,7 +465,9 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                 {run.events.map((event, index) => {
                   const media = event.media?.[0];
                   const tile = layouts.get(run)?.[index];
-                  const photoLabel = `照片 ${taipeiTime(event.at)}`;
+                  const person = photographer(event);
+                  const by = person?.name;
+                  const photoLabel = `照片 ${taipeiTime(event.at)}${by ? `，${by} 拍攝` : ''}`;
                   const describedBy = `photo-${event.id}`;
                   return (
                     <li
@@ -462,6 +485,8 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                           ? ''
                           : undefined
                       }
+                      data-by={by}
+                      data-cover={coverId === event.id ? '' : undefined}
                       data-overflow={tile?.overflow ? '' : undefined}
                       data-more={tile?.more ? '' : undefined}
                       class:list={[
@@ -496,6 +521,31 @@ const HERO_TILE_SIZES = '(min-width: 640px) 280px, 44vw';
                         <span data-note-flag class="sr-only">
                           ，已有眉批
                         </span>
+                        <span
+                          data-cover-badge
+                          class="ring-primary group-data-cover:block pointer-events-none absolute inset-0 hidden rounded-md ring-2 ring-inset"
+                        >
+                          <span class={`${COVER_BADGE} bottom-1 left-1`}>
+                            封面
+                          </span>
+                        </span>
+                        {by && (
+                          <span
+                            aria-hidden="true"
+                            title={`${by} 拍攝`}
+                            class="bg-background absolute bottom-1 right-1 rounded-full"
+                          >
+                            <span
+                              class:list={[
+                                CHIP,
+                                'size-4.5',
+                                accentChip(person && accentOfPerson(person)),
+                              ]}
+                            >
+                              {initialOf(by)}
+                            </span>
+                          </span>
+                        )}
                         {tile?.more ? (
                           <span
                             data-scrim

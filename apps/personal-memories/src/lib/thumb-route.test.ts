@@ -8,7 +8,12 @@ vi.mock('@/lib/server/store.ts', () => ({
   dataDir: () => '/data',
   getTimeline: () => ({ status: 'ready' }),
   mediaFile: (_state: unknown, _root: unknown, id: string) =>
-    id === 'GONE' ? join(root, 'evicted.jpeg') : srcPath,
+    id === 'GONE'
+      ? join(root, 'evicted.jpeg')
+      : id === 'MOVIE'
+        ? moviePath
+        : srcPath,
+  isVideo: (path: string) => path.endsWith('.mov'),
   localFile: async (path: string) => {
     try {
       return statSync(path);
@@ -29,6 +34,8 @@ vi.mock('@/lib/server/thumbs.ts', () => ({
 const root = mkdtempSync(join(tmpdir(), 'memories-thumb-route-'));
 const srcPath = join(root, 'undecodable.heic');
 writeFileSync(srcPath, Buffer.from('not a real image'));
+const moviePath = join(root, 'clip.mov');
+writeFileSync(moviePath, Buffer.from('not a real movie'));
 
 const { GET } = await import('@/pages/thumb/[id].ts');
 
@@ -51,6 +58,16 @@ describe('GET /thumb/[id]', () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get('Location')).toBe('/media/P1?n=2');
+  });
+
+  it('answers a movie without a still with a placeholder, not the video', async () => {
+    const response = await GET({
+      params: { id: 'MOVIE' },
+      url: new URL('http://localhost/thumb/MOVIE?n=0&w=480'),
+    } as never);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('X-Memories-Media')).toBe('not-local');
   });
 
   it('answers with a placeholder when the file is no longer on disk', async () => {

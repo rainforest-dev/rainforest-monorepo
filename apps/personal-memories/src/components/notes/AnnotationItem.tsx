@@ -12,6 +12,7 @@ import { PenLineIcon } from 'lucide-react';
 import { type Ref, type RefObject, useId } from 'react';
 
 import { accentRule } from '@/components/accent-classes.ts';
+import { LinkedText } from '@/components/LinkedText.tsx';
 import { type Accent, taipeiTime } from '@/lib';
 import { type ResolvedAnnotation, SOURCE_LABELS } from '@/lib/notes';
 import type { TimelineSource } from '@/lib/server';
@@ -104,7 +105,11 @@ export function AnnotationItem({
         </div>
       )}
       {readOnly ? (
-        a.body && <p className={`${NOTE} whitespace-pre-wrap`}>{a.body}</p>
+        a.body && (
+          <p className={`${NOTE} whitespace-pre-wrap break-words`}>
+            <LinkedText text={a.body} />
+          </p>
+        )
       ) : (
         <Textarea
           ref={textareaRef}

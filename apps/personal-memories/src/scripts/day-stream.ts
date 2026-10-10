@@ -15,6 +15,8 @@ import {
 } from '@/lib';
 import { type AnnotateDetail, dayInUrl, isOverlayOpen } from '@/lib/client';
 
+import { createLinkPreviews, type LinkPreviews } from './link-previews.ts';
+
 const RETRY_DELAY_MS = 2000;
 const UNZOOMED_SCALE = 1.01;
 const WINDOW_RADIUS = 7;
@@ -208,7 +210,10 @@ function compensateSwap(
     compensateScroll(anchor.getBoundingClientRect().top - before);
 }
 
-function createWindowManager(stream: HTMLElement): WindowManager {
+function createWindowManager(
+  stream: HTMLElement,
+  previews: LinkPreviews,
+): WindowManager {
   const restoring = new WeakSet<HTMLElement>();
   const retired = new WeakSet<HTMLElement>();
   const liveHeight = new WeakMap<HTMLElement, number>();
@@ -240,10 +245,12 @@ function createWindowManager(stream: HTMLElement): WindowManager {
     settled.delete(section);
     section.style.containIntrinsicSize = `auto ${height}px`;
     heightObserver.observe(section);
+    previews.observe(section);
   };
 
   const untrack = (section: HTMLElement) => {
     heightObserver.unobserve(section);
+    previews.release(section);
     liveHeight.delete(section);
     settled.delete(section);
   };
@@ -555,7 +562,7 @@ function watchPinch(stream: HTMLElement) {
 export function startDayStream() {
   const stream = document.querySelector<HTMLElement>('[data-stream]');
   if (!stream) return;
-  const windowManager = createWindowManager(stream);
+  const windowManager = createWindowManager(stream, createLinkPreviews());
   stream
     .querySelectorAll<HTMLElement>('[data-day]')
     .forEach((section) => windowManager.track(section));

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   coverControl,
+  effectiveCover,
   itemFromDataset,
   type LightboxItem,
   positionLabel,
@@ -105,5 +106,19 @@ describe('coverControl', () => {
         autoCover: 'P1',
       }),
     ).toBe('auto');
+  });
+});
+
+describe('effectiveCover', () => {
+  it('uses the chosen cover only when it is on the day', () => {
+    expect(
+      effectiveCover({ cover: 'a', coverOnDay: true, autoCover: 'b' }),
+    ).toBe('a');
+    expect(
+      effectiveCover({ cover: 'a', coverOnDay: false, autoCover: 'b' }),
+    ).toBe('b');
+    expect(
+      effectiveCover({ cover: undefined, coverOnDay: false, autoCover: 'b' }),
+    ).toBe('b');
   });
 });

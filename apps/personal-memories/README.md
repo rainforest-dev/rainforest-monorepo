@@ -244,7 +244,8 @@ the Cloudflare Access emails they sign in with, and the names they go by on each
       "id": "bob",
       "name": "Bob",
       "emails": ["bob@example.com"],
-      "aliases": { "line": ["Bobby"], "slack": ["bob.w"], "photo": ["Robert"] }
+      "aliases": { "line": ["Bobby"], "slack": ["bob.w"], "photo": ["Robert"] },
+      "devices": ["iPhone 16 Pro"]
     },
     { "id": "alice", "name": "Alice", "emails": ["alice@example.com"] }
   ]
@@ -258,6 +259,13 @@ gets the owner's colour, `chart-2`. Everyone else gets a colour in order of thei
 `chart-4` for the first, then `chart-1`, `chart-3` and `chart-5`, repeating those three. One
 person keeps one colour across LINE and Slack. Each run also shows the author's initial and name,
 so colour is never the only cue.
+
+`devices` lists the EXIF camera models (osxphotos `exif_info.camera_model`, whitespace collapsed)
+that belong to a person. A photo taken on one of them shows that person's initial on its tile and
+their name in the lightbox, and MCP `get_day` returns it as `takenBy`. A photo with no EXIF, such
+as one saved from LINE, or from an unlisted camera shows no photographer. A device claimed by two
+people is an error. The camera model is read at ingest, so run `ingest --force` once after
+upgrading.
 
 The app re-reads the file when its mtime or size changes, checking at most every 5 seconds, so an
 edit shows up without a restart. The file is validated on every read: an id, email or

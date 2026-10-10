@@ -7,7 +7,7 @@ import { z } from 'astro/zod';
 
 import { DATE_RE, type DayIndex, indexDays, summarize } from '@/lib/days.ts';
 import type { DayMarker } from '@/lib/markers.ts';
-import { nameOf, type Person } from '@/lib/people.ts';
+import { nameOf, type Person, photographerOf } from '@/lib/people.ts';
 import type { Embedder } from '@/lib/server/embed.ts';
 import { type MarkerSet, postedOnLookup } from '@/lib/server/markers-store.ts';
 import type { NotesStore } from '@/lib/server/notes-store.ts';
@@ -176,6 +176,7 @@ function neighboursOf(index: DayIndex, day: string) {
 
 function eventView(event: TimelineEvent, people: readonly Person[]) {
   const meta = event.photo?.meta;
+  const takenBy = photographerOf(people, event.photo?.camera)?.name;
   const photo =
     event.source === 'photo'
       ? {
@@ -187,6 +188,7 @@ function eventView(event: TimelineEvent, people: readonly Person[]) {
             ? { text: clip(meta.text.join('\n'), OCR_MAX) }
             : {}),
           mediaCount: event.media?.length ?? 0,
+          ...(takenBy ? { takenBy } : {}),
         }
       : undefined;
   return {
@@ -291,6 +293,7 @@ const getDay = (deps: McpDeps) =>
                 people: z.array(z.string()),
                 text: z.string().optional(),
                 mediaCount: z.number(),
+                takenBy: z.string().optional(),
               })
               .optional(),
           }),
