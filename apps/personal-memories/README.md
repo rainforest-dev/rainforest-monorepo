@@ -104,8 +104,11 @@ A photo with a local JPEG is embedded as that text and the image together, so a 
 match what the picture shows; videos and photos with no local JPEG are embedded as text. The
 embeddings come from Ollama at `MEMORIES_OLLAMA_URL` (`http://localhost:11434` by default)
 with `embeddinggemma-2:440m-bf16-text-vision`, which has to be pulled there first.
-`MEMORIES_EMBED_MODEL` picks another model, `embeddinggemma` included, and the score floor for
-semantic hits follows the model. `ingest` and the server must use the same model:
+`MEMORIES_EMBED_MODEL` picks another model. `embeddinggemma` (the earlier text-only model) is
+the rollback: it embeds photos as text, with a score floor of 0.25 against 0.705 for the default.
+Any other model is treated as text-only with the 0.25 floor. A photo whose image cannot be read
+is embedded as text and tried again on the next run; a photo with neither text nor a readable
+image gets no vector. `ingest` and the server must use the same model:
 an index built with one model is ignored by a server running another, and changing the model
 embeds every document again. Only new or changed documents are embedded again. When Ollama
 cannot be reached, `ingest` keeps the previous index and says so; when it fails part way, the

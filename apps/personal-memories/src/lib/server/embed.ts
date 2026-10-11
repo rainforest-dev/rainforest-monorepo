@@ -6,15 +6,16 @@ export type EmbedInput = string | { text: string; image: string };
 
 export const DEFAULT_EMBED_MODEL = 'embeddinggemma-2:440m-bf16-text-vision';
 
-const MIN_SCORE: Record<string, number> = {
-  [DEFAULT_EMBED_MODEL]: 0.705,
-  embeddinggemma: 0.25,
+const MODELS: Record<string, { minScore: number; images: boolean }> = {
+  [DEFAULT_EMBED_MODEL]: { minScore: 0.705, images: true },
+  embeddinggemma: { minScore: 0.25, images: false },
 };
 
 export type Embedder = {
   model: string;
   dims: number;
   minScore: number;
+  images: boolean;
   embed(
     texts: readonly EmbedInput[],
     kind: EmbedKind,
@@ -22,7 +23,8 @@ export type Embedder = {
   ): Promise<Float32Array[]>;
 };
 
-export type EmbedFailure = 'ollama-unreachable' | 'timeout' | 'model-mismatch';
+export type EmbedFailure =
+  'ollama-unreachable' | 'timeout' | 'model-mismatch' | 'image-unreadable';
 
 export class EmbedError extends Error {
   readonly reason: EmbedFailure;
@@ -40,12 +42,13 @@ const PREFIX: Record<EmbedKind, string> = {
 
 async function ollamaInput(item: EmbedInput, prefix: string) {
   if (typeof item === 'string') return prefix + item;
+  let image: string;
   try {
-    const image = (await readFile(item.image)).toString('base64');
-    return { text: prefix + item.text, image };
-  } catch {
-    return prefix + item.text;
+    image = (await readFile(item.image)).toString('base64');
+  } catch (error) {
+    throw new EmbedError('image-unreadable', String(error));
   }
+  return { text: prefix + item.text, image };
 }
 
 const isAbort = (error: unknown) =>
@@ -56,7 +59,7 @@ export function ollamaEmbedder({
   url = process.env['MEMORIES_OLLAMA_URL'] ?? 'http://localhost:11434',
   model = DEFAULT_EMBED_MODEL,
   dims = 768,
-  minScore = MIN_SCORE[model] ?? 0.25,
+  minScore = MODELS[model]?.minScore ?? 0.25,
   fetch: fetchImpl = fetch,
 }: {
   url?: string;
@@ -69,6 +72,7 @@ export function ollamaEmbedder({
     model,
     dims,
     minScore,
+    images: MODELS[model]?.images ?? false,
     async embed(texts, kind, signal) {
       const input = await Promise.all(
         texts.map((item) => ollamaInput(item, PREFIX[kind])),
@@ -146,6 +150,7 @@ export function fakeEmbedder(): Embedder {
     model: 'fake',
     dims: CONCEPTS.length,
     minScore: 0.01,
+    images: true,
     async embed(texts) {
       return texts.map((item) => {
         const text = typeof item === 'string' ? item : item.text;

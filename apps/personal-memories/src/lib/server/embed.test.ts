@@ -210,13 +210,29 @@ describe('ollamaEmbedder images', () => {
     ]);
   });
 
-  it('falls back to the text when the image cannot be read', async () => {
+  it('reports an image it cannot read instead of sending the text alone', async () => {
     const fetch = respond({ embeddings: [vec(4)] });
-    await ollamaEmbedder({ url: 'http://o:1', dims: 4, fetch }).embed(
-      [{ text: 'labels: Dog', image: '/no/such/file.jpeg' }],
-      'document',
-    );
-    expect(bodyOf(fetch).input).toEqual(['title: none | text: labels: Dog']);
+    expect(
+      await reason(
+        ollamaEmbedder({ url: 'http://o:1', dims: 4, fetch }).embed(
+          [{ text: 'labels: Dog', image: '/no/such/file.jpeg' }],
+          'document',
+        ),
+      ),
+    ).toBe('image-unreadable');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('says which models take images and sets their score floor', () => {
+    expect(ollamaEmbedder()).toMatchObject({ images: true, minScore: 0.705 });
+    expect(ollamaEmbedder({ model: 'embeddinggemma' })).toMatchObject({
+      images: false,
+      minScore: 0.25,
+    });
+    expect(ollamaEmbedder({ model: 'other' })).toMatchObject({
+      images: false,
+      minScore: 0.25,
+    });
   });
 });
 

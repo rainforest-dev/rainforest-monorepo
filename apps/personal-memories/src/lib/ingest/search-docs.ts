@@ -117,7 +117,7 @@ export function photoDocs(
       kind: 'photo',
       source: 'photo',
       text,
-      snippet: clipSnippet(text),
+      snippet: text ? clipSnippet(text) : `照片 ${taipeiTime(event.at)}`,
       people: [...ids],
       places: [...(meta.place ? [meta.place] : []), ...(meta.venues ?? [])],
       eventIds: [event.id],

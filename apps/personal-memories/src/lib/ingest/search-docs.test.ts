@@ -191,8 +191,8 @@ describe('photoDocs images', () => {
       [photo('P2', '/lib/c.jpeg'), photo('P3', '/lib/d.mov')],
       PEOPLE,
     );
-    expect(docs.map((d) => [d.id, d.text, d.image])).toEqual([
-      ['photo:P2', '', '/lib/c.jpeg'],
+    expect(docs.map((d) => [d.id, d.text, d.snippet, d.image])).toEqual([
+      ['photo:P2', '', '照片 09:00', '/lib/c.jpeg'],
     ]);
   });
 });

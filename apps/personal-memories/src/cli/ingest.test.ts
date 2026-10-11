@@ -132,19 +132,86 @@ describe('buildIndex photos and progress', () => {
     })),
   });
 
+  const jpeg = (dir: string, name: string) => {
+    const path = join(dir, name);
+    writeFileSync(path, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    return path;
+  };
+
   it('sends a photo with a local JPEG as its text and image', async () => {
     root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const image = jpeg(root, 'a.jpeg');
     const { embedder, embed } = spied();
     await buildIndex(
       root,
-      photos(1, () => '/lib/a.jpeg'),
+      photos(1, () => image),
       embedder,
       quiet,
     );
     expect(embed).toHaveBeenCalledWith(
-      [{ text: 'labels: Label 0', image: '/lib/a.jpeg' }],
+      [{ text: 'labels: Label 0', image }],
       'document',
     );
+  });
+
+  it('sends text only to a model that takes no images', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const image = jpeg(root, 'a.jpeg');
+    const { embedder, embed } = spied({ ...fakeEmbedder(), images: false });
+    await buildIndex(
+      root,
+      photos(1, () => image),
+      embedder,
+      quiet,
+    );
+    expect(embed).toHaveBeenCalledWith(['labels: Label 0'], 'document');
+  });
+
+  it('embeds a photo whose image cannot be read as text, and retries it next run', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const missing = join(root, 'missing.jpeg');
+    const timeline = photos(1, () => missing);
+    const log = vi.fn();
+    const first = spied();
+    expect(await buildIndex(root, timeline, first.embedder, log)).toBe(true);
+    expect(first.embed).toHaveBeenCalledWith(['labels: Label 0'], 'document');
+    expect(log).toHaveBeenCalledWith(
+      'search: 1 photos embedded without their unreadable image; the next run tries again',
+    );
+    expect((await readSearchFiles(root))?.header.docs).toHaveLength(1);
+    const second = spied();
+    await buildIndex(root, timeline, second.embedder, quiet);
+    expect(second.embed).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves out an image-only photo whose image cannot be read', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const missing = join(root, 'missing.jpeg');
+    const timeline = photos(1, () => missing);
+    const unlabelled = {
+      ...timeline,
+      events: timeline.events.map((e) => ({
+        ...e,
+        photo: { ...e.photo, meta: {} },
+      })),
+    };
+    const { embedder, embed } = spied();
+    expect(await buildIndex(root, unlabelled, embedder, quiet)).toBe(true);
+    expect(embed).not.toHaveBeenCalled();
+    expect((await readSearchFiles(root))?.header.docs ?? []).toHaveLength(0);
+  });
+
+  it('sends images in batches of eight', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const dir = root;
+    const { embedder, embed } = spied();
+    await buildIndex(
+      root,
+      photos(20, (i) => jpeg(dir, `p${i}.jpeg`)),
+      embedder,
+      quiet,
+    );
+    expect(embed.mock.calls.map(([texts]) => texts.length)).toEqual([8, 8, 4]);
   });
 
   it('keeps what it embedded when a later batch fails, and finishes the rest next run', async () => {
