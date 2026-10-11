@@ -4,7 +4,7 @@ import { join } from 'node:path';
 export type SearchFileHeader = {
   model: string;
   dims: number;
-  docs: { id: string; contentHash: string }[];
+  docs: { id: string; contentHash: string; retry?: true }[];
 };
 
 export type SearchFiles = { header: SearchFileHeader; vectors: Float32Array };
@@ -107,7 +107,9 @@ export function reuseVectors(
     previous.header.dims === dims;
   const rowOf = new Map(
     usable
-      ? previous.header.docs.map((d, i) => [`${d.id}\u0000${d.contentHash}`, i])
+      ? previous.header.docs.flatMap((d, i) =>
+          d.retry ? [] : [[`${d.id}\u0000${d.contentHash}`, i] as const],
+        )
       : [],
   );
   docs.forEach((doc, i) => {

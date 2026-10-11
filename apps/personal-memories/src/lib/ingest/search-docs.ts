@@ -8,6 +8,7 @@ import { taipeiDate, taipeiTime } from '../weeks.ts';
 export const CHUNK_GAP_MS = 10 * 60 * 1000;
 export const CHUNK_MAX_MESSAGES = 40;
 export const CHUNK_MAX_CHARS = 1500;
+const IMAGE_FILE = /\.jpe?g$/i;
 type Chunk = {
   events: TimelineEvent[];
   lines: { line: string; text: string }[];
@@ -100,7 +101,10 @@ export function photoDocs(
     if (meta.place) parts.push(`地點: ${meta.place}`);
     if (meta.persons?.length) parts.push(`人物: ${meta.persons.join(', ')}`);
     if (event.text) parts.push(`相簿: ${event.text}`);
-    if (parts.length === 0) continue;
+    const image = event.media
+      ?.map((m) => m.path)
+      .find((path) => IMAGE_FILE.test(path));
+    if (parts.length === 0 && !image) continue;
     const text = parts.join('｜');
     const ids = new Set<string>();
     for (const name of meta.persons ?? []) {
@@ -113,11 +117,12 @@ export function photoDocs(
       kind: 'photo',
       source: 'photo',
       text,
-      snippet: clipSnippet(text),
+      snippet: text ? clipSnippet(text) : `照片 ${taipeiTime(event.at)}`,
       people: [...ids],
       places: [...(meta.place ? [meta.place] : []), ...(meta.venues ?? [])],
       eventIds: [event.id],
-      contentHash: contentHash(text),
+      contentHash: contentHash(image ? `${text}\u0000${image}` : text),
+      ...(image ? { image } : {}),
     });
   }
   return docs;

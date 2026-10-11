@@ -15,6 +15,7 @@ export type SearchDoc = {
   places: string[];
   eventIds: string[];
   contentHash: string;
+  image?: string;
 };
 
 export function noteDoc(

@@ -98,12 +98,22 @@ through the shared iCloud/Photos album.
 
 **Search index.** After writing `timeline.json`, `ingest` builds the content search index in
 `search/`: `docs.json` lists each search document with a hash of its text, and
-`vectors.text.bin` holds one `embeddinggemma` vector per document. Chats are cut into
-conversations, and each photo becomes a document built from its Photos labels, text, venues,
-place, people and albums. The embeddings come from Ollama at `MEMORIES_OLLAMA_URL`
-(`http://localhost:11434` by default). Only new or changed documents are embedded again. When
-Ollama cannot be reached, `ingest` keeps the previous index and says so; lexical search still
-works without one.
+`vectors.text.bin` holds one vector per document. Chats are cut into conversations, and each
+photo becomes a document built from its Photos labels, text, venues, place, people and albums.
+A photo with a local JPEG is embedded as that text and the image together, so a search can
+match what the picture shows; videos and photos with no local JPEG are embedded as text. The
+embeddings come from Ollama at `MEMORIES_OLLAMA_URL` (`http://localhost:11434` by default)
+with `embeddinggemma-2:440m-bf16-text-vision`, which has to be pulled there first.
+`MEMORIES_EMBED_MODEL` picks another model. `embeddinggemma` (the earlier text-only model) is
+the rollback: it embeds photos as text, with a score floor of 0.25 against 0.705 for the default.
+Any other model is treated as text-only with the 0.25 floor. A photo whose image cannot be read
+is embedded as text and tried again on the next run; a photo with neither text nor a readable
+image gets no vector. `ingest` and the server must use the same model:
+an index built with one model is ignored by a server running another, and changing the model
+embeds every document again. Only new or changed documents are embedded again. When Ollama
+cannot be reached, `ingest` keeps the previous index and says so; when it fails part way, the
+documents embedded so far are kept and the next run embeds the rest. Lexical search works
+without an index.
 
 ## Auto-import
 
@@ -147,6 +157,8 @@ Environment:
   arguments. Tests use it.
 - `MEMORIES_IMPORT_WEBHOOK`. With it unset, failures are only logged.
 - `MEMORIES_OLLAMA_URL`, by default `http://localhost:11434`.
+- `MEMORIES_EMBED_MODEL`, by default `embeddinggemma-2:440m-bf16-text-vision`; it must match
+  the server's.
 
 The exit status is 0 when the run succeeded or another ingest held the lock (it logs `busy:` and
 the next trigger retries), 1 when any step failed, and 2 for a usage error.

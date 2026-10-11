@@ -5,6 +5,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
+import { access, constants } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -33,11 +34,13 @@ import {
   type Embedder,
   embedderFromEnv,
   EmbedError,
+  type EmbedInput,
 } from '../lib/server/embed.ts';
 import {
   readSearchFiles,
   reuseVectors,
   searchDir,
+  type SearchFileHeader,
   writeSearchFiles,
 } from '../lib/server/search-files.ts';
 import {
@@ -128,6 +131,61 @@ function readPeople(root: string, log: Log): Person[] {
   }
 }
 
+const IMAGE_BATCH = 8;
+
+type Planned = { row: number; input: EmbedInput; retry: boolean };
+
+async function readable(path: string): Promise<boolean> {
+  try {
+    await access(path, constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function batchesOf(planned: readonly Planned[]): Planned[][] {
+  const batches: Planned[][] = [];
+  let batch: Planned[] = [];
+  let images = 0;
+  for (const item of planned) {
+    const image = typeof item.input !== 'string';
+    if (batch.length === EMBED_BATCH || (image && images === IMAGE_BATCH)) {
+      batches.push(batch);
+      batch = [];
+      images = 0;
+    }
+    batch.push(item);
+    if (image) images += 1;
+  }
+  if (batch.length) batches.push(batch);
+  return batches;
+}
+
+async function writeIndex(
+  root: string,
+  header: SearchFileHeader,
+  vectors: Float32Array,
+  leaveOut: ReadonlySet<number>,
+  retry: ReadonlySet<number>,
+): Promise<void> {
+  const { dims } = header;
+  const rows = header.docs.flatMap((doc, row) =>
+    leaveOut.has(row)
+      ? []
+      : [{ doc: retry.has(row) ? { ...doc, retry: true as const } : doc, row }],
+  );
+  const kept = new Float32Array(rows.length * dims);
+  rows.forEach(({ row }, i) =>
+    kept.set(vectors.subarray(row * dims, (row + 1) * dims), i * dims),
+  );
+  await writeSearchFiles(
+    root,
+    { ...header, docs: rows.map(({ doc }) => doc) },
+    kept,
+  );
+}
+
 export async function buildIndex(
   root: string,
   timeline: Timeline,
@@ -140,7 +198,7 @@ export async function buildIndex(
       `photos: no labels in ${photos.length} photos — re-export with osxphotos 0.77.2`,
     );
   const docs = buildSearchDocs(timeline.events, readPeople(root, log));
-  const header = {
+  const header: SearchFileHeader = {
     model: embedder.model,
     dims: embedder.dims,
     docs: docs.map(({ id, contentHash }) => ({ id, contentHash })),
@@ -151,16 +209,37 @@ export async function buildIndex(
     embedder.model,
     embedder.dims,
   );
+  const planned: Planned[] = [];
+  const leaveOut = new Set<number>();
+  for (const row of missing) {
+    const doc = docs[row];
+    if (!doc) continue;
+    const image =
+      doc.image && embedder.images && (await readable(doc.image))
+        ? doc.image
+        : undefined;
+    if (image)
+      planned.push({ row, input: { text: doc.text, image }, retry: false });
+    else if (doc.text)
+      planned.push({
+        row,
+        input: doc.text,
+        retry: Boolean(doc.image && embedder.images),
+      });
+    else leaveOut.add(row);
+  }
+  const pending = new Set(planned.map(({ row }) => row));
+  const retry = new Set(planned.filter((p) => p.retry).map(({ row }) => row));
   try {
-    for (let i = 0; i < missing.length; i += EMBED_BATCH) {
-      const rows = missing.slice(i, i + EMBED_BATCH);
+    for (const batch of batchesOf(planned)) {
       const out = await embedder.embed(
-        rows.map((row) => docs[row]?.text ?? ''),
+        batch.map(({ input }) => input),
         'document',
       );
-      rows.forEach((row, j) => {
+      batch.forEach(({ row }, j) => {
         const vector = out[j];
         if (vector) vectors.set(vector, row * embedder.dims);
+        pending.delete(row);
       });
     }
   } catch (error) {
@@ -168,11 +247,27 @@ export async function buildIndex(
     log(
       `search: embeddings skipped (${error.reason}: ${error.message}); lexical search still works`,
     );
+    if (pending.size < planned.length) {
+      await writeIndex(
+        root,
+        header,
+        vectors,
+        new Set([...leaveOut, ...pending]),
+        retry,
+      );
+      log(
+        `search: kept ${planned.length - pending.size} of ${planned.length} new embeddings; the next run embeds the rest`,
+      );
+    }
     return false;
   }
-  await writeSearchFiles(root, header, vectors);
+  if (retry.size)
+    log(
+      `search: ${retry.size} photos embedded without their unreadable image; the next run tries again`,
+    );
+  await writeIndex(root, header, vectors, leaveOut, retry);
   log(
-    `search: ${docs.length} docs, ${missing.length} embedded → ${searchDir(root)}`,
+    `search: ${docs.length} docs, ${planned.length} embedded → ${searchDir(root)}`,
   );
   return true;
 }

@@ -112,6 +112,132 @@ describe('buildIndex', () => {
   });
 });
 
+describe('buildIndex photos and progress', () => {
+  const photos = (n: number, path = (i: number) => `/lib/p${i}.mov`) => ({
+    generatedAt: '2025-11-02T00:00:00+08:00',
+    events: Array.from({ length: n }, (_, i) => ({
+      id: `P${i}`,
+      source: 'photo' as const,
+      at: '2025-11-01T09:00:00+08:00',
+      author: 'photo',
+      media: [{ path: path(i) }],
+      photo: {
+        favorite: false,
+        people: 0,
+        screenshot: false,
+        movie: false,
+        burstPick: true,
+        meta: { labels: [`Label ${i}`] },
+      },
+    })),
+  });
+
+  const jpeg = (dir: string, name: string) => {
+    const path = join(dir, name);
+    writeFileSync(path, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    return path;
+  };
+
+  it('sends a photo with a local JPEG as its text and image', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const image = jpeg(root, 'a.jpeg');
+    const { embedder, embed } = spied();
+    await buildIndex(
+      root,
+      photos(1, () => image),
+      embedder,
+      quiet,
+    );
+    expect(embed).toHaveBeenCalledWith(
+      [{ text: 'labels: Label 0', image }],
+      'document',
+    );
+  });
+
+  it('sends text only to a model that takes no images', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const image = jpeg(root, 'a.jpeg');
+    const { embedder, embed } = spied({ ...fakeEmbedder(), images: false });
+    await buildIndex(
+      root,
+      photos(1, () => image),
+      embedder,
+      quiet,
+    );
+    expect(embed).toHaveBeenCalledWith(['labels: Label 0'], 'document');
+  });
+
+  it('embeds a photo whose image cannot be read as text, and retries it next run', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const missing = join(root, 'missing.jpeg');
+    const timeline = photos(1, () => missing);
+    const log = vi.fn();
+    const first = spied();
+    expect(await buildIndex(root, timeline, first.embedder, log)).toBe(true);
+    expect(first.embed).toHaveBeenCalledWith(['labels: Label 0'], 'document');
+    expect(log).toHaveBeenCalledWith(
+      'search: 1 photos embedded without their unreadable image; the next run tries again',
+    );
+    expect((await readSearchFiles(root))?.header.docs).toHaveLength(1);
+    const second = spied();
+    await buildIndex(root, timeline, second.embedder, quiet);
+    expect(second.embed).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves out an image-only photo whose image cannot be read', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const missing = join(root, 'missing.jpeg');
+    const timeline = photos(1, () => missing);
+    const unlabelled = {
+      ...timeline,
+      events: timeline.events.map((e) => ({
+        ...e,
+        photo: { ...e.photo, meta: {} },
+      })),
+    };
+    const { embedder, embed } = spied();
+    expect(await buildIndex(root, unlabelled, embedder, quiet)).toBe(true);
+    expect(embed).not.toHaveBeenCalled();
+    expect((await readSearchFiles(root))?.header.docs ?? []).toHaveLength(0);
+  });
+
+  it('sends images in batches of eight', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const dir = root;
+    const { embedder, embed } = spied();
+    await buildIndex(
+      root,
+      photos(20, (i) => jpeg(dir, `p${i}.jpeg`)),
+      embedder,
+      quiet,
+    );
+    expect(embed.mock.calls.map(([texts]) => texts.length)).toEqual([8, 8, 4]);
+  });
+
+  it('keeps what it embedded when a later batch fails, and finishes the rest next run', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const timeline = photos(100);
+    const fake = fakeEmbedder();
+    let calls = 0;
+    const flaky: Embedder = {
+      ...fake,
+      embed: async (texts, kind, signal) => {
+        calls += 1;
+        if (calls > 1) throw new EmbedError('ollama-unreachable', 'down');
+        return fake.embed(texts, kind, signal);
+      },
+    };
+    expect(await buildIndex(root, timeline, flaky, quiet)).toBe(false);
+    expect((await readSearchFiles(root))?.header.docs).toHaveLength(64);
+
+    const { embedder, embed } = spied();
+    expect(await buildIndex(root, timeline, embedder, quiet)).toBe(true);
+    const sent = embed.mock.calls.reduce((n, [texts]) => n + texts.length, 0);
+    expect(sent).toBe(36);
+    expect((await readSearchFiles(root))?.header.docs).toHaveLength(100);
+  });
+});
+
 const quiet = () => undefined;
 const withoutGeneratedAt = ({ events }: Timeline) => events;
 
