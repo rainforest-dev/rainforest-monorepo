@@ -146,6 +146,57 @@ describe('photoDocs', () => {
   });
 });
 
+describe('photoDocs images', () => {
+  const photo = (
+    id: string,
+    path: string | undefined,
+    labels?: string[],
+  ): TimelineEvent => ({
+    id,
+    source: 'photo',
+    at: at(0),
+    author: 'photo',
+    ...(path ? { media: [{ path }] } : {}),
+    photo: {
+      favorite: false,
+      people: 0,
+      screenshot: false,
+      movie: false,
+      burstPick: true,
+      ...(labels ? { meta: { labels } } : {}),
+    },
+  });
+
+  it('points a photo doc at its local JPEG and folds the path into its hash', () => {
+    const [withImage] = photoDocs(
+      [photo('P1', '/lib/a.jpeg', ['Dog'])],
+      PEOPLE,
+    );
+    const [textOnly] = photoDocs([photo('P1', undefined, ['Dog'])], PEOPLE);
+    expect(withImage?.image).toBe('/lib/a.jpeg');
+    expect(textOnly).not.toHaveProperty('image');
+    expect(withImage?.contentHash).not.toBe(textOnly?.contentHash);
+    const [moved] = photoDocs([photo('P1', '/lib/b.JPG', ['Dog'])], PEOPLE);
+    expect(moved?.image).toBe('/lib/b.JPG');
+    expect(moved?.contentHash).not.toBe(withImage?.contentHash);
+  });
+
+  it('keeps videos text only', () => {
+    const [doc] = photoDocs([photo('V1', '/lib/clip.mov', ['Dog'])], PEOPLE);
+    expect(doc).not.toHaveProperty('image');
+  });
+
+  it('keeps a photo without metadata when it has an image', () => {
+    const docs = photoDocs(
+      [photo('P2', '/lib/c.jpeg'), photo('P3', '/lib/d.mov')],
+      PEOPLE,
+    );
+    expect(docs.map((d) => [d.id, d.text, d.image])).toEqual([
+      ['photo:P2', '', '/lib/c.jpeg'],
+    ]);
+  });
+});
+
 describe('buildSearchDocs', () => {
   it('builds chat and photo docs together', () => {
     const docs = buildSearchDocs([msg('a', 0, 'hi')], PEOPLE);

@@ -1,3 +1,7 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -37,7 +41,7 @@ describe('ollamaEmbedder', () => {
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
-          model: 'embeddinggemma',
+          model: 'embeddinggemma-2:440m-bf16-text-vision',
           input: ['title: none | text: 拉麵', 'title: none | text: 湯'],
           keep_alive: '24h',
         }),
@@ -165,10 +169,54 @@ describe('embedderFromEnv', () => {
     expect(embedderFromEnv({ MEMORIES_EMBED: 'fake' }).model).toBe('fake');
     const real = embedderFromEnv({});
     expect(real).toMatchObject({
-      model: 'embeddinggemma',
+      model: 'embeddinggemma-2:440m-bf16-text-vision',
       dims: 768,
-      minScore: 0.25,
     });
+  });
+
+  it('sets the score floor for each model, so a rollback to v1 keeps its own', () => {
+    expect(embedderFromEnv({}).minScore).toBe(0.705);
+    expect(
+      embedderFromEnv({ MEMORIES_EMBED_MODEL: 'embeddinggemma' }).minScore,
+    ).toBe(0.25);
+  });
+
+  it('takes the model from MEMORIES_EMBED_MODEL', () => {
+    expect(
+      embedderFromEnv({ MEMORIES_EMBED_MODEL: 'custom-model' }).model,
+    ).toBe('custom-model');
+  });
+});
+
+describe('ollamaEmbedder images', () => {
+  const bodyOf = (fetch: typeof globalThis.fetch) => {
+    const [, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, RequestInit];
+    return JSON.parse(String(init.body)) as { input: unknown[] };
+  };
+
+  it('sends an image beside its text', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'memories-embed-'));
+    const image = join(dir, 'a.jpeg');
+    writeFileSync(image, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    const fetch = respond({ embeddings: [vec(4), vec(4)] });
+    await ollamaEmbedder({ url: 'http://o:1', dims: 4, fetch }).embed(
+      [{ text: 'labels: Dog', image }, 'plain'],
+      'document',
+    );
+    expect(bodyOf(fetch).input).toEqual([
+      { text: 'title: none | text: labels: Dog', image: '/9j/2Q==' },
+      'title: none | text: plain',
+    ]);
+  });
+
+  it('falls back to the text when the image cannot be read', async () => {
+    const fetch = respond({ embeddings: [vec(4)] });
+    await ollamaEmbedder({ url: 'http://o:1', dims: 4, fetch }).embed(
+      [{ text: 'labels: Dog', image: '/no/such/file.jpeg' }],
+      'document',
+    );
+    expect(bodyOf(fetch).input).toEqual(['title: none | text: labels: Dog']);
   });
 });
 

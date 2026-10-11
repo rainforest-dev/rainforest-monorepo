@@ -1,11 +1,22 @@
+import { readFile } from 'node:fs/promises';
+
 export type EmbedKind = 'query' | 'document';
+
+export type EmbedInput = string | { text: string; image: string };
+
+export const DEFAULT_EMBED_MODEL = 'embeddinggemma-2:440m-bf16-text-vision';
+
+const MIN_SCORE: Record<string, number> = {
+  [DEFAULT_EMBED_MODEL]: 0.705,
+  embeddinggemma: 0.25,
+};
 
 export type Embedder = {
   model: string;
   dims: number;
   minScore: number;
   embed(
-    texts: string[],
+    texts: readonly EmbedInput[],
     kind: EmbedKind,
     signal?: AbortSignal,
   ): Promise<Float32Array[]>;
@@ -27,15 +38,25 @@ const PREFIX: Record<EmbedKind, string> = {
   document: 'title: none | text: ',
 };
 
+async function ollamaInput(item: EmbedInput, prefix: string) {
+  if (typeof item === 'string') return prefix + item;
+  try {
+    const image = (await readFile(item.image)).toString('base64');
+    return { text: prefix + item.text, image };
+  } catch {
+    return prefix + item.text;
+  }
+}
+
 const isAbort = (error: unknown) =>
   error instanceof DOMException &&
   (error.name === 'AbortError' || error.name === 'TimeoutError');
 
 export function ollamaEmbedder({
   url = process.env['MEMORIES_OLLAMA_URL'] ?? 'http://localhost:11434',
-  model = 'embeddinggemma',
+  model = DEFAULT_EMBED_MODEL,
   dims = 768,
-  minScore = 0.25,
+  minScore = MIN_SCORE[model] ?? 0.25,
   fetch: fetchImpl = fetch,
 }: {
   url?: string;
@@ -49,6 +70,9 @@ export function ollamaEmbedder({
     dims,
     minScore,
     async embed(texts, kind, signal) {
+      const input = await Promise.all(
+        texts.map((item) => ollamaInput(item, PREFIX[kind])),
+      );
       let response: Response;
       try {
         response = await fetchImpl(`${url}/api/embed`, {
@@ -56,7 +80,7 @@ export function ollamaEmbedder({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model,
-            input: texts.map((t) => PREFIX[kind] + t),
+            input,
             keep_alive: '24h',
           }),
           ...(signal ? { signal } : {}),
@@ -123,7 +147,8 @@ export function fakeEmbedder(): Embedder {
     dims: CONCEPTS.length,
     minScore: 0.01,
     async embed(texts) {
-      return texts.map((text) => {
+      return texts.map((item) => {
+        const text = typeof item === 'string' ? item : item.text;
         const folded = text.normalize('NFKC').toLowerCase();
         return Float32Array.from(
           CONCEPTS.map((words) =>
@@ -140,9 +165,14 @@ export const embedderFromEnv = (
 ): Embedder =>
   env['MEMORIES_EMBED'] === 'fake'
     ? fakeEmbedder()
-    : ollamaEmbedder(
-        env['MEMORIES_OLLAMA_URL'] ? { url: env['MEMORIES_OLLAMA_URL'] } : {},
-      );
+    : ollamaEmbedder({
+        ...(env['MEMORIES_OLLAMA_URL']
+          ? { url: env['MEMORIES_OLLAMA_URL'] }
+          : {}),
+        ...(env['MEMORIES_EMBED_MODEL']
+          ? { model: env['MEMORIES_EMBED_MODEL'] }
+          : {}),
+      });
 
 export function withQueryPriority(embedder: Embedder): {
   foreground: Embedder;

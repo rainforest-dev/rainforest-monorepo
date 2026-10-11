@@ -29,10 +29,12 @@ import {
   withIngestLock,
 } from '../lib/ingest/index.ts';
 import type { Person } from '../lib/people.ts';
+import type { SearchDoc } from '../lib/search/docs.ts';
 import {
   type Embedder,
   embedderFromEnv,
   EmbedError,
+  type EmbedInput,
 } from '../lib/server/embed.ts';
 import {
   readSearchFiles,
@@ -128,6 +130,9 @@ function readPeople(root: string, log: Log): Person[] {
   }
 }
 
+const embedInput = (doc: SearchDoc | undefined): EmbedInput =>
+  doc?.image ? { text: doc.text, image: doc.image } : (doc?.text ?? '');
+
 export async function buildIndex(
   root: string,
   timeline: Timeline,
@@ -151,16 +156,18 @@ export async function buildIndex(
     embedder.model,
     embedder.dims,
   );
+  const pending = new Set(missing);
   try {
     for (let i = 0; i < missing.length; i += EMBED_BATCH) {
       const rows = missing.slice(i, i + EMBED_BATCH);
       const out = await embedder.embed(
-        rows.map((row) => docs[row]?.text ?? ''),
+        rows.map((row) => embedInput(docs[row])),
         'document',
       );
       rows.forEach((row, j) => {
         const vector = out[j];
         if (vector) vectors.set(vector, row * embedder.dims);
+        pending.delete(row);
       });
     }
   } catch (error) {
@@ -168,6 +175,26 @@ export async function buildIndex(
     log(
       `search: embeddings skipped (${error.reason}: ${error.message}); lexical search still works`,
     );
+    if (pending.size < missing.length) {
+      const kept = header.docs.flatMap((doc, row) =>
+        pending.has(row) ? [] : [{ doc, row }],
+      );
+      const partial = new Float32Array(kept.length * embedder.dims);
+      kept.forEach(({ row }, i) =>
+        partial.set(
+          vectors.subarray(row * embedder.dims, (row + 1) * embedder.dims),
+          i * embedder.dims,
+        ),
+      );
+      await writeSearchFiles(
+        root,
+        { ...header, docs: kept.map(({ doc }) => doc) },
+        partial,
+      );
+      log(
+        `search: kept ${missing.length - pending.size} of ${missing.length} new embeddings; the next run embeds the rest`,
+      );
+    }
     return false;
   }
   await writeSearchFiles(root, header, vectors);

@@ -112,6 +112,65 @@ describe('buildIndex', () => {
   });
 });
 
+describe('buildIndex photos and progress', () => {
+  const photos = (n: number, path = (i: number) => `/lib/p${i}.mov`) => ({
+    generatedAt: '2025-11-02T00:00:00+08:00',
+    events: Array.from({ length: n }, (_, i) => ({
+      id: `P${i}`,
+      source: 'photo' as const,
+      at: '2025-11-01T09:00:00+08:00',
+      author: 'photo',
+      media: [{ path: path(i) }],
+      photo: {
+        favorite: false,
+        people: 0,
+        screenshot: false,
+        movie: false,
+        burstPick: true,
+        meta: { labels: [`Label ${i}`] },
+      },
+    })),
+  });
+
+  it('sends a photo with a local JPEG as its text and image', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const { embedder, embed } = spied();
+    await buildIndex(
+      root,
+      photos(1, () => '/lib/a.jpeg'),
+      embedder,
+      quiet,
+    );
+    expect(embed).toHaveBeenCalledWith(
+      [{ text: 'labels: Label 0', image: '/lib/a.jpeg' }],
+      'document',
+    );
+  });
+
+  it('keeps what it embedded when a later batch fails, and finishes the rest next run', async () => {
+    root = mkdtempSync(join(tmpdir(), 'memories-index-'));
+    const timeline = photos(100);
+    const fake = fakeEmbedder();
+    let calls = 0;
+    const flaky: Embedder = {
+      ...fake,
+      embed: async (texts, kind, signal) => {
+        calls += 1;
+        if (calls > 1) throw new EmbedError('ollama-unreachable', 'down');
+        return fake.embed(texts, kind, signal);
+      },
+    };
+    expect(await buildIndex(root, timeline, flaky, quiet)).toBe(false);
+    expect((await readSearchFiles(root))?.header.docs).toHaveLength(64);
+
+    const { embedder, embed } = spied();
+    expect(await buildIndex(root, timeline, embedder, quiet)).toBe(true);
+    const sent = embed.mock.calls.reduce((n, [texts]) => n + texts.length, 0);
+    expect(sent).toBe(36);
+    expect((await readSearchFiles(root))?.header.docs).toHaveLength(100);
+  });
+});
+
 const quiet = () => undefined;
 const withoutGeneratedAt = ({ events }: Timeline) => events;
 
