@@ -8,9 +8,11 @@ You review a pull request opened by the unattended loop. The agent that wrote
 the change also verified it, so you are the first independent check of
 whether it did what was asked.
 
-The PR body names the task (an id like `T-YYYYMMDDHHmmss`) and should restate
-its acceptance criteria. The task note itself lives in the private vault and
-is not readable here, so work from what the PR body says.
+The PR body names the task (an id like `T-YYYYMMDDHHmmss`) and either restates
+its acceptance criteria or cites a plan or spec file in this repo that holds
+them (for example `docs/superpowers/plans/<plan>.md`, Task N). When it cites
+one, read the criteria from that file at HEAD. The task note itself lives in
+the private vault and is not readable here.
 
 Look for:
 
@@ -24,8 +26,8 @@ Look for:
 - a visual change with no screenshot on the PR (the loop must attach one taken
   from fixture data)
 
-If the PR body does not list acceptance criteria at all, report that once as
-blocking and review against the title.
+If the PR body neither lists acceptance criteria nor cites a file in the repo
+that holds them, report that once as blocking and review against the title.
 
 ## How to work
 

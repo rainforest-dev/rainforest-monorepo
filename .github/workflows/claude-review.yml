@@ -1,44 +1,23 @@
 name: Claude Review
 
-# Multi-perspective PR review. The reviewers are this repo's own subagents in
-# `.claude/agents/review-*.md`, and REVIEW.md says which of them a PR's changed
-# paths call for. The loop runs the same subagents locally before it opens a PR,
-# so one definition serves both.
-#
-# Why `github_token` is passed: without it the action trades an OIDC token for a
-# claude[bot] app token, and that exchange refuses (exit 0, no review) whenever
-# this file differs from the default branch's copy. With the job's own token
-# there is no exchange, so a PR that edits this workflow is reviewed by the
-# workflow it proposes. The cost is that comments come from github-actions[bot]
-# and `use_sticky_comment` does not work, so the summary edits its own last
-# comment instead.
-#
-# The reviewers themselves always come from the base branch: on a PR the action
-# replaces `.claude/` and CLAUDE.md with the base copies, so a PR cannot rewrite
-# the reviewer that judges it. It keeps the PR's copies under `.claude-pr/`,
-# which the prompt reads only for a reviewer the base branch does not have yet.
-#
-# It runs on every push so the check always describes the head a ruleset would
-# merge, and fails while a blocking finding stands. Findings already posted are
-# not posted again. The `claude-review` label reviews the current head again.
+# Reviewers come from the base branch: on a PR the action restores `.claude/` from base.
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened, labeled]
 
-# Any label fires `labeled`, and concurrency is decided before the job's `if`,
-# so a label other than `claude-review` gets a group of its own instead of
-# cancelling the review in flight.
+# Concurrency is decided before the job's `if`, so any label would cancel a review in flight.
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}${{ github.event.action == 'labeled' && github.event.label.name != 'claude-review' && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
   review:
-    # A run skipped for an unrelated label carries another name, so a ruleset
-    # requiring `Claude Review` never counts that skip as a pass.
-    name: ${{ github.event.action == 'labeled' && github.event.label.name != 'claude-review' && 'Claude Review (not run)' || 'Claude Review' }}
+    # A required check counts a skipped job as passed.
+    name: ${{ ((github.event.action == 'labeled' && github.event.label.name != 'claude-review') || (github.actor == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository)) && 'Claude Review (not run)' || 'Claude Review' }}
+    # Dependabot and fork PRs get no Actions secrets.
     if: >
       !github.event.pull_request.draft &&
+      !(github.actor == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository) &&
       (github.event.action != 'labeled' || github.event.label.name == 'claude-review')
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -55,14 +34,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      # Only a summary written by this run may satisfy the gate, never one the
-      # PR committed.
-      - name: Remove any committed summary
+      - name: Remove any summary the PR committed
         run: rm -f .claude-review-summary.md
 
       - name: Drop the re-run label
         if: github.event.action == 'labeled'
-        # A label someone already removed must not stop the review.
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -73,15 +49,12 @@ jobs:
         id: claude-review
         uses: anthropics/claude-code-action@v1
         env:
-          # Subagents otherwise start in the background, the orchestrator ends
-          # its turn to wait for them, and a headless run exits right there
-          # with nothing posted.
+          # Background subagents end a headless run before they report.
           CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1'
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The OIDC app-token exchange refuses a PR that edits this workflow.
           github_token: ${{ github.token }}
-          # Every inline comment is posted by the orchestrator with
-          # `confirmed: true` after it has checked the finding itself.
           classify_inline_comments: 'false'
           # Agent sessions push as claude[bot] on some PRs.
           allowed_bots: 'claude'
@@ -95,8 +68,11 @@ jobs:
             do not review it yourself; the reviewer subagents do, and you check
             and publish what they find.
 
-            1. Read REVIEW.md at the repository root. It lists the reviewers,
-               the paths that call for each, and the repo's review rules.
+            1. Read REVIEW.md from the base branch with `git show BASE:REVIEW.md`,
+               so a PR cannot change its own routing; read the copy at the
+               repository root only when the base has none. It lists the
+               reviewers, the paths that call for each, and the repo's review
+               rules.
             2. Run `gh pr view PR --json title,body,headRefName,files` and
                `git diff --stat BASE...HEAD`. Decide which reviewers the changed
                paths call for. `review-correctness` always runs.
@@ -153,9 +129,6 @@ jobs:
         if: always() && steps.claude-review.outputs.execution_file != ''
         env:
           EXEC_FILE: ${{ steps.claude-review.outputs.execution_file }}
-        # Tool names, tool errors and the final message only, never tool inputs
-        # or successful output, so a run that posts nothing can still be
-        # diagnosed from the log.
         run: |
           jq -r '
             [.[] | select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | .name] as $tools
@@ -165,7 +138,6 @@ jobs:
           ' "$EXEC_FILE" || true
 
       - name: Fail on blocking findings
-        # Without the marker the review did not finish, which must not pass.
         run: |
           n=$(sed -n 's/^<!-- claude-review-blocking: \([0-9][0-9]*\) -->$/\1/p' .claude-review-summary.md 2>/dev/null | head -1)
           if [ -z "$n" ]; then
