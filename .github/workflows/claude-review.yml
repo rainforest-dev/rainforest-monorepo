@@ -18,11 +18,12 @@ name: Claude Review
 # the reviewer that judges it. It keeps the PR's copies under `.claude-pr/`,
 # which the prompt reads only for a reviewer the base branch does not have yet.
 #
-# It runs once per PR, not on every push, to keep the Max quota in check. Add
-# the `claude-review` label to review the current head again.
+# It runs on every push so the check always describes the head a ruleset would
+# merge, and fails while a blocking finding stands. Findings already posted are
+# not posted again. The `claude-review` label reviews the current head again.
 on:
   pull_request:
-    types: [opened, ready_for_review, reopened, labeled]
+    types: [opened, synchronize, ready_for_review, reopened, labeled]
 
 # Any label fires `labeled`, and concurrency is decided before the job's `if`,
 # so a label other than `claude-review` gets a group of its own instead of
@@ -33,7 +34,9 @@ concurrency:
 
 jobs:
   review:
-    name: Claude Review
+    # A run skipped for an unrelated label carries another name, so a ruleset
+    # requiring `Claude Review` never counts that skip as a pass.
+    name: ${{ github.event.action == 'labeled' && github.event.label.name != 'claude-review' && 'Claude Review (not run)' || 'Claude Review' }}
     if: >
       !github.event.pull_request.draft &&
       (github.event.action != 'labeled' || github.event.label.name == 'claude-review')
@@ -123,8 +126,9 @@ jobs:
                checkout is not allowed; the checkout is never pushed) and post it by
                running exactly this command, which is the only one allowed:
                `gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file .claude-review-summary.md`.
-               Start it with the line `<!-- claude-review-summary -->`, then a
-               table of each reviewer that ran with its count of blocking and
+               Start it with the line `<!-- claude-review-summary -->`, then
+               the line `<!-- claude-review-blocking: N -->` where N is the
+               number of blocking findings you posted, then a table of each reviewer that ran with its count of blocking and
                optional findings, then any finding you could not anchor to a
                diff line, then the reviewers you skipped and why in one line.
                When nothing survived, say so plainly.
@@ -148,6 +152,20 @@ jobs:
               (.[] | select(.type == "user") | .message.content[]? | select(.type == "tool_result" and .is_error == true) | "tool error: \(.content | tostring | .[0:200])"),
               (.[] | select(.type == "result") | "result: \(.result // "")", "denials: \(.permission_denials // [] | map(.tool_name) | join(", "))")
           ' "$EXEC_FILE" || true
+
+      - name: Fail on blocking findings
+        # Without the marker the review did not finish, which must not pass.
+        run: |
+          n=$(sed -n 's/^<!-- claude-review-blocking: \([0-9][0-9]*\) -->$/\1/p' .claude-review-summary.md 2>/dev/null | head -1)
+          if [ -z "$n" ]; then
+            echo "::error::The review wrote no result marker, so it did not finish."
+            exit 1
+          fi
+          if [ "$n" -gt 0 ]; then
+            echo "::error::$n blocking finding(s). Fix them, or re-run with the claude-review label after replying."
+            exit 1
+          fi
+          echo "No blocking findings."
 
       - name: Fallback summary
         if: always() && steps.claude-review.outcome != 'success'
