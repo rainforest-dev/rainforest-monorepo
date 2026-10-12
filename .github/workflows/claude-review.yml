@@ -62,6 +62,11 @@ jobs:
       - name: Run the reviewers
         id: claude-review
         uses: anthropics/claude-code-action@v1
+        env:
+          # Subagents otherwise start in the background, the orchestrator ends
+          # its turn to wait for them, and a headless run exits right there
+          # with nothing posted.
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1'
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
@@ -83,9 +88,12 @@ jobs:
             2. Run `gh pr view PR --json title,body,headRefName,files` and
                `git diff --stat BASE...HEAD`. Decide which reviewers the changed
                paths call for. `review-correctness` always runs.
-            3. Start every chosen reviewer in parallel with the Agent tool,
-               using the subagent of the same name. If that subagent type is
-               not registered because this PR adds it, start a general-purpose
+            3. Start every chosen reviewer with the Agent tool, all in one
+               message so they run in parallel, with `run_in_background: false`,
+               using the subagent of the same name. Wait for every reviewer to
+               return before step 4: this run ends when your turn does, so
+               never end it while a reviewer is still running. If that subagent
+               type is not registered because this PR adds it, start a general-purpose
                agent with the instructions from
                `.claude-pr/.claude/agents/<name>.md` instead, and say so in the
                summary. Give each one: the PR
@@ -116,6 +124,21 @@ jobs:
           claude_args: >-
             --allowedTools
             "Agent,Task,Read,Glob,Grep,Write(/tmp/**),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file /tmp/claude-review-summary.md),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),mcp__github_inline_comment__create_inline_comment"
+
+      - name: Show what the review did
+        if: always() && steps.claude-review.outputs.execution_file != ''
+        env:
+          EXEC_FILE: ${{ steps.claude-review.outputs.execution_file }}
+        # Tool names, tool errors and the final message only, never tool inputs
+        # or successful output, so a run that posts nothing can still be
+        # diagnosed from the log.
+        run: |
+          jq -r '
+            [.[] | select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | .name] as $tools
+            | "tools used: \($tools | join(", "))",
+              (.[] | select(.type == "user") | .message.content[]? | select(.type == "tool_result" and .is_error == true) | "tool error: \(.content | tostring | .[0:200])"),
+              (.[] | select(.type == "result") | "result: \(.result // "")", "denials: \(.permission_denials // [] | map(.tool_name) | join(", "))")
+          ' "$EXEC_FILE" || true
 
       - name: Fallback summary
         if: always() && steps.claude-review.outcome != 'success'
