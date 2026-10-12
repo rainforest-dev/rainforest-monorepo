@@ -1,0 +1,114 @@
+name: Claude Review
+
+# Multi-perspective PR review. The reviewers are this repo's own subagents in
+# `.claude/agents/review-*.md`, and REVIEW.md says which of them a PR's changed
+# paths call for. The loop runs the same subagents locally before it opens a PR,
+# so one definition serves both.
+#
+# Why `github_token` is passed: without it the action trades an OIDC token for a
+# claude[bot] app token, and that exchange refuses (exit 0, no review) whenever
+# this file differs from the default branch's copy. With the job's own token
+# there is no exchange, so a PR that edits the review setup is reviewed by the
+# setup it proposes. The cost is that comments come from github-actions[bot]
+# and `use_sticky_comment` does not work, so the summary edits its own last
+# comment instead.
+#
+# It runs once per PR, not on every push, to keep the Max quota in check. Add
+# the `claude-review` label to review the current head again.
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened, labeled]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Claude Review
+    if: >
+      !github.event.pull_request.draft &&
+      (github.event.action != 'labeled' || github.event.label.name == 'claude-review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      actions: read
+
+    steps:
+      - name: Checkout the PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Drop the re-run label
+        if: github.event.action == 'labeled'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label claude-review
+
+      - name: Run the reviewers
+        id: claude-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          # Every inline comment is posted by the orchestrator with
+          # `confirmed: true` after it has checked the finding itself.
+          classify_inline_comments: 'false'
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR: ${{ github.event.pull_request.number }}
+            BASE: origin/${{ github.event.pull_request.base.ref }}
+            HEAD: ${{ github.event.pull_request.head.sha }}
+
+            You coordinate a multi-perspective review of this pull request. You
+            do not review it yourself; the reviewer subagents do, and you check
+            and publish what they find.
+
+            1. Read REVIEW.md at the repository root. It lists the reviewers,
+               the paths that call for each, and the repo's review rules.
+            2. Run `gh pr view PR --json title,body,headRefName,files` and
+               `git diff --stat BASE...HEAD`. Decide which reviewers the changed
+               paths call for. `review-correctness` always runs.
+            3. Start every chosen reviewer in parallel with the Agent tool,
+               using the subagent of the same name. Give each one: the PR
+               number, BASE and HEAD, the PR title and body, and the changed
+               files that matter to it. Tell it to return findings in the
+               format its own instructions define.
+            4. Check every finding yourself against the code at HEAD before
+               publishing it. Drop it if you cannot trace a concrete path to the
+               failure, if it restates a CI or lint check, or if it is about
+               code this PR did not change. Merge duplicates across reviewers.
+            5. Post each surviving finding as an inline comment with
+               `mcp__github_inline_comment__create_inline_comment` and
+               `confirmed: true`, on a line inside the diff. Open the body with
+               `🔴 blocking` or `🟡 optional`, then the reviewer's name in
+               brackets, then the problem, the failure scenario, and the
+               suggested fix. Cite the REVIEW.md or CLAUDE.md rule when there
+               is one.
+            6. Write a summary to /tmp/claude-review-summary.md and post it with
+               `gh pr comment PR --edit-last --create-if-none --body-file /tmp/claude-review-summary.md`.
+               Start it with the line `<!-- claude-review-summary -->`, then a
+               table of each reviewer that ran with its count of blocking and
+               optional findings, then any finding you could not anchor to a
+               diff line, then the reviewers you skipped and why in one line.
+               When nothing survived, say so plainly.
+
+            Never approve, request changes, push, or edit files in the repo.
+          claude_args: >-
+            --allowedTools
+            "Agent,Task,Read,Glob,Grep,Write(/tmp/**),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),mcp__github_inline_comment__create_inline_comment"
+
+      - name: Fallback summary
+        if: always() && steps.claude-review.outcome != 'success'
+        run: |
+          {
+            echo "## Claude Review did not complete"
+            echo
+            echo "Check the [run log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+          } >> "$GITHUB_STEP_SUMMARY"
