@@ -13,6 +13,7 @@ export interface TestBook {
   tagIds?: number[];
   pubdate?: string;
   hasCover?: boolean;
+  comments?: string;
 }
 
 export interface TestLibrary {
@@ -35,6 +36,7 @@ CREATE TABLE series (id INTEGER PRIMARY KEY, name TEXT, sort TEXT);
 CREATE TABLE books_series_link (id INTEGER PRIMARY KEY, book INTEGER, series INTEGER);
 CREATE TABLE data (id INTEGER PRIMARY KEY, book INTEGER, format TEXT,
   uncompressed_size INTEGER DEFAULT 0, name TEXT);
+CREATE TABLE comments (id INTEGER PRIMARY KEY, book INTEGER, text TEXT);
 CREATE TABLE ratings (id INTEGER PRIMARY KEY, rating INTEGER);
 CREATE TABLE books_ratings_link (id INTEGER PRIMARY KEY, book INTEGER, rating INTEGER);
 `;
@@ -93,6 +95,12 @@ export function createCalibreDb(library: TestLibrary): string {
       db.prepare(
         "INSERT INTO data (book, format, name) VALUES (?, 'EPUB', ?)",
       ).run(book.id, `b${book.id}`);
+      if (book.comments) {
+        db.prepare('INSERT INTO comments (book, text) VALUES (?, ?)').run(
+          book.id,
+          book.comments,
+        );
+      }
     }
   } finally {
     db.close();
