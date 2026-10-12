@@ -4,6 +4,7 @@ import {
   assertModel,
   ollamaChat,
   OllamaHttpError,
+  OllamaResponseError,
   OllamaSetupError,
 } from './ollama-chat';
 
@@ -75,5 +76,27 @@ describe('ollamaChat', () => {
     await expect(
       ollamaChat({ url: URL, model: 'm', messages: [], fetch }),
     ).rejects.toEqual(new OllamaHttpError(500));
+  });
+
+  it('rejects a response without message content as a typed error', async () => {
+    for (const body of [{}, { message: {} }, { message: { content: 1 } }]) {
+      const fetch = vi.fn(async () =>
+        Response.json(body),
+      ) as unknown as typeof globalThis.fetch;
+      await expect(
+        ollamaChat({ url: URL, model: 'm', messages: [], fetch }),
+      ).rejects.toBeInstanceOf(OllamaResponseError);
+    }
+  });
+
+  it('passes the caller signal to fetch', async () => {
+    const fetch = vi.fn(async () =>
+      Response.json({ message: { content: 'ok' } }),
+    ) as unknown as typeof globalThis.fetch;
+    const signal = AbortSignal.timeout(1000);
+    await ollamaChat({ url: URL, model: 'm', messages: [], signal, fetch });
+    expect((vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit).signal).toBe(
+      signal,
+    );
   });
 });

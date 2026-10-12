@@ -24,6 +24,8 @@ export class OllamaHttpError extends Error {
   }
 }
 
+export class OllamaResponseError extends Error {}
+
 export async function assertModel(
   url: string,
   model: string | undefined,
@@ -66,6 +68,7 @@ export async function ollamaChat({
   format,
   think = false,
   temperature = 0,
+  signal,
   fetch: fetchImpl = fetch,
 }: {
   url: string;
@@ -74,6 +77,7 @@ export async function ollamaChat({
   format?: Record<string, unknown>;
   think?: boolean;
   temperature?: number;
+  signal?: AbortSignal;
   fetch?: typeof fetch;
 }): Promise<string> {
   const res = await fetchImpl(`${url}/api/chat`, {
@@ -87,8 +91,14 @@ export async function ollamaChat({
       ...(format ? { format } : {}),
       messages,
     }),
+    ...(signal ? { signal } : {}),
   });
   if (!res.ok) throw new OllamaHttpError(res.status);
-  const { message } = (await res.json()) as { message: { content: string } };
-  return message.content;
+  const body = (await res.json().catch(() => null)) as {
+    message?: { content?: unknown };
+  } | null;
+  const content = body?.message?.content;
+  if (typeof content !== 'string')
+    throw new OllamaResponseError('Ollama sent no message content');
+  return content;
 }
