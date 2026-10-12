@@ -10,6 +10,7 @@
     "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@rainforest-dev/search": "workspace:*",
     "@react-three/fiber": "9.8.1",
     "better-sqlite3": "^12.2.0",
     "clsx": "^2.1.1",
