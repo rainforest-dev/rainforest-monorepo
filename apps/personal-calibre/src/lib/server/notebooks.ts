@@ -255,17 +255,26 @@ export async function findOrCreateNotebookByName(
   name: string,
 ): Promise<Notebook> {
   const trimmed = normalizeName(name);
+  const find = () =>
+    appDb
+      .select(NOTEBOOK_COLUMNS)
+      .from(notebooks)
+      .where(eq(notebooks.name, trimmed))
+      .get();
+  const existing = find();
+  if (existing) return existing;
+  // A concurrent request may have created it since; the conflict is not an error.
   appDb.insert(notebooks).values({ name: trimmed }).onConflictDoNothing().run();
-  return appDb
-    .select(NOTEBOOK_COLUMNS)
-    .from(notebooks)
-    .where(eq(notebooks.name, trimmed))
-    .get()!;
+  const created = find();
+  if (!created) throw new Error(`Notebook "${trimmed}" was not saved`);
+  return created;
 }
 
+// The ignore comments keep Turbopack from tracing the whole project into the standalone
+// output: these paths point at runtime data outside the app.
 const pageFilePath = (notebookId: number, pageId: number, mimeType: string) =>
   path.join(
-    notebooksDir(),
+    /*turbopackIgnore: true*/ notebooksDir(),
     String(notebookId),
     `${pageId}.${EXTENSIONS[mimeType] ?? 'bin'}`,
   );
@@ -397,7 +406,11 @@ export async function readPageFile(
   if (!page) return null;
   try {
     const data = await readFile(
-      pageFilePath(page.notebookId, pageId, page.mimeType),
+      /*turbopackIgnore: true*/ pageFilePath(
+        page.notebookId,
+        pageId,
+        page.mimeType,
+      ),
     );
     return { data, mimeType: page.mimeType, fileName: page.fileName };
   } catch (error) {
