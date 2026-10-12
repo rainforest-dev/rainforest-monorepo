@@ -26,3 +26,6 @@
 # formatting it just breaks the check again after the next build.
 **/next-env.d.ts
 pnpm-lock.yaml
+
+# Byte-for-byte fixtures of the memories index format; reformatting breaks them.
+libs/search/src/node/fixtures

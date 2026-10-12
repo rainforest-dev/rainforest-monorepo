@@ -47,6 +47,9 @@
     },
     {
       "path": "./libs/mcp-kit"
+    },
+    {
+      "path": "./libs/search"
     }
   ],
   "compilerOptions": {
