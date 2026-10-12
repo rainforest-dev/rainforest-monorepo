@@ -24,9 +24,9 @@ export async function GET(request: NextRequest) {
   );
   let results: SearchResult[] = [];
   try {
-    results = ftsRowsById(ids.slice(0, SEARCH_LIMIT), appSqlite).map(
-      ({ authors, ...r }) => ({ ...r, author: authors }),
-    );
+    results = ftsRowsById(ids, appSqlite)
+      .slice(0, SEARCH_LIMIT)
+      .map(({ authors, ...r }) => ({ ...r, author: authors }));
   } catch {
     results = [];
   }

@@ -92,7 +92,12 @@ export async function indexBooks({
       );
       rows.forEach((row, j) => {
         const vector = out[j];
-        if (vector?.length !== embedder.dims) return;
+        if (!usableVector(vector, embedder.dims)) {
+          log(
+            `calibre search: book ${docs[row]?.id} got an unusable ${vector?.length ?? 0}-dim vector from ${embedder.model} (expected ${embedder.dims}); it stays lexical-only`,
+          );
+          return;
+        }
         vectors.set(vector, row * embedder.dims);
         pending.delete(row);
       });
@@ -110,8 +115,14 @@ export async function indexBooks({
   const unchanged =
     missing.length === 0 && previous?.header.docs.length === header.docs.length;
   if (!unchanged) await writeAtDir(dir, files);
-  return pending.size === 0 ? files : undefined;
+  return files;
 }
+
+const usableVector = (
+  vector: Float32Array | undefined,
+  dims: number,
+): vector is Float32Array =>
+  vector?.length === dims && vector.every(Number.isFinite);
 
 const writeAtDir = (dir: string, { header, vectors }: IndexFiles) =>
   writeIndexFiles(dir, header, vectors);

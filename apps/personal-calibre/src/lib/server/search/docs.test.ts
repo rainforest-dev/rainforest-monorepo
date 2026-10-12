@@ -19,6 +19,14 @@ describe('book docs', () => {
     );
   });
 
+  it('decodes each entity once', () => {
+    expect(
+      bookDocText({ ...ROW, comments: '<p>&amp;lt;b&amp;gt; &#39;x&#39;</p>' })
+        .split('\n')
+        .at(-1),
+    ).toBe("&lt;b&gt; 'x'");
+  });
+
   it('clips comments to the limit', () => {
     const text = bookDocText({
       ...ROW,

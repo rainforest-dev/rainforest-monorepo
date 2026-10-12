@@ -4,6 +4,14 @@ import sanitizeHtml from 'sanitize-html';
 
 export const COMMENTS_LIMIT = 1000;
 
+const ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  '#39': "'",
+};
+
 export type BookDocRow = {
   id: number;
   title: string;
@@ -17,11 +25,10 @@ export type BookDoc = { id: string; text: string; contentHash: string };
 
 export function stripComments(html: string): string {
   const text = sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
+    .replace(
+      /&(amp|lt|gt|quot|#39);/g,
+      (_, name: string) => ENTITIES[name] ?? '',
+    )
     .replace(/\s+/g, ' ')
     .trim();
   return Array.from(text).slice(0, COMMENTS_LIMIT).join('');

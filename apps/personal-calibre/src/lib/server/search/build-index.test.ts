@@ -103,6 +103,30 @@ describe('indexBooks', () => {
     expect(again.embedded).toEqual(['book three']);
   });
 
+  it('keeps a finished index when one row comes back unusable', async () => {
+    dir = await mkdtemp(join(tmpdir(), 'calibre-index-'));
+    const logged: string[] = [];
+    const embedder: Embedder = {
+      ...countingEmbedder().embedder,
+      async embed(texts) {
+        return texts.map((t) =>
+          t === 'book 2'
+            ? Float32Array.from([Number.NaN, 1])
+            : Float32Array.from([1, 1]),
+        );
+      },
+    };
+    const files = await indexBooks({
+      dir,
+      docs: DOCS,
+      embedder,
+      log: (line) => logged.push(line),
+    });
+    expect(files?.header.docs.map((d) => d.id)).toEqual(['1', '3', '4', '5']);
+    expect(logged).toHaveLength(1);
+    expect(logged[0]).toContain('book 2');
+  });
+
   it('re-embeds everything for another model', async () => {
     dir = await mkdtemp(join(tmpdir(), 'calibre-index-'));
     await indexBooks({
