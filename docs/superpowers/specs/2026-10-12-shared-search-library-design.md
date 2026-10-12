@@ -73,7 +73,10 @@ service, and only after the visitor opts in. That stays within the constraint.
   (sha256/16 `hashRecord`, `planExpansion`); `scripts/search-expansions-freshness.test.ts`;
   `utils/ai/use-language-model.ts` (Vue wrapper) and `components/shell/CommandPalette.vue` (tool
   routing with `SELECTION_SCHEMA`); MCP `search_by_technology` (substring).
-- `astro/zod` and `zod` both resolve to zod 4.6.5, which implements `StandardJSONSchemaV1`.
+- `astro/zod` and `zod` both resolve to zod 4.6.5. Every schema's `~standard` has `validate` and
+  `jsonSchema.input({ target })`. Probed output differs from `promptSchema()` in three ways: a
+  `$schema` key, `maxLength` from `.max()`, and `z.iso.date()` emitting `format: "date"` with a
+  leap-year regex instead of `^\d{4}-\d{2}-\d{2}$`.
 - memories' CLI runs under plain `node`, so any workspace library it imports must load from `dist`
   as plain ESM.
 
@@ -126,7 +129,10 @@ least two products, so the core offers three named functions on one `fold`:
   `substring`, and `day desc, id asc` as the tie-break, and must get today's output exactly.
 - `tieredMatch(query, { title, keywords, expanded })`: the website's tiers, unchanged except that
   folding replaces `toLowerCase`.
-- `ngramSimilarity(query, target)`: calibre's bigram-plus-trigram coverage, unchanged.
+- `ngramSimilarity(query, target)`: calibre's bigram-plus-trigram coverage, unchanged, including its
+  plain `toLowerCase`.
+- `whitespaceTerms(text)`: fold, split on whitespace, drop empties, dedupe. Unlike `queryTerms` it
+  keeps edge punctuation, so `c++` stays `c++`.
 
 ### Vectors and fusion
 
@@ -195,7 +201,8 @@ holds that flow once:
   requires.
 - `run<T>(prompt, jsonSchema, { signal?, languages? })`: delegates to `selectTool` and refreshes
   state on failure.
-- `release()`: wraps `acquire()`.
+- `retain()`: wraps `acquire()` and returns its release function, so a consumer retains the shared
+  session only while it is active.
 
 React consumers read it with `useSyncExternalStore`, and Vue consumers with a `ref` updated in
 `subscribe`. Each adapter stays in its app and shrinks to a few lines. Neither framework enters
@@ -245,7 +252,8 @@ running on the controller.
   `query.ts` (`localParser`) and `clipSnippet`.
 - `embed.ts` keeps only the env mapping and `sharedEmbedders()`.
 - `search-files.ts` uses `./node` index files, and `reuseVectors` is built on `planReuse`.
-  `note-vectors.ts` uses `planReuse`.
+  `note-vectors.ts` keeps its per-id cache: it compares one hash per id in memory and has no
+  previous file to plan against.
 - `search-index.ts` uses the core's `embedQuery`, `breaker` and `semanticIds`. `byDay`, the note
   merge and `handleSearch` stay.
 - prompt-parse moves in the two steps above. `usePromptParse` becomes a thin hook on the
@@ -287,7 +295,8 @@ running on the controller.
 
 ### rss-manager: shared lexical only
 
-- `matchesSearch` and `matchesTopicSearch` use `fold`, `queryTerms` and `matchesAllTerms`.
+- `matchesSearch` and `matchesTopicSearch` use `whitespaceTerms` and `matchesAllTerms`. They do not
+  use `queryTerms`, whose edge trimming would turn `c++` into `c` and widen single-word results.
 - Behaviour change, argued: a multi-word query now needs every word to match somewhere, instead of
   the whole string matching as one substring, so multi-word queries find something. NFKC folding
   lets full-width input match. A test locks single-word results to today's.
@@ -369,15 +378,26 @@ running on the controller.
 
 ## Rollout
 
-One PR per step, each branched from `main`:
+Execution runs through the `rainforest-core:loop` dispatcher. A run is capped at 40 turns and
+USD 10, and the dispatcher has no notion of dependencies, so the work is cut into task notes
+that each fit one or two runs and each open one PR. Only the next note in the chain is approved,
+after the previous PR has merged. This replaces the single "libs plus memories" PR: the library
+lands first with its own tests and the committed format fixture, and memories adopts it in the
+next PR.
 
-1. `libs/search` and the web-ai additions, with memories migrated in the same PR so the library
-   ships with a real consumer. Commits, in order: golden tests; core swap; `./node` swap;
-   prompt-parse step 1; prompt-parse step 2. Each commit can be reverted on its own.
-2. calibre: `searchBookIds`, background indexing, route, list page, MCP `list_books`, e2e.
-3. rss-manager: `fold` and `matchesAllTerms`, e2e.
-4. website: W1 and W1.5, both guards.
-5. website: the W2 spike report and draft post outline, with no code kept.
+1. `libs/search`: core and `./node`, with the today-format index fixture.
+2. memories adopts `libs/search`. Commits, in order: golden tests; core swap; `./node` swap.
+3. web-ai controller and query parser; memories prompt-parse step 1, then step 2, as separate
+   commits.
+4. calibre: `searchBookIds`, background indexing, search route.
+5. calibre: list page, MCP `list_books`, e2e.
+6. rss-manager: `whitespaceTerms` and `matchesAllTerms`, e2e.
+7. website W1: `tieredMatch`, `planReuse`, `ollamaChat`, controller, both guards.
+8. website W1.5: offline semantic neighbours. It needs Ollama on the machine that runs it, reading
+   `OLLAMA_URL` and a new `OLLAMA_EMBED_MODEL` (default `embeddinggemma-2:440m-bf16-text-vision`).
+   With Ollama unreachable the run stops as blocked.
+9. website W2: the spike report and draft post outline, with no code kept. Browser runs use
+   Playwright's Chromium in new-headless mode on the real GPU, never a headed browser.
 
 ## Testing
 
