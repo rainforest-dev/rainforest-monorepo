@@ -12,6 +12,35 @@ export const AUTHED = { [GATEWAY_HEADER]: SECRET, [LOGIN_HEADER]: LOGIN };
 
 const BOOK = { id: 41, title: 'Salt Ledger', authors: [], tags: [] };
 
+export const NOTEBOOK_ID = 5;
+export const PAGE_COUNT = 12;
+
+const NOTEBOOK = {
+  id: NOTEBOOK_ID,
+  name: 'Field Log',
+  status: 'active',
+  startedOn: '2026-01-01',
+  endedOn: null,
+  createdAt: '2026-01-01 00:00:00',
+  pageCount: PAGE_COUNT,
+  coverPageId: 501,
+};
+
+export const notebookPage = (position: number) => ({
+  id: 500 + position,
+  notebookId: NOTEBOOK_ID,
+  position,
+  pageNumber: position,
+  pageDate: null,
+  fileName: `page-${position}.png`,
+  mimeType: 'image/png',
+  bytes: 3,
+  transcription: position === 1 ? '• tidy the desk' : null,
+  transcribedAt: null,
+  source: 'upload',
+  createdAt: '2026-01-02 00:00:00',
+});
+
 export type FakeLibrary = Record<keyof CalibreLibrary, Mock>;
 
 export function fakeLibrary(): FakeLibrary {
@@ -35,6 +64,36 @@ export function fakeLibrary(): FakeLibrary {
     addTagToBook: vi.fn(),
     removeTagFromBook: vi.fn(),
     revalidateBookTagCache: vi.fn(),
+    listNotebooks: vi.fn(async () => [NOTEBOOK]),
+    getNotebookPages: vi.fn(
+      async (
+        id: number,
+        { from = 1, to = PAGE_COUNT, limit = PAGE_COUNT } = {},
+      ) =>
+        id === NOTEBOOK_ID
+          ? Array.from({ length: PAGE_COUNT }, (_, i) => notebookPage(i + 1))
+              .filter((page) => page.position >= from && page.position <= to)
+              .slice(0, limit)
+          : null,
+    ),
+    readPageFile: vi.fn(async (id: number) => ({
+      data: Buffer.from(`img${id}`),
+      mimeType: 'image/png',
+      fileName: `${id}.png`,
+    })),
+    setPageTranscription: vi.fn(
+      async (
+        id: number,
+        input: {
+          transcription: string;
+          pageNumber?: number;
+          pageDate?: string;
+        },
+      ) =>
+        id === 501
+          ? { ...notebookPage(1), ...input, transcribedAt: '2026-10-12' }
+          : null,
+    ),
   };
 }
 

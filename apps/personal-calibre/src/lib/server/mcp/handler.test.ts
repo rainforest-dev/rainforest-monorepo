@@ -57,7 +57,7 @@ describe('auth', () => {
     const response = await handlerFor(fakeLibrary())(rpc(AUTHED));
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.result.tools).toHaveLength(10);
+    expect(body.result.tools).toHaveLength(13);
   });
 
   it('answers 405 to GET once authenticated', async () => {
@@ -233,6 +233,31 @@ describe('audit', () => {
       ms: 3,
       ok: false,
     });
+  });
+
+  it('logs notebook calls by id with the image count, never the transcription', async () => {
+    const lines: string[] = [];
+    const client = await connect(
+      handlerFor(fakeLibrary(), (line) => lines.push(line)),
+    );
+    const pages = await client.callTool({
+      name: 'get_notebook_pages',
+      arguments: { notebookId: 5, toPosition: 3 },
+    });
+    expect(
+      (pages.content as { type: string }[]).filter((b) => b.type === 'image'),
+    ).toHaveLength(3);
+    await client.callTool({
+      name: 'set_page_transcription',
+      arguments: { pageId: 501, transcription: 'a private plan' },
+    });
+    await client.close();
+
+    expect(lines.map((line) => JSON.parse(line))).toMatchObject([
+      { tool: 'get_notebook_pages', notebookId: 5, results: 3, ok: true },
+      { tool: 'set_page_transcription', pageId: 501, results: 1, ok: true },
+    ]);
+    expect(lines.join('\n')).not.toContain('a private plan');
   });
 
   it.each([
