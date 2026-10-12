@@ -1,13 +1,14 @@
 import {
   createQueryParser,
+  jsonSchemaOf,
   optInSwitch,
-  type ParserSchema,
   type ParseStatus,
 } from '@rainforest-dev/web-ai';
 
 import type { Person } from '@/lib/people.ts';
 import { localParser, type SearchQuery } from '@/lib/search';
-import type { TimelineSource } from '@/lib/server';
+
+import { promptQuerySchema, sanitizeAnswer, toQuery } from './prompt-schema.ts';
 
 export {
   languagesFor,
@@ -19,9 +20,6 @@ export {
 } from '@rainforest-dev/web-ai';
 
 export const PROMPT_PARSE_KEY = 'memories:prompt-parse';
-const MAX_TEXT = 200;
-const SOURCES = ['line', 'slack', 'photo'] as const;
-const DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 export function statusText(status: ParseStatus): string {
   switch (status.kind) {
@@ -52,72 +50,11 @@ const PROMPT_SWITCH = optInSwitch(PROMPT_PARSE_KEY);
 export const readSwitch = PROMPT_SWITCH.read;
 export const writeSwitch = PROMPT_SWITCH.write;
 
-export function promptSchema(
+export const promptSchema = (
   people: readonly Person[],
-): Record<string, unknown> {
-  const date = { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' };
-  return {
-    type: 'object',
-    properties: {
-      text: { type: 'string' },
-      range: {
-        type: 'object',
-        properties: { start: date, end: date },
-        required: ['start', 'end'],
-      },
-      ...(people.length
-        ? {
-            people: {
-              type: 'array',
-              items: { type: 'string', enum: people.map((p) => p.id) },
-            },
-          }
-        : {}),
-      sources: { type: 'array', items: { type: 'string', enum: SOURCES } },
-    },
-    required: ['text'],
-  };
-}
+): Record<string, unknown> => jsonSchemaOf(promptQuerySchema(people));
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v);
-
-export function toSearchQuery(
-  output: unknown,
-  people: readonly Person[],
-): SearchQuery | undefined {
-  if (!isRecord(output) || typeof output['text'] !== 'string') return undefined;
-  const query: SearchQuery = {
-    text: Array.from(output['text'].trim()).slice(0, MAX_TEXT).join(''),
-  };
-  const range = output['range'];
-  if (range !== undefined) {
-    if (
-      !isRecord(range) ||
-      typeof range['start'] !== 'string' ||
-      typeof range['end'] !== 'string' ||
-      !DATE.test(range['start']) ||
-      !DATE.test(range['end']) ||
-      range['start'] > range['end']
-    )
-      return undefined;
-    query.range = { start: range['start'], end: range['end'] };
-  }
-  const ids = new Set(people.map((p) => p.id));
-  const picked = Array.isArray(output['people'])
-    ? output['people'].filter(
-        (id): id is string => typeof id === 'string' && ids.has(id),
-      )
-    : [];
-  if (picked.length) query.people = picked;
-  const sources = Array.isArray(output['sources'])
-    ? output['sources'].filter((s): s is TimelineSource =>
-        (SOURCES as readonly unknown[]).includes(s),
-      )
-    : [];
-  if (sources.length) query.sources = sources;
-  return query;
-}
+export const toSearchQuery = toQuery;
 
 export function buildPrompt(
   raw: string,
@@ -158,21 +95,12 @@ export const parseStaleTime = (
 
 export type AiParse = (raw: string, signal: AbortSignal) => Promise<unknown>;
 
-const handWritten = (people: readonly Person[]): ParserSchema<SearchQuery> => ({
-  '~standard': {
-    validate: (value) => {
-      const query = toSearchQuery(value, people);
-      return query ? { value: query } : { issues: [{ message: 'invalid' }] };
-    },
-    jsonSchema: { input: () => promptSchema(people) },
-  },
-});
-
 const parser = createQueryParser<
   SearchQuery,
   { today: string; people: readonly Person[] }
 >({
-  schema: ({ people }) => handWritten(people),
+  schema: ({ people }) => promptQuerySchema(people),
+  sanitize: (out, { people }) => sanitizeAnswer(out, people),
   local: (raw, { today, people }) => localParser(raw, today, people),
 });
 
