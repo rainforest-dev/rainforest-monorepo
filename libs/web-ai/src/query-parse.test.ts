@@ -109,4 +109,21 @@ describe('createQueryParser', () => {
     expect((await pending).status).toBe('local');
     expect(signal?.aborted).toBe(true);
   });
+
+  it('aborts the AI call at once for a signal that is already aborted', async () => {
+    const outer = new AbortController();
+    outer.abort();
+    let signal: AbortSignal | undefined;
+    const outcome = await parser.parse(
+      'x',
+      { n: 1 },
+      async (_s, inner) => {
+        signal = inner;
+        throw new Error('aborted');
+      },
+      outer.signal,
+    );
+    expect(outcome.status).toBe('local');
+    expect(signal?.aborted).toBe(true);
+  });
 });

@@ -2,6 +2,7 @@ import {
   createQueryParser,
   jsonSchemaOf,
   optInSwitch,
+  type ParseOutcome,
   type ParseStatus,
 } from '@rainforest-dev/web-ai';
 
@@ -80,7 +81,7 @@ export function buildPrompt(
 
 export type ParseResult = {
   query: SearchQuery;
-  status: 'ai' | 'ai-timeout' | 'local';
+  status: ParseOutcome<SearchQuery>['status'];
 };
 
 export const aiParseKey = (

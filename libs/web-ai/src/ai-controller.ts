@@ -22,6 +22,8 @@ export type AiController = {
 
 export function createAiController(): AiController {
   let state: AiState = { kind: 'unsupported' };
+  let epoch = 0;
+  let enabling = false;
   const listeners = new Set<() => void>();
   const set = (next: AiState) => {
     state = next;
@@ -36,10 +38,14 @@ export function createAiController(): AiController {
       };
     },
     async refresh(languages) {
-      set(await detectCapability(languages));
-      return state;
+      const at = epoch;
+      const next = await detectCapability(languages);
+      if (at === epoch && !enabling) set(next);
+      return next;
     },
     async enable(languages) {
+      epoch++;
+      enabling = true;
       set({ kind: 'downloading', progress: 0 });
       try {
         await enableModel(
@@ -48,15 +54,20 @@ export function createAiController(): AiController {
         );
         set({ kind: 'ready' });
       } catch (error) {
-        await controller.refresh(languages);
+        enabling = false;
+        await controller.refresh(languages).catch(() => undefined);
         throw error;
+      } finally {
+        enabling = false;
+        epoch++;
       }
     },
     async run(prompt, schema, opts = {}) {
       try {
         return await selectTool(prompt, schema, opts);
       } catch (error) {
-        await controller.refresh(opts.languages);
+        if (!opts.signal?.aborted)
+          await controller.refresh(opts.languages).catch(() => undefined);
         throw error;
       }
     },

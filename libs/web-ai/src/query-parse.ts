@@ -61,9 +61,9 @@ export function createQueryParser<T, Ctx>(config: {
       const local = () => config.local(raw, ctx);
       if (!ai) return { value: local(), status: 'local' };
       const controller = new AbortController();
-      signal?.addEventListener('abort', () => controller.abort(), {
-        once: true,
-      });
+      const abort = () => controller.abort();
+      if (signal?.aborted) abort();
+      else signal?.addEventListener('abort', abort, { once: true });
       let timer: ReturnType<typeof setTimeout> | undefined;
       const timeout = new Promise<typeof TIMEOUT>((resolve) => {
         timer = setTimeout(() => {
@@ -86,6 +86,7 @@ export function createQueryParser<T, Ctx>(config: {
         return { value: local(), status: 'local' };
       } finally {
         clearTimeout(timer);
+        signal?.removeEventListener('abort', abort);
       }
     },
   };
