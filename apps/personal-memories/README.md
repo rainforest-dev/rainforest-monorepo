@@ -149,7 +149,7 @@ MEMORIES_DATA_DIR=… MEMORIES_PHOTOS_FROM=2019-01-01 \
 Environment:
 
 - `MEMORIES_DATA_DIR`, required; the CLI exits 2 when it is unset.
-- `MEMORIES_DROP_DIR`, by default `~/Library/Mobile Documents/com~apple~CloudDocs/Memories Inbox`.
+- `MEMORIES_DROP_DIR`, by default `~/Library/Mobile Documents/com~apple~CloudDocs/Inbox/memories`, the `memories` target of the shared iCloud inbox.
 - `MEMORIES_PHOTOS_LIBRARY`, by default `~/Pictures/Photos Library.photoslibrary`.
 - `MEMORIES_PHOTOS_FROM`, the export's start date (`YYYY-MM-DD`). With it unset the Photos step
   fails.
