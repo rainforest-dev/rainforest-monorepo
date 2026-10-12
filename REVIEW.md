@@ -13,8 +13,8 @@ subagents before it opens a PR.
 | `review-tests`        | source under `apps/**` or `libs/**` (not docs, not config only)                                                          | Would a test fail if this behaviour broke tomorrow?                          |
 | `review-spec`         | a head branch starting with `loop/`                                                                                      | Does it meet the task's acceptance criteria, and are its claims backed?      |
 
-Skip every reviewer except `review-privacy` when the PR changes only Markdown
-under `docs/` or a README.
+Skip every reviewer except `review-correctness` and `review-privacy` when the PR
+changes only Markdown under `docs/` or a README.
 
 ## Rules reviewers cite
 

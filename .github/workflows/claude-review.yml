@@ -73,6 +73,8 @@ jobs:
           # Every inline comment is posted by the orchestrator with
           # `confirmed: true` after it has checked the finding itself.
           classify_inline_comments: 'false'
+          # Agent sessions push as claude[bot] on some PRs.
+          allowed_bots: 'claude'
           prompt: |
             REPO: ${{ github.repository }}
             PR: ${{ github.event.pull_request.number }}
@@ -104,14 +106,18 @@ jobs:
                publishing it. Drop it if you cannot trace a concrete path to the
                failure, if it restates a CI or lint check, or if it is about
                code this PR did not change. Merge duplicates across reviewers.
-            5. Post each surviving finding as an inline comment with
+            5. Run `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments --paginate`
+               and drop any finding that a github-actions[bot] comment already
+               raises at the same path and line, so a re-review does not post
+               duplicates. Post each remaining finding as an inline comment with
                `mcp__github_inline_comment__create_inline_comment` and
                `confirmed: true`, on a line inside the diff. Open the body with
                `🔴 blocking` or `🟡 optional`, then the reviewer's name in
                brackets, then the problem, the failure scenario, and the
                suggested fix. Cite the REVIEW.md or CLAUDE.md rule when there
                is one.
-            6. Write a summary to /tmp/claude-review-summary.md and post it by
+            6. Write a summary to /tmp/claude-review-summary.md with the Write
+               tool (a shell redirect is not allowed) and post it by
                running exactly this command, which is the only one allowed:
                `gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file /tmp/claude-review-summary.md`.
                Start it with the line `<!-- claude-review-summary -->`, then a
@@ -123,7 +129,7 @@ jobs:
             Never approve, request changes, push, or edit files in the repo.
           claude_args: >-
             --allowedTools
-            "Agent,Task,Read,Glob,Grep,Write(/tmp/**),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file /tmp/claude-review-summary.md),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),mcp__github_inline_comment__create_inline_comment"
+            "Agent,Task,Read,Glob,Grep,Write(//tmp/claude-review-summary.md),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments --paginate),Bash(gh pr diff:*),Bash(gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file /tmp/claude-review-summary.md),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),mcp__github_inline_comment__create_inline_comment"
 
       - name: Show what the review did
         if: always() && steps.claude-review.outputs.execution_file != ''
