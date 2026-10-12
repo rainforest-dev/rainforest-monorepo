@@ -1,4 +1,10 @@
-import { toolError, ToolInputError, toolResult } from './result';
+import {
+  isToolContent,
+  toolContent,
+  toolError,
+  ToolInputError,
+  toolResult,
+} from './result';
 
 describe('toolResult', () => {
   it('returns JSON text and structuredContent for a plain object', () => {
@@ -17,6 +23,26 @@ describe('toolResult', () => {
       });
     },
   );
+});
+
+describe('toolContent', () => {
+  it('passes image and text blocks through toolResult unchanged', () => {
+    const content = [
+      { type: 'text' as const, text: 'page 1' },
+      { type: 'image' as const, data: 'aGVsbG8=', mimeType: 'image/png' },
+    ];
+    const value = toolContent(content);
+    expect(isToolContent(value)).toBe(true);
+    expect(toolResult(value)).toEqual({ content });
+  });
+
+  it('does not mistake plain data for content', () => {
+    expect(isToolContent({ content: [] })).toBe(false);
+    expect(toolResult({ content: [] })).toEqual({
+      content: [{ type: 'text', text: '{"content":[]}' }],
+      structuredContent: { content: [] },
+    });
+  });
 });
 
 describe('toolError', () => {
