@@ -370,6 +370,9 @@ importers:
       '@rainforest-dev/rainforest-ui':
         specifier: workspace:*
         version: link:../../libs/rainforest-ui
+      '@rainforest-dev/search':
+        specifier: workspace:*
+        version: link:../../libs/search
       '@rainforest-dev/web-ai':
         specifier: workspace:*
         version: link:../../libs/web-ai
