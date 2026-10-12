@@ -54,6 +54,8 @@ jobs:
 
       - name: Drop the re-run label
         if: github.event.action == 'labeled'
+        # A label someone already removed must not stop the review.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -116,10 +118,11 @@ jobs:
                brackets, then the problem, the failure scenario, and the
                suggested fix. Cite the REVIEW.md or CLAUDE.md rule when there
                is one.
-            6. Write a summary to /tmp/claude-review-summary.md with the Write
-               tool (a shell redirect is not allowed) and post it by
+            6. Write a summary to `.claude-review-summary.md` at the repository
+               root with the Write tool (a shell redirect or a path outside the
+               checkout is not allowed; the checkout is never pushed) and post it by
                running exactly this command, which is the only one allowed:
-               `gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file /tmp/claude-review-summary.md`.
+               `gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file .claude-review-summary.md`.
                Start it with the line `<!-- claude-review-summary -->`, then a
                table of each reviewer that ran with its count of blocking and
                optional findings, then any finding you could not anchor to a
@@ -129,7 +132,7 @@ jobs:
             Never approve, request changes, push, or edit files in the repo.
           claude_args: >-
             --allowedTools
-            "Agent,Task,Read,Glob,Grep,Write(//tmp/claude-review-summary.md),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments --paginate),Bash(gh pr diff:*),Bash(gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file /tmp/claude-review-summary.md),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),mcp__github_inline_comment__create_inline_comment"
+            "Agent,Task,Read,Glob,Grep,Write(./.claude-review-summary.md),Edit(./.claude-review-summary.md),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments --paginate),Bash(gh pr diff:*),Bash(gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file .claude-review-summary.md),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),mcp__github_inline_comment__create_inline_comment"
 
       - name: Show what the review did
         if: always() && steps.claude-review.outputs.execution_file != ''
