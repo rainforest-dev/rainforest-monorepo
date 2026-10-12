@@ -55,6 +55,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
+      # Only a summary written by this run may satisfy the gate, never one the
+      # PR committed.
+      - name: Remove any committed summary
+        run: rm -f .claude-review-summary.md
+
       - name: Drop the re-run label
         if: github.event.action == 'labeled'
         # A label someone already removed must not stop the review.
@@ -128,7 +133,10 @@ jobs:
                `gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file .claude-review-summary.md`.
                Start it with the line `<!-- claude-review-summary -->`, then
                the line `<!-- claude-review-blocking: N -->` where N is the
-               number of blocking findings you posted, then a table of each reviewer that ran with its count of blocking and
+               number of blocking findings that still stand at HEAD: the ones
+               you posted now plus the ones you skipped in step 5 as already
+               posted. Leave one out only when its thread has a reply
+               explaining why it is not a problem and you agree. Then a table of each reviewer that ran with its count of blocking and
                optional findings, then any finding you could not anchor to a
                diff line, then the reviewers you skipped and why in one line.
                When nothing survived, say so plainly.
@@ -162,7 +170,7 @@ jobs:
             exit 1
           fi
           if [ "$n" -gt 0 ]; then
-            echo "::error::$n blocking finding(s). Fix them, or re-run with the claude-review label after replying."
+            echo "::error::$n blocking finding(s) still stand. Fix them, or reply on the thread explaining why not, then push or re-run with the claude-review label."
             exit 1
           fi
           echo "No blocking findings."
