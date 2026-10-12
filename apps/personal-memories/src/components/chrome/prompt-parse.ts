@@ -51,9 +51,19 @@ const PROMPT_SWITCH = optInSwitch(PROMPT_PARSE_KEY);
 export const readSwitch = PROMPT_SWITCH.read;
 export const writeSwitch = PROMPT_SWITCH.write;
 
-export const promptSchema = (
+const jsonSchemas = new WeakMap<object, Record<string, unknown>>();
+
+export function promptSchema(
   people: readonly Person[],
-): Record<string, unknown> => jsonSchemaOf(promptQuerySchema(people));
+): Record<string, unknown> {
+  const schema = promptQuerySchema(people);
+  let json = jsonSchemas.get(schema);
+  if (!json) {
+    json = jsonSchemaOf(schema);
+    jsonSchemas.set(schema, json);
+  }
+  return json;
+}
 
 export const toSearchQuery = toQuery;
 

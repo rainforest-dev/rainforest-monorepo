@@ -91,6 +91,28 @@ describe('promptQuerySchema', () => {
     expect(jsonSchemaOf(promptQuerySchema([]))).toEqual(legacyPromptSchema([]));
   });
 
+  it('lists properties in the order the prompt explains them', () => {
+    const keys = (schema: Record<string, unknown>) =>
+      Object.keys(schema['properties'] as Record<string, unknown>);
+    expect(keys(jsonSchemaOf(promptQuerySchema(people)))).toEqual([
+      'text',
+      'range',
+      'people',
+      'sources',
+    ]);
+    expect(keys(jsonSchemaOf(promptQuerySchema([])))).toEqual([
+      'text',
+      'range',
+      'sources',
+    ]);
+  });
+
+  it('reuses the schema for the same roster and rebuilds it for a new one', () => {
+    const first = promptQuerySchema(people);
+    expect(promptQuerySchema([...people])).toBe(first);
+    expect(promptQuerySchema(people.slice(0, 1))).not.toBe(first);
+  });
+
   it('validates like toSearchQuery', () => {
     const answers: unknown[] = [
       { text: ' 拉麵 ' },

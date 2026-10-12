@@ -13,23 +13,32 @@ const day = z
   .regex(DAY)
   .refine((s) => DATE.test(s));
 
+function buildSchema(ids: readonly string[]) {
+  const text = z
+    .string()
+    .transform((t) => Array.from(t.trim()).slice(0, MAX_TEXT).join(''));
+  const range = z
+    .object({ start: day, end: day })
+    .refine((r) => r.start <= r.end)
+    .optional();
+  const sources = z.array(z.enum(SOURCES)).optional();
+  return ids.length
+    ? z.object({
+        text,
+        range,
+        people: z.array(z.enum(ids as [string, ...string[]])).optional(),
+        sources,
+      })
+    : z.object({ text, range, sources });
+}
+
+let memo: { key: string; schema: ReturnType<typeof buildSchema> } | undefined;
+
 export function promptQuerySchema(people: readonly Person[]) {
   const ids = people.map((p) => p.id);
-  const base = z.object({
-    text: z
-      .string()
-      .transform((t) => Array.from(t.trim()).slice(0, MAX_TEXT).join('')),
-    range: z
-      .object({ start: day, end: day })
-      .refine((r) => r.start <= r.end)
-      .optional(),
-    sources: z.array(z.enum(SOURCES)).optional(),
-  });
-  return ids.length
-    ? base.extend({
-        people: z.array(z.enum(ids as [string, ...string[]])).optional(),
-      })
-    : base;
+  const key = ids.join('\u0000');
+  if (memo?.key !== key) memo = { key, schema: buildSchema(ids) };
+  return memo.schema;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
