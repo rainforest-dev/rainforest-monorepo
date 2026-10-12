@@ -8,10 +8,15 @@ name: Claude Review
 # Why `github_token` is passed: without it the action trades an OIDC token for a
 # claude[bot] app token, and that exchange refuses (exit 0, no review) whenever
 # this file differs from the default branch's copy. With the job's own token
-# there is no exchange, so a PR that edits the review setup is reviewed by the
-# setup it proposes. The cost is that comments come from github-actions[bot]
+# there is no exchange, so a PR that edits this workflow is reviewed by the
+# workflow it proposes. The cost is that comments come from github-actions[bot]
 # and `use_sticky_comment` does not work, so the summary edits its own last
 # comment instead.
+#
+# The reviewers themselves always come from the base branch: on a PR the action
+# replaces `.claude/` and CLAUDE.md with the base copies, so a PR cannot rewrite
+# the reviewer that judges it. It keeps the PR's copies under `.claude-pr/`,
+# which the prompt reads only for a reviewer the base branch does not have yet.
 #
 # It runs once per PR, not on every push, to keep the Max quota in check. Add
 # the `claude-review` label to review the current head again.
@@ -19,8 +24,11 @@ on:
   pull_request:
     types: [opened, ready_for_review, reopened, labeled]
 
+# Any label fires `labeled`, and concurrency is decided before the job's `if`,
+# so a label other than `claude-review` gets a group of its own instead of
+# cancelling the review in flight.
 concurrency:
-  group: claude-review-${{ github.event.pull_request.number }}
+  group: claude-review-${{ github.event.pull_request.number }}${{ github.event.action == 'labeled' && github.event.label.name != 'claude-review' && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -76,7 +84,11 @@ jobs:
                `git diff --stat BASE...HEAD`. Decide which reviewers the changed
                paths call for. `review-correctness` always runs.
             3. Start every chosen reviewer in parallel with the Agent tool,
-               using the subagent of the same name. Give each one: the PR
+               using the subagent of the same name. If that subagent type is
+               not registered because this PR adds it, start a general-purpose
+               agent with the instructions from
+               `.claude-pr/.claude/agents/<name>.md` instead, and say so in the
+               summary. Give each one: the PR
                number, BASE and HEAD, the PR title and body, and the changed
                files that matter to it. Tell it to return findings in the
                format its own instructions define.
@@ -91,8 +103,9 @@ jobs:
                brackets, then the problem, the failure scenario, and the
                suggested fix. Cite the REVIEW.md or CLAUDE.md rule when there
                is one.
-            6. Write a summary to /tmp/claude-review-summary.md and post it with
-               `gh pr comment PR --edit-last --create-if-none --body-file /tmp/claude-review-summary.md`.
+            6. Write a summary to /tmp/claude-review-summary.md and post it by
+               running exactly this command, which is the only one allowed:
+               `gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file /tmp/claude-review-summary.md`.
                Start it with the line `<!-- claude-review-summary -->`, then a
                table of each reviewer that ran with its count of blocking and
                optional findings, then any finding you could not anchor to a
@@ -102,7 +115,7 @@ jobs:
             Never approve, request changes, push, or edit files in the repo.
           claude_args: >-
             --allowedTools
-            "Agent,Task,Read,Glob,Grep,Write(/tmp/**),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),mcp__github_inline_comment__create_inline_comment"
+            "Agent,Task,Read,Glob,Grep,Write(/tmp/**),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body-file /tmp/claude-review-summary.md),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),mcp__github_inline_comment__create_inline_comment"
 
       - name: Fallback summary
         if: always() && steps.claude-review.outcome != 'success'
