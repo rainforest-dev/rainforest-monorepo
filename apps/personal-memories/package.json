@@ -61,6 +61,7 @@
     "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@rainforest-dev/search": "workspace:*",
     "@rainforest-dev/web-ai": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query": "5.104.1",
