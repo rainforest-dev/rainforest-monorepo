@@ -181,6 +181,25 @@ describe('matchesSearch', () => {
     expect(matchesSearch(DIGEST, q)).toBe(expected);
   });
 
+  it('matches every word in any order and any field', () => {
+    const rust = [
+      source('Rust Blog'),
+      source('Blog about Rust'),
+      source('Rust Weekly', { category: 'Blogs' }),
+      source('Go Blog'),
+    ];
+    expect(names(rust.filter((s) => matchesSearch(s, 'rust blog')))).toEqual([
+      'Rust Blog',
+      'Blog about Rust',
+      'Rust Weekly',
+    ]);
+    expect(names(rust.filter((s) => matchesSearch(s, 'ｒｕｓｔ')))).toEqual([
+      'Rust Blog',
+      'Blog about Rust',
+      'Rust Weekly',
+    ]);
+  });
+
   it('combines with the facets', () => {
     const f = filters({ q: 'domain/news', status: ['no-rss'] });
     expect(names(filterSources(SOURCES, f))).toEqual(['Studio Halcyon']);

@@ -79,6 +79,18 @@ describe('matchesTopicSearch', () => {
   ])('single word %j matches %s', (q, expected) => {
     expect(matchesTopicSearch(TOOLING, q)).toBe(expected);
   });
+
+  it('matches every word across name, description and tags', () => {
+    expect(
+      names(filterTopics(TOPICS, { tq: 'dns lab', tstatus: null })),
+    ).toEqual(['Home lab networking']);
+    expect(
+      names(filterTopics(TOPICS, { tq: 'ＥＤＧＥ caches', tstatus: null })),
+    ).toEqual(['Edge infrastructure']);
+    expect(
+      names(filterTopics(TOPICS, { tq: 'edge dns', tstatus: null })),
+    ).toEqual([]);
+  });
 });
 
 describe('topicStatusCounts', () => {
