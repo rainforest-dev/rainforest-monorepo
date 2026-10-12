@@ -155,6 +155,32 @@ describe('matchesSearch', () => {
     expect(matchesSearch(SOURCES[0], 'kernel')).toBe(false);
   });
 
+  const DIGEST = source('C++ & .NET Digest', {
+    category: 'Languages',
+    tags: ['tech/c++', 'tech/.net'],
+  });
+
+  it.each([
+    ['c++', true],
+    ['C++', true],
+    ['++', true],
+    ['c#', false],
+    ['.net', true],
+    ['.NET', true],
+    ['  .net ', true],
+    ['net', true],
+    ['&', true],
+    ['-', true],
+    ['tech/.net', true],
+    ['feeds.example/c-net-digest', true],
+    ['DIGEST', true],
+    ['languages', true],
+    ['rust', false],
+    ['', true],
+  ])('single word %j matches %s', (q, expected) => {
+    expect(matchesSearch(DIGEST, q)).toBe(expected);
+  });
+
   it('combines with the facets', () => {
     const f = filters({ q: 'domain/news', status: ['no-rss'] });
     expect(names(filterSources(SOURCES, f))).toEqual(['Studio Halcyon']);

@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { Topic } from '@/lib/registry.types';
 
-import { filterTopics, topicStatusCounts } from './topics.js';
+import {
+  filterTopics,
+  matchesTopicSearch,
+  topicStatusCounts,
+} from './topics.js';
 
 const topic = (
   name: string,
@@ -51,6 +55,29 @@ describe('filterTopics', () => {
     expect(
       names(filterTopics(TOPICS, { tq: 'dns', tstatus: 'active' })),
     ).toEqual([]);
+  });
+});
+
+describe('matchesTopicSearch', () => {
+  const TOOLING = topic('C++ tooling', 'proposed', 'Build & .NET interop', [
+    'tech/c++',
+  ]);
+
+  it.each([
+    ['c++', true],
+    ['C++', true],
+    ['+', true],
+    ['c#', false],
+    ['.net', true],
+    ['  .NET ', true],
+    ['&', true],
+    ['interop', true],
+    ['TOOLING', true],
+    ['tech/c', true],
+    ['rust', false],
+    ['', true],
+  ])('single word %j matches %s', (q, expected) => {
+    expect(matchesTopicSearch(TOOLING, q)).toBe(expected);
   });
 });
 
