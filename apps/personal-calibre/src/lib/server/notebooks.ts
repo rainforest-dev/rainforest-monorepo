@@ -1,0 +1,407 @@
+import { createHash } from 'node:crypto';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
+import { ToolInputError } from '@rainforest-dev/mcp-kit';
+import { and, asc, count, eq, max, sql } from 'drizzle-orm';
+
+import { appDb, appDbPath, notebookPages, notebooks } from '@/db';
+import type {
+  AppendPagesResult,
+  Notebook,
+  NotebookDetail,
+  NotebookPage,
+  NotebookSummary,
+  PageTranscriptionInput,
+  SkippedPage,
+} from '@/types';
+
+export const MAX_PAGE_BYTES = 25 * 1024 * 1024;
+
+const EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/heic': 'heic',
+  'image/webp': 'webp',
+};
+
+const MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  heic: 'image/heic',
+  webp: 'image/webp',
+};
+
+const GENERIC_TYPES = new Set(['', 'application/octet-stream']);
+
+export const PDF_NOT_SUPPORTED =
+  'PDF uploads are not supported yet; upload each page as a JPEG, PNG, HEIC or WebP image';
+
+/** One uploaded page image, as read from a multipart field. */
+export interface PageUpload {
+  name: string;
+  type: string;
+  bytes: Uint8Array;
+}
+
+export type UploadCheck =
+  | { ok: true; mimeType: string }
+  | { ok: false; status: 413 | 415; message: string };
+
+/** Where page images are stored: `CALIBRE_NOTEBOOKS_DIR`, else `notebooks/` beside the app DB. */
+export function notebooksDir(): string {
+  return (
+    process.env.CALIBRE_NOTEBOOKS_DIR ??
+    path.join(path.dirname(appDbPath()), 'notebooks')
+  );
+}
+
+const extensionOf = (name: string): string =>
+  path.extname(name).slice(1).toLowerCase();
+
+/**
+ * Resolves the stored MIME type of an upload. A declared image type wins; a blank or generic
+ * type (as some HTTP clients send) falls back to the file extension.
+ */
+export function resolvePageMimeType(name: string, type: string): string | null {
+  const declared = type.trim().toLowerCase();
+  if (EXTENSIONS[declared]) return declared;
+  if (!GENERIC_TYPES.has(declared)) return null;
+  return MIME_BY_EXTENSION[extensionOf(name)] ?? null;
+}
+
+export function checkPageUpload(file: {
+  name: string;
+  type: string;
+  size: number;
+}): UploadCheck {
+  const mimeType = resolvePageMimeType(file.name, file.type);
+  if (!mimeType) {
+    const isPdf =
+      file.type.toLowerCase() === 'application/pdf' ||
+      extensionOf(file.name) === 'pdf';
+    return {
+      ok: false,
+      status: 415,
+      message: isPdf
+        ? `${file.name}: ${PDF_NOT_SUPPORTED}`
+        : `${file.name}: unsupported type; upload a JPEG, PNG, HEIC or WebP image`,
+    };
+  }
+  if (file.size > MAX_PAGE_BYTES) {
+    return {
+      ok: false,
+      status: 413,
+      message: `${file.name}: larger than the 25 MB limit`,
+    };
+  }
+  return { ok: true, mimeType };
+}
+
+/**
+ * Reads every `file` field of a multipart form. A request carrying any file the shelf cannot
+ * store is refused whole, so a caller never has to work out which half of a batch landed.
+ */
+export async function readPageUploads(
+  form: FormData,
+): Promise<
+  | { ok: true; uploads: PageUpload[] }
+  | { ok: false; status: 400 | 413 | 415; message: string }
+> {
+  const files = form
+    .getAll('file')
+    .filter((value): value is File => typeof value !== 'string');
+  if (files.length === 0) {
+    return { ok: false, status: 400, message: 'Attach at least one file' };
+  }
+  for (const file of files) {
+    const check = checkPageUpload(file);
+    if (!check.ok) return check;
+  }
+  const uploads = await Promise.all(
+    files.map(async (file) => ({
+      name: file.name,
+      type: file.type,
+      bytes: new Uint8Array(await file.arrayBuffer()),
+    })),
+  );
+  return { ok: true, uploads };
+}
+
+export const hashBytes = (bytes: Uint8Array): string =>
+  createHash('sha256').update(bytes).digest('hex');
+
+const NOTEBOOK_COLUMNS = {
+  id: notebooks.id,
+  name: notebooks.name,
+  status: notebooks.status,
+  startedOn: notebooks.startedOn,
+  endedOn: notebooks.endedOn,
+  createdAt: notebooks.createdAt,
+};
+
+const PAGE_COLUMNS = {
+  id: notebookPages.id,
+  notebookId: notebookPages.notebookId,
+  position: notebookPages.position,
+  pageNumber: notebookPages.pageNumber,
+  pageDate: notebookPages.pageDate,
+  fileName: notebookPages.fileName,
+  mimeType: notebookPages.mimeType,
+  bytes: notebookPages.bytes,
+  transcription: notebookPages.transcription,
+  transcribedAt: notebookPages.transcribedAt,
+  source: notebookPages.source,
+  createdAt: notebookPages.createdAt,
+};
+
+export async function listNotebooks(): Promise<NotebookSummary[]> {
+  return appDb
+    .select({
+      ...NOTEBOOK_COLUMNS,
+      pageCount: count(notebookPages.id),
+      coverPageId: sql<number | null>`(
+        SELECT cover.id FROM notebook_pages cover
+        WHERE cover.notebook_id = ${notebooks.id}
+        ORDER BY cover.position LIMIT 1
+      )`,
+    })
+    .from(notebooks)
+    .leftJoin(notebookPages, eq(notebookPages.notebookId, notebooks.id))
+    .groupBy(notebooks.id)
+    .orderBy(
+      sql`CASE ${notebooks.status} WHEN 'active' THEN 0 ELSE 1 END`,
+      asc(notebooks.name),
+    )
+    .all();
+}
+
+function findNotebook(id: number): Notebook | null {
+  return (
+    appDb
+      .select(NOTEBOOK_COLUMNS)
+      .from(notebooks)
+      .where(eq(notebooks.id, id))
+      .get() ?? null
+  );
+}
+
+export async function getNotebook(id: number): Promise<NotebookDetail | null> {
+  const notebook = findNotebook(id);
+  if (!notebook) return null;
+  const pages = appDb
+    .select(PAGE_COLUMNS)
+    .from(notebookPages)
+    .where(eq(notebookPages.notebookId, id))
+    .orderBy(asc(notebookPages.position))
+    .all();
+  return {
+    ...notebook,
+    pageCount: pages.length,
+    coverPageId: pages[0]?.id ?? null,
+    pages,
+  };
+}
+
+/** Pages of a notebook whose position is within `[from, to]`, in order, at most `limit`. */
+export async function getNotebookPages(
+  notebookId: number,
+  { from = 1, to, limit }: { from?: number; to?: number; limit?: number } = {},
+): Promise<NotebookPage[] | null> {
+  if (!findNotebook(notebookId)) return null;
+  const query = appDb
+    .select(PAGE_COLUMNS)
+    .from(notebookPages)
+    .where(
+      and(
+        eq(notebookPages.notebookId, notebookId),
+        sql`${notebookPages.position} >= ${from}`,
+        to === undefined ? undefined : sql`${notebookPages.position} <= ${to}`,
+      ),
+    )
+    .orderBy(asc(notebookPages.position));
+  return limit === undefined ? query.all() : query.limit(limit).all();
+}
+
+const normalizeName = (name: string): string => {
+  const trimmed = name.trim();
+  if (!trimmed) throw new ToolInputError('Notebook name is required');
+  if (trimmed.length > 120) {
+    throw new ToolInputError('Notebook name is longer than 120 characters');
+  }
+  return trimmed;
+};
+
+export async function createNotebook(name: string): Promise<Notebook> {
+  const trimmed = normalizeName(name);
+  const existing = appDb
+    .select({ id: notebooks.id })
+    .from(notebooks)
+    .where(eq(notebooks.name, trimmed))
+    .get();
+  if (existing) {
+    throw new ToolInputError(`A notebook named "${trimmed}" already exists`);
+  }
+  return appDb
+    .insert(notebooks)
+    .values({ name: trimmed })
+    .returning(NOTEBOOK_COLUMNS)
+    .get();
+}
+
+export async function findOrCreateNotebookByName(
+  name: string,
+): Promise<Notebook> {
+  const trimmed = normalizeName(name);
+  appDb.insert(notebooks).values({ name: trimmed }).onConflictDoNothing().run();
+  return appDb
+    .select(NOTEBOOK_COLUMNS)
+    .from(notebooks)
+    .where(eq(notebooks.name, trimmed))
+    .get()!;
+}
+
+const pageFilePath = (notebookId: number, pageId: number, mimeType: string) =>
+  path.join(
+    notebooksDir(),
+    String(notebookId),
+    `${pageId}.${EXTENSIONS[mimeType] ?? 'bin'}`,
+  );
+
+/**
+ * Appends pages after the notebook's last position, in the order given. A file whose bytes are
+ * already in the notebook is skipped, so re-sending a batch is a no-op.
+ */
+export async function appendPages(
+  notebookId: number,
+  files: PageUpload[],
+  source?: string,
+): Promise<AppendPagesResult> {
+  if (!findNotebook(notebookId)) {
+    throw new ToolInputError(`Notebook ${notebookId} not found`);
+  }
+  mkdirSync(path.join(notebooksDir(), String(notebookId)), { recursive: true });
+
+  const added: number[] = [];
+  const skipped: SkippedPage[] = [];
+
+  for (const file of files) {
+    const check = checkPageUpload({ ...file, size: file.bytes.byteLength });
+    if (!check.ok) {
+      skipped.push({ name: file.name, reason: check.message });
+      continue;
+    }
+    const contentHash = hashBytes(file.bytes);
+
+    const pageId = appDb.transaction((tx) => {
+      const duplicate = tx
+        .select({ id: notebookPages.id })
+        .from(notebookPages)
+        .where(
+          and(
+            eq(notebookPages.notebookId, notebookId),
+            eq(notebookPages.contentHash, contentHash),
+          ),
+        )
+        .get();
+      if (duplicate) return null;
+
+      const last = tx
+        .select({ position: max(notebookPages.position) })
+        .from(notebookPages)
+        .where(eq(notebookPages.notebookId, notebookId))
+        .get();
+      const { id } = tx
+        .insert(notebookPages)
+        .values({
+          notebookId,
+          position: (last?.position ?? 0) + 1,
+          fileName: file.name,
+          mimeType: check.mimeType,
+          bytes: file.bytes.byteLength,
+          contentHash,
+          source: source?.trim() || null,
+        })
+        .returning({ id: notebookPages.id })
+        .get();
+      // Written inside the transaction: a failed write rolls the row back with it.
+      writeFileSync(pageFilePath(notebookId, id, check.mimeType), file.bytes);
+      return id;
+    });
+
+    if (pageId === null) {
+      skipped.push({
+        name: file.name,
+        reason: 'duplicate: already in this notebook',
+      });
+    } else {
+      added.push(pageId);
+    }
+  }
+
+  return { added, skipped };
+}
+
+function findPageFile(
+  pageId: number,
+): { notebookId: number; mimeType: string; fileName: string } | null {
+  return (
+    appDb
+      .select({
+        notebookId: notebookPages.notebookId,
+        mimeType: notebookPages.mimeType,
+        fileName: notebookPages.fileName,
+      })
+      .from(notebookPages)
+      .where(eq(notebookPages.id, pageId))
+      .get() ?? null
+  );
+}
+
+/** Deletes a page and its image. Later pages keep their positions. */
+export async function deletePage(pageId: number): Promise<boolean> {
+  const page = findPageFile(pageId);
+  if (!page) return false;
+  appDb.delete(notebookPages).where(eq(notebookPages.id, pageId)).run();
+  rmSync(pageFilePath(page.notebookId, pageId, page.mimeType), {
+    force: true,
+  });
+  return true;
+}
+
+export async function setPageTranscription(
+  pageId: number,
+  { transcription, pageNumber, pageDate }: PageTranscriptionInput,
+): Promise<NotebookPage | null> {
+  return (
+    appDb
+      .update(notebookPages)
+      .set({
+        transcription,
+        transcribedAt: new Date().toISOString(),
+        ...(pageNumber !== undefined && { pageNumber }),
+        ...(pageDate !== undefined && { pageDate }),
+      })
+      .where(eq(notebookPages.id, pageId))
+      .returning(PAGE_COLUMNS)
+      .get() ?? null
+  );
+}
+
+export async function readPageFile(
+  pageId: number,
+): Promise<{ data: Buffer; mimeType: string; fileName: string } | null> {
+  const page = findPageFile(pageId);
+  if (!page) return null;
+  try {
+    const data = await readFile(
+      pageFilePath(page.notebookId, pageId, page.mimeType),
+    );
+    return { data, mimeType: page.mimeType, fileName: page.fileName };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+}

@@ -2,6 +2,7 @@ import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 
+import { NOTEBOOKS_DDL } from './app-ddl';
 import * as schema from './schema';
 import * as appSchema from './schema-app';
 
@@ -103,18 +104,22 @@ function getWritableSqlite(): BetterSqlite3Database {
   return _writableSqlite;
 }
 
+// The app's own writable DB. It defaults to the library folder, but production mounts the
+// library read-only and points CALIBRE_APP_DB_PATH elsewhere.
+export function appDbPath(): string {
+  const libraryPath = process.env.CALIBRE_LIBRARY_PATH;
+  if (!libraryPath) throw new Error('CALIBRE_LIBRARY_PATH is not set');
+  return (
+    process.env.CALIBRE_APP_DB_PATH ?? `${libraryPath}/personal-calibre-app.db`
+  );
+}
+
 function getAppDb(): AppDb {
   if (!_appDb) {
     // Ensure Calibre DB is open so _rawSqlite is available for FTS sync.
     getCalibreDb();
 
-    const libraryPath = process.env.CALIBRE_LIBRARY_PATH;
-    if (!libraryPath) throw new Error('CALIBRE_LIBRARY_PATH is not set');
-    const appDbPath =
-      process.env.CALIBRE_APP_DB_PATH ??
-      `${libraryPath}/personal-calibre-app.db`;
-
-    _appSqlite = new Database(appDbPath);
+    _appSqlite = new Database(appDbPath());
     _appSqlite.exec(`
       CREATE TABLE IF NOT EXISTS delivery_platforms (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,6 +143,7 @@ function getAppDb(): AppDb {
         ('notebooklm', 'NotebookLM');
       UPDATE book_deliveries SET added_at = datetime('now') WHERE added_at = 'CURRENT_TIMESTAMP';
     `);
+    _appSqlite.exec(NOTEBOOKS_DDL);
 
     syncBooksFts();
 
