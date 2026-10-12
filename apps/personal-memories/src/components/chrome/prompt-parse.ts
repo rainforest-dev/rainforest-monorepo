@@ -1,34 +1,27 @@
+import {
+  createQueryParser,
+  optInSwitch,
+  type ParserSchema,
+  type ParseStatus,
+} from '@rainforest-dev/web-ai';
+
 import type { Person } from '@/lib/people.ts';
 import { localParser, type SearchQuery } from '@/lib/search';
 import type { TimelineSource } from '@/lib/server';
 
+export {
+  languagesFor,
+  type ParseStatus,
+  PROMPT_TIMEOUT_MS,
+  type QueryLanguage,
+  queryLanguage,
+  statusFor,
+} from '@rainforest-dev/web-ai';
+
 export const PROMPT_PARSE_KEY = 'memories:prompt-parse';
-export const PROMPT_TIMEOUT_MS = 1500;
 const MAX_TEXT = 200;
 const SOURCES = ['line', 'slack', 'photo'] as const;
 const DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
-const HAN = /\p{Script=Han}/u;
-
-export type QueryLanguage = 'zh' | 'en';
-
-export const queryLanguage = (raw: string): QueryLanguage =>
-  HAN.test(raw) ? 'zh' : 'en';
-
-export const languagesFor = (lang: QueryLanguage) => ({
-  input: [...new Set(['en', lang])],
-  output: ['en'],
-});
-
-export type ParseStatus =
-  | { kind: 'off' }
-  | { kind: 'unsupported-browser' }
-  | { kind: 'unavailable' }
-  | { kind: 'unsupported-language'; lang: QueryLanguage }
-  | { kind: 'needs-download' }
-  | { kind: 'downloading'; progress: number }
-  | { kind: 'ai' }
-  | { kind: 'ai-timeout' }
-  | { kind: 'local' };
 
 export function statusText(status: ParseStatus): string {
   switch (status.kind) {
@@ -55,27 +48,9 @@ export function statusText(status: ParseStatus): string {
   }
 }
 
-export function readSwitch(
-  storage: Pick<Storage, 'getItem'> | undefined,
-): boolean {
-  try {
-    return storage?.getItem(PROMPT_PARSE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function writeSwitch(
-  storage: Pick<Storage, 'setItem' | 'removeItem'> | undefined,
-  on: boolean,
-): void {
-  try {
-    if (on) storage?.setItem(PROMPT_PARSE_KEY, '1');
-    else storage?.removeItem(PROMPT_PARSE_KEY);
-  } catch {
-    return;
-  }
-}
+const PROMPT_SWITCH = optInSwitch(PROMPT_PARSE_KEY);
+export const readSwitch = PROMPT_SWITCH.read;
+export const writeSwitch = PROMPT_SWITCH.write;
 
 export function promptSchema(
   people: readonly Person[],
@@ -181,47 +156,25 @@ export const parseStaleTime = (
   data: Pick<ParseResult, 'status'> | undefined,
 ) => (data?.status === 'ai' ? Infinity : 0);
 
-export function statusFor({
-  supported,
-  on,
-  progress,
-  capability,
-  lang,
-  parsed,
-}: {
-  supported: boolean;
-  on: boolean;
-  progress: number | undefined;
-  capability:
-    | 'unsupported'
-    | 'unavailable'
-    | 'downloadable'
-    | 'downloading'
-    | 'ready'
-    | undefined;
-  lang: QueryLanguage;
-  parsed: ParseResult['status'] | undefined;
-}): ParseStatus {
-  if (!supported) return { kind: 'unsupported-browser' };
-  if (!on) return { kind: 'off' };
-  if (progress !== undefined) return { kind: 'downloading', progress };
-  switch (capability) {
-    case 'unavailable':
-      return lang === 'en'
-        ? { kind: 'unavailable' }
-        : { kind: 'unsupported-language', lang };
-    case 'unsupported':
-      return { kind: 'unavailable' };
-    case 'downloadable':
-      return { kind: 'needs-download' };
-    case 'downloading':
-      return { kind: 'downloading', progress: 0 };
-    default:
-      return parsed ? { kind: parsed } : { kind: 'off' };
-  }
-}
-
 export type AiParse = (raw: string, signal: AbortSignal) => Promise<unknown>;
+
+const handWritten = (people: readonly Person[]): ParserSchema<SearchQuery> => ({
+  '~standard': {
+    validate: (value) => {
+      const query = toSearchQuery(value, people);
+      return query ? { value: query } : { issues: [{ message: 'invalid' }] };
+    },
+    jsonSchema: { input: () => promptSchema(people) },
+  },
+});
+
+const parser = createQueryParser<
+  SearchQuery,
+  { today: string; people: readonly Person[] }
+>({
+  schema: ({ people }) => handWritten(people),
+  local: (raw, { today, people }) => localParser(raw, today, people),
+});
 
 export async function parseWithFallback(
   raw: string,
@@ -230,27 +183,11 @@ export async function parseWithFallback(
   ai: AiParse | undefined,
   signal?: AbortSignal,
 ): Promise<ParseResult> {
-  const local = () => localParser(raw, today, people);
-  if (!ai) return { query: local(), status: 'local' };
-  const controller = new AbortController();
-  signal?.addEventListener('abort', () => controller.abort(), { once: true });
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<'timeout'>((resolve) => {
-    timer = setTimeout(() => {
-      controller.abort();
-      resolve('timeout');
-    }, PROMPT_TIMEOUT_MS);
-  });
-  try {
-    const answer = await Promise.race([ai(raw, controller.signal), timeout]);
-    if (answer === 'timeout') return { query: local(), status: 'ai-timeout' };
-    const query = toSearchQuery(answer, people);
-    return query
-      ? { query, status: 'ai' }
-      : { query: local(), status: 'local' };
-  } catch {
-    return { query: local(), status: 'local' };
-  } finally {
-    clearTimeout(timer);
-  }
+  const { value, status } = await parser.parse(
+    raw,
+    { today, people },
+    ai ? (_schema, inner) => ai(raw, inner) : undefined,
+    signal,
+  );
+  return { query: value, status };
 }

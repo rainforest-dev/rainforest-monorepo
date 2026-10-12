@@ -4,14 +4,11 @@ import type { Person } from '@/lib/people.ts';
 
 import {
   aiParseKey,
-  languagesFor,
   parseStaleTime,
   parseWithFallback,
   PROMPT_TIMEOUT_MS,
   promptSchema,
-  queryLanguage,
   readSwitch,
-  statusFor,
   statusText,
   toSearchQuery,
 } from './prompt-parse.ts';
@@ -21,14 +18,6 @@ const TODAY = '2026-10-01';
 
 afterEach(() => {
   vi.useRealTimers();
-});
-
-describe('queryLanguage', () => {
-  it('treats any CJK character as Chinese and everything else as English', () => {
-    expect(queryLanguage('拉麵')).toBe('zh');
-    expect(queryLanguage('ramen 拉麵')).toBe('zh');
-    expect(queryLanguage('ramen last christmas')).toBe('en');
-  });
 });
 
 describe('readSwitch', () => {
@@ -149,13 +138,6 @@ describe('parseWithFallback', () => {
   });
 });
 
-describe('languagesFor', () => {
-  it('never repeats a language', () => {
-    expect(languagesFor('en')).toEqual({ input: ['en'], output: ['en'] });
-    expect(languagesFor('zh')).toEqual({ input: ['en', 'zh'], output: ['en'] });
-  });
-});
-
 describe('promptSchema keywords', () => {
   it('leaves people out for an empty roster and sets no length limit', () => {
     const schema = promptSchema([]) as {
@@ -163,34 +145,6 @@ describe('promptSchema keywords', () => {
     };
     expect(schema.properties).not.toHaveProperty('people');
     expect(schema.properties['text']).toEqual({ type: 'string' });
-  });
-});
-
-describe('statusFor', () => {
-  const base = {
-    supported: true,
-    on: true,
-    progress: undefined,
-    lang: 'en' as const,
-    parsed: undefined,
-  };
-
-  it('tells a device that cannot run the model from an unsupported language', () => {
-    expect(statusFor({ ...base, capability: 'unavailable' })).toEqual({
-      kind: 'unavailable',
-    });
-    expect(
-      statusFor({ ...base, lang: 'zh', capability: 'unavailable' }),
-    ).toEqual({ kind: 'unsupported-language', lang: 'zh' });
-  });
-
-  it('reports the parser that ran once the model is ready', () => {
-    expect(statusFor({ ...base, capability: 'ready', parsed: 'ai' })).toEqual({
-      kind: 'ai',
-    });
-    expect(
-      statusFor({ ...base, supported: false, capability: undefined }),
-    ).toEqual({ kind: 'unsupported-browser' });
   });
 });
 
