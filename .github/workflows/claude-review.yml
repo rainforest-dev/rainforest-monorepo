@@ -118,8 +118,11 @@ jobs:
                code this PR did not change. Merge duplicates across reviewers.
             5. Run `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments --paginate`
                and drop any finding that a github-actions[bot] comment already
-               raises at the same path and line, so a re-review does not post
-               duplicates. Post each remaining finding as an inline comment with
+               raises, so a re-review does not post duplicates. Match on the
+               path and on what the comment says, not only the line: a comment
+               made outdated by a later push has a null `line`, so compare
+               against `line // original_line` and treat the same problem near
+               that line as already raised. Post each remaining finding as an inline comment with
                `mcp__github_inline_comment__create_inline_comment` and
                `confirmed: true`, on a line inside the diff. Open the body with
                `🔴 blocking` or `🟡 optional`, then the reviewer's name in
