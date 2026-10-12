@@ -46,11 +46,13 @@ test.describe('MCP tools', () => {
       .filter((t) => t.annotations.readOnlyHint)
       .map((t) => t.name)
       .sort();
-    expect(tools).toHaveLength(10);
+    expect(tools).toHaveLength(13);
     expect(readOnly).toEqual([
       'get_book',
+      'get_notebook_pages',
       'list_books',
       'list_deliveries',
+      'list_notebooks',
       'list_tags',
       'list_undelivered_books',
     ]);
