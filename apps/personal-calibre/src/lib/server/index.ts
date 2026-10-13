@@ -4,4 +4,5 @@ export * from './files';
 export * from './library-query';
 export * from './prefs';
 export * from './queries';
+export * from './search';
 export * from './tags';

@@ -225,6 +225,9 @@ importers:
       '@rainforest-dev/rainforest-ui':
         specifier: workspace:*
         version: link:../../libs/rainforest-ui
+      '@rainforest-dev/search':
+        specifier: workspace:*
+        version: link:../../libs/search
       '@react-three/fiber':
         specifier: 9.8.1
         version: 9.8.1(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.186.1)

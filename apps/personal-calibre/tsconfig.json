@@ -42,6 +42,9 @@
   ],
   "references": [
     {
+      "path": "../../libs/search"
+    },
+    {
       "path": "../../libs/rainforest-ui"
     },
     {
