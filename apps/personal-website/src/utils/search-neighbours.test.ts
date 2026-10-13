@@ -33,15 +33,24 @@ describe('neighbourRanking', () => {
 });
 
 describe('fuseRankings', () => {
+  const lex = (...pairs: [string, number][]) =>
+    pairs.map(([id, score]) => ({ id, score }));
+
   it('keeps the lexical order when there are no neighbours', () => {
-    expect(fuseRankings(['a', 'b'], [])).toEqual(['a', 'b']);
+    expect(fuseRankings(lex(['a', 30], ['b', 30]), [])).toEqual(['a', 'b']);
   });
 
-  it('appends neighbour-only records after a lexical hit they do not share', () => {
-    expect(fuseRankings(['a'], ['z'])).toEqual(['a', 'z']);
+  it('puts neighbour-only records after every lexical hit', () => {
+    expect(fuseRankings(lex(['a', 30], ['b', 5]), ['z', 'b'])).toEqual([
+      'a',
+      'b',
+      'z',
+    ]);
   });
 
-  it('lifts a record found by both rankings', () => {
-    expect(fuseRankings(['a', 'b'], ['b'])).toEqual(['b', 'a']);
+  it('lets neighbours break ties inside one lexical score', () => {
+    expect(
+      fuseRankings(lex(['a', 30], ['b', 30], ['c', 5]), ['c', 'b']),
+    ).toEqual(['b', 'a', 'c']);
   });
 });

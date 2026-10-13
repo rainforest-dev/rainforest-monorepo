@@ -61,7 +61,11 @@ export function buildVocabulary(
 export const hashVocabulary = (vocabulary: string[]) =>
   hashText(JSON.stringify(vocabulary));
 
-const languageOf = (id: string) => id.split('/')[1];
+const LANGUAGES = new Set(['en', 'zh']);
+const languageOf = (id: string) => {
+  const segment = id.split('/')[1];
+  return LANGUAGES.has(segment) ? segment : undefined;
+};
 
 export function selectNeighbours({
   recordIds,
@@ -78,7 +82,7 @@ export function selectNeighbours({
   dims: number;
   floor: number;
 }): Record<string, Neighbour[]> {
-  const languages = [...new Set(recordIds.map(languageOf))].sort();
+  const languages = [...LANGUAGES].sort();
   const terms: Record<string, Neighbour[]> = {};
   vocabulary.forEach((term, i) => {
     const query = termVectors.subarray(i * dims, (i + 1) * dims);
@@ -88,7 +92,7 @@ export function selectNeighbours({
         dims,
         query,
         NEIGHBOURS_PER_LANGUAGE,
-        (row) => languageOf(recordIds[row]) === language,
+        (row) => (languageOf(recordIds[row]) ?? language) === language,
       )
         .filter(({ score }) => score >= floor)
         .map(({ row, score }): Neighbour => [

@@ -44,7 +44,7 @@ export function searchRecords<T extends Searchable>(
     // Array.prototype.sort is stable, so equal scores keep their input order rather than
     // shuffling between renders.
     .sort((a, b) => b.score - a.score)
-    .map(({ record }) => record.id);
+    .map(({ record, score }) => ({ id: record.id, score }));
   const byId = new Map(records.map((record) => [record.id, record]));
   const nearby = neighbourRanking(query, neighbours).filter((id) =>
     byId.has(id),

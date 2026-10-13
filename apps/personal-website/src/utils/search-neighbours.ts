@@ -30,18 +30,19 @@ export function neighbourRanking(
 }
 
 export function fuseRankings(
-  tiered: readonly string[],
+  tiered: readonly { id: string; score: number }[],
   neighbours: readonly string[],
 ): string[] {
-  if (neighbours.length === 0) return [...tiered];
-  const known = new Set(tiered);
-  const added = neighbours.filter((id) => !known.has(id));
-  const scores = rrf([tiered, neighbours]);
-  const order = [...tiered, ...added];
-  const position = new Map(order.map((id, i) => [id, i]));
-  return order.sort(
+  const ids = tiered.map(({ id }) => id);
+  if (neighbours.length === 0) return ids;
+  const fused = rrf([ids, neighbours]);
+  const known = new Set(ids);
+  const lexical = [...tiered].sort(
     (a, b) =>
-      (scores.get(b) ?? 0) - (scores.get(a) ?? 0) ||
-      (position.get(a) ?? 0) - (position.get(b) ?? 0),
+      b.score - a.score || (fused.get(b.id) ?? 0) - (fused.get(a.id) ?? 0),
   );
+  return [
+    ...lexical.map(({ id }) => id),
+    ...neighbours.filter((id) => !known.has(id)),
+  ];
 }

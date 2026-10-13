@@ -48,7 +48,7 @@ try {
       `cannot reach Ollama at ${OLLAMA_URL} (${error.message}). Set OLLAMA_URL.`,
     );
   fail(
-    `model ${MODEL} is not on ${OLLAMA_URL}: ${error.models.join(', ')}. Set OLLAMA_EMBED_MODEL.`,
+    `${error.message} Model ${MODEL}, available at ${OLLAMA_URL}: ${error.models.join(', ') || '(none)'}. Set OLLAMA_EMBED_MODEL or pull the model.`,
   );
 }
 

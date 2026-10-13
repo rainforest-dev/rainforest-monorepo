@@ -8,6 +8,7 @@ import { EXPANSIONS_PATH, loadPaletteRecords } from './palette-sources.ts';
 import {
   NEIGHBOURS_PATH,
   neighbourStaleness,
+  selectNeighbours,
 } from './search-neighbours-build.ts';
 
 const expansions = (
@@ -68,5 +69,39 @@ describe('committed search-neighbours.json', () => {
     const result = neighbourStaleness(file, [...changed, ...rest], expansions);
     expect(result.stale).toEqual([first.id]);
     expect(result.vocabulary).toBe(true);
+  });
+});
+
+describe('selectNeighbours', () => {
+  const unit = (...v: number[]) => Float32Array.from(v);
+
+  it('keeps the top records per language above the floor, and shares language-less records', () => {
+    const terms = selectNeighbours({
+      recordIds: ['skill/en/a', 'skill/zh/a', 'post/shared', 'skill/en/far'],
+      recordVectors: Float32Array.from([1, 0, 1, 0.1, 0.9, 0.4, 0, 1]),
+      vocabulary: ['x'],
+      termVectors: unit(1, 0),
+      dims: 2,
+      floor: 0.5,
+    });
+    expect(terms.x?.map(([id]) => id)).toEqual([
+      'skill/en/a',
+      'post/shared',
+      'skill/zh/a',
+      'post/shared',
+    ]);
+  });
+
+  it('drops a term with no neighbour above the floor', () => {
+    expect(
+      selectNeighbours({
+        recordIds: ['skill/en/a'],
+        recordVectors: unit(0, 1),
+        vocabulary: ['x'],
+        termVectors: unit(1, 0),
+        dims: 2,
+        floor: 0.5,
+      }),
+    ).toEqual({});
   });
 });

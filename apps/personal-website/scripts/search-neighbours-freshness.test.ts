@@ -6,6 +6,7 @@ import type { ExpansionFile } from '../src/utils/search-expansions.ts';
 import type { NeighbourFile } from '../src/utils/search-neighbours.ts';
 import { EXPANSIONS_PATH, loadPaletteRecords } from './palette-sources.ts';
 import {
+  NEIGHBOUR_FLOOR,
   NEIGHBOURS_PATH,
   neighbourStaleness,
 } from './search-neighbours-build.ts';
@@ -33,5 +34,6 @@ describe('search-neighbours.json', () => {
         `Regenerate with: ${REGENERATE}`,
       ].join('\n'),
     ).toEqual({ stale: [], vocabulary: false });
+    expect(file.floor, `Regenerate with: ${REGENERATE}`).toBe(NEIGHBOUR_FLOOR);
   });
 });

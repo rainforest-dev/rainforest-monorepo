@@ -14,13 +14,16 @@
 - Neighbours are kept per term **per language** (top 8 for `en`, top 8 for `zh`, from the id's second segment). The palette shows one language at a time, so a global top 8 would leave one language with nothing for many terms.
 - Scores are rounded to three decimals. Terms with no neighbour above the floor are dropped.
 - Cache: `.cache/search-vectors/` (gitignored), two index pairs written with `writeIndexFiles`: `records.json`/`records.bin` and `terms.json`/`terms.bin`. Rows are reused through `planReuse` only when model and dims match.
-- Run time: `neighbourRanking(query, file)` folds and trims the query; below two characters it returns `[]` without reading `terms`. Otherwise every term equal to or starting with the query contributes its neighbours, a record keeps its best score, and the ranking is score desc then id asc. `searchRecords` keeps today's order when that ranking holds none of its records, and otherwise orders the union by `rrf([tiered, neighbours])`, ties in tiered order.
+- Run time: `neighbourRanking(query, file)` folds and trims the query; below two characters it returns `[]` without reading `terms`. Otherwise every term equal to or starting with the query contributes its neighbours, a record keeps its best score, and the ranking is score desc then id asc. `searchRecords` keeps today's order when that ranking holds none of its records, Otherwise lexical hits keep their `tieredMatch` score bands, `rrf([tiered, neighbours])` orders records inside one band, and neighbour-only records follow every lexical hit in neighbour order. Plain RRF let a neighbour-only record outrank exact keyword hits: for "react", Next.js rose above three records that list React.
 
 ## Floor calibration
 
 A 30-query set, 20 vocabulary terms plus 10 queries outside the vocabulary (the W2 spike reuses it), lives in `scripts/search-eval-queries.ts`. Each of the 20 in-vocabulary terms has hand-labelled relevant records. The floor is the lowest cosine among those labelled neighbours that top 8 can keep, written as `NEIGHBOUR_FLOOR` and into the PR with the per-term table.
 
-Result: that rule gives 0.667, which writes 108.7 KB, over the 100 KB cap. The next labelled score, 0.707, writes 66.8 KB and loses one label (`實習生` → en `experience/4`, 0.667). Two labels sit below rank 8 and no floor can keep them: `區塊鏈` → `hashgreen-swap` (0.581, rank 27) and `hoogii-wallet` (0.667, rank 9).
+Result: that rule gives 0.667, which writes 108.7 KB, over the 100 KB cap. The next labelled score, 0.707, writes 66.8 KB. Labels are written without the language segment and apply to both `en` and `zh` records. Eight labelled neighbours are missing from the artifact:
+
+- Lost to the floor: `實習生` → en `experience/4` (0.667, #5).
+- Below rank 8 in their language, so no floor keeps them: `資料庫` → `skill/fastapi` (0.659, #20–21); `backend` → `skill/python` (0.699, #17–19); `後端` → `skill/fastapi` (0.713, #9–11) and `skill/python` (0.711, #10–12); `區塊鏈` → `project/hashgreen-swap` (0.581, #22–27) and `project/hoogii-wallet` (0.667, #9–10); `monorepo` → en `post/deconstruct-personal-website/project-init` (0.652, #15).
 
 ## Steps
 
