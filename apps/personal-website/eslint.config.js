@@ -33,4 +33,21 @@ export default [
       ],
     },
   },
+  {
+    files: ['src/**/*.astro'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@rainforest-dev/search/node',
+              message:
+                'The public site never reaches a private host. Generate Ollama artifacts in scripts/ and commit them.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
