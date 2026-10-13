@@ -15,10 +15,18 @@ import {
 } from '@/db';
 import type { BookSummary } from '@/types';
 
+import { searchBookIds } from './search';
+
+export const SEARCH_MIN_CHARS = 3;
+
+export const usesSearch = (q: string | undefined): q is string =>
+  (q?.trim().length ?? 0) >= SEARCH_MIN_CHARS;
+
 export interface BookListParams {
   page?: number;
   limit?: number;
   q?: string;
+  ids?: number[];
   authorId?: number;
   tagId?: number;
   seriesId?: number;
@@ -111,13 +119,23 @@ export async function hydrateBooks(bookIds: number[]): Promise<BookSummary[]> {
 export async function buildBookConditions(
   params: Pick<
     BookListParams,
-    'q' | 'authorId' | 'tagId' | 'seriesId' | 'platformKey' | 'delivered'
+    | 'q'
+    | 'ids'
+    | 'authorId'
+    | 'tagId'
+    | 'seriesId'
+    | 'platformKey'
+    | 'delivered'
   >,
 ) {
-  const { q, authorId, tagId, seriesId, platformKey, delivered } = params;
+  const { q, ids, authorId, tagId, seriesId, platformKey, delivered } = params;
   const conditions = [];
 
-  if (q) {
+  if (ids) {
+    conditions.push(inArray(books.id, ids));
+  } else if (usesSearch(q)) {
+    conditions.push(inArray(books.id, (await searchBookIds(q)).ids));
+  } else if (q) {
     const authorBookIds = db
       .select({ id: booksAuthorsLink.book })
       .from(booksAuthorsLink)
@@ -174,6 +192,16 @@ export async function buildBookConditions(
   }
 
   return conditions;
+}
+
+export function bookOrder({
+  ids,
+  sortBy,
+  sortDir,
+}: Pick<BookListParams, 'ids' | 'sortBy' | 'sortDir'>) {
+  if (ids && !sortBy)
+    return sql`(SELECT key FROM json_each(${JSON.stringify(ids)}) WHERE value = ${books.id})`;
+  return buildOrderExpr(sortBy, sortDir);
 }
 
 export function buildOrderExpr(

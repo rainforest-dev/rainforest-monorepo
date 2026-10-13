@@ -16,6 +16,7 @@ import {
   getFilterOptions,
   getGroupedBookList,
   listUndeliveredBooks,
+  searchBookList,
 } from '@/lib/server/queries';
 import {
   addTagToBook,
@@ -29,6 +30,7 @@ import type { CalibreLibrary } from './tools';
 export const liveLibrary: CalibreLibrary = {
   getBookList,
   getGroupedBookList,
+  searchBookList,
   getBook,
   listUndeliveredBooks,
   listBookDeliveryEvents,

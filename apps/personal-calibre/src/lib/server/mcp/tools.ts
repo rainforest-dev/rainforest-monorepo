@@ -24,6 +24,7 @@ import type {
   getFilterOptions,
   getGroupedBookList,
   listUndeliveredBooks,
+  searchBookList,
 } from '@/lib/server/queries';
 import type {
   addTagToBook,
@@ -36,6 +37,7 @@ import { httpUrlSchema } from '@/lib/url';
 export type CalibreLibrary = {
   getBookList: typeof getBookList;
   getGroupedBookList: typeof getGroupedBookList;
+  searchBookList: typeof searchBookList;
   getBook: typeof getBook;
   listUndeliveredBooks: typeof listUndeliveredBooks;
   listBookDeliveryEvents: typeof listBookDeliveryEvents;
@@ -75,9 +77,9 @@ export const calibreTools = (library: CalibreLibrary): McpTool[] => [
     name: 'list_books',
     title: 'List books',
     description:
-      'Search and list books. When groupBy is set, returns { groups } with 6 preview books each; otherwise returns { books, total }.',
+      'Search and list books. The query is full-text plus semantic, ordered by relevance unless sortBy is set, and lexical-only when the embedding service is unreachable; queries under 3 characters match by substring. When groupBy is set, returns { groups } with 6 preview books each; otherwise returns { books, total }. Both carry semantic ("on" | "off") and, when semantic search could not answer, reason.',
     input: {
-      query: z.string().optional().describe('Full-text search'),
+      query: z.string().optional().describe('Full-text plus semantic search'),
       authorId: z.number().int().optional(),
       tagId: z.number().int().optional(),
       seriesId: z.number().int().optional(),
@@ -98,10 +100,8 @@ export const calibreTools = (library: CalibreLibrary): McpTool[] => [
       limit: limit(),
     },
     annotations: READ,
-    run: ({ query, groupBy, page, limit, ...filters }) =>
-      groupBy
-        ? library.getGroupedBookList({ q: query, ...filters, groupBy })
-        : library.getBookList({ q: query, ...filters, page, limit }),
+    run: ({ query, ...params }) =>
+      library.searchBookList({ q: query, ...params }),
   }),
 
   defineTool({
