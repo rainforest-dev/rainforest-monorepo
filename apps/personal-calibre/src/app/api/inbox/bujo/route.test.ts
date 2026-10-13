@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import sharp from 'sharp';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { getNotebook } from '@/lib/server';
@@ -11,7 +12,24 @@ import { POST } from './route';
 
 const SECRET = 'inbox-test-secret';
 
-beforeAll(() => {
+/** Real image bytes per `fill`: the shelf re-encodes uploads, so they must decode. */
+const pixels = new Map<number, Uint8Array<ArrayBuffer>>();
+
+beforeAll(async () => {
+  for (const fill of [1, 2, 3, 5, 9]) {
+    const png = await sharp({
+      create: {
+        width: 4,
+        height: 4,
+        channels: 3,
+        background: { r: fill, g: fill, b: fill },
+      },
+    })
+      .png()
+      .toBuffer();
+    pixels.set(fill, new Uint8Array(png));
+  }
+
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'calibre-inbox-'));
   process.env.CALIBRE_LIBRARY_PATH = createCalibreDb({
     authors: [],
@@ -27,8 +45,9 @@ afterEach(() => {
   delete process.env.CALIBRE_INBOX_SECRET;
 });
 
+// The declared type only routes the upload; sharp reads the format from the bytes.
 const image = (name: string, fill: number, type = 'image/jpeg') =>
-  new File([new Uint8Array(32).fill(fill)], name, { type });
+  new File([pixels.get(fill) ?? new Uint8Array()], name, { type });
 
 function inbox(
   headers: Record<string, string>,
@@ -104,7 +123,8 @@ describe('POST /api/inbox/bujo', () => {
       ['p2.png', 2, 'n8n'],
       ['p3.webp', 3, 'inbox'],
     ]);
-    expect(notebook?.pages[2]?.mimeType).toBe('image/webp');
+    // Every page is stored as a JPEG, whatever it arrived as.
+    expect(notebook?.pages[2]?.mimeType).toBe('image/jpeg');
   });
 
   it('refuses a PDF with 415', async () => {

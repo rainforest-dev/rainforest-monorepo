@@ -4,7 +4,11 @@ import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
 
-import { NotebookPageGrid, PageUploader } from '@/components/notebooks';
+import {
+  NotebookActions,
+  NotebookPageGrid,
+  PageUploader,
+} from '@/components/notebooks';
 import { getNotebook } from '@/lib/server';
 
 interface Props {
@@ -47,10 +51,18 @@ async function NotebookContent({ params }: Props) {
           </h1>
           <p className="text-muted-foreground text-sm">
             {notebook.pageCount} page{notebook.pageCount === 1 ? '' : 's'}
-            {notebook.status === 'archived' && ' · Archived'}
+            {notebook.status === 'archived' &&
+              ` · Archived${notebook.endedOn ? ` ${notebook.endedOn}` : ''}`}
           </p>
         </div>
-        <PageUploader notebookId={notebook.id} />
+        <div className="flex flex-wrap gap-2">
+          <NotebookActions
+            notebookId={notebook.id}
+            status={notebook.status}
+            pageCount={notebook.pageCount}
+          />
+          <PageUploader notebookId={notebook.id} />
+        </div>
       </div>
       <NotebookPageGrid pages={notebook.pages} />
     </>

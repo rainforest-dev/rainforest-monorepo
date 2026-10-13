@@ -12,10 +12,13 @@ import type {
   Notebook,
   NotebookDetail,
   NotebookPage,
+  NotebookStatus,
   NotebookSummary,
   PageTranscriptionInput,
   SkippedPage,
 } from '@/types';
+
+import { normalizePageImage, type PageImage } from './page-image';
 
 export const MAX_PAGE_BYTES = 25 * 1024 * 1024;
 
@@ -270,6 +273,28 @@ export async function findOrCreateNotebookByName(
   return created;
 }
 
+/**
+ * Archives a finished notebook, dating its end today unless it already has one, or reopens it,
+ * which clears the end date. Returns `null` for an unknown notebook.
+ */
+export async function setNotebookStatus(
+  id: number,
+  status: NotebookStatus,
+): Promise<Notebook | null> {
+  const notebook = findNotebook(id);
+  if (!notebook) return null;
+  const endedOn =
+    status === 'archived'
+      ? (notebook.endedOn ?? new Date().toISOString().slice(0, 10))
+      : null;
+  return appDb
+    .update(notebooks)
+    .set({ status, endedOn })
+    .where(eq(notebooks.id, id))
+    .returning(NOTEBOOK_COLUMNS)
+    .get();
+}
+
 // The ignore comments keep Turbopack from tracing the whole project into the standalone
 // output: these paths point at runtime data outside the app.
 const pageFilePath = (notebookId: number, pageId: number, mimeType: string) =>
@@ -279,9 +304,12 @@ const pageFilePath = (notebookId: number, pageId: number, mimeType: string) =>
     `${pageId}.${EXTENSIONS[mimeType] ?? 'bin'}`,
   );
 
+const DUPLICATE = 'duplicate: already in this notebook';
+
 /**
- * Appends pages after the notebook's last position, in the order given. A file whose bytes are
- * already in the notebook is skipped, so re-sending a batch is a no-op.
+ * Appends pages after the notebook's last position, in the order given, each stored as a JPEG
+ * (see `normalizePageImage`). A file whose uploaded bytes are already in the notebook is
+ * skipped, so re-sending a batch is a no-op; so is a file that is not a readable image.
  */
 export async function appendPages(
   notebookId: number,
@@ -295,6 +323,17 @@ export async function appendPages(
 
   const added: number[] = [];
   const skipped: SkippedPage[] = [];
+  const isDuplicate = (db: Pick<typeof appDb, 'select'>, contentHash: string) =>
+    db
+      .select({ id: notebookPages.id })
+      .from(notebookPages)
+      .where(
+        and(
+          eq(notebookPages.notebookId, notebookId),
+          eq(notebookPages.contentHash, contentHash),
+        ),
+      )
+      .get() !== undefined;
 
   for (const file of files) {
     const check = checkPageUpload({ ...file, size: file.bytes.byteLength });
@@ -302,20 +341,23 @@ export async function appendPages(
       skipped.push({ name: file.name, reason: check.message });
       continue;
     }
+    // Hashed as uploaded, so the same photo is recognised however it is re-encoded.
     const contentHash = hashBytes(file.bytes);
+    // Checked again inside the transaction; this one only spares re-encoding a re-sent photo.
+    if (isDuplicate(appDb, contentHash)) {
+      skipped.push({ name: file.name, reason: DUPLICATE });
+      continue;
+    }
+    let image: PageImage;
+    try {
+      image = await normalizePageImage(file.bytes, check.mimeType);
+    } catch {
+      skipped.push({ name: file.name, reason: 'not a readable image' });
+      continue;
+    }
 
     const pageId = appDb.transaction((tx) => {
-      const duplicate = tx
-        .select({ id: notebookPages.id })
-        .from(notebookPages)
-        .where(
-          and(
-            eq(notebookPages.notebookId, notebookId),
-            eq(notebookPages.contentHash, contentHash),
-          ),
-        )
-        .get();
-      if (duplicate) return null;
+      if (isDuplicate(tx, contentHash)) return null;
 
       const last = tx
         .select({ position: max(notebookPages.position) })
@@ -328,23 +370,20 @@ export async function appendPages(
           notebookId,
           position: (last?.position ?? 0) + 1,
           fileName: file.name,
-          mimeType: check.mimeType,
-          bytes: file.bytes.byteLength,
+          mimeType: 'image/jpeg',
+          bytes: image.bytes.byteLength,
           contentHash,
           source: source?.trim() || null,
         })
         .returning({ id: notebookPages.id })
         .get();
       // Written inside the transaction: a failed write rolls the row back with it.
-      writeFileSync(pageFilePath(notebookId, id, check.mimeType), file.bytes);
+      writeFileSync(pageFilePath(notebookId, id, 'image/jpeg'), image.bytes);
       return id;
     });
 
     if (pageId === null) {
-      skipped.push({
-        name: file.name,
-        reason: 'duplicate: already in this notebook',
-      });
+      skipped.push({ name: file.name, reason: DUPLICATE });
     } else {
       added.push(pageId);
     }

@@ -11,3 +11,6 @@ export async function readError(
     return fallback;
   }
 }
+
+export const notebookPdfUrl = (notebookId: number) =>
+  `/api/notebooks/${notebookId}/pdf`;
