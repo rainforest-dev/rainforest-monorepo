@@ -1,15 +1,12 @@
 import type { AiState } from '@rainforest-dev/web-ai';
 import { createAiController } from '@rainforest-dev/web-ai';
-import { onUnmounted, readonly, ref } from 'vue';
+import { onMounted, onUnmounted, readonly, ref } from 'vue';
 
 const controller = createAiController();
 
 export function useLanguageModel() {
   const state = ref<AiState>(controller.getState());
   const error = ref<Error | null>(null);
-  const unsubscribe = controller.subscribe(() => {
-    state.value = controller.getState();
-  });
 
   async function refresh(): Promise<void> {
     await controller.refresh();
@@ -36,11 +33,19 @@ export function useLanguageModel() {
     }
   }
 
-  const release = controller.retain();
-  onUnmounted(() => {
-    unsubscribe();
-    release();
+  let detach: (() => void) | undefined;
+  onMounted(() => {
+    state.value = controller.getState();
+    const unsubscribe = controller.subscribe(() => {
+      state.value = controller.getState();
+    });
+    const release = controller.retain();
+    detach = () => {
+      unsubscribe();
+      release();
+    };
   });
+  onUnmounted(() => detach?.());
 
   return {
     state: readonly(state),
