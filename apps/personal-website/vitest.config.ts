@@ -12,6 +12,7 @@ export default getViteConfig({
     // failed capability probe in sessionStorage, which node's environment doesn't provide.
     environment: 'jsdom',
     include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
+    exclude: ['scripts/build-output.test.ts'],
     // Task 8 (2026-07-07 personal-data-library plan) deleted this app's only local test
     // files (mcp/smoke.test.ts, mcp/profile-data.test.ts) — their replacements now live
     // in libs/personal-data, which apps/personal-website consumes rather than defining

@@ -16,10 +16,13 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../../libs/rainforest-react"
+      "path": "../../libs/search"
     },
     {
       "path": "../../libs/rainforest-ui"
+    },
+    {
+      "path": "../../libs/rainforest-react"
     }
   ]
 }

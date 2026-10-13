@@ -201,6 +201,23 @@ test.describe('source filters', () => {
     await expect(page).toHaveURL(/\/$/);
   });
 
+  test('search matches every word, in any order and any field', async ({
+    page,
+  }) => {
+    await gotoSources(page);
+    const search = sourceSearch(page);
+
+    await search.fill('orchard infra');
+    await expect(sourceNames(page)).toHaveText(['Packet Orchard']);
+    await expect(page).toHaveURL(/\?q=orchard\+infra$/);
+
+    await search.fill('infra orchard');
+    await expect(sourceNames(page)).toHaveText(['Packet Orchard']);
+
+    await search.fill('garden react');
+    await expect(sourceNames(page)).toHaveText(['Signal Garden']);
+  });
+
   test('search and facets combine', async ({ page }) => {
     await gotoSources(page);
     await sourceSearch(page).fill('news');

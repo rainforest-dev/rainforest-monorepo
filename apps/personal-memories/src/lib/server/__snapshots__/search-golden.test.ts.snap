@@ -1,0 +1,283 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`runSearch golden > cross-language semantic 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-11-01",
+      "kind": "content",
+      "score": 0.01639344262295082,
+      "snippet": "labels: Ramen",
+      "source": "photo",
+    },
+    {
+      "date": "2025-11-04",
+      "kind": "content",
+      "score": 0.016129032258064516,
+      "snippet": "09:00 Bob：台南的拉麵好好吃",
+      "source": "line",
+    },
+  ],
+  "semantic": "on",
+}
+`;
+
+exports[`runSearch golden > empty 1`] = `
+{
+  "results": [],
+  "semantic": "off",
+}
+`;
+
+exports[`runSearch golden > falls back on a model mismatch 1`] = `
+{
+  "reason": "model-mismatch",
+  "results": [
+    {
+      "date": "2025-11-04",
+      "kind": "content",
+      "score": 0.01639344262295082,
+      "snippet": "09:00 Bob：台南的拉麵好好吃",
+      "source": "line",
+    },
+  ],
+  "semantic": "off",
+}
+`;
+
+exports[`runSearch golden > falls back to lexical when the embedder is unreachable 1`] = `
+{
+  "reason": "ollama-unreachable",
+  "results": [
+    {
+      "date": "2025-11-04",
+      "kind": "content",
+      "score": 0.01639344262295082,
+      "snippet": "09:00 Bob：台南的拉麵好好吃",
+      "source": "line",
+    },
+  ],
+  "semantic": "off",
+}
+`;
+
+exports[`runSearch golden > lexical and semantic 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-11-04",
+      "kind": "content",
+      "score": 0.03252247488101534,
+      "snippet": "09:00 Bob：台南的拉麵好好吃",
+      "source": "line",
+    },
+    {
+      "date": "2025-11-01",
+      "kind": "content",
+      "score": 0.01639344262295082,
+      "snippet": "labels: Ramen",
+      "source": "photo",
+    },
+  ],
+  "semantic": "on",
+}
+`;
+
+exports[`runSearch golden > no match 1`] = `
+{
+  "results": [],
+  "semantic": "on",
+}
+`;
+
+exports[`runSearch golden > note text 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-11-05",
+      "kind": "content",
+      "score": 0.03278688524590164,
+      "snippet": "生日 cake",
+      "source": "note",
+    },
+  ],
+  "semantic": "on",
+}
+`;
+
+exports[`runSearch golden > note vectors > a note scores between two file hits 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-12-01",
+      "kind": "content",
+      "score": 0.01639344262295082,
+      "snippet": "10:00 Alice：散步",
+      "source": "line",
+    },
+    {
+      "date": "2025-12-04",
+      "kind": "content",
+      "score": 0.016129032258064516,
+      "snippet": "散步筆記",
+      "source": "note",
+    },
+    {
+      "date": "2025-12-02",
+      "kind": "content",
+      "score": 0.015873015873015872,
+      "snippet": "11:00 Bob：看電影",
+      "source": "line",
+    },
+    {
+      "date": "2025-12-03",
+      "kind": "content",
+      "score": 0.015625,
+      "snippet": "12:00 Alice：逛街",
+      "source": "line",
+    },
+  ],
+  "semantic": "on",
+}
+`;
+
+exports[`runSearch golden > note vectors > a note ties a file hit and wins on the smaller id 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-12-01",
+      "kind": "content",
+      "score": 0.01639344262295082,
+      "snippet": "10:00 Alice：散步",
+      "source": "line",
+    },
+    {
+      "date": "2025-12-02",
+      "kind": "content",
+      "score": 0.016129032258064516,
+      "snippet": "11:00 Bob：看電影",
+      "source": "line",
+    },
+    {
+      "date": "2025-12-04",
+      "kind": "content",
+      "score": 0.015873015873015872,
+      "snippet": "散步筆記",
+      "source": "note",
+    },
+    {
+      "date": "2025-12-03",
+      "kind": "content",
+      "score": 0.015625,
+      "snippet": "12:00 Alice：逛街",
+      "source": "line",
+    },
+  ],
+  "semantic": "on",
+}
+`;
+
+exports[`runSearch golden > people only 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-11-04",
+      "kind": "content",
+      "score": -0,
+      "snippet": "09:00 Bob：台南的拉麵好好吃",
+      "source": "line",
+    },
+    {
+      "date": "2025-11-03",
+      "kind": "content",
+      "score": -1,
+      "snippet": "11:00 Bob：早安",
+      "source": "line",
+    },
+  ],
+  "semantic": "off",
+}
+`;
+
+exports[`runSearch golden > person filter 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-11-03",
+      "kind": "content",
+      "score": 0.01639344262295082,
+      "snippet": "11:00 Bob：早安",
+      "source": "line",
+    },
+  ],
+  "semantic": "on",
+}
+`;
+
+exports[`runSearch golden > place facet 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-11-01",
+      "kind": "content",
+      "score": 0.01639344262295082,
+      "snippet": "labels: Ramen",
+      "source": "photo",
+    },
+    {
+      "date": "2025-11-04",
+      "kind": "content",
+      "score": 0.016129032258064516,
+      "snippet": "09:00 Bob：台南的拉麵好好吃",
+      "source": "line",
+    },
+  ],
+  "semantic": "on",
+}
+`;
+
+exports[`runSearch golden > range 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-11-02",
+      "kind": "content",
+      "score": 0.03278688524590164,
+      "snippet": "10:00 Alice：下雨了",
+      "source": "line",
+    },
+  ],
+  "semantic": "on",
+}
+`;
+
+exports[`runSearch golden > skips semantic while the breaker is open 1`] = `
+{
+  "reason": "timeout",
+  "results": [
+    {
+      "date": "2025-11-04",
+      "kind": "content",
+      "score": 0.01639344262295082,
+      "snippet": "09:00 Bob：台南的拉麵好好吃",
+      "source": "line",
+    },
+  ],
+  "semantic": "off",
+}
+`;
+
+exports[`runSearch golden > source filter 1`] = `
+{
+  "results": [
+    {
+      "date": "2025-11-01",
+      "kind": "content",
+      "score": 0.03278688524590164,
+      "snippet": "labels: Ramen",
+      "source": "photo",
+    },
+  ],
+  "semantic": "on",
+}
+`;

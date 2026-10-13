@@ -20,6 +20,9 @@
       "path": "../../libs/web-ai"
     },
     {
+      "path": "../../libs/search"
+    },
+    {
       "path": "../../libs/rainforest-ui"
     },
     {

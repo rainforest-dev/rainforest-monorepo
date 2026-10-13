@@ -1,3 +1,5 @@
+import { matchesAllTerms, whitespaceTerms } from '@rainforest-dev/search';
+
 import type { Source, StaleType } from '@/lib/registry.types';
 
 import { SOURCE_STATUS_LABEL, STALE_COPY, UNCATEGORISED } from './labels';
@@ -51,10 +53,9 @@ export function categoryValue(source: Pick<Source, 'category'>): string {
 }
 
 export function matchesSearch(source: Source, q: string): boolean {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
-  return [source.name, source.url, source.category, ...source.tags].some(
-    (field) => field.toLowerCase().includes(needle),
+  return matchesAllTerms(
+    [source.name, source.url, source.category, ...source.tags],
+    whitespaceTerms(q),
   );
 }
 

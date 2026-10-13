@@ -1,8 +1,8 @@
+import { trimEdges } from '@rainforest-dev/search';
+
 import { parseDateQuery } from '@/lib/natural-date.ts';
 import type { Person } from '@/lib/people.ts';
 import type { TimelineSource } from '@/lib/server';
-
-import { trimEdges } from './terms.ts';
 
 export type SearchQuery = {
   text: string;

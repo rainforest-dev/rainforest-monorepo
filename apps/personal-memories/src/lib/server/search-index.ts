@@ -1,6 +1,13 @@
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import {
+  type Breaker,
+  EmbedError,
+  embedQuery,
+  semanticIds,
+} from '@rainforest-dev/search';
+
 import { buildSearchDocs } from '@/lib/ingest';
 import {
   lexicalRank,
@@ -12,7 +19,7 @@ import {
 } from '@/lib/search';
 import { searchQuerySchema } from '@/lib/search-schema';
 
-import { type Embedder, EmbedError, type EmbedFailure } from './embed.ts';
+import { type Embedder, type EmbedFailure } from './embed.ts';
 import { getPeople } from './people-store.ts';
 import {
   readSearchFiles,
@@ -21,8 +28,13 @@ import {
 } from './search-files.ts';
 import { dataDir, getTimeline } from './store.ts';
 
-export const QUERY_EMBED_TIMEOUT_MS = 800;
-export const BREAKER_MS = 30_000;
+export {
+  type Breaker,
+  breaker,
+  BREAKER_MS,
+  QUERY_EMBED_TIMEOUT_MS,
+} from '@rainforest-dev/search';
+
 export const MAX_DAYS = 20;
 const SEMANTIC_K = 50;
 
@@ -58,21 +70,6 @@ export type SearchIndex = {
   stale: number;
 };
 
-export type Breaker = {
-  open(now: number): boolean;
-  trip(now: number): void;
-};
-
-export function breaker(ms = BREAKER_MS): Breaker {
-  let until = 0;
-  return {
-    open: (now) => now < until,
-    trip: (now) => {
-      until = now + ms;
-    },
-  };
-}
-
 export function makeIndex(docs: SearchDoc[], files?: SearchFiles): SearchIndex {
   if (!files) return { docs, rowOf: new Map(), stale: 0 };
   const fileRow = new Map(
@@ -107,35 +104,6 @@ function snippetFor(doc: SearchDoc, terms: readonly string[]): string {
       terms.some((t) => l.normalize('NFKC').toLowerCase().includes(t)),
     );
   return line ? Array.from(line).slice(0, 80).join('') : doc.snippet;
-}
-
-async function embedQuery(
-  embedder: Embedder,
-  text: string,
-): Promise<Float32Array> {
-  const controller = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      controller.abort();
-      reject(new EmbedError('timeout', 'query embedding timed out'));
-    }, QUERY_EMBED_TIMEOUT_MS);
-  });
-  try {
-    const [vector] = await Promise.race([
-      embedder.embed([text], 'query', controller.signal),
-      timeout,
-    ]);
-    if (
-      !vector ||
-      vector.length !== embedder.dims ||
-      !vector.every((v) => Number.isFinite(v))
-    )
-      throw new EmbedError('model-mismatch', 'bad query vector');
-    return vector;
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 type Semantic = { ids: string[] } | { reason: SearchReason };
@@ -182,11 +150,11 @@ async function semanticRank(
     topK(v, embedder.dims, vector, 1).map((h) => ({ id, score: h.score })),
   );
   return {
-    ids: [...fileHits, ...noteHits]
-      .filter((h) => h.score >= embedder.minScore)
-      .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
-      .slice(0, SEMANTIC_K)
-      .map((h) => h.id),
+    ids: semanticIds({
+      hits: [...fileHits, ...noteHits],
+      minScore: embedder.minScore,
+      k: SEMANTIC_K,
+    }),
   };
 }
 

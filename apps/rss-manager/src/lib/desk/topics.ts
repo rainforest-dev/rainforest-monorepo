@@ -1,3 +1,5 @@
+import { matchesAllTerms, whitespaceTerms } from '@rainforest-dev/search';
+
 import type { Topic } from '@/lib/registry.types';
 
 import { type DeskParams, TOPIC_STATUSES } from './params';
@@ -8,10 +10,9 @@ export type TopicFilters = Pick<DeskParams, 'tq' | 'tstatus'>;
 export type TopicStatusCounts = Record<Topic['status'] | 'all', number>;
 
 export function matchesTopicSearch(topic: Topic, q: string): boolean {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
-  return [topic.name, topic.description, ...topic.tags].some((field) =>
-    field.toLowerCase().includes(needle),
+  return matchesAllTerms(
+    [topic.name, topic.description, ...topic.tags],
+    whitespaceTerms(q),
   );
 }
 

@@ -1,11 +1,6 @@
-import {
-  acquire,
-  detectCapability,
-  enableModel,
-  selectTool,
-} from '@rainforest-dev/web-ai';
+import { createAiController } from '@rainforest-dev/web-ai';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import type { Person } from '@/lib/people.ts';
 import type { SearchQuery } from '@/lib/search';
@@ -53,19 +48,24 @@ export function usePromptParse({
   const client = useQueryClient();
   const [on, setOn] = useState(false);
   const [supported, setSupported] = useState(false);
-  const [progress, setProgress] = useState<number>();
+  const [enabling, setEnabling] = useState(false);
+  const [ai] = useState(createAiController);
+  const aiState = useSyncExternalStore(ai.subscribe, ai.getState, ai.getState);
   useEffect(() => {
     setOn(readSwitch(globalThis.localStorage));
     setSupported('LanguageModel' in globalThis);
   }, []);
-  useEffect(() => (on && supported ? acquire() : undefined), [on, supported]);
+  useEffect(
+    () => (on && supported ? ai.retain() : undefined),
+    [ai, on, supported],
+  );
 
   const settled = useDebounced(raw.trim(), DEBOUNCE_MS);
   const lang = queryLanguage(settled);
   const active = open && on && supported;
   const capability = useQuery({
     queryKey: ['ai-capability', lang],
-    queryFn: () => detectCapability(languagesFor(lang)),
+    queryFn: () => ai.refresh(languagesFor(lang)),
     enabled: active,
     staleTime: Infinity,
   });
@@ -78,7 +78,7 @@ export function usePromptParse({
         today,
         people,
         (text, inner) =>
-          selectTool(buildPrompt(text, today, people), promptSchema(people), {
+          ai.run(buildPrompt(text, today, people), promptSchema(people), {
             signal: inner,
             languages: languagesFor(lang),
           }),
@@ -95,15 +95,17 @@ export function usePromptParse({
     writeSwitch(globalThis.localStorage, next);
     if (!next || !supported) return;
     const languages = languagesFor(queryLanguage(raw));
-    const state = await detectCapability(languages);
+    const state = await ai.refresh(languages);
     if (state.kind === 'downloadable') {
-      setProgress(0);
-      await enableModel(setProgress, languages).catch(() => undefined);
-      setProgress(undefined);
+      setEnabling(true);
+      await ai.enable(languages).catch(() => undefined);
+      setEnabling(false);
     }
     await client.invalidateQueries({ queryKey: ['ai-capability'] });
   };
 
+  const progress =
+    enabling && aiState.kind === 'downloading' ? aiState.progress : undefined;
   const status = statusFor({
     supported,
     on,

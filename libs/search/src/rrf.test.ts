@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { rrf } from './rrf.ts';
+import { rrf } from './rrf';
 
 describe('rrf', () => {
   it('rewards a doc that ranks in both lists', () => {

@@ -155,6 +155,51 @@ describe('matchesSearch', () => {
     expect(matchesSearch(SOURCES[0], 'kernel')).toBe(false);
   });
 
+  const DIGEST = source('C++ & .NET Digest', {
+    category: 'Languages',
+    tags: ['tech/c++', 'tech/.net'],
+  });
+
+  it.each([
+    ['c++', true],
+    ['C++', true],
+    ['++', true],
+    ['c#', false],
+    ['.net', true],
+    ['.NET', true],
+    ['  .net ', true],
+    ['net', true],
+    ['&', true],
+    ['-', true],
+    ['tech/.net', true],
+    ['feeds.example/c-net-digest', true],
+    ['DIGEST', true],
+    ['languages', true],
+    ['rust', false],
+    ['', true],
+  ])('single word %j matches %s', (q, expected) => {
+    expect(matchesSearch(DIGEST, q)).toBe(expected);
+  });
+
+  it('matches every word in any order and any field', () => {
+    const rust = [
+      source('Rust Blog'),
+      source('Blog about Rust'),
+      source('Rust Weekly', { category: 'Blogs' }),
+      source('Go Blog'),
+    ];
+    expect(names(rust.filter((s) => matchesSearch(s, 'rust blog')))).toEqual([
+      'Rust Blog',
+      'Blog about Rust',
+      'Rust Weekly',
+    ]);
+    expect(names(rust.filter((s) => matchesSearch(s, 'ｒｕｓｔ')))).toEqual([
+      'Rust Blog',
+      'Blog about Rust',
+      'Rust Weekly',
+    ]);
+  });
+
   it('combines with the facets', () => {
     const f = filters({ q: 'domain/news', status: ['no-rss'] });
     expect(names(filterSources(SOURCES, f))).toEqual(['Studio Halcyon']);

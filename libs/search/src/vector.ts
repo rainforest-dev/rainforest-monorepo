@@ -24,3 +24,21 @@ export function topK(
   }
   return out.sort((a, b) => b.score - a.score || a.row - b.row).slice(0, k);
 }
+
+export type ScoredId = { id: string; score: number };
+
+export function semanticIds({
+  hits,
+  minScore,
+  k,
+}: {
+  hits: readonly ScoredId[];
+  minScore: number;
+  k: number;
+}): string[] {
+  return hits
+    .filter((h) => h.score >= minScore)
+    .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+    .slice(0, k)
+    .map((h) => h.id);
+}

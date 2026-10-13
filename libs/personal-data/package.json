@@ -28,6 +28,7 @@
     "name": "personal-data"
   },
   "dependencies": {
+    "@rainforest-dev/search": "workspace:*",
     "fast-glob": "^3.3.3",
     "zod": "^4.6.5"
   },

@@ -1,5 +1,12 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
+import {
+  assertModel,
+  ollamaChat,
+  OllamaHttpError,
+  OllamaSetupError,
+} from '@rainforest-dev/search/node';
+
 import type { Searchable } from '../src/utils/search.ts';
 import {
   type ExpansionFile,
@@ -24,35 +31,27 @@ const fail = (message: string): never => {
 };
 
 async function assertReachable(): Promise<void> {
-  let models: string[];
   try {
-    const res = await fetch(`${OLLAMA_URL}/api/tags`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    models = ((await res.json()) as { models: { name: string }[] }).models.map(
-      (m) => m.name,
-    );
+    await assertModel(OLLAMA_URL, OLLAMA_MODEL);
   } catch (error) {
-    return fail(
-      `cannot reach Ollama at ${OLLAMA_URL} (${error instanceof Error ? error.message : error}). Set OLLAMA_URL.`,
-    );
+    if (!(error instanceof OllamaSetupError)) throw error;
+    const available = error.models.join(', ');
+    if (error.reason === 'unreachable')
+      fail(
+        `cannot reach Ollama at ${OLLAMA_URL} (${error.message}). Set OLLAMA_URL.`,
+      );
+    if (error.reason === 'no-model')
+      fail(`set OLLAMA_MODEL. Available at ${OLLAMA_URL}: ${available}`);
+    fail(`model ${OLLAMA_MODEL} is not on ${OLLAMA_URL}: ${available}`);
   }
-  if (!OLLAMA_MODEL)
-    fail(`set OLLAMA_MODEL. Available at ${OLLAMA_URL}: ${models.join(', ')}`);
-  else if (!models.includes(OLLAMA_MODEL))
-    fail(`model ${OLLAMA_MODEL} is not on ${OLLAMA_URL}: ${models.join(', ')}`);
 }
 
 async function askForTerms(record: Searchable): Promise<string[]> {
-  const res = await fetch(`${OLLAMA_URL}/api/chat`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: OLLAMA_MODEL,
-      stream: false,
-      think: false,
-      options: { temperature: 0 },
+  let content: string;
+  try {
+    content = await ollamaChat({
+      url: OLLAMA_URL,
+      model: OLLAMA_MODEL as string,
       format: {
         type: 'object',
         properties: {
@@ -76,12 +75,12 @@ async function askForTerms(record: Searchable): Promise<string[]> {
           ].join('\n'),
         },
       ],
-    }),
-  });
-  if (!res.ok)
-    return fail(`Ollama returned HTTP ${res.status} for ${record.id}`);
-  const { message } = (await res.json()) as { message: { content: string } };
-  const parsed = JSON.parse(message.content) as { terms?: unknown };
+    });
+  } catch (error) {
+    if (!(error instanceof OllamaHttpError)) throw error;
+    return fail(`Ollama returned HTTP ${error.status} for ${record.id}`);
+  }
+  const parsed = JSON.parse(content) as { terms?: unknown };
   return Array.isArray(parsed.terms) ? parsed.terms.map(String) : [];
 }
 
