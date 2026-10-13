@@ -34,15 +34,17 @@ import type {
 
 import {
   type BookListParams,
+  bookOrder,
   buildBookConditions,
-  buildOrderExpr,
   hydrateBooks,
+  usesSearch,
 } from './book-query';
 import {
   hydrateLibraryBooks,
   type LibraryQuery,
   queryLibrary,
 } from './library-query';
+import { searchBookIds } from './search';
 
 export type { BookListParams };
 
@@ -53,14 +55,14 @@ export async function getBookList(
   cacheLife('minutes');
   cacheTag('books');
 
-  const { page = 1, limit = 30, sortBy, sortDir } = params;
+  const { page = 1, limit = 30 } = params;
   const offset = (page - 1) * limit;
 
   const conditions = await buildBookConditions(params);
   if (conditions === null) return { books: [], total: 0 };
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const orderExpr = buildOrderExpr(sortBy, sortDir);
+  const orderExpr = bookOrder(params);
 
   const [pageRows, countResult] = await Promise.all([
     db
@@ -233,6 +235,24 @@ export async function getGroupedBookList(
   }
 
   return { groups };
+}
+
+export async function searchBookList({
+  q,
+  groupBy,
+  ...params
+}: BookListParams & { groupBy?: GroupBy }) {
+  const search = usesSearch(q) ? await searchBookIds(q) : undefined;
+  const scope = search ? { ...params, ids: search.ids } : { ...params, q };
+  const { page: _page, limit: _limit, ...filters } = scope;
+  const result = groupBy
+    ? await getGroupedBookList({ ...filters, groupBy })
+    : await getBookList(scope);
+  return {
+    ...result,
+    semantic: search?.semantic ?? 'off',
+    ...(search?.reason ? { reason: search.reason } : {}),
+  };
 }
 
 export async function getBook(id: number): Promise<BookDetail | null> {

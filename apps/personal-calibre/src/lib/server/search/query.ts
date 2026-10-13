@@ -140,7 +140,14 @@ export function ensureBookIndex(): Promise<void> {
   return s.job;
 }
 
-export async function searchBookIds(q: string): Promise<BookSearch> {
+const unreachable: Embedder['embed'] = async () => {
+  throw new EmbedError('ollama-unreachable', 'injected e2e fault');
+};
+
+export async function searchBookIds(
+  q: string,
+  { embedFault = false }: { embedFault?: boolean } = {},
+): Promise<BookSearch> {
   const text = q.trim();
   if (text.length < MIN_QUERY_LENGTH) return { ids: [], semantic: 'off' };
   const lexical = lexicalBookIds(text, appSqlite);
@@ -150,7 +157,10 @@ export async function searchBookIds(q: string): Promise<BookSearch> {
     q: text,
     lexical,
     index: s.ready,
-    embedder: s.embedders?.foreground,
+    embedder:
+      s.embedders && embedFault
+        ? { ...s.embedders.foreground, embed: unreachable }
+        : s.embedders?.foreground,
     gate: s.gate,
   });
 }

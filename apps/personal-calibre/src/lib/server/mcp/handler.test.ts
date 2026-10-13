@@ -81,7 +81,7 @@ describe('over the SDK client', () => {
     expect(JSON.parse((result.content as { text: string }[])[0].text)).toEqual(
       result.structuredContent,
     );
-    expect(library.getBookList).toHaveBeenCalledWith({
+    expect(library.searchBookList).toHaveBeenCalledWith({
       q: 'salt',
       tagId: 3,
       page: 1,
@@ -97,12 +97,13 @@ describe('over the SDK client', () => {
       name: 'list_books',
       arguments: { groupBy: 'series', delivered: false },
     });
-    expect(library.getGroupedBookList).toHaveBeenCalledWith({
+    expect(library.searchBookList).toHaveBeenCalledWith({
       q: undefined,
       delivered: false,
       groupBy: 'series',
+      page: 1,
+      limit: 30,
     });
-    expect(library.getBookList).not.toHaveBeenCalled();
     await client.close();
   });
 

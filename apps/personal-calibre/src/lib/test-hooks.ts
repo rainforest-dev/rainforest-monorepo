@@ -4,7 +4,7 @@ import type { RawSearchParams } from './library-params';
 
 export const FAULT_COOKIE = 'calibre-e2e-fault';
 
-export type FaultScope = 'list' | 'pane';
+export type FaultScope = 'list' | 'pane' | 'embed';
 
 export interface TestHooks {
   fault: FaultScope | null;
@@ -31,7 +31,7 @@ function boundedInt(raw: string | undefined, max: number): number | null {
   return parsed.success ? Math.min(parsed.data, max) : null;
 }
 
-const faultScopeSchema = z.enum(['list', 'pane']);
+const faultScopeSchema = z.enum(['list', 'pane', 'embed']);
 
 function asFault(raw: string | undefined): FaultScope | null {
   const parsed = faultScopeSchema.safeParse(raw);

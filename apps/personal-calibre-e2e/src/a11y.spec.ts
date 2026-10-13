@@ -53,7 +53,7 @@ const PAGES = [
   ['shelf with the pane', '/?book=38'],
   ['catalogue with the pane', '/?view=catalogue&book=38'],
   ['permalink', '/books/38'],
-  ['empty result', '/?q=zzzz-no-such-book'],
+  ['empty result', '/?q=zzzz-no-such-title'],
 ] as const satisfies ReadonlyArray<
   readonly [string, string] | readonly [string, string, AxeIgnore[]]
 >;

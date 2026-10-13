@@ -47,6 +47,11 @@ export function fakeLibrary(): FakeLibrary {
   return {
     getBookList: vi.fn(async () => ({ books: [BOOK], total: 1 })),
     getGroupedBookList: vi.fn(async () => ({ groups: [] })),
+    searchBookList: vi.fn(async () => ({
+      books: [BOOK],
+      total: 1,
+      semantic: 'off',
+    })),
     getBook: vi.fn(async (id: number) => (id === BOOK.id ? BOOK : null)),
     listUndeliveredBooks: vi.fn(async () => ({ books: [], total: 0 })),
     listBookDeliveryEvents: vi.fn(async () => []),
