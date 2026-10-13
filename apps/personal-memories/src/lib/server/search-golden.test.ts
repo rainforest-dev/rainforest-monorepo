@@ -112,6 +112,67 @@ describe('runSearch golden', () => {
     expect(res).toMatchSnapshot();
   });
 
+  describe('note vectors', () => {
+    const dims = fakeEmbedder().dims;
+    const vec = (...head: number[]) => {
+      const v = new Float32Array(dims);
+      v.set(head);
+      return v;
+    };
+    const FILES: [SearchDoc, Float32Array][] = [
+      [doc('best', '2025-12-01', '10:00 Alice：散步'), vec(1, 0)],
+      [doc('mid', '2025-12-02', '11:00 Bob：看電影'), vec(1, 1)],
+      [doc('tied', '2025-12-03', '12:00 Alice：逛街'), vec(1, 3)],
+    ];
+    const withNote = (vector: Float32Array) => {
+      const note = doc('note:2025-12-04', '2025-12-04', '散步筆記', {
+        kind: 'note',
+        source: 'note',
+      });
+      const vectors = new Float32Array(FILES.length * dims);
+      FILES.forEach(([, v], i) => vectors.set(v, i * dims));
+      return {
+        ...makeIndex(
+          FILES.map(([d]) => d),
+          {
+            header: {
+              model: fakeEmbedder().model,
+              dims,
+              docs: FILES.map(([{ id, contentHash }]) => ({ id, contentHash })),
+            },
+            vectors,
+          },
+        ),
+        extra: {
+          docs: () => [note],
+          vector: (id: string) => (id === note.id ? vector : undefined),
+        },
+      };
+    };
+
+    it.each([
+      [
+        'scores between two file hits',
+        vec(2, 1),
+        ['2025-12-01', '2025-12-04', '2025-12-02', '2025-12-03'],
+      ],
+      [
+        'ties a file hit and wins on the smaller id',
+        vec(1, 3),
+        ['2025-12-01', '2025-12-02', '2025-12-04', '2025-12-03'],
+      ],
+    ])('a note %s', async (_, vector, days) => {
+      const res = await runSearch(
+        withNote(vector),
+        { text: '麵' },
+        fakeEmbedder(),
+        breaker(),
+      );
+      expect(res.results.map((r) => r.date)).toEqual(days);
+      expect(res).toMatchSnapshot();
+    });
+  });
+
   it('skips semantic while the breaker is open', async () => {
     const gate = breaker();
     gate.trip(Date.now());
