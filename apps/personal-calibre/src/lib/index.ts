@@ -6,6 +6,7 @@ export * from './group-entries';
 export * from './keyboard';
 export * from './library-params';
 export * from './opds';
+export * from './page-crop';
 export * from './platforms';
 export * from './prefs';
 export * from './roving';

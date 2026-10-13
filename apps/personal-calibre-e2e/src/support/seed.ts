@@ -395,7 +395,7 @@ function seedCalibre(books: SeedBook[]): void {
   }
 }
 
-type Rgb = readonly [number, number, number];
+export type Rgb = readonly [number, number, number];
 
 const COVER_COLOURS: ReadonlyArray<readonly [Rgb, Rgb]> = [
   [
@@ -432,10 +432,11 @@ function pngChunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([length, body, crc]);
 }
 
-export function blockPng(
+/** An RGB PNG whose every pixel is `paint(x, y)`. */
+export function paintedPng(
   width: number,
   height: number,
-  blocks: readonly Rgb[],
+  paint: (x: number, y: number) => Rgb,
 ): Buffer {
   const header = Buffer.alloc(13);
   header.writeUInt32BE(width, 0);
@@ -444,12 +445,8 @@ export function blockPng(
   const stride = width * 3 + 1;
   const pixels = Buffer.alloc(stride * height);
   for (let y = 0; y < height; y++) {
-    const [r, g, b] =
-      blocks[
-        Math.min(blocks.length - 1, Math.floor((y * blocks.length) / height))
-      ];
     for (let x = 0; x < width; x++) {
-      pixels.set([r, g, b], y * stride + 1 + x * 3);
+      pixels.set(paint(x, y), y * stride + 1 + x * 3);
     }
   }
   return Buffer.concat([
@@ -458,6 +455,21 @@ export function blockPng(
     pngChunk('IDAT', zlib.deflateSync(pixels)),
     pngChunk('IEND', Buffer.alloc(0)),
   ]);
+}
+
+export function blockPng(
+  width: number,
+  height: number,
+  blocks: readonly Rgb[],
+): Buffer {
+  return paintedPng(
+    width,
+    height,
+    (_, y) =>
+      blocks[
+        Math.min(blocks.length - 1, Math.floor((y * blocks.length) / height))
+      ],
+  );
 }
 
 function coverFor(id: number): Buffer {
