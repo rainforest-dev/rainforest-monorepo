@@ -50,15 +50,47 @@ export interface NotebookPdfSource {
   ) => Promise<{ data: Uint8Array; mimeType: string } | null>;
 }
 
+interface ReadablePage {
+  index: number;
+  image: PdfImage;
+}
+
 /**
- * Writes a notebook as a PDF, one page per scan in order, streaming one image at a time so a
- * thick notebook never sits in memory whole. Nothing is stored: the PDF is built per request.
+ * The first page at or after `from` whose image can be read and embedded. A page whose file is
+ * gone, or whose bytes are not a readable image, is skipped rather than failing the export.
  */
-export async function* notebookPdf({
-  title,
-  pages,
-  readPage,
-}: NotebookPdfSource): AsyncGenerator<Uint8Array> {
+async function nextReadablePage(
+  { pages, readPage }: NotebookPdfSource,
+  from: number,
+): Promise<ReadablePage | null> {
+  for (let index = from; index < pages.length; index++) {
+    try {
+      const stored = await readPage(pages[index].id);
+      if (!stored) continue;
+      return { index, image: await pdfImage(stored.data, stored.mimeType) };
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+/**
+ * Writes a notebook as a PDF, one page per readable scan in order, streaming one image at a time
+ * so a thick notebook never sits in memory whole. Nothing is stored: the PDF is built per
+ * request. Resolves to `null`, before anything is written, when no page can be read at all.
+ */
+export async function notebookPdf(
+  source: NotebookPdfSource,
+): Promise<AsyncGenerator<Uint8Array> | null> {
+  const first = await nextReadablePage(source, 0);
+  return first ? writePdf(source, first) : null;
+}
+
+async function* writePdf(
+  source: NotebookPdfSource,
+  first: ReadablePage,
+): AsyncGenerator<Uint8Array> {
   let offset = 0;
   const offsets: number[] = [];
   const emit = (chunk: string | Uint8Array): Uint8Array => {
@@ -78,10 +110,12 @@ export async function* notebookPdf({
 
   const kids: number[] = [];
   let next = 4;
-  for (const page of pages) {
-    const stored = await readPage(page.id);
-    if (!stored) continue;
-    const image = await pdfImage(stored.data, stored.mimeType);
+  for (
+    let page: ReadablePage | null = first;
+    page;
+    page = await nextReadablePage(source, page.index + 1)
+  ) {
+    const { image } = page;
     const scale = PAGE_LONG_EDGE / Math.max(image.width, image.height);
     const w = (image.width * scale).toFixed(2);
     const h = (image.height * scale).toFixed(2);
@@ -114,7 +148,7 @@ export async function* notebookPdf({
   );
   yield begin(3);
   yield emit(
-    `<< /Title ${pdfText(title)} /Producer (personal-calibre) >>\nendobj\n`,
+    `<< /Title ${pdfText(source.title)} /Producer (personal-calibre) >>\nendobj\n`,
   );
 
   const xref = offset;
