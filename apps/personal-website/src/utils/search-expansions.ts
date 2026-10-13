@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+import { planReuse } from '@rainforest-dev/search';
+
 import type { Searchable } from './search';
 
 export const MAX_TERMS = 8;
@@ -54,14 +56,16 @@ export function planExpansion(
   records: Searchable[],
   existing: ExpansionFile['records'],
 ): { keep: ExpansionFile['records']; pending: Searchable[] } {
+  const { reuse, missing } = planReuse(
+    Object.entries(existing).map(([id, { hash }]) => ({ id, hash })),
+    records.map((record) => ({ id: record.id, hash: hashRecord(record) })),
+  );
   const keep: ExpansionFile['records'] = {};
-  const pending: Searchable[] = [];
-  for (const record of records) {
-    const entry = existing[record.id];
-    if (entry && entry.hash === hashRecord(record)) keep[record.id] = entry;
-    else pending.push(record);
+  for (const current of reuse.keys()) {
+    const { id } = records[current];
+    keep[id] = existing[id];
   }
-  return { keep, pending };
+  return { keep, pending: missing.map((i) => records[i]) };
 }
 
 export function serializeExpansions(file: ExpansionFile): string {

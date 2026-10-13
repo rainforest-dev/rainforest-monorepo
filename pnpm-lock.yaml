@@ -509,6 +509,9 @@ importers:
       '@rainforest-dev/rainforest-ui':
         specifier: workspace:*
         version: link:../../libs/rainforest-ui
+      '@rainforest-dev/search':
+        specifier: workspace:*
+        version: link:../../libs/search
       '@rainforest-dev/web-ai':
         specifier: workspace:*
         version: link:../../libs/web-ai
@@ -743,6 +746,9 @@ importers:
 
   libs/personal-data:
     dependencies:
+      '@rainforest-dev/search':
+        specifier: workspace:*
+        version: link:../search
       fast-glob:
         specifier: ^3.3.3
         version: 3.3.3
