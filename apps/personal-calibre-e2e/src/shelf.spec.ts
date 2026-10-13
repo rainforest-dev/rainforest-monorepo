@@ -103,7 +103,7 @@ test.describe('shelf', () => {
   });
 
   test('an empty result offers Clear filters', async ({ page }) => {
-    await gotoLibrary(page, '/?q=zzzz-no-such-book');
+    await gotoLibrary(page, '/?q=zzzz-no-such-title');
     await expect(page.getByText('No books match these filters.')).toBeVisible();
     await expect(
       page.locator('[data-view-region] [data-slot="empty"]'),
