@@ -32,6 +32,7 @@
     "@rainforest-dev/personal-portfolio": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@rainforest-dev/search": "workspace:*",
     "@rainforest-dev/web-ai": "workspace:*",
     "@sentry/astro": "^10.67.0",
     "@tailwindcss/vite": "catalog:",
@@ -128,6 +129,16 @@
         ],
         "options": {
           "command": "node scripts/expand-search-keywords.ts",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "check-output": {
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "vitest run --config vitest.output.config.ts",
           "cwd": "{projectRoot}"
         }
       }
