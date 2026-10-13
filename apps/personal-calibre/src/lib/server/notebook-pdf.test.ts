@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import { notebookPdf } from './notebook-pdf';
 
-async function collect(chunks: AsyncIterable<Uint8Array>): Promise<Buffer> {
+async function collect(
+  pending: Promise<AsyncIterable<Uint8Array> | null>,
+): Promise<Buffer> {
+  const chunks = await pending;
+  if (!chunks) throw new Error('expected a PDF');
   const parts: Uint8Array[] = [];
   for await (const chunk of chunks) parts.push(chunk);
   return Buffer.concat(parts);
@@ -15,16 +19,19 @@ const image = (width: number, height: number, format: 'jpeg' | 'png') =>
     .toBuffer();
 
 describe('notebookPdf', () => {
-  it('writes one page per stored image, skipping missing files, with a valid xref', async () => {
+  it('writes one page per stored image, skipping missing and unreadable files, with a valid xref', async () => {
     const files = new Map<number, { data: Uint8Array; mimeType: string }>([
+      // Neither a JPEG nor any other image: left out like a missing file.
+      [0, { data: new Uint8Array(64).fill(7), mimeType: 'image/jpeg' }],
       [1, { data: await image(300, 400, 'jpeg'), mimeType: 'image/jpeg' }],
+      [2, { data: new Uint8Array([0x89, 0x50, 0x4e]), mimeType: 'image/png' }],
       // A page stored before uploads were normalised is converted on the way out.
       [3, { data: await image(500, 250, 'png'), mimeType: 'image/png' }],
     ]);
     const pdf = await collect(
       notebookPdf({
         title: '2026 手帳 A5',
-        pages: [{ id: 1 }, { id: 2 }, { id: 3 }],
+        pages: [{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
         readPage: async (id) => files.get(id) ?? null,
       }),
     );
@@ -65,5 +72,21 @@ describe('notebookPdf', () => {
         pdf.subarray(start + jpeg.length, start + jpeg.length + 10).toString(),
       ).toBe('\nendstream');
     }
+  });
+
+  it('resolves to null before writing anything when no page can be read', async () => {
+    const reads: number[] = [];
+    const pdf = await notebookPdf({
+      title: 'Empty',
+      pages: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      readPage: async (id) => {
+        reads.push(id);
+        if (id === 1) return null;
+        if (id === 2) throw new Error('EACCES');
+        return { data: new Uint8Array(16), mimeType: 'image/jpeg' };
+      },
+    });
+    expect(pdf).toBeNull();
+    expect(reads).toEqual([1, 2, 3]);
   });
 });

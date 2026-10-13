@@ -22,11 +22,18 @@ export async function GET(
     );
   }
 
-  const pages = notebookPdf({
+  // Resolved before the response starts, so an unreadable notebook is a 409, not a broken file.
+  const pages = await notebookPdf({
     title: notebook.name,
     pages: notebook.pages,
     readPage: readPageFile,
   });
+  if (!pages) {
+    return NextResponse.json(
+      { error: "None of this notebook's page images can be read" },
+      { status: 409 },
+    );
+  }
   const body = new ReadableStream<Uint8Array>({
     async pull(controller) {
       const { value, done } = await pages.next();
