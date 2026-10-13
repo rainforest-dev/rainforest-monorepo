@@ -131,6 +131,16 @@
           "command": "node scripts/expand-search-keywords.ts",
           "cwd": "{projectRoot}"
         }
+      },
+      "check-output": {
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "vitest run --config vitest.output.config.ts",
+          "cwd": "{projectRoot}"
+        }
       }
     }
   }

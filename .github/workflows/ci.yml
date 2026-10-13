@@ -24,7 +24,7 @@ jobs:
       # Set NX_CLOUD_ENABLED=true in Settings → Variables → Actions to enable.
       - name: Start Nx Cloud CI run
         if: vars.NX_CLOUD_ENABLED == 'true'
-        run: pnpm dlx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="lint,test,typecheck"
+        run: pnpm dlx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="lint,test,typecheck,check-output"
 
       - uses: actions/setup-node@v7
         with:
@@ -55,11 +55,11 @@ jobs:
       # on (nxCloudId stays configured in nx.json).
       - name: Run affected tasks (Nx Cloud)
         if: vars.NX_CLOUD_ENABLED == 'true'
-        run: pnpm exec nx affected -t lint test typecheck
+        run: pnpm exec nx affected -t lint test typecheck check-output
 
       - name: Run affected tasks (local)
         if: vars.NX_CLOUD_ENABLED != 'true'
-        run: pnpm exec nx affected -t lint test typecheck
+        run: pnpm exec nx affected -t lint test typecheck check-output
         env:
           NX_NO_CLOUD: 'true'
 
