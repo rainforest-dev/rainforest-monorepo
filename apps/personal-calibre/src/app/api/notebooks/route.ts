@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { createNotebook, listNotebooks } from '@/lib/server';
 
-export const notebookBodySchema = z.object({
+const notebookBodySchema = z.object({
   name: z
     .string({ error: 'name is required' })
     .trim()
