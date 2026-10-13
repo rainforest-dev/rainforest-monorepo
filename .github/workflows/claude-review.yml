@@ -11,6 +11,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # GitHub does not evaluate a skipped job's name, so `review` alone shows its raw expression.
+  not-run:
+    name: Claude Review (not run)
+    if: >
+      github.event.pull_request.draft ||
+      github.actor == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository ||
+      (github.event.action == 'labeled' && github.event.label.name != 'claude-review')
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - run: echo "Claude Review skipped this event (draft, Dependabot, fork, or an unrelated label)."
+
   review:
     # A required check counts a skipped job as passed.
     name: ${{ ((github.event.action == 'labeled' && github.event.label.name != 'claude-review') || (github.actor == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository)) && 'Claude Review (not run)' || 'Claude Review' }}
