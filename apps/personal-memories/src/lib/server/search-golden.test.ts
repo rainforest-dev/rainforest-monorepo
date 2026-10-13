@@ -121,8 +121,8 @@ describe('runSearch golden', () => {
     };
     const FILES: [SearchDoc, Float32Array][] = [
       [doc('best', '2025-12-01', '10:00 Alice：散步'), vec(1, 0)],
-      [doc('tie', '2025-12-02', '11:00 Bob：看電影'), vec(1, 1)],
-      [doc('weak', '2025-12-03', '12:00 Alice：逛街'), vec(1, 3)],
+      [doc('mid', '2025-12-02', '11:00 Bob：看電影'), vec(1, 1)],
+      [doc('tied', '2025-12-03', '12:00 Alice：逛街'), vec(1, 3)],
     ];
     const withNote = (vector: Float32Array) => {
       const note = doc('note:2025-12-04', '2025-12-04', '散步筆記', {
@@ -151,17 +151,25 @@ describe('runSearch golden', () => {
     };
 
     it.each([
-      ['scores between two file hits', vec(2, 1)],
-      ['ties a file hit and wins on the smaller id', vec(1, 3)],
-    ])('a note %s', async (_, vector) => {
-      expect(
-        await runSearch(
-          withNote(vector),
-          { text: '麵' },
-          fakeEmbedder(),
-          breaker(),
-        ),
-      ).toMatchSnapshot();
+      [
+        'scores between two file hits',
+        vec(2, 1),
+        ['2025-12-01', '2025-12-04', '2025-12-02', '2025-12-03'],
+      ],
+      [
+        'ties a file hit and wins on the smaller id',
+        vec(1, 3),
+        ['2025-12-01', '2025-12-02', '2025-12-04', '2025-12-03'],
+      ],
+    ])('a note %s', async (_, vector, days) => {
+      const res = await runSearch(
+        withNote(vector),
+        { text: '麵' },
+        fakeEmbedder(),
+        breaker(),
+      );
+      expect(res.results.map((r) => r.date)).toEqual(days);
+      expect(res).toMatchSnapshot();
     });
   });
 
