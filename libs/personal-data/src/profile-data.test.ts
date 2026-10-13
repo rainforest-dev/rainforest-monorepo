@@ -128,6 +128,11 @@ describe('profile-data', () => {
     expect(results.projects.some((p) => p.id === 'en/opencgt')).toBe(true);
   });
 
+  it('searchByTechnology folds full-width input the way ⌘K does', async () => {
+    const results = await searchByTechnology('ＮＥＸＴ', { lang: 'en' });
+    expect(results.projects.some((p) => p.id === 'en/opencgt')).toBe(true);
+  });
+
   it('getSkillById returns the same shape as getSkills entries', async () => {
     const skill = await getSkillById('en/ts');
     expect(skill?.name).toBe('TypeScript');

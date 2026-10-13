@@ -1,3 +1,5 @@
+import { fold } from '@rainforest-dev/search';
+
 import { getCollection, getEntry } from './loader';
 import type { EmploymentType, ExperienceType, Locale, SkillTag } from './vocab';
 
@@ -291,17 +293,17 @@ export async function searchByTechnology(
   options: { lang?: Locale } = {},
 ): Promise<{ experiences: ResolvedExperience[]; projects: ResolvedProject[] }> {
   const { lang = 'en' } = options;
-  const q = query.toLowerCase();
+  const q = fold(query);
   const [experiences, projects] = await Promise.all([
     getWorkExperience({ lang }),
     getProjects({ lang }),
   ]);
   return {
     experiences: experiences.filter((e) =>
-      e.technologies.some((t) => t.toLowerCase().includes(q)),
+      e.technologies.some((t) => fold(t).includes(q)),
     ),
     projects: projects.filter((p) =>
-      p.technologies.some((t) => t.toLowerCase().includes(q)),
+      p.technologies.some((t) => fold(t).includes(q)),
     ),
   };
 }
