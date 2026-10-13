@@ -26,7 +26,8 @@ export function hashRecord({ kind, title, keywords }: Hashable): string {
     .slice(0, 16);
 }
 
-const words = (text: string) => text.toLowerCase().split(/[\s·,/()+\-_.]+/);
+export const words = (text: string) =>
+  text.toLowerCase().split(/[\s·,/()+\-_.]+/);
 
 export function normalizeTerms(
   raw: string[],

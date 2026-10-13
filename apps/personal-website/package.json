@@ -132,6 +132,16 @@
           "cwd": "{projectRoot}"
         }
       },
+      "build-search-neighbours": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "^build"
+        ],
+        "options": {
+          "command": "node scripts/build-search-neighbours.ts",
+          "cwd": "{projectRoot}"
+        }
+      },
       "check-output": {
         "dependsOn": [
           "build"

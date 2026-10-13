@@ -29,3 +29,6 @@ pnpm-lock.yaml
 
 # Byte-for-byte fixtures of the memories index format; reformatting breaks them.
 libs/search/src/node/fixtures
+
+apps/personal-website/src/data/search-neighbours.json
+apps/personal-website/.cache
