@@ -77,7 +77,7 @@ export const calibreTools = (library: CalibreLibrary): McpTool[] => [
     name: 'list_books',
     title: 'List books',
     description:
-      'Search and list books. The query is full-text plus semantic, ordered by relevance unless sortBy (with sortDir) is set, and lexical-only when the embedding service is unreachable; queries under 3 characters match by substring. When groupBy is set, returns { groups } with 6 preview books each, in each group\'s own order; otherwise returns { books, total }. Both carry semantic ("on" | "off") and, when semantic search could not answer, reason.',
+      'Search and list books. The query is full-text plus semantic, ordered by relevance unless sortBy (with sortDir) is set, and lexical-only when the embedding service is unreachable; queries under 3 characters match by substring. When groupBy is set, returns { groups } with 6 preview books each; otherwise returns { books, total }. Both carry semantic ("on" | "off") and, when semantic search could not answer, reason.',
     input: {
       query: z.string().optional().describe('Full-text plus semantic search'),
       authorId: z.number().int().optional(),

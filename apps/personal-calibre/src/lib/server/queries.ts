@@ -244,8 +244,9 @@ export async function searchBookList({
 }: BookListParams & { groupBy?: GroupBy }) {
   const search = usesSearch(q) ? await searchBookIds(q) : undefined;
   const scope = search ? { ...params, ids: search.ids } : { ...params, q };
+  const { page: _page, limit: _limit, ...filters } = scope;
   const result = groupBy
-    ? await getGroupedBookList({ ...scope, groupBy })
+    ? await getGroupedBookList({ ...filters, groupBy })
     : await getBookList(scope);
   return {
     ...result,
