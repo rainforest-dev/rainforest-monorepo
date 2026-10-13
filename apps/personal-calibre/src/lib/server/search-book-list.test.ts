@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { EmbedError } from '@rainforest-dev/search';
 import { NextRequest } from 'next/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createCalibreDb } from '@/test';
 
-const fault = vi.hoisted(() => ({ on: false }));
+const fault = vi.hoisted(() => ({ error: undefined as Error | undefined }));
 
 vi.mock('next/cache', () => ({
   cacheLife: () => undefined,
@@ -16,7 +17,6 @@ vi.mock('next/cache', () => ({
 vi.mock('@rainforest-dev/search/node', async (importOriginal) => {
   const mod =
     await importOriginal<typeof import('@rainforest-dev/search/node')>();
-  const { EmbedError } = await import('@rainforest-dev/search');
   return {
     ...mod,
     conceptEmbedder: (concepts: Parameters<typeof mod.conceptEmbedder>[0]) => {
@@ -24,8 +24,8 @@ vi.mock('@rainforest-dev/search/node', async (importOriginal) => {
       return {
         ...inner,
         embed: (texts: string[], kind: 'query' | 'document') =>
-          fault.on && kind === 'query'
-            ? Promise.reject(new EmbedError('ollama-unreachable', 'down'))
+          fault.error && kind === 'query'
+            ? Promise.reject(fault.error)
             : inner.embed(texts, kind),
       };
     },
@@ -75,8 +75,14 @@ afterAll(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-const ids = (result: { books?: { id: number }[] }) =>
-  (result.books ?? []).map((b) => b.id);
+type Listed = Awaited<ReturnType<typeof searchBookList>>;
+
+function flat(result: Listed) {
+  if (!('books' in result)) throw new Error('expected a flat list');
+  return result;
+}
+
+const ids = (result: Listed) => flat(result).books.map((b) => b.id);
 
 describe('searchBookList', () => {
   it('orders by relevance without sortBy, including a semantic-only match', async () => {
@@ -91,7 +97,7 @@ describe('searchBookList', () => {
   it('sorts the matched books by sortBy, and pages them', async () => {
     const result = await searchBookList({ q: QUERY, sortBy: 'title' });
     expect(ids(result)).toEqual([4, 3, 1]);
-    expect(result.total).toBe(3);
+    expect(flat(result).total).toBe(3);
     const second = await searchBookList({
       q: QUERY,
       sortBy: 'title',
@@ -99,12 +105,12 @@ describe('searchBookList', () => {
       limit: 1,
     });
     expect(ids(second)).toEqual([3]);
-    expect(second.total).toBe(3);
+    expect(flat(second).total).toBe(3);
   });
 
   it('applies filters to the matches', async () => {
     const result = await searchBookList({ q: QUERY, authorId: 2 });
-    expect(result.total).toBe(2);
+    expect(flat(result).total).toBe(2);
     expect(ids(result).sort()).toEqual([3, 4]);
   });
 
@@ -124,7 +130,7 @@ describe('searchBookList', () => {
   });
 
   it('returns the lexical order exactly when the embedder fails', async () => {
-    fault.on = true;
+    fault.error = new EmbedError('ollama-unreachable', 'down');
     try {
       const { appSqlite } = await import('@/db');
       const lexical = lexicalBookIds(QUERY, appSqlite);
@@ -136,7 +142,7 @@ describe('searchBookList', () => {
       });
       expect(ids(result)).toEqual(lexical);
     } finally {
-      fault.on = false;
+      fault.error = undefined;
     }
   });
 });
