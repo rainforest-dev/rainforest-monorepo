@@ -1,7 +1,12 @@
 'use client';
 
 import { Badge, Button } from '@rainforest-dev/rainforest-react';
-import { LibraryBig, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+  LibraryBig,
+  NotebookPen,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -41,6 +46,14 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
       >
         <LibraryBig className="size-5" aria-hidden />
         Library
+      </Link>
+      <Link
+        href="/notebooks"
+        prefetch={false}
+        className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm"
+      >
+        <NotebookPen className="size-4" aria-hidden />
+        Notebooks
       </Link>
       {isList && <ViewSwitch className="ml-auto lg:ml-2" />}
       {isList && (

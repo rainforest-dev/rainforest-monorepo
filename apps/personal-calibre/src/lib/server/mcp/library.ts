@@ -5,6 +5,12 @@ import {
   listBookDeliveryEvents,
 } from '@/lib/server/delivery';
 import {
+  getNotebookPages,
+  listNotebooks,
+  readPageFile,
+  setPageTranscription,
+} from '@/lib/server/notebooks';
+import {
   getBook,
   getBookList,
   getFilterOptions,
@@ -34,4 +40,8 @@ export const liveLibrary: CalibreLibrary = {
   addTagToBook,
   removeTagFromBook,
   revalidateBookTagCache,
+  listNotebooks,
+  getNotebookPages,
+  readPageFile,
+  setPageTranscription,
 };

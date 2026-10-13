@@ -299,7 +299,8 @@ export const DEFAULT_DROP_DIR = join(
   'Library',
   'Mobile Documents',
   'com~apple~CloudDocs',
-  'Memories Inbox',
+  'Inbox',
+  'memories',
 );
 
 export const DEFAULT_PHOTOS_LIBRARY = join(

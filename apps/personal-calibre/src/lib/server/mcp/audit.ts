@@ -1,4 +1,8 @@
-import { type ToolCall, ToolInputError } from '@rainforest-dev/mcp-kit';
+import {
+  isToolContent,
+  type ToolCall,
+  ToolInputError,
+} from '@rainforest-dev/mcp-kit';
 
 export type AuditLine = {
   kind: 'mcp';
@@ -9,15 +13,26 @@ export type AuditLine = {
   bookIds?: number;
   tagId?: number;
   deliveryId?: number;
+  notebookId?: number;
+  pageId?: number;
   results: number;
   ms: number;
   ok: boolean;
 };
 
-const ID_FIELDS = ['bookId', 'tagId', 'deliveryId'] as const;
+const ID_FIELDS = [
+  'bookId',
+  'tagId',
+  'deliveryId',
+  'notebookId',
+  'pageId',
+] as const;
 
 export function resultCount(result: unknown): number {
   if (Array.isArray(result)) return result.length;
+  if (isToolContent(result)) {
+    return result.content.filter((block) => block.type === 'image').length;
+  }
   if (typeof result !== 'object' || result === null) return 0;
   const record = result as Record<string, unknown>;
   for (const key of ['books', 'groups']) {

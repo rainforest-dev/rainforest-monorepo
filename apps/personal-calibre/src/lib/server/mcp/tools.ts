@@ -1,6 +1,7 @@
 import {
   defineTool,
   type McpTool,
+  toolContent,
   ToolInputError,
 } from '@rainforest-dev/mcp-kit';
 import { z } from 'zod';
@@ -11,6 +12,12 @@ import type {
   deleteBookDeliveryEvent,
   listBookDeliveryEvents,
 } from '@/lib/server/delivery';
+import type {
+  getNotebookPages,
+  listNotebooks,
+  readPageFile,
+  setPageTranscription,
+} from '@/lib/server/notebooks';
 import type {
   getBook,
   getBookList,
@@ -40,6 +47,10 @@ export type CalibreLibrary = {
   addTagToBook: typeof addTagToBook;
   removeTagFromBook: typeof removeTagFromBook;
   revalidateBookTagCache: typeof revalidateBookTagCache;
+  listNotebooks: typeof listNotebooks;
+  getNotebookPages: typeof getNotebookPages;
+  readPageFile: typeof readPageFile;
+  setPageTranscription: typeof setPageTranscription;
 };
 
 const READ = { readOnlyHint: true, openWorldHint: false } as const;
@@ -53,6 +64,11 @@ export const addDeliveryInputSchema = {
   externalRef: httpUrlSchema.optional(),
   note: z.string().optional(),
 };
+
+/** The most pages `get_notebook_pages` returns in one call, since each carries its image. */
+export const MAX_PAGES_PER_CALL = 10;
+
+const position = () => z.number().int().min(1);
 
 export const calibreTools = (library: CalibreLibrary): McpTool[] => [
   defineTool({
@@ -227,6 +243,117 @@ export const calibreTools = (library: CalibreLibrary): McpTool[] => [
       library.removeTagFromBook(bookId, tagId);
       library.revalidateBookTagCache(bookId);
       return { ok: true };
+    },
+  }),
+
+  defineTool({
+    name: 'list_notebooks',
+    title: 'List notebooks',
+    description:
+      'List the scanned paper Bullet Journal notebooks, active first, with their page counts.',
+    input: {},
+    annotations: READ,
+    run: async () =>
+      (await library.listNotebooks()).map(
+        ({ id, name, status, pageCount }) => ({ id, name, status, pageCount }),
+      ),
+  }),
+
+  defineTool({
+    name: 'get_notebook_pages',
+    title: 'Get notebook pages',
+    description: `Read scanned pages of a notebook in order, each as its image plus any saved transcription. Returns at most ${MAX_PAGES_PER_CALL} pages per call; when more remain, the first text block names nextPosition to pass as fromPosition.`,
+    input: {
+      notebookId: z.number().int(),
+      fromPosition: position().optional().describe('First position, default 1'),
+      toPosition: position().optional().describe('Last position, inclusive'),
+    },
+    annotations: READ,
+    run: async ({ notebookId, fromPosition = 1, toPosition }) => {
+      if (toPosition !== undefined && toPosition < fromPosition) {
+        throw new ToolInputError('toPosition must not be before fromPosition');
+      }
+      const pages = await library.getNotebookPages(notebookId, {
+        from: fromPosition,
+        to: toPosition,
+        limit: MAX_PAGES_PER_CALL + 1,
+      });
+      if (!pages) throw new ToolInputError(`Notebook ${notebookId} not found`);
+
+      const shown = pages.slice(0, MAX_PAGES_PER_CALL);
+      const nextPosition =
+        pages.length > MAX_PAGES_PER_CALL
+          ? pages[MAX_PAGES_PER_CALL].position
+          : null;
+      const content: Parameters<typeof toolContent>[0] = [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            notebookId,
+            pages: shown.length,
+            nextPosition,
+          }),
+        },
+      ];
+      for (const page of shown) {
+        const file = await library.readPageFile(page.id);
+        content.push({
+          type: 'text',
+          text: JSON.stringify({
+            id: page.id,
+            position: page.position,
+            pageNumber: page.pageNumber,
+            pageDate: page.pageDate,
+            transcription: page.transcription,
+            ...(!file && { image: 'missing' }),
+          }),
+        });
+        if (file) {
+          content.push({
+            type: 'image',
+            data: file.data.toString('base64'),
+            mimeType: file.mimeType,
+          });
+        }
+      }
+      return toolContent(content);
+    },
+  }),
+
+  defineTool({
+    name: 'set_page_transcription',
+    title: 'Set page transcription',
+    description:
+      'Save the transcription of a notebook page, replacing any earlier one. pageNumber and pageDate are kept when omitted.',
+    input: {
+      pageId: z.number().int(),
+      transcription: z.string(),
+      pageNumber: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe('The number printed on the page'),
+      pageDate: z.iso
+        .date()
+        .optional()
+        .describe('The date the page covers, YYYY-MM-DD'),
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    run: async ({ pageId, ...input }) => {
+      const page = await library.setPageTranscription(pageId, input);
+      if (!page) throw new ToolInputError(`Page ${pageId} not found`);
+      return {
+        ok: true,
+        pageId,
+        pageNumber: page.pageNumber,
+        pageDate: page.pageDate,
+      };
     },
   }),
 ];
