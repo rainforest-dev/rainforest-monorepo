@@ -29,3 +29,7 @@ pnpm-lock.yaml
 
 # Byte-for-byte fixtures of the memories index format; reformatting breaks them.
 libs/search/src/node/fixtures
+
+# Written by personal-website:build-search-neighbours; the vector cache is local only.
+apps/personal-website/src/data/search-neighbours.json
+apps/personal-website/.cache
