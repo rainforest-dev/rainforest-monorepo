@@ -44,6 +44,7 @@ export default defineConfig({
           CALIBRE_LIBRARY_PATH: FIXTURES_DIR,
           CALIBRE_APP_DB_PATH: APP_DB_PATH,
           CALIBRE_E2E: '1',
+          CALIBRE_EMBED: 'fake',
           CALIBRE_MCP_SECRET: MCP_SECRET,
         },
       },
