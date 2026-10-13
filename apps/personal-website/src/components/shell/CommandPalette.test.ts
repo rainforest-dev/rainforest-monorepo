@@ -151,3 +151,39 @@ describe('CommandPalette answer strip', () => {
     expect(selectToolMock).not.toHaveBeenCalled();
   });
 });
+
+describe('CommandPalette neighbour hits', () => {
+  const express = {
+    id: 'skill/zh/express',
+    kind: 'skill' as const,
+    title: 'Express',
+    keywords: ['backend'],
+    href: '/#skills',
+  };
+
+  async function results(records: (typeof express)[], query: string) {
+    const wrapper = mount(CommandPalette, {
+      props: { records, lang: 'zh' as const },
+      attachTo: document.body,
+    });
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'k', metaKey: true }),
+    );
+    await flushPromises();
+    await wrapper.find('input').setValue(query);
+    return wrapper.findAll('[role="option"]').map((row) => row.text());
+  }
+
+  it('lists a record that only the offline neighbours connect to the query', async () => {
+    const rows = await results([express], '資料庫');
+    expect(rows.some((row) => row.includes('Express'))).toBe(true);
+  });
+
+  it('lists nothing for a record the neighbours do not know', async () => {
+    const rows = await results(
+      [{ ...express, id: 'skill/zh/unknown' }],
+      '資料庫',
+    );
+    expect(rows.some((row) => row.includes('Express'))).toBe(false);
+  });
+});

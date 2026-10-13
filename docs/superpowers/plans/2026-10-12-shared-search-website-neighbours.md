@@ -18,7 +18,9 @@
 
 ## Floor calibration
 
-A 30-query set, 20 vocabulary terms plus 10 queries outside the vocabulary (the W2 spike reuses it), lives in `scripts/search-eval-queries.ts`. Each of the 20 in-vocabulary terms has hand-labelled relevant records. The floor is the lowest cosine among those labelled neighbours, written as `NEIGHBOUR_FLOOR` and into the PR with the per-term table.
+A 30-query set, 20 vocabulary terms plus 10 queries outside the vocabulary (the W2 spike reuses it), lives in `scripts/search-eval-queries.ts`. Each of the 20 in-vocabulary terms has hand-labelled relevant records. The floor is the lowest cosine among those labelled neighbours that top 8 can keep, written as `NEIGHBOUR_FLOOR` and into the PR with the per-term table.
+
+Result: that rule gives 0.667, which writes 108.7 KB, over the 100 KB cap. The next labelled score, 0.707, writes 66.8 KB and loses one label (`實習生` → en `experience/4`, 0.667). Two labels sit below rank 8 and no floor can keep them: `區塊鏈` → `hashgreen-swap` (0.581, rank 27) and `hoogii-wallet` (0.667, rank 9).
 
 ## Steps
 
