@@ -102,6 +102,23 @@ describe('cleanMargins', () => {
     expect(Array.from(page.data.subarray(i, i + 3))).toEqual(SKIN);
   });
 
+  it('leaves warm cream paper alone', () => {
+    const CREAM: [number, number, number] = [230, 200, 170];
+    const page = raster(100, 140, () => CREAM);
+    expect(cleanMargins(page)).toBe(0);
+    expect(Array.from(page.data.subarray(0, 3))).toEqual(CREAM);
+  });
+
+  it('keeps brown ink drawn inside the margin', () => {
+    const BROWN: [number, number, number] = [140, 80, 50];
+    const page = raster(100, 140, (x, y) =>
+      x > 4 && x < 12 && y > 60 && y < 80 ? BROWN : gray(245),
+    );
+    expect(cleanMargins(page)).toBe(0);
+    const i = (70 * 100 + 8) * 4;
+    expect(Array.from(page.data.subarray(i, i + 3))).toEqual(BROWN);
+  });
+
   it('treats graphite and paper as neither skin nor desk', () => {
     expect(isSkinOrDesk(...SKIN)).toBe(true);
     expect(isSkinOrDesk(60, 60, 64)).toBe(false);

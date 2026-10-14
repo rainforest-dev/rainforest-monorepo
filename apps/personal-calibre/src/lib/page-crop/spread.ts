@@ -91,27 +91,89 @@ export function isSkinOrDesk(r: number, g: number, b: number): boolean {
 }
 
 export const MARGIN_SHARE = 0.18;
+/** How far, in RGB distance, a pixel must be from the paper before it can count as skin or desk. */
+const PAPER_DISTANCE = 45;
+/** More of the margin than this looking like skin means the paper itself is warm, so nothing is cleaned. */
+const MAX_MARKED_SHARE = 0.5;
 
+/** Median colour of the middle half of the page, which is mostly paper whatever its tint. */
+function paperColour({
+  data,
+  width,
+  height,
+}: Raster): [number, number, number] {
+  const channels: [number[], number[], number[]] = [[], [], []];
+  for (let y = height >> 2; y < height - (height >> 2); y += 2) {
+    for (let x = width >> 2; x < width - (width >> 2); x += 2) {
+      const i = (y * width + x) * 4;
+      for (let c = 0; c < 3; c++) channels[c].push(data[i + c]);
+    }
+  }
+  const median = (values: number[]) =>
+    values.length ? values.sort((a, b) => a - b)[values.length >> 1] : 255;
+  return [median(channels[0]), median(channels[1]), median(channels[2])];
+}
+
+/**
+ * Paints out fingers and desk that reach into the page from its edge. Only warm regions
+ * connected to the outer edge are touched, so ink drawn in the margin is kept, and a page
+ * whose margin is mostly warm (cream paper under warm light) is left as it is.
+ */
 export function cleanMargins(page: Raster, share = MARGIN_SHARE): number {
   const { data, width, height } = page;
   const bandX = Math.max(1, Math.round(width * share));
   const bandY = Math.max(1, Math.round(height * share));
   const inMargin = (x: number, y: number) =>
     x < bandX || x >= width - bandX || y < bandY || y >= height - bandY;
+  const paper = paperColour(page);
 
-  const mask = new Uint8Array(width * height);
-  let marked = 0;
+  const candidate = new Uint8Array(width * height);
+  let marginPixels = 0;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (!inMargin(x, y)) continue;
+      marginPixels++;
       const i = (y * width + x) * 4;
-      if (isSkinOrDesk(data[i], data[i + 1], data[i + 2])) {
-        mask[y * width + x] = 1;
-        marked++;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const distance = Math.hypot(r - paper[0], g - paper[1], b - paper[2]);
+      if (distance > PAPER_DISTANCE && isSkinOrDesk(r, g, b)) {
+        candidate[y * width + x] = 1;
       }
     }
   }
-  if (marked === 0) return 0;
+
+  // Keep only candidates connected to the page edge: a finger or the desk enters from outside.
+  const mask = new Uint8Array(width * height);
+  const stack: number[] = [];
+  const seed = (x: number, y: number) => {
+    const p = y * width + x;
+    if (candidate[p] && !mask[p]) {
+      mask[p] = 1;
+      stack.push(p);
+    }
+  };
+  for (let x = 0; x < width; x++) {
+    seed(x, 0);
+    seed(x, height - 1);
+  }
+  for (let y = 0; y < height; y++) {
+    seed(0, y);
+    seed(width - 1, y);
+  }
+  let marked = 0;
+  while (stack.length) {
+    const p = stack.pop() as number;
+    marked++;
+    const x = p % width;
+    const y = (p - x) / width;
+    if (x > 0) seed(x - 1, y);
+    if (x < width - 1) seed(x + 1, y);
+    if (y > 0) seed(x, y - 1);
+    if (y < height - 1) seed(x, y + 1);
+  }
+  if (marked === 0 || marked > marginPixels * MAX_MARKED_SHARE) return 0;
 
   const grown = mask.slice();
   const reach = Math.max(1, Math.round(Math.max(width, height) * 0.004));
@@ -129,22 +191,6 @@ export function cleanMargins(page: Raster, share = MARGIN_SHARE): number {
       }
     }
   }
-
-  const reds: number[] = [];
-  const greens: number[] = [];
-  const blues: number[] = [];
-  for (let y = 0; y < height; y += 2) {
-    for (let x = 0; x < width; x += 2) {
-      if (!inMargin(x, y) || grown[y * width + x]) continue;
-      const i = (y * width + x) * 4;
-      reds.push(data[i]);
-      greens.push(data[i + 1]);
-      blues.push(data[i + 2]);
-    }
-  }
-  const median = (values: number[]) =>
-    values.length ? values.sort((a, b) => a - b)[values.length >> 1] : 255;
-  const paper = [median(reds), median(greens), median(blues)];
 
   let painted = 0;
   for (let p = 0; p < grown.length; p++) {
