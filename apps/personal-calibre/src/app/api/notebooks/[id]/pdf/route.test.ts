@@ -63,18 +63,18 @@ describe('GET /api/notebooks/[id]/pdf', () => {
     expect(response.headers.get('content-type')).toMatch(/json/);
   });
 
-  it('streams a PDF named after the notebook, CJK included', async () => {
+  it('streams a PDF named after the notebook and its dates, CJK included', async () => {
     const { id } = await notebookWithPages('2026 手帳', [20, 21]);
     const response = await get(id);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('application/pdf');
     const disposition = response.headers.get('content-disposition') ?? '';
-    expect(disposition).toContain('attachment; filename="2026 __.pdf"');
+    const today = new Date().toISOString().slice(0, 10);
     expect(disposition).toContain(
-      `filename*=UTF-8''${encodeURIComponent('2026 手帳.pdf')}`,
+      `attachment; filename="BuJo ${today} 2026 __.pdf"`,
     );
     expect(disposition).toContain(
-      "filename*=UTF-8''2026%20%E6%89%8B%E5%B8%B3.pdf",
+      `filename*=UTF-8''${encodeURIComponent(`BuJo ${today} 2026 手帳.pdf`)}`,
     );
 
     const pdf = Buffer.from(await response.arrayBuffer()).toString('latin1');
