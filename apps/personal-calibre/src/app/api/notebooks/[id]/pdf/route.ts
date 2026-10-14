@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import {
-  getNotebook,
-  notebookPdf,
-  notebookPdfFileName,
-  readPageFile,
-} from '@/lib/server';
+import { notebookPdfFileName } from '@/lib';
+import { getNotebook, notebookPdf, readPageFile } from '@/lib/server';
 
 /** The whole notebook as one PDF download, merged from its scans on every request. */
 export async function GET(

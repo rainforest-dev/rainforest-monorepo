@@ -2,6 +2,7 @@
 
 import {
   Button,
+  buttonVariants,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -10,10 +11,11 @@ import {
   DialogTitle,
   toast,
 } from '@rainforest-dev/rainforest-react';
-import { Trash2 } from 'lucide-react';
+import { FileDown, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { notebookPageFileName } from '@/lib';
 import type { NotebookPage } from '@/types';
 
 import { pageImageUrl, readError } from './api';
@@ -28,8 +30,10 @@ const pageLabel = (page: NotebookPage) =>
     .join(' · ');
 
 export function NotebookPageGrid({
+  notebookName,
   pages,
 }: {
+  notebookName: string;
   pages: readonly NotebookPage[];
 }) {
   const router = useRouter();
@@ -108,7 +112,12 @@ export function NotebookPageGrid({
             <>
               <DialogHeader>
                 <DialogTitle>{pageLabel(open)}</DialogTitle>
-                <DialogDescription>{open.fileName}</DialogDescription>
+                <DialogDescription>
+                  {notebookPageFileName({ notebookName, ...open })}
+                  <span className="block text-xs">
+                    Uploaded as {open.fileName}
+                  </span>
+                </DialogDescription>
               </DialogHeader>
               <img
                 src={pageImageUrl(open.id)}
@@ -125,6 +134,14 @@ export function NotebookPageGrid({
                 </p>
               )}
               <DialogFooter>
+                <a
+                  href={pageImageUrl(open.id)}
+                  download={notebookPageFileName({ notebookName, ...open })}
+                  className={buttonVariants({ variant: 'outline' })}
+                >
+                  <FileDown aria-hidden />
+                  Download page
+                </a>
                 <Button
                   variant="destructive"
                   disabled={deleting}

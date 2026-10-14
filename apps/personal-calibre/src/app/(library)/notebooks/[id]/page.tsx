@@ -64,7 +64,7 @@ async function NotebookContent({ params }: Props) {
           <PageUploader notebookId={notebook.id} />
         </div>
       </div>
-      <NotebookPageGrid pages={notebook.pages} />
+      <NotebookPageGrid notebookName={notebook.name} pages={notebook.pages} />
     </>
   );
 }
