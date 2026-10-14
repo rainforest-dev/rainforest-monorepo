@@ -6,7 +6,7 @@ import sharp from 'sharp';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { getNotebook } from '@/lib/server';
-import { createCalibreDb } from '@/test';
+import { createCalibreDb, jpegBytes, scannedPdf, textPdf } from '@/test';
 
 import { POST } from './route';
 
@@ -127,14 +127,35 @@ describe('POST /api/inbox/bujo', () => {
     expect(notebook?.pages[2]?.mimeType).toBe('image/jpeg');
   });
 
-  it('refuses a PDF with 415', async () => {
+  it('stores each page of a scanned PDF as its own page, in order', async () => {
+    process.env.CALIBRE_INBOX_SECRET = SECRET;
+    const pdf = await scannedPdf([await jpegBytes(61), await jpegBytes(62)]);
+    const response = await inbox({ 'x-inbox-secret': SECRET }, [
+      ['notebook', 'Scanned Log'],
+      ['source', 'n8n'],
+      ['file', new File([pdf], 'Scan 3.pdf', { type: 'application/pdf' })],
+    ]);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.added).toHaveLength(2);
+    const notebook = await getNotebook(body.notebookId);
+    expect(notebook?.pages.map((p) => [p.fileName, p.position])).toEqual([
+      ['Scan 3-p001.jpg', 1],
+      ['Scan 3-p002.jpg', 2],
+    ]);
+  });
+
+  it('refuses a PDF that is not a scan with 415', async () => {
     process.env.CALIBRE_INBOX_SECRET = SECRET;
     const response = await inbox({ 'x-inbox-secret': SECRET }, [
       ['notebook', 'Inbox Log'],
-      ['file', image('week.pdf', 9, 'application/pdf')],
+      [
+        'file',
+        new File([await textPdf()], 'week.pdf', { type: 'application/pdf' }),
+      ],
     ]);
     expect(response.status).toBe(415);
-    expect((await response.json()).error).toMatch(/PDF/);
+    expect((await response.json()).error).toMatch(/only scanned PDFs/);
   });
 
   it.each<[string, Array<[string, string | File]>]>([

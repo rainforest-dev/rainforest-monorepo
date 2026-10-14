@@ -35,7 +35,7 @@ export function PageUploader({ notebookId }: { notebookId: number }) {
 
   /**
    * Each image the browser can decode goes through the crop step; the rest (HEIC outside
-   * Safari) go up as they are, and the server converts them. `null` when the user cancelled.
+   * Safari, scanned PDFs) go up as they are, and the server converts or splits them. `null` when the user cancelled.
    */
   async function preparePages(files: File[]): Promise<File[] | null> {
     const pages: File[] = [];
@@ -114,7 +114,7 @@ export function PageUploader({ notebookId }: { notebookId: number }) {
       <input
         ref={input}
         type="file"
-        accept="image/*"
+        accept="image/*,application/pdf"
         multiple
         hidden
         onChange={(event) => void onChange(event)}

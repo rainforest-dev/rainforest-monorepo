@@ -11,7 +11,8 @@ const INBOX_HEADER = 'x-inbox-secret';
 
 /**
  * Takes scanned Bullet Journal pages from automation (n8n): multipart `notebook` (a name, found
- * or created), one or more `file` fields and an optional `source`. It answers 404 while
+ * or created), one or more `file` fields (page images, or a scanned PDF that is split into one
+ * page per PDF page) and an optional `source`. It answers 404 while
  * `CALIBRE_INBOX_SECRET` is unset, and 401 without the matching `x-inbox-secret` header.
  */
 export async function POST(request: Request) {

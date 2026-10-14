@@ -19,6 +19,7 @@ import type {
 } from '@/types';
 
 import { normalizePageImage, type PageImage } from './page-image';
+import { extractPdfPages, isPdf, MAX_PDF_BYTES } from './pdf-pages';
 
 export const MAX_PAGE_BYTES = 25 * 1024 * 1024;
 
@@ -39,10 +40,11 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 
 const GENERIC_TYPES = new Set(['', 'application/octet-stream']);
 
-export const PDF_NOT_SUPPORTED =
-  'PDF uploads are not supported yet; upload each page as a JPEG, PNG, HEIC or WebP image';
+/** Why `checkPageUpload` refuses a PDF: `readPageUploads` splits one into page images first. */
+export const PDF_NOT_EXPANDED =
+  'a PDF has to be split into its page images first; send it as a multipart upload';
 
-/** One uploaded page image, as read from a multipart field. */
+/** One uploaded page image, as read from a multipart field or split out of a PDF. */
 export interface PageUpload {
   name: string;
   type: string;
@@ -82,15 +84,12 @@ export function checkPageUpload(file: {
 }): UploadCheck {
   const mimeType = resolvePageMimeType(file.name, file.type);
   if (!mimeType) {
-    const isPdf =
-      file.type.toLowerCase() === 'application/pdf' ||
-      extensionOf(file.name) === 'pdf';
     return {
       ok: false,
       status: 415,
-      message: isPdf
-        ? `${file.name}: ${PDF_NOT_SUPPORTED}`
-        : `${file.name}: unsupported type; upload a JPEG, PNG, HEIC or WebP image`,
+      message: isPdf(file)
+        ? `${file.name}: ${PDF_NOT_EXPANDED}`
+        : `${file.name}: unsupported type; upload a JPEG, PNG, HEIC or WebP image, or a scanned PDF`,
     };
   }
   if (file.size > MAX_PAGE_BYTES) {
@@ -103,33 +102,53 @@ export function checkPageUpload(file: {
   return { ok: true, mimeType };
 }
 
+type UploadRefusal = { ok: false; status: 400 | 413 | 415; message: string };
+
 /**
- * Reads every `file` field of a multipart form. A request carrying any file the shelf cannot
- * store is refused whole, so a caller never has to work out which half of a batch landed.
+ * Reads every `file` field of a multipart form. A scanned PDF becomes one JPEG upload per page,
+ * in page order, in its place (see `extractPdfPages`). A request carrying any file the shelf
+ * cannot store is refused whole, so a caller never has to work out which half of a batch landed.
  */
 export async function readPageUploads(
   form: FormData,
-): Promise<
-  | { ok: true; uploads: PageUpload[] }
-  | { ok: false; status: 400 | 413 | 415; message: string }
-> {
+): Promise<{ ok: true; uploads: PageUpload[] } | UploadRefusal> {
   const files = form
     .getAll('file')
     .filter((value): value is File => typeof value !== 'string');
   if (files.length === 0) {
     return { ok: false, status: 400, message: 'Attach at least one file' };
   }
+  // Every file is checked by its size and type before any is read into memory.
   for (const file of files) {
+    if (isPdf(file)) {
+      if (file.size > MAX_PDF_BYTES) {
+        return {
+          ok: false,
+          status: 413,
+          message: `${file.name}: larger than the ${MAX_PDF_BYTES / 1024 / 1024} MB PDF limit`,
+        };
+      }
+      continue;
+    }
     const check = checkPageUpload(file);
     if (!check.ok) return check;
   }
-  const uploads = await Promise.all(
-    files.map(async (file) => ({
-      name: file.name,
-      type: file.type,
-      bytes: new Uint8Array(await file.arrayBuffer()),
-    })),
-  );
+
+  const uploads: PageUpload[] = [];
+  for (const file of files) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (!isPdf(file)) {
+      uploads.push({ name: file.name, type: file.type, bytes });
+      continue;
+    }
+    const pdf = await extractPdfPages(file.name, bytes);
+    if (!pdf.ok) return pdf;
+    for (const page of pdf.pages) {
+      const check = checkPageUpload({ ...page, size: page.bytes.byteLength });
+      if (!check.ok) return check;
+      uploads.push(page);
+    }
+  }
   return { ok: true, uploads };
 }
 
