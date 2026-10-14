@@ -1,3 +1,4 @@
+export * from './auto-crop';
 export * from './book-query';
 export * from './delivery';
 export * from './files';

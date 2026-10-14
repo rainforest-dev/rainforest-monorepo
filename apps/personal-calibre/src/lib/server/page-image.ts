@@ -1,6 +1,8 @@
 import decodeHeic from 'heic-decode';
 import sharp from 'sharp';
 
+import type { Raster } from '@/lib/page-crop';
+
 /** Longest edge a stored page keeps: about 360 dpi on an A5 page, plenty for handwriting. */
 export const MAX_PAGE_EDGE = 3000;
 
@@ -17,6 +19,44 @@ async function openImage(bytes: Uint8Array, mimeType: string) {
   return sharp(Buffer.from(data.buffer, data.byteOffset, data.byteLength), {
     raw: { width, height, channels: 4 },
   });
+}
+
+export async function decodePageRaster(
+  bytes: Uint8Array,
+  mimeType: string,
+  maxEdge = MAX_PAGE_EDGE,
+): Promise<Raster> {
+  const image = await openImage(bytes, mimeType);
+  const { data, info } = await image
+    .rotate()
+    .resize(maxEdge, maxEdge, { fit: 'inside', withoutEnlargement: true })
+    .flatten({ background: '#ffffff' })
+    .toColourspace('srgb')
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return {
+    data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength),
+    width: info.width,
+    height: info.height,
+  };
+}
+
+export async function encodePageRaster({
+  data,
+  width,
+  height,
+}: Raster): Promise<Uint8Array> {
+  const jpeg = await sharp(
+    Buffer.from(data.buffer, data.byteOffset, data.byteLength),
+    {
+      raw: { width, height, channels: 4 },
+    },
+  )
+    .flatten({ background: '#ffffff' })
+    .jpeg({ quality: 88, mozjpeg: true })
+    .toBuffer();
+  return new Uint8Array(jpeg);
 }
 
 /**

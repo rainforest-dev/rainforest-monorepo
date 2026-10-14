@@ -30,6 +30,7 @@ import {
   type Quad,
   type Seam,
   splitSpread,
+  SPREAD_ASPECT,
 } from '@/lib';
 
 import { cropPages, detectNormalisedQuad, drawScaled } from './crop-image';
@@ -47,8 +48,6 @@ export type CropOutcome =
 
 /** Long edge of the on-screen preview; the crop itself reads the full image. */
 const PREVIEW_EDGE = 1600;
-/** A detected outline this much wider than tall is taken for a spread. */
-const SPREAD_ASPECT = 1.15;
 
 type HandleKey = 0 | 1 | 2 | 3 | 'seamTop' | 'seamBottom';
 

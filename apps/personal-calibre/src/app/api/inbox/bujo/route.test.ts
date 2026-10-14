@@ -173,4 +173,44 @@ describe('POST /api/inbox/bujo', () => {
     const response = await inbox({ 'x-inbox-secret': SECRET }, fields);
     expect(response.status).toBe(400);
   });
+
+  it('crops a sideways spread photo into two upright pages unless crop is off', async () => {
+    process.env.CALIBRE_INBOX_SECRET = SECRET;
+    const width = 600;
+    const height = 800;
+    const raw = Buffer.alloc(width * height * 3, 70);
+    for (let y = 80; y < 720; y++) {
+      for (let x = 100; x < 500; x++) {
+        const writing = x > 380 && x < 400 && (y < 300 ? y > 150 : y > 600);
+        const v = Math.abs(y - 400) < 8 ? 190 : writing ? 40 : 245;
+        raw.fill(v, (y * width + x) * 3, (y * width + x) * 3 + 3);
+      }
+    }
+    const spread = new Uint8Array(
+      await sharp(raw, { raw: { width, height, channels: 3 } })
+        .jpeg()
+        .toBuffer(),
+    );
+    const photo = () =>
+      new File([spread], 'spread.jpg', { type: 'image/jpeg' });
+
+    const cropped = await inbox({ 'x-inbox-secret': SECRET }, [
+      ['notebook', 'Spread Crop'],
+      ['file', photo()],
+    ]);
+    const { notebookId } = await cropped.json();
+    const pages = (await getNotebook(notebookId))?.pages ?? [];
+    expect(pages.map((p) => p.fileName)).toEqual([
+      'spread-left.jpg',
+      'spread-right.jpg',
+    ]);
+
+    const kept = await inbox({ 'x-inbox-secret': SECRET }, [
+      ['notebook', 'Spread Uncropped'],
+      ['crop', 'off'],
+      ['file', photo()],
+    ]);
+    const body = await kept.json();
+    expect(body.added).toHaveLength(1);
+  });
 });
