@@ -19,6 +19,7 @@ export const NOTEBOOKS_DDL = `
     mime_type TEXT NOT NULL,
     bytes INTEGER NOT NULL,
     content_hash TEXT NOT NULL,
+    fingerprint BLOB,
     transcription TEXT,
     transcribed_at TEXT,
     source TEXT,
@@ -28,3 +29,7 @@ export const NOTEBOOKS_DDL = `
   CREATE INDEX IF NOT EXISTS idx_notebook_pages_notebook_position
     ON notebook_pages(notebook_id, position);
 `;
+
+export const NOTEBOOK_PAGE_ADDED_COLUMNS = [
+  { name: 'fingerprint', definition: 'fingerprint BLOB' },
+] as const;

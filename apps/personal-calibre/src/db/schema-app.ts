@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  blob,
   index,
   integer,
   sqliteTable,
@@ -56,6 +57,7 @@ export const notebookPages = sqliteTable(
     mimeType: text('mime_type').notNull(),
     bytes: integer('bytes').notNull(),
     contentHash: text('content_hash').notNull(),
+    fingerprint: blob('fingerprint', { mode: 'buffer' }),
     transcription: text('transcription'),
     transcribedAt: text('transcribed_at'),
     source: text('source'),

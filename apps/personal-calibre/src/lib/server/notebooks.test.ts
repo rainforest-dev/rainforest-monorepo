@@ -2,15 +2,18 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { appDb, notebookPages } from '@/db';
 import {
   createCalibreDb,
   jpegBytes,
   pngPdf,
   scannedPdf,
   textPdf,
+  writtenPage,
 } from '@/test';
 
 import {
@@ -520,6 +523,77 @@ describe('notebooks', () => {
         { name: 'ok-again.png', reason: 'duplicate: already in this notebook' },
       ],
     });
+  });
+
+  it('skips a page already stored in another notebook, naming where', async () => {
+    const first = await createNotebook('Copy Source');
+    const page = await png('original.png', 120);
+    await appendPages(first.id, [page]);
+
+    const second = await createNotebook('Copy Target');
+    const result = await appendPages(second.id, [
+      { ...page, name: 'copy.png' },
+    ]);
+
+    expect(result).toEqual({
+      added: [],
+      skipped: [
+        {
+          name: 'copy.png',
+          reason: 'duplicate: already page 1 of "Copy Source"',
+        },
+      ],
+    });
+  });
+
+  it('skips a written page that looks like one in another notebook', async () => {
+    const first = await createNotebook('Lookalike Source');
+    await appendPages(first.id, [
+      { name: 'scan.jpg', type: 'image/jpeg', bytes: await writtenPage(7) },
+    ]);
+
+    const second = await createNotebook('Lookalike Target');
+    const result = await appendPages(second.id, [
+      {
+        name: 'rescan.jpg',
+        type: 'image/jpeg',
+        bytes: await writtenPage(7, { width: 450, height: 640, quality: 60 }),
+      },
+      { name: 'other.jpg', type: 'image/jpeg', bytes: await writtenPage(8) },
+    ]);
+
+    expect(result.added).toHaveLength(1);
+    expect(result.skipped).toEqual([
+      {
+        name: 'rescan.jpg',
+        reason: 'duplicate: looks like page 1 of "Lookalike Source"',
+      },
+    ]);
+  });
+
+  it('fingerprints pages stored before fingerprints were kept', async () => {
+    const first = await createNotebook('Backfill Source');
+    const { added } = await appendPages(first.id, [
+      { name: 'old.jpg', type: 'image/jpeg', bytes: await writtenPage(9) },
+    ]);
+    appDb
+      .update(notebookPages)
+      .set({ fingerprint: null })
+      .where(eq(notebookPages.id, added[0]))
+      .run();
+
+    const second = await createNotebook('Backfill Target');
+    const result = await appendPages(second.id, [
+      {
+        name: 'again.jpg',
+        type: 'image/jpeg',
+        bytes: await writtenPage(9, { quality: 55 }),
+      },
+    ]);
+
+    expect(result.skipped[0]?.reason).toBe(
+      'duplicate: looks like page 1 of "Backfill Source"',
+    );
   });
 
   it('archives a notebook with an end date and reopens it', async () => {
