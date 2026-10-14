@@ -71,8 +71,8 @@ describe('POST /api/notebooks/[id]/pages', () => {
     expect((await response.json()).error).toMatch(/at least one file/);
   });
 
-  it('refuses a batch holding a PDF with 415 and stores none of it', async () => {
-    const { id } = await createNotebook('No PDFs');
+  it('refuses a batch holding an unreadable PDF with 415 and stores none of it', async () => {
+    const { id } = await createNotebook('Bad PDF');
     const response = await post(
       id,
       form(
