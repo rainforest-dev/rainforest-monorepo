@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 
-import { getNotebook, notebookPdf, readPageFile } from '@/lib/server';
+import {
+  getNotebook,
+  notebookPdf,
+  notebookPdfFileName,
+  readPageFile,
+} from '@/lib/server';
 
 /** The whole notebook as one PDF download, merged from its scans on every request. */
 export async function GET(
@@ -44,11 +49,12 @@ export async function GET(
       await pages.return(undefined);
     },
   });
-  const asciiName = notebook.name.replace(/[^\x20-\x7E]|["\\]/g, '_');
+  const fileName = notebookPdfFileName(notebook);
+  const asciiName = fileName.replace(/[^\x20-\x7E]|["\\]/g, '_');
   return new Response(body, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${asciiName}.pdf"; filename*=UTF-8''${encodeURIComponent(`${notebook.name}.pdf`)}`,
+      'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     },
   });
 }
