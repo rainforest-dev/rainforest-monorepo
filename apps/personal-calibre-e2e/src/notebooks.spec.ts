@@ -127,6 +127,23 @@ test.describe('notebooks', () => {
     expect(body.startsWith('%PDF-1.4')).toBe(true);
     expect(body).toContain('/Count 3');
 
+    // A single page downloads under the notebook's naming scheme.
+    await pageTiles(page).first().click();
+    const pageDialog = page.getByRole('dialog', { name: /^Page 1\b/ });
+    const pageDownload = pageDialog.getByRole('link', {
+      name: 'Download page',
+    });
+    await expect(pageDownload).toHaveAttribute(
+      'download',
+      `BuJo ${name} p001.jpg`,
+    );
+    await expect(pageDownload).toHaveAttribute(
+      'href',
+      /\/api\/notebooks\/pages\/\d+\/image$/,
+    );
+    await page.keyboard.press('Escape');
+    await expect(pageDialog).toBeHidden();
+
     await page.getByRole('button', { name: 'Archive' }).click();
     await expect(page.getByText(/Archived \d{4}-\d{2}-\d{2}/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Reopen' })).toBeVisible();
