@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 
-import type { Notebook, NotebookPage } from '@/types';
+import type { NotebookPage } from '@/types';
 
 import { normalizePageImage } from './page-image';
 
@@ -160,24 +160,4 @@ async function* writePdf(
   yield emit(
     `trailer\n<< /Size ${next} /Root 1 0 R /Info 3 0 R >>\nstartxref\n${xref}\n%%EOF\n`,
   );
-}
-
-/**
- * The download name of an exported notebook: `BuJo <start>_<end> <name>.pdf`, so exports sort by
- * date wherever they are kept. The start is the notebook's start date or its first page's upload
- * date, the end its archive date or its last page's upload date; one date when they agree.
- */
-export function notebookPdfFileName(
-  notebook: Pick<Notebook, 'name' | 'startedOn' | 'endedOn'> & {
-    pages: Pick<NotebookPage, 'createdAt'>[];
-  },
-): string {
-  const day = (value: string | null | undefined) => value?.slice(0, 10) ?? null;
-  const uploaded = notebook.pages.map((page) => day(page.createdAt)).sort();
-  const start = day(notebook.startedOn) ?? uploaded[0] ?? null;
-  const end = day(notebook.endedOn) ?? uploaded.at(-1) ?? null;
-  const dates =
-    start && end && start !== end ? `${start}_${end}` : (start ?? end);
-  const name = notebook.name.replace(/[\\/:*?"<>|]/g, '-').trim();
-  return `${['BuJo', dates, name].filter(Boolean).join(' ')}.pdf`;
 }

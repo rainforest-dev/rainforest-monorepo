@@ -62,13 +62,15 @@ export function pagePhoto({
     if (u < 0 || v < 0 || u > paperW || v > paperH) return TABLE;
     if (spread && Math.abs(u - paperW / 2) < 3) return GUTTER;
     const pageU = spread ? u % (paperW / 2) : u;
+    // The right page carries different writing, so the two halves never look like one page.
+    const right = spread && u > paperW / 2;
     const line = Math.floor((v - 30) / 34);
     if (
       v > 30 &&
-      line < 6 &&
+      line < (right ? 10 : 6) &&
       (v - 30) % 34 < 3 &&
       pageU > 24 &&
-      pageU < 60 + ((line * 53) % 140)
+      pageU < 60 + ((line * 53 + (right ? 70 : 0)) % 140)
     ) {
       return INK;
     }
