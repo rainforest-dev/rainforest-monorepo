@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { ToolInputError } from '@rainforest-dev/mcp-kit';
-import { and, asc, count, eq, max, sql } from 'drizzle-orm';
+import { and, asc, count, eq, isNotNull, isNull, max, sql } from 'drizzle-orm';
 
 import { appDb, appDbPath, notebookPages, notebooks } from '@/db';
 import type {
@@ -18,6 +18,13 @@ import type {
   SkippedPage,
 } from '@/types';
 
+import {
+  fingerprintPage,
+  inkOf,
+  MIN_INK,
+  pageSimilarity,
+  SAME_PAGE_SIMILARITY,
+} from './page-fingerprint';
 import { normalizePageImage, type PageImage } from './page-image';
 import { extractPdfPages, isPdf, MAX_PDF_BYTES } from './pdf-pages';
 
@@ -325,10 +332,92 @@ const pageFilePath = (notebookId: number, pageId: number, mimeType: string) =>
 
 const DUPLICATE = 'duplicate: already in this notebook';
 
+interface StoredPage {
+  id: number;
+  notebookId: number;
+  notebookName: string;
+  position: number;
+}
+
+const storedPageColumns = {
+  id: notebookPages.id,
+  notebookId: notebookPages.notebookId,
+  notebookName: notebooks.name,
+  position: notebookPages.position,
+};
+
+function duplicateReason(
+  page: StoredPage,
+  notebookId: number,
+  how: string,
+): string {
+  return page.notebookId === notebookId
+    ? DUPLICATE
+    : `duplicate: ${how} page ${page.position} of "${page.notebookName}"`;
+}
+
+function findCopy(contentHash: string): StoredPage | null {
+  return (
+    appDb
+      .select(storedPageColumns)
+      .from(notebookPages)
+      .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
+      .where(eq(notebookPages.contentHash, contentHash))
+      .orderBy(asc(notebookPages.id))
+      .get() ?? null
+  );
+}
+
+function findLookalike(thumbnail: Uint8Array): StoredPage | null {
+  const rows = appDb
+    .select({ ...storedPageColumns, fingerprint: notebookPages.fingerprint })
+    .from(notebookPages)
+    .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
+    .where(isNotNull(notebookPages.fingerprint))
+    .orderBy(asc(notebookPages.id))
+    .all();
+  for (const { fingerprint, ...page } of rows) {
+    if (!fingerprint) continue;
+    const stored = new Uint8Array(fingerprint);
+    if (inkOf(stored) < MIN_INK) continue;
+    if (pageSimilarity(thumbnail, stored) >= SAME_PAGE_SIMILARITY) return page;
+  }
+  return null;
+}
+
+async function backfillFingerprints(): Promise<void> {
+  const rows = appDb
+    .select({
+      id: notebookPages.id,
+      notebookId: notebookPages.notebookId,
+      mimeType: notebookPages.mimeType,
+    })
+    .from(notebookPages)
+    .where(isNull(notebookPages.fingerprint))
+    .all();
+  for (const row of rows) {
+    try {
+      const bytes = await readFile(
+        pageFilePath(row.notebookId, row.id, row.mimeType),
+      );
+      const { thumbnail } = await fingerprintPage(new Uint8Array(bytes));
+      appDb
+        .update(notebookPages)
+        .set({ fingerprint: Buffer.from(thumbnail) })
+        .where(eq(notebookPages.id, row.id))
+        .run();
+    } catch {
+      // A page whose file is gone or unreadable keeps no fingerprint and is never matched.
+    }
+  }
+}
+
 /**
  * Appends pages after the notebook's last position, in the order given, each stored as a JPEG
- * (see `normalizePageImage`). A file whose uploaded bytes are already in the notebook is
- * skipped, so re-sending a batch is a no-op; so is a file that is not a readable image.
+ * (see `normalizePageImage`). A page already stored in any notebook is skipped: the same uploaded
+ * bytes, or a page that looks the same once both are shrunk to a thumbnail, which catches the
+ * same scan re-encoded or re-rendered. Nearly blank pages are only matched byte for byte, since
+ * every empty page looks alike. A file that is not a readable image is skipped too.
  */
 export async function appendPages(
   notebookId: number,
@@ -339,6 +428,7 @@ export async function appendPages(
     throw new ToolInputError(`Notebook ${notebookId} not found`);
   }
   mkdirSync(path.join(notebooksDir(), String(notebookId)), { recursive: true });
+  await backfillFingerprints();
 
   const added: number[] = [];
   const skipped: SkippedPage[] = [];
@@ -362,9 +452,12 @@ export async function appendPages(
     }
     // Hashed as uploaded, so the same photo is recognised however it is re-encoded.
     const contentHash = hashBytes(file.bytes);
-    // Checked again inside the transaction; this one only spares re-encoding a re-sent photo.
-    if (isDuplicate(appDb, contentHash)) {
-      skipped.push({ name: file.name, reason: DUPLICATE });
+    const copy = findCopy(contentHash);
+    if (copy) {
+      skipped.push({
+        name: file.name,
+        reason: duplicateReason(copy, notebookId, 'already'),
+      });
       continue;
     }
     let image: PageImage;
@@ -372,6 +465,15 @@ export async function appendPages(
       image = await normalizePageImage(file.bytes, check.mimeType);
     } catch {
       skipped.push({ name: file.name, reason: 'not a readable image' });
+      continue;
+    }
+    const { thumbnail, ink } = await fingerprintPage(image.bytes);
+    const lookalike = ink >= MIN_INK ? findLookalike(thumbnail) : null;
+    if (lookalike) {
+      skipped.push({
+        name: file.name,
+        reason: duplicateReason(lookalike, notebookId, 'looks like'),
+      });
       continue;
     }
 
@@ -392,6 +494,7 @@ export async function appendPages(
           mimeType: 'image/jpeg',
           bytes: image.bytes.byteLength,
           contentHash,
+          fingerprint: Buffer.from(thumbnail),
           source: source?.trim() || null,
         })
         .returning({ id: notebookPages.id })

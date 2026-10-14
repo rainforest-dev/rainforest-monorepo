@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 
 import {
   appendPages,
+  autoCropPages,
   findOrCreateNotebookByName,
   readPageUploads,
 } from '@/lib/server';
@@ -12,7 +13,9 @@ const INBOX_HEADER = 'x-inbox-secret';
 /**
  * Takes scanned Bullet Journal pages from automation (n8n): multipart `notebook` (a name, found
  * or created), one or more `file` fields (page images, or a scanned PDF that is split into one
- * page per PDF page) and an optional `source`. It answers 404 while
+ * page per PDF page) and an optional `source`. Each page is cropped to the paper, a spread is
+ * split into its pages and fingers are painted out of the margins (see `autoCropPage`), unless
+ * `crop` is `off`. It answers 404 while
  * `CALIBRE_INBOX_SECRET` is unset, and 401 without the matching `x-inbox-secret` header.
  */
 export async function POST(request: Request) {
@@ -53,10 +56,15 @@ export async function POST(request: Request) {
   }
   const source = form.get('source');
 
+  const uploads =
+    form.get('crop') === 'off'
+      ? read.uploads
+      : await autoCropPages(read.uploads);
+
   const notebook = await findOrCreateNotebookByName(name);
   const result = await appendPages(
     notebook.id,
-    read.uploads,
+    uploads,
     typeof source === 'string' && source.trim() ? source : 'inbox',
   );
   return NextResponse.json({ notebookId: notebook.id, ...result });

@@ -2,7 +2,7 @@ import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 
-import { NOTEBOOKS_DDL } from './app-ddl';
+import { NOTEBOOK_PAGE_ADDED_COLUMNS, NOTEBOOKS_DDL } from './app-ddl';
 import * as schema from './schema';
 import * as appSchema from './schema-app';
 
@@ -144,6 +144,18 @@ function getAppDb(): AppDb {
       UPDATE book_deliveries SET added_at = datetime('now') WHERE added_at = 'CURRENT_TIMESTAMP';
     `);
     _appSqlite.exec(NOTEBOOKS_DDL);
+    const pageColumns = new Set(
+      (
+        _appSqlite.prepare('PRAGMA table_info(notebook_pages)').all() as Array<{
+          name: string;
+        }>
+      ).map((column) => column.name),
+    );
+    for (const { name, definition } of NOTEBOOK_PAGE_ADDED_COLUMNS) {
+      if (!pageColumns.has(name)) {
+        _appSqlite.exec(`ALTER TABLE notebook_pages ADD COLUMN ${definition}`);
+      }
+    }
 
     syncBooksFts();
 
