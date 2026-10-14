@@ -49,15 +49,22 @@ function straighten(source: Raster, quad: Quad): Raster {
   return warpQuad(source, quad, width, height);
 }
 
+/**
+ * Any failure inside detection, warping or encoding keeps the photo as uploaded, so a
+ * crop problem can never lose a page or fail the rest of the batch.
+ */
 export async function autoCropPage(upload: PageUpload): Promise<PageUpload[]> {
-  const mimeType = resolvePageMimeType(upload.name, upload.type);
-  if (!mimeType) return [upload];
-  let source: Raster;
   try {
-    source = await decodePageRaster(upload.bytes, mimeType);
+    return await cropPage(upload);
   } catch {
     return [upload];
   }
+}
+
+async function cropPage(upload: PageUpload): Promise<PageUpload[]> {
+  const mimeType = resolvePageMimeType(upload.name, upload.type);
+  if (!mimeType) return [upload];
+  const source = await decodePageRaster(upload.bytes, mimeType);
 
   const layout = layoutOf(source);
   if (!layout) return [upload];

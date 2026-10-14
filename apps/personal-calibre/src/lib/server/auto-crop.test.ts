@@ -1,10 +1,16 @@
 import sharp from 'sharp';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { isSkinOrDesk } from '@/lib/page-crop';
 
 import { autoCropPage } from './auto-crop';
 import type { PageUpload } from './notebooks';
+import * as pageImage from './page-image';
+
+vi.mock('./page-image', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./page-image')>();
+  return { ...actual, encodePageRaster: vi.fn(actual.encodePageRaster) };
+});
 
 type Paint = (x: number, y: number) => [number, number, number];
 
@@ -112,6 +118,16 @@ describe('autoCropPage', () => {
 
   it('returns the upload untouched when no page outline is found', async () => {
     const upload = await photo(120, 90, () => PAPER);
+    expect(await autoCropPage(upload)).toEqual([upload]);
+  });
+
+  it('returns the upload untouched when cropping throws', async () => {
+    const upload = await photo(400, 300, (x, y) =>
+      x > 60 && x < 340 && y > 40 && y < 260 ? PAPER : DESK,
+    );
+    vi.mocked(pageImage.encodePageRaster).mockRejectedValueOnce(
+      new Error('encode failed'),
+    );
     expect(await autoCropPage(upload)).toEqual([upload]);
   });
 
