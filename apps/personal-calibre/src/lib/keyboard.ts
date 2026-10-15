@@ -55,6 +55,7 @@ const SELECT_X: KeyHint = { keys: ['x'], label: 'Select' };
 const CLOSE: KeyHint = { keys: ['Esc'], label: 'Close, then clear' };
 
 export const KEY_HINTS: Record<View, readonly KeyHint[]> = {
+  hall: [SEARCH, SWITCH, { keys: ['W', 'A', 'S', 'D'], label: 'Walk' }],
   shelf: [
     SEARCH,
     SWITCH,

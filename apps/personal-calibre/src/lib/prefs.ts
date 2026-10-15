@@ -1,13 +1,19 @@
 import { z } from 'zod';
 
-export const VIEWS = ['shelf', 'catalogue', 'study'] as const;
+export const VIEWS = ['shelf', 'catalogue', 'study', 'hall'] as const;
 export type View = (typeof VIEWS)[number];
-export const ENABLED_VIEWS: readonly View[] = ['shelf', 'catalogue', 'study'];
+export const ENABLED_VIEWS: readonly View[] = [
+  'shelf',
+  'catalogue',
+  'study',
+  'hall',
+];
 export const PREVIEW_VIEWS: readonly View[] = [];
 export const VIEW_LABELS: Record<View, string> = {
   shelf: 'Shelf',
   catalogue: 'Catalogue',
   study: 'Study',
+  hall: 'Hall',
 };
 
 export const RENDERERS = [
@@ -80,12 +86,16 @@ export function resolveView(
   return enabled[0] ?? 'shelf';
 }
 
+/** The hall is a place, not a list of books, so `v` steps through the book views only. */
+const CYCLED_VIEWS: readonly View[] = ['shelf', 'catalogue', 'study'];
+
 export function nextView(
   view: View,
   enabled: readonly View[] = ENABLED_VIEWS,
 ): View {
-  const index = enabled.indexOf(view);
-  return enabled[(index + 1) % enabled.length] ?? 'shelf';
+  const cycle = enabled.filter((v) => CYCLED_VIEWS.includes(v));
+  const index = cycle.indexOf(view);
+  return cycle[(index + 1) % cycle.length] ?? 'shelf';
 }
 
 export function serializePrefs(prefs: Prefs): string {

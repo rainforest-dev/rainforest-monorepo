@@ -170,15 +170,16 @@ test.describe('Study', () => {
     await expect(skeleton.locator('[data-skeleton-bay]')).toHaveCount(3);
   });
 
-  test('the switcher shows Study and v cycles all three views', async ({
+  test('the switcher shows Study and v cycles the three book views', async ({
     page,
   }) => {
     await gotoLibrary(page, '/?groupBy=series');
     const views = page.getByRole('group', { name: 'View' }).getByRole('button');
-    await expect(views).toHaveCount(3);
+    await expect(views).toHaveCount(4);
     await expect(
       page.getByRole('button', { name: 'Study view' }),
     ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Hall view' })).toBeVisible();
     const first = options(page).first();
     await first.focus();
     for (const name of ['Catalogue', 'Study', 'Shelf']) {

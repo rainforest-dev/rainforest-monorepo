@@ -27,6 +27,7 @@ import {
 import {
   getFilterOptions,
   getLibrary,
+  getLibraryHall,
   listDeliveryPlatforms,
   readPrefs,
 } from '@/lib/server';
@@ -53,10 +54,11 @@ async function LibraryContent({ searchParams }: Props) {
   if (view === 'study' && !isStudyGroupBy(params.groupBy)) {
     redirect(buildLibraryHref(raw, { groupBy: 'series' }));
   }
-  const [library, filters, platforms] = await Promise.all([
+  const [library, filters, platforms, hallBooks] = await Promise.all([
     getLibrary(toLibraryQuery(params, hooks.pageSize ?? PAGE_SIZE)),
     getFilterOptions(),
     listDeliveryPlatforms(),
+    view === 'hall' ? getLibraryHall() : null,
   ]);
   if (params.page > library.pageCount) {
     redirect(buildLibraryHref(raw, { page: library.pageCount }));
@@ -76,8 +78,11 @@ async function LibraryContent({ searchParams }: Props) {
         groupBy={params.groupBy}
         platforms={platforms}
         filtered={hasFilters(params)}
+        hall={hallBooks ? { books: hallBooks, filters } : undefined}
       />
-      <Pagination page={library.page} pageCount={library.pageCount} />
+      {view !== 'hall' && (
+        <Pagination page={library.page} pageCount={library.pageCount} />
+      )}
       <KeyHints />
     </div>
   );
