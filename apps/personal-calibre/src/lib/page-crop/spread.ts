@@ -49,6 +49,54 @@ export function findStackedGutter(page: Raster): number | null {
   return (at + 0.5) / height;
 }
 
+/** Where a flat scan's gutter is looked for, as shares of the page height. */
+const EDGE_BAND = [0.38, 0.62] as const;
+/** Share of the page's width a row must darken to count as a page edge or a printed border. */
+const EDGE_COVERAGE = 0.8;
+/** How much darker than the paper a little above and below it a line must be. */
+const EDGE_DEPTH = 10;
+/** How far above and below a row its paper is read, as a share of the height. */
+const EDGE_REACH = 0.006;
+/** The two pages' edges sit within this share of the height of each other. */
+const EDGE_PAIR_MAX = 0.06;
+
+/**
+ * Finds the gutter of a sideways spread that has no fold shadow, as a phone's document scanner
+ * makes it: the two pages meet in a pair of long lines across nearly the whole width (each
+ * page's edge, or the border printed near it). Writing and a dot grid never darken that much of
+ * one row, so a page needs two such lines close together near its middle to count as a spread.
+ * Returns the midpoint between the outermost pair as a share of the height, or `null`.
+ */
+export function findEdgeGutter(page: Raster): number | null {
+  const { data, width, height } = page;
+  if (height < 100 || width < 40) return null;
+  const x0 = Math.round(width * 0.1);
+  const x1 = Math.round(width * 0.9);
+  const reach = Math.max(2, Math.round(height * EDGE_REACH));
+  const at = (x: number, y: number) => luma(data, (y * width + x) * 4);
+
+  const lines: number[] = [];
+  const from = Math.max(reach + 1, Math.floor(height * EDGE_BAND[0]));
+  const to = Math.min(height - reach - 1, Math.ceil(height * EDGE_BAND[1]));
+  for (let y = from; y < to; y++) {
+    let dark = 0;
+    for (let x = x0; x < x1; x++) {
+      const paper = Math.max(at(x, y - reach), at(x, y + reach));
+      // A line a pixel off level still counts, so a slightly tilted edge is not lost.
+      const ink = Math.min(at(x, y - 1), at(x, y), at(x, y + 1));
+      if (ink < paper - EDGE_DEPTH) dark++;
+    }
+    if (dark >= (x1 - x0) * EDGE_COVERAGE) lines.push(y);
+  }
+  // Rows of one thick line run together; keep one row per line.
+  const distinct = lines.filter((y, i) => i === 0 || y - lines[i - 1] > 2);
+  if (distinct.length < 2) return null;
+  const first = distinct[0];
+  const last = distinct[distinct.length - 1];
+  if ((last - first) / height > EDGE_PAIR_MAX) return null;
+  return (first + last) / 2 / height;
+}
+
 const lerp = (a: Point, b: Point, t: number): Point => ({
   x: a.x + (b.x - a.x) * t,
   y: a.y + (b.y - a.y) * t,

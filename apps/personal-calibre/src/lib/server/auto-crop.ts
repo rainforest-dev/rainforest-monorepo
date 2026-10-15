@@ -2,6 +2,7 @@ import {
   cleanMargins,
   defaultSeam,
   detectPageQuad,
+  findEdgeGutter,
   findStackedGutter,
   type Quad,
   quadOutputSize,
@@ -21,6 +22,7 @@ import {
 } from './page-image';
 
 const GUTTER_EDGE = 512;
+const EDGE_GUTTER_EDGE = 1024;
 
 type Layout =
   | { kind: 'single'; quad: Quad }
@@ -37,9 +39,11 @@ function layoutOf(source: Raster): Layout | null {
       pages: splitSpread(quad, defaultSeam(quad)),
     };
   }
-  const gutter = findStackedGutter(
-    warpQuad(source, quad, size.width, size.height),
-  );
+  const flat = quadOutputSize(quad, EDGE_GUTTER_EDGE);
+  const gutter =
+    findStackedGutter(warpQuad(source, quad, size.width, size.height)) ??
+    // A scan has no fold shadow; the pages' thin edges need more pixels than a shadow does.
+    findEdgeGutter(warpQuad(source, quad, flat.width, flat.height));
   if (gutter === null) return { kind: 'single', quad };
   return { kind: 'stacked', pages: splitStacked(quad, gutter) };
 }

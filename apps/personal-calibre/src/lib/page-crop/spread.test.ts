@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Raster } from './geometry';
 import {
   cleanMargins,
+  findEdgeGutter,
   findStackedGutter,
   isSkinOrDesk,
   rotateCounterClockwise,
@@ -47,6 +48,45 @@ describe('findStackedGutter', () => {
     expect(findStackedGutter(raster(120, 200, () => gray(250)))).toBeNull();
     const edgeShadow = raster(120, 200, (_x, y) => gray(y < 30 ? 180 : 250));
     expect(findStackedGutter(edgeShadow)).toBeNull();
+  });
+});
+
+describe('findEdgeGutter', () => {
+  // A dot grid, as on a bujo page: a dark dot every 8 pixels each way.
+  const dots = (x: number, y: number) => x % 8 === 0 && y % 8 === 0;
+
+  it('finds the two page edges of a flat scanned spread and cuts between them', () => {
+    const page = raster(200, 400, (x, y) =>
+      gray(y === 196 || y === 212 ? 150 : dots(x, y) ? 120 : 250),
+    );
+    expect(findEdgeGutter(page)).toBeCloseTo(0.51, 2);
+  });
+
+  it('keeps a slightly tilted edge', () => {
+    const page = raster(200, 400, (x, y) =>
+      gray(
+        y === 190 + Math.round(x / 100) || y === 210 - Math.round(x / 100)
+          ? 150
+          : 250,
+      ),
+    );
+    expect(findEdgeGutter(page)).not.toBeNull();
+  });
+
+  it('does not split a single page on one rule, writing or the dot grid', () => {
+    const rule = raster(200, 400, (_x, y) => gray(y === 200 ? 150 : 250));
+    expect(findEdgeGutter(rule)).toBeNull();
+    const writing = raster(200, 400, (x, y) =>
+      gray(y % 20 < 8 && x % 6 < 4 ? 60 : dots(x, y) ? 120 : 250),
+    );
+    expect(findEdgeGutter(writing)).toBeNull();
+  });
+
+  it('does not take two lines far apart for a gutter', () => {
+    const page = raster(200, 400, (_x, y) =>
+      gray(y === 160 || y === 240 ? 150 : 250),
+    );
+    expect(findEdgeGutter(page)).toBeNull();
   });
 });
 
