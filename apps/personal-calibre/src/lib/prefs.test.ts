@@ -86,6 +86,7 @@ describe('nextView', () => {
     expect(nextView('shelf')).toBe('catalogue');
     expect(nextView('catalogue')).toBe('study');
     expect(nextView('study')).toBe('shelf');
+    expect(nextView('hall')).toBe('shelf');
     expect(nextView('catalogue', ['shelf', 'catalogue'])).toBe('shelf');
   });
 });

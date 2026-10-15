@@ -78,6 +78,19 @@ interface LibraryContextValue {
   openBook: (id: number) => void;
   closeBook: () => void;
   focusAfterToolbar: () => void;
+  /** The bookcase the Study was entered from, so the hall can put the avatar back in front of it. */
+  hallReturn: HallReturn | null;
+  enterBookcase: (
+    bookcase: { key: string; label: string },
+    patch: ParamPatch,
+  ) => void;
+  returnToHall: () => void;
+}
+
+export interface HallReturn {
+  key: string;
+  label: string;
+  href: string;
 }
 
 function isBookOnPage(id: number): boolean {
@@ -156,6 +169,7 @@ export function LibraryProvider({
     () => false,
   );
   const [backend, setBackend] = useState<StudyBackend | null>(null);
+  const [hallReturn, setHallReturn] = useState<HallReturn | null>(null);
   const desktop = useIsFinePointerDesktop();
   const renderer = pickRenderer({
     param: searchParams.get('renderer'),
@@ -228,6 +242,32 @@ export function LibraryProvider({
     writeStudyFallback();
     toast("3D isn't available here, showing the CSS study");
   }, []);
+
+  // View lives in state and prefs, not the URL, so these switch view and params together.
+  // Both replace rather than push: a browser Back would restore the URL but not the view.
+  const enterBookcase = useCallback(
+    (bookcase: { key: string; label: string }, patch: ParamPatch) => {
+      setHallReturn({
+        ...bookcase,
+        href: buildLibraryHref(searchParams, { view: null }),
+      });
+      setViewState('study');
+      savePrefs({ view: 'study' });
+      requestFocus(null);
+      const href = buildLibraryHref(searchParams, { ...patch, view: null });
+      startTransition(() => router.replace(href, { scroll: false }));
+    },
+    [router, savePrefs, searchParams],
+  );
+
+  const returnToHall = useCallback(() => {
+    setViewState('hall');
+    savePrefs({ view: 'hall' });
+    requestFocus(null);
+    const href =
+      hallReturn?.href ?? buildLibraryHref(searchParams, { view: null });
+    startTransition(() => router.replace(href, { scroll: false }));
+  }, [hallReturn, router, savePrefs, searchParams]);
 
   const togglePanel = useCallback(
     () => savePrefs({ panel: !prefs.panel }),
@@ -327,6 +367,9 @@ export function LibraryProvider({
       openBook,
       closeBook,
       focusAfterToolbar,
+      hallReturn,
+      enterBookcase,
+      returnToHall,
     }),
     [
       view,
@@ -357,6 +400,9 @@ export function LibraryProvider({
       openBook,
       closeBook,
       focusAfterToolbar,
+      hallReturn,
+      enterBookcase,
+      returnToHall,
     ],
   );
 

@@ -3,6 +3,7 @@ export * from './description';
 export * from './file-url';
 export * from './format';
 export * from './group-entries';
+export * from './hall';
 export * from './keyboard';
 export * from './library-params';
 export * from './notebook-file-names';

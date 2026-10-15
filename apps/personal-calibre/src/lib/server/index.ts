@@ -2,6 +2,7 @@ export * from './auto-crop';
 export * from './book-query';
 export * from './delivery';
 export * from './files';
+export * from './hall';
 export * from './library-query';
 export * from './notebook-pdf';
 export * from './notebooks';
