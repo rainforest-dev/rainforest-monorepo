@@ -119,4 +119,23 @@ test.describe('Library hall', () => {
       page.getByRole('region', { name: 'Shelf view' }),
     ).toBeVisible();
   });
+
+  test('leaving the Study by the switcher drops the way back to the hall', async ({
+    page,
+  }) => {
+    await gotoHall(page, '/?groupBy=series&author=4');
+    await page
+      .getByRole('list', { name: 'Bookcases' })
+      .getByRole('button', { name: /Northbound/ })
+      .focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/series=3/);
+    // Filters from before the hall do not narrow the bookcase.
+    await expect(page).not.toHaveURL(/author=/);
+    await expect(page.locator('[data-hall-back]')).toBeVisible();
+    await page.getByRole('button', { name: 'Shelf view' }).click();
+    await page.getByRole('button', { name: 'Study view' }).click();
+    await expect(page.locator('[data-view-region="study"]')).toBeVisible();
+    await expect(page.locator('[data-hall-back]')).toHaveCount(0);
+  });
 });

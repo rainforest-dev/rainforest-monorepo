@@ -200,6 +200,8 @@ export function LibraryProvider({
     (next: View) => {
       setViewState(next);
       savePrefs({ view: next });
+      // Leaving by the switcher ends the trip; a later Study visit is not from the hall.
+      setHallReturn(null);
       const staleView = searchParams.get('view') !== null;
       if (
         next === 'study' &&

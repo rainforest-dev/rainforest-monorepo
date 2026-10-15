@@ -97,13 +97,21 @@ export function buildHall(
   ];
 }
 
-/** The library params that show one bookcase in the Study. */
+/** The library params that show one bookcase in the Study, and only that bookcase. */
 export function bookcasePatch(
   bookcase: Bookcase,
   groupBy: GroupBy,
 ): ParamPatch {
   // Study only groups by series or author; a bookcase's books read best as series shelves.
-  const patch: ParamPatch = { groupBy: 'series' };
+  // The hall ignores filters, so any left in the URL would cut the bookcase down in the Study.
+  const patch: ParamPatch = {
+    groupBy: 'series',
+    q: null,
+    author: null,
+    tag: null,
+    series: null,
+    platform: null,
+  };
   if (bookcase.kind === 'group') patch[groupBy] = bookcase.groupId;
   return patch;
 }

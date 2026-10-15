@@ -76,24 +76,31 @@ describe('buildHall', () => {
 });
 
 describe('bookcasePatch', () => {
-  it('filters the Study to one group', () => {
+  const CLEARED = {
+    groupBy: 'series',
+    q: null,
+    author: null,
+    tag: null,
+    series: null,
+    platform: null,
+  };
+
+  it('filters the Study to one group and drops other filters', () => {
     const [earthsea] = buildHall(BOOKS, FILTERS, 'series');
     expect(earthsea && bookcasePatch(earthsea, 'series')).toEqual({
-      groupBy: 'series',
+      ...CLEARED,
       series: 10,
     });
     const [fiction] = buildHall(BOOKS, FILTERS, 'tag');
     expect(fiction && bookcasePatch(fiction, 'tag')).toEqual({
-      groupBy: 'series',
+      ...CLEARED,
       tag: 7,
     });
   });
 
   it('opens a no-group case unfiltered', () => {
     const none = buildHall(BOOKS, FILTERS, 'series').at(-1);
-    expect(none && bookcasePatch(none, 'series')).toEqual({
-      groupBy: 'series',
-    });
+    expect(none && bookcasePatch(none, 'series')).toEqual(CLEARED);
   });
 });
 

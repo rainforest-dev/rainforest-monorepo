@@ -486,6 +486,8 @@ function HallScene({
         <meshLambertMaterial color={wood} />
       </instancedMesh>
       <instancedMesh
+        // The instance count is fixed at creation; a refresh with more books needs a new mesh.
+        key={books.length}
         ref={bookMesh}
         args={[undefined, undefined, Math.max(1, books.length)]}
         onClick={(e: ThreeEvent<MouseEvent>) => {
