@@ -5,9 +5,14 @@ import {
   listBookDeliveryEvents,
 } from '@/lib/server/delivery';
 import {
+  deleteNotebook,
   getNotebookPages,
   listNotebooks,
+  mergeNotebooks,
+  movePages,
   readPageFile,
+  renameNotebook,
+  reorderPages,
   setPageTranscription,
 } from '@/lib/server/notebooks';
 import {
@@ -46,4 +51,9 @@ export const liveLibrary: CalibreLibrary = {
   getNotebookPages,
   readPageFile,
   setPageTranscription,
+  renameNotebook,
+  reorderPages,
+  movePages,
+  mergeNotebooks,
+  deleteNotebook,
 };

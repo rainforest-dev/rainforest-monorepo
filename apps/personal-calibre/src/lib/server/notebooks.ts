@@ -1,19 +1,34 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { ToolInputError } from '@rainforest-dev/mcp-kit';
-import { and, asc, count, eq, isNotNull, isNull, max, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+  sql,
+} from 'drizzle-orm';
 
 import { appDb, appDbPath, notebookPages, notebooks } from '@/db';
 import type {
   AppendPagesResult,
+  DeleteNotebookResult,
+  DroppedPage,
+  MergeNotebooksResult,
+  MovePagesResult,
   Notebook,
   NotebookDetail,
   NotebookPage,
   NotebookStatus,
   NotebookSummary,
+  PageOrderChange,
   PageTranscriptionInput,
   SkippedPage,
 } from '@/types';
@@ -514,15 +529,19 @@ export async function appendPages(
   return { added, skipped };
 }
 
-function findPageFile(
-  pageId: number,
-): { notebookId: number; mimeType: string; fileName: string } | null {
+function findPageFile(pageId: number): {
+  notebookId: number;
+  mimeType: string;
+  fileName: string;
+  contentHash: string;
+} | null {
   return (
     appDb
       .select({
         notebookId: notebookPages.notebookId,
         mimeType: notebookPages.mimeType,
         fileName: notebookPages.fileName,
+        contentHash: notebookPages.contentHash,
       })
       .from(notebookPages)
       .where(eq(notebookPages.id, pageId))
@@ -539,6 +558,90 @@ export async function deletePage(pageId: number): Promise<boolean> {
     force: true,
   });
   return true;
+}
+
+export type ReplacePageResult =
+  | { ok: true; page: NotebookPage }
+  | { ok: false; status: 404 | 409 | 413 | 415; message: string };
+
+/**
+ * Swaps a page's image for a new photo of the same page, keeping its id and position. Unlike
+ * `appendPages` it skips the lookalike check, which would refuse a retake of the very page it
+ * replaces. The transcription is cleared because it described the old image; the page number
+ * and date stay.
+ */
+export async function replacePage(
+  pageId: number,
+  file: PageUpload,
+): Promise<ReplacePageResult> {
+  const page = findPageFile(pageId);
+  if (!page) return { ok: false, status: 404, message: 'Page not found' };
+  const check = checkPageUpload({ ...file, size: file.bytes.byteLength });
+  if (!check.ok) return check;
+
+  const contentHash = hashBytes(file.bytes);
+  const twin = appDb
+    .select({ id: notebookPages.id, position: notebookPages.position })
+    .from(notebookPages)
+    .where(
+      and(
+        eq(notebookPages.notebookId, page.notebookId),
+        eq(notebookPages.contentHash, contentHash),
+      ),
+    )
+    .get();
+  if (twin && twin.id !== pageId) {
+    return {
+      ok: false,
+      status: 409,
+      message: `${file.name}: already page ${twin.position} of this notebook`,
+    };
+  }
+
+  let image: PageImage;
+  try {
+    image = await normalizePageImage(file.bytes, check.mimeType);
+  } catch {
+    return {
+      ok: false,
+      status: 415,
+      message: `${file.name}: not a readable image`,
+    };
+  }
+  const { thumbnail } = await fingerprintPage(image.bytes);
+
+  const target = pageFilePath(page.notebookId, pageId, 'image/jpeg');
+  const updated = appDb.transaction((tx) => {
+    const row = tx
+      .update(notebookPages)
+      .set({
+        fileName: file.name,
+        mimeType: 'image/jpeg',
+        bytes: image.bytes.byteLength,
+        contentHash,
+        fingerprint: Buffer.from(thumbnail),
+        source: 'replace',
+        transcription: null,
+        transcribedAt: null,
+      })
+      .where(eq(notebookPages.id, pageId))
+      .returning(PAGE_COLUMNS)
+      .get();
+    // Deleted since it was read: nothing to write.
+    if (!row) return null;
+    // Written beside the old file and renamed over it, so a failed write leaves the old image
+    // in place and rolls the row back with it.
+    writeFileSync(`${target}.tmp`, image.bytes);
+    renameSync(`${target}.tmp`, target);
+    return row;
+  });
+  if (!updated) return { ok: false, status: 404, message: 'Page not found' };
+  if (page.mimeType !== 'image/jpeg') {
+    rmSync(pageFilePath(page.notebookId, pageId, page.mimeType), {
+      force: true,
+    });
+  }
+  return { ok: true, page: updated };
 }
 
 export async function setPageTranscription(
@@ -560,9 +663,12 @@ export async function setPageTranscription(
   );
 }
 
-export async function readPageFile(
-  pageId: number,
-): Promise<{ data: Buffer; mimeType: string; fileName: string } | null> {
+export async function readPageFile(pageId: number): Promise<{
+  data: Buffer;
+  mimeType: string;
+  fileName: string;
+  contentHash: string;
+} | null> {
   const page = findPageFile(pageId);
   if (!page) return null;
   try {
@@ -573,9 +679,329 @@ export async function readPageFile(
         page.mimeType,
       ),
     );
-    return { data, mimeType: page.mimeType, fileName: page.fileName };
+    return {
+      data,
+      mimeType: page.mimeType,
+      fileName: page.fileName,
+      contentHash: page.contentHash,
+    };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw error;
   }
+}
+
+/** Thrown when a rename would give a notebook a name another one already has. */
+export class NotebookNameTakenError extends ToolInputError {}
+
+/**
+ * Renames a notebook. A name another notebook already has is refused with a pointer to
+ * `merge_notebooks`, since two notebooks of one name is what a merge is for. `null` when the
+ * notebook does not exist.
+ */
+export async function renameNotebook(
+  id: number,
+  name: string,
+): Promise<Notebook | null> {
+  const trimmed = normalizeName(name);
+  const notebook = findNotebook(id);
+  if (!notebook) return null;
+  if (notebook.name === trimmed) return notebook;
+  const clash = appDb
+    .select({ id: notebooks.id })
+    .from(notebooks)
+    .where(eq(notebooks.name, trimmed))
+    .get();
+  if (clash) {
+    throw new NotebookNameTakenError(
+      `Notebook ${clash.id} is already named "${trimmed}"; merge into it instead`,
+    );
+  }
+  return (
+    appDb
+      .update(notebooks)
+      .set({ name: trimmed })
+      .where(eq(notebooks.id, id))
+      .returning(NOTEBOOK_COLUMNS)
+      .get() ?? null
+  );
+}
+
+type Tx = Parameters<Parameters<typeof appDb.transaction>[0]>[0];
+
+const pageIdsOf = (db: Pick<Tx, 'select'>, notebookId: number): number[] =>
+  db
+    .select({ id: notebookPages.id })
+    .from(notebookPages)
+    .where(eq(notebookPages.notebookId, notebookId))
+    .orderBy(asc(notebookPages.position), asc(notebookPages.id))
+    .all()
+    .map((row) => row.id);
+
+/** Numbers `pageIds` 1..n in the given order. The ids must already belong to `notebookId`. */
+function writeOrder(tx: Tx, notebookId: number, pageIds: number[]): void {
+  pageIds.forEach((id, index) => {
+    tx.update(notebookPages)
+      .set({ notebookId, position: index + 1 })
+      .where(eq(notebookPages.id, id))
+      .run();
+  });
+}
+
+/**
+ * Puts a notebook's pages in the order given. `pageIds` must name every page of the notebook
+ * exactly once, which also stops a caller working from a stale listing. A dry run only
+ * returns the order it would write.
+ */
+export async function reorderPages(
+  notebookId: number,
+  pageIds: number[],
+  { dryRun = false }: { dryRun?: boolean } = {},
+): Promise<PageOrderChange | null> {
+  if (!findNotebook(notebookId)) return null;
+  const before = pageIdsOf(appDb, notebookId);
+  const given = new Set(pageIds);
+  const missing = before.filter((id) => !given.has(id));
+  const extra = pageIds.filter((id) => !before.includes(id));
+  if (given.size !== pageIds.length) {
+    throw new ToolInputError('pageIds names a page more than once');
+  }
+  if (missing.length > 0 || extra.length > 0) {
+    throw new ToolInputError(
+      `pageIds must list every page of notebook ${notebookId} once` +
+        (missing.length > 0 ? `; missing ${missing.join(', ')}` : '') +
+        (extra.length > 0 ? `; not in this notebook ${extra.join(', ')}` : ''),
+    );
+  }
+  if (!dryRun) appDb.transaction((tx) => writeOrder(tx, notebookId, pageIds));
+  return { notebookId, before, after: [...pageIds] };
+}
+
+export interface MovePagesOptions {
+  /** Insert before this page of the target notebook. */
+  beforePageId?: number;
+  /** Insert after this page of the target notebook. Without either, pages go at the end. */
+  afterPageId?: number;
+  dryRun?: boolean;
+}
+
+/**
+ * Moves pages, from any notebooks, into `toNotebookId` in the order given, at the end or next
+ * to an anchor page. Within one notebook this is a reorder. A page whose exact image the
+ * target already holds is deleted instead of moved, since the target keeps one copy of each
+ * image; the result names it under `dropped`. Each notebook the pages left is renumbered.
+ */
+export async function movePages(
+  pageIds: number[],
+  toNotebookId: number,
+  { beforePageId, afterPageId, dryRun = false }: MovePagesOptions = {},
+): Promise<MovePagesResult> {
+  if (!findNotebook(toNotebookId)) {
+    throw new ToolInputError(`Notebook ${toNotebookId} not found`);
+  }
+  if (pageIds.length === 0) throw new ToolInputError('pageIds is empty');
+  if (new Set(pageIds).size !== pageIds.length) {
+    throw new ToolInputError('pageIds names a page more than once');
+  }
+  if (beforePageId !== undefined && afterPageId !== undefined) {
+    throw new ToolInputError('Give beforePageId or afterPageId, not both');
+  }
+  const rows = appDb
+    .select({
+      id: notebookPages.id,
+      notebookId: notebookPages.notebookId,
+      mimeType: notebookPages.mimeType,
+      contentHash: notebookPages.contentHash,
+    })
+    .from(notebookPages)
+    .where(inArray(notebookPages.id, pageIds))
+    .all();
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const unknown = pageIds.filter((id) => !byId.has(id));
+  if (unknown.length > 0) {
+    throw new ToolInputError(`Pages not found: ${unknown.join(', ')}`);
+  }
+  const anchor = beforePageId ?? afterPageId;
+  if (anchor !== undefined) {
+    if (pageIds.includes(anchor)) {
+      throw new ToolInputError(
+        `Page ${anchor} is being moved; anchor on another page`,
+      );
+    }
+    const anchorRow = findPageFile(anchor);
+    if (!anchorRow || anchorRow.notebookId !== toNotebookId) {
+      throw new ToolInputError(
+        `Page ${anchor} is not in notebook ${toNotebookId}`,
+      );
+    }
+  }
+
+  const moving = new Set(pageIds);
+  const targetBefore = pageIdsOf(appDb, toNotebookId);
+  const staying = targetBefore.filter((id) => !moving.has(id));
+  const targetHashes = new Map(
+    appDb
+      .select({ id: notebookPages.id, contentHash: notebookPages.contentHash })
+      .from(notebookPages)
+      .where(eq(notebookPages.notebookId, toNotebookId))
+      .all()
+      .filter((row) => !moving.has(row.id))
+      .map((row) => [row.contentHash, row.id]),
+  );
+  const dropped: DroppedPage[] = [];
+  const arriving: number[] = [];
+  for (const id of pageIds) {
+    const row = byId.get(id)!;
+    const twin = targetHashes.get(row.contentHash);
+    if (row.notebookId !== toNotebookId && twin !== undefined) {
+      dropped.push({ pageId: id, duplicateOf: twin });
+      continue;
+    }
+    // Two moved pages with one image: the first wins, the second is a duplicate of it.
+    if (row.notebookId !== toNotebookId) targetHashes.set(row.contentHash, id);
+    arriving.push(id);
+  }
+
+  let at = staying.length;
+  if (beforePageId !== undefined) at = staying.indexOf(beforePageId);
+  if (afterPageId !== undefined) at = staying.indexOf(afterPageId) + 1;
+  const targetAfter = [
+    ...staying.slice(0, at),
+    ...arriving,
+    ...staying.slice(at),
+  ];
+
+  const sourceIds = [
+    ...new Set(
+      rows.map((row) => row.notebookId).filter((id) => id !== toNotebookId),
+    ),
+  ];
+  const sources = sourceIds.map((notebookId) => {
+    const before = pageIdsOf(appDb, notebookId);
+    return {
+      notebookId,
+      before,
+      after: before.filter((id) => !moving.has(id)),
+    };
+  });
+  const result: MovePagesResult = {
+    dryRun,
+    moved: arriving,
+    dropped,
+    target: {
+      notebookId: toNotebookId,
+      before: targetBefore,
+      after: targetAfter,
+    },
+    sources,
+  };
+  if (dryRun) return result;
+
+  mkdirSync(path.join(notebooksDir(), String(toNotebookId)), {
+    recursive: true,
+  });
+  const renamed: Array<[string, string]> = [];
+  try {
+    appDb.transaction((tx) => {
+      for (const { pageId } of dropped) {
+        tx.delete(notebookPages).where(eq(notebookPages.id, pageId)).run();
+      }
+      writeOrder(tx, toNotebookId, targetAfter);
+      for (const source of sources)
+        writeOrder(tx, source.notebookId, source.after);
+      // Last, so a failed rename rolls the rows back; renames done so far are undone below.
+      for (const id of arriving) {
+        const row = byId.get(id)!;
+        if (row.notebookId === toNotebookId) continue;
+        const from = pageFilePath(row.notebookId, id, row.mimeType);
+        const to = pageFilePath(toNotebookId, id, row.mimeType);
+        renameSync(from, to);
+        renamed.push([from, to]);
+      }
+    });
+  } catch (error) {
+    for (const [from, to] of renamed.reverse()) renameSync(to, from);
+    throw error;
+  }
+  for (const { pageId } of dropped) {
+    const row = byId.get(pageId)!;
+    rmSync(pageFilePath(row.notebookId, pageId, row.mimeType), { force: true });
+  }
+  return result;
+}
+
+/**
+ * Moves every page of `sourceId` into `targetId`, at the end or the start, then deletes the
+ * emptied source. Duplicates are handled as in `movePages`.
+ */
+export async function mergeNotebooks(
+  sourceId: number,
+  targetId: number,
+  {
+    placement = 'end',
+    dryRun = false,
+  }: { placement?: 'start' | 'end'; dryRun?: boolean } = {},
+): Promise<MergeNotebooksResult> {
+  if (sourceId === targetId) {
+    throw new ToolInputError('A notebook cannot be merged into itself');
+  }
+  if (!findNotebook(sourceId)) {
+    throw new ToolInputError(`Notebook ${sourceId} not found`);
+  }
+  if (!findNotebook(targetId)) {
+    throw new ToolInputError(`Notebook ${targetId} not found`);
+  }
+  const pageIds = pageIdsOf(appDb, sourceId);
+  const first = pageIdsOf(appDb, targetId)[0];
+  const moved: MovePagesResult =
+    pageIds.length === 0
+      ? {
+          dryRun,
+          moved: [],
+          dropped: [],
+          target: {
+            notebookId: targetId,
+            before: pageIdsOf(appDb, targetId),
+            after: pageIdsOf(appDb, targetId),
+          },
+          sources: [],
+        }
+      : await movePages(pageIds, targetId, {
+          beforePageId: placement === 'start' ? first : undefined,
+          dryRun,
+        });
+  if (dryRun) return { ...moved, deletedNotebookId: null };
+  await deleteNotebook(sourceId);
+  return { ...moved, deletedNotebookId: sourceId };
+}
+
+/**
+ * Deletes a notebook. One that still has pages is refused unless `deletePages` is set, which
+ * deletes them and their images too. A dry run returns the page ids it would delete.
+ */
+export async function deleteNotebook(
+  id: number,
+  {
+    deletePages = false,
+    dryRun = false,
+  }: { deletePages?: boolean; dryRun?: boolean } = {},
+): Promise<DeleteNotebookResult | null> {
+  if (!findNotebook(id)) return null;
+  const pageIds = pageIdsOf(appDb, id);
+  if (pageIds.length > 0 && !deletePages) {
+    throw new ToolInputError(
+      `Notebook ${id} still has ${pageIds.length} pages; move or merge them first, or pass deletePages`,
+    );
+  }
+  const result = { dryRun, notebookId: id, deletedPageIds: pageIds };
+  if (dryRun) return result;
+  appDb.transaction((tx) => {
+    tx.delete(notebookPages).where(eq(notebookPages.notebookId, id)).run();
+    tx.delete(notebooks).where(eq(notebooks.id, id)).run();
+  });
+  rmSync(path.join(notebooksDir(), String(id)), {
+    recursive: true,
+    force: true,
+  });
+  return result;
 }

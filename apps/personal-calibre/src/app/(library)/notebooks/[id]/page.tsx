@@ -58,6 +58,7 @@ async function NotebookContent({ params }: Props) {
         <div className="flex flex-wrap gap-2">
           <NotebookActions
             notebookId={notebook.id}
+            name={notebook.name}
             status={notebook.status}
             pageCount={notebook.pageCount}
           />

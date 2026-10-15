@@ -15,16 +15,17 @@ beforeAll(() => {
   pagesRoot = setUpNotebookShelf('calibre-page-image-');
 });
 
-const get = (pageId: string | number) =>
+const get = (pageId: string | number, headers?: HeadersInit) =>
   GET(
     new Request(
       `https://calibre.example.test/api/notebooks/pages/${pageId}/image`,
+      { headers },
     ),
     { params: Promise.resolve({ pageId: String(pageId) }) },
   );
 
 describe('GET /api/notebooks/pages/[pageId]/image', () => {
-  it('serves the stored JPEG with an immutable cache header', async () => {
+  it('serves the stored JPEG, revalidated by its content hash', async () => {
     const notebook = await createNotebook('Pictures');
     const { added } = await appendPages(notebook.id, [
       {
@@ -36,7 +37,9 @@ describe('GET /api/notebooks/pages/[pageId]/image', () => {
     const response = await get(added[0]);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/jpeg');
-    expect(response.headers.get('cache-control')).toContain('immutable');
+    expect(response.headers.get('cache-control')).toBe('private, no-cache');
+    const etag = response.headers.get('etag');
+    expect(etag).toMatch(/^"[0-9a-f]{64}"$/);
     const bytes = Buffer.from(await response.arrayBuffer());
     expect(response.headers.get('content-length')).toBe(String(bytes.length));
     expect(await sharp(bytes).metadata()).toMatchObject({
@@ -44,6 +47,10 @@ describe('GET /api/notebooks/pages/[pageId]/image', () => {
       width: 30,
       height: 40,
     });
+
+    const revalidated = await get(added[0], { 'If-None-Match': etag! });
+    expect(revalidated.status).toBe(304);
+    expect(await revalidated.text()).toBe('');
 
     // A page whose file has gone is a 404, like an unknown page.
     fs.rmSync(path.join(pagesRoot, String(notebook.id), `${added[0]}.jpg`));
