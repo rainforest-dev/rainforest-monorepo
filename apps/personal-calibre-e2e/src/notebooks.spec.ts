@@ -163,4 +163,40 @@ test.describe('notebooks', () => {
     await expect(page.getByRole('button', { name: 'Add pages' })).toBeEnabled();
     await expect(pageTiles(page)).toHaveCount(0);
   });
+
+  test('a page is replaced in place and the notebook renamed', async ({
+    page,
+  }) => {
+    const name = `Replace Run ${Date.now()}`;
+    await createNotebook(page, name);
+    // Unlike the other tests' photos, so the cross-notebook dedupe lets it in.
+    const photo = pagePhoto({ spread: true, degrees: 3 }).png;
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'first.png',
+      mimeType: 'image/png',
+      buffer: photo,
+    });
+    const crop = page.getByRole('dialog', { name: /Crop page/ });
+    await crop.getByRole('button', { name: 'Skip crop' }).click();
+    await expect(pageTiles(page)).toHaveCount(1);
+
+    await pageTiles(page).first().click();
+    const pageDialog = page.getByRole('dialog', { name: /^Page 1\b/ });
+    await expect(pageDialog.getByText('Uploaded as first.png')).toBeVisible();
+    // A retake of the same page would be skipped as a lookalike by Add pages.
+    await pageDialog.locator('input[type="file"]').setInputFiles({
+      name: 'retake.png',
+      mimeType: 'image/png',
+      buffer: photo,
+    });
+    await crop.getByRole('button', { name: 'Skip crop' }).click();
+    await expect(pageDialog.getByText('Uploaded as retake.png')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(pageTiles(page)).toHaveCount(1);
+
+    const renamed = `${name} (renamed)`;
+    page.once('dialog', (prompt) => void prompt.accept(renamed));
+    await page.getByRole('button', { name: 'Rename' }).click();
+    await expect(page.getByRole('heading', { name: renamed })).toBeVisible();
+  });
 });

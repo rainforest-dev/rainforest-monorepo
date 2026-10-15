@@ -13,9 +13,14 @@ import type {
   listBookDeliveryEvents,
 } from '@/lib/server/delivery';
 import type {
+  deleteNotebook,
   getNotebookPages,
   listNotebooks,
+  mergeNotebooks,
+  movePages,
   readPageFile,
+  renameNotebook,
+  reorderPages,
   setPageTranscription,
 } from '@/lib/server/notebooks';
 import type {
@@ -53,6 +58,11 @@ export type CalibreLibrary = {
   getNotebookPages: typeof getNotebookPages;
   readPageFile: typeof readPageFile;
   setPageTranscription: typeof setPageTranscription;
+  renameNotebook: typeof renameNotebook;
+  reorderPages: typeof reorderPages;
+  movePages: typeof movePages;
+  mergeNotebooks: typeof mergeNotebooks;
+  deleteNotebook: typeof deleteNotebook;
 };
 
 const READ = { readOnlyHint: true, openWorldHint: false } as const;
@@ -71,6 +81,26 @@ export const addDeliveryInputSchema = {
 export const MAX_PAGES_PER_CALL = 10;
 
 const position = () => z.number().int().min(1);
+const id = () => z.number().int().min(1);
+const dryRun = () =>
+  z
+    .boolean()
+    .default(false)
+    .describe('Return the resulting order without changing anything');
+
+const write = (destructive: boolean, idempotent: boolean) =>
+  ({
+    readOnlyHint: false,
+    destructiveHint: destructive,
+    idempotentHint: idempotent,
+    openWorldHint: false,
+  }) as const;
+
+/** First line of a transcription, enough to tell pages apart when planning an order. */
+const preview = (text: string | null) => {
+  const line = text?.trim().split('\n')[0] ?? null;
+  return line && line.length > 80 ? `${line.slice(0, 79)}…` : line;
+};
 
 export const calibreTools = (library: CalibreLibrary): McpTool[] => [
   defineTool({
@@ -354,6 +384,118 @@ export const calibreTools = (library: CalibreLibrary): McpTool[] => [
         pageNumber: page.pageNumber,
         pageDate: page.pageDate,
       };
+    },
+  }),
+  defineTool({
+    name: 'list_notebook_pages',
+    title: 'List notebook pages',
+    description:
+      'List every page of a notebook in order, without images: id, position, pageNumber, pageDate, fileName and the first line of any transcription. Use it to plan a reorder, move or merge; act on page ids, which never change, not on positions, which do.',
+    input: { notebookId: id() },
+    annotations: READ,
+    run: async ({ notebookId }) => {
+      const pages = await library.getNotebookPages(notebookId);
+      if (!pages) throw new ToolInputError(`Notebook ${notebookId} not found`);
+      return pages.map((page) => ({
+        id: page.id,
+        position: page.position,
+        pageNumber: page.pageNumber,
+        pageDate: page.pageDate,
+        fileName: page.fileName,
+        transcription: preview(page.transcription),
+      }));
+    },
+  }),
+
+  defineTool({
+    name: 'rename_notebook',
+    title: 'Rename notebook',
+    description:
+      'Rename a notebook. A name another notebook already has is refused; use merge_notebooks to combine them.',
+    input: { notebookId: id(), name: z.string().min(1).max(120) },
+    annotations: write(false, true),
+    run: async ({ notebookId, name }) => {
+      const notebook = await library.renameNotebook(notebookId, name);
+      if (!notebook)
+        throw new ToolInputError(`Notebook ${notebookId} not found`);
+      return { id: notebook.id, name: notebook.name };
+    },
+  }),
+
+  defineTool({
+    name: 'reorder_pages',
+    title: 'Reorder pages',
+    description:
+      'Put the pages of a notebook in a new order. pageIds must list every page of the notebook exactly once (from list_notebook_pages); positions are renumbered from 1. Returns the order before and after.',
+    input: {
+      notebookId: id(),
+      pageIds: z.array(id()).min(1),
+      dryRun: dryRun(),
+    },
+    annotations: write(false, true),
+    run: async ({ notebookId, pageIds, dryRun }) => {
+      const change = await library.reorderPages(notebookId, pageIds, {
+        dryRun,
+      });
+      if (!change) throw new ToolInputError(`Notebook ${notebookId} not found`);
+      return { dryRun, ...change };
+    },
+  }),
+
+  defineTool({
+    name: 'move_pages',
+    title: 'Move pages',
+    description:
+      'Move pages, in the order given, into a notebook: at the end, or before or after one of its pages. Pages may come from any notebooks, e.g. sorting Unsorted into the right notebooks. A page whose exact image the target already has is deleted instead and listed under dropped. Returns the order of every notebook touched, before and after. Try it with dryRun first.',
+    input: {
+      pageIds: z.array(id()).min(1),
+      toNotebookId: id(),
+      beforePageId: id().optional(),
+      afterPageId: id().optional(),
+      dryRun: dryRun(),
+    },
+    annotations: write(true, false),
+    run: async ({ pageIds, toNotebookId, ...options }) =>
+      library.movePages(pageIds, toNotebookId, options),
+  }),
+
+  defineTool({
+    name: 'merge_notebooks',
+    title: 'Merge notebooks',
+    description:
+      'Move every page of the source notebook to the start or end of the target, then delete the emptied source. Exact duplicate images are dropped as in move_pages. Try it with dryRun first.',
+    input: {
+      sourceNotebookId: id(),
+      targetNotebookId: id(),
+      placement: z.enum(['start', 'end']).default('end'),
+      dryRun: dryRun(),
+    },
+    annotations: write(true, false),
+    run: async ({ sourceNotebookId, targetNotebookId, placement, dryRun }) =>
+      library.mergeNotebooks(sourceNotebookId, targetNotebookId, {
+        placement,
+        dryRun,
+      }),
+  }),
+
+  defineTool({
+    name: 'delete_notebook',
+    title: 'Delete notebook',
+    description:
+      'Delete a notebook. One that still has pages is refused unless deletePages is true, which deletes its pages and images for good; move or merge pages you want to keep first.',
+    input: {
+      notebookId: id(),
+      deletePages: z.boolean().default(false),
+      dryRun: dryRun(),
+    },
+    annotations: write(true, true),
+    run: async ({ notebookId, deletePages, dryRun }) => {
+      const result = await library.deleteNotebook(notebookId, {
+        deletePages,
+        dryRun,
+      });
+      if (!result) throw new ToolInputError(`Notebook ${notebookId} not found`);
+      return result;
     },
   }),
 ];

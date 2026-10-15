@@ -87,6 +87,36 @@ const EXPECTED: Record<
     input: ['pageId', 'transcription', 'pageNumber', 'pageDate'],
     required: ['pageId', 'transcription'],
   },
+  list_notebook_pages: {
+    annotations: READ,
+    input: ['notebookId'],
+    required: ['notebookId'],
+  },
+  rename_notebook: {
+    annotations: write(false, true),
+    input: ['notebookId', 'name'],
+    required: ['notebookId', 'name'],
+  },
+  reorder_pages: {
+    annotations: write(false, true),
+    input: ['notebookId', 'pageIds', 'dryRun'],
+    required: ['notebookId', 'pageIds'],
+  },
+  move_pages: {
+    annotations: write(true, false),
+    input: ['pageIds', 'toNotebookId', 'beforePageId', 'afterPageId', 'dryRun'],
+    required: ['pageIds', 'toNotebookId'],
+  },
+  merge_notebooks: {
+    annotations: write(true, false),
+    input: ['sourceNotebookId', 'targetNotebookId', 'placement', 'dryRun'],
+    required: ['sourceNotebookId', 'targetNotebookId'],
+  },
+  delete_notebook: {
+    annotations: write(true, true),
+    input: ['notebookId', 'deletePages', 'dryRun'],
+    required: ['notebookId'],
+  },
 };
 
 const tools = calibreTools(fakeLibrary() as unknown as CalibreLibrary);
@@ -291,5 +321,62 @@ describe('notebook tools', () => {
   ])('rejects set_page_transcription input %j', (input) => {
     const tool = tools.find((t) => t.name === 'set_page_transcription');
     expect(z.object(tool?.input ?? {}).safeParse(input).success).toBe(false);
+  });
+});
+
+describe('notebook organising tools', () => {
+  const run = async (name: string, input: Record<string, unknown>) => {
+    const library = fakeLibrary();
+    const tool = calibreTools(library as unknown as CalibreLibrary).find(
+      (t) => t.name === name,
+    );
+    const parsed = z.object(tool?.input ?? {}).parse(input);
+    return { library, result: await tool?.run(parsed, {}) };
+  };
+
+  it('lists pages without images, with a one-line transcription preview', async () => {
+    const { result } = await run('list_notebook_pages', {
+      notebookId: NOTEBOOK_ID,
+    });
+    const pages = result as Array<Record<string, unknown>>;
+    expect(pages).toHaveLength(12);
+    expect(pages[0]).toEqual({
+      id: 501,
+      position: 1,
+      pageNumber: 1,
+      pageDate: null,
+      fileName: 'page-1.png',
+      transcription: '• tidy the desk',
+    });
+  });
+
+  it('passes dryRun through and defaults it to false', async () => {
+    const { library } = await run('move_pages', {
+      pageIds: [501],
+      toNotebookId: 6,
+      afterPageId: 601,
+    });
+    expect(library.movePages).toHaveBeenCalledWith([501], 6, {
+      afterPageId: 601,
+      dryRun: false,
+    });
+    const merged = await run('merge_notebooks', {
+      sourceNotebookId: 7,
+      targetNotebookId: NOTEBOOK_ID,
+      dryRun: true,
+    });
+    expect(merged.library.mergeNotebooks).toHaveBeenCalledWith(7, NOTEBOOK_ID, {
+      placement: 'end',
+      dryRun: true,
+    });
+  });
+
+  it.each([
+    ['list_notebook_pages', { notebookId: 999 }],
+    ['rename_notebook', { notebookId: 999, name: 'x' }],
+    ['reorder_pages', { notebookId: 999, pageIds: [1] }],
+    ['delete_notebook', { notebookId: 999 }],
+  ])('%s reports an unknown notebook', async (name, input) => {
+    await expect(run(name, input)).rejects.toThrow(/Notebook 999 not found/);
   });
 });

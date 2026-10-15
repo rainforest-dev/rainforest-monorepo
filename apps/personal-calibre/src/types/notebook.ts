@@ -49,3 +49,36 @@ export interface PageTranscriptionInput {
   pageNumber?: number;
   pageDate?: string;
 }
+
+/** A notebook's page ids in order, before and after a change. */
+export interface PageOrderChange {
+  notebookId: number;
+  before: number[];
+  after: number[];
+}
+
+/** A page left out of a move because the target already holds the same image. */
+export interface DroppedPage {
+  pageId: number;
+  duplicateOf: number;
+}
+
+export interface MovePagesResult {
+  dryRun: boolean;
+  moved: number[];
+  /** Deleted rather than moved: the same bytes are already in the target notebook. */
+  dropped: DroppedPage[];
+  target: PageOrderChange;
+  sources: PageOrderChange[];
+}
+
+export interface MergeNotebooksResult extends MovePagesResult {
+  /** The source notebook, deleted once it is empty; `null` on a dry run. */
+  deletedNotebookId: number | null;
+}
+
+export interface DeleteNotebookResult {
+  dryRun: boolean;
+  notebookId: number;
+  deletedPageIds: number[];
+}

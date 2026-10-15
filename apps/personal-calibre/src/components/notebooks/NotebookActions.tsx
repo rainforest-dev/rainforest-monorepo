@@ -6,7 +6,7 @@ import {
   Spinner,
   toast,
 } from '@rainforest-dev/rainforest-react';
-import { Archive, ArchiveRestore, FileDown } from 'lucide-react';
+import { Archive, ArchiveRestore, FileDown, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -16,10 +16,12 @@ import { notebookPdfUrl, readError } from './api';
 
 export function NotebookActions({
   notebookId,
+  name,
   status,
   pageCount,
 }: {
   notebookId: number;
+  name: string;
   status: NotebookStatus;
   pageCount: number;
 }) {
@@ -27,13 +29,13 @@ export function NotebookActions({
   const [busy, setBusy] = useState(false);
   const archived = status === 'archived';
 
-  async function toggleArchived() {
+  async function update(change: { status?: NotebookStatus; name?: string }) {
     setBusy(true);
     try {
       const response = await fetch(`/api/notebooks/${notebookId}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ status: archived ? 'active' : 'archived' }),
+        body: JSON.stringify(change),
       });
       if (!response.ok) {
         toast.error(await readError(response, 'Could not update notebook'));
@@ -43,6 +45,11 @@ export function NotebookActions({
     } finally {
       setBusy(false);
     }
+  }
+
+  function rename() {
+    const next = window.prompt('Rename notebook', name)?.trim();
+    if (next && next !== name) void update({ name: next });
   }
 
   return (
@@ -57,10 +64,16 @@ export function NotebookActions({
           Download PDF
         </a>
       )}
+      <Button variant="outline" disabled={busy} onClick={rename}>
+        <Pencil aria-hidden />
+        Rename
+      </Button>
       <Button
         variant="outline"
         disabled={busy}
-        onClick={() => void toggleArchived()}
+        onClick={() =>
+          void update({ status: archived ? 'active' : 'archived' })
+        }
       >
         {busy ? (
           <Spinner />

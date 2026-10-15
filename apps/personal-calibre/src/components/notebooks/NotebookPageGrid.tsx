@@ -9,16 +9,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Spinner,
   toast,
 } from '@rainforest-dev/rainforest-react';
-import { FileDown, Trash2 } from 'lucide-react';
+import { FileDown, ImageUp, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { type ChangeEvent, useRef, useState } from 'react';
 
 import { notebookPageFileName } from '@/lib';
 import type { NotebookPage } from '@/types';
 
 import { pageImageUrl, readError } from './api';
+import { useCropStep } from './use-crop-step';
 
 const pageLabel = (page: NotebookPage) =>
   [
@@ -39,7 +41,45 @@ export function NotebookPageGrid({
   const router = useRouter();
   const [openId, setOpenId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [replacing, setReplacing] = useState(false);
+  const replaceInput = useRef<HTMLInputElement>(null);
+  const { preparePages, dialog: cropDialog } = useCropStep();
   const open = pages.find((page) => page.id === openId) ?? null;
+
+  /**
+   * Swaps the open page's image for a retake, through the same crop step as adding pages. The
+   * page keeps its place; its transcription is cleared because it described the old image.
+   */
+  async function replaceOpenPage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!open || !file) return;
+    setReplacing(true);
+    try {
+      const prepared = await preparePages([file]);
+      if (!prepared) return;
+      if (prepared.length !== 1) {
+        toast.error('Replace takes one page; crop the photo to a single page');
+        return;
+      }
+      const form = new FormData();
+      form.append('file', prepared[0]);
+      const response = await fetch(`/api/notebooks/pages/${open.id}`, {
+        method: 'PUT',
+        body: form,
+      });
+      if (!response.ok) {
+        toast.error(await readError(response, 'Could not replace page'));
+        return;
+      }
+      toast.success('Page replaced');
+      router.refresh();
+    } catch {
+      toast.error('Could not replace page');
+    } finally {
+      setReplacing(false);
+    }
+  }
 
   async function deleteOpenPage() {
     if (!open || !window.confirm('Delete this page and its image?')) return;
@@ -142,9 +182,24 @@ export function NotebookPageGrid({
                   <FileDown aria-hidden />
                   Download page
                 </a>
+                <input
+                  ref={replaceInput}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  hidden
+                  onChange={(event) => void replaceOpenPage(event)}
+                />
+                <Button
+                  variant="outline"
+                  disabled={replacing}
+                  onClick={() => replaceInput.current?.click()}
+                >
+                  {replacing ? <Spinner /> : <ImageUp aria-hidden />}
+                  Replace image
+                </Button>
                 <Button
                   variant="destructive"
-                  disabled={deleting}
+                  disabled={deleting || replacing}
                   onClick={() => void deleteOpenPage()}
                 >
                   <Trash2 aria-hidden />
@@ -155,6 +210,7 @@ export function NotebookPageGrid({
           )}
         </DialogContent>
       </Dialog>
+      {cropDialog}
     </>
   );
 }

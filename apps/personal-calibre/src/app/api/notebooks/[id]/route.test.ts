@@ -74,5 +74,23 @@ describe('PATCH /api/notebooks/[id]', () => {
   it('answers 404 for an unknown notebook', async () => {
     const response = await patch(9999, { status: 'archived' });
     expect(response.status).toBe(404);
+    expect((await patch(9999, { name: 'Anything' })).status).toBe(404);
+  });
+
+  it('renames a notebook, and answers 409 to a name in use', async () => {
+    const { id } = await createNotebook('Unsorted');
+    await createNotebook('Taken Name');
+
+    const renamed = await patch(id, { name: ' 2026-09 Pocket ' });
+    expect(renamed.status).toBe(200);
+    expect((await renamed.json()).notebook).toMatchObject({
+      id,
+      name: '2026-09 Pocket',
+    });
+
+    const clash = await patch(id, { name: 'Taken Name' });
+    expect(clash.status).toBe(409);
+    expect((await clash.json()).error).toMatch(/merge into it instead/);
+    expect((await patch(id, { name: '  ' })).status).toBe(400);
   });
 });

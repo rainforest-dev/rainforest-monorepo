@@ -57,7 +57,7 @@ describe('auth', () => {
     const response = await handlerFor(fakeLibrary())(rpc(AUTHED));
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.result.tools).toHaveLength(13);
+    expect(body.result.tools).toHaveLength(19);
   });
 
   it('answers 405 to GET once authenticated', async () => {

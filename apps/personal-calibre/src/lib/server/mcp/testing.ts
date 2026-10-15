@@ -99,6 +99,34 @@ export function fakeLibrary(): FakeLibrary {
           ? { ...notebookPage(1), ...input, transcribedAt: '2026-10-12' }
           : null,
     ),
+    renameNotebook: vi.fn(async (id: number, name: string) =>
+      id === NOTEBOOK_ID ? { ...NOTEBOOK, name } : null,
+    ),
+    reorderPages: vi.fn(async (id: number, pageIds: number[]) =>
+      id === NOTEBOOK_ID
+        ? { notebookId: id, before: [...pageIds].sort(), after: pageIds }
+        : null,
+    ),
+    movePages: vi.fn(async (pageIds: number[], toNotebookId: number) => ({
+      dryRun: false,
+      moved: pageIds,
+      dropped: [],
+      target: { notebookId: toNotebookId, before: [], after: pageIds },
+      sources: [],
+    })),
+    mergeNotebooks: vi.fn(async (sourceId: number, targetId: number) => ({
+      dryRun: false,
+      moved: [],
+      dropped: [],
+      target: { notebookId: targetId, before: [], after: [] },
+      sources: [],
+      deletedNotebookId: sourceId,
+    })),
+    deleteNotebook: vi.fn(async (id: number) =>
+      id === NOTEBOOK_ID
+        ? { dryRun: false, notebookId: id, deletedPageIds: [] }
+        : null,
+    ),
   };
 }
 
