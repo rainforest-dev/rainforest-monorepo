@@ -81,6 +81,31 @@ describe('autoCropPage', () => {
     }
   });
 
+  it('splits a flat scan of a sideways spread at its page edges', async () => {
+    // A document scanner crops to the paper and flattens the fold, leaving no shadow: only the
+    // two pages' edges meet across the middle.
+    const upload = await photo(600, 800, (x, y) => {
+      if (y === 396 || y === 412) return [170, 170, 170];
+      if (
+        inside(x, y, [380, 150, 400, 350]) ||
+        inside(x, y, [380, 450, 400, 650])
+      )
+        return INK;
+      return PAPER;
+    });
+
+    const pages = await autoCropPage(upload);
+
+    expect(pages.map((p) => p.name)).toEqual([
+      'scan-left.jpg',
+      'scan-right.jpg',
+    ]);
+    for (const page of pages) {
+      const { width = 0, height = 0 } = await sizeOf(page);
+      expect(height).toBeGreaterThan(width);
+    }
+  });
+
   it('splits a landscape spread down the middle without turning it', async () => {
     const paper = [100, 120, 700, 480];
     const upload = await photo(800, 600, (x, y) =>
