@@ -4,6 +4,7 @@ export * from './delivery';
 export * from './files';
 export * from './hall';
 export * from './library-query';
+export * from './notebook-calendar';
 export * from './notebook-pdf';
 export * from './notebooks';
 export * from './prefs';
