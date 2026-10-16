@@ -28,7 +28,8 @@ const KEYS: readonly [RegExp, TaskState][] = [
   [/^<$/, 'scheduled'],
 ];
 
-const BULLET = /^(\s*)(\S)\s+(.+)$/;
+// Each part starts on a different class of character, so a long run of spaces cannot backtrack.
+const BULLET = /^(\s*)(\S)\s+(\S.*)$/;
 
 function stateOf(key: string): TaskState | undefined {
   return KEYS.find(([re]) => re.test(key))?.[1];
@@ -37,7 +38,7 @@ function stateOf(key: string): TaskState | undefined {
 /** The bullets of one transcription, in reading order; notes and plain lines are left out. */
 export function parseTasks(transcription: string | null): PageTask[] {
   if (!transcription) return [];
-  const body = transcription.split(/^TEXT:\s*$/m).pop() ?? '';
+  const body = transcription.split(/^TEXT:[ \t]*$/m).pop() ?? '';
   const tasks: PageTask[] = [];
   let parent: string | undefined;
   for (const line of body.split('\n')) {
