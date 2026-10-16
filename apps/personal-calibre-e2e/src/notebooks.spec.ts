@@ -324,5 +324,27 @@ test.describe('notebooks', () => {
       new RegExp(`/notebooks/${notebookId}\\?page=${ids[0]}\\b`),
     );
     await expect(book).toHaveAttribute('data-spread', '0');
+
+    // Search finds a page by its text and opens it in the book.
+    await page.goto('/notebooks');
+    await page
+      .getByRole('search')
+      .getByRole('searchbox', { name: 'Search notebook pages' })
+      .fill('Started 10/11');
+    await page
+      .getByRole('search')
+      .getByRole('button', { name: 'Search' })
+      .click();
+    await expect(page).toHaveURL(/[?&]q=Started/);
+    const hit = page.getByRole('link', {
+      name: new RegExp(`Reading list.*${name}`),
+    });
+    await expect(hit).toBeVisible();
+    await expect(hit.locator('mark').first()).toHaveText(/started/i);
+    await hit.click();
+    await expect(page).toHaveURL(
+      new RegExp(`/notebooks/${notebookId}\\?page=${ids[1]}\\b`),
+    );
+    await expect(book).toHaveAttribute('data-spread', '1');
   });
 });

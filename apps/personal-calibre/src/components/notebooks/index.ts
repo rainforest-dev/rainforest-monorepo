@@ -4,4 +4,5 @@ export { NotebookBody } from './NotebookBody';
 export { NotebookCalendar } from './NotebookCalendar';
 export { NotebookGrid } from './NotebookGrid';
 export { NotebookPageGrid } from './NotebookPageGrid';
+export { NotebookSearchForm, NotebookSearchResults } from './NotebookSearch';
 export { PageUploader } from './PageUploader';

@@ -68,12 +68,15 @@ export async function indexBooks({
   embedder,
   batch = EMBED_BATCH,
   log = console.warn,
+  label = 'book',
 }: {
   dir: string;
   docs: readonly BookDoc[];
   embedder: Embedder;
   batch?: number;
   log?: Log;
+  /** What a doc is, in log lines. */
+  label?: string;
 }): Promise<IndexFiles | undefined> {
   const previous = await readIndexFiles(dir);
   const header: IndexHeader = {
@@ -98,7 +101,7 @@ export async function indexBooks({
           return;
         }
         log(
-          `calibre search: book ${docs[row]?.id} got an unusable ${vector?.length ?? 0}-dim vector from ${embedder.model} (expected ${embedder.dims}); it stays lexical-only`,
+          `calibre search: ${label} ${docs[row]?.id} got an unusable ${vector?.length ?? 0}-dim vector from ${embedder.model} (expected ${embedder.dims}); it stays lexical-only`,
         );
       });
     }

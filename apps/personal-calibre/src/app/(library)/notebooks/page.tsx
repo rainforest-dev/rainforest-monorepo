@@ -8,12 +8,16 @@ import {
   CreateNotebookForm,
   NotebookCalendar,
   NotebookGrid,
+  NotebookSearchForm,
+  NotebookSearchResults,
 } from '@/components/notebooks';
 import { cn } from '@/lib';
 import {
   latestDatedMonth,
   listNotebooks,
   notebookCalendar,
+  type PageSearchOptions,
+  searchNotebookPages,
   undatedPages,
 } from '@/lib/server';
 
@@ -23,6 +27,10 @@ interface Props {
   searchParams: Promise<{
     view?: string | string[];
     month?: string | string[];
+    q?: string | string[];
+    from?: string | string[];
+    to?: string | string[];
+    exact?: string | string[];
   }>;
 }
 
@@ -64,6 +72,8 @@ async function NotebooksView({ searchParams }: Props) {
   await connection();
   const params = await searchParams;
   const view: View = first(params.view) === 'calendar' ? 'calendar' : 'shelf';
+  const q = (first(params.q) ?? '').trim().slice(0, 200);
+  const options = searchOptions(params);
 
   return (
     <>
@@ -76,10 +86,10 @@ async function NotebooksView({ searchParams }: Props) {
             key={value}
             href={href}
             prefetch={false}
-            aria-current={view === value ? 'page' : undefined}
+            aria-current={!q && view === value ? 'page' : undefined}
             className={cn(
               'focus-visible:outline-ring flex h-8 items-center gap-1.5 rounded-md px-3 text-sm outline-offset-1 focus-visible:outline-2',
-              view === value
+              !q && view === value
                 ? 'bg-background font-semibold shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
@@ -89,7 +99,13 @@ async function NotebooksView({ searchParams }: Props) {
           </Link>
         ))}
       </nav>
-      {view === 'calendar' ? (
+      <NotebookSearchForm q={q} options={options} />
+      {q ? (
+        <NotebookSearchResults
+          q={q}
+          search={await searchNotebookPages(q, options)}
+        />
+      ) : view === 'calendar' ? (
         <CalendarView month={first(params.month)} />
       ) : (
         <>
@@ -99,6 +115,24 @@ async function NotebooksView({ searchParams }: Props) {
       )}
     </>
   );
+}
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function searchOptions(
+  params: Awaited<Props['searchParams']>,
+): PageSearchOptions {
+  const date = (value: string | string[] | undefined) => {
+    const v = first(value);
+    return v && DATE.test(v) ? v : undefined;
+  };
+  const from = date(params.from);
+  const to = date(params.to);
+  return {
+    ...(from && { from }),
+    ...(to && { to }),
+    ...(first(params.exact) === '1' && { exact: true }),
+  };
 }
 
 function CalendarView({ month }: { month: string | undefined }) {
