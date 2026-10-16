@@ -1,7 +1,14 @@
 'use client';
 
-import { Button } from '@rainforest-dev/rainforest-react';
-import { ChevronLeft, ChevronRight, ListTree } from 'lucide-react';
+import {
+  Button,
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@rainforest-dev/rainforest-react';
+import { ChevronLeft, ChevronRight, FileText, ListTree } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useIsWide, useReducedMotion } from '@/hooks';
@@ -46,6 +53,7 @@ export function NotebookReader({
   const index = useMemo(() => notebookIndex(pages), [pages]);
   const backlinks = useMemo(() => notebookBacklinks(pages), [pages]);
   const book = useRef<FlipBookHandle>(null);
+  const [outlineOpen, setOutlineOpen] = useState(false);
 
   const [pageIndex, setPageIndex] = useState(() =>
     Math.max(
@@ -103,31 +111,34 @@ export function NotebookReader({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)_20rem]">
-      <nav aria-label="Outline" className="order-2 lg:order-none">
-        <details className="group lg:hidden">
-          <summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
-            <ListTree className="size-4" aria-hidden />
-            Outline
-          </summary>
-          <div className="pt-3">
+      <nav aria-label="Outline" className="hidden lg:block">
+        <h2 className="px-2 pb-3 text-sm font-semibold">Outline</h2>
+        <NotebookOutline
+          sections={outline}
+          currentIds={openIds}
+          onGoTo={goToPage}
+        />
+      </nav>
+      {/* Below `lg` the outline is a sheet, so it can be opened from beside the book. */}
+      <Sheet side="bottom" open={outlineOpen} onOpenChange={setOutlineOpen}>
+        <SheetContent closeLabel="Close outline" className="max-h-[75dvh]">
+          <SheetHeader>
+            <SheetTitle>Outline</SheetTitle>
+          </SheetHeader>
+          <SheetBody className="px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <NotebookOutline
               sections={outline}
               currentIds={openIds}
-              onGoTo={goToPage}
+              onGoTo={(pageId) => {
+                goToPage(pageId);
+                setOutlineOpen(false);
+              }}
             />
-          </div>
-        </details>
-        <div className="hidden lg:block">
-          <h2 className="px-2 pb-3 text-sm font-semibold">Outline</h2>
-          <NotebookOutline
-            sections={outline}
-            currentIds={openIds}
-            onGoTo={goToPage}
-          />
-        </div>
-      </nav>
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
 
-      <div className="order-1 flex min-w-0 flex-col items-center gap-4 lg:order-none">
+      <div className="flex min-w-0 flex-col items-center gap-4">
         <div className="flex w-full items-center gap-3 px-4">
           <FlipBook
             ref={book}
@@ -173,6 +184,15 @@ export function NotebookReader({
           >
             <ChevronRight aria-hidden />
           </Button>
+          <Button
+            variant="outline"
+            className="lg:hidden"
+            aria-haspopup="dialog"
+            onClick={() => setOutlineOpen(true)}
+          >
+            <ListTree aria-hidden />
+            Outline
+          </Button>
         </div>
         <p
           className="text-muted-foreground text-xs tabular-nums"
@@ -186,10 +206,7 @@ export function NotebookReader({
         </p>
       </div>
 
-      <aside
-        aria-label="Page text"
-        className="order-3 flex flex-col gap-6 lg:order-none"
-      >
+      <aside aria-label="Page text" className="flex flex-col gap-6">
         {openPages.map((page) => (
           <div key={page.id} className="flex flex-col gap-2">
             <PageTranscript
@@ -199,11 +216,12 @@ export function NotebookReader({
               onGoTo={goToPage}
             />
             <Button
-              variant="link"
-              size="xs"
-              className="self-start px-0"
+              variant="outline"
+              size="sm"
+              className="self-start max-sm:h-10"
               onClick={() => onOpenPage(page.id)}
             >
+              <FileText aria-hidden />
               Page details
             </Button>
           </div>

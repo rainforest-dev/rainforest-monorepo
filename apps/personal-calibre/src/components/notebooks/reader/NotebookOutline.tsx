@@ -35,7 +35,7 @@ export function NotebookOutline({
                     aria-current={current ? 'page' : undefined}
                     onClick={() => onGoTo(entry.pageId)}
                     className={cn(
-                      'hover:bg-sidebar-accent focus-visible:outline-ring flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-offset-1 focus-visible:outline-2',
+                      'hover:bg-sidebar-accent focus-visible:outline-ring flex w-full items-baseline gap-2 rounded-md px-2 py-2.5 text-left text-sm outline-offset-1 focus-visible:outline-2 lg:py-1.5',
                       current && 'bg-sidebar-accent font-semibold',
                     )}
                   >
