@@ -381,7 +381,10 @@ export async function restoreNotebook(id: number): Promise<Notebook | null> {
   );
 }
 
-/** Deletes, with their pages and images, the notebooks in Trash for `TRASH_DAYS` or longer. */
+/**
+ * Deletes, with their pages and images, the notebooks in Trash for `TRASH_DAYS` or longer, and
+ * returns their ids. A notebook that fails to delete is logged and left for the next run.
+ */
 export async function purgeExpiredTrash(now = new Date()): Promise<number[]> {
   const cutoff = trashCutoff(now);
   const expired = appDb
@@ -395,8 +398,20 @@ export async function purgeExpiredTrash(now = new Date()): Promise<number[]> {
     )
     .all()
     .map(({ id }) => id);
-  for (const id of expired) await deleteNotebook(id, { deletePages: true });
-  return expired;
+  const purged: number[] = [];
+  for (const id of expired) {
+    // Runs while the shelf renders, so one notebook that will not delete must not break it.
+    try {
+      await deleteNotebook(id, { deletePages: true });
+      purged.push(id);
+    } catch (error) {
+      console.error(
+        `[notebooks] could not purge notebook ${id} from Trash`,
+        error,
+      );
+    }
+  }
+  return purged;
 }
 
 // The ignore comments keep Turbopack from tracing the whole project into the standalone
