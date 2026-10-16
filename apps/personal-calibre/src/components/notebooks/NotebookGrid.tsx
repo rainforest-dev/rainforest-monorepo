@@ -26,6 +26,10 @@ import { RemoveNotebooksDialog } from './RemoveNotebooksDialog';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+// On a phone the actions share a row of equal cells, icon over label, tall enough to tap.
+const action =
+  'h-12 flex-col gap-0.5 px-1 text-xs sm:h-7 sm:flex-row sm:gap-1 sm:px-2.5 sm:text-[0.8rem]';
+
 /**
  * The notebook shelf. "Select" turns covers into checkboxes and brings up a toolbar that
  * archives, merges, exports, moves to Trash or deletes the selection. In Trash the toolbar
@@ -146,7 +150,12 @@ export function NotebookGrid({
           {selecting ? 'Done' : 'Select'}
         </Button>
       </div>
-      <ul className="grid grid-cols-2 gap-x-3 gap-y-5 pb-20 sm:grid-cols-3 lg:grid-cols-5">
+      <ul
+        className={cn(
+          'grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5',
+          selecting && 'pb-36 sm:pb-20',
+        )}
+      >
         {notebooks.map((notebook) => {
           const isPicked = picked.has(notebook.id);
           const cover = (
@@ -231,7 +240,7 @@ export function NotebookGrid({
         <div
           role="toolbar"
           aria-label="Selected notebooks"
-          className="bg-card fixed inset-x-2 bottom-3 z-40 mx-auto flex w-fit max-w-[calc(100%-1rem)] flex-wrap items-center gap-2 rounded-xl border p-2 pl-3.5 shadow-lg"
+          className="bg-card fixed inset-x-2 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 mx-auto flex flex-wrap items-center gap-2 rounded-xl border p-2 pl-3.5 shadow-lg sm:w-fit sm:max-w-[calc(100%-1rem)]"
         >
           <span
             className="text-sm font-semibold tabular-nums"
@@ -248,66 +257,81 @@ export function NotebookGrid({
               Select all
             </Button>
           )}
-          {trash ? (
+          <div
+            className={cn(
+              'order-last grid basis-full gap-1.5 sm:order-none sm:flex sm:basis-auto sm:gap-2',
+              trash ? 'grid-cols-2' : 'grid-cols-4',
+            )}
+          >
+            {trash ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className={action}
+                disabled={busy || selected.length === 0}
+                onClick={() => void run('restore')}
+              >
+                {busy ? <Spinner /> : <RotateCcw aria-hidden />}
+                Restore
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={action}
+                  disabled={busy || selected.length === 0}
+                  onClick={() => void run(allArchived ? 'reopen' : 'archive')}
+                >
+                  {busy ? (
+                    <Spinner />
+                  ) : allArchived ? (
+                    <ArchiveRestore aria-hidden />
+                  ) : (
+                    <Archive aria-hidden />
+                  )}
+                  {allArchived ? 'Reopen' : 'Archive'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={action}
+                  disabled={busy || selected.length < 2}
+                  onClick={() => setDialog('merge')}
+                >
+                  <Merge aria-hidden />
+                  Merge…
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={action}
+                  disabled={busy || selected.every((n) => n.pageCount === 0)}
+                  onClick={exportPdfs}
+                >
+                  <FileDown aria-hidden />
+                  Export PDF
+                </Button>
+              </>
+            )}
             <Button
               variant="outline"
               size="sm"
+              className={cn(
+                action,
+                'text-destructive border-destructive/40 hover:text-destructive',
+              )}
               disabled={busy || selected.length === 0}
-              onClick={() => void run('restore')}
+              onClick={() => setDialog('remove')}
             >
-              {busy ? <Spinner /> : <RotateCcw aria-hidden />}
-              Restore
+              <Trash2 aria-hidden />
+              {trash ? 'Delete now…' : 'Delete…'}
             </Button>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy || selected.length === 0}
-                onClick={() => void run(allArchived ? 'reopen' : 'archive')}
-              >
-                {busy ? (
-                  <Spinner />
-                ) : allArchived ? (
-                  <ArchiveRestore aria-hidden />
-                ) : (
-                  <Archive aria-hidden />
-                )}
-                {allArchived ? 'Reopen' : 'Archive'}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy || selected.length < 2}
-                onClick={() => setDialog('merge')}
-              >
-                <Merge aria-hidden />
-                Merge…
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy || selected.every((n) => n.pageCount === 0)}
-                onClick={exportPdfs}
-              >
-                <FileDown aria-hidden />
-                Export PDF
-              </Button>
-            </>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive border-destructive/40 hover:text-destructive"
-            disabled={busy || selected.length === 0}
-            onClick={() => setDialog('remove')}
-          >
-            <Trash2 aria-hidden />
-            {trash ? 'Delete now…' : 'Delete…'}
-          </Button>
+          </div>
           <Button
             variant="ghost"
             size="icon-sm"
+            className="ml-auto sm:order-last sm:ml-0"
             aria-label="Stop selecting (Esc)"
             onClick={stopSelecting}
           >

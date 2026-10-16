@@ -24,7 +24,7 @@ export function NotebookSearchForm({
       action="/notebooks"
       className="flex flex-wrap items-end gap-2"
     >
-      <label className="flex min-w-60 flex-1 flex-col gap-1 text-sm">
+      <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
         <span className="sr-only">Search notebook pages</span>
         <span className="relative">
           <Search
@@ -35,7 +35,7 @@ export function NotebookSearchForm({
             type="search"
             name="q"
             defaultValue={q}
-            placeholder="Search notebook pages"
+            placeholder="Search pages"
             className={cn(field, 'w-full pl-8')}
           />
         </span>
