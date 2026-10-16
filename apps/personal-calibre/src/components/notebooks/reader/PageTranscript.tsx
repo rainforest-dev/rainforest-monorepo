@@ -46,6 +46,14 @@ export function PageTranscript({
             {page.pageDate}
           </span>
         )}
+        {page.transcribedBy?.startsWith('ocr:') && (
+          <span
+            title={`Read by ${page.transcribedBy.slice(4)}; may contain mistakes`}
+            className="bg-muted text-muted-foreground rounded-sm px-1 text-[10px] font-medium uppercase tracking-wide"
+          >
+            OCR
+          </span>
+        )}
       </h2>
       {segments.length > 0 ? (
         <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">

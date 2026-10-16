@@ -26,6 +26,8 @@ export interface NotebookPage {
   bytes: number;
   transcription: string | null;
   transcribedAt: string | null;
+  /** `ocr:<model>` when OCR wrote the transcription; null when a person or agent did. */
+  transcribedBy: string | null;
   source: string | null;
   createdAt: string;
 }
