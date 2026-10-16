@@ -22,10 +22,30 @@ const STATES: Partial<
 const sourceHref = (source: TaskSource) =>
   `/notebooks/${source.notebookId}?page=${source.pageId}`;
 
-const sourceLabel = (source: TaskSource) =>
-  [source.notebookName, `p. ${source.number}`, source.pageDate]
-    .filter(Boolean)
-    .join(' · ');
+const pageLabel = (source: TaskSource) =>
+  [`p. ${source.number}`, source.pageDate].filter(Boolean).join(' · ');
+
+/** A link to the page; a long notebook name is cut short so the page number and date stay whole. */
+function SourceLink({
+  source,
+  withNotebook = true,
+}: {
+  source: TaskSource;
+  withNotebook?: boolean;
+}) {
+  return (
+    <Link
+      href={sourceHref(source)}
+      prefetch={false}
+      className="hover:text-foreground inline-flex min-w-0 max-w-full underline underline-offset-2"
+    >
+      {withNotebook && (
+        <span className="truncate">{source.notebookName}&nbsp;·&nbsp;</span>
+      )}
+      <span className="shrink-0 whitespace-nowrap">{pageLabel(source)}</span>
+    </Link>
+  );
+}
 
 /** Groups by the month the item was last written, newest first; undated items go last. */
 function byMonth(tasks: readonly OpenTask[]) {
@@ -106,40 +126,26 @@ export function NotebookTasks({ tasks }: { tasks: readonly OpenTask[] }) {
                       )}
                       {task.text}
                       {task.stale && (
-                        <span className="bg-warning/15 text-warning ml-2 rounded-full px-2 text-xs">
+                        <span className="bg-warning/15 text-warning ml-2 inline-block whitespace-nowrap rounded-full px-2 text-xs">
                           {STALE_DAYS / 7}+ weeks
                         </span>
                       )}
                     </p>
-                    <p className="text-muted-foreground flex flex-wrap gap-x-2 text-xs">
-                      <Link
-                        href={sourceHref(task.source)}
-                        prefetch={false}
-                        className="hover:text-foreground underline underline-offset-2"
-                      >
-                        {sourceLabel(task.source)}
-                      </Link>
+                    <div className="text-muted-foreground flex min-w-0 flex-col gap-x-2 text-xs sm:flex-row sm:flex-wrap">
+                      <SourceLink source={task.source} />
                       {task.firstSeen && (
-                        <span>
-                          first written{' '}
-                          <Link
-                            href={sourceHref(task.firstSeen)}
-                            prefetch={false}
-                            className="hover:text-foreground underline underline-offset-2"
-                          >
-                            {task.firstSeen.notebookId ===
-                            task.source.notebookId
-                              ? [
-                                  `p. ${task.firstSeen.number}`,
-                                  task.firstSeen.pageDate,
-                                ]
-                                  .filter(Boolean)
-                                  .join(' · ')
-                              : sourceLabel(task.firstSeen)}
-                          </Link>
+                        <span className="flex min-w-0 gap-1">
+                          <span className="shrink-0">first written</span>{' '}
+                          <SourceLink
+                            source={task.firstSeen}
+                            withNotebook={
+                              task.firstSeen.notebookId !==
+                              task.source.notebookId
+                            }
+                          />
                         </span>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </li>
               );
