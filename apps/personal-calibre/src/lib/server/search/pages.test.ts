@@ -106,6 +106,17 @@ describe('searchNotebookPages', () => {
     ).toEqual([ids[2]]);
   });
 
+  it('indexes an edit made while a build is running', async () => {
+    await setPageTranscription(ids[3] ?? 0, { transcription: 'Grocery list' });
+    await searchNotebookPages('sea');
+    // The build for the grocery text is still running; this edit must not be lost behind it.
+    await setPageTranscription(ids[3] ?? 0, { transcription: 'Tide tables' });
+    await searchNotebookPages('sea');
+    await settlePageIndex();
+    const { hits } = await searchNotebookPages('sea');
+    expect(hits.find((h) => h.id === ids[3])?.match).toBe('meaning');
+  });
+
   it('re-indexes when a page gains text', async () => {
     await setPageTranscription(ids[3] ?? 0, {
       transcription: 'Tide tables',
