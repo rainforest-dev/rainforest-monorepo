@@ -446,4 +446,50 @@ test.describe('notebooks', () => {
       404,
     );
   });
+  test('the to-do list shows open bullets and links each to its page', async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    const name = `Bujo ${stamp}`;
+    const notebookId = await createNotebook(page, name);
+    // Typed straight into the database: the list reads transcriptions, not images.
+    const db = new Database(APP_DB_PATH);
+    const insert = db.prepare(
+      `INSERT INTO notebook_pages
+        (notebook_id, position, page_number, page_date, file_name, mime_type, bytes, content_hash, transcription)
+       VALUES (?, ?, ?, ?, 'p.png', 'image/png', 1, ?, ?)`,
+    );
+    insert.run(
+      notebookId,
+      1,
+      12,
+      '2026-08-20',
+      `a${stamp}`,
+      `TEXT:\n• Renew card ${stamp}\n• Plan trip ${stamp}`,
+    );
+    const latest = insert.run(
+      notebookId,
+      2,
+      54,
+      '2026-10-14',
+      `b${stamp}`,
+      `TEXT:\n人 Renew card ${stamp}\n> Plan trip ${stamp}\n• Plan trip ${stamp}`,
+    ).lastInsertRowid;
+    db.close();
+
+    await page.goto('/notebooks?view=tasks');
+    const list = page.getByRole('region', { name: 'October 2026' });
+    const item = list
+      .getByRole('listitem')
+      .filter({ hasText: `Plan trip ${stamp}` });
+    await expect(item).toContainText('first written p. 12 · 2026-08-20');
+    await expect(page.getByText(`Renew card ${stamp}`)).toHaveCount(0);
+
+    await item
+      .getByRole('link', { name: `${name} · p. 54 · 2026-10-14` })
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/notebooks/${notebookId}\\?page=${latest}\\b`),
+    );
+  });
 });

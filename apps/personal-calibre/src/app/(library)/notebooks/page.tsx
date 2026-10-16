@@ -1,5 +1,5 @@
 import { MONTH_RE } from '@rainforest-dev/journal-kit';
-import { CalendarDays, LayoutGrid } from 'lucide-react';
+import { CalendarDays, LayoutGrid, ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
@@ -10,12 +10,14 @@ import {
   NotebookGrid,
   NotebookSearchForm,
   NotebookSearchResults,
+  NotebookTasks,
 } from '@/components/notebooks';
 import { cn } from '@/lib';
 import {
   latestDatedMonth,
   listNotebooks,
   notebookCalendar,
+  notebookTasks,
   pageQueryReady,
   type PageSearchOptions,
   purgeExpiredTrash,
@@ -23,7 +25,7 @@ import {
   undatedPages,
 } from '@/lib/server';
 
-type View = 'shelf' | 'calendar';
+type View = 'shelf' | 'calendar' | 'tasks';
 
 interface Props {
   searchParams: Promise<{
@@ -50,6 +52,12 @@ const VIEWS: readonly {
     Icon: CalendarDays,
     href: '/notebooks?view=calendar',
   },
+  {
+    value: 'tasks',
+    label: 'To-dos',
+    Icon: ListTodo,
+    href: '/notebooks?view=tasks',
+  },
 ];
 
 export default function NotebooksPage({ searchParams }: Props) {
@@ -74,7 +82,9 @@ const first = (value: string | string[] | undefined) =>
 async function NotebooksView({ searchParams }: Props) {
   await connection();
   const params = await searchParams;
-  const view: View = first(params.view) === 'calendar' ? 'calendar' : 'shelf';
+  const asked = first(params.view);
+  const view: View =
+    asked === 'calendar' || asked === 'tasks' ? asked : 'shelf';
   const typed = (first(params.q) ?? '').trim().slice(0, 200);
   const q = pageQueryReady(typed) ? typed : '';
   const options = searchOptions(params);
@@ -116,6 +126,8 @@ async function NotebooksView({ searchParams }: Props) {
         />
       ) : view === 'calendar' ? (
         <CalendarView month={first(params.month)} />
+      ) : view === 'tasks' ? (
+        <NotebookTasks tasks={notebookTasks()} />
       ) : (
         <ShelfView shelf={first(params.shelf)} />
       )}
