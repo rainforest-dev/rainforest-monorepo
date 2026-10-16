@@ -30,29 +30,45 @@ export function nextPageForOcr(): number | undefined {
     .get()?.id;
 }
 
-function recordFailure(pageId: number, error: unknown): void {
+/** Matches the page only while it still holds the image that was read. */
+const sameImage = (pageId: number, contentHash: string | undefined) =>
+  contentHash === undefined
+    ? eq(notebookPages.id, pageId)
+    : and(
+        eq(notebookPages.id, pageId),
+        eq(notebookPages.contentHash, contentHash),
+      );
+
+function recordFailure(
+  pageId: number,
+  contentHash: string | undefined,
+  error: unknown,
+): void {
   appDb
     .update(notebookPages)
     .set({
       ocrAttempts: sql`${notebookPages.ocrAttempts} + 1`,
       ocrError: errorText(error),
     })
-    .where(eq(notebookPages.id, pageId))
+    .where(sameImage(pageId, contentHash))
     .run();
 }
 
 /**
  * Reads the next waiting page. Only an empty transcription is written, so a page someone
  * transcribed while the model was reading keeps theirs; a date or number already set is kept too.
+ * A page whose image was replaced mid-read gets neither the old text nor a charged attempt.
  */
 export async function ocrNextPage(
   engine: OcrEngine,
 ): Promise<'read' | 'failed' | 'idle'> {
   const pageId = nextPageForOcr();
   if (pageId === undefined) return 'idle';
+  let contentHash: string | undefined;
   try {
     const file = await readPageFile(pageId);
     if (!file) throw new Error('page image is missing');
+    contentHash = file.contentHash;
     const result = parseOcr(
       await engine.read(file.data, AbortSignal.timeout(READ_TIMEOUT_MS)),
     );
@@ -68,12 +84,15 @@ export async function ocrNextPage(
         ocrError: null,
       })
       .where(
-        and(eq(notebookPages.id, pageId), isNull(notebookPages.transcription)),
+        and(
+          sameImage(pageId, contentHash),
+          isNull(notebookPages.transcription),
+        ),
       )
       .run();
     return 'read';
   } catch (error) {
-    recordFailure(pageId, error);
+    recordFailure(pageId, contentHash, error);
     return 'failed';
   }
 }
