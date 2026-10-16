@@ -7,7 +7,8 @@ export const NOTEBOOKS_DDL = `
     status TEXT NOT NULL DEFAULT 'active',
     started_on TEXT,
     ended_on TEXT,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    trashed_at TEXT
   );
   CREATE TABLE IF NOT EXISTS notebook_pages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,6 +33,10 @@ export const NOTEBOOKS_DDL = `
   CREATE INDEX IF NOT EXISTS idx_notebook_pages_notebook_position
     ON notebook_pages(notebook_id, position);
 `;
+
+export const NOTEBOOK_ADDED_COLUMNS = [
+  { name: 'trashed_at', definition: 'trashed_at TEXT' },
+] as const;
 
 export const NOTEBOOK_PAGE_ADDED_COLUMNS = [
   { name: 'fingerprint', definition: 'fingerprint BLOB' },

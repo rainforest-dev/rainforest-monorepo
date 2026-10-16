@@ -18,6 +18,7 @@ import {
   notebookCalendar,
   pageQueryReady,
   type PageSearchOptions,
+  purgeExpiredTrash,
   searchNotebookPages,
   undatedPages,
 } from '@/lib/server';
@@ -32,6 +33,7 @@ interface Props {
     from?: string | string[];
     to?: string | string[];
     exact?: string | string[];
+    shelf?: string | string[];
   }>;
 }
 
@@ -115,10 +117,7 @@ async function NotebooksView({ searchParams }: Props) {
       ) : view === 'calendar' ? (
         <CalendarView month={first(params.month)} />
       ) : (
-        <>
-          <CreateNotebookForm />
-          <NotebookGrid notebooks={await listNotebooks()} />
-        </>
+        <ShelfView shelf={first(params.shelf)} />
       )}
     </>
   );
@@ -140,6 +139,51 @@ function searchOptions(
     ...(to && { to }),
     ...(first(params.exact) === '1' && { exact: true }),
   };
+}
+
+type Shelf = 'all' | 'archived' | 'trash';
+
+const SHELVES: readonly { value: Shelf; label: string; href: string }[] = [
+  { value: 'all', label: 'All', href: '/notebooks' },
+  { value: 'archived', label: 'Archived', href: '/notebooks?shelf=archived' },
+  { value: 'trash', label: 'Trash', href: '/notebooks?shelf=trash' },
+];
+
+async function ShelfView({ shelf: asked }: { shelf: string | undefined }) {
+  const shelf: Shelf =
+    asked === 'archived' || asked === 'trash' ? asked : 'all';
+  // Purging on visit is enough: a notebook nobody looks at can wait in Trash a little longer.
+  await purgeExpiredTrash();
+  const shown =
+    shelf === 'trash'
+      ? await listNotebooks({ trashed: true })
+      : (await listNotebooks()).filter(
+          (n) => shelf === 'all' || n.status === 'archived',
+        );
+  return (
+    <>
+      <nav aria-label="Shelf" className="flex gap-1 text-sm">
+        {SHELVES.map(({ value, label, href }) => (
+          <Link
+            key={value}
+            href={href}
+            prefetch={false}
+            aria-current={shelf === value ? 'page' : undefined}
+            className={cn(
+              'focus-visible:outline-ring rounded-full border px-3 py-1 outline-offset-1 focus-visible:outline-2',
+              shelf === value
+                ? 'bg-accent text-accent-foreground border-transparent font-medium'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+      {shelf === 'all' && <CreateNotebookForm />}
+      <NotebookGrid key={shelf} notebooks={shown} trash={shelf === 'trash'} />
+    </>
+  );
 }
 
 function CalendarView({ month }: { month: string | undefined }) {

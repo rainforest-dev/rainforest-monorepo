@@ -347,4 +347,52 @@ test.describe('notebooks', () => {
     );
     await expect(book).toHaveAttribute('data-spread', '1');
   });
+  test('the shelf selects notebooks, trashes them, restores and deletes one', async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    const names = [`Shelf One ${stamp}`, `Shelf Two ${stamp}`];
+    for (const name of names) await createNotebook(page, name);
+
+    await page.goto('/notebooks');
+    await page.getByRole('button', { name: 'Select' }).click();
+    for (const name of names) {
+      await page.getByRole('checkbox', { name }).click();
+    }
+    const toolbar = page.getByRole('toolbar', { name: 'Selected notebooks' });
+    await expect(toolbar.getByText('2 selected')).toBeVisible();
+
+    await toolbar.getByRole('button', { name: 'Delete…' }).click();
+    const remove = page.getByRole('dialog', { name: 'Remove 2 notebooks?' });
+    await expect(
+      remove.getByRole('radio', { name: /Move to Trash/ }),
+    ).toBeChecked();
+    await remove.getByRole('button', { name: 'Move to Trash' }).click();
+    await expect(remove).toBeHidden();
+    for (const name of names) {
+      await expect(page.getByRole('link', { name })).toHaveCount(0);
+    }
+
+    await page.getByRole('link', { name: 'Trash' }).click();
+    await expect(page).toHaveURL(/shelf=trash/);
+    await expect(page.getByRole('link', { name: names[0] })).toContainText(
+      'deleted in 30 days',
+    );
+    await page.getByRole('button', { name: 'Select' }).click();
+    await page.getByRole('checkbox', { name: names[0] }).click();
+    await toolbar.getByRole('button', { name: 'Restore' }).click();
+    await expect(page.getByRole('link', { name: names[0] })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Select' }).click();
+    await page.getByRole('checkbox', { name: names[1] }).click();
+    await toolbar.getByRole('button', { name: 'Delete now…' }).click();
+    const purge = page.getByRole('dialog', { name: `Delete ${names[1]}?` });
+    await expect(purge.getByText('cannot be undone')).toBeVisible();
+    await purge.getByRole('button', { name: 'Delete now' }).click();
+    await expect(page.getByRole('link', { name: names[1] })).toHaveCount(0);
+
+    await page.getByRole('link', { name: 'All' }).click();
+    await expect(page.getByRole('link', { name: names[0] })).toBeVisible();
+    await expect(page.getByRole('link', { name: names[1] })).toHaveCount(0);
+  });
 });

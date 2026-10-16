@@ -3,3 +3,4 @@ export * from './links';
 export * from './outline';
 export * from './snippet';
 export * from './spreads';
+export * from './trash';

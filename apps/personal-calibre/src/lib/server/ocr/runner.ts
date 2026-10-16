@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, lt, sql } from 'drizzle-orm';
 
-import { appDb, notebookPages } from '@/db';
-import { readPageFile } from '@/lib/server/notebooks';
+import { appDb, notebookPages, notebooks } from '@/db';
+import { notInTrash, readPageFile } from '@/lib/server/notebooks';
 
 import type { OcrEngine } from './engine';
 import { parseOcr } from './parse';
@@ -14,15 +14,20 @@ const READ_TIMEOUT_MS = 5 * 60_000;
 const errorText = (error: unknown) =>
   (error instanceof Error ? error.message : String(error)).slice(0, 500);
 
-/** The oldest page with no transcription that OCR has not yet given up on. */
+/**
+ * The oldest page with no transcription that OCR has not yet given up on, skipping notebooks
+ * in Trash.
+ */
 export function nextPageForOcr(): number | undefined {
   return appDb
     .select({ id: notebookPages.id })
     .from(notebookPages)
+    .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
     .where(
       and(
         isNull(notebookPages.transcription),
         lt(notebookPages.ocrAttempts, MAX_OCR_ATTEMPTS),
+        notInTrash,
       ),
     )
     .orderBy(asc(notebookPages.id))

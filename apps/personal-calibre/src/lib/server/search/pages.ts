@@ -7,10 +7,11 @@ import {
   queryTerms,
 } from '@rainforest-dev/search';
 import type { IndexFiles } from '@rainforest-dev/search/node';
-import { asc, eq, isNotNull } from 'drizzle-orm';
+import { and, asc, eq, isNotNull } from 'drizzle-orm';
 
 import { appDb, notebookPages, notebooks } from '@/db';
 import { pageHeading, pageSnippet, type SnippetPart } from '@/lib/notebook';
+import { notInTrash } from '@/lib/server/notebooks';
 
 import { indexBooks } from './build-index';
 import { searchContext } from './context';
@@ -72,7 +73,7 @@ function transcribedPages(): PageRow[] {
     })
     .from(notebookPages)
     .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
-    .where(isNotNull(notebookPages.transcription))
+    .where(and(isNotNull(notebookPages.transcription), notInTrash))
     .orderBy(asc(notebookPages.id))
     .all() as PageRow[];
 }
