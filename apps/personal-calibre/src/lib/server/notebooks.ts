@@ -17,6 +17,7 @@ import {
 } from 'drizzle-orm';
 
 import { appDb, appDbPath, notebookPages, notebooks } from '@/db';
+import { trashCutoff } from '@/lib/notebook';
 import type {
   AppendPagesResult,
   DeleteNotebookResult,
@@ -184,7 +185,11 @@ const NOTEBOOK_COLUMNS = {
   startedOn: notebooks.startedOn,
   endedOn: notebooks.endedOn,
   createdAt: notebooks.createdAt,
+  trashedAt: notebooks.trashedAt,
 };
+
+/** Notebooks on the shelf, as opposed to in Trash. */
+export const notInTrash = isNull(notebooks.trashedAt);
 
 const PAGE_COLUMNS = {
   id: notebookPages.id,
@@ -202,7 +207,10 @@ const PAGE_COLUMNS = {
   createdAt: notebookPages.createdAt,
 };
 
-export async function listNotebooks(): Promise<NotebookSummary[]> {
+/** The shelf's notebooks, active ones first, or with `trashed` the ones in Trash. */
+export async function listNotebooks({
+  trashed = false,
+}: { trashed?: boolean } = {}): Promise<NotebookSummary[]> {
   return appDb
     .select({
       ...NOTEBOOK_COLUMNS,
@@ -215,6 +223,7 @@ export async function listNotebooks(): Promise<NotebookSummary[]> {
     })
     .from(notebooks)
     .leftJoin(notebookPages, eq(notebookPages.notebookId, notebooks.id))
+    .where(trashed ? isNotNull(notebooks.trashedAt) : notInTrash)
     .groupBy(notebooks.id)
     .orderBy(
       sql`CASE ${notebooks.status} WHEN 'active' THEN 0 ELSE 1 END`,
@@ -282,12 +291,16 @@ const normalizeName = (name: string): string => {
 export async function createNotebook(name: string): Promise<Notebook> {
   const trimmed = normalizeName(name);
   const existing = appDb
-    .select({ id: notebooks.id })
+    .select({ id: notebooks.id, trashedAt: notebooks.trashedAt })
     .from(notebooks)
     .where(eq(notebooks.name, trimmed))
     .get();
   if (existing) {
-    throw new ToolInputError(`A notebook named "${trimmed}" already exists`);
+    throw new ToolInputError(
+      existing.trashedAt
+        ? `A notebook named "${trimmed}" is in Trash; restore it or delete it first`
+        : `A notebook named "${trimmed}" already exists`,
+    );
   }
   return appDb
     .insert(notebooks)
@@ -307,6 +320,8 @@ export async function findOrCreateNotebookByName(
       .where(eq(notebooks.name, trimmed))
       .get();
   const existing = find();
+  // Pages sent to a notebook in Trash would vanish with it, so the notebook comes back.
+  if (existing?.trashedAt) return (await restoreNotebook(existing.id))!;
   if (existing) return existing;
   // A concurrent request may have created it since; the conflict is not an error.
   appDb.insert(notebooks).values({ name: trimmed }).onConflictDoNothing().run();
@@ -335,6 +350,53 @@ export async function setNotebookStatus(
     .where(eq(notebooks.id, id))
     .returning(NOTEBOOK_COLUMNS)
     .get();
+}
+
+/**
+ * Moves a notebook to Trash: it leaves the shelf, search and the calendar, and
+ * `purgeExpiredTrash` deletes it after `TRASH_DAYS`. Returns `null` for an unknown notebook.
+ */
+export async function trashNotebook(id: number): Promise<Notebook | null> {
+  return (
+    appDb
+      .update(notebooks)
+      .set({
+        trashedAt: sql`coalesce(${notebooks.trashedAt}, CURRENT_TIMESTAMP)`,
+      })
+      .where(eq(notebooks.id, id))
+      .returning(NOTEBOOK_COLUMNS)
+      .get() ?? null
+  );
+}
+
+/** Takes a notebook out of Trash, back onto the shelf with the status it had. */
+export async function restoreNotebook(id: number): Promise<Notebook | null> {
+  return (
+    appDb
+      .update(notebooks)
+      .set({ trashedAt: null })
+      .where(eq(notebooks.id, id))
+      .returning(NOTEBOOK_COLUMNS)
+      .get() ?? null
+  );
+}
+
+/** Deletes, with their pages and images, the notebooks in Trash for `TRASH_DAYS` or longer. */
+export async function purgeExpiredTrash(now = new Date()): Promise<number[]> {
+  const cutoff = trashCutoff(now);
+  const expired = appDb
+    .select({ id: notebooks.id })
+    .from(notebooks)
+    .where(
+      and(
+        isNotNull(notebooks.trashedAt),
+        sql`${notebooks.trashedAt} <= ${cutoff}`,
+      ),
+    )
+    .all()
+    .map(({ id }) => id);
+  for (const id of expired) await deleteNotebook(id, { deletePages: true });
+  return expired;
 }
 
 // The ignore comments keep Turbopack from tracing the whole project into the standalone

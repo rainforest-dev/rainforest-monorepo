@@ -7,6 +7,8 @@ export interface Notebook {
   startedOn: string | null;
   endedOn: string | null;
   createdAt: string;
+  /** When the notebook went to Trash; `null` when it is on the shelf. */
+  trashedAt: string | null;
 }
 
 export interface NotebookSummary extends Notebook {
@@ -84,3 +86,7 @@ export interface DeleteNotebookResult {
   notebookId: number;
   deletedPageIds: number[];
 }
+
+/** What the shelf's selection toolbar can do to several notebooks at once. */
+export type NotebookBulkAction =
+  'archive' | 'reopen' | 'trash' | 'restore' | 'delete' | 'merge';

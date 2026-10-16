@@ -41,6 +41,8 @@ export const notebooks = sqliteTable('notebooks', {
   createdAt: text('created_at')
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
+  /** Set while the notebook is in Trash; it is purged a while after. */
+  trashedAt: text('trashed_at'),
 });
 
 export const notebookPages = sqliteTable(

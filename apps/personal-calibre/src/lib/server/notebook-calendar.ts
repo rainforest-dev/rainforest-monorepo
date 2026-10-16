@@ -3,6 +3,7 @@ import { and, asc, eq, gt, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import { appDb, notebookPages, notebooks } from '@/db';
 import type { CalendarPage } from '@/lib/notebook';
 
+import { notInTrash } from './notebooks';
 import { MAX_OCR_ATTEMPTS } from './ocr';
 
 /** Pages with no date yet, by why. */
@@ -38,7 +39,7 @@ export function notebookCalendar(month: string): NotebookCalendar {
     })
     .from(notebookPages)
     .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
-    .where(eq(pageMonth, month))
+    .where(and(eq(pageMonth, month), notInTrash))
     .orderBy(
       asc(notebookPages.pageDate),
       asc(notebookPages.notebookId),
@@ -49,9 +50,11 @@ export function notebookCalendar(month: string): NotebookCalendar {
     appDb
       .select({ month: pageMonth })
       .from(notebookPages)
+      .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
       .where(
         and(
           isNotNull(notebookPages.pageDate),
+          notInTrash,
           before ? lt(pageMonth, month) : gt(pageMonth, month),
         ),
       )
@@ -74,6 +77,8 @@ export function latestDatedMonth(): string | undefined {
     appDb
       .select({ month: sql<string>`max(${pageMonth})` })
       .from(notebookPages)
+      .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
+      .where(notInTrash)
       .get()?.month ?? undefined
   );
 }
@@ -86,7 +91,8 @@ export function undatedPages(): UndatedPages {
       noDate: sql<number>`coalesce(sum(${notebookPages.transcription} IS NOT NULL), 0)`,
     })
     .from(notebookPages)
-    .where(isNull(notebookPages.pageDate))
+    .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
+    .where(and(isNull(notebookPages.pageDate), notInTrash))
     .get();
   return row ?? { waiting: 0, noDate: 0, gaveUp: 0 };
 }

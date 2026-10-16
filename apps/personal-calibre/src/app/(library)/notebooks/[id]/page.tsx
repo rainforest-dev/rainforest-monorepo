@@ -9,6 +9,7 @@ import {
   NotebookBody,
   PageUploader,
 } from '@/components/notebooks';
+import { daysLeftInTrash } from '@/lib/notebook';
 import { getNotebook } from '@/lib/server';
 
 interface Props {
@@ -53,6 +54,8 @@ async function NotebookContent({ params }: Props) {
             {notebook.pageCount} page{notebook.pageCount === 1 ? '' : 's'}
             {notebook.status === 'archived' &&
               ` · Archived${notebook.endedOn ? ` ${notebook.endedOn}` : ''}`}
+            {notebook.trashedAt &&
+              ` · In Trash, deleted in ${daysLeftInTrash(notebook.trashedAt)} days`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -61,6 +64,7 @@ async function NotebookContent({ params }: Props) {
             name={notebook.name}
             status={notebook.status}
             pageCount={notebook.pageCount}
+            trashedAt={notebook.trashedAt}
           />
           <PageUploader notebookId={notebook.id} />
         </div>
