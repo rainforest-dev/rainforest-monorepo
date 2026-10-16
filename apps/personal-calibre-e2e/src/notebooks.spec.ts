@@ -292,5 +292,37 @@ test.describe('notebooks', () => {
     await page.reload();
     await expect(pageTiles(page)).toHaveCount(2);
     await expect(book).toBeHidden();
+
+    // The calendar places each page on the date written on it and opens it in the book.
+    await page.goto('/notebooks');
+    await page
+      .getByRole('navigation', { name: 'View' })
+      .getByRole('link', { name: 'Calendar' })
+      .click();
+    await expect(page).toHaveURL(/view=calendar/);
+    await page.goto('/notebooks?view=calendar&month=2026-10');
+    await expect(
+      page.getByRole('heading', { name: '2026 年 10 月' }),
+    ).toBeVisible();
+    const eleventh = page.locator('[data-date="2026-10-11"]');
+    const ours = eleventh.getByRole('link', {
+      name: `${name}, page 1, 2026-10-11`,
+    });
+    await expect(ours).toBeVisible();
+    await expect(
+      page
+        .locator('[data-date="2026-10-12"]')
+        .getByRole('link', { name: `${name}, page 2, 2026-10-12` }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Previous month' }).click();
+    await expect(
+      page.getByRole('heading', { name: '2026 年 9 月' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Next month' }).click();
+    await ours.click();
+    await expect(page).toHaveURL(
+      new RegExp(`/notebooks/${notebookId}\\?page=${ids[0]}\\b`),
+    );
+    await expect(book).toHaveAttribute('data-spread', '0');
   });
 });
