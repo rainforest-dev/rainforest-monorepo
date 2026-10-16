@@ -46,6 +46,8 @@ describe('isPrivateAddress', () => {
     '2001:0:4136:e378::1',
     '100::1',
     '192.88.99.1',
+    'fe80::1%eth0',
+    '::ffff:1..2.3',
     'not-an-ip',
   ])('blocks %s', (address) => {
     expect(isPrivateAddress(address)).toBe(true);
@@ -139,6 +141,22 @@ describe('parsePreview', () => {
       image: 'https://example.com/img/cover.jpg',
       siteName: 'Example',
     });
+  });
+
+  it('reads unquoted and spaced attributes and skips an unclosed quote', () => {
+    const page =
+      "<head><meta property = og:title content=Bare><meta content='unclosed name=description content=kept></head>";
+    expect(parsePreview(page, 'https://example.com/')).toMatchObject({
+      title: 'Bare',
+      description: 'kept',
+    });
+  });
+
+  it('stays fast on a long run of attribute-name characters', () => {
+    const start = performance.now();
+    parsePreview(`<head><meta ${'!'.repeat(20_000)}></head>`, 'https://e.com/');
+    expect(isPrivateAddress(`::${'9'.repeat(20_000)}`)).toBe(true);
+    expect(performance.now() - start).toBeLessThan(500);
   });
 
   it('falls back to <title> and meta description', () => {

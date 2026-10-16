@@ -71,13 +71,19 @@ function isPrivateIPv4(address: string): boolean {
 }
 
 function ipv6Hextets(address: string): number[] | undefined {
-  let text = address.toLowerCase().replace(/%.*$/, '');
-  const dotted = /(\d+\.\d+\.\d+\.\d+)$/.exec(text);
-  if (dotted?.[1]) {
-    const octets = ipv4Octets(dotted[1]);
+  // Sliced rather than matched with a regex, which would backtrack on a long run of digits.
+  let text = address.toLowerCase();
+  const zone = text.indexOf('%');
+  if (zone >= 0) text = text.slice(0, zone);
+  const last = text.lastIndexOf(':') + 1;
+  if (text.includes('.', last)) {
+    const dotted = text.slice(last);
+    const octets = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(dotted)
+      ? ipv4Octets(dotted)
+      : undefined;
     if (!octets) return undefined;
     const [a = 0, b = 0, c = 0, d = 0] = octets;
-    text = `${text.slice(0, dotted.index)}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+    text = `${text.slice(0, last)}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
   }
   const halves = text.split('::');
   if (halves.length > 2) return undefined;
@@ -266,13 +272,49 @@ function clean(text: string | undefined, max: number): string | undefined {
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
 }
 
+const NAME_END = /[\s=/<>"']/;
+const BARE_END = /[\s"'>]/;
+const SPACE = /\s/;
+
+/**
+ * A tag's `name=value` attributes, first one wins. Scanned by hand: the equivalent single regex
+ * backtracks polynomially on a long run of name characters, and pages are untrusted input.
+ */
 function attributes(tag: string): Map<string, string> {
   const attrs = new Map<string, string>();
-  for (const [, name = '', dq, sq, bare] of tag.matchAll(
-    /([^\s=/<>"']+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g,
-  )) {
-    const key = name.toLowerCase();
-    if (!attrs.has(key)) attrs.set(key, dq ?? sq ?? bare ?? '');
+  const at = (k: number) => tag[k] ?? '';
+  let i = 0;
+  while (i < tag.length) {
+    const start = i;
+    while (i < tag.length && !NAME_END.test(at(i))) i++;
+    if (i === start) {
+      i++;
+      continue;
+    }
+    const name = tag.slice(start, i).toLowerCase();
+    let j = i;
+    while (SPACE.test(at(j))) j++;
+    if (at(j) !== '=') continue;
+    j++;
+    while (SPACE.test(at(j))) j++;
+    const quote = at(j);
+    let value: string;
+    if (quote === '"' || quote === "'") {
+      const close = tag.indexOf(quote, j + 1);
+      if (close < 0) {
+        i = j + 1;
+        continue;
+      }
+      value = tag.slice(j + 1, close);
+      i = close + 1;
+    } else {
+      const from = j;
+      while (j < tag.length && !BARE_END.test(at(j))) j++;
+      i = j;
+      if (j === from) continue;
+      value = tag.slice(from, j);
+    }
+    if (!attrs.has(name)) attrs.set(name, value);
   }
   return attrs;
 }
