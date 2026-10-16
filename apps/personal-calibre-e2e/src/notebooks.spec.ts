@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
+import { callTool } from './support/mcp';
 import { pagePhoto } from './support/page-photo';
 
 /** Where a crop handle sits, as a share of the photo's width and height. */
@@ -10,7 +11,12 @@ async function handleAt(handle: Locator): Promise<{ x: number; y: number }> {
   return { x: percent('left'), y: percent('top') };
 }
 
-async function createNotebook(page: Page, name: string): Promise<void> {
+/** Creates a notebook and opens it, as the page grid unless `layout` is the book. */
+async function createNotebook(
+  page: Page,
+  name: string,
+  layout: 'book' | 'pages' = 'pages',
+): Promise<number> {
   await page.goto('/notebooks');
   await page.getByLabel('Notebook name').fill(name);
   // Enabled only once React has hydrated and seen the name.
@@ -20,6 +26,13 @@ async function createNotebook(page: Page, name: string): Promise<void> {
   // A dev server compiles the notebook route on first visit.
   await expect(page).toHaveURL(/\/notebooks\/\d+$/, { timeout: 30_000 });
   await expect(page.getByRole('heading', { name })).toBeVisible();
+  const id = Number(/\/notebooks\/(\d+)$/.exec(page.url())?.[1]);
+  // The layout is read once on load, so the grid has to be asked for before pages arrive.
+  if (layout === 'pages') {
+    await page.goto(`/notebooks/${id}?layout=pages`);
+    await expect(page.getByRole('heading', { name })).toBeVisible();
+  }
+  return id;
 }
 
 const pageTiles = (page: Page) =>
@@ -198,5 +211,86 @@ test.describe('notebooks', () => {
     page.once('dialog', (prompt) => void prompt.accept(renamed));
     await page.getByRole('button', { name: 'Rename' }).click();
     await expect(page.getByRole('heading', { name: renamed })).toBeVisible();
+  });
+
+  test('the book turns pages and follows the outline and page links', async ({
+    page,
+    request,
+  }) => {
+    const name = `Reader Run ${Date.now()}`;
+    const notebookId = await createNotebook(page, name, 'book');
+    // Written unlike the other tests' photos, so the cross-notebook dedupe lets it in.
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'spread.png',
+      mimeType: 'image/png',
+      buffer: pagePhoto({ spread: true, degrees: 9, writing: 1 }).png,
+    });
+    const crop = page.getByRole('dialog', { name: /Crop page/ });
+    await crop.getByRole('button', { name: 'Crop 2 pages' }).click();
+    await expect(crop).toBeHidden();
+    await expect(page.getByText('2 pages', { exact: true })).toBeVisible();
+
+    const listed = await callTool(request, 'list_notebook_pages', {
+      notebookId,
+    });
+    const ids = (
+      JSON.parse(listed.content[0]?.text ?? '[]') as { id: number }[]
+    ).map((p) => p.id);
+    expect(ids).toHaveLength(2);
+    const texts = [
+      { transcription: 'Index\n- Reading list p. 2', pageDate: '2026-10-11' },
+      { transcription: 'Reading list\nStarted 10/11', pageDate: '2026-10-12' },
+    ];
+    for (const [i, text] of texts.entries()) {
+      const saved = await callTool(request, 'set_page_transcription', {
+        pageId: ids[i],
+        ...text,
+      });
+      expect(saved.isError).toBeFalsy();
+    }
+    await page.reload();
+
+    const book = page.getByTestId('flip-book');
+    const outline = page.getByRole('navigation', { name: 'Outline' });
+    const text = page.getByRole('complementary', { name: 'Page text' });
+    // The cover opens alone on the right.
+    await expect(book).toHaveAttribute('data-spread', '0');
+    await expect(page.getByText('Page 1 of 2')).toBeVisible();
+    await expect(
+      outline.getByRole('button', { name: /Index/ }),
+    ).toHaveAttribute('aria-current', 'page');
+
+    // A page reference opens the page it names, and the URL keeps it.
+    await text.getByRole('button', { name: 'p. 2', exact: true }).click();
+    await expect(book).toHaveAttribute('data-spread', '1');
+    await expect(page.getByText('Page 2 of 2')).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`[?&]page=${ids[1]}\\b`));
+    await expect(text.getByText('Linked from')).toBeVisible();
+    // A date opens the page dated that day.
+    await text.getByRole('button', { name: '10/11', exact: true }).click();
+    await expect(book).toHaveAttribute('data-spread', '0');
+
+    // Turning by key and by button.
+    await page.keyboard.press('ArrowRight');
+    await expect(book).toHaveAttribute('data-spread', '1');
+    await expect(
+      page.getByRole('button', { name: 'Next page' }),
+    ).toBeDisabled();
+    await page.getByRole('button', { name: 'Previous page' }).click();
+    await expect(book).toHaveAttribute('data-spread', '0');
+
+    // The outline jumps too.
+    await outline.getByRole('button', { name: /Reading list/ }).click();
+    await expect(book).toHaveAttribute('data-spread', '1');
+
+    // Pages lays the same pages out as a grid, and the choice survives a reload.
+    await page
+      .getByRole('group', { name: 'Layout' })
+      .getByRole('button', { name: 'Pages' })
+      .click();
+    await expect(pageTiles(page)).toHaveCount(2);
+    await page.reload();
+    await expect(pageTiles(page)).toHaveCount(2);
+    await expect(book).toBeHidden();
   });
 });

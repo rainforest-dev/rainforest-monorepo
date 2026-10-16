@@ -23,17 +23,20 @@ const GUTTER: Rgb = [196, 192, 182];
 /**
  * A tilted notebook on a dark table, with a dot grid and a few ink strokes. `spread` makes it a
  * landscape two-page spread with a shaded gutter down the middle; otherwise a portrait page.
+ * `writing` picks other strokes, for a page the lookalike check must not take for an earlier one.
  */
 export function pagePhoto({
   spread = true,
   width = 900,
   height = 640,
   degrees = 6,
+  writing = 0,
 }: {
   spread?: boolean;
   width?: number;
   height?: number;
   degrees?: number;
+  writing?: number;
 } = {}): PagePhoto {
   const paperW = spread ? width * 0.78 : width * 0.42;
   const paperH = spread ? height * 0.74 : height * 0.82;
@@ -64,13 +67,14 @@ export function pagePhoto({
     const pageU = spread ? u % (paperW / 2) : u;
     // The right page carries different writing, so the two halves never look like one page.
     const right = spread && u > paperW / 2;
-    const line = Math.floor((v - 30) / 34);
+    const pitch = 34 + writing * 13;
+    const line = Math.floor((v - 30) / pitch);
     if (
       v > 30 &&
-      line < (right ? 10 : 6) &&
-      (v - 30) % 34 < 3 &&
+      line < (right ? 10 : 6) - writing &&
+      (v - 30) % pitch < 3 + writing * 2 &&
       pageU > 24 &&
-      pageU < 60 + ((line * 53 + (right ? 70 : 0)) % 140)
+      pageU < 60 + ((line * 53 + (right ? 70 : 0) + writing * 61) % 140)
     ) {
       return INK;
     }
