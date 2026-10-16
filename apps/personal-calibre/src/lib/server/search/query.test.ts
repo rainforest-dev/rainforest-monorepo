@@ -49,6 +49,19 @@ describe('rankBookIds', () => {
     expect(result.ids).not.toEqual(lexical);
   });
 
+  it('takes semantic hits only from the allowed ids', async () => {
+    const result = await rankBookIds({
+      q: 'lantern',
+      lexical: [],
+      index: await fakeIndex(),
+      embedder: fake,
+      gate: breaker(),
+      allow: new Set(['1', '2']),
+    });
+    expect(result.semantic).toBe('on');
+    expect(result.ids).not.toContain(3);
+  });
+
   it('returns the lexical order exactly when Ollama is unreachable', async () => {
     const result = await rankBookIds({
       q: 'ocean',

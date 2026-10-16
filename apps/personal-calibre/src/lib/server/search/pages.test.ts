@@ -10,7 +10,7 @@ import {
 } from '@/lib/server/notebooks';
 import { pagePng, setUpNotebookShelf } from '@/test';
 
-import { searchNotebookPages, settlePageIndex } from './pages';
+import { pageQueryReady, searchNotebookPages, settlePageIndex } from './pages';
 
 let ids: number[] = [];
 let root = '';
@@ -80,6 +80,30 @@ describe('searchNotebookPages', () => {
     expect(result.hits).toEqual([
       expect.objectContaining({ id: ids[2], match: 'meaning' }),
     ]);
+  });
+
+  it('takes the nearest by meaning among pages in the date range', async () => {
+    const { hits } = await searchNotebookPages('sea', {
+      from: '2026-09-01',
+      to: '2026-09-30',
+    });
+    expect(hits).toEqual([]);
+    expect(
+      (await searchNotebookPages('sea', { from: '2026-10-01' })).hits.map(
+        (h) => h.id,
+      ),
+    ).toEqual([ids[2]]);
+  });
+
+  it('searches a single Chinese character but not a single letter', async () => {
+    expect(pageQueryReady('海')).toBe(true);
+    expect(pageQueryReady(' a ')).toBe(false);
+    await setPageTranscription(ids[2] ?? 0, {
+      transcription: 'Weekend\n• swim in the ocean 海',
+    });
+    expect(
+      (await searchNotebookPages('海', { exact: true })).hits.map((h) => h.id),
+    ).toEqual([ids[2]]);
   });
 
   it('re-indexes when a page gains text', async () => {
