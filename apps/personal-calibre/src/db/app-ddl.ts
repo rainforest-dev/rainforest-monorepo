@@ -22,6 +22,9 @@ export const NOTEBOOKS_DDL = `
     fingerprint BLOB,
     transcription TEXT,
     transcribed_at TEXT,
+    transcribed_by TEXT,
+    ocr_attempts INTEGER NOT NULL DEFAULT 0,
+    ocr_error TEXT,
     source TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (notebook_id, content_hash)
@@ -32,4 +35,10 @@ export const NOTEBOOKS_DDL = `
 
 export const NOTEBOOK_PAGE_ADDED_COLUMNS = [
   { name: 'fingerprint', definition: 'fingerprint BLOB' },
+  { name: 'transcribed_by', definition: 'transcribed_by TEXT' },
+  {
+    name: 'ocr_attempts',
+    definition: 'ocr_attempts INTEGER NOT NULL DEFAULT 0',
+  },
+  { name: 'ocr_error', definition: 'ocr_error TEXT' },
 ] as const;

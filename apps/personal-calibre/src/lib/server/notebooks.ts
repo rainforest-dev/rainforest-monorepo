@@ -197,6 +197,7 @@ const PAGE_COLUMNS = {
   bytes: notebookPages.bytes,
   transcription: notebookPages.transcription,
   transcribedAt: notebookPages.transcribedAt,
+  transcribedBy: notebookPages.transcribedBy,
   source: notebookPages.source,
   createdAt: notebookPages.createdAt,
 };
@@ -623,6 +624,10 @@ export async function replacePage(
         source: 'replace',
         transcription: null,
         transcribedAt: null,
+        transcribedBy: null,
+        // A new image gets a fresh round of OCR.
+        ocrAttempts: 0,
+        ocrError: null,
       })
       .where(eq(notebookPages.id, pageId))
       .returning(PAGE_COLUMNS)
@@ -654,6 +659,7 @@ export async function setPageTranscription(
       .set({
         transcription,
         transcribedAt: new Date().toISOString(),
+        transcribedBy: null,
         ...(pageNumber !== undefined && { pageNumber }),
         ...(pageDate !== undefined && { pageDate }),
       })

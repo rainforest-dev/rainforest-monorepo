@@ -59,6 +59,8 @@ export async function assertModel(
 export type ChatMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
+  /** Base64-encoded images, for a vision model. */
+  images?: readonly string[];
 };
 
 export async function ollamaChat({

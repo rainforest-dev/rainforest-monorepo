@@ -60,6 +60,11 @@ export const notebookPages = sqliteTable(
     fingerprint: blob('fingerprint', { mode: 'buffer' }),
     transcription: text('transcription'),
     transcribedAt: text('transcribed_at'),
+    /** `ocr:<model>` when the OCR worker wrote the transcription; null when a person or agent did. */
+    transcribedBy: text('transcribed_by'),
+    /** Failed OCR runs on this image; the worker gives up on a page after a few. */
+    ocrAttempts: integer('ocr_attempts').notNull().default(0),
+    ocrError: text('ocr_error'),
     source: text('source'),
     createdAt: text('created_at')
       .notNull()
