@@ -4,6 +4,7 @@ import type { NotebookBulkAction } from '@/types';
 
 import {
   deleteNotebook,
+  getNotebook,
   mergeNotebooks,
   restoreNotebook,
   setNotebookStatus,
@@ -19,18 +20,23 @@ export interface NotebookBulkResult {
 
 /**
  * Runs one shelf action over several notebooks. Each notebook succeeds or fails alone, so one
- * missing id does not undo the rest. `merge` moves every notebook but `targetId` into it.
+ * missing id or failed delete does not hide what was already done. `merge` moves every notebook but `targetId` into it.
  */
 export async function applyNotebookBulkAction(
   action: NotebookBulkAction,
   ids: readonly number[],
   { targetId }: { targetId?: number } = {},
 ): Promise<NotebookBulkResult> {
-  if (
-    action === 'merge' &&
-    (targetId === undefined || !ids.includes(targetId))
-  ) {
-    throw new ToolInputError('Pick which selected notebook to merge into');
+  if (action === 'merge') {
+    if (targetId === undefined || !ids.includes(targetId)) {
+      throw new ToolInputError('Pick which selected notebook to merge into');
+    }
+    // Pages merged into a trashed notebook would vanish with it.
+    if ((await getNotebook(targetId))?.trashedAt) {
+      throw new ToolInputError(
+        'Restore the notebook from Trash before merging into it',
+      );
+    }
   }
   const result: NotebookBulkResult = { done: [], failed: [] };
   for (const id of new Set(ids)) {
@@ -40,8 +46,14 @@ export async function applyNotebookBulkAction(
       if (changed) result.done.push(id);
       else result.failed.push({ id, error: 'Notebook not found' });
     } catch (error) {
-      if (!(error instanceof ToolInputError)) throw error;
-      result.failed.push({ id, error: error.message });
+      // Earlier ids may already be deleted for good, so the caller must hear which ones.
+      if (!(error instanceof ToolInputError)) {
+        console.error(`[notebooks] ${action} ${id} failed`, error);
+      }
+      result.failed.push({
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
   return result;
