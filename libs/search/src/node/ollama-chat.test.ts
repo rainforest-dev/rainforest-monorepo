@@ -69,6 +69,24 @@ describe('ollamaChat', () => {
     });
   });
 
+  it('sets the context size only when asked', async () => {
+    const fetch = vi.fn(async () =>
+      Response.json({ message: { content: 'ok' } }),
+    ) as unknown as typeof globalThis.fetch;
+    await ollamaChat({
+      url: URL,
+      model: 'm',
+      messages: [],
+      numCtx: 8192,
+      fetch,
+    });
+    const [, init] = vi.mocked(fetch).mock.calls[0] ?? [];
+    expect(JSON.parse(String((init as RequestInit).body)).options).toEqual({
+      temperature: 0,
+      num_ctx: 8192,
+    });
+  });
+
   it('throws the HTTP status on a failed response', async () => {
     const fetch = vi.fn(
       async () => new Response('no', { status: 500 }),
