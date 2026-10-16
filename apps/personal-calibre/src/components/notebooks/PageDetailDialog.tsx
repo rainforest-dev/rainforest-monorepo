@@ -22,6 +22,10 @@ import type { NotebookPage } from '@/types';
 import { pageImageUrl, readError } from './api';
 import { useCropStep } from './use-crop-step';
 
+// On a phone the actions share a row of equal cells, icon over label, as on the shelf's toolbar.
+const action =
+  'h-12 flex-col gap-0.5 px-1 text-xs leading-tight sm:h-8 sm:flex-row sm:gap-1.5 sm:px-2.5 sm:text-sm';
+
 export const pageLabel = (page: NotebookPage) =>
   [
     `Page ${page.pageNumber ?? page.position}`,
@@ -123,10 +127,10 @@ export function PageDetailDialog({
               <img
                 src={pageImageUrl(open.id)}
                 alt={`Scan of ${pageLabel(open)}`}
-                className="bg-muted max-h-[70dvh] w-full rounded-md object-contain"
+                className="bg-muted max-h-[40dvh] w-full rounded-md object-contain sm:max-h-[70dvh]"
               />
               {open.transcription ? (
-                <pre className="bg-muted whitespace-pre-wrap rounded-md p-3 font-sans text-sm">
+                <pre className="bg-muted whitespace-pre-wrap break-words rounded-md p-3 font-sans text-sm leading-relaxed">
                   {open.transcription}
                 </pre>
               ) : (
@@ -134,14 +138,20 @@ export function PageDetailDialog({
                   Not transcribed yet.
                 </p>
               )}
-              <DialogFooter>
+              <DialogFooter className="bg-muted sticky -bottom-4 grid grid-cols-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex sm:pb-4">
                 <a
                   href={pageImageUrl(open.id)}
                   download={notebookPageFileName({ notebookName, ...open })}
-                  className={buttonVariants({ variant: 'outline' })}
+                  className={buttonVariants({
+                    variant: 'outline',
+                    className: action,
+                  })}
                 >
                   <FileDown aria-hidden />
-                  Download page
+                  <span>
+                    Download
+                    <span className="max-sm:sr-only"> page</span>
+                  </span>
                 </a>
                 <input
                   ref={replaceInput}
@@ -152,19 +162,27 @@ export function PageDetailDialog({
                 />
                 <Button
                   variant="outline"
+                  className={action}
                   disabled={replacing}
                   onClick={() => replaceInput.current?.click()}
                 >
                   {replacing ? <Spinner /> : <ImageUp aria-hidden />}
-                  Replace image
+                  <span>
+                    Replace
+                    <span className="max-sm:sr-only"> image</span>
+                  </span>
                 </Button>
                 <Button
                   variant="destructive"
+                  className={action}
                   disabled={deleting || replacing}
                   onClick={() => void deleteOpenPage()}
                 >
                   <Trash2 aria-hidden />
-                  Delete page
+                  <span>
+                    Delete
+                    <span className="max-sm:sr-only"> page</span>
+                  </span>
                 </Button>
               </DialogFooter>
             </>
