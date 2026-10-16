@@ -67,6 +67,19 @@ describe('fitPage', () => {
     expect(Math.max(meta.width ?? 0, meta.height ?? 0)).toBe(MAX_EDGE_PX);
     expect(meta.width).toBe(1536);
   });
+
+  it('applies the camera orientation before shrinking', async () => {
+    // Stored landscape with EXIF "rotate 90° clockwise", as a phone writes a portrait page.
+    const sideways = await sharp({
+      create: { width: 4032, height: 3024, channels: 3, background: '#fff' },
+    })
+      .jpeg()
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+    const meta = await sharp(await fitPage(sideways)).metadata();
+    expect([meta.width, meta.height]).toEqual([1536, MAX_EDGE_PX]);
+    expect(meta.orientation ?? 1).toBe(1);
+  });
 });
 
 describe('ocrEngineFromEnv', () => {

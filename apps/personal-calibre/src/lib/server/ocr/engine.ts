@@ -22,11 +22,15 @@ export interface OcrEngine {
 export const OCR_CONTEXT = 8192;
 export const MAX_EDGE_PX = 2048;
 
-/** Shrinks a page whose longer edge is past `MAX_EDGE_PX`; smaller pages pass through untouched. */
+/**
+ * Shrinks a page whose longer edge is past `MAX_EDGE_PX`; smaller pages pass through untouched.
+ * Re-encoding drops EXIF, so the camera's orientation is applied to the pixels first.
+ */
 export async function fitPage(image: Uint8Array): Promise<Uint8Array> {
   const { width = 0, height = 0 } = await sharp(image).metadata();
   if (Math.max(width, height) <= MAX_EDGE_PX) return image;
   return sharp(image)
+    .rotate()
     .resize(MAX_EDGE_PX, MAX_EDGE_PX, { fit: 'inside' })
     .jpeg({ quality: 92 })
     .toBuffer();
