@@ -16,6 +16,7 @@ import {
   latestDatedMonth,
   listNotebooks,
   notebookCalendar,
+  pageQueryReady,
   type PageSearchOptions,
   searchNotebookPages,
   undatedPages,
@@ -72,7 +73,8 @@ async function NotebooksView({ searchParams }: Props) {
   await connection();
   const params = await searchParams;
   const view: View = first(params.view) === 'calendar' ? 'calendar' : 'shelf';
-  const q = (first(params.q) ?? '').trim().slice(0, 200);
+  const typed = (first(params.q) ?? '').trim().slice(0, 200);
+  const q = pageQueryReady(typed) ? typed : '';
   const options = searchOptions(params);
 
   return (
@@ -99,7 +101,12 @@ async function NotebooksView({ searchParams }: Props) {
           </Link>
         ))}
       </nav>
-      <NotebookSearchForm q={q} options={options} />
+      <NotebookSearchForm q={typed} options={options} />
+      {typed && !q && (
+        <p role="status" className="text-muted-foreground text-sm">
+          Type at least two letters, or one Chinese character.
+        </p>
+      )}
       {q ? (
         <NotebookSearchResults
           q={q}

@@ -37,6 +37,7 @@ export async function rankBookIds({
   embedder,
   gate,
   timeoutMs,
+  allow,
 }: {
   q: string;
   lexical: readonly number[];
@@ -44,6 +45,8 @@ export async function rankBookIds({
   embedder: Embedder | undefined;
   gate: Breaker;
   timeoutMs?: number;
+  /** Only these doc ids may come back by meaning; the nearest are taken among them. */
+  allow?: ReadonlySet<string>;
 }): Promise<BookSearch> {
   const off = (reason?: SearchReason): BookSearch => ({
     ids: [...lexical],
@@ -70,10 +73,12 @@ export async function rankBookIds({
     index.vectors,
     index.header.dims,
     vector,
-    SEMANTIC_K,
+    allow ? index.header.docs.length : SEMANTIC_K,
   ).flatMap((h) => {
     const doc = index.header.docs[h.row];
-    return doc ? [{ id: doc.id, score: h.score }] : [];
+    return doc && (!allow || allow.has(doc.id))
+      ? [{ id: doc.id, score: h.score }]
+      : [];
   });
   const semantic = semanticIds({
     hits,

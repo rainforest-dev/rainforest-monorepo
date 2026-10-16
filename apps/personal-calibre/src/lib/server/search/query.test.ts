@@ -14,18 +14,23 @@ import { createCalibreDb } from '@/test';
 
 import { FAKE_CONCEPTS } from './env';
 import { lexicalBookIds } from './lexical';
-import { ensureBookIndex, rankBookIds, searchBookIds } from './query';
+import {
+  ensureBookIndex,
+  rankBookIds,
+  searchBookIds,
+  SEMANTIC_K,
+} from './query';
 
 const fake = conceptEmbedder(FAKE_CONCEPTS);
 const TEXTS = ['Juniper Signal', 'Brine and Bell', 'Cold Lantern'];
 
-async function fakeIndex() {
+async function fakeIndex(texts: readonly string[] = TEXTS) {
   const header: IndexHeader = {
     model: fake.model,
     dims: fake.dims,
-    docs: TEXTS.map((_, i) => ({ id: String(i + 1), contentHash: `h${i}` })),
+    docs: texts.map((_, i) => ({ id: String(i + 1), contentHash: `h${i}` })),
   };
-  const rows = await fake.embed(TEXTS, 'document');
+  const rows = await fake.embed([...texts], 'document');
   const vectors = new Float32Array(rows.length * fake.dims);
   rows.forEach((row, i) => vectors.set(row, i * fake.dims));
   return { header, vectors };
@@ -47,6 +52,29 @@ describe('rankBookIds', () => {
     expect(result.semantic).toBe('on');
     expect(result.ids).toContain(2);
     expect(result.ids).not.toEqual(lexical);
+  });
+
+  it('takes semantic hits from the allowed ids even past the nearest K', async () => {
+    // More than SEMANTIC_K closer docs sit outside the allowed set; the one allowed doc is last.
+    const texts = [
+      ...Array.from({ length: SEMANTIC_K + 1 }, () => 'Cold Lantern'),
+      'Lantern by the sea',
+    ];
+    const allowed = String(texts.length);
+    const index = await fakeIndex(texts);
+    const ask = (allow?: ReadonlySet<string>) =>
+      rankBookIds({
+        q: 'lantern',
+        lexical: [],
+        index,
+        embedder: fake,
+        gate: breaker(),
+        ...(allow && { allow }),
+      });
+    expect((await ask()).ids).not.toContain(Number(allowed));
+    const result = await ask(new Set([allowed]));
+    expect(result.semantic).toBe('on');
+    expect(result.ids).toEqual([Number(allowed)]);
   });
 
   it('returns the lexical order exactly when Ollama is unreachable', async () => {
