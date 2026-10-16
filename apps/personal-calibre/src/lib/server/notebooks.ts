@@ -1078,13 +1078,15 @@ export async function deleteNotebook(
   }
   const result = { dryRun, notebookId: id, deletedPageIds: pageIds };
   if (dryRun) return result;
-  appDb.transaction((tx) => {
-    tx.delete(notebookPages).where(eq(notebookPages.notebookId, id)).run();
-    tx.delete(notebooks).where(eq(notebooks.id, id)).run();
-  });
+  // Files first: if they fail to delete, the rows stay, so the notebook is still listed and a
+  // retry (or the next Trash purge) finishes the job instead of orphaning the folder.
   rmSync(path.join(notebooksDir(), String(id)), {
     recursive: true,
     force: true,
+  });
+  appDb.transaction((tx) => {
+    tx.delete(notebookPages).where(eq(notebookPages.notebookId, id)).run();
+    tx.delete(notebooks).where(eq(notebooks.id, id)).run();
   });
   return result;
 }
