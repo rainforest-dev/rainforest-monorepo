@@ -70,6 +70,7 @@ export async function ollamaChat({
   format,
   think = false,
   temperature = 0,
+  numCtx,
   signal,
   fetch: fetchImpl = fetch,
 }: {
@@ -79,6 +80,8 @@ export async function ollamaChat({
   format?: Record<string, unknown>;
   think?: boolean;
   temperature?: number;
+  /** Ollama's `num_ctx`. Its default (4096) is too small for an image plus a long prompt. */
+  numCtx?: number;
   signal?: AbortSignal;
   fetch?: typeof fetch;
 }): Promise<string> {
@@ -89,7 +92,7 @@ export async function ollamaChat({
       model,
       stream: false,
       think,
-      options: { temperature },
+      options: { temperature, ...(numCtx ? { num_ctx: numCtx } : {}) },
       ...(format ? { format } : {}),
       messages,
     }),

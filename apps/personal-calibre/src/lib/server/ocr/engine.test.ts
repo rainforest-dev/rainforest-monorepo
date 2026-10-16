@@ -1,6 +1,16 @@
+import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
 
-import { fakeOcr, ocrEngineFromEnv, ollamaOcr } from './engine';
+import { pagePng } from '@/test';
+
+import {
+  fakeOcr,
+  fitPage,
+  MAX_EDGE_PX,
+  OCR_CONTEXT,
+  ocrEngineFromEnv,
+  ollamaOcr,
+} from './engine';
 import { OCR_PROMPT } from './prompt';
 
 describe('ollamaOcr', () => {
@@ -13,10 +23,8 @@ describe('ollamaOcr', () => {
       model: 'qwen3-vl:8b-instruct',
       fetch,
     });
-    const answer = await engine.read(
-      new Uint8Array([1, 2, 3]),
-      AbortSignal.timeout(1000),
-    );
+    const page = await pagePng(40);
+    const answer = await engine.read(page, AbortSignal.timeout(1000));
     expect(answer).toBe('TEXT:\n• a');
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('http://ollama:11434/api/chat');
@@ -24,8 +32,14 @@ describe('ollamaOcr', () => {
       model: 'qwen3-vl:8b-instruct',
       stream: false,
       think: false,
-      options: { temperature: 0 },
-      messages: [{ role: 'user', content: OCR_PROMPT, images: ['AQID'] }],
+      options: { temperature: 0, num_ctx: OCR_CONTEXT },
+      messages: [
+        {
+          role: 'user',
+          content: OCR_PROMPT,
+          images: [Buffer.from(page).toString('base64')],
+        },
+      ],
     });
   });
 
@@ -41,6 +55,17 @@ describe('ollamaOcr', () => {
     await expect(
       ollamaOcr({ url: 'http://o', model, fetch: tags(['gemma4:8b']) }).ready(),
     ).rejects.toThrow(/not available/);
+  });
+});
+
+describe('fitPage', () => {
+  it('shrinks a large page to the edge limit and leaves a small one alone', async () => {
+    const small = await pagePng(10);
+    expect(await fitPage(small)).toBe(small);
+    const big = await pagePng(10, { width: 3024, height: 4032 });
+    const meta = await sharp(await fitPage(big)).metadata();
+    expect(Math.max(meta.width ?? 0, meta.height ?? 0)).toBe(MAX_EDGE_PX);
+    expect(meta.width).toBe(1536);
   });
 });
 

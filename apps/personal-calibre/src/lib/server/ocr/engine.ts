@@ -1,4 +1,5 @@
 import { assertModel, ollamaChat } from '@rainforest-dev/search/node';
+import sharp from 'sharp';
 
 import { OCR_PROMPT } from './prompt';
 
@@ -13,6 +14,24 @@ export interface OcrEngine {
   read(image: Uint8Array, signal: AbortSignal): Promise<string>;
 }
 
+/**
+ * Ollama's default 4096-token context could not hold a phone-camera page plus the prompt: every
+ * read came back HTTP 400 ("exceeds the available context size"). Pages are capped at
+ * `MAX_EDGE_PX` so the image stays well under `OCR_CONTEXT` whatever the camera.
+ */
+export const OCR_CONTEXT = 8192;
+export const MAX_EDGE_PX = 2048;
+
+/** Shrinks a page whose longer edge is past `MAX_EDGE_PX`; smaller pages pass through untouched. */
+export async function fitPage(image: Uint8Array): Promise<Uint8Array> {
+  const { width = 0, height = 0 } = await sharp(image).metadata();
+  if (Math.max(width, height) <= MAX_EDGE_PX) return image;
+  return sharp(image)
+    .resize(MAX_EDGE_PX, MAX_EDGE_PX, { fit: 'inside' })
+    .jpeg({ quality: 92 })
+    .toBuffer();
+}
+
 export function ollamaOcr({
   url,
   model,
@@ -25,7 +44,7 @@ export function ollamaOcr({
   return {
     name: model,
     ready: () => assertModel(url, model, fetchImpl),
-    read: (image, signal) =>
+    read: async (image, signal) =>
       ollamaChat({
         url,
         model,
@@ -33,9 +52,10 @@ export function ollamaOcr({
           {
             role: 'user',
             content: OCR_PROMPT,
-            images: [Buffer.from(image).toString('base64')],
+            images: [Buffer.from(await fitPage(image)).toString('base64')],
           },
         ],
+        numCtx: OCR_CONTEXT,
         signal,
         fetch: fetchImpl,
       }),
