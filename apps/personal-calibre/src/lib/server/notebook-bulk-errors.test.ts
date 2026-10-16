@@ -44,6 +44,7 @@ describe('notebook removal errors', () => {
         failed: [{ id: b.id, error: 'EBUSY: resource busy or locked' }],
       },
     );
+    expect(await getNotebook(b.id)).not.toBeNull();
     expect(await getNotebook(c.id)).toBeNull();
   });
 
@@ -63,6 +64,11 @@ describe('notebook removal errors', () => {
 
     expect(await purgeExpiredTrash()).toEqual([b.id]);
     expect(await getNotebook(b.id)).toBeNull();
+    expect(await getNotebook(a.id)).not.toBeNull();
+
+    stuck.delete(String(a.id));
+    expect(await purgeExpiredTrash()).toEqual([a.id]);
+    expect(await getNotebook(a.id)).toBeNull();
   });
 
   it('refuses to merge into a notebook in Trash', async () => {
