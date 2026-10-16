@@ -2,7 +2,8 @@ import { and, asc, eq, gt, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 
 import { appDb, notebookPages, notebooks } from '@/db';
 import type { CalendarPage } from '@/lib/notebook';
-import { MAX_OCR_ATTEMPTS } from '@/lib/server/ocr';
+
+import { MAX_OCR_ATTEMPTS } from './ocr';
 
 /** Pages with no date yet, by why. */
 export interface UndatedPages {
