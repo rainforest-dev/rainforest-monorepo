@@ -6,6 +6,7 @@ export * from './group-entries';
 export * from './hall';
 export * from './keyboard';
 export * from './library-params';
+export * from './notebook';
 export * from './notebook-file-names';
 export * from './opds';
 export * from './page-crop';

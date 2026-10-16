@@ -50,6 +50,9 @@
     },
     {
       "path": "./libs/search"
+    },
+    {
+      "path": "./libs/journal-kit"
     }
   ],
   "compilerOptions": {

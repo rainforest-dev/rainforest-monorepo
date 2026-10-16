@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 
 import {
   NotebookActions,
-  NotebookPageGrid,
+  NotebookBody,
   PageUploader,
 } from '@/components/notebooks';
 import { getNotebook } from '@/lib/server';
@@ -17,7 +17,7 @@ interface Props {
 
 export default function NotebookPage({ params }: Props) {
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <Link
         href="/notebooks"
         prefetch={false}
@@ -65,7 +65,7 @@ async function NotebookContent({ params }: Props) {
           <PageUploader notebookId={notebook.id} />
         </div>
       </div>
-      <NotebookPageGrid notebookName={notebook.name} pages={notebook.pages} />
+      <NotebookBody notebookName={notebook.name} pages={notebook.pages} />
     </>
   );
 }

@@ -58,6 +58,7 @@
   "dependencies": {
     "@astrojs/node": "^11.1.6",
     "@astrojs/react": "^6.0.6",
+    "@rainforest-dev/journal-kit": "workspace:*",
     "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",

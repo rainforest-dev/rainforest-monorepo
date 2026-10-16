@@ -17,6 +17,9 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../../libs/journal-kit"
+    },
+    {
       "path": "../../libs/web-ai"
     },
     {

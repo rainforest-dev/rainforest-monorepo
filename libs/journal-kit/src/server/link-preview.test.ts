@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { LinkPreview } from '@/lib/links.ts';
-
+import type { LinkPreview } from '../links';
 import {
   checkUrl,
   fetchPreview,
@@ -11,7 +10,7 @@ import {
   parsePreview,
   pinnedFetch,
   previewCache,
-} from './link-preview.ts';
+} from './link-preview';
 
 const PUBLIC = async () => ['93.184.216.34'];
 
@@ -47,6 +46,8 @@ describe('isPrivateAddress', () => {
     '2001:0:4136:e378::1',
     '100::1',
     '192.88.99.1',
+    'fe80::1%eth0',
+    '::ffff:1..2.3',
     'not-an-ip',
   ])('blocks %s', (address) => {
     expect(isPrivateAddress(address)).toBe(true);
@@ -140,6 +141,22 @@ describe('parsePreview', () => {
       image: 'https://example.com/img/cover.jpg',
       siteName: 'Example',
     });
+  });
+
+  it('reads unquoted and spaced attributes and skips an unclosed quote', () => {
+    const page =
+      "<head><meta property = og:title content=Bare><meta content='unclosed name=description content=kept></head>";
+    expect(parsePreview(page, 'https://example.com/')).toMatchObject({
+      title: 'Bare',
+      description: 'kept',
+    });
+  });
+
+  it('stays fast on a long run of attribute-name characters', () => {
+    const start = performance.now();
+    parsePreview(`<head><meta ${'!'.repeat(20_000)}></head>`, 'https://e.com/');
+    expect(isPrivateAddress(`::${'9'.repeat(20_000)}`)).toBe(true);
+    expect(performance.now() - start).toBeLessThan(500);
   });
 
   it('falls back to <title> and meta description', () => {
@@ -390,7 +407,7 @@ describe('handleLinkPreview', () => {
   it('rejects a missing or unsafe url with 400', async () => {
     for (const query of ['', '?url=', '?url=http%3A%2F%2F127.0.0.1%2F']) {
       const response = await handleLinkPreview(
-        new URL(`http://memories.test/link-preview.json${query}`),
+        new URL(`http://app.test/link-preview.json${query}`),
         cache,
       );
       expect(response.status).toBe(400);
@@ -401,7 +418,7 @@ describe('handleLinkPreview', () => {
   it('returns the cached preview as JSON', async () => {
     const response = await handleLinkPreview(
       new URL(
-        `http://memories.test/link-preview.json?url=${encodeURIComponent('https://example.com/a')}`,
+        `http://app.test/link-preview.json?url=${encodeURIComponent('https://example.com/a')}`,
       ),
       cache,
     );
@@ -417,7 +434,7 @@ describe('handleLinkPreview', () => {
     const at = (cached: { get: (url: string) => Promise<LinkPreview> }) =>
       handleLinkPreview(
         new URL(
-          `http://memories.test/link-preview.json?url=${encodeURIComponent('https://example.com/b')}`,
+          `http://app.test/link-preview.json?url=${encodeURIComponent('https://example.com/b')}`,
         ),
         cached,
       );
