@@ -1,6 +1,5 @@
 import {
   type Breaker,
-  breaker,
   BREAKER_MS,
   type Embedder,
   EmbedError,
@@ -9,15 +8,15 @@ import {
   rrf,
   semanticIds,
   topK,
-  withQueryPriority,
+  type withQueryPriority,
 } from '@rainforest-dev/search';
 import type { IndexFiles } from '@rainforest-dev/search/node';
 
 import { appSqlite, sqlite } from '@/db';
 
 import { indexBooks } from './build-index';
+import { searchContext } from './context';
 import { readBookDocs } from './docs';
-import { embedderFromEnv, searchDirFromEnv } from './env';
 import { lexicalBookIds } from './lexical';
 
 export const MIN_QUERY_LENGTH = 2;
@@ -102,14 +101,7 @@ type SearchState = {
 let state: SearchState | undefined;
 
 function searchState(): SearchState {
-  if (!state) {
-    const embedder = embedderFromEnv();
-    state = {
-      embedders: embedder ? withQueryPriority(embedder) : undefined,
-      dir: searchDirFromEnv(),
-      gate: breaker(),
-    };
-  }
+  state ??= { ...searchContext() };
   return state;
 }
 
