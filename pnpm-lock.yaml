@@ -682,7 +682,7 @@ importers:
         specifier: ^7.4.0
         version: 7.4.1
 
-  apps/rss-manager:
+  apps/reading-room:
     dependencies:
       '@astrojs/node':
         specifier: ^11.1.6
@@ -690,6 +690,12 @@ importers:
       '@astrojs/react':
         specifier: ^6.0.6
         version: 6.0.6(@types/node@25.9.7)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
+      '@rainforest-dev/library-contract':
+        specifier: workspace:*
+        version: link:../../libs/library-contract
+      '@rainforest-dev/library-shell':
+        specifier: workspace:*
+        version: link:../../libs/library-shell
       '@rainforest-dev/rainforest-react':
         specifier: workspace:*
         version: link:../../libs/rainforest-react
@@ -737,7 +743,7 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@25.9.7)(@vitest/coverage-v8@4.1.4(vitest@4.1.11))(@vitest/ui@4.1.4(vitest@4.1.11))(jsdom@27.0.1)(vite@8.0.16(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
 
-  apps/rss-manager-e2e:
+  apps/reading-room-e2e:
     devDependencies:
       '@axe-core/playwright':
         specifier: ^4.13.0

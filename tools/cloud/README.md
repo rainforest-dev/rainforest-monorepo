@@ -51,7 +51,7 @@ project instructions.
 ## Not available in the cloud
 
 - Nx Cloud (`*.nx.app` is not allowlisted; `NX_NO_CLOUD=true` keeps Nx from waiting on it).
-- `VAULT_PATH`. The Obsidian vault is not reachable; rss-manager runs on fixtures.
+- `VAULT_PATH`. The Obsidian vault is not reachable; reading-room runs on fixtures.
 - firefox and webkit. The e2e projects that cloud sessions run use chromium only.
 - `personal-liff` and `personal-liff-e2e`, which are unmaintained.
 - Plugins, including the `nx` plugin `.claude/settings.json` enables. Cloud

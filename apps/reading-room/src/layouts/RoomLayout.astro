@@ -1,0 +1,62 @@
+---
+import { type CollectionId } from '@rainforest-dev/library-contract';
+import {
+  SHELL_ASSETS,
+  speculationRulesJson,
+} from '@rainforest-dev/library-shell';
+
+import {
+  RoomHeader,
+  type RoomSection,
+} from '@/components/shell/RoomHeader.tsx';
+import { showsCollections } from '@/server';
+import '@/styles/global.css';
+
+interface Props {
+  title: string;
+  collection: CollectionId;
+  section?: RoomSection;
+}
+
+const { title, collection, section } = Astro.props;
+const collections = showsCollections(Astro.url);
+---
+
+<!doctype html>
+<html lang="en" class="font-sans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} · Rainforest Library</title>
+    <link rel="icon" href={SHELL_ASSETS.icon} type="image/svg+xml" />
+    <link
+      rel="preload"
+      href={SHELL_ASSETS.fonts[0]}
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href={SHELL_ASSETS.stylesheet} />
+    <script
+      is:inline
+      type="speculationrules"
+      set:html={speculationRulesJson()}
+    />
+  </head>
+  <body
+    class:list={[
+      'min-h-screen',
+      // Room for the phone tab bar, which floating bars read to sit above it.
+      collections &&
+        'pb-16 [--library-tab-bar:4rem] sm:pb-0 sm:[--library-tab-bar:0px]',
+    ]}
+  >
+    <RoomHeader
+      client:idle
+      collection={collection}
+      section={section}
+      collections={collections}
+    />
+    <slot />
+  </body>
+</html>

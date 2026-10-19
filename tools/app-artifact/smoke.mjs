@@ -59,23 +59,27 @@ const APPS = {
       };
     },
   },
-  'rss-manager': {
+  'reading-room': {
     kind: 'astro',
-    root: 'apps/rss-manager',
+    root: 'apps/reading-room',
     entry: 'dist/server/entry.mjs',
     port: 39102,
     prepare: () => {
-      runTs("require('./apps/rss-manager-e2e/src/support/vault').resetVault()");
+      runTs(
+        "require('./apps/reading-room-e2e/src/support/vault').resetVault()",
+      );
       return {
         env: {
           VAULT_PATH: join(
             workspaceRoot,
-            'apps/rss-manager-e2e/test-output/vault',
+            'apps/reading-room-e2e/test-output/vault',
           ),
         },
         checks: [
-          { path: '/' },
-          { path: '/api/sources', type: 'application/json' },
+          { path: '/rack' },
+          { path: '/rack/sources' },
+          { path: '/rack/api/sources', type: 'application/json' },
+          { path: '/rack/api/hall-items', type: 'application/json' },
         ],
       };
     },

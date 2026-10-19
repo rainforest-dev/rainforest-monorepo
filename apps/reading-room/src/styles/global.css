@@ -1,0 +1,20 @@
+@import 'tailwindcss';
+@import '@rainforest-dev/rainforest-react/tailwind.css';
+@import '@rainforest-dev/library-shell/tailwind.css';
+@import '@rainforest-dev/library-shell/view-transitions.css';
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+
+@theme {
+  /* Registered by /_shell/shell.css, which every library app loads from one URL. */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}

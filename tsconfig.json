@@ -25,7 +25,7 @@
       "path": "./libs/personal-data"
     },
     {
-      "path": "./apps/rss-manager"
+      "path": "./apps/reading-room"
     },
     {
       "path": "./libs/personal-portfolio"
@@ -40,7 +40,7 @@
       "path": "./libs/rainforest-react"
     },
     {
-      "path": "./apps/rss-manager-e2e"
+      "path": "./apps/reading-room-e2e"
     },
     {
       "path": "./libs/web-ai"

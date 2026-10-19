@@ -1,0 +1,26 @@
+---
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@rainforest-dev/rainforest-react';
+
+import RoomLayout from '@/layouts/RoomLayout.astro';
+
+// Reserved for the knowledge base (the wiki and Readwise, read-only). Until it lands, the
+// shell's 知識庫 link answers here instead of a 404.
+---
+
+<RoomLayout title="Knowledge base" collection="kb">
+  <main class="mx-auto w-full max-w-3xl px-4 py-12 lg:px-6">
+    <Empty className="border py-12">
+      <EmptyHeader>
+        <EmptyTitle>The knowledge base is not open yet</EmptyTitle>
+        <EmptyDescription>
+          The wiki and Readwise shelves will be read here.
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  </main>
+</RoomLayout>
