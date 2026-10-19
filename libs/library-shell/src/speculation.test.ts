@@ -4,14 +4,20 @@ type Rule = ReturnType<typeof speculationRules>['prerender'][number];
 
 /** A tiny evaluator for the subset of the rule grammar the shell emits. */
 function matches(rule: Rule, href: string, attrs: string[] = []): boolean {
-  const toRegExp = (pattern: string) =>
-    new RegExp(
-      `^${pattern
-        .replace(/\\\?/g, '§Q§')
-        .replace(/[.+^${}()|[\]]/g, '\\$&')
-        .replace(/\*/g, '.*')
-        .replace(/§Q§/g, '\\?')}$`,
-    );
+  // URL-pattern subset: `*` is a wildcard and `\?` a literal `?`; every other character,
+  // a backslash included, is literal.
+  const toRegExp = (pattern: string) => {
+    let source = '';
+    for (let i = 0; i < pattern.length; i++) {
+      const c = pattern[i];
+      if (c === '\\' && pattern[i + 1] === '?') {
+        source += '\\?';
+        i++;
+      } else if (c === '*') source += '.*';
+      else source += c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    return new RegExp(`^${source}$`);
+  };
   type Cond = Record<string, unknown>;
   const test = (cond: Cond): boolean => {
     if ('and' in cond) return (cond['and'] as Cond[]).every(test);
