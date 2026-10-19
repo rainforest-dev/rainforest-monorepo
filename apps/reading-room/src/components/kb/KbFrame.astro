@@ -1,0 +1,57 @@
+---
+import { type KbShelf, type KbSource } from '@/lib/kb';
+
+import KbNav from './KbNav.astro';
+
+interface Props {
+  source: KbSource;
+  counts: Record<KbSource, number>;
+  shelves: KbShelf[];
+  currentId?: string;
+  /** Whether the page has a related-content column. */
+  aside?: boolean;
+}
+
+const { aside = false, ...nav } = Astro.props;
+const SIDE =
+  'lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:overflow-y-auto';
+---
+
+<div
+  class:list={[
+    'grid grid-cols-1',
+    aside
+      ? 'lg:grid-cols-[248px_minmax(0,1fr)] xl:grid-cols-[248px_minmax(0,1fr)_320px]'
+      : 'lg:grid-cols-[248px_minmax(0,1fr)]',
+  ]}
+>
+  <div class:list={['bg-muted/40 hidden border-r lg:block', SIDE]}>
+    <KbNav {...nav} />
+  </div>
+  <div class="min-w-0">
+    <details class="bg-muted/40 border-b lg:hidden">
+      <summary
+        class="flex min-h-11 cursor-pointer items-center px-4 text-sm font-semibold"
+      >
+        知識庫目錄
+      </summary>
+      <div class="max-h-[60dvh] overflow-y-auto border-t">
+        <KbNav {...nav} />
+      </div>
+    </details>
+    <slot />
+  </div>
+  {
+    aside && (
+      <aside
+        aria-label="相關內容"
+        class:list={[
+          'border-t p-5 lg:col-start-2 xl:col-start-auto xl:border-l xl:border-t-0',
+          'xl:sticky xl:top-14 xl:h-[calc(100dvh-3.5rem)] xl:overflow-y-auto',
+        ]}
+      >
+        <slot name="aside" />
+      </aside>
+    )
+  }
+</div>

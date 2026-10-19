@@ -1,0 +1,74 @@
+---
+import {
+  KB_SOURCE_LABELS,
+  KB_SOURCES,
+  type KbShelf,
+  type KbSource,
+} from '@/lib/kb';
+import { KB_PATH } from '@/lib/paths';
+
+interface Props {
+  source: KbSource;
+  counts: Record<KbSource, number>;
+  shelves: KbShelf[];
+  /** The open document, highlighted in its shelf. */
+  currentId?: string;
+}
+
+const { source, counts, shelves, currentId } = Astro.props;
+const sourceHref = (s: KbSource) => `${KB_PATH}?source=${s}`;
+const shelfHref = (shelf: string) =>
+  `${KB_PATH}?source=${source}&shelf=${encodeURIComponent(shelf)}`;
+---
+
+<nav aria-label="知識庫目錄" class="flex flex-col gap-1 p-4">
+  <div class="bg-background mb-3 flex rounded-md border p-0.5">
+    {
+      KB_SOURCES.map((s) => (
+        <a
+          href={sourceHref(s)}
+          aria-current={s === source ? 'true' : undefined}
+          class:list={[
+            'flex h-9 flex-1 items-center justify-center rounded-[calc(var(--radius)-2px)] text-sm',
+            s === source ? 'bg-accent font-semibold' : 'hover:bg-accent/60',
+          ]}
+        >
+          {KB_SOURCE_LABELS[s]} {counts[s]}
+        </a>
+      ))
+    }
+  </div>
+  {
+    shelves.map((shelf) => (
+      <div class="mt-2">
+        <a
+          href={shelfHref(shelf.id)}
+          class="text-muted-foreground hover:text-foreground block py-1 text-xs"
+        >
+          {shelf.label} · {shelf.docs.length}
+        </a>
+        <ul class="flex flex-col">
+          {shelf.docs.map((doc) => (
+            <li>
+              <a
+                href={doc.href}
+                aria-current={doc.id === currentId ? 'page' : undefined}
+                class:list={[
+                  'block truncate rounded-md px-2 py-1.5 text-sm',
+                  doc.id === currentId
+                    ? 'bg-background font-semibold'
+                    : 'hover:bg-accent/60',
+                ]}
+              >
+                {doc.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+  <p class="text-muted-foreground mt-6 text-xs leading-relaxed">
+    只顯示 wiki 與 Readwise。私人筆記與工作內容不在這裡。
+  </p>
+</nav>

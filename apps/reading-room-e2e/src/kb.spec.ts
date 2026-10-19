@@ -1,0 +1,148 @@
+import { expect, type Page, test } from '@playwright/test';
+
+import { expectNoViolations } from './support/axe';
+import { HIDDEN_MARKERS } from './support/kb-vault';
+
+const READWISE_PAGE =
+  '/kb/readwise/articles/2026-02-01%20-%20Kite%20Flying%20Basics%20-%20example.org';
+
+const article = (page: Page) => page.getByRole('article');
+
+async function expectNoHiddenMarkers(page: Page): Promise<void> {
+  const html = (await page.content()).toLowerCase();
+  for (const marker of HIDDEN_MARKERS)
+    expect(html).not.toContain(marker.toLowerCase());
+}
+
+test.describe('knowledge base', () => {
+  test('the index shelves the visible wiki pages and switches to Readwise', async ({
+    page,
+  }) => {
+    await page.goto('/kb');
+    const main = page.getByRole('main');
+    await expect(
+      main.getByRole('heading', { level: 2, name: '知識庫' }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'wiki 3' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    for (const title of ['Kites', 'Wind', 'String'])
+      await expect(
+        main.getByRole('link', { name: new RegExp(`^${title}`) }),
+      ).toBeVisible();
+    await expectNoHiddenMarkers(page);
+
+    await page.getByRole('link', { name: 'Readwise 1' }).first().click();
+    await expect(page).toHaveURL(/source=readwise/);
+    await expect(
+      main.getByRole('link', { name: /^Kite Flying Basics/ }),
+    ).toBeVisible();
+    await expectNoHiddenMarkers(page);
+  });
+
+  test('a wiki page renders its body, backlinks and sources, and every wikilink opens', async ({
+    page,
+  }) => {
+    await page.goto('/kb/pages/tech-kites');
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Kites' }),
+    ).toBeVisible();
+    await expect(article(page)).toContainText('Kites ride the wind.');
+    await expectNoHiddenMarkers(page);
+
+    const related = page.getByRole('complementary', { name: '相關內容' });
+    await expect(related.getByRole('link', { name: 'String' })).toBeVisible();
+    await expect(related.getByRole('link', { name: 'Wind' })).toBeVisible();
+    await expect(
+      related.getByRole('link', { name: /Kite Flying Basics/ }),
+    ).toBeVisible();
+
+    await expect(article(page).getByText('私人筆記')).toHaveCount(2);
+    await expect(
+      article(page).getByRole('link', { name: 'box-kites' }),
+    ).toHaveAttribute('href', /^obsidian:\/\/open\?vault=/);
+
+    const hrefs = await article(page)
+      .locator('a[data-kind="kb"]')
+      .evaluateAll((links) => links.map((a) => a.getAttribute('href') ?? ''));
+    expect(hrefs.length).toBe(3);
+    for (const href of hrefs) {
+      const res = await page.request.get(href);
+      expect(res.status(), href).toBe(200);
+    }
+
+    await article(page).getByRole('link', { name: 'steady wind' }).click();
+    await expect(page).toHaveURL(/\/kb\/pages\/wind$/);
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Wind' }),
+    ).toBeVisible();
+  });
+
+  test('a Readwise document links its original and the pages that cite it', async ({
+    page,
+  }) => {
+    await page.goto(READWISE_PAGE);
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Kite Flying Basics' }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: '原文 ↗' })).toHaveAttribute(
+      'href',
+      'https://example.org/kites',
+    );
+    await expect(
+      page.getByRole('complementary').getByRole('link', { name: 'Kites' }),
+    ).toBeVisible();
+  });
+
+  test('private, excluded and company pages answer 404', async ({ page }) => {
+    for (const path of [
+      '/kb/pages/moonvault-plans',
+      '/kb/pages/starcellar',
+      '/kb/pages/client-portal',
+      '/kb/readwise/books/2025-01-01%20-%20Owlpost%20Letters%20-%20Someone',
+      '/kb/readwise/personal/2025-01-01%20-%20Fogbank',
+    ]) {
+      const res = await page.goto(path);
+      expect(res?.status(), path).toBe(404);
+      await expectNoHiddenMarkers(page);
+    }
+  });
+
+  test('search finds visible pages and nothing kept out', async ({ page }) => {
+    await page.goto('/kb');
+    await page.getByRole('searchbox', { name: '搜尋知識庫' }).fill('kites');
+    await page.getByRole('button', { name: '搜尋' }).click();
+    await expect(page).toHaveURL(/q=kites/);
+    await expect(
+      page.getByRole('heading', { name: /「kites」/ }),
+    ).toBeVisible();
+    await expectNoHiddenMarkers(page);
+
+    for (const marker of HIDDEN_MARKERS) {
+      const res = await page.request.get(`/kb/api/search?q=${marker}`);
+      expect(await res.json()).toEqual({ results: [] });
+    }
+  });
+
+  test('the hall shelf lists only visible pages', async ({ page }) => {
+    const res = await page.request.get('/kb/api/hall-items');
+    const body = await res.json();
+    expect(body.items.map((i: { id: string }) => i.id).sort()).toEqual([
+      'readwise:articles/2026-02-01 - Kite Flying Basics - example.org',
+      'wiki:string',
+      'wiki:tech-kites',
+      'wiki:wind',
+    ]);
+    expect(JSON.stringify(body).toLowerCase()).not.toMatch(
+      new RegExp(HIDDEN_MARKERS.join('|'), 'i'),
+    );
+  });
+
+  test('the index and a page pass axe', async ({ page }) => {
+    await page.goto('/kb');
+    await expectNoViolations(page);
+    await page.goto('/kb/pages/tech-kites');
+    await expectNoViolations(page);
+  });
+});

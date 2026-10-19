@@ -68,18 +68,27 @@ const APPS = {
       runTs(
         "require('./apps/reading-room-e2e/src/support/vault').resetVault()",
       );
+      runTs(
+        "require('./apps/reading-room-e2e/src/support/kb-vault').resetKbVault()",
+      );
+      const kb = join(workspaceRoot, 'apps/reading-room-e2e/test-output/kb');
       return {
         env: {
           VAULT_PATH: join(
             workspaceRoot,
             'apps/reading-room-e2e/test-output/vault',
           ),
+          KB_WIKI_PATH: join(kb, 'wiki'),
+          KB_READWISE_PATH: join(kb, 'readwise'),
         },
         checks: [
           { path: '/rack' },
           { path: '/rack/sources' },
           { path: '/rack/api/sources', type: 'application/json' },
           { path: '/rack/api/hall-items', type: 'application/json' },
+          { path: '/kb' },
+          { path: '/kb/pages/tech-kites' },
+          { path: '/kb/api/hall-items', type: 'application/json' },
         ],
       };
     },

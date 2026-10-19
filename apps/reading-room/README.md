@@ -9,7 +9,7 @@ are built to `/rack/_astro`:
 | `/rack`         | The rack: the reading queue as shelves of cards, one shelf per tier           |
 | `/rack/sources` | The registry desk below, for the weekly pass over the RSS registry            |
 | `/rack/api/*`   | The desk's API, and `hall-items`, the rack's shelf for the 3D hall            |
-| `/kb`           | Reserved for the knowledge base; a placeholder until it opens                 |
+| `/kb`           | The knowledge base: the vault's wiki pages and Readwise documents, read-only  |
 | `/`             | Old hostname only: redirects to `/rack`, or to `/rack/sources` with its query |
 
 Every page renders the library shell from `@rainforest-dev/library-shell`: the shared top bar
@@ -27,9 +27,42 @@ The pages read the files on the server, so the first paint has real rows. A file
 load shows an Alert with Retry on its own tab and leaves the other tabs working.
 
 ```bash
-VAULT_PATH=/path/to/_system LIBRARY_NAV=on pnpm nx dev @rainforest-monorepo/reading-room  # port 3002
+VAULT_PATH=/path/to/_system KB_WIKI_PATH=/path/to/notes/wiki/pages \
+  KB_READWISE_PATH=/path/to/readwise LIBRARY_NAV=on pnpm nx dev @rainforest-monorepo/reading-room  # port 3002
 pnpm nx e2e reading-room-e2e  # against a generated fictional vault and a local feed server
 ```
+
+## Knowledge base
+
+`/kb` reads two more folders, each mounted read-only on its own: the wiki's pages
+(`KB_WIKI_PATH`, default `/kb/wiki`, the vault's `notes/wiki/pages`) and Readwise
+(`KB_READWISE_PATH`, default `/kb/readwise`, the vault's `readwise`). Nothing else in the vault
+is mounted, because a bind mount cannot leave out `notes/personal/` from under `notes/`.
+
+| Path                     | What it is                                                         |
+| ------------------------ | ------------------------------------------------------------------ |
+| `/kb`                    | Shelves: wiki by tag namespace, Readwise by category; `?q=` search |
+| `/kb/pages/<slug>`       | A wiki page, its backlinks and the sources it links                |
+| `/kb/readwise/<cat>/<n>` | A Readwise document, its original and the pages that cite it       |
+| `/kb/api/hall-items`     | `{ items: HallItem[] }`, one `kb` item per visible page            |
+| `/kb/api/search?q=`      | `{ results }`, lexical, for the library-wide search                |
+
+What never shows, checked on every scan and again on every render:
+
+- a file whose frontmatter sets `private` or `wiki_exclude`, carries a `personal/` tag or
+  `project/angible`, or cannot be parsed (so a private flag cannot be ruled out);
+- anything under a `personal` or `angible` folder, and any symlink, which the walk never follows;
+- company work: a page whose title, tag or summary names a term in `KB_REDACT_TERMS`
+  (default `angible`; the deployment adds internal project names, which stay out of this repo) is hidden, and elsewhere each paragraph, list item or table
+  row naming one is dropped;
+- the name of a hidden page or a `notes/personal` note in a link: it reads `私人筆記`.
+
+Wikilinks to wiki pages and Readwise documents stay in the app. Links to other vault notes open
+in the local Obsidian app (`obsidian://`, vault name `KB_OBSIDIAN_VAULT`, default
+`rainforest-obsidian`). Pages render through remark and `rehype-sanitize`, so raw HTML and
+`javascript:` links in a note never reach the page. The index rescans at most every 30 s and
+re-parses only changed files; the first request after a start parses everything (about 4 s for
+the current vault).
 
 ## Hall items
 

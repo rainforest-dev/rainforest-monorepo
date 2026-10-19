@@ -190,13 +190,13 @@ test.describe('library shell', () => {
     ).toHaveAttribute('href', '/rack/sources?tab=topics');
   });
 
-  test('the knowledge base answers with a placeholder until it opens', async ({
+  test('the knowledge base opens under the shell with its own tab current', async ({
     page,
   }) => {
     const res = await page.goto('/kb');
     expect(res?.status()).toBe(200);
     await expect(
-      page.getByText('The knowledge base is not open yet'),
+      page.getByRole('banner').getByRole('heading', { name: 'Knowledge base' }),
     ).toBeVisible();
     await expect(
       page
