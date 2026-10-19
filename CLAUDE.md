@@ -11,6 +11,8 @@ Nx 23.2.1 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-liff-e2e** - Playwright e2e tests
 - **apps/personal-calibre** - Next.js Calibre library browser, shipped as a Docker image
 - **apps/personal-calibre-e2e** - Playwright e2e tests
+- **apps/library-hall** - Next.js 3D hall at the root of `library.rainforest.tools` (dev port 8086), shipped as a Docker image. Its static page gathers every collection's `/api/hall-items` through `/api/items`, so the way back from a book is a bfcache restore; a non-bfcache return shows the last frame as a poster until the scene redraws
+- **apps/library-hall-e2e** - Playwright e2e tests against a production build and a fictional collections server
 - **apps/rss-manager** - Astro + React RSS registry manager, shipped as a Docker image
 - **apps/rss-manager-e2e** - Playwright e2e tests against a generated fictional vault and a local feed server
 - **apps/personal-memories** - Astro + React memories album (dev port 3004, bound to 127.0.0.1); private data stays outside the repo, and the homelab image mounts it read-only behind the Cloudflare Access gate
@@ -285,7 +287,7 @@ Caches the pnpm store via `actions/setup-node` with `cache: 'pnpm'`. Nx Cloud di
 
 ### Docker images
 
-The three homelab images (`personal-memories`, `rss-manager`, `personal-calibre`) never build
+The homelab images (`personal-memories`, `rss-manager`, `personal-calibre`, `library-hall`) never build
 inside Docker. `nx bundle <app>` builds the app through the normal `^build` chain and writes a
 self-contained runtime directory to `dist/artifacts/<app>`: the `@vercel/nft` trace of the Astro
 server entry, or Next's standalone output plus `static` and `public`. Its native binaries are

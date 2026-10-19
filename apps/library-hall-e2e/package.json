@@ -1,0 +1,27 @@
+{
+  "name": "library-hall-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "projectType": "application",
+    "sourceRoot": "apps/library-hall-e2e/src",
+    "implicitDependencies": [
+      "library-hall"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/playwright:playwright",
+        "outputs": [
+          "{workspaceRoot}/dist/.playwright/apps/library-hall-e2e"
+        ],
+        "options": {
+          "config": "apps/library-hall-e2e/playwright.config.ts"
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "catalog:"
+  }
+}

@@ -100,6 +100,7 @@
     "groups": {
       "docker-apps": {
         "projects": [
+          "library-hall",
           "personal-calibre",
           "personal-memories",
           "@rainforest-monorepo/rss-manager"
