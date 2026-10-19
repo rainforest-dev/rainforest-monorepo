@@ -4,8 +4,10 @@ import { parseAffected } from './parse-affected.mjs';
 
 test('parses a clean JSON array', () => {
   assert.deepEqual(
-    parseAffected('["personal-memories","@rainforest-monorepo/rss-manager"]\n'),
-    ['personal-memories', '@rainforest-monorepo/rss-manager'],
+    parseAffected(
+      '["personal-memories","@rainforest-monorepo/reading-room"]\n',
+    ),
+    ['personal-memories', '@rainforest-monorepo/reading-room'],
   );
 });
 

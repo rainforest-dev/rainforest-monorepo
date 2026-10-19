@@ -16,7 +16,7 @@ project graph, pnpm manages the workspace.
 | [`personal-liff`](./apps/personal-liff/)         | A LINE mini-app, built on Next.js and the LIFF SDK                                                                  |
 | [`personal-calibre`](./apps/personal-calibre/)   | Ebook library service, with its own MCP endpoint                                                                    |
 | [`personal-memories`](./apps/personal-memories/) | Photo album, deployed to the homelab as a container image                                                           |
-| [`rss-manager`](./apps/rss-manager/)             | Feed collection and triage                                                                                          |
+| [`reading-room`](./apps/reading-room/)           | The library's rack (`/rack`): the reading queue and the RSS source registry                                         |
 
 `personal-calibre`, `personal-liff` and `personal-memories` each have a sibling `*-e2e` project
 running Playwright against them.
@@ -34,7 +34,7 @@ graph LR
     L[personal-liff]
     C[personal-calibre]
     M[personal-memories]
-    R[rss-manager]
+    R[reading-room]
   end
   subgraph Libraries
     PD[personal-data]

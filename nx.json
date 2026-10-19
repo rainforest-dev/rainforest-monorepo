@@ -102,7 +102,7 @@
         "projects": [
           "personal-calibre",
           "personal-memories",
-          "@rainforest-monorepo/rss-manager"
+          "@rainforest-monorepo/reading-room"
         ],
         "projectsRelationship": "independent",
         "releaseTag": { "pattern": "{projectName}@{version}" },

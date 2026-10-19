@@ -1,0 +1,9 @@
+---
+import { RACK_PATH, SOURCES_PATH } from '@/lib/paths';
+
+// The library hostname sends `/` to the hall, so only the old hostname lands here. Its links
+// and bookmarks were the registry desk with its query (`/?tab=topics`), so a query keeps
+// going there; a bare visit opens the rack.
+const { search } = Astro.url;
+return Astro.redirect(search ? `${SOURCES_PATH}${search}` : RACK_PATH, 302);
+---
