@@ -23,11 +23,11 @@ test.describe('knowledge base', () => {
     await expect(
       main.getByRole('heading', { level: 2, name: '知識庫' }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'wiki 3' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'wiki 4' })).toHaveAttribute(
       'aria-current',
       'true',
     );
-    for (const title of ['Kites', 'Wind', 'String'])
+    for (const title of ['Kites', 'Wind', 'String', 'Client portal'])
       await expect(
         main.getByRole('link', { name: new RegExp(`^${title}`) }),
       ).toBeVisible();
@@ -95,11 +95,21 @@ test.describe('knowledge base', () => {
     ).toBeVisible();
   });
 
-  test('private, excluded and company pages answer 404', async ({ page }) => {
+  test('a work page shows as usual', async ({ page }) => {
+    await page.goto('/kb/pages/client-portal');
+    await expect(
+      page.getByText('The Glimmerco portal flies kites.'),
+    ).toBeVisible();
+    await page.goto('/kb/pages/tech-kites');
+    await expect(
+      page.getByText('Built for Glimmerco under contract'),
+    ).toBeVisible();
+  });
+
+  test('private and excluded pages answer 404', async ({ page }) => {
     for (const path of [
       '/kb/pages/moonvault-plans',
       '/kb/pages/starcellar',
-      '/kb/pages/client-portal',
       '/kb/readwise/books/2025-01-01%20-%20Owlpost%20Letters%20-%20Someone',
       '/kb/readwise/personal/2025-01-01%20-%20Fogbank',
     ]) {
@@ -118,6 +128,15 @@ test.describe('knowledge base', () => {
       page.getByRole('heading', { name: /「kites」/ }),
     ).toBeVisible();
     await expectNoHiddenMarkers(page);
+    await expect(
+      page.locator('#kb-results + ul a[href="/kb/pages/tech-kites"]'),
+    ).toBeVisible();
+    const hits = await (
+      await page.request.get('/kb/api/search?q=kites')
+    ).json();
+    expect(hits.results.map((r: { href: string }) => r.href)).toContain(
+      '/kb/pages/tech-kites',
+    );
 
     for (const marker of HIDDEN_MARKERS) {
       const res = await page.request.get(`/kb/api/search?q=${marker}`);
@@ -130,6 +149,7 @@ test.describe('knowledge base', () => {
     const body = await res.json();
     expect(body.items.map((i: { id: string }) => i.id).sort()).toEqual([
       'readwise:articles/2026-02-01 - Kite Flying Basics - example.org',
+      'wiki:client-portal',
       'wiki:string',
       'wiki:tech-kites',
       'wiki:wind',

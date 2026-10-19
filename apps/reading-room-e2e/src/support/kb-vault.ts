@@ -2,20 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * The knowledge base's two read-only mounts, fictional. Each private or company entry carries
+ * The knowledge base's two read-only mounts, fictional. Each private entry carries
  * a marker word that must never reach a page, a search result or the hall.
  */
 export const KB_DIR = path.join(__dirname, '..', '..', 'test-output', 'kb');
 export const KB_WIKI_DIR = path.join(KB_DIR, 'wiki');
 export const KB_READWISE_DIR = path.join(KB_DIR, 'readwise');
 
-export const HIDDEN_MARKERS = [
-  'Moonvault',
-  'Starcellar',
-  'Owlpost',
-  'Fogbank',
-  'Glimmerco',
-];
+export const HIDDEN_MARKERS = ['Moonvault', 'Starcellar', 'Owlpost', 'Fogbank'];
 
 const FILES: Record<string, string> = {
   'wiki/tech-kites.md': `---

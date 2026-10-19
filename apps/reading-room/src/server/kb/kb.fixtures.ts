@@ -28,9 +28,7 @@ Lanterns light the reading room. See [[pages/domain-light|light]] and [[pages/te
 - Contractor detail from Acme Widgets internal work
 - Unknown page — [[pages/no-such-page]]
 - Nested hidden page — [[quietwhisker]]
-- [Lantern docs](https://example.org/docs "Acmecorp handbook")
 - Shared name — [[light-and-shade-notes]]
-- [Lantern specs](https://acmecorp.example/specs)
 
 ## Sources
 [[readwise/articles/2026-01-01 - Light and Shade - example.org]]
@@ -114,15 +112,6 @@ wiki_origin: query
 ## Summary
 Because [[tea]] needs light.
 `,
-  'wiki/acmecorp-portal.md': `---
-wiki_tag: portal
----
-
-# Portal
-
-## Summary
-A neutral page about lantern portals.
-`,
   'wiki/light-and-shade-notes.md': `---
 wiki_tag: light-and-shade-notes
 ---
@@ -159,26 +148,6 @@ updated: 2026-01-01
 
 ## Highlights
 - Shade makes lanterns visible.
-`,
-  'readwise/articles/2026-02-02 - Vendor Notes - example.net.md': `---
-author: "Acmecorp Blog"
-tags: ["light"]
-url: "https://example.net/vendor-notes"
----
-# Vendor Notes
-
-## Highlights
-- Lantern pricing.
-`,
-  'readwise/articles/2026-03-03 - Shipping Lanterns - example.com.md': `---
-author: "example.com"
-tags: ["light"]
-url: "https://acmecorp.example/shipping"
----
-# Shipping Lanterns
-
-## Highlights
-- Lantern crates.
 `,
   'readwise/books/2025-05-05 - Private Book - Someone.md': `---
 author: "Someone"
@@ -225,7 +194,6 @@ export function writeFixtureVault(): FixtureVault {
     config: {
       roots: { wiki: join(root, 'wiki'), readwise: join(root, 'readwise') },
       vault: 'fixture-vault',
-      redact: ['acme widgets', 'acmecorp'],
     },
   };
 }

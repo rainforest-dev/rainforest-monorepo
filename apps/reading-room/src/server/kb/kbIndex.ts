@@ -12,7 +12,6 @@ import {
   type KbSource,
   parseWikilink,
   readwiseShelf,
-  redactTerms,
   type ResolvedLink,
   resolveWikilink,
   WIKILINK_PATTERN,
@@ -26,12 +25,11 @@ import {
   splitFrontmatter,
 } from './markdown.js';
 
-/** Where the knowledge base reads from, and what it withholds. */
+/** Where the knowledge base reads from. */
 export interface KbConfig {
   roots: Record<KbSource, string>;
   /** The Obsidian vault name for `obsidian://` links to notes that are not mounted. */
   vault: string;
-  redact: string[];
 }
 
 export function kbConfigFromEnv(
@@ -43,7 +41,6 @@ export function kbConfigFromEnv(
       readwise: env.KB_READWISE_PATH || '/kb/readwise',
     },
     vault: env.KB_OBSIDIAN_VAULT || 'rainforest-obsidian',
-    redact: redactTerms(env.KB_REDACT_TERMS),
   };
 }
 
@@ -113,7 +110,7 @@ interface Indexed {
 }
 
 /**
- * Reads one file into a document and its redacted tree, or null when it is kept out. Both the
+ * Reads one file into a document and its tree, or null when it is kept out. Both the
  * index and the render path go through here, so they apply the same rules.
  */
 function readDoc(
@@ -128,8 +125,7 @@ function readDoc(
   }
   const fm = splitFrontmatter(raw);
   if (fm.invalid || isHiddenFrontmatter(fm.data)) return null;
-  const { tree, title, company } = parseBody(fm.body, config.redact);
-  if (company) return null;
+  const { tree, title } = parseBody(fm.body);
 
   const data = fm.data;
   const str = (v: unknown) =>
@@ -147,18 +143,6 @@ function readDoc(
   ).filter((t): t is string => typeof t === 'string' && t.length > 0);
   const name = file.path.split('/').pop() ?? file.path;
   const docTitle = title ?? name;
-  // A title, tag, author, source URL or file path naming a redacted term marks company work
-  // as surely as the summary does; the path becomes the page's URL.
-  if (
-    [
-      docTitle,
-      ...tags,
-      str(data.author) ?? '',
-      str(data.url) ?? '',
-      file.path,
-    ].some((t) => config.redact.some((r) => t.toLowerCase().includes(r)))
-  )
-    return null;
 
   const doc: KbDoc = {
     id: kbDocId(file.source, file.path),
@@ -196,7 +180,7 @@ function indexFile(file: KbFile, config: KbConfig): Indexed | null {
 const parsed = new Map<string, { key: string; item: Indexed | null }>();
 
 function indexFileCached(file: KbFile, config: KbConfig): Indexed | null {
-  const key = `${file.mtimeMs}|${file.size}|${file.source}|${config.redact.join(',')}`;
+  const key = `${file.mtimeMs}|${file.size}|${file.source}`;
   const hit = parsed.get(file.file);
   if (hit && hit.key === key) return hit.item;
   const item = indexFile(file, config);
