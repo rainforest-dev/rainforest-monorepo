@@ -41,7 +41,7 @@ export type ResolvedLink =
   | { kind: 'obsidian'; href: string; label: string }
   /** A page that is not here, or is kept out: shown as plain text. */
   | { kind: 'missing'; label: string }
-  /** A private or company note: neither its path nor its name is shown. */
+  /** A private note: neither its path nor its name is shown. */
   | { kind: 'private'; label: string };
 
 export const PRIVATE_LINK_LABEL = '私人筆記';

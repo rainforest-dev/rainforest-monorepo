@@ -32,7 +32,6 @@ export default defineConfig({
           LIBRARY_NAV: 'on',
           KB_WIKI_PATH: KB_WIKI_DIR,
           KB_READWISE_PATH: KB_READWISE_DIR,
-          KB_REDACT_TERMS: 'glimmerco',
         },
       },
   projects: [

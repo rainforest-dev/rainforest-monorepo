@@ -42,6 +42,7 @@ describe('what the knowledge base shows', () => {
   it('lists the visible wiki pages and Readwise documents only', () => {
     expect(index.docs.map((d) => d.id).sort()).toEqual([
       'readwise:articles/2026-01-01 - Light and Shade - example.org',
+      'wiki:client-dashboard',
       'wiki:domain-light',
       'wiki:light-and-shade-notes',
       'wiki:q-why-lanterns',
@@ -59,8 +60,6 @@ describe('what the knowledge base shows', () => {
     ['a private folder', 'private folder'],
     ['frontmatter that cannot be read', 'broken header'],
     ['a symlink out of the mount', 'outside the mounts'],
-    ['a company summary', 'gates lantern access'],
-    ['a company line on a visible page', 'Contractor detail'],
     ['the name of a private page', 'secret-plans'],
     ['the name of an excluded page', 'excluded-topic'],
     ['the path of a private note', 'diary-2026'],
@@ -69,39 +68,18 @@ describe('what the knowledge base shows', () => {
     expect(everythingVisible().toLowerCase()).not.toContain(text.toLowerCase());
   });
 
-  it('never names a redacted term anywhere, in link URLs, authors or source URLs either', () => {
-    const visible = everythingVisible().toLowerCase();
-    expect(visible).not.toContain('acme widgets');
-    expect(visible).not.toContain('acmecorp');
-    expect(visible).not.toContain('vendor notes');
-    expect(visible).not.toContain('shipping lanterns');
+  it('shows work pages as usual: no company filter', () => {
+    expect(index.get('wiki:client-dashboard')?.title).toBe('Client dashboard');
+    expect(render('wiki:tech-lanterns')).toContain('Contractor detail');
   });
 
   it('finds nothing hidden by search, not even a hidden page linked from a visible one', () => {
     expect(searchKb(index.entries, 'heist')).toEqual([]);
     expect(searchKb(index.entries, 'secret-plans')).toEqual([]);
     expect(searchKb(index.entries, 'diary-2026')).toEqual([]);
-    expect(searchKb(index.entries, 'acme')).toEqual([]);
     expect(searchKb(index.entries, 'shade')[0]?.doc.title).toBe(
       'Light and Shade',
     );
-  });
-
-  it('does not serve a page whose tags name a redacted term after it was indexed', async () => {
-    const { writeFileSync } = await import('node:fs');
-    const { join } = await import('node:path');
-    const fresh = buildKbIndex(vault.config);
-    const file = join(vault.config.roots.wiki, 'tea.md');
-    try {
-      writeFileSync(
-        file,
-        '---\nwiki_tag: acmecorp/tea\n---\n# Tea\n\nTea.\n',
-        'utf-8',
-      );
-      expect(renderKbDoc(fresh, 'wiki:tea', vault.config)).toBeNull();
-    } finally {
-      writeFileSync(file, FIXTURE_FILES['wiki/tea.md'], 'utf-8');
-    }
   });
 
   it('renders a page whose extension is upper case', async () => {

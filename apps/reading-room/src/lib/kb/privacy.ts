@@ -10,14 +10,11 @@ const isTrue = (value: unknown): boolean =>
   (typeof value === 'string' &&
     ['true', 'yes', 'on', '1'].includes(value.trim().toLowerCase()));
 
-/** Path segments that mark private or company content, wherever they appear. */
-const PRIVATE_SEGMENTS = new Set(['personal', 'angible']);
+/** Path segments that mark private content, wherever they appear. */
+const PRIVATE_SEGMENTS = new Set(['personal']);
 
 /** Vault paths a link may point at but the knowledge base must not name. */
-const PRIVATE_VAULT_PREFIXES = [
-  /^notes\/personal(\/|$)/i,
-  /^projects\/angible(\/|$)/i,
-];
+const PRIVATE_VAULT_PREFIXES = [/^notes\/personal(\/|$)/i];
 
 function tagList(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((t) => typeof t === 'string');
@@ -26,8 +23,8 @@ function tagList(value: unknown): string[] {
 }
 
 /**
- * Whether a document's frontmatter keeps it out: `private` or `wiki_exclude` set, a
- * `personal/` tag, or a tag under a company project.
+ * Whether a document's frontmatter keeps it out: `private` or `wiki_exclude` set, or a
+ * `personal/` tag.
  */
 export function isHiddenFrontmatter(
   frontmatter: Record<string, unknown>,
@@ -38,16 +35,10 @@ export function isHiddenFrontmatter(
     ...tagList(frontmatter.tags),
     ...tagList(frontmatter.wiki_tag),
   ].map((t) => t.replace(/^#/, '').toLowerCase());
-  return tags.some(
-    (t) =>
-      t === 'personal' ||
-      t.startsWith('personal/') ||
-      t === 'project/angible' ||
-      t.startsWith('project/angible/'),
-  );
+  return tags.some((t) => t === 'personal' || t.startsWith('personal/'));
 }
 
-/** Whether a file path under a mount crosses a private or company folder. */
+/** Whether a file path under a mount crosses a private folder. */
 export function isPrivatePath(path: string): boolean {
   return path
     .split('/')
@@ -59,25 +50,4 @@ export function isPrivateVaultPath(path: string): boolean {
   return (
     PRIVATE_VAULT_PREFIXES.some((re) => re.test(path)) || isPrivatePath(path)
   );
-}
-
-/**
- * Terms whose mention marks company content. `KB_REDACT_TERMS` adds to the default; internal
- * project names belong there, set by the deployment, not in this public repository.
- */
-export const DEFAULT_REDACT_TERMS = ['angible'];
-
-/** The default terms plus any set in `KB_REDACT_TERMS`; the variable can add, never remove. */
-export function redactTerms(env: string | undefined): string[] {
-  const extra = (env ?? '')
-    .split(',')
-    .map((t) => t.trim().toLowerCase())
-    .filter(Boolean);
-  return [...new Set([...DEFAULT_REDACT_TERMS, ...extra])];
-}
-
-export function mentionsAny(text: string, terms: readonly string[]): boolean {
-  if (terms.length === 0) return false;
-  const lower = text.toLowerCase();
-  return terms.some((t) => lower.includes(t));
 }

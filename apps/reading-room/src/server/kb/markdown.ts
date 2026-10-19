@@ -3,7 +3,7 @@ import type {
   Root as HastRoot,
   RootContent as HastContent,
 } from 'hast';
-import type { Parent, PhrasingContent, Root, RootContent } from 'mdast';
+import type { PhrasingContent, Root, RootContent } from 'mdast';
 import { findAndReplace } from 'mdast-util-find-and-replace';
 import { toString } from 'mdast-util-to-string';
 import rehypeSanitize, {
@@ -17,7 +17,7 @@ import remarkRehype from 'remark-rehype';
 import { unified } from 'unified';
 import { parse as parseYaml } from 'yaml';
 
-import { mentionsAny, type ResolvedLink, WIKILINK_PATTERN } from '@/lib/kb';
+import { type ResolvedLink, WIKILINK_PATTERN } from '@/lib/kb';
 
 export interface Frontmatter {
   /** The parsed YAML, `{}` when the file has none. */
@@ -46,82 +46,14 @@ export function splitFrontmatter(raw: string): Frontmatter {
   }
 }
 
-/** Block nodes dropped whole when they mention a redacted term. */
-const REDACTABLE = new Set([
-  'paragraph',
-  'listItem',
-  'tableRow',
-  'blockquote',
-  'heading',
-  'code',
-  'html',
-  'definition',
-  'footnoteDefinition',
-]);
-const DROP_WHEN_EMPTY = new Set(['list', 'table', 'blockquote']);
-
-/** A node's text plus every URL, title and alt text in it, which render as attributes. */
-function textWithUrls(node: RootContent): string {
-  const parts = [toString(node)];
-  const walk = (n: RootContent) => {
-    for (const field of ['url', 'title', 'alt'] as const)
-      if (field in n && typeof n[field as keyof typeof n] === 'string')
-        parts.push(n[field as keyof typeof n] as string);
-    if ('children' in n) n.children.forEach((c) => walk(c as RootContent));
-  };
-  walk(node);
-  return parts.join('\n');
-}
-
-function redact(node: Parent, terms: readonly string[]): void {
-  node.children = node.children.filter((child) => {
-    if (REDACTABLE.has(child.type) && mentionsAny(textWithUrls(child), terms))
-      return false;
-    if ('children' in child) {
-      redact(child, terms);
-      if (DROP_WHEN_EMPTY.has(child.type) && child.children.length === 0)
-        return false;
-    }
-    return true;
-  }) as typeof node.children;
-}
-
-const isHeading = (node: RootContent, depth: number) =>
-  node.type === 'heading' && node.depth <= depth;
-
-/** The `## Summary` section, or the first paragraph when there is none. */
-function summaryText(tree: Root): string {
-  const start = tree.children.findIndex(
-    (n) =>
-      n.type === 'heading' &&
-      n.depth === 2 &&
-      /^summary$/i.test(toString(n).trim()),
-  );
-  if (start === -1) {
-    const first = tree.children.find((n) => n.type === 'paragraph');
-    return first ? toString(first) : '';
-  }
-  const rest = tree.children.slice(start + 1);
-  const end = rest.findIndex((n) => isHeading(n, 2));
-  return (end === -1 ? rest : rest.slice(0, end))
-    .map((n) => toString(n))
-    .join('\n');
-}
-
 export interface ParsedBody {
   tree: Root;
   /** The first `# ` heading, taken out of the tree because the page renders the title. */
   title?: string;
-  /** The page is about company work: its title or summary names a redacted term. */
-  company: boolean;
 }
 
-/**
- * Parses a body and removes what must not be shown. A page whose title or summary names a
- * redacted term is company work and is hidden whole; elsewhere, only the blocks that name
- * one are dropped.
- */
-export function parseBody(body: string, terms: readonly string[]): ParsedBody {
+/** Parses a body into Markdown AST. */
+export function parseBody(body: string): ParsedBody {
   const tree = unified().use(remarkParse).use(remarkGfm).parse(body) as Root;
   const h1 = tree.children.findIndex(
     (n) => n.type === 'heading' && n.depth === 1,
@@ -129,10 +61,7 @@ export function parseBody(body: string, terms: readonly string[]): ParsedBody {
   const title =
     h1 === -1 ? undefined : toString(tree.children[h1]).trim() || undefined;
   if (h1 !== -1) tree.children.splice(h1, 1);
-  const company =
-    mentionsAny(title ?? '', terms) || mentionsAny(summaryText(tree), terms);
-  redact(tree, terms);
-  return { tree, title, company };
+  return { tree, title };
 }
 
 /** The prose a reader sees, for search and wikilink extraction; code is left out. */
@@ -220,7 +149,7 @@ function rehypeOutbound() {
   return (tree: HastRoot) => walk(tree);
 }
 
-/** Renders a parsed, redacted tree to sanitised HTML with its wikilinks resolved. */
+/** Renders a parsed tree to sanitised HTML with its wikilinks resolved. */
 export function renderTree(
   tree: Root,
   resolve: (inner: string) => ResolvedLink,
