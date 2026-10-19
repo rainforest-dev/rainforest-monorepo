@@ -219,6 +219,9 @@ importers:
       '@rainforest-dev/journal-kit':
         specifier: workspace:*
         version: link:../../libs/journal-kit
+      '@rainforest-dev/library-shell':
+        specifier: workspace:*
+        version: link:../../libs/library-shell
       '@rainforest-dev/mcp-kit':
         specifier: workspace:*
         version: link:../../libs/mcp-kit
@@ -754,6 +757,62 @@ importers:
       vite-plugin-dts:
         specifier: ^4.5.4
         version: 4.5.4(@types/node@25.9.7)(rollup@4.63.3)(typescript@6.0.3)(vite@8.3.0(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
+
+  libs/library-contract:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.7
+      vite-plugin-dts:
+        specifier: ^4.5.4
+        version: 4.5.4(@types/node@25.9.7)(rollup@4.63.3)(typescript@6.0.3)(vite@8.3.0(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
+
+  libs/library-shell:
+    dependencies:
+      '@rainforest-dev/library-contract':
+        specifier: workspace:*
+        version: link:../library-contract
+      '@rainforest-dev/rainforest-react':
+        specifier: workspace:*
+        version: link:../rainforest-react
+      lucide-react:
+        specifier: ^1.8.0
+        version: 1.46.0(react@19.2.3)
+    devDependencies:
+      '@fontsource-variable/inter':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@testing-library/react':
+        specifier: ^16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.7
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.9
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.9)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.3
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.3(react@19.2.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vite-plugin-dts:
+        specifier: ~4.5.4
+        version: 4.5.4(@types/node@25.9.7)(rollup@4.63.3)(typescript@6.0.3)(vite@8.0.16(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@25.9.7)(@vitest/coverage-v8@4.1.4(vitest@4.1.11))(@vitest/ui@4.1.4(vitest@4.1.11))(jsdom@27.0.1)(vite@8.0.16(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
 
   libs/mcp-kit:
     dependencies:

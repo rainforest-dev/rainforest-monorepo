@@ -105,3 +105,6 @@ _system/tasks/
 .design-sync/*.log
 .ds-sync/
 ds-bundle/
+
+# Copied from libs/library-shell by tools/library-shell/sync-assets.mjs
+apps/*/public/_shell

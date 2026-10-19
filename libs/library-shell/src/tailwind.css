@@ -1,0 +1,3 @@
+/* Import from an app's Tailwind entry so the shell's classes are generated:
+   @import '@rainforest-dev/library-shell/tailwind.css'; */
+@source './';

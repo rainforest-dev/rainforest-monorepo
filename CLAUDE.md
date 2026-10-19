@@ -19,6 +19,8 @@ Nx 23.2.1 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **libs/personal-portfolio** - Case study content and the MCP registrations that expose it
 - **libs/web-ai** - Framework-free Chrome built-in AI helpers (Prompt API probe and sessions), used by the website and personal-memories
 - **libs/mcp-kit** - Framework-free MCP server kit: a stateless `(Request) => Response` handler, `defineTool`/`registerTools` over zod v4 shapes, result and error helpers, and `gatewayAuth` for the OAuth gateway's shared-secret header
+- **libs/library-contract** - Framework-free contract for the one-hostname library (`library.rainforest.tools`): collection paths, the `hall-items` schema, shared URL filter params, the `library-prefs` cookie and cross-tab messages
+- **libs/library-shell** - React shell every library app shares: header, filters/content/pane layout, collection nav and phone tab bar, cross-document View Transitions, Speculation Rules, the `/_shell` fonts and same-origin shared state. An app that uses it runs `tools/library-shell/sync-assets.mjs` to serve `/_shell` from `public/`
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
 
 ## Essential Commands
