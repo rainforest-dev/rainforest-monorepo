@@ -53,6 +53,12 @@
     },
     {
       "path": "./libs/journal-kit"
+    },
+    {
+      "path": "./libs/library-contract"
+    },
+    {
+      "path": "./libs/library-shell"
     }
   ],
   "compilerOptions": {

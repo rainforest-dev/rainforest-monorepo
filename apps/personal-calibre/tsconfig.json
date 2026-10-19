@@ -42,9 +42,6 @@
   ],
   "references": [
     {
-      "path": "../../libs/journal-kit"
-    },
-    {
       "path": "../../libs/search"
     },
     {
@@ -55,6 +52,12 @@
     },
     {
       "path": "../../libs/mcp-kit"
+    },
+    {
+      "path": "../../libs/library-shell"
+    },
+    {
+      "path": "../../libs/journal-kit"
     }
   ]
 }

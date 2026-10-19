@@ -8,6 +8,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@rainforest-dev/journal-kit": "workspace:*",
+    "@rainforest-dev/library-shell": "workspace:*",
     "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
@@ -57,7 +58,8 @@
           "port": 8080
         },
         "dependsOn": [
-          "^build"
+          "^build",
+          "shell-assets"
         ]
       },
       "build": {
@@ -66,7 +68,8 @@
           "{projectRoot}/.next/!(cache)"
         ],
         "dependsOn": [
-          "^build"
+          "^build",
+          "shell-assets"
         ]
       },
       "typecheck": {
@@ -82,7 +85,8 @@
       "build-deps": {
         "executor": "nx:noop",
         "dependsOn": [
-          "^build"
+          "^build",
+          "shell-assets"
         ]
       },
       "bundle": {
@@ -90,6 +94,26 @@
       },
       "smoke-artifact": {
         "command": "node tools/app-artifact/smoke.mjs personal-calibre"
+      },
+      "shell-assets": {
+        "command": "node tools/library-shell/sync-assets.mjs apps/personal-calibre",
+        "dependsOn": [
+          {
+            "projects": [
+              "library-shell"
+            ],
+            "target": "build"
+          }
+        ],
+        "inputs": [
+          "{workspaceRoot}/tools/library-shell/sync-assets.mjs",
+          {
+            "dependentTasksOutputFiles": "**/_shell/**"
+          }
+        ],
+        "outputs": [
+          "{projectRoot}/public/_shell"
+        ]
       }
     },
     "release": {

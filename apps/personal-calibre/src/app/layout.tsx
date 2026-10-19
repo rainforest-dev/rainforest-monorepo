@@ -1,11 +1,7 @@
 import './globals.css';
 
+import { ShellHead } from '@rainforest-dev/library-shell';
 import { Toaster } from '@rainforest-dev/rainforest-react';
-import { Inter } from 'next/font/google';
-
-import { cn } from '@/lib';
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata = {
   title: 'Personal Calibre Library',
@@ -18,8 +14,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={cn('font-sans', inter.variable)}>
+    <html lang="en" className="font-sans">
       <body className="bg-background text-foreground min-h-screen">
+        <ShellHead />
         {children}
         <Toaster richColors position="bottom-center" />
       </body>

@@ -1,0 +1,11 @@
+/* Opt in to cross-document view transitions between the library's apps. The shell's chrome
+   carries a view-transition-name, so it holds still while the content fades. */
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}

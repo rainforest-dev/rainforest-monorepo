@@ -1,5 +1,6 @@
 'use client';
 
+import { SHELL_IDS, ShellHeader } from '@rainforest-dev/library-shell';
 import { Badge, Button } from '@rainforest-dev/rainforest-react';
 import {
   LibraryBig,
@@ -21,7 +22,7 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
   const params = parseLibraryParams(useSearchParams());
   const count = filterCount(params);
   return (
-    <header className="bg-background sticky top-0 z-30 flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-3 py-2 lg:h-14 lg:flex-nowrap lg:px-4 lg:py-0">
+    <ShellHeader>
       {isList && (
         <Button
           variant="ghost"
@@ -29,7 +30,7 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
           className="hidden lg:inline-flex"
           aria-label={panelOpen ? 'Hide filters' : 'Show filters'}
           aria-expanded={panelOpen}
-          aria-controls="library-filters"
+          aria-controls={SHELL_IDS.filters}
           onClick={togglePanel}
         >
           {panelOpen ? (
@@ -66,6 +67,6 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
           {count} filter{count === 1 ? '' : 's'}
         </Badge>
       )}
-    </header>
+    </ShellHeader>
   );
 }
