@@ -6,9 +6,9 @@ import {
   useReturnPoint,
 } from '@rainforest-dev/library-shell';
 import { cn } from '@rainforest-dev/rainforest-react';
-import { Newspaper } from 'lucide-react';
+import { Library, Newspaper } from 'lucide-react';
 
-import { RACK_PATH, SOURCES_PATH } from '@/lib/paths';
+import { KB_PATH, RACK_PATH, SOURCES_PATH } from '@/lib/paths';
 
 export type RoomSection = 'rack' | 'sources';
 
@@ -39,15 +39,17 @@ export function RoomHeader({
   collections,
 }: RoomHeaderProps) {
   useReturnPoint(collection);
+  const kb = collection === 'kb';
+  const Icon = kb ? Library : Newspaper;
   return (
     <>
       <ShellHeader>
         <a
-          href={RACK_PATH}
+          href={kb ? KB_PATH : RACK_PATH}
           className="flex h-10 items-center gap-2 rounded-md text-base font-semibold"
         >
-          <Newspaper aria-hidden="true" className="text-primary size-4" />
-          <h1>Reading room</h1>
+          <Icon aria-hidden="true" className="text-primary size-4" />
+          <h1>{kb ? 'Knowledge base' : 'Reading room'}</h1>
         </a>
         {collections && <CollectionNav current={collection} resume />}
         {section && (

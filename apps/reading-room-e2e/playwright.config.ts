@@ -2,6 +2,7 @@ import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
+import { KB_READWISE_DIR, KB_WIKI_DIR } from './src/support/kb-vault';
 import { VAULT_DIR } from './src/support/vault';
 
 const PORT = 3032;
@@ -26,7 +27,13 @@ export default defineConfig({
         reuseExistingServer: false,
         timeout: 180_000,
         cwd: workspaceRoot,
-        env: { VAULT_PATH: VAULT_DIR, LIBRARY_NAV: 'on' },
+        env: {
+          VAULT_PATH: VAULT_DIR,
+          LIBRARY_NAV: 'on',
+          KB_WIKI_PATH: KB_WIKI_DIR,
+          KB_READWISE_PATH: KB_READWISE_DIR,
+          KB_REDACT_TERMS: 'glimmerco',
+        },
       },
   projects: [
     {

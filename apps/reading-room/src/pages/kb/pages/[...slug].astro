@@ -1,0 +1,7 @@
+---
+import KbDocPage from '@/components/kb/KbDocPage.astro';
+
+const { slug = '' } = Astro.params;
+---
+
+<KbDocPage source="wiki" path={slug} />

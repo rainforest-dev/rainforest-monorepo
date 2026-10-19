@@ -1,0 +1,148 @@
+---
+import { Badge } from '@rainforest-dev/rainforest-react';
+
+import RoomLayout from '@/layouts/RoomLayout.astro';
+import {
+  kbCounts,
+  kbShelves,
+  KB_SOURCE_LABELS,
+  type KbSource,
+  shelfLabel,
+} from '@/lib/kb';
+import { KB_PATH } from '@/lib/paths';
+import { getKbIndex, renderKbDoc } from '@/server';
+
+import KbFrame from './KbFrame.astro';
+
+interface Props {
+  source: KbSource;
+  /** The document's path under its shelf, decoded from the URL. */
+  path: string;
+}
+
+const { source, path } = Astro.props;
+const index = getKbIndex();
+const id = `${source}:${path}`;
+const doc = index.get(id);
+const html = doc ? renderKbDoc(index, doc.id) : null;
+if (!doc || html === null) Astro.response.status = 404;
+
+const backlinks = doc ? index.backlinks(doc.id) : [];
+const outbound = doc ? index.outbound(doc.id) : [];
+const readwiseSources = outbound.flatMap((l) =>
+  l.kind === 'kb' && l.doc.source === 'readwise' ? [l.doc] : [],
+);
+const notes = outbound.flatMap((l) => (l.kind === 'obsidian' ? [l] : []));
+const shown = doc?.source ?? source;
+---
+
+<RoomLayout title={doc?.title ?? '找不到這一頁'} collection="kb">
+  <KbFrame
+    source={shown}
+    counts={kbCounts(index.docs)}
+    shelves={kbShelves(index.docs, shown)}
+    currentId={doc?.id}
+    aside={!!doc && html !== null}
+  >
+    <main class="px-4 py-6 sm:px-8 lg:px-14 lg:py-8">
+      {
+        doc && html !== null ? (
+          <article class="max-w-[42rem]">
+            <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
+              <Badge variant="secondary">{KB_SOURCE_LABELS[doc.source]}</Badge>
+              <span>{doc.tags[0] ?? shelfLabel(doc.source, doc.shelf)}</span>
+              {doc.updated && <span>· 更新 {doc.updated}</span>}
+              {doc.status && <span>· {doc.status}</span>}
+              {doc.author && <span>· {doc.author}</span>}
+            </div>
+            <h2 class="mb-5 mt-3 text-balance text-3xl font-semibold leading-tight">
+              {doc.title}
+            </h2>
+            <div class="kb-prose" set:html={html} />
+          </article>
+        ) : (
+          <div class="max-w-[42rem] py-12">
+            <h2 class="text-xl font-semibold">找不到這一頁</h2>
+            <p class="text-muted-foreground mt-2">
+              這一頁不存在，或不在知識庫裡。
+            </p>
+            <a href={KB_PATH} class="text-primary mt-4 inline-block underline">
+              回到知識庫
+            </a>
+          </div>
+        )
+      }
+    </main>
+    <Fragment slot="aside">
+      <section aria-labelledby="kb-backlinks" class="flex flex-col gap-2">
+        <h3 id="kb-backlinks" class="text-muted-foreground text-xs">
+          反向連結 · {backlinks.length}
+        </h3>
+        {
+          backlinks.length === 0 ? (
+            <p class="text-muted-foreground text-sm">沒有其他頁連到這裡。</p>
+          ) : (
+            <ul class="flex flex-col gap-1">
+              {backlinks.map((b) => (
+                <li>
+                  <a
+                    href={b.href}
+                    class="hover:bg-accent block rounded-md py-1 text-sm"
+                  >
+                    {b.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </section>
+      {
+        (readwiseSources.length > 0 || notes.length > 0) && (
+          <section
+            aria-labelledby="kb-sources"
+            class="mt-5 flex flex-col gap-2 border-t pt-4"
+          >
+            <h3 id="kb-sources" class="text-muted-foreground text-xs">
+              連到的來源
+            </h3>
+            <ul class="flex flex-col gap-1">
+              {readwiseSources.map((r) => (
+                <li>
+                  <a
+                    href={r.href}
+                    class="hover:bg-accent flex gap-2 rounded-md py-1 text-sm"
+                  >
+                    <Badge variant="secondary">Readwise</Badge>
+                    <span class="min-w-0 truncate">{r.title}</span>
+                  </a>
+                </li>
+              ))}
+              {notes.map((n) => (
+                <li>
+                  <a href={n.href} class="text-primary block py-1 text-sm">
+                    {n.label} · 在 Obsidian 開啟 ↗
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+      {
+        doc?.url && (
+          <section class="mt-5 border-t pt-4">
+            <a
+              href={doc.url}
+              target="_blank"
+              rel="noreferrer"
+              class="text-primary text-sm underline"
+            >
+              原文 ↗
+            </a>
+          </section>
+        )
+      }
+    </Fragment>
+  </KbFrame>
+</RoomLayout>
