@@ -8,6 +8,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@rainforest-dev/journal-kit": "workspace:*",
+    "@rainforest-dev/library-contract": "workspace:*",
     "@rainforest-dev/library-shell": "workspace:*",
     "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",

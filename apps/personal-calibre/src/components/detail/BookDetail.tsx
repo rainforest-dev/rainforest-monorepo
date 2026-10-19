@@ -1,3 +1,4 @@
+import { itemTransitionName } from '@rainforest-dev/library-contract';
 import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { BookOpen, Star } from 'lucide-react';
 import Link from 'next/link';
@@ -74,6 +75,11 @@ export function BookDetail({
       {inPane && <PaneTopRow bookId={book.id} />}
       <header className="flex gap-4">
         <div
+          // The hall's book card carries the same name, so opening a book there morphs its
+          // cover into this one across the navigation.
+          style={{
+            viewTransitionName: itemTransitionName('book', String(book.id)),
+          }}
           className={cn(
             'relative aspect-[2/3] shrink-0 overflow-hidden rounded-md',
             inPane ? 'w-[92px] lg:w-[108px]' : 'w-[108px] sm:w-[160px]',

@@ -104,9 +104,23 @@ const APPS = {
           { path: '/books/1' },
           { path: '/?view=study&groupBy=series' },
           { path: '/api/books', type: 'application/json' },
+          { path: '/api/hall-items', type: 'application/json' },
         ],
       };
     },
+  },
+  'library-hall': {
+    kind: 'next',
+    root: 'apps/library-hall',
+    entry: 'apps/library-hall/server.js',
+    workdir: '.',
+    port: 39186,
+    // No collection URLs: the shelves come back empty, which still boots the page and the
+    // aggregating route from the artifact.
+    prepare: () => ({
+      env: {},
+      checks: [{ path: '/' }, { path: '/api/items', type: 'application/json' }],
+    }),
   },
 };
 
