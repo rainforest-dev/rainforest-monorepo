@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { appDb, notebooks } from '@/db';
+import { db, notebooks } from '@/db';
 import { setUpNotebookShelf } from '@/test';
 
 import { applyNotebookBulkAction } from './notebook-bulk';
@@ -27,7 +27,7 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 
 beforeAll(() => {
-  setUpNotebookShelf('calibre-bulk-errors-');
+  setUpNotebookShelf('notebook-bulk-errors-');
 });
 
 describe('notebook removal errors', () => {
@@ -53,8 +53,7 @@ describe('notebook removal errors', () => {
     const b = await createNotebook('Purge B');
     for (const { id } of [a, b]) {
       await trashNotebook(id);
-      appDb
-        .update(notebooks)
+      db.update(notebooks)
         .set({ trashedAt: '2020-01-01 00:00:00' })
         .where(eq(notebooks.id, id))
         .run();

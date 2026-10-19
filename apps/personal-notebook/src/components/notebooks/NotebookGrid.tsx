@@ -224,7 +224,7 @@ export function NotebookGrid({
                 </button>
               ) : (
                 <Link
-                  href={`/notebooks/${notebook.id}`}
+                  href={`/${notebook.id}`}
                   prefetch={false}
                   className={tile}
                 >

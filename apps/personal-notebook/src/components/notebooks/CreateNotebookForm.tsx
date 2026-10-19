@@ -5,6 +5,8 @@ import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
 
+import { withBase } from '@/lib';
+
 import { readError } from './api';
 
 export function CreateNotebookForm() {
@@ -18,7 +20,7 @@ export function CreateNotebookForm() {
     if (!trimmed) return;
     setBusy(true);
     try {
-      const response = await fetch('/api/notebooks', {
+      const response = await fetch(withBase('/api/notebooks'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name: trimmed }),
@@ -30,7 +32,7 @@ export function CreateNotebookForm() {
       const { notebook } = (await response.json()) as {
         notebook: { id: number };
       };
-      router.push(`/notebooks/${notebook.id}`);
+      router.push(`/${notebook.id}`);
     } finally {
       setBusy(false);
     }

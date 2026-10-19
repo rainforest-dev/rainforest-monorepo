@@ -216,15 +216,15 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.30.0(zod@4.6.5)
-      '@rainforest-dev/journal-kit':
-        specifier: workspace:*
-        version: link:../../libs/journal-kit
       '@rainforest-dev/library-shell':
         specifier: workspace:*
         version: link:../../libs/library-shell
       '@rainforest-dev/mcp-kit':
         specifier: workspace:*
         version: link:../../libs/mcp-kit
+      '@rainforest-dev/notebook-tools':
+        specifier: workspace:*
+        version: link:../../libs/notebook-tools
       '@rainforest-dev/rainforest-react':
         specifier: workspace:*
         version: link:../../libs/rainforest-react
@@ -252,9 +252,6 @@ importers:
       fflate:
         specifier: ^0.8.2
         version: 0.8.3
-      heic-decode:
-        specifier: ^2.1.0
-        version: 2.1.0
       lucide-react:
         specifier: ^1.8.0
         version: 1.46.0(react@19.2.3)
@@ -264,9 +261,6 @@ importers:
       oidn-web:
         specifier: 0.4.0
         version: 0.4.0
-      pdf-lib:
-        specifier: 1.17.1
-        version: 1.17.1
       react:
         specifier: 'catalog:'
         version: 19.2.3
@@ -276,9 +270,6 @@ importers:
       sanitize-html:
         specifier: ^2.17.5
         version: 2.17.7
-      sharp:
-        specifier: ^0.35.5
-        version: 0.35.5(@types/node@25.9.7)
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.7.0
@@ -461,6 +452,109 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.7
+
+  apps/personal-notebook:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.30.0(zod@4.6.5)
+      '@rainforest-dev/journal-kit':
+        specifier: workspace:*
+        version: link:../../libs/journal-kit
+      '@rainforest-dev/library-contract':
+        specifier: workspace:*
+        version: link:../../libs/library-contract
+      '@rainforest-dev/library-shell':
+        specifier: workspace:*
+        version: link:../../libs/library-shell
+      '@rainforest-dev/mcp-kit':
+        specifier: workspace:*
+        version: link:../../libs/mcp-kit
+      '@rainforest-dev/notebook-tools':
+        specifier: workspace:*
+        version: link:../../libs/notebook-tools
+      '@rainforest-dev/rainforest-react':
+        specifier: workspace:*
+        version: link:../../libs/rainforest-react
+      '@rainforest-dev/rainforest-ui':
+        specifier: workspace:*
+        version: link:../../libs/rainforest-ui
+      '@rainforest-dev/search':
+        specifier: workspace:*
+        version: link:../../libs/search
+      better-sqlite3:
+        specifier: ^12.2.0
+        version: 12.11.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.11.1)
+      heic-decode:
+        specifier: ^2.1.0
+        version: 2.1.0
+      lucide-react:
+        specifier: ^1.8.0
+        version: 1.46.0(react@19.2.3)
+      next:
+        specifier: 'catalog:'
+        version: 16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@25.9.7)(babel-plugin-macros@3.1.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.104.1)
+      pdf-lib:
+        specifier: 1.17.1
+        version: 1.17.1
+      react:
+        specifier: 'catalog:'
+        version: 19.2.3
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.3(react@19.2.3)
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@25.9.7)
+      tailwind-merge:
+        specifier: ^3.5.0
+        version: 3.7.0
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ^4.0.0
+        version: 4.3.3
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.7
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.9
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.9)
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.2.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
+  apps/personal-notebook-e2e:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.52.0
+        version: 1.63.0
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.7
+      better-sqlite3:
+        specifier: ^12.2.0
+        version: 12.11.1
 
   apps/personal-website:
     dependencies:
@@ -823,6 +917,25 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.7
+      vite-plugin-dts:
+        specifier: ^4.5.4
+        version: 4.5.4(@types/node@25.9.7)(rollup@4.63.3)(typescript@6.0.3)(vite@8.3.0(@types/node@25.9.7)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
+
+  libs/notebook-tools:
+    dependencies:
+      '@rainforest-dev/mcp-kit':
+        specifier: workspace:*
+        version: link:../mcp-kit
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.30.0(zod@4.6.5)
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.7

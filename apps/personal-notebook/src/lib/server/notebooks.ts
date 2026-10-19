@@ -16,7 +16,7 @@ import {
   sql,
 } from 'drizzle-orm';
 
-import { appDb, appDbPath, notebookPages, notebooks } from '@/db';
+import { dataDir, db, notebookPages, notebooks, pagesDir } from '@/db';
 import { trashCutoff } from '@/lib/notebook';
 import type {
   AppendPagesResult,
@@ -78,13 +78,8 @@ export type UploadCheck =
   | { ok: true; mimeType: string }
   | { ok: false; status: 413 | 415; message: string };
 
-/** Where page images are stored: `CALIBRE_NOTEBOOKS_DIR`, else `notebooks/` beside the app DB. */
-export function notebooksDir(): string {
-  return (
-    process.env.CALIBRE_NOTEBOOKS_DIR ??
-    path.join(path.dirname(appDbPath()), 'notebooks')
-  );
-}
+/** Where page images are stored: `pages/` in the data directory, one folder per notebook. */
+export const notebooksDir = (): string => pagesDir(dataDir());
 
 const extensionOf = (name: string): string =>
   path.extname(name).slice(1).toLowerCase();
@@ -211,7 +206,7 @@ const PAGE_COLUMNS = {
 export async function listNotebooks({
   trashed = false,
 }: { trashed?: boolean } = {}): Promise<NotebookSummary[]> {
-  return appDb
+  return db
     .select({
       ...NOTEBOOK_COLUMNS,
       pageCount: count(notebookPages.id),
@@ -234,7 +229,7 @@ export async function listNotebooks({
 
 function findNotebook(id: number): Notebook | null {
   return (
-    appDb
+    db
       .select(NOTEBOOK_COLUMNS)
       .from(notebooks)
       .where(eq(notebooks.id, id))
@@ -245,7 +240,7 @@ function findNotebook(id: number): Notebook | null {
 export async function getNotebook(id: number): Promise<NotebookDetail | null> {
   const notebook = findNotebook(id);
   if (!notebook) return null;
-  const pages = appDb
+  const pages = db
     .select(PAGE_COLUMNS)
     .from(notebookPages)
     .where(eq(notebookPages.notebookId, id))
@@ -265,7 +260,7 @@ export async function getNotebookPages(
   { from = 1, to, limit }: { from?: number; to?: number; limit?: number } = {},
 ): Promise<NotebookPage[] | null> {
   if (!findNotebook(notebookId)) return null;
-  const query = appDb
+  const query = db
     .select(PAGE_COLUMNS)
     .from(notebookPages)
     .where(
@@ -290,7 +285,7 @@ const normalizeName = (name: string): string => {
 
 export async function createNotebook(name: string): Promise<Notebook> {
   const trimmed = normalizeName(name);
-  const existing = appDb
+  const existing = db
     .select({ id: notebooks.id, trashedAt: notebooks.trashedAt })
     .from(notebooks)
     .where(eq(notebooks.name, trimmed))
@@ -302,7 +297,7 @@ export async function createNotebook(name: string): Promise<Notebook> {
         : `A notebook named "${trimmed}" already exists`,
     );
   }
-  return appDb
+  return db
     .insert(notebooks)
     .values({ name: trimmed })
     .returning(NOTEBOOK_COLUMNS)
@@ -314,7 +309,7 @@ export async function findOrCreateNotebookByName(
 ): Promise<Notebook> {
   const trimmed = normalizeName(name);
   const find = () =>
-    appDb
+    db
       .select(NOTEBOOK_COLUMNS)
       .from(notebooks)
       .where(eq(notebooks.name, trimmed))
@@ -324,7 +319,7 @@ export async function findOrCreateNotebookByName(
   if (existing?.trashedAt) return (await restoreNotebook(existing.id))!;
   if (existing) return existing;
   // A concurrent request may have created it since; the conflict is not an error.
-  appDb.insert(notebooks).values({ name: trimmed }).onConflictDoNothing().run();
+  db.insert(notebooks).values({ name: trimmed }).onConflictDoNothing().run();
   const created = find();
   if (!created) throw new Error(`Notebook "${trimmed}" was not saved`);
   return created;
@@ -344,7 +339,7 @@ export async function setNotebookStatus(
     status === 'archived'
       ? (notebook.endedOn ?? new Date().toISOString().slice(0, 10))
       : null;
-  return appDb
+  return db
     .update(notebooks)
     .set({ status, endedOn })
     .where(eq(notebooks.id, id))
@@ -358,7 +353,7 @@ export async function setNotebookStatus(
  */
 export async function trashNotebook(id: number): Promise<Notebook | null> {
   return (
-    appDb
+    db
       .update(notebooks)
       .set({
         trashedAt: sql`coalesce(${notebooks.trashedAt}, CURRENT_TIMESTAMP)`,
@@ -372,7 +367,7 @@ export async function trashNotebook(id: number): Promise<Notebook | null> {
 /** Takes a notebook out of Trash, back onto the shelf with the status it had. */
 export async function restoreNotebook(id: number): Promise<Notebook | null> {
   return (
-    appDb
+    db
       .update(notebooks)
       .set({ trashedAt: null })
       .where(eq(notebooks.id, id))
@@ -387,7 +382,7 @@ export async function restoreNotebook(id: number): Promise<Notebook | null> {
  */
 export async function purgeExpiredTrash(now = new Date()): Promise<number[]> {
   const cutoff = trashCutoff(now);
-  const expired = appDb
+  const expired = db
     .select({ id: notebooks.id })
     .from(notebooks)
     .where(
@@ -451,7 +446,7 @@ function duplicateReason(
 
 function findCopy(contentHash: string): StoredPage | null {
   return (
-    appDb
+    db
       .select(storedPageColumns)
       .from(notebookPages)
       .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
@@ -462,7 +457,7 @@ function findCopy(contentHash: string): StoredPage | null {
 }
 
 function findLookalike(thumbnail: Uint8Array): StoredPage | null {
-  const rows = appDb
+  const rows = db
     .select({ ...storedPageColumns, fingerprint: notebookPages.fingerprint })
     .from(notebookPages)
     .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
@@ -479,7 +474,7 @@ function findLookalike(thumbnail: Uint8Array): StoredPage | null {
 }
 
 async function backfillFingerprints(): Promise<void> {
-  const rows = appDb
+  const rows = db
     .select({
       id: notebookPages.id,
       notebookId: notebookPages.notebookId,
@@ -494,8 +489,7 @@ async function backfillFingerprints(): Promise<void> {
         pageFilePath(row.notebookId, row.id, row.mimeType),
       );
       const { thumbnail } = await fingerprintPage(new Uint8Array(bytes));
-      appDb
-        .update(notebookPages)
+      db.update(notebookPages)
         .set({ fingerprint: Buffer.from(thumbnail) })
         .where(eq(notebookPages.id, row.id))
         .run();
@@ -525,8 +519,11 @@ export async function appendPages(
 
   const added: number[] = [];
   const skipped: SkippedPage[] = [];
-  const isDuplicate = (db: Pick<typeof appDb, 'select'>, contentHash: string) =>
-    db
+  const isDuplicate = (
+    reader: Pick<typeof db, 'select'>,
+    contentHash: string,
+  ) =>
+    reader
       .select({ id: notebookPages.id })
       .from(notebookPages)
       .where(
@@ -570,7 +567,7 @@ export async function appendPages(
       continue;
     }
 
-    const pageId = appDb.transaction((tx) => {
+    const pageId = db.transaction((tx) => {
       if (isDuplicate(tx, contentHash)) return null;
 
       const last = tx
@@ -614,7 +611,7 @@ function findPageFile(pageId: number): {
   contentHash: string;
 } | null {
   return (
-    appDb
+    db
       .select({
         notebookId: notebookPages.notebookId,
         mimeType: notebookPages.mimeType,
@@ -631,7 +628,7 @@ function findPageFile(pageId: number): {
 export async function deletePage(pageId: number): Promise<boolean> {
   const page = findPageFile(pageId);
   if (!page) return false;
-  appDb.delete(notebookPages).where(eq(notebookPages.id, pageId)).run();
+  db.delete(notebookPages).where(eq(notebookPages.id, pageId)).run();
   rmSync(pageFilePath(page.notebookId, pageId, page.mimeType), {
     force: true,
   });
@@ -658,7 +655,7 @@ export async function replacePage(
   if (!check.ok) return check;
 
   const contentHash = hashBytes(file.bytes);
-  const twin = appDb
+  const twin = db
     .select({ id: notebookPages.id, position: notebookPages.position })
     .from(notebookPages)
     .where(
@@ -689,7 +686,7 @@ export async function replacePage(
   const { thumbnail } = await fingerprintPage(image.bytes);
 
   const target = pageFilePath(page.notebookId, pageId, 'image/jpeg');
-  const updated = appDb.transaction((tx) => {
+  const updated = db.transaction((tx) => {
     const row = tx
       .update(notebookPages)
       .set({
@@ -731,7 +728,7 @@ export async function setPageTranscription(
   { transcription, pageNumber, pageDate }: PageTranscriptionInput,
 ): Promise<NotebookPage | null> {
   return (
-    appDb
+    db
       .update(notebookPages)
       .set({
         transcription,
@@ -790,7 +787,7 @@ export async function renameNotebook(
   const notebook = findNotebook(id);
   if (!notebook) return null;
   if (notebook.name === trimmed) return notebook;
-  const clash = appDb
+  const clash = db
     .select({ id: notebooks.id })
     .from(notebooks)
     .where(eq(notebooks.name, trimmed))
@@ -801,7 +798,7 @@ export async function renameNotebook(
     );
   }
   return (
-    appDb
+    db
       .update(notebooks)
       .set({ name: trimmed })
       .where(eq(notebooks.id, id))
@@ -810,7 +807,7 @@ export async function renameNotebook(
   );
 }
 
-type Tx = Parameters<Parameters<typeof appDb.transaction>[0]>[0];
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const pageIdsOf = (db: Pick<Tx, 'select'>, notebookId: number): number[] =>
   db
@@ -842,7 +839,7 @@ export async function reorderPages(
   { dryRun = false }: { dryRun?: boolean } = {},
 ): Promise<PageOrderChange | null> {
   if (!findNotebook(notebookId)) return null;
-  const before = pageIdsOf(appDb, notebookId);
+  const before = pageIdsOf(db, notebookId);
   const given = new Set(pageIds);
   const missing = before.filter((id) => !given.has(id));
   const extra = pageIds.filter((id) => !before.includes(id));
@@ -856,7 +853,7 @@ export async function reorderPages(
         (extra.length > 0 ? `; not in this notebook ${extra.join(', ')}` : ''),
     );
   }
-  if (!dryRun) appDb.transaction((tx) => writeOrder(tx, notebookId, pageIds));
+  if (!dryRun) db.transaction((tx) => writeOrder(tx, notebookId, pageIds));
   return { notebookId, before, after: [...pageIds] };
 }
 
@@ -889,7 +886,7 @@ export async function movePages(
   if (beforePageId !== undefined && afterPageId !== undefined) {
     throw new ToolInputError('Give beforePageId or afterPageId, not both');
   }
-  const rows = appDb
+  const rows = db
     .select({
       id: notebookPages.id,
       notebookId: notebookPages.notebookId,
@@ -920,10 +917,10 @@ export async function movePages(
   }
 
   const moving = new Set(pageIds);
-  const targetBefore = pageIdsOf(appDb, toNotebookId);
+  const targetBefore = pageIdsOf(db, toNotebookId);
   const staying = targetBefore.filter((id) => !moving.has(id));
   const targetHashes = new Map(
-    appDb
+    db
       .select({ id: notebookPages.id, contentHash: notebookPages.contentHash })
       .from(notebookPages)
       .where(eq(notebookPages.notebookId, toNotebookId))
@@ -960,7 +957,7 @@ export async function movePages(
     ),
   ];
   const sources = sourceIds.map((notebookId) => {
-    const before = pageIdsOf(appDb, notebookId);
+    const before = pageIdsOf(db, notebookId);
     return {
       notebookId,
       before,
@@ -985,7 +982,7 @@ export async function movePages(
   });
   const renamed: Array<[string, string]> = [];
   try {
-    appDb.transaction((tx) => {
+    db.transaction((tx) => {
       for (const { pageId } of dropped) {
         tx.delete(notebookPages).where(eq(notebookPages.id, pageId)).run();
       }
@@ -1034,8 +1031,8 @@ export async function mergeNotebooks(
   if (!findNotebook(targetId)) {
     throw new ToolInputError(`Notebook ${targetId} not found`);
   }
-  const pageIds = pageIdsOf(appDb, sourceId);
-  const first = pageIdsOf(appDb, targetId)[0];
+  const pageIds = pageIdsOf(db, sourceId);
+  const first = pageIdsOf(db, targetId)[0];
   const moved: MovePagesResult =
     pageIds.length === 0
       ? {
@@ -1044,8 +1041,8 @@ export async function mergeNotebooks(
           dropped: [],
           target: {
             notebookId: targetId,
-            before: pageIdsOf(appDb, targetId),
-            after: pageIdsOf(appDb, targetId),
+            before: pageIdsOf(db, targetId),
+            after: pageIdsOf(db, targetId),
           },
           sources: [],
         }
@@ -1070,7 +1067,7 @@ export async function deleteNotebook(
   }: { deletePages?: boolean; dryRun?: boolean } = {},
 ): Promise<DeleteNotebookResult | null> {
   if (!findNotebook(id)) return null;
-  const pageIds = pageIdsOf(appDb, id);
+  const pageIds = pageIdsOf(db, id);
   if (pageIds.length > 0 && !deletePages) {
     throw new ToolInputError(
       `Notebook ${id} still has ${pageIds.length} pages; move or merge them first, or pass deletePages`,
@@ -1084,7 +1081,7 @@ export async function deleteNotebook(
     recursive: true,
     force: true,
   });
-  appDb.transaction((tx) => {
+  db.transaction((tx) => {
     tx.delete(notebookPages).where(eq(notebookPages.notebookId, id)).run();
     tx.delete(notebooks).where(eq(notebooks.id, id)).run();
   });

@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { withBase } from '@/lib';
 import type { NotebookStatus } from '@/types';
 
 import { notebookPdfUrl, postNotebookBulk, readError } from './api';
@@ -63,7 +64,7 @@ export function NotebookActions({
         if (done.length === 0) return;
         // A deleted or trashed notebook has no page to come back to.
         if (mode === 'archive') router.refresh();
-        else router.push('/notebooks');
+        else router.push('/');
       }}
     />
   );
@@ -92,7 +93,7 @@ export function NotebookActions({
   async function update(change: { status?: NotebookStatus; name?: string }) {
     setBusy(true);
     try {
-      const response = await fetch(`/api/notebooks/${notebookId}`, {
+      const response = await fetch(withBase(`/api/notebooks/${notebookId}`), {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(change),

@@ -6,7 +6,7 @@ import sharp from 'sharp';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { getNotebook } from '@/lib/server';
-import { createCalibreDb, jpegBytes, scannedPdf, textPdf } from '@/test';
+import { jpegBytes, scannedPdf, textPdf } from '@/test';
 
 import { POST } from './route';
 
@@ -30,19 +30,12 @@ beforeAll(async () => {
     pixels.set(fill, new Uint8Array(png));
   }
 
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'calibre-inbox-'));
-  process.env.CALIBRE_LIBRARY_PATH = createCalibreDb({
-    authors: [],
-    series: [],
-    tags: [],
-    books: [],
-  });
-  process.env.CALIBRE_APP_DB_PATH = path.join(dir, 'app.db');
-  process.env.CALIBRE_NOTEBOOKS_DIR = path.join(dir, 'pages');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'notebook-inbox-'));
+  process.env.NOTEBOOK_DATA_DIR = dir;
 });
 
 afterEach(() => {
-  delete process.env.CALIBRE_INBOX_SECRET;
+  delete process.env.NOTEBOOK_INBOX_SECRET;
 });
 
 // The declared type only routes the upload; sharp reads the format from the bytes.
@@ -59,7 +52,7 @@ function inbox(
   const form = new FormData();
   for (const [key, value] of fields) form.append(key, value);
   return POST(
-    new Request('https://calibre.example.test/api/inbox/bujo', {
+    new Request('https://notebook.example.test/api/inbox/bujo', {
       method: 'POST',
       headers,
       body: form,
@@ -71,7 +64,7 @@ describe('POST /api/inbox/bujo', () => {
   it.each([undefined, '', '  '])(
     'answers 404 while the secret is %j',
     async (secret) => {
-      if (secret !== undefined) process.env.CALIBRE_INBOX_SECRET = secret;
+      if (secret !== undefined) process.env.NOTEBOOK_INBOX_SECRET = secret;
       const response = await inbox({ 'x-inbox-secret': SECRET });
       expect(response.status).toBe(404);
     },
@@ -81,15 +74,15 @@ describe('POST /api/inbox/bujo', () => {
     {},
     { 'x-inbox-secret': 'wrong' },
     { 'x-inbox-secret': `${SECRET}-and-more` },
-    { 'x-calibre-gateway': SECRET },
+    { 'x-notebook-gateway': SECRET },
   ])('answers 401 to %j', async (headers) => {
-    process.env.CALIBRE_INBOX_SECRET = SECRET;
+    process.env.NOTEBOOK_INBOX_SECRET = SECRET;
     const response = await inbox(headers);
     expect(response.status).toBe(401);
   });
 
   it('files pages into a notebook found or created by name, and dedups', async () => {
-    process.env.CALIBRE_INBOX_SECRET = SECRET;
+    process.env.NOTEBOOK_INBOX_SECRET = SECRET;
     const headers = { 'x-inbox-secret': SECRET };
 
     const first = await inbox(headers, [
@@ -128,7 +121,7 @@ describe('POST /api/inbox/bujo', () => {
   });
 
   it('stores each page of a scanned PDF as its own page, in order', async () => {
-    process.env.CALIBRE_INBOX_SECRET = SECRET;
+    process.env.NOTEBOOK_INBOX_SECRET = SECRET;
     const pdf = await scannedPdf([await jpegBytes(61), await jpegBytes(62)]);
     const response = await inbox({ 'x-inbox-secret': SECRET }, [
       ['notebook', 'Scanned Log'],
@@ -146,7 +139,7 @@ describe('POST /api/inbox/bujo', () => {
   });
 
   it('refuses a PDF that is not a scan with 415', async () => {
-    process.env.CALIBRE_INBOX_SECRET = SECRET;
+    process.env.NOTEBOOK_INBOX_SECRET = SECRET;
     const response = await inbox({ 'x-inbox-secret': SECRET }, [
       ['notebook', 'Inbox Log'],
       [
@@ -169,13 +162,13 @@ describe('POST /api/inbox/bujo', () => {
     ],
     ['no file', [['notebook', 'Inbox Log']]],
   ])('answers 400 to %s', async (_, fields) => {
-    process.env.CALIBRE_INBOX_SECRET = SECRET;
+    process.env.NOTEBOOK_INBOX_SECRET = SECRET;
     const response = await inbox({ 'x-inbox-secret': SECRET }, fields);
     expect(response.status).toBe(400);
   });
 
   it('crops a sideways spread photo into two upright pages unless crop is off', async () => {
-    process.env.CALIBRE_INBOX_SECRET = SECRET;
+    process.env.NOTEBOOK_INBOX_SECRET = SECRET;
     const width = 600;
     const height = 800;
     const raw = Buffer.alloc(width * height * 3, 70);

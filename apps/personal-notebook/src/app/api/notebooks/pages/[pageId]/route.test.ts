@@ -12,12 +12,12 @@ import { pagePng, setUpNotebookShelf, writtenPage } from '@/test';
 import { DELETE, PUT } from './route';
 
 beforeAll(() => {
-  setUpNotebookShelf('calibre-page-delete-');
+  setUpNotebookShelf('notebook-page-delete-');
 });
 
 const remove = (pageId: string | number) =>
   DELETE(
-    new Request(`https://calibre.example.test/api/notebooks/pages/${pageId}`, {
+    new Request(`https://notebook.example.test/api/notebooks/pages/${pageId}`, {
       method: 'DELETE',
     }),
     { params: Promise.resolve({ pageId: String(pageId) }) },
@@ -27,7 +27,7 @@ const replace = (pageId: string | number, files: File[]) => {
   const form = new FormData();
   for (const file of files) form.append('file', file);
   return PUT(
-    new Request(`https://calibre.example.test/api/notebooks/pages/${pageId}`, {
+    new Request(`https://notebook.example.test/api/notebooks/pages/${pageId}`, {
       method: 'PUT',
       body: form,
     }),

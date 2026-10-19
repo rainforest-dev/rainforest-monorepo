@@ -5,6 +5,8 @@ import { ImagePlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ChangeEvent, useRef, useState } from 'react';
 
+import { withBase } from '@/lib';
+
 import { readError } from './api';
 import { useCropStep } from './use-crop-step';
 
@@ -17,10 +19,13 @@ export function PageUploader({ notebookId }: { notebookId: number }) {
   async function upload(pages: File[]) {
     const form = new FormData();
     for (const page of pages) form.append('file', page);
-    const response = await fetch(`/api/notebooks/${notebookId}/pages`, {
-      method: 'POST',
-      body: form,
-    });
+    const response = await fetch(
+      withBase(`/api/notebooks/${notebookId}/pages`),
+      {
+        method: 'POST',
+        body: form,
+      },
+    );
     if (!response.ok) {
       toast.error(await readError(response, 'Upload failed'));
       return;

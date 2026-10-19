@@ -16,7 +16,7 @@ import { FileDown, ImageUp, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ChangeEvent, useRef, useState } from 'react';
 
-import { notebookPageFileName } from '@/lib';
+import { notebookPageFileName, withBase } from '@/lib';
 import type { NotebookPage } from '@/types';
 
 import { pageImageUrl, readError } from './api';
@@ -69,10 +69,13 @@ export function PageDetailDialog({
       }
       const form = new FormData();
       form.append('file', prepared[0]);
-      const response = await fetch(`/api/notebooks/pages/${open.id}`, {
-        method: 'PUT',
-        body: form,
-      });
+      const response = await fetch(
+        withBase(`/api/notebooks/pages/${open.id}`),
+        {
+          method: 'PUT',
+          body: form,
+        },
+      );
       if (!response.ok) {
         toast.error(await readError(response, 'Could not replace page'));
         return;
@@ -90,9 +93,12 @@ export function PageDetailDialog({
     if (!open || !window.confirm('Delete this page and its image?')) return;
     setDeleting(true);
     try {
-      const response = await fetch(`/api/notebooks/pages/${open.id}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        withBase(`/api/notebooks/pages/${open.id}`),
+        {
+          method: 'DELETE',
+        },
+      );
       if (!response.ok) {
         toast.error(await readError(response, 'Could not delete page'));
         return;

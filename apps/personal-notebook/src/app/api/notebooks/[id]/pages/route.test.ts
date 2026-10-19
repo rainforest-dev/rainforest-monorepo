@@ -6,12 +6,12 @@ import { pagePng, setUpNotebookShelf } from '@/test';
 import { POST } from './route';
 
 beforeAll(() => {
-  setUpNotebookShelf('calibre-notebook-pages-');
+  setUpNotebookShelf('notebook-notebook-pages-');
 });
 
 function post(id: string | number, body: FormData | string) {
   return POST(
-    new Request(`https://calibre.example.test/api/notebooks/${id}/pages`, {
+    new Request(`https://notebook.example.test/api/notebooks/${id}/pages`, {
       method: 'POST',
       body,
       ...(typeof body === 'string' && {

@@ -86,14 +86,14 @@ describe('ocrEngineFromEnv', () => {
   it('needs both a URL and a model, or the fake', () => {
     expect(ocrEngineFromEnv({})).toBeUndefined();
     expect(
-      ocrEngineFromEnv({ CALIBRE_OLLAMA_URL: 'http://o' }),
+      ocrEngineFromEnv({ NOTEBOOK_OLLAMA_URL: 'http://o' }),
     ).toBeUndefined();
     expect(
       ocrEngineFromEnv({
-        CALIBRE_OLLAMA_URL: 'http://o',
-        CALIBRE_OCR_MODEL: 'm',
+        NOTEBOOK_OLLAMA_URL: 'http://o',
+        NOTEBOOK_OCR_MODEL: 'm',
       })?.name,
     ).toBe('m');
-    expect(ocrEngineFromEnv({ CALIBRE_OCR: 'fake' })).toBe(fakeOcr);
+    expect(ocrEngineFromEnv({ NOTEBOOK_OCR: 'fake' })).toBe(fakeOcr);
   });
 });

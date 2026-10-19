@@ -12,13 +12,13 @@ import { GET } from './route';
 let pagesRoot: string;
 
 beforeAll(() => {
-  pagesRoot = setUpNotebookShelf('calibre-page-image-');
+  pagesRoot = setUpNotebookShelf('notebook-page-image-');
 });
 
 const get = (pageId: string | number, headers?: HeadersInit) =>
   GET(
     new Request(
-      `https://calibre.example.test/api/notebooks/pages/${pageId}/image`,
+      `https://notebook.example.test/api/notebooks/pages/${pageId}/image`,
       { headers },
     ),
     { params: Promise.resolve({ pageId: String(pageId) }) },

@@ -148,7 +148,7 @@ async function* writePdf(
   );
   yield begin(3);
   yield emit(
-    `<< /Title ${pdfText(source.title)} /Producer (personal-calibre) >>\nendobj\n`,
+    `<< /Title ${pdfText(source.title)} /Producer (personal-notebook) >>\nendobj\n`,
   );
 
   const xref = offset;

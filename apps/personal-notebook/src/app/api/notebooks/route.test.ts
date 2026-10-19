@@ -11,12 +11,12 @@ vi.mock('next/server', async (importOriginal) => ({
 }));
 
 beforeAll(() => {
-  setUpNotebookShelf('calibre-notebooks-route-');
+  setUpNotebookShelf('notebook-notebooks-route-');
 });
 
 const create = (body: unknown) =>
   POST(
-    new Request('https://calibre.example.test/api/notebooks', {
+    new Request('https://notebook.example.test/api/notebooks', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: typeof body === 'string' ? body : JSON.stringify(body),

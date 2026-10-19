@@ -1,7 +1,8 @@
+import { getCollection } from '@rainforest-dev/library-contract';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 
-import { cn } from '@/lib';
+import { cn, withBase } from '@/lib';
 import type { PageSearch, PageSearchOptions } from '@/lib/server';
 
 import { pageImageUrl } from './api';
@@ -21,7 +22,7 @@ export function NotebookSearchForm({
   return (
     <form
       role="search"
-      action="/notebooks"
+      action={withBase('/')}
       className="flex flex-wrap items-end gap-2"
     >
       <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
@@ -106,20 +107,20 @@ export function NotebookSearchResults({
             ? 'Matched by words and by meaning'
             : 'Matched by words'}
           {' · '}
-          <Link
-            href={`/?q=${encodeURIComponent(q)}`}
-            prefetch={false}
+          {/* Books is another app on the library hostname, so a full page load. */}
+          <a
+            href={`${getCollection('books').basePath}?q=${encodeURIComponent(q)}`}
             className="hover:text-foreground underline underline-offset-2"
           >
             Search books for “{q}”
-          </Link>
+          </a>
         </p>
       </div>
       <ul className="flex flex-col gap-2">
         {hits.map((hit) => (
           <li key={hit.id}>
             <Link
-              href={`/notebooks/${hit.notebookId}?page=${hit.id}`}
+              href={`/${hit.notebookId}?page=${hit.id}`}
               prefetch={false}
               className="bg-card hover:bg-muted/50 focus-visible:outline-ring flex gap-3 rounded-lg border p-3 outline-offset-2 focus-visible:outline-2"
             >

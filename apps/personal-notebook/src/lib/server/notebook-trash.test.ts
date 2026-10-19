@@ -4,7 +4,7 @@ import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { appDb, notebookPages, notebooks } from '@/db';
+import { db, notebookPages, notebooks } from '@/db';
 import { pagePng, setUpNotebookShelf } from '@/test';
 
 import { applyNotebookBulkAction } from './notebook-bulk';
@@ -39,7 +39,7 @@ async function notebookWith(name: string, count: number) {
 }
 
 const trashedAt = (id: number, value: string) =>
-  appDb
+  db
     .update(notebooks)
     .set({ trashedAt: value })
     .where(eq(notebooks.id, id))
@@ -50,7 +50,7 @@ const trashIds = async () =>
   (await listNotebooks({ trashed: true })).map((n) => n.id);
 
 beforeAll(() => {
-  pagesRoot = setUpNotebookShelf('calibre-trash-');
+  pagesRoot = setUpNotebookShelf('notebook-trash-');
 });
 
 describe('Trash', () => {
@@ -76,11 +76,10 @@ describe('Trash', () => {
   });
 
   it('hides a trashed notebook’s pages from the calendar, the undated count and OCR', async () => {
-    appDb.update(notebookPages).set({ transcription: 'done' }).run();
+    db.update(notebookPages).set({ transcription: 'done' }).run();
     const { id, pageIds } = await notebookWith('Trash Hidden', 2);
     const [dated = 0, waiting = 0] = pageIds;
-    appDb
-      .update(notebookPages)
+    db.update(notebookPages)
       .set({ pageDate: '2031-05-04', transcription: 'May' })
       .where(eq(notebookPages.id, dated))
       .run();

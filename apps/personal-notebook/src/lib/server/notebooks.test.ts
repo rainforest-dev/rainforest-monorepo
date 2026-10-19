@@ -6,15 +6,8 @@ import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { appDb, notebookPages } from '@/db';
-import {
-  createCalibreDb,
-  jpegBytes,
-  pngPdf,
-  scannedPdf,
-  textPdf,
-  writtenPage,
-} from '@/test';
+import { db, notebookPages } from '@/db';
+import { jpegBytes, pngPdf, scannedPdf, textPdf, writtenPage } from '@/test';
 
 import {
   appendPages,
@@ -38,16 +31,9 @@ import { MAX_PDF_PAGES, stripExif } from './pdf-pages';
 let notebooksRoot: string;
 
 beforeAll(() => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'calibre-notebooks-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'notebook-notebooks-'));
   notebooksRoot = path.join(dir, 'pages');
-  process.env.CALIBRE_LIBRARY_PATH = createCalibreDb({
-    authors: [],
-    series: [],
-    tags: [],
-    books: [],
-  });
-  process.env.CALIBRE_APP_DB_PATH = path.join(dir, 'app.db');
-  process.env.CALIBRE_NOTEBOOKS_DIR = notebooksRoot;
+  process.env.NOTEBOOK_DATA_DIR = dir;
 });
 
 /** A small real PNG; `fill` sets its grey level, so different fills are different files. */
@@ -576,8 +562,7 @@ describe('notebooks', () => {
     const { added } = await appendPages(first.id, [
       { name: 'old.jpg', type: 'image/jpeg', bytes: await writtenPage(9) },
     ]);
-    appDb
-      .update(notebookPages)
+    db.update(notebookPages)
       .set({ fingerprint: null })
       .where(eq(notebookPages.id, added[0]))
       .run();

@@ -20,7 +20,7 @@ export default function NotebookPage({ params }: Props) {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <Link
-        href="/notebooks"
+        href="/"
         prefetch={false}
         className="text-muted-foreground hover:text-foreground flex w-fit items-center gap-1 text-sm"
       >

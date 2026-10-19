@@ -1,6 +1,6 @@
 import { and, asc, eq, isNull, lt, sql } from 'drizzle-orm';
 
-import { appDb, notebookPages, notebooks } from '@/db';
+import { db, notebookPages, notebooks } from '@/db';
 import { notInTrash, readPageFile } from '@/lib/server/notebooks';
 
 import type { OcrEngine } from './engine';
@@ -19,7 +19,7 @@ const errorText = (error: unknown) =>
  * in Trash.
  */
 export function nextPageForOcr(): number | undefined {
-  return appDb
+  return db
     .select({ id: notebookPages.id })
     .from(notebookPages)
     .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
@@ -49,8 +49,7 @@ function recordFailure(
   contentHash: string | undefined,
   error: unknown,
 ): void {
-  appDb
-    .update(notebookPages)
+  db.update(notebookPages)
     .set({
       ocrAttempts: sql`${notebookPages.ocrAttempts} + 1`,
       ocrError: errorText(error),
@@ -78,8 +77,7 @@ export async function ocrNextPage(
       await engine.read(file.data, AbortSignal.timeout(READ_TIMEOUT_MS)),
     );
     if (!result.transcription) throw new Error('the model returned no text');
-    appDb
-      .update(notebookPages)
+    db.update(notebookPages)
       .set({
         transcription: result.transcription,
         transcribedAt: new Date().toISOString(),
@@ -107,7 +105,7 @@ export interface OcrWorkerOptions {
   log?: Pick<Console, 'info' | 'warn'>;
 }
 
-const WORKER = Symbol.for('personal-calibre.ocr-worker');
+const WORKER = Symbol.for('personal-notebook.ocr-worker');
 type WorkerHost = typeof globalThis & { [WORKER]?: () => void };
 
 /**

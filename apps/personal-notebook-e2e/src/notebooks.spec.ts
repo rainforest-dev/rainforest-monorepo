@@ -1,9 +1,9 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import Database from 'better-sqlite3';
 
+import { DB_PATH } from './support/env';
 import { callTool } from './support/mcp';
 import { pagePhoto } from './support/page-photo';
-import { APP_DB_PATH } from './support/seed';
 
 /** Where a crop handle sits, as a share of the photo's width and height. */
 async function handleAt(handle: Locator): Promise<{ x: number; y: number }> {
@@ -419,9 +419,9 @@ test.describe('notebooks', () => {
     await merge.getByRole('button', { name: 'Merge' }).click();
     await expect(merge).toBeHidden();
     await expect(page.getByRole('link', { name: other })).toHaveCount(0);
-    expect((await page.request.get(`/api/notebooks/${otherId}`)).status()).toBe(
-      404,
-    );
+    expect(
+      (await page.request.get(`/notebooks/api/notebooks/${otherId}`)).status(),
+    ).toBe(404);
 
     await page.getByRole('button', { name: 'Select' }).click();
     await page.getByRole('checkbox', { name: keep }).click();
@@ -431,20 +431,20 @@ test.describe('notebooks', () => {
     );
 
     // Trashed 31 days ago, so the next shelf visit deletes it for good.
-    const trashed = await page.request.post('/api/notebooks/bulk', {
+    const trashed = await page.request.post('/notebooks/api/notebooks/bulk', {
       data: { action: 'trash', ids: [oldId] },
     });
     expect(trashed.ok()).toBe(true);
-    const db = new Database(APP_DB_PATH);
+    const db = new Database(DB_PATH);
     db.prepare(
       "UPDATE notebooks SET trashed_at = datetime('now', '-31 days') WHERE id = ?",
     ).run(oldId);
     db.close();
     await page.goto('/notebooks?shelf=trash');
     await expect(page.getByRole('link', { name: old })).toHaveCount(0);
-    expect((await page.request.get(`/api/notebooks/${oldId}`)).status()).toBe(
-      404,
-    );
+    expect(
+      (await page.request.get(`/notebooks/api/notebooks/${oldId}`)).status(),
+    ).toBe(404);
   });
   test('the to-do list shows open bullets and links each to its page', async ({
     page,
@@ -453,7 +453,7 @@ test.describe('notebooks', () => {
     const name = `Bujo ${stamp}`;
     const notebookId = await createNotebook(page, name);
     // Typed straight into the database: the list reads transcriptions, not images.
-    const db = new Database(APP_DB_PATH);
+    const db = new Database(DB_PATH);
     const insert = db.prepare(
       `INSERT INTO notebook_pages
         (notebook_id, position, page_number, page_date, file_name, mime_type, bytes, content_hash, transcription)

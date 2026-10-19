@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { appDb, notebookPages } from '@/db';
+import { db, notebookPages } from '@/db';
 import { pagePng, setUpNotebookShelf } from '@/test';
 
 import {
@@ -26,10 +26,10 @@ async function pages(name: string, count: number): Promise<number[]> {
 }
 
 const set = (id: number, values: Partial<typeof notebookPages.$inferInsert>) =>
-  appDb.update(notebookPages).set(values).where(eq(notebookPages.id, id)).run();
+  db.update(notebookPages).set(values).where(eq(notebookPages.id, id)).run();
 
 beforeAll(() => {
-  setUpNotebookShelf('calibre-calendar-');
+  setUpNotebookShelf('notebook-calendar-');
 });
 
 describe('notebook calendar', () => {

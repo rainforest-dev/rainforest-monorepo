@@ -16,12 +16,12 @@ const INBOX_HEADER = 'x-inbox-secret';
  * page per PDF page) and an optional `source`. Each page is cropped to the paper, a spread is
  * split into its pages and fingers are painted out of the margins (see `autoCropPage`), unless
  * `crop` is `off`. It answers 404 while
- * `CALIBRE_INBOX_SECRET` is unset, and 401 without the matching `x-inbox-secret` header.
+ * `NOTEBOOK_INBOX_SECRET` is unset, and 401 without the matching `x-inbox-secret` header.
  */
 export async function POST(request: Request) {
   const auth = await gatewayAuth({
     header: INBOX_HEADER,
-    secret: process.env.CALIBRE_INBOX_SECRET,
+    secret: process.env.NOTEBOOK_INBOX_SECRET,
   })(request);
   if (auth.status === 'disabled') {
     return new NextResponse('Not Found', { status: 404 });

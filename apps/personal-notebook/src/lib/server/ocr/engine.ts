@@ -75,14 +75,14 @@ export const fakeOcr: OcrEngine = {
 };
 
 /**
- * OCR runs only when configured: `CALIBRE_OCR_MODEL` names a vision model on the Ollama at
- * `CALIBRE_OLLAMA_URL`, or `CALIBRE_OCR=fake` for tests. Unset, pages wait for a person or agent.
+ * OCR runs only when configured: `NOTEBOOK_OCR_MODEL` names a vision model on the Ollama at
+ * `NOTEBOOK_OLLAMA_URL`, or `NOTEBOOK_OCR=fake` for tests. Unset, pages wait for a person or agent.
  */
 export function ocrEngineFromEnv(
   env: Env = process.env,
 ): OcrEngine | undefined {
-  if (env['CALIBRE_OCR'] === 'fake') return fakeOcr;
-  const url = env['CALIBRE_OLLAMA_URL'];
-  const model = env['CALIBRE_OCR_MODEL'];
+  if (env['NOTEBOOK_OCR'] === 'fake') return fakeOcr;
+  const url = env['NOTEBOOK_OLLAMA_URL'];
+  const model = env['NOTEBOOK_OCR_MODEL'];
   return url && model ? ollamaOcr({ url, model }) : undefined;
 }

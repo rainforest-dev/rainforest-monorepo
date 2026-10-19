@@ -1,6 +1,6 @@
 import { and, asc, eq, isNotNull } from 'drizzle-orm';
 
-import { appDb, notebookPages, notebooks } from '@/db';
+import { db, notebookPages, notebooks } from '@/db';
 import { type OpenTask, openTasks, type TaskPage } from '@/lib/notebook';
 
 import { notInTrash } from './notebooks';
@@ -11,7 +11,7 @@ import { notInTrash } from './notebooks';
  * judged by its newer copy.
  */
 export function notebookTasks(now = new Date()): OpenTask[] {
-  const rows: TaskPage[] = appDb
+  const rows: TaskPage[] = db
     .select({
       id: notebookPages.id,
       notebookId: notebookPages.notebookId,

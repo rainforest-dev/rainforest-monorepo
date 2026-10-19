@@ -20,7 +20,7 @@ const STATES: Partial<
 };
 
 const sourceHref = (source: TaskSource) =>
-  `/notebooks/${source.notebookId}?page=${source.pageId}`;
+  `/${source.notebookId}?page=${source.pageId}`;
 
 const pageLabel = (source: TaskSource) =>
   [`p. ${source.number}`, source.pageDate].filter(Boolean).join(' · ');

@@ -9,13 +9,17 @@ import {
 import type { IndexFiles } from '@rainforest-dev/search/node';
 import { and, asc, eq, isNotNull } from 'drizzle-orm';
 
-import { appDb, notebookPages, notebooks } from '@/db';
+import { db, notebookPages, notebooks } from '@/db';
 import { pageHeading, pageSnippet, type SnippetPart } from '@/lib/notebook';
 import { notInTrash } from '@/lib/server/notebooks';
 
-import { indexBooks } from './build-index';
 import { searchContext } from './context';
-import { MIN_QUERY_LENGTH, rankBookIds, type SearchReason } from './query';
+import {
+  indexDocs,
+  MIN_QUERY_LENGTH,
+  rankIds,
+  type SearchReason,
+} from './rank';
 
 const HAN = /\p{Script=Han}/u;
 
@@ -61,7 +65,7 @@ type PageRow = Omit<PageHit, 'heading' | 'match' | 'snippet'> & {
 };
 
 function transcribedPages(): PageRow[] {
-  return appDb
+  return db
     .select({
       id: notebookPages.id,
       notebookId: notebookPages.notebookId,
@@ -114,7 +118,7 @@ function ensurePageIndex(docs: PageDoc[]): void {
     try {
       while (state.wanted && state.wanted.key !== state.readyKey) {
         const wanted = state.wanted;
-        const files = await indexBooks({
+        const files = await indexDocs({
           dir: join(dir, 'notebook-pages'),
           docs: wanted.docs,
           embedder: embedders.background,
@@ -130,7 +134,7 @@ function ensurePageIndex(docs: PageDoc[]): void {
       }
     } catch (error) {
       state.failedAt = Date.now();
-      console.error('calibre search: notebook page indexing failed', error);
+      console.error('notebook search: page indexing failed', error);
     } finally {
       state.wanted = undefined;
       state.job = undefined;
@@ -167,7 +171,7 @@ export async function searchNotebookPages(
   }).map(Number);
 
   const { embedders, gate } = searchContext();
-  const ranked = await rankBookIds({
+  const ranked = await rankIds({
     q: text,
     lexical,
     index: state.ready,

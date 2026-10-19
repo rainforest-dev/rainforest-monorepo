@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { appDb, notebookPages } from '@/db';
+import { db, notebookPages } from '@/db';
 import {
   appendPages,
   createNotebook,
@@ -30,7 +30,7 @@ const engine = (
 let fill = 10;
 async function freshPages(count: number): Promise<number[]> {
   // Clear what earlier tests left waiting, so each test sees only its own pages.
-  appDb.update(notebookPages).set({ transcription: 'done' }).run();
+  db.update(notebookPages).set({ transcription: 'done' }).run();
   const notebook = await createNotebook(`OCR ${fill}`);
   const files = await Promise.all(
     Array.from({ length: count }, async (_, i) => ({
@@ -44,10 +44,10 @@ async function freshPages(count: number): Promise<number[]> {
 }
 
 const page = (id: number) =>
-  appDb.select().from(notebookPages).where(eq(notebookPages.id, id)).get();
+  db.select().from(notebookPages).where(eq(notebookPages.id, id)).get();
 
 beforeAll(() => {
-  setUpNotebookShelf('calibre-ocr-');
+  setUpNotebookShelf('notebook-ocr-');
 });
 
 describe('ocrNextPage', () => {
@@ -69,8 +69,7 @@ describe('ocrNextPage', () => {
 
   it('keeps a date and number someone already set', async () => {
     const [id = 0] = await freshPages(1);
-    appDb
-      .update(notebookPages)
+    db.update(notebookPages)
       .set({ pageDate: '2026-01-01', pageNumber: 9 })
       .where(eq(notebookPages.id, id))
       .run();

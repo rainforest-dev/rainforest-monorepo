@@ -3,12 +3,16 @@
 import { asLinkPreview, type LinkPreview } from '@rainforest-dev/journal-kit';
 import { useEffect, useState } from 'react';
 
+import { withBase } from '@/lib';
+
 const previews = new Map<string, Promise<LinkPreview | undefined>>();
 
 function loadPreview(href: string): Promise<LinkPreview | undefined> {
   let request = previews.get(href);
   if (!request) {
-    request = fetch(`/api/link-preview?url=${encodeURIComponent(href)}`)
+    request = fetch(
+      withBase(`/api/link-preview?url=${encodeURIComponent(href)}`),
+    )
       .then((response) => (response.ok ? response.json() : undefined))
       .then(asLinkPreview)
       .catch(() => undefined);

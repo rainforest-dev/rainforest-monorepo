@@ -18,9 +18,9 @@ const SLOT_BG = [
 ];
 const MAX_THUMBS = 3;
 
-const monthHref = (month: string) => `/notebooks?view=calendar&month=${month}`;
+const monthHref = (month: string) => `/?view=calendar&month=${month}`;
 const pageHref = (notebookId: number, pageId: number) =>
-  `/notebooks/${notebookId}?page=${pageId}`;
+  `/${notebookId}?page=${pageId}`;
 
 /** Every notebook's pages laid out by the date written on them, one month at a time. */
 export function NotebookCalendar({

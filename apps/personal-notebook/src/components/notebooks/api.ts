@@ -1,7 +1,8 @@
+import { withBase } from '@/lib';
 import type { NotebookBulkAction } from '@/types';
 
 export const pageImageUrl = (pageId: number) =>
-  `/api/notebooks/pages/${pageId}/image`;
+  withBase(`/api/notebooks/pages/${pageId}/image`);
 
 export async function readError(
   response: Response,
@@ -15,7 +16,7 @@ export async function readError(
 }
 
 export const notebookPdfUrl = (notebookId: number) =>
-  `/api/notebooks/${notebookId}/pdf`;
+  withBase(`/api/notebooks/${notebookId}/pdf`);
 
 export interface NotebookBulkResponse {
   done: number[];
@@ -28,7 +29,7 @@ export async function postNotebookBulk(
   ids: readonly number[],
   targetId?: number,
 ): Promise<NotebookBulkResponse> {
-  const response = await fetch('/api/notebooks/bulk', {
+  const response = await fetch(withBase('/api/notebooks/bulk'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ action, ids, targetId }),

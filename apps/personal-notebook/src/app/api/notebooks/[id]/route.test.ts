@@ -6,7 +6,7 @@ import { setUpNotebookShelf } from '@/test';
 import { GET, PATCH } from './route';
 
 beforeAll(() => {
-  setUpNotebookShelf('calibre-notebook-route-');
+  setUpNotebookShelf('notebook-notebook-route-');
 });
 
 const params = (id: string | number) => ({
@@ -15,7 +15,7 @@ const params = (id: string | number) => ({
 
 const patch = (id: string | number, body: unknown) =>
   PATCH(
-    new Request(`https://calibre.example.test/api/notebooks/${id}`, {
+    new Request(`https://notebook.example.test/api/notebooks/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: typeof body === 'string' ? body : JSON.stringify(body),

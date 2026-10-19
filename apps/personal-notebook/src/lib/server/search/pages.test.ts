@@ -18,8 +18,8 @@ let ids: number[] = [];
 let root = '';
 
 beforeAll(async () => {
-  root = path.dirname(setUpNotebookShelf('calibre-page-search-'));
-  process.env['CALIBRE_EMBED'] = 'fake';
+  root = path.dirname(setUpNotebookShelf('notebook-page-search-'));
+  process.env['NOTEBOOK_EMBED'] = 'fake';
   const notebook = await createNotebook('Autumn Journal');
   const files = await Promise.all(
     [11, 22, 33, 44].map(async (fill) => ({
@@ -39,7 +39,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-  delete process.env['CALIBRE_EMBED'];
+  delete process.env['NOTEBOOK_EMBED'];
 });
 
 describe('searchNotebookPages', () => {

@@ -29,7 +29,7 @@ vi.mock('node:fs', async (importOriginal) => {
 let pagesRoot: string;
 
 beforeAll(() => {
-  pagesRoot = setUpNotebookShelf('calibre-notebooks-rollback-');
+  pagesRoot = setUpNotebookShelf('notebook-notebooks-rollback-');
 });
 
 describe('appendPages', () => {

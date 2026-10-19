@@ -45,18 +45,18 @@ const VIEWS: readonly {
   Icon: typeof LayoutGrid;
   href: string;
 }[] = [
-  { value: 'shelf', label: 'Shelf', Icon: LayoutGrid, href: '/notebooks' },
+  { value: 'shelf', label: 'Shelf', Icon: LayoutGrid, href: '/' },
   {
     value: 'calendar',
     label: 'Calendar',
     Icon: CalendarDays,
-    href: '/notebooks?view=calendar',
+    href: '/?view=calendar',
   },
   {
     value: 'tasks',
     label: 'To-dos',
     Icon: ListTodo,
-    href: '/notebooks?view=tasks',
+    href: '/?view=tasks',
   },
 ];
 
@@ -156,9 +156,9 @@ function searchOptions(
 type Shelf = 'all' | 'archived' | 'trash';
 
 const SHELVES: readonly { value: Shelf; label: string; href: string }[] = [
-  { value: 'all', label: 'All', href: '/notebooks' },
-  { value: 'archived', label: 'Archived', href: '/notebooks?shelf=archived' },
-  { value: 'trash', label: 'Trash', href: '/notebooks?shelf=trash' },
+  { value: 'all', label: 'All', href: '/' },
+  { value: 'archived', label: 'Archived', href: '/?shelf=archived' },
+  { value: 'trash', label: 'Trash', href: '/?shelf=trash' },
 ];
 
 async function ShelfView({ shelf: asked }: { shelf: string | undefined }) {

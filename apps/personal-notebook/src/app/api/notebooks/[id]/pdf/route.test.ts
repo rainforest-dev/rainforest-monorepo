@@ -11,11 +11,11 @@ import { GET } from './route';
 let pagesRoot: string;
 
 beforeAll(() => {
-  pagesRoot = setUpNotebookShelf('calibre-notebook-pdf-');
+  pagesRoot = setUpNotebookShelf('notebook-notebook-pdf-');
 });
 
 const get = (id: string | number) =>
-  GET(new Request(`https://calibre.example.test/api/notebooks/${id}/pdf`), {
+  GET(new Request(`https://notebook.example.test/api/notebooks/${id}/pdf`), {
     params: Promise.resolve({ id: String(id) }),
   });
 

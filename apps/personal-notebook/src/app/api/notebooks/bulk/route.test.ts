@@ -6,12 +6,12 @@ import { setUpNotebookShelf } from '@/test';
 import { POST } from './route';
 
 beforeAll(() => {
-  setUpNotebookShelf('calibre-notebook-bulk-route-');
+  setUpNotebookShelf('notebook-notebook-bulk-route-');
 });
 
 const post = (body: unknown) =>
   POST(
-    new Request('https://calibre.example.test/api/notebooks/bulk', {
+    new Request('https://notebook.example.test/api/notebooks/bulk', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: typeof body === 'string' ? body : JSON.stringify(body),

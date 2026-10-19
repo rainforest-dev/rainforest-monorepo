@@ -1,0 +1,69 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
+    "ignoreDeprecations": "6.0"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "../../apps/personal-notebook/.next/types/**/*.ts",
+    "../../dist/apps/personal-notebook/.next/types/**/*.ts",
+    "next-env.d.ts",
+    "env.d.ts"
+  ],
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "node_modules",
+    "jest.config.ts",
+    "jest.config.cts",
+    ".next"
+  ],
+  "references": [
+    {
+      "path": "../../libs/search"
+    },
+    {
+      "path": "../../libs/rainforest-ui"
+    },
+    {
+      "path": "../../libs/rainforest-react"
+    },
+    {
+      "path": "../../libs/notebook-tools"
+    },
+    {
+      "path": "../../libs/mcp-kit"
+    },
+    {
+      "path": "../../libs/library-shell"
+    },
+    {
+      "path": "../../libs/library-contract"
+    },
+    {
+      "path": "../../libs/journal-kit"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { paintedPng, type Rgb } from './seed';
+import { paintedPng, type Rgb } from './png';
 
 export interface Point {
   x: number;

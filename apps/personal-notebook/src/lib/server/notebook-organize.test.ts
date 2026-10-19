@@ -4,7 +4,7 @@ import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { appDb, notebookPages } from '@/db';
+import { db, notebookPages } from '@/db';
 import { pagePng, setUpNotebookShelf } from '@/test';
 
 import {
@@ -24,7 +24,7 @@ let pagesRoot: string;
 let fill = 0;
 
 beforeAll(() => {
-  pagesRoot = setUpNotebookShelf('calibre-organize-');
+  pagesRoot = setUpNotebookShelf('notebook-organize-');
 });
 
 /** A notebook holding `count` distinct pages; returns its id and page ids in order. */
@@ -141,13 +141,12 @@ describe('movePages', () => {
     const to = await notebookWith('Dup to', 1);
     const from = await notebookWith('Dup from', 1);
     // appendPages refuses an image any notebook already holds, so the copy predates that rule.
-    const original = appDb
+    const original = db
       .select()
       .from(notebookPages)
       .where(eq(notebookPages.id, to.pages[0]))
       .get()!;
-    appDb
-      .update(notebookPages)
+    db.update(notebookPages)
       .set({ contentHash: original.contentHash })
       .where(eq(notebookPages.id, from.pages[0]))
       .run();

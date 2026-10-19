@@ -1,6 +1,6 @@
 import { and, asc, eq, gt, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 
-import { appDb, notebookPages, notebooks } from '@/db';
+import { db, notebookPages, notebooks } from '@/db';
 import type { CalendarPage } from '@/lib/notebook';
 
 import { notInTrash } from './notebooks';
@@ -28,7 +28,7 @@ const pageMonth = sql<string>`substr(${notebookPages.pageDate}, 1, 7)`;
 
 /** The pages dated in `month` (YYYY-MM), across every notebook. */
 export function notebookCalendar(month: string): NotebookCalendar {
-  const pages = appDb
+  const pages = db
     .select({
       id: notebookPages.id,
       notebookId: notebookPages.notebookId,
@@ -47,7 +47,7 @@ export function notebookCalendar(month: string): NotebookCalendar {
     )
     .all();
   const nearest = (before: boolean) =>
-    appDb
+    db
       .select({ month: pageMonth })
       .from(notebookPages)
       .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
@@ -74,7 +74,7 @@ export function notebookCalendar(month: string): NotebookCalendar {
 /** The month of the latest dated page, where the calendar opens by default. */
 export function latestDatedMonth(): string | undefined {
   return (
-    appDb
+    db
       .select({ month: sql<string>`max(${pageMonth})` })
       .from(notebookPages)
       .innerJoin(notebooks, eq(notebooks.id, notebookPages.notebookId))
@@ -84,7 +84,7 @@ export function latestDatedMonth(): string | undefined {
 }
 
 export function undatedPages(): UndatedPages {
-  const row = appDb
+  const row = db
     .select({
       waiting: sql<number>`coalesce(sum(${notebookPages.transcription} IS NULL AND ${notebookPages.ocrAttempts} < ${MAX_OCR_ATTEMPTS}), 0)`,
       gaveUp: sql<number>`coalesce(sum(${notebookPages.transcription} IS NULL AND ${notebookPages.ocrAttempts} >= ${MAX_OCR_ATTEMPTS}), 0)`,

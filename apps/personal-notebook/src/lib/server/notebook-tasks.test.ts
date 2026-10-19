@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { appDb, notebookPages } from '@/db';
+import { db, notebookPages } from '@/db';
 import { pagePng, setUpNotebookShelf } from '@/test';
 
 import { notebookTasks } from './notebook-tasks';
@@ -24,14 +24,14 @@ async function notebook(name: string, count: number) {
 }
 
 const write = (id: number, pageDate: string | null, transcription: string) =>
-  appDb
+  db
     .update(notebookPages)
     .set({ pageDate, transcription })
     .where(eq(notebookPages.id, id))
     .run();
 
 beforeAll(() => {
-  setUpNotebookShelf('calibre-tasks-');
+  setUpNotebookShelf('notebook-tasks-');
 });
 
 describe('notebookTasks', () => {
