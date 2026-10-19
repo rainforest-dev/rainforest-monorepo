@@ -52,7 +52,7 @@ What never shows, checked on every scan and again on every render:
 - a file whose frontmatter sets `private` or `wiki_exclude`, carries a `personal/` tag or a
   tag under `project/angible`, or cannot be parsed (so a private flag cannot be ruled out);
 - anything under a `personal` or `angible` folder, and any symlink, which the walk never follows;
-- company work: a page whose title, tag, summary, author or source URL names a redaction
+- company work: a page whose title, tag, summary, author, source URL or file path names a redaction
   term is hidden, and elsewhere each paragraph, list item or table row naming one, in its text
   or a link URL, is dropped. The terms are always `angible` plus whatever `KB_REDACT_TERMS`
   adds (comma-separated); the deployment adds internal project names, which stay out of this

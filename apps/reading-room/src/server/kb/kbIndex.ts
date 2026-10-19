@@ -147,12 +147,16 @@ function readDoc(
   ).filter((t): t is string => typeof t === 'string' && t.length > 0);
   const name = file.path.split('/').pop() ?? file.path;
   const docTitle = title ?? name;
-  // A title, tag, author or source URL naming a redacted term marks company work as surely
-  // as the summary does.
+  // A title, tag, author, source URL or file path naming a redacted term marks company work
+  // as surely as the summary does; the path becomes the page's URL.
   if (
-    [docTitle, ...tags, str(data.author) ?? '', str(data.url) ?? ''].some((t) =>
-      config.redact.some((r) => t.toLowerCase().includes(r)),
-    )
+    [
+      docTitle,
+      ...tags,
+      str(data.author) ?? '',
+      str(data.url) ?? '',
+      file.path,
+    ].some((t) => config.redact.some((r) => t.toLowerCase().includes(r)))
   )
     return null;
 
@@ -249,14 +253,11 @@ function lookupFor(
       key(f.source === 'wiki' ? f.path : `readwise/${f.path}`),
     ),
   );
-  for (const f of hiddenFiles)
-    hidden.add(
-      key(
-        f.source === 'wiki'
-          ? `pages/${f.path}`
-          : (f.path.split('/').pop() ?? f.path),
-      ),
-    );
+  for (const f of hiddenFiles) {
+    if (f.source === 'wiki') hidden.add(key(`pages/${f.path}`));
+    // A bare `[[name]]` can point at a file in any subfolder.
+    hidden.add(key(f.path.split('/').pop() ?? f.path));
+  }
   return {
     wiki: (path) => wiki.get(key(path)),
     hidden: (target) => hidden.has(key(target)),

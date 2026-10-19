@@ -27,6 +27,7 @@ Lanterns light the reading room. See [[pages/domain-light|light]] and [[pages/te
 - Excluded page — [[pages/excluded-topic]]
 - Contractor detail from Acme Widgets internal work
 - Unknown page — [[pages/no-such-page]]
+- Nested hidden page — [[quietwhisker]]
 - [Lantern specs](https://acmecorp.example/specs)
 
 ## Sources
@@ -110,6 +111,25 @@ wiki_origin: query
 
 ## Summary
 Because [[tea]] needs light.
+`,
+  'wiki/acmecorp-portal.md': `---
+wiki_tag: portal
+---
+
+# Portal
+
+## Summary
+A neutral page about lantern portals.
+`,
+  'wiki/drafts/quietwhisker.md': `---
+wiki_tag: quietwhisker
+private: true
+---
+
+# Quietwhisker
+
+## Summary
+A hidden page in a subfolder.
 `,
   'readwise/Readwise Syncs.md': `# Sync log`,
   'readwise/articles/2026-01-01 - Light and Shade - example.org.md': `---

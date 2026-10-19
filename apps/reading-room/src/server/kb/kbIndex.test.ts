@@ -63,6 +63,7 @@ describe('what the knowledge base shows', () => {
     ['the name of a private page', 'secret-plans'],
     ['the name of an excluded page', 'excluded-topic'],
     ['the path of a private note', 'diary-2026'],
+    ['the name of a hidden page in a subfolder', 'quietwhisker'],
   ])('never shows content kept out by %s', (_why, text) => {
     expect(everythingVisible().toLowerCase()).not.toContain(text.toLowerCase());
   });
@@ -172,7 +173,7 @@ describe('wikilinks', () => {
     expect(html).not.toContain('excluded-topic');
     expect(
       html.match(/<span data-kind="private">私人筆記<\/span>/g),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     expect(html).toContain('<span data-kind="missing">no-such-page</span>');
     expect(html).not.toContain(
       'obsidian://open?vault=fixture-vault&#x26;file=pages',
