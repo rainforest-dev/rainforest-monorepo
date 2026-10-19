@@ -60,11 +60,13 @@ const REDACTABLE = new Set([
 ]);
 const DROP_WHEN_EMPTY = new Set(['list', 'table', 'blockquote']);
 
-/** A node's text plus every link, image and definition URL in it, so hostnames count too. */
+/** A node's text plus every URL, title and alt text in it, which render as attributes. */
 function textWithUrls(node: RootContent): string {
   const parts = [toString(node)];
   const walk = (n: RootContent) => {
-    if ('url' in n && typeof n.url === 'string') parts.push(n.url);
+    for (const field of ['url', 'title', 'alt'] as const)
+      if (field in n && typeof n[field as keyof typeof n] === 'string')
+        parts.push(n[field as keyof typeof n] as string);
     if ('children' in n) n.children.forEach((c) => walk(c as RootContent));
   };
   walk(node);

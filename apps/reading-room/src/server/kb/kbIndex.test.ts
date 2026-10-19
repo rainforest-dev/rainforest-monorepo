@@ -43,6 +43,7 @@ describe('what the knowledge base shows', () => {
     expect(index.docs.map((d) => d.id).sort()).toEqual([
       'readwise:articles/2026-01-01 - Light and Shade - example.org',
       'wiki:domain-light',
+      'wiki:light-and-shade-notes',
       'wiki:q-why-lanterns',
       'wiki:tea',
       'wiki:tech-lanterns',
@@ -178,6 +179,10 @@ describe('wikilinks', () => {
     expect(html).not.toContain(
       'obsidian://open?vault=fixture-vault&#x26;file=pages',
     );
+  });
+
+  it('links a bare name to the visible page when a hidden file shares it', () => {
+    expect(lanterns()).toContain('<a href="/kb/pages/light-and-shade-notes"');
   });
 
   it('resolves a bare name to a page', () => {

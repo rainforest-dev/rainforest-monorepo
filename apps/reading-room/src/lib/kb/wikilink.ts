@@ -63,7 +63,7 @@ export function resolveWikilink(
   vault: string,
 ): ResolvedLink {
   const target = link.target.replace(/^notes\/wiki\//, '');
-  if (!target || isPrivateVaultPath(target) || lookup.hidden(target))
+  if (!target || isPrivateVaultPath(target))
     return { kind: 'private', label: PRIVATE_LINK_LABEL };
 
   const label = link.alias ?? basename(target);
@@ -76,6 +76,10 @@ export function resolveWikilink(
         : (lookup.wiki(target) ?? lookup.readwiseByName(target));
   if (found)
     return { kind: 'kb', doc: found, label: link.alias ?? found.title };
+  // Checked after the visible lookup, so a hidden file elsewhere that shares a bare name with
+  // a visible page does not take the page's links.
+  if (lookup.hidden(target))
+    return { kind: 'private', label: PRIVATE_LINK_LABEL };
 
   // A wiki or Readwise path that is not here was kept out or never existed; a bare name is
   // most likely a page too. Neither gets an Obsidian link that could name a hidden note.

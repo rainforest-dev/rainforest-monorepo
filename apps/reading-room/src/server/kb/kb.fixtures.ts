@@ -28,6 +28,8 @@ Lanterns light the reading room. See [[pages/domain-light|light]] and [[pages/te
 - Contractor detail from Acme Widgets internal work
 - Unknown page — [[pages/no-such-page]]
 - Nested hidden page — [[quietwhisker]]
+- [Lantern docs](https://example.org/docs "Acmecorp handbook")
+- Shared name — [[light-and-shade-notes]]
 - [Lantern specs](https://acmecorp.example/specs)
 
 ## Sources
@@ -120,6 +122,20 @@ wiki_tag: portal
 
 ## Summary
 A neutral page about lantern portals.
+`,
+  'wiki/light-and-shade-notes.md': `---
+wiki_tag: light-and-shade-notes
+---
+
+# Light and shade notes
+
+## Summary
+Notes on shade.
+`,
+  'readwise/articles/light-and-shade-notes.md': `---
+tags: ["personal/journal"]
+---
+# Hidden namesake
 `,
   'wiki/drafts/quietwhisker.md': `---
 wiki_tag: quietwhisker
