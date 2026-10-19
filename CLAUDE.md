@@ -13,8 +13,8 @@ Nx 23.2.1 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-calibre-e2e** - Playwright e2e tests
 - **apps/personal-notebook** - Next.js Bullet Journal notebook app at `/notebooks` (Next `basePath`; dev port 8086), shipped as a Docker image. Owns the notebook DB, page images, OCR and the notebook MCP tools; calibre forwards those tools to it and redirects its old `/notebooks` links
 - **apps/personal-notebook-e2e** - Playwright e2e tests
-- **apps/rss-manager** - Astro + React RSS registry manager, shipped as a Docker image
-- **apps/rss-manager-e2e** - Playwright e2e tests against a generated fictional vault and a local feed server
+- **apps/reading-room** - Astro + React reading room of the library (renamed from rss-manager): the rack at `/rack` (reading-queue shelves, `/rack/sources` registry desk) and `/kb`, reserved for the knowledge base; shipped as a Docker image
+- **apps/reading-room-e2e** - Playwright e2e tests against a generated fictional vault and a local feed server
 - **apps/personal-memories** - Astro + React memories album (dev port 3004, bound to 127.0.0.1); private data stays outside the repo, and the homelab image mounts it read-only behind the Cloudflare Access gate
 - **apps/personal-memories-e2e** - Playwright e2e tests
 - **libs/personal-data** - Profile, work history and project data, read by the website and its MCP tools
@@ -65,7 +65,7 @@ Every app gets its colours, radius and light/dark switching from one Tailwind pl
 @plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
 ```
 
-`personal-website`, `personal-calibre` and `rss-manager` all load it. Every token is derived from a
+`personal-website`, `personal-calibre` and `reading-room` all load it. Every token is derived from a
 single `--seed` with `oklch(from var(--seed) L C h)`, so changing the seed re-themes all three.
 Beyond the stock shadcn set it defines `success` / `warning` / `info`, `chart-1..5` and `sidebar-*`.
 Each app sets its own `--radius` in `@theme`: a plugin's `addBase` lands in `@layer base`, which
@@ -288,7 +288,7 @@ Caches the pnpm store via `actions/setup-node` with `cache: 'pnpm'`. Nx Cloud di
 
 ### Docker images
 
-The homelab images (`personal-memories`, `rss-manager`, `personal-calibre`, `personal-notebook`) never build
+The homelab images (`personal-memories`, `reading-room`, `personal-calibre`, `personal-notebook`) never build
 inside Docker. `nx bundle <app>` builds the app through the normal `^build` chain and writes a
 self-contained runtime directory to `dist/artifacts/<app>`: the `@vercel/nft` trace of the Astro
 server entry, or Next's standalone output plus `static` and `public`. Its native binaries are

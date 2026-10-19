@@ -1,0 +1,83 @@
+@import 'tailwindcss';
+@import '@rainforest-dev/rainforest-react/tailwind.css';
+@import '@rainforest-dev/library-shell/tailwind.css';
+@import '@rainforest-dev/library-shell/view-transitions.css';
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+
+@theme {
+  /* Registered by /_shell/shell.css, which every library app loads from one URL. */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+/* A knowledge-base page body: rendered vault Markdown, styled with the seed tokens. */
+@layer components {
+  .kb-prose {
+    @apply text-base leading-7;
+  }
+  .kb-prose > * + * {
+    @apply mt-4;
+  }
+  .kb-prose h2 {
+    @apply mt-8 text-xl font-semibold;
+  }
+  .kb-prose h3 {
+    @apply mt-6 text-lg font-semibold;
+  }
+  .kb-prose h4 {
+    @apply mt-5 font-semibold;
+  }
+  .kb-prose ul {
+    @apply list-disc pl-6;
+  }
+  .kb-prose ol {
+    @apply list-decimal pl-6;
+  }
+  .kb-prose li + li {
+    @apply mt-1.5;
+  }
+  .kb-prose a {
+    @apply text-primary underline underline-offset-2;
+  }
+  .kb-prose a[data-kind='obsidian']::after {
+    content: ' ↗';
+  }
+  .kb-prose span[data-kind='missing'],
+  .kb-prose span[data-kind='private'] {
+    @apply text-muted-foreground not-italic;
+  }
+  .kb-prose blockquote {
+    @apply text-muted-foreground border-l-2 pl-4;
+  }
+  .kb-prose code {
+    @apply bg-muted rounded px-1 py-0.5 font-mono text-sm;
+  }
+  .kb-prose pre {
+    @apply bg-muted overflow-x-auto rounded-md p-3 text-sm;
+  }
+  .kb-prose pre code {
+    @apply bg-transparent p-0;
+  }
+  .kb-prose table {
+    @apply block overflow-x-auto text-sm;
+  }
+  .kb-prose th,
+  .kb-prose td {
+    @apply border px-2 py-1 text-left align-top;
+  }
+  .kb-prose img {
+    @apply h-auto max-w-full rounded-md;
+  }
+  .kb-prose hr {
+    @apply my-6;
+  }
+}
