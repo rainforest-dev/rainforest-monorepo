@@ -1,8 +1,9 @@
 import { type HallItem } from '@rainforest-dev/library-contract';
 
-import { tierLabel } from '@/lib/desk/queue';
-import { RACK_PATH } from '@/lib/paths';
-import { type QueueItem, type ReadingQueue } from '@/lib/readingQueue';
+import { tierLabel } from '@/lib/desk';
+
+import { RACK_PATH } from './paths';
+import { type QueueItem, type ReadingQueue } from './readingQueue';
 
 export interface Shelf {
   tier: number;
