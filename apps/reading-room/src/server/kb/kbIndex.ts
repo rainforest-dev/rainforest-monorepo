@@ -112,8 +112,14 @@ interface Indexed {
   links: string[];
 }
 
-/** Reads one file into a document, or null when it is kept out. */
-function indexFile(file: KbFile, config: KbConfig): Indexed | null {
+/**
+ * Reads one file into a document and its redacted tree, or null when it is kept out. Both the
+ * index and the render path go through here, so they apply the same rules.
+ */
+function readDoc(
+  file: KbFile,
+  config: KbConfig,
+): { doc: KbDoc; tree: ReturnType<typeof parseBody>['tree'] } | null {
   let raw: string;
   try {
     raw = readFileSync(file.file, 'utf-8');
@@ -169,6 +175,14 @@ function indexFile(file: KbFile, config: KbConfig): Indexed | null {
         ? data.url
         : undefined,
   };
+  return { doc, tree };
+}
+
+/** Reads one file into an index entry, or null when it is kept out. */
+function indexFile(file: KbFile, config: KbConfig): Indexed | null {
+  const read = readDoc(file, config);
+  if (!read) return null;
+  const { doc, tree } = read;
   const prose = plainText(tree);
   const links = [...prose.matchAll(WIKILINK_PATTERN)].map((m) => m[1]);
   return { doc, file, prose, links };
@@ -193,6 +207,8 @@ export interface KbIndex {
   /** Whether each source's folder is mounted and readable. */
   mounted: Record<KbSource, boolean>;
   get(id: string): KbDoc | undefined;
+  /** The file a visible document was read from. */
+  fileOf(id: string): string | undefined;
   /** Visible documents that link to this one. */
   backlinks(id: string): KbDoc[];
   /** This document's resolved wikilinks, de-duplicated, in order. */
@@ -328,6 +344,7 @@ function indexFiles(
     })),
     mounted,
     get: (id) => byId.get(nfc(id))?.doc,
+    fileOf: (id) => byId.get(nfc(id))?.file.file,
     backlinks: (id) =>
       [...(backlinks.get(nfc(id)) ?? [])]
         .flatMap((b) => byId.get(nfc(b))?.doc ?? [])
@@ -383,11 +400,12 @@ export function renderKbDoc(
   config: KbConfig = kbConfigFromEnv(),
 ): string | null {
   const doc = index.get(id);
-  if (!doc) return null;
-  const file = join(config.roots[doc.source], `${doc.path}.md`);
+  const file = index.fileOf(id);
+  if (!doc || !file) return null;
   let key: string;
+  let stat: { mtimeMs: number; size: number };
   try {
-    const stat = statSync(file);
+    stat = statSync(file);
     key = `${index.signature}|${file}|${stat.mtimeMs}|${stat.size}`;
   } catch {
     return null;
@@ -395,16 +413,18 @@ export function renderKbDoc(
   const hit = rendered.get(id);
   if (hit && hit.key === key) return hit.html;
 
-  let raw: string;
-  try {
-    raw = readFileSync(file, 'utf-8');
-  } catch {
-    return null;
-  }
-  const fm = splitFrontmatter(raw);
-  if (fm.invalid || isHiddenFrontmatter(fm.data)) return null;
-  const { tree, company } = parseBody(fm.body, config.redact);
-  if (company) return null;
+  const read = readDoc(
+    {
+      source: doc.source,
+      path: doc.path,
+      file,
+      mtimeMs: stat.mtimeMs,
+      size: stat.size,
+    },
+    config,
+  );
+  if (!read) return null;
+  const { tree } = read;
   const html = renderTree(tree, index.resolve);
   rendered.set(id, { key, html });
   return html;

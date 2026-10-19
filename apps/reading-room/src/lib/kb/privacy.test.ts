@@ -48,9 +48,14 @@ describe('isPrivateVaultPath', () => {
 });
 
 describe('redactTerms', () => {
-  it('uses the default when unset and the variable when set', () => {
+  it('keeps the default and adds the variable on top', () => {
     expect(redactTerms(undefined)).toEqual(DEFAULT_REDACT_TERMS);
-    expect(redactTerms(' Foo, bar ,,')).toEqual(['foo', 'bar']);
-    expect(redactTerms('')).toEqual([]);
+    expect(redactTerms('')).toEqual(DEFAULT_REDACT_TERMS);
+    expect(redactTerms('  ')).toEqual(DEFAULT_REDACT_TERMS);
+    expect(redactTerms(' Foo, bar ,,')).toEqual([
+      ...DEFAULT_REDACT_TERMS,
+      'foo',
+      'bar',
+    ]);
   });
 });

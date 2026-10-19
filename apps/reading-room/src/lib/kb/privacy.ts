@@ -62,17 +62,18 @@ export function isPrivateVaultPath(path: string): boolean {
 }
 
 /**
- * Terms whose mention marks company content. `KB_REDACT_TERMS` replaces the default; internal
+ * Terms whose mention marks company content. `KB_REDACT_TERMS` adds to the default; internal
  * project names belong there, set by the deployment, not in this public repository.
  */
 export const DEFAULT_REDACT_TERMS = ['angible'];
 
+/** The default terms plus any set in `KB_REDACT_TERMS`; the variable can add, never remove. */
 export function redactTerms(env: string | undefined): string[] {
-  if (env === undefined) return DEFAULT_REDACT_TERMS;
-  return env
+  const extra = (env ?? '')
     .split(',')
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean);
+  return [...new Set([...DEFAULT_REDACT_TERMS, ...extra])];
 }
 
 export function mentionsAny(text: string, terms: readonly string[]): boolean {

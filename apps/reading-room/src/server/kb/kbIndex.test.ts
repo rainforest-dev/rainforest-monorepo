@@ -85,6 +85,42 @@ describe('what the knowledge base shows', () => {
     );
   });
 
+  it('does not serve a page whose tags name a redacted term after it was indexed', async () => {
+    const { writeFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const fresh = buildKbIndex(vault.config);
+    const file = join(vault.config.roots.wiki, 'tea.md');
+    try {
+      writeFileSync(
+        file,
+        '---\nwiki_tag: acmecorp/tea\n---\n# Tea\n\nTea.\n',
+        'utf-8',
+      );
+      expect(renderKbDoc(fresh, 'wiki:tea', vault.config)).toBeNull();
+    } finally {
+      writeFileSync(file, FIXTURE_FILES['wiki/tea.md'], 'utf-8');
+    }
+  });
+
+  it('renders a page whose extension is upper case', async () => {
+    const { rmSync: rm, writeFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const file = join(vault.config.roots.wiki, 'loud.MD');
+    try {
+      writeFileSync(
+        file,
+        '---\nwiki_tag: loud\n---\n# Loud\n\nShouting lanterns.\n',
+        'utf-8',
+      );
+      const fresh = buildKbIndex(vault.config);
+      expect(renderKbDoc(fresh, 'wiki:loud', vault.config)).toContain(
+        'Shouting lanterns.',
+      );
+    } finally {
+      rm(file);
+    }
+  });
+
   it('does not serve a page made private after it was indexed', async () => {
     const { writeFileSync } = await import('node:fs');
     const { join } = await import('node:path');
