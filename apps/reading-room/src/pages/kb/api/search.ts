@@ -22,6 +22,8 @@ export const GET: APIRoute = ({ url }) => {
     );
     return Response.json({ results });
   } catch (err) {
-    return Response.json({ error: String(err) }, { status: 500 });
+    // The error can name mount paths and hidden files, so it stays in the server log.
+    console.error('[kb]', err);
+    return Response.json({ error: 'kb unavailable' }, { status: 500 });
   }
 };

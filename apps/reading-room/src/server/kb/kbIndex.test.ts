@@ -4,7 +4,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { kbHallItems, searchKb } from '@/lib/kb';
 
-import { type FixtureVault, writeFixtureVault } from './kb.fixtures.js';
+import {
+  FIXTURE_FILES,
+  type FixtureVault,
+  writeFixtureVault,
+} from './kb.fixtures.js';
 import {
   buildKbIndex,
   getKbIndex,
@@ -63,8 +67,12 @@ describe('what the knowledge base shows', () => {
     expect(everythingVisible().toLowerCase()).not.toContain(text.toLowerCase());
   });
 
-  it('never names a redacted term anywhere', () => {
-    expect(everythingVisible().toLowerCase()).not.toContain('acme widgets');
+  it('never names a redacted term anywhere, in link URLs, authors or source URLs either', () => {
+    const visible = everythingVisible().toLowerCase();
+    expect(visible).not.toContain('acme widgets');
+    expect(visible).not.toContain('acmecorp');
+    expect(visible).not.toContain('vendor notes');
+    expect(visible).not.toContain('shipping lanterns');
   });
 
   it('finds nothing hidden by search, not even a hidden page linked from a visible one', () => {
@@ -82,17 +90,17 @@ describe('what the knowledge base shows', () => {
     const { join } = await import('node:path');
     const fresh = buildKbIndex(vault.config);
     const file = join(vault.config.roots.wiki, 'tea.md');
-    writeFileSync(
-      file,
-      '---\nwiki_tag: tea\nprivate: true\n---\n# Tea\n',
-      'utf-8',
-    );
-    expect(renderKbDoc(fresh, 'wiki:tea', vault.config)).toBeNull();
-    writeFileSync(
-      file,
-      '---\nwiki_tag: tea\n---\n\n# Tea\n\n## Summary\nTea pairs with lanterns.\n',
-      'utf-8',
-    );
+    const original = FIXTURE_FILES['wiki/tea.md'];
+    try {
+      writeFileSync(
+        file,
+        '---\nwiki_tag: tea\nprivate: true\n---\n# Tea\n',
+        'utf-8',
+      );
+      expect(renderKbDoc(fresh, 'wiki:tea', vault.config)).toBeNull();
+    } finally {
+      writeFileSync(file, original, 'utf-8');
+    }
   });
 });
 

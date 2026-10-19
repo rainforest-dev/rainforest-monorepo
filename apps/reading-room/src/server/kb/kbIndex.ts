@@ -141,9 +141,10 @@ function indexFile(file: KbFile, config: KbConfig): Indexed | null {
   ).filter((t): t is string => typeof t === 'string' && t.length > 0);
   const name = file.path.split('/').pop() ?? file.path;
   const docTitle = title ?? name;
-  // A title or tag naming a redacted term marks company work as surely as the summary does.
+  // A title, tag, author or source URL naming a redacted term marks company work as surely
+  // as the summary does.
   if (
-    [docTitle, ...tags].some((t) =>
+    [docTitle, ...tags, str(data.author) ?? '', str(data.url) ?? ''].some((t) =>
       config.redact.some((r) => t.toLowerCase().includes(r)),
     )
   )

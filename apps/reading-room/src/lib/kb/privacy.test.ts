@@ -16,16 +16,20 @@ describe('isHiddenFrontmatter', () => {
     [{ tags: ['personal/health'] }],
     [{ tags: '#personal' }],
     [{ wiki_tag: 'project/angible' }],
+    [{ tags: ['project/angible/billing'] }],
+    [{ wiki_tag: 'Project/Angible/x' }],
   ])('hides %j', (fm) => {
     expect(isHiddenFrontmatter(fm)).toBe(true);
   });
 
-  it.each([[{}], [{ private: false }], [{ tags: ['tech/react'] }]])(
-    'shows %j',
-    (fm) => {
-      expect(isHiddenFrontmatter(fm)).toBe(false);
-    },
-  );
+  it.each([
+    [{}],
+    [{ private: false }],
+    [{ tags: ['tech/react'] }],
+    [{ tags: ['project/angible-like'] }],
+  ])('shows %j', (fm) => {
+    expect(isHiddenFrontmatter(fm)).toBe(false);
+  });
 });
 
 describe('isPrivateVaultPath', () => {

@@ -60,9 +60,20 @@ const REDACTABLE = new Set([
 ]);
 const DROP_WHEN_EMPTY = new Set(['list', 'table', 'blockquote']);
 
+/** A node's text plus every link, image and definition URL in it, so hostnames count too. */
+function textWithUrls(node: RootContent): string {
+  const parts = [toString(node)];
+  const walk = (n: RootContent) => {
+    if ('url' in n && typeof n.url === 'string') parts.push(n.url);
+    if ('children' in n) n.children.forEach((c) => walk(c as RootContent));
+  };
+  walk(node);
+  return parts.join('\n');
+}
+
 function redact(node: Parent, terms: readonly string[]): void {
   node.children = node.children.filter((child) => {
-    if (REDACTABLE.has(child.type) && mentionsAny(toString(child), terms))
+    if (REDACTABLE.has(child.type) && mentionsAny(textWithUrls(child), terms))
       return false;
     if ('children' in child) {
       redact(child, terms);

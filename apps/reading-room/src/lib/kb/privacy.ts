@@ -40,7 +40,10 @@ export function isHiddenFrontmatter(
   ].map((t) => t.replace(/^#/, '').toLowerCase());
   return tags.some(
     (t) =>
-      t === 'personal' || t.startsWith('personal/') || t === 'project/angible',
+      t === 'personal' ||
+      t.startsWith('personal/') ||
+      t === 'project/angible' ||
+      t.startsWith('project/angible/'),
   );
 }
 
