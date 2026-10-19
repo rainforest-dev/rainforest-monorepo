@@ -12,36 +12,6 @@ export const AUTHED = { [GATEWAY_HEADER]: SECRET, [LOGIN_HEADER]: LOGIN };
 
 const BOOK = { id: 41, title: 'Salt Ledger', authors: [], tags: [] };
 
-export const NOTEBOOK_ID = 5;
-export const PAGE_COUNT = 12;
-
-const NOTEBOOK = {
-  id: NOTEBOOK_ID,
-  name: 'Field Log',
-  status: 'active',
-  startedOn: '2026-01-01',
-  endedOn: null,
-  createdAt: '2026-01-01 00:00:00',
-  pageCount: PAGE_COUNT,
-  coverPageId: 501,
-};
-
-export const notebookPage = (position: number) => ({
-  id: 500 + position,
-  notebookId: NOTEBOOK_ID,
-  position,
-  pageNumber: position,
-  pageDate: null,
-  fileName: `page-${position}.png`,
-  mimeType: 'image/png',
-  bytes: 3,
-  transcription: position === 1 ? '• tidy the desk' : null,
-  transcribedAt: null,
-  transcribedBy: null,
-  source: 'upload',
-  createdAt: '2026-01-02 00:00:00',
-});
-
 export type FakeLibrary = Record<keyof CalibreLibrary, Mock>;
 
 export function fakeLibrary(): FakeLibrary {
@@ -70,64 +40,39 @@ export function fakeLibrary(): FakeLibrary {
     addTagToBook: vi.fn(),
     removeTagFromBook: vi.fn(),
     revalidateBookTagCache: vi.fn(),
-    listNotebooks: vi.fn(async () => [NOTEBOOK]),
-    getNotebookPages: vi.fn(
-      async (
-        id: number,
-        { from = 1, to = PAGE_COUNT, limit = PAGE_COUNT } = {},
-      ) =>
-        id === NOTEBOOK_ID
-          ? Array.from({ length: PAGE_COUNT }, (_, i) => notebookPage(i + 1))
-              .filter((page) => page.position >= from && page.position <= to)
-              .slice(0, limit)
-          : null,
-    ),
-    readPageFile: vi.fn(async (id: number) => ({
-      data: Buffer.from(`img${id}`),
-      mimeType: 'image/png',
-      fileName: `${id}.png`,
-    })),
-    setPageTranscription: vi.fn(
-      async (
-        id: number,
-        input: {
-          transcription: string;
-          pageNumber?: number;
-          pageDate?: string;
-        },
-      ) =>
-        id === 501
-          ? { ...notebookPage(1), ...input, transcribedAt: '2026-10-12' }
-          : null,
-    ),
-    renameNotebook: vi.fn(async (id: number, name: string) =>
-      id === NOTEBOOK_ID ? { ...NOTEBOOK, name } : null,
-    ),
-    reorderPages: vi.fn(async (id: number, pageIds: number[]) =>
-      id === NOTEBOOK_ID
-        ? { notebookId: id, before: [...pageIds].sort(), after: pageIds }
-        : null,
-    ),
-    movePages: vi.fn(async (pageIds: number[], toNotebookId: number) => ({
-      dryRun: false,
-      moved: pageIds,
-      dropped: [],
-      target: { notebookId: toNotebookId, before: [], after: pageIds },
-      sources: [],
-    })),
-    mergeNotebooks: vi.fn(async (sourceId: number, targetId: number) => ({
-      dryRun: false,
-      moved: [],
-      dropped: [],
-      target: { notebookId: targetId, before: [], after: [] },
-      sources: [],
-      deletedNotebookId: sourceId,
-    })),
-    deleteNotebook: vi.fn(async (id: number) =>
-      id === NOTEBOOK_ID
-        ? { dryRun: false, notebookId: id, deletedPageIds: [] }
-        : null,
-    ),
+  };
+}
+
+export const NOTEBOOK_INTERNAL_URL = 'http://notebook.example.test/notebooks';
+export const NOTEBOOK_SECRET = 'notebook-test-secret';
+
+/** Calls to personal-notebook, and the canned result each one gets back. */
+export interface FakeNotebookServer {
+  fetch: typeof fetch;
+  requests: Request[];
+  respond: (body: unknown, status?: number) => void;
+}
+
+export function fakeNotebookServer(): FakeNotebookServer {
+  const requests: Request[] = [];
+  let next: { body: unknown; status: number } = {
+    body: { content: [{ type: 'text', text: '[]' }] },
+    status: 200,
+  };
+  return {
+    requests,
+    respond: (body, status = 200) => {
+      next = { body, status };
+    },
+    fetch: async (url, init) => {
+      const request = new Request(url, init);
+      requests.push(request.clone());
+      const { id } = (await request.json()) as { id: number };
+      return Response.json(
+        next.status === 200 ? { jsonrpc: '2.0', id, result: next.body } : {},
+        { status: next.status },
+      );
+    },
   };
 }
 
@@ -135,7 +80,20 @@ export const handlerFor = (
   library: FakeLibrary,
   write: (line: string) => void = () => undefined,
   env: Record<string, string | undefined> = { CALIBRE_MCP_SECRET: SECRET },
-) => calibreMcpHandler(env, library as unknown as CalibreLibrary, write);
+  notebook?: FakeNotebookServer,
+) =>
+  calibreMcpHandler(
+    notebook
+      ? {
+          NOTEBOOK_INTERNAL_URL,
+          NOTEBOOK_MCP_SECRET: NOTEBOOK_SECRET,
+          ...env,
+        }
+      : env,
+    library as unknown as CalibreLibrary,
+    write,
+    notebook?.fetch,
+  );
 
 export async function connect(
   handler: (request: Request) => Promise<Response>,

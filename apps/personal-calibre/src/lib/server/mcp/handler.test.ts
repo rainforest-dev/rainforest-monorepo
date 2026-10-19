@@ -7,8 +7,11 @@ import {
   AUTHED,
   connect,
   fakeLibrary,
+  fakeNotebookServer,
   handlerFor,
   LOGIN,
+  NOTEBOOK_INTERNAL_URL,
+  NOTEBOOK_SECRET,
   rpc,
   SECRET,
 } from './testing';
@@ -236,31 +239,6 @@ describe('audit', () => {
     });
   });
 
-  it('logs notebook calls by id with the image count, never the transcription', async () => {
-    const lines: string[] = [];
-    const client = await connect(
-      handlerFor(fakeLibrary(), (line) => lines.push(line)),
-    );
-    const pages = await client.callTool({
-      name: 'get_notebook_pages',
-      arguments: { notebookId: 5, toPosition: 3 },
-    });
-    expect(
-      (pages.content as { type: string }[]).filter((b) => b.type === 'image'),
-    ).toHaveLength(3);
-    await client.callTool({
-      name: 'set_page_transcription',
-      arguments: { pageId: 501, transcription: 'a private plan' },
-    });
-    await client.close();
-
-    expect(lines.map((line) => JSON.parse(line))).toMatchObject([
-      { tool: 'get_notebook_pages', notebookId: 5, results: 3, ok: true },
-      { tool: 'set_page_transcription', pageId: 501, results: 1, ok: true },
-    ]);
-    expect(lines.join('\n')).not.toContain('a private plan');
-  });
-
   it.each([
     [[1, 2, 3], 3],
     [{ books: [1], total: 9 }, 1],
@@ -270,5 +248,122 @@ describe('audit', () => {
     [null, 0],
   ])('counts %j as %i', (result, count) => {
     expect(resultCount(result)).toBe(count);
+  });
+});
+
+describe('notebook tools, forwarded to personal-notebook', () => {
+  const pageImages = {
+    content: [
+      { type: 'text', text: '{"notebook":"Field Log"}' },
+      { type: 'image', data: 'aW1n', mimeType: 'image/png' },
+      { type: 'image', data: 'aW1n', mimeType: 'image/png' },
+    ],
+  };
+
+  it('sends the call with the notebook secret and the caller, and returns what it answers', async () => {
+    const notebook = fakeNotebookServer();
+    notebook.respond(pageImages);
+    const lines: string[] = [];
+    const client = await connect(
+      handlerFor(
+        fakeLibrary(),
+        (line) => lines.push(line),
+        undefined,
+        notebook,
+      ),
+    );
+    const result = await client.callTool({
+      name: 'get_notebook_pages',
+      arguments: { notebookId: 5, toPosition: 2 },
+    });
+    await client.close();
+
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toEqual(pageImages.content);
+    const [sent] = notebook.requests;
+    expect(sent?.url).toBe(`${NOTEBOOK_INTERNAL_URL}/mcp`);
+    expect(sent?.headers.get('x-notebook-gateway')).toBe(NOTEBOOK_SECRET);
+    expect(sent?.headers.get(LOGIN_HEADER)).toBe(LOGIN);
+    expect(await sent?.json()).toMatchObject({
+      method: 'tools/call',
+      params: {
+        name: 'get_notebook_pages',
+        arguments: { notebookId: 5, toPosition: 2 },
+      },
+    });
+    expect(lines.map((line) => JSON.parse(line))).toMatchObject([
+      { tool: 'get_notebook_pages', notebookId: 5, results: 2, ok: true },
+    ]);
+  });
+
+  it('never logs a transcription it forwards', async () => {
+    const notebook = fakeNotebookServer();
+    notebook.respond({ content: [{ type: 'text', text: '{"ok":true}' }] });
+    const lines: string[] = [];
+    const client = await connect(
+      handlerFor(
+        fakeLibrary(),
+        (line) => lines.push(line),
+        undefined,
+        notebook,
+      ),
+    );
+    await client.callTool({
+      name: 'set_page_transcription',
+      arguments: { pageId: 501, transcription: 'a private plan' },
+    });
+    await client.close();
+    expect(lines.join('\n')).toContain('"pageId":501');
+    expect(lines.join('\n')).not.toContain('a private plan');
+  });
+
+  it('passes on the notebook server’s refusal', async () => {
+    const notebook = fakeNotebookServer();
+    notebook.respond({
+      isError: true,
+      content: [{ type: 'text', text: 'Notebook 999 not found' }],
+    });
+    const client = await connect(
+      handlerFor(fakeLibrary(), undefined, undefined, notebook),
+    );
+    const result = await client.callTool({
+      name: 'rename_notebook',
+      arguments: { notebookId: 999, name: 'x' },
+    });
+    await client.close();
+    expect(result.isError).toBe(true);
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Notebook 999 not found' },
+    ]);
+  });
+
+  it('fails the call, not the server, when personal-notebook refuses it', async () => {
+    const notebook = fakeNotebookServer();
+    notebook.respond({}, 401);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const client = await connect(
+      handlerFor(fakeLibrary(), undefined, undefined, notebook),
+    );
+    const result = await client.callTool({
+      name: 'list_notebooks',
+      arguments: {},
+    });
+    const books = await client.callTool({ name: 'list_tags', arguments: {} });
+    await client.close();
+    expect(result.isError).toBe(true);
+    expect(books.isError).toBeFalsy();
+  });
+
+  it('still lists the tools without NOTEBOOK_INTERNAL_URL, and says why a call cannot run', async () => {
+    const client = await connect(handlerFor(fakeLibrary()));
+    const { tools } = await client.listTools();
+    expect(tools.map((t) => t.name)).toContain('get_notebook_pages');
+    const result = await client.callTool({
+      name: 'list_notebooks',
+      arguments: {},
+    });
+    await client.close();
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain('NOTEBOOK_INTERNAL_URL');
   });
 });
