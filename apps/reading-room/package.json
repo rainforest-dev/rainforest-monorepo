@@ -1,0 +1,96 @@
+{
+  "name": "@rainforest-monorepo/reading-room",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 3002 --host 0.0.0.0",
+    "build": "astro check && astro build",
+    "preview": "astro preview --port 3002"
+  },
+  "nx": {
+    "tags": [
+      "docker"
+    ],
+    "targets": {
+      "dev": {
+        "dependsOn": [
+          "^build",
+          "shell-assets"
+        ]
+      },
+      "build": {
+        "dependsOn": [
+          "^build",
+          "shell-assets"
+        ],
+        "cache": true
+      },
+      "bundle": {
+        "command": "node tools/app-artifact/bundle.mjs astro apps/reading-room"
+      },
+      "smoke-artifact": {
+        "command": "node tools/app-artifact/smoke.mjs reading-room"
+      },
+      "shell-assets": {
+        "command": "node tools/library-shell/sync-assets.mjs apps/reading-room",
+        "dependsOn": [
+          {
+            "projects": [
+              "library-shell"
+            ],
+            "target": "build"
+          }
+        ],
+        "inputs": [
+          "{workspaceRoot}/tools/library-shell/sync-assets.mjs",
+          {
+            "dependentTasksOutputFiles": "**/_shell/**"
+          }
+        ],
+        "outputs": [
+          "{projectRoot}/public/_shell"
+        ]
+      }
+    },
+    "release": {
+      "docker": {
+        "repositoryName": "rainforest-dev/reading-room"
+      }
+    }
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.6",
+    "@astrojs/react": "^6.0.6",
+    "@rainforest-dev/library-contract": "workspace:*",
+    "@rainforest-dev/library-shell": "workspace:*",
+    "@rainforest-dev/rainforest-react": "workspace:*",
+    "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@rainforest-dev/search": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "astro": "^7.3.3",
+    "lucide-react": "^1.8.0",
+    "mdast-util-find-and-replace": "^3.0.2",
+    "mdast-util-to-string": "^4.0.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "tailwindcss": "catalog:",
+    "unified": "^11.0.5",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/hast": "^3.0.5",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vercel/nft": "^1.11.0",
+    "typescript": "catalog:",
+    "vitest": "^4.1.11"
+  }
+}

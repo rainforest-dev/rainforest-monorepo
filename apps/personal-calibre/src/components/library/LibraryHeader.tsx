@@ -48,14 +48,14 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
         <LibraryBig className="size-5" aria-hidden />
         Library
       </Link>
-      <Link
+      {/* Another app now: here it redirects, on the library hostname it is served directly. */}
+      <a
         href="/notebooks"
-        prefetch={false}
         className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm"
       >
         <NotebookPen className="size-4" aria-hidden />
         Notebooks
-      </Link>
+      </a>
       {isList && <ViewSwitch className="ml-auto lg:ml-2" />}
       {isList && (
         <div className="order-last w-full lg:order-none lg:mx-auto lg:w-auto lg:max-w-[420px] lg:flex-1">

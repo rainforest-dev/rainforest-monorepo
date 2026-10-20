@@ -59,26 +59,58 @@ const APPS = {
       };
     },
   },
-  'rss-manager': {
+  'reading-room': {
     kind: 'astro',
-    root: 'apps/rss-manager',
+    root: 'apps/reading-room',
     entry: 'dist/server/entry.mjs',
     port: 39102,
     prepare: () => {
-      runTs("require('./apps/rss-manager-e2e/src/support/vault').resetVault()");
+      runTs(
+        "require('./apps/reading-room-e2e/src/support/vault').resetVault()",
+      );
+      runTs(
+        "require('./apps/reading-room-e2e/src/support/kb-vault').resetKbVault()",
+      );
+      const kb = join(workspaceRoot, 'apps/reading-room-e2e/test-output/kb');
       return {
         env: {
           VAULT_PATH: join(
             workspaceRoot,
-            'apps/rss-manager-e2e/test-output/vault',
+            'apps/reading-room-e2e/test-output/vault',
           ),
+          KB_WIKI_PATH: join(kb, 'wiki'),
+          KB_READWISE_PATH: join(kb, 'readwise'),
         },
         checks: [
-          { path: '/' },
-          { path: '/api/sources', type: 'application/json' },
+          { path: '/rack' },
+          { path: '/rack/sources' },
+          { path: '/rack/api/sources', type: 'application/json' },
+          { path: '/rack/api/hall-items', type: 'application/json' },
+          { path: '/kb' },
+          { path: '/kb/pages/tech-kites' },
+          { path: '/kb/api/hall-items', type: 'application/json' },
         ],
       };
     },
+  },
+  'personal-notebook': {
+    kind: 'next',
+    root: 'apps/personal-notebook',
+    entry: 'apps/personal-notebook/server.js',
+    workdir: '.',
+    port: 39186,
+    prepare: (scratch) => ({
+      env: {
+        NOTEBOOK_DATA_DIR: join(scratch, 'data'),
+        NOTEBOOK_EMBED: 'fake',
+      },
+      checks: [
+        { path: '/notebooks' },
+        { path: '/notebooks/api/hall-items', type: 'application/json' },
+        { path: '/notebooks/api/search?q=ink', type: 'application/json' },
+        { path: '/notebooks/_shell/shell.css', type: 'text/css' },
+      ],
+    }),
   },
   'personal-calibre': {
     kind: 'next',

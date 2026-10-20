@@ -51,6 +51,9 @@
       "path": "../../libs/rainforest-react"
     },
     {
+      "path": "../../libs/notebook-tools"
+    },
+    {
       "path": "../../libs/mcp-kit"
     },
     {
@@ -58,9 +61,6 @@
     },
     {
       "path": "../../libs/library-contract"
-    },
-    {
-      "path": "../../libs/journal-kit"
     }
   ]
 }

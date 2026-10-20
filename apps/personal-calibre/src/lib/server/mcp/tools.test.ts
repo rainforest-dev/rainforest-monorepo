@@ -2,12 +2,12 @@ import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { fakeLibrary, NOTEBOOK_ID } from './testing';
+import { notebookToolsFromEnv } from './notebooks';
+import { fakeLibrary } from './testing';
 import {
   addDeliveryInputSchema,
   type CalibreLibrary,
   calibreTools,
-  MAX_PAGES_PER_CALL,
 } from './tools';
 
 const READ: ToolAnnotations = { readOnlyHint: true, openWorldHint: false };
@@ -119,7 +119,11 @@ const EXPECTED: Record<
   },
 };
 
-const tools = calibreTools(fakeLibrary() as unknown as CalibreLibrary);
+// The notebook tools are forwarded to personal-notebook; their schemas still show here.
+const tools = calibreTools(
+  fakeLibrary() as unknown as CalibreLibrary,
+  notebookToolsFromEnv({}, { userHeader: 'x-forwarded-login' }),
+);
 
 describe('calibre MCP tools', () => {
   it('keeps the existing tool names', () => {
@@ -196,187 +200,5 @@ describe('add_delivery input schema', () => {
     [{ bookId: 1, platformKey: 'kobo', externalRef: 'not a url' }, false],
   ])('parses %j as %s', (input, ok) => {
     expect(schema.safeParse(input).success).toBe(ok);
-  });
-});
-
-describe('notebook tools', () => {
-  type Block =
-    | { type: 'text'; text: string }
-    | { type: 'image'; data: string; mimeType: string };
-
-  const run = async (name: string, input: Record<string, unknown>) => {
-    const library = fakeLibrary();
-    const tool = calibreTools(library as unknown as CalibreLibrary).find(
-      (t) => t.name === name,
-    );
-    const parsed = z.object(tool?.input ?? {}).parse(input);
-    return { library, result: await tool?.run(parsed, {}) };
-  };
-
-  const blocksOf = (result: unknown): Block[] =>
-    (result as { content: Block[] }).content;
-
-  it('lists notebooks with only id, name, status and pageCount', async () => {
-    const { result } = await run('list_notebooks', {});
-    expect(result).toEqual([
-      { id: NOTEBOOK_ID, name: 'Field Log', status: 'active', pageCount: 12 },
-    ]);
-  });
-
-  it(`returns at most ${MAX_PAGES_PER_CALL} pages as images with their metadata`, async () => {
-    const { library, result } = await run('get_notebook_pages', {
-      notebookId: NOTEBOOK_ID,
-    });
-    const blocks = blocksOf(result);
-    expect(JSON.parse((blocks[0] as { text: string }).text)).toEqual({
-      notebookId: NOTEBOOK_ID,
-      pages: MAX_PAGES_PER_CALL,
-      nextPosition: MAX_PAGES_PER_CALL + 1,
-    });
-    const images = blocks.filter((b) => b.type === 'image');
-    expect(images).toHaveLength(MAX_PAGES_PER_CALL);
-    expect(images[0]).toEqual({
-      type: 'image',
-      data: Buffer.from('img501').toString('base64'),
-      mimeType: 'image/png',
-    });
-    expect(JSON.parse((blocks[1] as { text: string }).text)).toEqual({
-      id: 501,
-      position: 1,
-      pageNumber: 1,
-      pageDate: null,
-      transcription: '• tidy the desk',
-    });
-    expect(library.getNotebookPages).toHaveBeenCalledWith(NOTEBOOK_ID, {
-      from: 1,
-      to: undefined,
-      limit: MAX_PAGES_PER_CALL + 1,
-    });
-  });
-
-  it('honours a position range and reports no next page at the end', async () => {
-    const { result } = await run('get_notebook_pages', {
-      notebookId: NOTEBOOK_ID,
-      fromPosition: 11,
-      toPosition: 20,
-    });
-    const blocks = blocksOf(result);
-    expect(JSON.parse((blocks[0] as { text: string }).text)).toMatchObject({
-      pages: 2,
-      nextPosition: null,
-    });
-  });
-
-  it('marks a page whose image is missing', async () => {
-    const library = fakeLibrary();
-    library.readPageFile.mockResolvedValueOnce(null);
-    const tool = calibreTools(library as unknown as CalibreLibrary).find(
-      (t) => t.name === 'get_notebook_pages',
-    );
-    const blocks = blocksOf(
-      await tool?.run({ notebookId: NOTEBOOK_ID, toPosition: 1 }, {}),
-    );
-    expect(blocks.map((b) => b.type)).toEqual(['text', 'text']);
-    expect(JSON.parse((blocks[1] as { text: string }).text)).toMatchObject({
-      image: 'missing',
-    });
-  });
-
-  it.each([
-    [{ notebookId: 999 }, /Notebook 999 not found/],
-    [
-      { notebookId: NOTEBOOK_ID, fromPosition: 5, toPosition: 4 },
-      /toPosition must not be before fromPosition/,
-    ],
-  ])('rejects %j', async (input, message) => {
-    await expect(run('get_notebook_pages', input)).rejects.toThrow(message);
-  });
-
-  it('saves a transcription', async () => {
-    const { library, result } = await run('set_page_transcription', {
-      pageId: 501,
-      transcription: '× tidy the desk',
-      pageDate: '2026-01-02',
-    });
-    expect(result).toEqual({
-      ok: true,
-      pageId: 501,
-      pageNumber: 1,
-      pageDate: '2026-01-02',
-    });
-    expect(library.setPageTranscription).toHaveBeenCalledWith(501, {
-      transcription: '× tidy the desk',
-      pageDate: '2026-01-02',
-    });
-    await expect(
-      run('set_page_transcription', { pageId: 9, transcription: 'x' }),
-    ).rejects.toThrow(/Page 9 not found/);
-  });
-
-  it.each([
-    [{ pageId: 1, transcription: 'x', pageDate: '2026-13-01' }],
-    [{ pageId: 1, transcription: 'x', pageDate: '02/01/2026' }],
-    [{ pageId: 1, transcription: 'x', pageNumber: 0 }],
-    [{ pageId: 1 }],
-  ])('rejects set_page_transcription input %j', (input) => {
-    const tool = tools.find((t) => t.name === 'set_page_transcription');
-    expect(z.object(tool?.input ?? {}).safeParse(input).success).toBe(false);
-  });
-});
-
-describe('notebook organising tools', () => {
-  const run = async (name: string, input: Record<string, unknown>) => {
-    const library = fakeLibrary();
-    const tool = calibreTools(library as unknown as CalibreLibrary).find(
-      (t) => t.name === name,
-    );
-    const parsed = z.object(tool?.input ?? {}).parse(input);
-    return { library, result: await tool?.run(parsed, {}) };
-  };
-
-  it('lists pages without images, with a one-line transcription preview', async () => {
-    const { result } = await run('list_notebook_pages', {
-      notebookId: NOTEBOOK_ID,
-    });
-    const pages = result as Array<Record<string, unknown>>;
-    expect(pages).toHaveLength(12);
-    expect(pages[0]).toEqual({
-      id: 501,
-      position: 1,
-      pageNumber: 1,
-      pageDate: null,
-      fileName: 'page-1.png',
-      transcription: '• tidy the desk',
-    });
-  });
-
-  it('passes dryRun through and defaults it to false', async () => {
-    const { library } = await run('move_pages', {
-      pageIds: [501],
-      toNotebookId: 6,
-      afterPageId: 601,
-    });
-    expect(library.movePages).toHaveBeenCalledWith([501], 6, {
-      afterPageId: 601,
-      dryRun: false,
-    });
-    const merged = await run('merge_notebooks', {
-      sourceNotebookId: 7,
-      targetNotebookId: NOTEBOOK_ID,
-      dryRun: true,
-    });
-    expect(merged.library.mergeNotebooks).toHaveBeenCalledWith(7, NOTEBOOK_ID, {
-      placement: 'end',
-      dryRun: true,
-    });
-  });
-
-  it.each([
-    ['list_notebook_pages', { notebookId: 999 }],
-    ['rename_notebook', { notebookId: 999, name: 'x' }],
-    ['reorder_pages', { notebookId: 999, pageIds: [1] }],
-    ['delete_notebook', { notebookId: 999 }],
-  ])('%s reports an unknown notebook', async (name, input) => {
-    await expect(run(name, input)).rejects.toThrow(/Notebook 999 not found/);
   });
 });

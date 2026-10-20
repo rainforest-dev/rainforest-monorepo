@@ -27,7 +27,7 @@ Cloud session notes for rainforest-monorepo:
 - Nx Cloud is unreachable here (NX_NO_CLOUD=true). Tasks run locally in this VM.
 - Only chromium is installed. personal-liff and personal-liff-e2e are unmaintained;
   leave them out of test and e2e runs.
-- VAULT_PATH does not exist here. rss-manager code that reads the vault can only be
+- VAULT_PATH does not exist here. reading-room code that reads the vault can only be
   exercised through its fixtures.
 $( [ -n "$problems" ] && printf 'Setup problems:\n%b' "$problems" )
 EOF

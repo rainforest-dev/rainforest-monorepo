@@ -2,11 +2,6 @@ import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 
-import {
-  NOTEBOOK_ADDED_COLUMNS,
-  NOTEBOOK_PAGE_ADDED_COLUMNS,
-  NOTEBOOKS_DDL,
-} from './app-ddl';
 import * as schema from './schema';
 import * as appSchema from './schema-app';
 
@@ -118,26 +113,6 @@ export function appDbPath(): string {
   );
 }
 
-/** Adds columns a table created by an older build does not have yet. */
-function addMissingColumns(
-  sqliteDb: BetterSqlite3Database,
-  table: string,
-  added: readonly { name: string; definition: string }[],
-): void {
-  const columns = new Set(
-    (
-      sqliteDb.prepare(`PRAGMA table_info(${table})`).all() as Array<{
-        name: string;
-      }>
-    ).map((column) => column.name),
-  );
-  for (const { name, definition } of added) {
-    if (!columns.has(name)) {
-      sqliteDb.exec(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
-    }
-  }
-}
-
 function getAppDb(): AppDb {
   if (!_appDb) {
     // Ensure Calibre DB is open so _rawSqlite is available for FTS sync.
@@ -167,13 +142,8 @@ function getAppDb(): AppDb {
         ('notebooklm', 'NotebookLM');
       UPDATE book_deliveries SET added_at = datetime('now') WHERE added_at = 'CURRENT_TIMESTAMP';
     `);
-    _appSqlite.exec(NOTEBOOKS_DDL);
-    addMissingColumns(_appSqlite, 'notebooks', NOTEBOOK_ADDED_COLUMNS);
-    addMissingColumns(
-      _appSqlite,
-      'notebook_pages',
-      NOTEBOOK_PAGE_ADDED_COLUMNS,
-    );
+    // The notebooks and notebook_pages tables of an older file stay as they were: personal-notebook
+    // imports them once (NOTEBOOK_IMPORT_FROM) and calibre no longer reads them.
 
     syncBooksFts();
 

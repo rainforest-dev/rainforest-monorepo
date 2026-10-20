@@ -103,7 +103,8 @@
           "library-hall",
           "personal-calibre",
           "personal-memories",
-          "@rainforest-monorepo/rss-manager"
+          "personal-notebook",
+          "@rainforest-monorepo/reading-room"
         ],
         "projectsRelationship": "independent",
         "releaseTag": { "pattern": "{projectName}@{version}" },
