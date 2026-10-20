@@ -27,7 +27,7 @@ async function markDeliveredToReadwise(page: Page, count: number) {
 
 async function expectLogged(page: Page, ids: number[]) {
   for (const id of ids) {
-    const res = await page.request.get(`/api/books/${id}/deliveries`);
+    const res = await page.request.get(`/books/api/books/${id}/deliveries`);
     const body = (await res.json()) as {
       events: Array<{ platformKey: string }>;
     };

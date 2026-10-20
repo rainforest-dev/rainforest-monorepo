@@ -1,7 +1,7 @@
 import type { APIRequestContext } from '@playwright/test';
 
 export const MCP_SECRET = process.env['CALIBRE_MCP_SECRET'] || 'e2e-mcp-secret';
-export const MCP_PATHS = ['/mcp', '/api/mcp'] as const;
+export const MCP_PATHS = ['/books/mcp', '/books/api/mcp'] as const;
 export const AUTHED = {
   'x-calibre-gateway': MCP_SECRET,
   'x-forwarded-login': 'e2e',
@@ -30,7 +30,7 @@ export async function callTool(
   name: string,
   args: Record<string, unknown> = {},
 ) {
-  const response = await rpc(request, '/mcp', 'tools/call', {
+  const response = await rpc(request, '/books/mcp', 'tools/call', {
     name,
     arguments: args,
   });

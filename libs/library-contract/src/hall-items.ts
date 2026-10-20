@@ -13,7 +13,7 @@ export const COLLECTION_OF_KIND: Record<HallItemKind, CollectionId> = {
 };
 
 /** A same-origin absolute path: one leading slash, never `//host` or a scheme. */
-const sameOriginPath = z
+export const sameOriginPath = z
   .string()
   .regex(/^\/(?![/\\])/, 'href must be a same-origin path starting with /');
 

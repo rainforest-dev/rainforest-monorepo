@@ -1,27 +1,22 @@
 /**
  * Fonts, icons and the stylesheet every app shares, at one URL on the library hostname so the
- * browser downloads them once. Each app serves the same files from `public/_shell` until the
- * hall owns the path.
+ * browser downloads them once. The hall answers `/_shell` there; each app keeps the same files in
+ * `public/_shell` for dev, e2e and its own port.
  */
 export const SHELL_ASSET_BASE = '/_shell';
 
 /**
- * The shared files under `base`. An app with a Next `basePath` serves `public/_shell` under that
- * path, so until the hostname routes `/_shell` it passes its own (`/notebooks/_shell`). The
- * stylesheet names its fonts relative to itself, so they follow.
+ * The shared files. An app with a Next `basePath` keeps them in `public/_shell` too and
+ * redirects `/_shell` to that copy off the library hostname.
  */
-export function shellAssets(base: string = SHELL_ASSET_BASE) {
-  return {
-    stylesheet: `${base}/shell.css`,
-    fonts: [
-      `${base}/fonts/inter-latin-wght-normal.woff2`,
-      `${base}/fonts/inter-latin-ext-wght-normal.woff2`,
-    ],
-    icon: `${base}/icons/library.svg`,
-  } as const;
-}
-
-export const SHELL_ASSETS = shellAssets();
+export const SHELL_ASSETS = {
+  stylesheet: `${SHELL_ASSET_BASE}/shell.css`,
+  fonts: [
+    `${SHELL_ASSET_BASE}/fonts/inter-latin-wght-normal.woff2`,
+    `${SHELL_ASSET_BASE}/fonts/inter-latin-ext-wght-normal.woff2`,
+  ],
+  icon: `${SHELL_ASSET_BASE}/icons/library.svg`,
+} as const;
 
 /** The font-family the shared stylesheet registers. */
 export const SHELL_FONT_FAMILY = 'Inter Variable';

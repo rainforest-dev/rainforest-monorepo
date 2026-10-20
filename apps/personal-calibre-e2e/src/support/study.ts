@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
+import { appPath } from './library';
+
 export type StudyRun =
   | { renderer: 'css' }
   | { renderer: 'three-tsl'; backend: 'webgpu' | 'webgl2' }
@@ -48,7 +50,7 @@ export async function startRun(page: Page, run: StudyRun): Promise<void> {
   );
   await prepareRun(page, run);
   if (run.renderer === 'three-tsl' && run.backend === 'webgpu') {
-    await page.goto('/favicon.ico');
+    await page.goto(appPath('/favicon.ico'));
     test.skip(!(await hasWebGpu(page)), 'this browser has no WebGPU adapter');
   }
 }
@@ -91,7 +93,7 @@ export async function gotoStudy(
     renderer: run.renderer,
   });
   new URLSearchParams(query).forEach((value, key) => params.set(key, value));
-  await page.goto(`/?${params.toString().replace(/=(?=&|$)/g, '')}`);
+  await page.goto(appPath(`/?${params.toString().replace(/=(?=&|$)/g, '')}`));
   await expect(page.locator('[data-library-ready]')).toHaveCount(1);
   await expect(page.locator('[data-study-ready]')).toHaveCount(1, {
     timeout: STUDY_READY_MS,

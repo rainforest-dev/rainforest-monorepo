@@ -2,7 +2,7 @@ import { gzipSync } from 'node:zlib';
 
 import { expect, type Page, test } from '@playwright/test';
 
-import { setPrefs } from './support/library';
+import { appPath, setPrefs } from './support/library';
 import { canvasWrap } from './support/study';
 
 test.skip(
@@ -51,7 +51,7 @@ async function loadScripts(
         .catch(() => null),
     );
   });
-  await page.goto(url);
+  await page.goto(appPath(url));
   await ready?.();
   await page.waitForLoadState('networkidle');
   return (await Promise.all(pending)).filter(
@@ -124,7 +124,7 @@ test.describe('Study bundle', () => {
     request,
   }) => {
     const url = '/?view=study&groupBy=series';
-    const html = await (await request.get(url)).text();
+    const html = await (await request.get(appPath(url))).text();
     const scripts = await loadScripts(page, url, async () => {
       await expect(canvasWrap(page)).toHaveAttribute(
         'data-renderer',
@@ -143,7 +143,7 @@ test.describe('Study bundle', () => {
     request,
   }) => {
     const url = '/?view=study&groupBy=series&renderer=three-glsl';
-    const html = await (await request.get(url)).text();
+    const html = await (await request.get(appPath(url))).text();
     const scripts = await loadScripts(page, url, () =>
       expect(canvasWrap(page)).toHaveAttribute('data-backend', 'webgl2'),
     );
@@ -162,7 +162,7 @@ test.describe('Study bundle', () => {
     request,
   }) => {
     const url = '/?view=study&groupBy=series&renderer=three-pathtrace';
-    const html = await (await request.get(url)).text();
+    const html = await (await request.get(appPath(url))).text();
     const scripts = await loadScripts(page, url, () =>
       expect(canvasWrap(page)).toHaveAttribute('data-backend', /.+/),
     );

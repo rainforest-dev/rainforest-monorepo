@@ -36,7 +36,7 @@ export default defineConfig({
     ? undefined
     : {
         command: `pnpm --dir apps/personal-calibre exec next dev -p ${PORT}`,
-        url: `http://localhost:${PORT}/favicon.ico`,
+        url: `http://localhost:${PORT}/books/favicon.ico`,
         reuseExistingServer: false,
         timeout: 180_000,
         cwd: workspaceRoot,

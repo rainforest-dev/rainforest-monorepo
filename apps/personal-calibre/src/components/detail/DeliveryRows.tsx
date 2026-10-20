@@ -29,6 +29,7 @@ import { useRouter } from 'next/navigation';
 import { Fragment, useId, useState } from 'react';
 
 import {
+  BASE_PATH,
   formatDeliveryDate,
   formatDeliveryTime,
   latestByPlatform,
@@ -123,7 +124,7 @@ function DeliveryRow({
     }
     setSaving(true);
     try {
-      const res = await fetch(`/api/books/${bookId}/deliveries`, {
+      const res = await fetch(`${BASE_PATH}/api/books/${bookId}/deliveries`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ platformKey: platform.key, note, externalRef }),
@@ -243,7 +244,7 @@ function HistoryItem({
     setBusy(true);
     try {
       const res = await fetch(
-        `/api/books/${bookId}/deliveries?deliveryId=${event.id}`,
+        `${BASE_PATH}/api/books/${bookId}/deliveries?deliveryId=${event.id}`,
         {
           method: 'DELETE',
         },

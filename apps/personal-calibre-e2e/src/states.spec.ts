@@ -1,6 +1,7 @@
 import { expect, type Locator, test } from '@playwright/test';
 
 import {
+  appPath,
   BASE_URL,
   FAULT_COOKIE,
   gotoLibrary,
@@ -28,13 +29,13 @@ test.describe('states', () => {
     context,
   }) => {
     await setPrefs(context, { view: 'catalogue' });
-    await page.goto('/?__delay=2500', { waitUntil: 'commit' });
+    await page.goto(appPath('/?__delay=2500'), { waitUntil: 'commit' });
     await expect(page.locator('[data-skeleton="catalogue"]')).toBeVisible();
     await expect(page.getByRole('grid', { name: 'Books' })).toBeVisible({
       timeout: 15_000,
     });
     await setPrefs(context, { view: 'shelf' });
-    await page.goto('/?__delay=2500', { waitUntil: 'commit' });
+    await page.goto(appPath('/?__delay=2500'), { waitUntil: 'commit' });
     await expect(page.locator('[data-skeleton="shelf"]')).toBeVisible();
   });
 

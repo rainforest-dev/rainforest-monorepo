@@ -140,7 +140,7 @@ test.describe('shared search', () => {
         async () =>
           (
             (await (
-              await page.request.get('/api/books/search?q=harbor')
+              await page.request.get('/books/api/books/search?q=harbor')
             ).json()) as { semantic: string }
           ).semantic,
         { timeout: 30_000 },

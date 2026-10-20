@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { atomDate, buildAcquisitionEntry } from '@/lib';
+import { atomDate, BASE_PATH, buildAcquisitionEntry } from '@/lib';
 import { getBookList } from '@/lib/server';
 
 export async function GET(request: NextRequest) {
@@ -15,11 +15,11 @@ export async function GET(request: NextRequest) {
   <id>urn:uuid:calibre-opds-all-books</id>
   <title>All Books</title>
   <updated>${atomDate()}</updated>
-  <link href="/opds/books?page=${page}" rel="self" type="application/atom+xml;profile=opds-catalog;kind=acquisition" />
-  <link href="/opds" rel="start" type="application/atom+xml;profile=opds-catalog;kind=navigation" />`;
+  <link href="${BASE_PATH}/opds/books?page=${page}" rel="self" type="application/atom+xml;profile=opds-catalog;kind=acquisition" />
+  <link href="${BASE_PATH}/opds" rel="start" type="application/atom+xml;profile=opds-catalog;kind=navigation" />`;
 
   if (hasMore) {
-    xml += `\n  <link href="/opds/books?page=${page + 1}" rel="next" type="application/atom+xml;profile=opds-catalog;kind=acquisition" />`;
+    xml += `\n  <link href="${BASE_PATH}/opds/books?page=${page + 1}" rel="next" type="application/atom+xml;profile=opds-catalog;kind=acquisition" />`;
   }
 
   for (const book of books) {

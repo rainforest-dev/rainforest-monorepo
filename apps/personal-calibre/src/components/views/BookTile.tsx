@@ -1,6 +1,6 @@
 'use client';
 
-import { cn, seriesLine, spineClass } from '@/lib';
+import { BASE_PATH, cn, seriesLine, spineClass } from '@/lib';
 import type { DeliveryPlatform, LibraryBook } from '@/types';
 
 import { DeliveryMarks } from './DeliveryMarks';
@@ -63,7 +63,7 @@ export function BookTile({
       >
         {book.hasCover ? (
           <img
-            src={`/api/books/${book.id}/cover`}
+            src={`${BASE_PATH}/api/books/${book.id}/cover`}
             alt=""
             loading="lazy"
             className="size-full object-cover"

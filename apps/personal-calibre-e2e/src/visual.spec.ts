@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import { expect, type Page, test } from '@playwright/test';
 
+import { appPath } from './support/library';
 import { COVER_IDS } from './support/seed';
 
 const PHASE = process.env['CALIBRE_VISUAL'];
@@ -200,7 +201,7 @@ for (const scheme of SCHEMES) {
           test.skip(PHASE === 'before' && !!surface.afterOnly, 'after-only');
           test.skip(!!surface.phoneOnly && !vp.isMobile, 'phone-only');
           await surface.init?.(page);
-          await page.goto(surface.url);
+          await page.goto(appPath(surface.url));
           await settle(page);
           await surface.act?.(page, vp.isMobile);
           await settle(page);

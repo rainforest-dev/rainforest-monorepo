@@ -9,6 +9,7 @@ import {
 import { Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { BASE_PATH } from '@/lib';
 import { useLibrary } from '@/providers';
 
 interface Suggestion {
@@ -42,7 +43,7 @@ export function SearchField({ initialQuery }: { initialQuery: string }) {
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/books/search?q=${encodeURIComponent(trimmed)}`,
+          `${BASE_PATH}/api/books/search?q=${encodeURIComponent(trimmed)}`,
           {
             signal: controller.signal,
           },

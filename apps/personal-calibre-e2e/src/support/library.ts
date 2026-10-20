@@ -3,11 +3,21 @@ import { type BrowserContext, expect, type Page } from '@playwright/test';
 import { PORT } from './port';
 
 export const BASE_URL = process.env['BASE_URL'] ?? `http://localhost:${PORT}`;
+/** Where the app is mounted, its next.config `basePath`. */
+export const BASE_PATH = '/books';
+
+/** An in-app path (`/`, `/?book=1`, `/read/1`) as the URL the app answers at. */
+export function appPath(path: string): string {
+  if (path === '/') return BASE_PATH;
+  return path.startsWith('/?')
+    ? `${BASE_PATH}${path.slice(1)}`
+    : `${BASE_PATH}${path}`;
+}
 export const PREFS_COOKIE = 'calibre-prefs';
 export const FAULT_COOKIE = 'calibre-e2e-fault';
 
 export async function gotoLibrary(page: Page, url = '/'): Promise<void> {
-  await page.goto(url);
+  await page.goto(appPath(url));
   await expect(page.locator('[data-library-ready]')).toHaveCount(1);
   const isList = (url.split('?')[0] || '/') === '/';
   if (isList) {

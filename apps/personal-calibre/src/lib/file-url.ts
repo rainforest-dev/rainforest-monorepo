@@ -1,3 +1,5 @@
+import { BASE_PATH } from './base-path';
+
 export function staticDownloadUrl(
   bookPath: string,
   fileName: string,
@@ -7,5 +9,5 @@ export function staticDownloadUrl(
     ...bookPath.split('/'),
     `${fileName}.${format.toLowerCase()}`,
   ];
-  return '/files/' + segments.map(encodeURIComponent).join('/');
+  return `${BASE_PATH}/files/` + segments.map(encodeURIComponent).join('/');
 }

@@ -1,6 +1,12 @@
 import { CanvasTexture, SRGBColorSpace, Texture } from 'three';
 
-import { COVER_CACHE_MAX, COVER_H, COVER_W, type StudyBook } from '@/lib';
+import {
+  BASE_PATH,
+  COVER_CACHE_MAX,
+  COVER_H,
+  COVER_W,
+  type StudyBook,
+} from '@/lib';
 
 import { FONT_STACK } from './atlas';
 import { SIDE_MIX } from './ShelfRow';
@@ -25,7 +31,7 @@ const PAD = 20;
 
 const css = (rgb: Rgb) => `rgb(${rgb.map((v) => Math.round(v)).join(',')})`;
 
-export const coverUrl = (id: number) => `/api/books/${id}/cover`;
+export const coverUrl = (id: number) => `${BASE_PATH}/api/books/${id}/cover`;
 
 function wrapTitle(
   ctx: CanvasRenderingContext2D,

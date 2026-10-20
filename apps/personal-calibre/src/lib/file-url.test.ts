@@ -11,7 +11,7 @@ describe('staticDownloadUrl', () => {
         'EPUB',
       ),
     ).toBe(
-      '/files/Mara%20Ostrand/The%20Salt%20Archive%20(1)/The%20Salt%20Archive.epub',
+      '/books/files/Mara%20Ostrand/The%20Salt%20Archive%20(1)/The%20Salt%20Archive.epub',
     );
   });
 });

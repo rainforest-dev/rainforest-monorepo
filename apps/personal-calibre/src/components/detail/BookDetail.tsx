@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Fragment } from 'react';
 
 import {
+  BASE_PATH,
   buildLibraryHref,
   cn,
   type ParamPatch,
@@ -87,7 +88,7 @@ export function BookDetail({
         >
           {book.hasCover ? (
             <img
-              src={`/api/books/${book.id}/cover`}
+              src={`${BASE_PATH}/api/books/${book.id}/cover`}
               alt=""
               className="size-full object-cover"
             />

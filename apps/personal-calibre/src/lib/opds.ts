@@ -1,5 +1,7 @@
 import type { BookDetail, BookSummary } from '@/types';
 
+import { BASE_PATH } from './base-path';
+
 export function atomDate(date?: string | Date | null): string {
   if (!date) return new Date().toISOString();
   try {
@@ -29,17 +31,17 @@ export function buildAcquisitionEntry(
   }
 
   if (book.hasCover) {
-    entry += `\n  <link href="/api/books/${book.id}/cover" rel="http://opds-spec.org/image" type="image/jpeg" />`;
-    entry += `\n  <link href="/api/books/${book.id}/cover" rel="http://opds-spec.org/image/thumbnail" type="image/jpeg" />`;
+    entry += `\n  <link href="${BASE_PATH}/api/books/${book.id}/cover" rel="http://opds-spec.org/image" type="image/jpeg" />`;
+    entry += `\n  <link href="${BASE_PATH}/api/books/${book.id}/cover" rel="http://opds-spec.org/image/thumbnail" type="image/jpeg" />`;
   }
 
   for (const format of book.formats) {
     const mime = getMimeType(format);
-    entry += `\n  <link href="/api/books/${book.id}/download/${format.toLowerCase()}" rel="http://opds-spec.org/acquisition" type="${mime}" />`;
+    entry += `\n  <link href="${BASE_PATH}/api/books/${book.id}/download/${format.toLowerCase()}" rel="http://opds-spec.org/acquisition" type="${mime}" />`;
   }
 
   if (!isSingle) {
-    entry += `\n  <link href="/opds/books/${book.id}" type="application/atom+xml;type=entry;profile=opds-catalog" rel="alternate" />`;
+    entry += `\n  <link href="${BASE_PATH}/opds/books/${book.id}" type="application/atom+xml;type=entry;profile=opds-catalog" rel="alternate" />`;
   }
 
   entry += '\n</entry>';

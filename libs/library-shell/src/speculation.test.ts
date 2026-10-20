@@ -2,8 +2,14 @@ import { speculationRules, speculationRulesJson } from './speculation';
 
 type Rule = ReturnType<typeof speculationRules>['prerender'][number];
 
-/** A tiny evaluator for the subset of the rule grammar the shell emits. */
-function matches(rule: Rule, href: string, attrs: string[] = []): boolean {
+/**
+ * A tiny evaluator for the subset of the rule grammar the shell emits. `selector_matches` runs
+ * against a real link in the DOM, so a selector that never matches the markup fails here.
+ */
+function matches(rule: Rule, href: string, markup?: string): boolean {
+  document.body.innerHTML = markup ?? `<a href="${href}">book</a>`;
+  const link = document.querySelector('a');
+  if (!link) throw new Error('the markup needs a link');
   // URL-pattern subset: `*` is a wildcard and `\?` a literal `?`; every other character,
   // a backslash included, is literal.
   const toRegExp = (pattern: string) => {
@@ -26,9 +32,7 @@ function matches(rule: Rule, href: string, attrs: string[] = []): boolean {
     if ('href_matches' in cond)
       return toRegExp(cond['href_matches'] as string).test(href);
     if ('selector_matches' in cond)
-      return attrs.some((a) =>
-        (cond['selector_matches'] as string).includes(a),
-      );
+      return link.matches(cond['selector_matches'] as string);
     throw new Error(`unexpected condition ${JSON.stringify(cond)}`);
   };
   return test(rule.where as Cond);
@@ -60,15 +64,30 @@ describe('speculationRules', () => {
     '/api/hall-items',
     '/books/api/deliveries',
     '/opds/catalog',
+    '/books/opds',
+    '/books/opds/books',
     '/books/files/4/book.epub',
-    '/read/4',
+    '/books/read/4',
   ])('never prerenders %s', (href) => {
     expect(matches(rule, href)).toBe(false);
   });
 
-  it('lets a link opt out', () => {
-    expect(matches(rule, '/books', ['[data-no-prerender]'])).toBe(false);
-    expect(matches(rule, '/books', ['[rel~=nofollow]'])).toBe(false);
+  it.each([
+    '<a href="/books" data-no-prerender>book</a>',
+    '<nav data-no-prerender><span><a href="/books">book</a></span></nav>',
+    '<a href="/books" rel="noopener nofollow">book</a>',
+  ])('lets a link opt out: %s', (markup) => {
+    expect(matches(rule, '/books', markup)).toBe(false);
+  });
+
+  it('keeps a plain link with other attributes', () => {
+    expect(
+      matches(
+        rule,
+        '/books',
+        '<a href="/books" rel="noopener" data-x>book</a>',
+      ),
+    ).toBe(true);
   });
 
   it('serialises without a closing tag', () => {
