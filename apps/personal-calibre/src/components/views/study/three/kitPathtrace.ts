@@ -5,6 +5,8 @@ import {
   WebGPUPathTracer,
 } from 'three-gpu-pathtracer/webgpu';
 
+import { withBase } from '@/lib';
+
 import type { PhotoOptions, StudyKit } from './kit';
 import { kit as tslKit } from './kitTsl';
 import {
@@ -13,7 +15,7 @@ import {
   trackMaterials,
 } from './photoScene';
 
-export const DENOISER_WEIGHTS_URL = '/oidn/rt_hdr_alb_nrm_small.tza';
+export const DENOISER_WEIGHTS_URL = withBase('/oidn/rt_hdr_alb_nrm_small.tza');
 
 const tracked = trackMaterials(tslKit.materials);
 const PRESENT_AT_SAMPLES = 8;
