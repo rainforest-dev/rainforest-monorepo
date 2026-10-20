@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Canvas,
   type ThreeEvent,
@@ -58,6 +59,7 @@ import {
   type Slot,
   takeoffOrder,
 } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 
 import { Avatar, type AvatarMotion } from './Avatar';
 
@@ -546,6 +548,7 @@ function HallScene({
 
 export default function ThreeHall(props: ThreeHallProps) {
   const tokens = useTokens();
+  const t = useLibraryT(HALL_NAMESPACE);
   const labels = useRef<HTMLDivElement>(null);
   const keys = useRef(new Set<string>());
   // Replaced with the scene's invalidate once the canvas mounts.
@@ -557,7 +560,7 @@ export default function ThreeHall(props: ThreeHallProps) {
       data-hall-canvas
       // Focusable so WASD and the arrow keys steer without fighting the page's own shortcuts.
       tabIndex={0}
-      aria-label="圖書館大廳。用 W A S D 或方向鍵走路，點地板或書櫃走過去。"
+      aria-label={t('hall.canvas')}
       onKeyDown={(event) => {
         const key = event.key.toLowerCase();
         if (!(key in KEY_DIRECTIONS)) return;

@@ -1,7 +1,12 @@
 'use client';
 
+import { DEFAULT_LIBRARY_PREFS } from '@rainforest-dev/library-contract';
 import { COLLECTION_OF_KIND } from '@rainforest-dev/library-contract';
-import { pushRecent } from '@rainforest-dev/library-shell';
+import {
+  pushRecent,
+  useLibraryLocale,
+  useLibraryT,
+} from '@rainforest-dev/library-shell';
 import { toast } from '@rainforest-dev/rainforest-react';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -30,6 +35,7 @@ import {
   type StudyBackend,
   writeLibraryPrefs,
 } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 
 export type PendingFocus =
   | { kind: 'first'; page: number }
@@ -143,10 +149,15 @@ export function HallProvider({
     () => false,
   );
   const desktop = useIsFinePointerDesktop();
+  const locale = useLibraryLocale();
+  const t = useLibraryT(HALL_NAMESPACE);
 
   const groupParam = searchParams.get('group');
   const groupBy = isHallGroupBy(groupParam) ? groupParam : DEFAULT_GROUP_BY;
-  const cases = useMemo(() => buildHall(books, groupBy), [books, groupBy]);
+  const cases = useMemo(
+    () => buildHall(books, groupBy, locale),
+    [books, groupBy, locale],
+  );
   const bookById = useMemo(
     () => new Map(books.map((book) => [book.id, book])),
     [books],
@@ -213,8 +224,8 @@ export function HallProvider({
   const fallBackToCss = useCallback(() => {
     if (readStudyFallback()) return;
     writeStudyFallback();
-    toast('這台裝置無法顯示 3D，改用 CSS 書牆');
-  }, []);
+    toast(t('hall.no3d'));
+  }, [t]);
 
   const noteOpened = useCallback(
     (id: number) => {
@@ -318,6 +329,6 @@ export function HallProvider({
 
 function readLibraryPrefsSafe() {
   return typeof document === 'undefined'
-    ? { scheme: 'system' as const, renderer: null }
+    ? DEFAULT_LIBRARY_PREFS
     : readLibraryPrefs();
 }

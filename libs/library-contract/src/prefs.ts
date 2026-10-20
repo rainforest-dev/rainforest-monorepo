@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
+import { LIBRARY_LOCALES, type LibraryLocale, negotiateLocale } from './locale';
+
 /**
- * Personal preferences shared by every app on the library hostname. One cookie, so the theme
- * and the 3D renderer follow the reader from the hall into a collection and back.
+ * Personal preferences shared by every app on the library hostname. One cookie, so the theme,
+ * the language and the 3D renderer follow the reader from the hall into a collection and back.
  */
 export const LIBRARY_PREFS_COOKIE = 'library-prefs';
 export const LIBRARY_PREFS_MAX_AGE = 60 * 60 * 24 * 365;
@@ -14,12 +16,15 @@ const prefsSchema = z.object({
   scheme: z.enum(SCHEMES).catch('system'),
   /** A renderer id the hall understands; unknown ids are the hall's to reject. */
   renderer: z.string().min(1).max(64).nullable().catch(null),
+  /** The language the reader picked; `null` follows the browser's `Accept-Language`. */
+  locale: z.enum(LIBRARY_LOCALES).nullable().catch(null),
 });
 export type LibraryPrefs = z.infer<typeof prefsSchema>;
 
 export const DEFAULT_LIBRARY_PREFS: LibraryPrefs = {
   scheme: 'system',
   renderer: null,
+  locale: null,
 };
 
 function parseJson(text: string): unknown {
@@ -52,4 +57,36 @@ export function parseLibraryPrefs(
 /** The cookie's value, URI-encoded so it survives every cookie parser. */
 export function serializeLibraryPrefs(prefs: LibraryPrefs): string {
   return encodeURIComponent(JSON.stringify(prefs));
+}
+
+/**
+ * The locale a request should render in: the reader's pick from the prefs cookie, else the
+ * browser's `Accept-Language`, else the library default.
+ */
+export function resolveLibraryLocale(
+  prefsCookie: string | undefined | null,
+  acceptLanguage: string | undefined | null,
+): LibraryLocale {
+  return (
+    parseLibraryPrefs(prefsCookie).locale ?? negotiateLocale(acceptLanguage)
+  );
+}
+
+/** The prefs cookie's raw value in a `Cookie` header. */
+export function libraryPrefsFromCookieHeader(
+  cookieHeader: string | null | undefined,
+): string | null {
+  for (const part of (cookieHeader ?? '').split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === LIBRARY_PREFS_COOKIE) return rest.join('=');
+  }
+  return null;
+}
+
+/** {@link resolveLibraryLocale} for a request's headers, for a proxy or middleware. */
+export function libraryLocaleOfRequest(headers: Headers): LibraryLocale {
+  return resolveLibraryLocale(
+    libraryPrefsFromCookieHeader(headers.get('cookie')),
+    headers.get('accept-language'),
+  );
 }

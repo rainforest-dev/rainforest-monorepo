@@ -1,6 +1,7 @@
 'use client';
 
 import { itemTransitionName } from '@rainforest-dev/library-contract';
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button, buttonVariants } from '@rainforest-dev/rainforest-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
@@ -11,6 +12,7 @@ import {
 } from 'react';
 
 import { cn, type StudyBook } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 
 const SWIPE_PX = 40;
 
@@ -38,6 +40,7 @@ export function StudyCard({
   onStep,
   onOpen,
 }: StudyCardProps) {
+  const t = useLibraryT(HALL_NAMESPACE);
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const onPointerUp = (event: PointerEvent) => {
     const from = swipe.current;
@@ -57,7 +60,7 @@ export function StudyCard({
       </div>
       {book && (
         <section
-          aria-label="拿起的書"
+          aria-label={t('study.picked')}
           data-study-card
           data-book-id={book.id}
           data-scrubbing={scrubbing || undefined}
@@ -77,7 +80,7 @@ export function StudyCard({
           <button
             ref={thumbRef}
             type="button"
-            aria-label={`以 3D 翻看《${book.title}》`}
+            aria-label={t('study.inspect', { title: book.title })}
             data-study-card-thumb
             onClick={onInspect}
             className="focus-visible:ring-ring relative h-16 w-11 shrink-0 cursor-zoom-in overflow-hidden rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
@@ -115,14 +118,14 @@ export function StudyCard({
                 'h-auto px-0',
               )}
             >
-              查看詳細
+              {t('study.details')}
             </a>
           </div>
           <div className="flex shrink-0 gap-1">
             <Button
               size="icon-sm"
               variant="outline"
-              aria-label="上一本"
+              aria-label={t('study.previousBook')}
               disabled={!hasPrevious}
               onClick={() => onStep(-1)}
             >
@@ -131,7 +134,7 @@ export function StudyCard({
             <Button
               size="icon-sm"
               variant="outline"
-              aria-label="下一本"
+              aria-label={t('study.nextBook')}
               disabled={!hasNext}
               onClick={() => onStep(1)}
             >

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryLocale, useLibraryT } from '@rainforest-dev/library-shell';
 import type { NavItem } from '@rainforest-dev/rainforest-ui/interaction';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -12,6 +13,7 @@ import {
   isThreeRenderer,
   type ThreeRenderer,
 } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
 import { canStartRenderer } from './capabilities';
@@ -47,6 +49,7 @@ function ThreeHost({
   ...props
 }: ThreeHostProps) {
   const { fallBackToCss, setBackend } = useHall();
+  const t = useLibraryT(HALL_NAMESPACE);
   const [capable, setCapable] = useState(false);
   const optionProps = useStudyOptionProps(props.nav, props.pull);
 
@@ -68,7 +71,10 @@ function ThreeHost({
           <div key={state.book.navKey} {...optionProps(state)} />
         )}
       />
-      <ThreeStudyBoundary onUseCss={fallBackToCss}>
+      <ThreeStudyBoundary
+        onUseCss={fallBackToCss}
+        labels={{ title: t('study.no3dTitle'), useCss: t('study.useCss') }}
+      >
         {capable ? (
           <LoadThreeStudy
             key={renderer}
@@ -94,10 +100,11 @@ export function StudyView({
   nextPageCovers,
 }: StudyViewProps) {
   const { selected, focusId, renderer, backend, noteOpened } = useHall();
+  const locale = useLibraryLocale();
   const three = isThreeRenderer(renderer);
   const model = useMemo(
-    () => buildStudyModel(bookcase, caseBooks, page),
-    [bookcase, caseBooks, page],
+    () => buildStudyModel(bookcase, caseBooks, page, locale),
+    [bookcase, caseBooks, page, locale],
   );
   const key = model.key;
   const navKeys = useMemo(

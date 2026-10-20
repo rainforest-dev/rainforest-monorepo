@@ -1,3 +1,4 @@
+import type { LibraryLocale } from '@rainforest-dev/library-contract';
 import type { HallItemKind } from '@rainforest-dev/library-contract';
 
 import { type HallBook, kindLabel } from '@/lib/items';
@@ -69,10 +70,6 @@ export function contentKey(books: readonly HallBook[]): string {
   return books.map((b) => `${b.key}|${b.title}|${b.cover ?? ''}`).join('\n');
 }
 
-export function booksLabel(n: number): string {
-  return `${n} 件`;
-}
-
 export function pageCount(total: number): number {
   return Math.max(1, Math.ceil(total / STUDY_PAGE_SIZE));
 }
@@ -110,6 +107,7 @@ export function buildStudyModel(
   bookcase: { key: string; label: string },
   all: readonly HallBook[],
   page: number,
+  locale: LibraryLocale,
 ): StudyModel {
   const kinds = [...new Set(all.map((b) => b.kind))];
   const mixed = kinds.length > 1;
@@ -130,7 +128,7 @@ export function buildStudyModel(
       const before = ordered.slice(0, start).some((b) => shelfOf(b) === key);
       shelf = {
         key,
-        label: mixed ? kindLabel(book.kind) : bookcase.label,
+        label: mixed ? kindLabel(book.kind, locale) : bookcase.label,
         count: totals.get(key) ?? 0,
         continued: before,
         books: [],

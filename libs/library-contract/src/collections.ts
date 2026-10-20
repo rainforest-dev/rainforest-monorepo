@@ -1,3 +1,5 @@
+import type { LibraryLocale } from './locale';
+
 /** The hostname every collection is served under, one path zone per app. */
 export const LIBRARY_HOST = 'library.rainforest.tools';
 export const LIBRARY_ORIGIN = `https://${LIBRARY_HOST}`;
@@ -13,8 +15,8 @@ export type CollectionId = (typeof COLLECTION_IDS)[number];
 
 export interface Collection {
   id: CollectionId;
-  /** Shown in the shell's collection switcher. */
-  label: string;
+  /** Shown in the shell's collection switcher, in each locale. */
+  labels: Record<LibraryLocale, string>;
   /** Where the collection is mounted. The hall owns the root. */
   basePath: string;
   /** Extra paths the same app answers under the shared hostname. */
@@ -30,7 +32,7 @@ export interface Collection {
 export const COLLECTIONS: readonly Collection[] = [
   {
     id: 'hall',
-    label: '大廳',
+    labels: { zh: '大廳', en: 'Hall' },
     basePath: '/',
     aliases: ['/hall-next'],
     app: 'library-hall',
@@ -39,7 +41,7 @@ export const COLLECTIONS: readonly Collection[] = [
   },
   {
     id: 'books',
-    label: '書',
+    labels: { zh: '書', en: 'Books' },
     basePath: '/books',
     aliases: ['/opds'],
     app: 'personal-calibre',
@@ -48,7 +50,7 @@ export const COLLECTIONS: readonly Collection[] = [
   },
   {
     id: 'notebooks',
-    label: '筆記本',
+    labels: { zh: '筆記本', en: 'Notebooks' },
     basePath: '/notebooks',
     aliases: [],
     app: 'personal-notebook',
@@ -57,7 +59,7 @@ export const COLLECTIONS: readonly Collection[] = [
   },
   {
     id: 'rack',
-    label: '報架',
+    labels: { zh: '報架', en: 'Rack' },
     basePath: '/rack',
     aliases: [],
     app: 'reading-room',
@@ -66,7 +68,7 @@ export const COLLECTIONS: readonly Collection[] = [
   },
   {
     id: 'kb',
-    label: '知識庫',
+    labels: { zh: '知識庫', en: 'Knowledge' },
     basePath: '/kb',
     aliases: [],
     app: 'reading-room',
@@ -79,6 +81,16 @@ export function getCollection(id: CollectionId): Collection {
   const found = COLLECTIONS.find((c) => c.id === id);
   if (!found) throw new Error(`Unknown collection: ${id}`);
   return found;
+}
+
+/** A collection's name in `locale`. */
+export function collectionLabel(
+  collection: Collection | CollectionId,
+  locale: LibraryLocale,
+): string {
+  const found =
+    typeof collection === 'string' ? getCollection(collection) : collection;
+  return found.labels[locale];
 }
 
 function underPrefix(pathname: string, prefix: string): boolean {

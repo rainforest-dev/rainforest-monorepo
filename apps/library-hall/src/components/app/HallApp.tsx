@@ -2,12 +2,16 @@
 
 import {
   type CollectionId,
+  collectionLabel,
   COLLECTIONS,
+  type LibraryLocale,
 } from '@rainforest-dev/library-contract';
 import {
   CollectionTabBar,
   openLibraryChannel,
   ShellLayout,
+  useLibraryLocale,
+  useLibraryT,
 } from '@rainforest-dev/library-shell';
 import { Alert, AlertTitle, Button } from '@rainforest-dev/rainforest-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -15,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HallSkeleton } from '@/components/hall';
 import { useIsDesktop } from '@/hooks';
 import { toHallBooks } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 import { HallProvider, useHall } from '@/providers';
 
 import { HallHeader } from './HallHeader';
@@ -26,8 +31,10 @@ import {
 } from './items-cache';
 import { StudyRegion } from './StudyRegion';
 
-const labelOf = (id: string) =>
-  COLLECTIONS.find((c) => c.id === (id as CollectionId))?.label ?? id;
+const labelOf = (id: string, locale: LibraryLocale) => {
+  const collection = COLLECTIONS.find((c) => c.id === (id as CollectionId));
+  return collection ? collectionLabel(collection, locale) : id;
+};
 
 function HallScreen({ missing }: { missing: readonly SourceNotice[] }) {
   const { bookcase } = useHall();
@@ -44,6 +51,8 @@ function HallScreen({ missing }: { missing: readonly SourceNotice[] }) {
  */
 export function HallApp() {
   const isDesktop = useIsDesktop();
+  const locale = useLibraryLocale();
+  const t = useLibraryT(HALL_NAMESPACE);
   const [payload, setPayload] = useState<HallItemsPayload | null>(null);
   const [failed, setFailed] = useState(false);
   const [restored, setRestored] = useState(false);
@@ -116,9 +125,9 @@ export function HallApp() {
         .filter((s) => !s.ok)
         .map((s) => ({
           collection: s.collection,
-          label: labelOf(s.collection),
+          label: labelOf(s.collection, locale),
         })),
-    [payload],
+    [payload, locale],
   );
 
   let content;
@@ -133,14 +142,18 @@ export function HallApp() {
       <Alert data-hall-empty className="my-6">
         <AlertTitle>
           {failed && !payload
-            ? '大廳暫時拿不到館藏清單'
+            ? t('empty.failed')
             : missing.length > 0
-              ? `${missing.map((m) => m.label).join('、')}暫時無法載入，書櫃還是空的`
-              : '還沒有館藏可以擺上書櫃'}
+              ? t('empty.missing', {
+                  names: missing
+                    .map((m) => m.label)
+                    .join(t('shell:list.separator')),
+                })
+              : t('empty.none')}
         </AlertTitle>
         <div className="col-start-2 mt-2">
           <Button variant="outline" size="sm" onClick={() => void load()}>
-            重新載入
+            {t('empty.reload')}
           </Button>
         </div>
       </Alert>

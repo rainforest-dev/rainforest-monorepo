@@ -6,6 +6,8 @@ import { Component, type ReactNode } from 'react';
 
 interface Props {
   onUseCss: () => void;
+  /** The alert's text, translated by the caller: a class component cannot use hooks. */
+  labels: { title: string; useCss: string };
   children: ReactNode;
 }
 
@@ -25,10 +27,10 @@ export class ThreeStudyBoundary extends Component<Props, State> {
     return (
       <Alert variant="destructive" data-study-error="" className="my-6">
         <TriangleAlert aria-hidden />
-        <AlertTitle>無法啟動 3D 繪製</AlertTitle>
+        <AlertTitle>{this.props.labels.title}</AlertTitle>
         <div className="col-start-2 mt-2">
           <Button variant="outline" size="sm" onClick={this.props.onUseCss}>
-            改用 CSS 書牆
+            {this.props.labels.useCss}
           </Button>
         </div>
       </Alert>

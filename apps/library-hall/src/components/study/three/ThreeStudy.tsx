@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import type { NavItem } from '@rainforest-dev/rainforest-ui/interaction';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useSearchParams } from 'next/navigation';
@@ -36,6 +37,7 @@ import {
   TEXTURE_BUDGET_BYTES,
   type ThreeRenderer,
 } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 
 import { type RowAtlas, spineCropBytes } from './atlas';
 import { type CoverCache, createCoverCache } from './covers';
@@ -274,6 +276,7 @@ export default function ThreeStudy({
   onNavItems,
   nextPageCovers,
 }: ThreeStudyProps) {
+  const t = useLibraryT(HALL_NAMESPACE);
   const debug = isDebug(useSearchParams());
   const desktop = useIsDesktop();
   const pxPerUnit = desktop ? 100 : 80;
@@ -400,13 +403,13 @@ export default function ThreeStudy({
   const layout = useMemo(() => {
     const element = wrap.current;
     if (width <= 0 || !element) return null;
-    const labelPx = measureLabelPx(element);
+    const labelPx = measureLabelPx(element, t);
     return layoutShelves(
       model.shelves,
       width / pxPerUnit - 0.8,
       (shelf, continued) => labelPx(shelf, continued) / pxPerUnit,
     );
-  }, [model, width, pxPerUnit]);
+  }, [model, width, pxPerUnit, t]);
   const dpr = Math.min(window.devicePixelRatio || 1, DPR[1]);
   const pick = useMemo(
     () =>

@@ -1,11 +1,13 @@
 'use client';
 
 import { getCollection } from '@rainforest-dev/library-contract';
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { List } from 'lucide-react';
 
 import { HallView } from '@/components/hall';
 import { cn } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 
 import { GroupSwitch } from './GroupSwitch';
 
@@ -16,16 +18,17 @@ export interface SourceNotice {
 
 /** The room itself: how the bookcases are sorted, the hall, and any shelf that failed to load. */
 export function HallRegion({ missing }: { missing: readonly SourceNotice[] }) {
+  const t = useLibraryT(HALL_NAMESPACE);
   return (
     <section
-      aria-label="大廳"
+      aria-label={t('hall.region')}
       data-view-region="hall"
       className="flex flex-col gap-3 py-3"
     >
       <div className="flex flex-wrap items-center gap-3">
         <GroupSwitch />
         <span className="text-muted-foreground hidden text-xs sm:inline">
-          切換時書會飛到新書櫃
+          {t('groupBy.hint')}
         </span>
         <a
           href={getCollection('books').basePath}
@@ -35,7 +38,7 @@ export function HallRegion({ missing }: { missing: readonly SourceNotice[] }) {
           )}
         >
           <List aria-hidden />
-          以清單瀏覽
+          {t('hall.browseList')}
         </a>
       </div>
       {missing.length > 0 && (
@@ -44,8 +47,9 @@ export function HallRegion({ missing }: { missing: readonly SourceNotice[] }) {
           data-hall-missing
           className="text-muted-foreground text-sm"
         >
-          {missing.map((m) => m.label).join('、')}
-          暫時無法載入，書櫃上先不放它們。
+          {t('hall.missing', {
+            names: missing.map((m) => m.label).join(t('shell:list.separator')),
+          })}
         </p>
       )}
       <HallView />

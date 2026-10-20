@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Select,
   SelectContent,
@@ -14,10 +15,12 @@ import {
   rendererLabel,
   RENDERERS,
 } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
 export function RendererSelect() {
   const { renderer, backend, setRenderer } = useHall();
+  const t = useLibraryT(HALL_NAMESPACE);
   if (ENABLED_RENDERERS.length < 2) return null;
   const items = ENABLED_RENDERERS.map((value) => ({
     value,
@@ -32,8 +35,10 @@ export function RendererSelect() {
         if (next) setRenderer(next);
       }}
     >
-      <SelectTrigger size="sm" aria-label="繪製方式">
-        <span className="text-muted-foreground text-xs">繪製</span>
+      <SelectTrigger size="sm" aria-label={t('study.renderer')}>
+        <span className="text-muted-foreground text-xs">
+          {t('study.rendererShort')}
+        </span>
         <SelectValue>{rendererLabel(renderer, backend)}</SelectValue>
       </SelectTrigger>
       <SelectContent>

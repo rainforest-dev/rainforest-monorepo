@@ -2,7 +2,7 @@
 
 import {
   COLLECTION_OF_KIND,
-  getCollection,
+  collectionLabel,
   LIBRARY_SEARCH_ENDPOINT,
   type MergedSearchResponse,
   mergedSearchResponseSchema,
@@ -12,6 +12,7 @@ import { Search } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useState } from 'react';
 
 import { COLLECTION_ICONS } from './collection-nav';
+import { useLibraryLocale, useLibraryT } from './i18n-provider';
 
 const DEBOUNCE_MS = 200;
 const NO_RESULTS: MergedSearchResponse['results'] = [];
@@ -79,12 +80,14 @@ export function ShellSearch({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const state = useLibrarySearch(q, endpoint);
+  const locale = useLibraryLocale();
+  const t = useLibraryT();
   const listId = useId();
   const response = 'response' in state ? state.response : undefined;
   const results = response?.results ?? NO_RESULTS;
   const missing = (response?.sources ?? [])
     .filter((s) => !s.ok)
-    .map((s) => getCollection(s.collection).label);
+    .map((s) => collectionLabel(s.collection, locale));
   const shown = open && q.trim() !== '';
 
   useEffect(() => setActive(-1), [results]);
@@ -117,7 +120,7 @@ export function ShellSearch({
       }}
     >
       <label className="sr-only" htmlFor={`${listId}-input`}>
-        搜尋整座圖書館
+        {t('search.label')}
       </label>
       <Search
         className="text-muted-foreground pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2"
@@ -131,7 +134,7 @@ export function ShellSearch({
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={active >= 0 ? optionId(active) : undefined}
-        placeholder="搜尋書、筆記本、文章、知識庫"
+        placeholder={t('search.placeholder')}
         autoComplete="off"
         value={q}
         onChange={(event) => {
@@ -144,7 +147,7 @@ export function ShellSearch({
       />
       {shown && (
         <div className="bg-popover text-popover-foreground absolute inset-x-0 top-full z-40 mt-1 max-h-[70vh] overflow-y-auto rounded-md border shadow-lg">
-          <ul id={listId} role="listbox" aria-label="搜尋結果">
+          <ul id={listId} role="listbox" aria-label={t('search.results')}>
             {results.map((hit, i) => {
               const collection = COLLECTION_OF_KIND[hit.kind];
               const Icon = COLLECTION_ICONS[collection];
@@ -165,7 +168,7 @@ export function ShellSearch({
                   >
                     <Icon
                       className="text-muted-foreground mt-0.5 size-4 shrink-0"
-                      aria-label={getCollection(collection).label}
+                      aria-label={collectionLabel(collection, locale)}
                     />
                     <span className="min-w-0">
                       <span className="block truncate font-medium">
@@ -192,13 +195,14 @@ export function ShellSearch({
             aria-live="polite"
           >
             {state.status === 'loading'
-              ? '搜尋中…'
+              ? t('search.loading')
               : state.status === 'error'
-                ? '搜尋暫時無法使用'
+                ? t('search.error')
                 : state.status === 'done' && results.length === 0
-                  ? '找不到符合的項目'
+                  ? t('search.empty')
                   : ''}
-            {missing.length > 0 && ` ${missing.join('、')}暫時沒有回應`}
+            {missing.length > 0 &&
+              ` ${t('search.missing', { names: missing.join(t('list.separator')) })}`}
           </p>
         </div>
       )}

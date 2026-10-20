@@ -60,7 +60,7 @@ describe('toHallBooks', () => {
 
 describe('buildHall', () => {
   it('puts each group on its own bookcase, biggest first, ungrouped last', () => {
-    const cases = buildHall(BOOKS, 'series');
+    const cases = buildHall(BOOKS, 'series', 'zh');
     expect(cases.map((c) => [c.label, c.bookIds])).toEqual([
       ['Earthsea', [idOf(1), idOf(2), idOf(3)]],
       ['Hainish', [idOf(4)]],
@@ -69,18 +69,18 @@ describe('buildHall', () => {
   });
 
   it('regroups the same items by tag or by collection', () => {
-    expect(buildHall(BOOKS, 'tag').map((c) => c.label)).toEqual([
+    expect(buildHall(BOOKS, 'tag', 'zh').map((c) => c.label)).toEqual([
       'Fiction',
       '未分類',
     ]);
-    expect(buildHall(BOOKS, 'collection').map((c) => c.label)).toEqual([
+    expect(buildHall(BOOKS, 'collection', 'zh').map((c) => c.label)).toEqual([
       '書',
       '筆記本',
     ]);
   });
 
   it('merges the smallest groups into one case past the limit', () => {
-    const cases = buildHall(BOOKS, 'series', 2);
+    const cases = buildHall(BOOKS, 'series', 'zh', 2);
     expect(cases.map((c) => [c.key, c.bookIds])).toEqual([
       ['series-Earthsea', [idOf(1), idOf(2), idOf(3)]],
       ['other', [idOf(4), idOf(5)]],
@@ -88,7 +88,7 @@ describe('buildHall', () => {
   });
 
   it('keeps every item exactly once', () => {
-    const cases = buildHall(BOOKS, 'series', 2);
+    const cases = buildHall(BOOKS, 'series', 'zh', 2);
     expect(cases.flatMap((c) => c.bookIds).sort()).toEqual(
       BOOKS.map((b) => b.id).sort(),
     );
@@ -165,8 +165,8 @@ describe('walking', () => {
 describe('re-sort', () => {
   it('moves each book from its old slot to its new one', () => {
     const layout = layoutHall(3);
-    const before = placeBooks(buildHall(BOOKS, 'series'), layout);
-    const after = placeBooks(buildHall(BOOKS, 'author'), layout);
+    const before = placeBooks(buildHall(BOOKS, 'series', 'zh'), layout);
+    const after = placeBooks(buildHall(BOOKS, 'author', 'zh'), layout);
     const from = before.get(idOf(4) ?? 0);
     const to = after.get(idOf(4) ?? 0);
     if (!from || !to) throw new Error('book 4 not placed');

@@ -1000,6 +1000,9 @@ importers:
       '@rainforest-dev/rainforest-react':
         specifier: workspace:*
         version: link:../rainforest-react
+      i18next:
+        specifier: ^25.8.0
+        version: 25.10.10(typescript@6.0.3)
       lucide-react:
         specifier: ^1.8.0
         version: 1.46.0(react@19.2.3)

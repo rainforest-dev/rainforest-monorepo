@@ -1,10 +1,11 @@
 import {
   COLLECTION_OF_KIND,
-  getCollection,
+  collectionLabel,
   type HallGroupPrefix,
   hallGroupValue,
   type HallItem,
   type HallItemKind,
+  type LibraryLocale,
 } from '@rainforest-dev/library-contract';
 
 /** How the hall can sort its bookcases: by a group prefix, or by the item's own collection. */
@@ -17,14 +18,6 @@ export const HALL_GROUP_BYS = [
 ] as const;
 export type HallGroupBy = (typeof HALL_GROUP_BYS)[number];
 export const DEFAULT_GROUP_BY: HallGroupBy = 'tag';
-
-export const GROUP_LABELS: Record<HallGroupBy, string> = {
-  tag: '依主題',
-  collection: '依館藏',
-  series: '依系列',
-  author: '依作者',
-  month: '依時間',
-};
 
 export function isHallGroupBy(value: unknown): value is HallGroupBy {
   return HALL_GROUP_BYS.some((g) => g === value);
@@ -100,8 +93,8 @@ export function toHallBooks(items: readonly HallItem[]): HallBook[] {
 }
 
 /** The label of an item kind's collection, as the shell names it. */
-export function kindLabel(kind: HallItemKind): string {
-  return getCollection(COLLECTION_OF_KIND[kind]).label;
+export function kindLabel(kind: HallItemKind, locale: LibraryLocale): string {
+  return collectionLabel(COLLECTION_OF_KIND[kind], locale);
 }
 
 /** Groupings with something to sort by. Sorting by collection always works. */
@@ -111,8 +104,4 @@ export function availableGroupBys(
   return HALL_GROUP_BYS.filter(
     (g) => g === 'collection' || books.some((b) => b.groups[g] !== null),
   );
-}
-
-export function itemsLabel(n: number): string {
-  return `${n} 件`;
 }

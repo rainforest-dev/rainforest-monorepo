@@ -1,10 +1,11 @@
-import {
-  LIBRARY_PREFS_COOKIE,
-  LIBRARY_PREFS_MAX_AGE,
-  type LibraryPrefs,
-  parseLibraryPrefs,
-  serializeLibraryPrefs,
-} from '@rainforest-dev/library-contract';
+import type { LibraryPrefs } from '@rainforest-dev/library-contract';
+
+// The hall page is static so the back button can restore it from the bfcache, which rules out
+// reading cookies on the server: the shared prefs cookie is read in the browser.
+export {
+  readLibraryPrefs,
+  writeLibraryPrefs,
+} from '@rainforest-dev/library-shell';
 
 export const RENDERERS = [
   'css',
@@ -17,28 +18,6 @@ export const DEFAULT_RENDERER: Renderer = 'three-tsl';
 
 export function isRenderer(value: unknown): value is Renderer {
   return RENDERERS.some((r) => r === value);
-}
-
-function readCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  for (const part of document.cookie.split(';')) {
-    const [key, ...rest] = part.trim().split('=');
-    if (key === name) return rest.join('=');
-  }
-  return null;
-}
-
-/**
- * The shared prefs cookie, read in the browser. The hall page is static so the back button can
- * restore it from the bfcache, which rules out reading cookies on the server.
- */
-export function readLibraryPrefs(): LibraryPrefs {
-  return parseLibraryPrefs(readCookie(LIBRARY_PREFS_COOKIE));
-}
-
-export function writeLibraryPrefs(patch: Partial<LibraryPrefs>): void {
-  const next = { ...readLibraryPrefs(), ...patch };
-  document.cookie = `${LIBRARY_PREFS_COOKIE}=${serializeLibraryPrefs(next)}; Path=/; Max-Age=${LIBRARY_PREFS_MAX_AGE}; SameSite=Lax`;
 }
 
 export function rendererPref(prefs: LibraryPrefs): Renderer {

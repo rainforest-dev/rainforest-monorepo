@@ -1,6 +1,9 @@
 'use client';
 
-import { type Bookcase, cn, itemsLabel, spineColor } from '@/lib';
+import { useLibraryT } from '@rainforest-dev/library-shell';
+
+import { type Bookcase, cn, spineColor } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
 const PREVIEW_SPINES = 14;
@@ -15,9 +18,10 @@ interface Props {
 /** The hall without 3D: one button per bookcase, opening it in the Study. */
 export function CssHall({ cases, onEnter, hidden = false }: Props) {
   const { bookById } = useHall();
+  const t = useLibraryT(HALL_NAMESPACE);
   return (
     <ul
-      aria-label="書櫃"
+      aria-label={t('hall.list')}
       data-hall-list
       className={cn(
         hidden
@@ -49,7 +53,7 @@ export function CssHall({ cases, onEnter, hidden = false }: Props) {
               {bookcase.label}
             </span>
             <span className="text-muted-foreground text-xs">
-              {itemsLabel(bookcase.bookIds.length)}
+              {t('items', { count: bookcase.bookIds.length })}
             </span>
           </button>
         </li>
