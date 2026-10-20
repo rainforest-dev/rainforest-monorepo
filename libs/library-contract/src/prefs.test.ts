@@ -1,5 +1,6 @@
 import {
   DEFAULT_LIBRARY_PREFS,
+  LIBRARY_LOCALE_HEADER,
   LIBRARY_PREFS_COOKIE,
   libraryLocaleOfRequest,
   parseLibraryPrefs,
@@ -91,6 +92,7 @@ describe('routeLibraryLocale', () => {
     expect(routeLibraryLocale(pathname, en)).toEqual({
       kind: 'rewrite',
       pathname: rewritten,
+      locale: 'en',
     });
   });
 
@@ -109,6 +111,21 @@ describe('routeLibraryLocale', () => {
     expect(routeLibraryLocale('/zhuyin', en)).toEqual({
       kind: 'rewrite',
       pathname: '/en/zhuyin',
+      locale: 'en',
+    });
+  });
+
+  it('passes its own rewrite through, and only for the locale it named', () => {
+    const rewritten = new Headers({
+      'accept-language': 'en-US',
+      [LIBRARY_LOCALE_HEADER]: 'zh',
+    });
+    expect(routeLibraryLocale('/zh/books/1', rewritten)).toEqual({
+      kind: 'next',
+    });
+    expect(routeLibraryLocale('/en/books/1', rewritten)).toEqual({
+      kind: 'redirect',
+      pathname: '/books/1',
     });
   });
 });

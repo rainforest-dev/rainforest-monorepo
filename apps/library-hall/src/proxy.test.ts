@@ -39,4 +39,22 @@ describe('proxy', () => {
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(`${ORIGIN}/?x=1`);
   });
+
+  it('marks its rewrite, and passes the marked request through', () => {
+    const rewrite = proxy(
+      new NextRequest(`${ORIGIN}/`, {
+        headers: { 'accept-language': 'en-US' },
+      }),
+    );
+    expect(rewrite.headers.get('x-middleware-request-x-library-locale')).toBe(
+      'en',
+    );
+    const again = proxy(
+      new NextRequest(`${ORIGIN}/en`, {
+        headers: { 'x-library-locale': 'en' },
+      }),
+    );
+    expect(again.headers.get('x-middleware-next')).toBe('1');
+    expect(again.headers.get('location')).toBeNull();
+  });
 });
