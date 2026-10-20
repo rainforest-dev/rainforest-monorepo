@@ -21,6 +21,16 @@ test.describe('the notebooks’ language', () => {
     expect(decodeURIComponent(prefs?.value ?? '')).toContain('"locale":"en"');
   });
 
+  test('names the calendar’s month and weekdays in Chinese', async ({
+    page,
+  }) => {
+    await page.goto('/notebooks?view=calendar&month=2026-10');
+    await expect(
+      page.getByRole('heading', { name: '2026 年 10 月' }),
+    ).toBeVisible();
+    await expect(page.getByText('週日', { exact: true })).toBeVisible();
+  });
+
   test('sends a URL that names a locale to the plain one', async ({ page }) => {
     await page.goto('/notebooks/en');
     await expect(page).toHaveURL(/\/notebooks$/);
