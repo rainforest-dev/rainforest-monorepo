@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Select,
   SelectContent,
@@ -14,10 +15,12 @@ import {
   rendererLabel,
   RENDERERS,
 } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 export function RendererSelect() {
   const { view, renderer, backend, setRenderer } = useLibrary();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   if (view !== 'study' || ENABLED_RENDERERS.length < 2) return null;
   const items = ENABLED_RENDERERS.map((value) => ({
     value,
@@ -32,8 +35,10 @@ export function RendererSelect() {
         if (next) setRenderer(next);
       }}
     >
-      <SelectTrigger size="sm" aria-label="Renderer">
-        <span className="text-muted-foreground text-xs">Renderer</span>
+      <SelectTrigger size="sm" aria-label={t('renderer.label')}>
+        <span className="text-muted-foreground text-xs">
+          {t('renderer.label')}
+        </span>
         <SelectValue>{rendererLabel(renderer, backend)}</SelectValue>
       </SelectTrigger>
       <SelectContent>

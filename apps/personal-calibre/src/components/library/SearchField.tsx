@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Command,
   CommandInput,
@@ -10,6 +11,7 @@ import { Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { BASE_PATH } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 interface Suggestion {
@@ -21,6 +23,7 @@ interface Suggestion {
 
 export function SearchField({ initialQuery }: { initialQuery: string }) {
   const { replaceParams, openBook } = useLibrary();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const [text, setText] = useState(initialQuery);
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -69,15 +72,15 @@ export function SearchField({ initialQuery }: { initialQuery: string }) {
     <Command
       data-library-search
       shouldFilter={false}
-      label="Search books"
+      label={t('search.label')}
       className="relative size-auto w-full overflow-visible bg-transparent p-0"
       onKeyDown={(event) => {
         if (event.key === 'Escape') setOpen(false);
       }}
     >
       <CommandInput
-        placeholder="Search books"
-        aria-label="Search books"
+        placeholder={t('search.label')}
+        aria-label={t('search.label')}
         value={text}
         onValueChange={(value) => {
           setText(value);
@@ -89,7 +92,7 @@ export function SearchField({ initialQuery }: { initialQuery: string }) {
       {text && (
         <button
           type="button"
-          aria-label="Clear search"
+          aria-label={t('search.clear')}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             setText('');
@@ -107,7 +110,7 @@ export function SearchField({ initialQuery }: { initialQuery: string }) {
       >
         <CommandItem value="__search__" onSelect={commit}>
           <Search aria-hidden />
-          Search for &quot;{trimmed}&quot;
+          {t('search.for', { q: trimmed })}
         </CommandItem>
         {suggestions.map((s) => (
           <CommandItem

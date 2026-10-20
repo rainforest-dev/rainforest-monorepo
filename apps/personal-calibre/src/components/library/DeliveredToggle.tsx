@@ -1,6 +1,9 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { ToggleGroup, ToggleGroupItem } from '@rainforest-dev/rainforest-react';
+
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 export function DeliveredToggle({
   delivered,
@@ -9,9 +12,10 @@ export function DeliveredToggle({
   delivered: boolean;
   onChange: (delivered: boolean) => void;
 }) {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <ToggleGroup
-      aria-label="Delivery status"
+      aria-label={t('filters.deliveryStatus')}
       variant="outline"
       size="sm"
       className="my-1 ml-2"
@@ -21,8 +25,10 @@ export function DeliveredToggle({
         if (values[0] === 'not-on') onChange(false);
       }}
     >
-      <ToggleGroupItem value="on">On</ToggleGroupItem>
-      <ToggleGroupItem value="not-on">Not on</ToggleGroupItem>
+      <ToggleGroupItem value="on">{t('filters.onToggle')}</ToggleGroupItem>
+      <ToggleGroupItem value="not-on">
+        {t('filters.notOnToggle')}
+      </ToggleGroupItem>
     </ToggleGroup>
   );
 }

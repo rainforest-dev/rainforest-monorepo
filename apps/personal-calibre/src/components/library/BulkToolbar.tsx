@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   ButtonGroup,
@@ -17,13 +18,14 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { BASE_PATH, platformName } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 import type { DeliveryPlatform } from '@/types';
 
 const ZIP_FORMATS = ['EPUB', 'PDF', 'MOBI', 'AZW3'];
 
-const messageOf = (error: unknown) =>
-  error instanceof Error ? error.message : 'Unexpected error';
+const messageOf = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
 
 async function readError(res: Response, fallback: string): Promise<string> {
   try {
@@ -41,6 +43,7 @@ export function BulkToolbar({
   matchingIds: number[];
 }) {
   const router = useRouter();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const {
     selected,
     clear,
@@ -70,9 +73,12 @@ export function BulkToolbar({
         body: JSON.stringify({ bookIds: [...selected], platformKey }),
       });
       if (!res.ok)
-        throw new Error(await readError(res, 'Failed to add deliveries'));
+        throw new Error(await readError(res, t('bulk.deliverFailed')));
       toast.success(
-        `${count} book${count === 1 ? '' : 's'} marked as delivered to ${platformName(platforms, platformKey)}`,
+        t('bulk.delivered', {
+          count,
+          platform: platformName(platforms, platformKey),
+        }),
       );
       clear();
       setSelectMode(false);
@@ -86,7 +92,11 @@ export function BulkToolbar({
       }
       router.refresh();
     } catch (error) {
-      toast.error(`Delivery failed — ${messageOf(error)}`);
+      toast.error(
+        t('bulk.deliveryError', {
+          message: messageOf(error, t('errors.unexpected')),
+        }),
+      );
     } finally {
       setPending(null);
     }
@@ -100,7 +110,7 @@ export function BulkToolbar({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ bookIds: [...selected], format: zipFormat }),
       });
-      if (!res.ok) throw new Error(await readError(res, 'Failed to build ZIP'));
+      if (!res.ok) throw new Error(await readError(res, t('bulk.zipFailed')));
       const url = URL.createObjectURL(await res.blob());
       const link = document.createElement('a');
       link.href = url;
@@ -108,7 +118,11 @@ export function BulkToolbar({
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error(`Download failed — ${messageOf(error)}`);
+      toast.error(
+        t('bulk.downloadError', {
+          message: messageOf(error, t('errors.unexpected')),
+        }),
+      );
     } finally {
       setPending(null);
     }
@@ -118,13 +132,13 @@ export function BulkToolbar({
     <div
       ref={toolbarRef}
       role="toolbar"
-      aria-label="Bulk actions"
+      aria-label={t('bulk.label')}
       className="bg-card fixed inset-x-2 bottom-2 z-40 flex flex-wrap items-center gap-2 rounded-xl border p-2 shadow-lg lg:static lg:z-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
     >
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label="Clear selection (Esc)"
+        aria-label={t('bulk.clear')}
         disabled={busy}
         onClick={() => {
           clear();
@@ -133,7 +147,9 @@ export function BulkToolbar({
       >
         <X aria-hidden />
       </Button>
-      <span className="text-sm font-medium tabular-nums">{count} selected</span>
+      <span className="text-sm font-medium tabular-nums">
+        {t('bulk.selected', { count })}
+      </span>
       {!everyMatchSelected && (
         <Button
           variant="link"
@@ -141,10 +157,10 @@ export function BulkToolbar({
           disabled={busy}
           onClick={() => addMany(matchingIds)}
         >
-          Select all {matchingIds.length}
+          {t('bulk.selectAll', { count: matchingIds.length })}
         </Button>
       )}
-      <ButtonGroup className="lg:ml-auto" aria-label="Deliver to platform">
+      <ButtonGroup className="lg:ml-auto" aria-label={t('bulk.deliverTo')}>
         <Select
           items={platforms.map((p) => ({ value: p.key, label: p.name }))}
           value={platformKey}
@@ -152,8 +168,10 @@ export function BulkToolbar({
             if (typeof value === 'string') setBulkPlatform(value);
           }}
         >
-          <SelectTrigger size="sm" aria-label="Add to">
-            <span className="text-muted-foreground text-xs">Add to</span>
+          <SelectTrigger size="sm" aria-label={t('bulk.addTo')}>
+            <span className="text-muted-foreground text-xs">
+              {t('bulk.addTo')}
+            </span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -170,10 +188,10 @@ export function BulkToolbar({
           onClick={() => void markDelivered()}
         >
           {pending === 'deliver' && <Spinner data-icon="inline-start" />}
-          Mark delivered
+          {t('bulk.markDelivered')}
         </Button>
       </ButtonGroup>
-      <ButtonGroup aria-label="Download format">
+      <ButtonGroup aria-label={t('bulk.format')}>
         <Select
           items={ZIP_FORMATS.map((f) => ({ value: f, label: f }))}
           value={zipFormat}
@@ -181,7 +199,7 @@ export function BulkToolbar({
             if (typeof value === 'string') setZipFormat(value);
           }}
         >
-          <SelectTrigger size="sm" aria-label="Download format">
+          <SelectTrigger size="sm" aria-label={t('bulk.format')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -207,7 +225,7 @@ export function BulkToolbar({
         </Button>
       </ButtonGroup>
       <span className="text-muted-foreground hidden items-center gap-1 text-xs lg:inline-flex">
-        <Kbd>Esc</Kbd> clear
+        <Kbd>Esc</Kbd> {t('bulk.clearHint')}
       </span>
     </div>
   );

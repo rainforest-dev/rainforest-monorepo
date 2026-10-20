@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { LIBRARY_LOCALES, type LibraryLocale, negotiateLocale } from './locale';
+import {
+  isLibraryLocale,
+  LIBRARY_LOCALES,
+  type LibraryLocale,
+  negotiateLocale,
+} from './locale';
 
 /**
  * Personal preferences shared by every app on the library hostname. One cookie, so the theme,
@@ -89,4 +94,40 @@ export function libraryLocaleOfRequest(headers: Headers): LibraryLocale {
     libraryPrefsFromCookieHeader(headers.get('cookie')),
     headers.get('accept-language'),
   );
+}
+
+/**
+ * The request header a library proxy sets on its own rewrite. A standalone Next server runs
+ * the proxy again on the rewritten request, and without the mark it would take `/zh` for a
+ * URL the reader typed and redirect it back to `/`, which loops.
+ */
+export const LIBRARY_LOCALE_HEADER = 'x-library-locale';
+
+/**
+ * Where a library app's proxy sends a page request. Pages live under `/{locale}` but the URL
+ * never shows it: an unprefixed path is rewritten to the reader's locale, and a prefixed one
+ * is redirected to its unprefixed form, so the prefs cookie always decides. A request the
+ * proxy already rewrote, marked with {@link LIBRARY_LOCALE_HEADER}, is passed through.
+ */
+export type LibraryLocaleRoute =
+  | { kind: 'rewrite'; pathname: string; locale: LibraryLocale }
+  | { kind: 'redirect'; pathname: string }
+  | { kind: 'next' };
+
+export function routeLibraryLocale(
+  pathname: string,
+  headers: Headers,
+): LibraryLocaleRoute {
+  const [, first, ...rest] = pathname.split('/');
+  if (isLibraryLocale(first)) {
+    return headers.get(LIBRARY_LOCALE_HEADER) === first
+      ? { kind: 'next' }
+      : { kind: 'redirect', pathname: `/${rest.join('/')}` };
+  }
+  const locale = libraryLocaleOfRequest(headers);
+  return {
+    kind: 'rewrite',
+    pathname: `/${locale}${pathname === '/' ? '' : pathname}`,
+    locale,
+  };
 }

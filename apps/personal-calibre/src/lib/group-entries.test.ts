@@ -1,15 +1,18 @@
+import { libraryT } from '@rainforest-dev/library-shell';
 import { describe, expect, it } from 'vitest';
 
+import { CALIBRE_NAMESPACE, CALIBRE_RESOURCES } from '@/locales';
 import type { LibraryBook, LibraryEntry } from '@/types';
 
 import {
   bookIdOfNavKey,
-  booksLabel,
   contentKey,
   groupEntries,
   groupTitle,
   navKey,
 } from './group-entries';
+
+const t = libraryT('en', CALIBRE_RESOURCES, CALIBRE_NAMESPACE);
 
 const book = (id: number, title = `Book ${id}`): LibraryBook => ({
   id,
@@ -74,7 +77,7 @@ describe('groupEntries', () => {
       'series',
     );
     expect(group?.continued).toBe(true);
-    expect(group && groupTitle(group)).toBe('Northbound (continued)');
+    expect(group && groupTitle(group, t)).toBe('Northbound (continued)');
   });
 
   it('puts the fallback group last and gives it no filter', () => {
@@ -114,9 +117,16 @@ describe('contentKey', () => {
   });
 });
 
-describe('booksLabel', () => {
-  it('pluralises', () => {
-    expect(booksLabel(1)).toBe('1 book');
-    expect(booksLabel(20)).toBe('20 books');
+describe('groupTitle', () => {
+  it('names the fallback group for its grouping', () => {
+    const group = { key: 'series:none', label: 'ignored', continued: false };
+    expect(groupTitle(group, t)).toBe('No series');
+    const zh = libraryT('zh', CALIBRE_RESOURCES, CALIBRE_NAMESPACE);
+    expect(groupTitle({ ...group, continued: true }, zh)).toBe('無系列（續）');
+  });
+
+  it('pluralises the book count', () => {
+    expect(t('books', { count: 1 })).toBe('1 book');
+    expect(t('books', { count: 20 })).toBe('20 books');
   });
 });

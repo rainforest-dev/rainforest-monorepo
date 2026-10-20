@@ -60,44 +60,44 @@ describe('hintsFor', () => {
 
   it('lists the Shelf hints, with Page only when there is more than one page', () => {
     expect(labels('shelf', true)).toEqual([
-      'Search',
-      'Switch view',
-      'Move',
-      'Row ends',
-      'Page',
-      'Open',
-      'Select',
-      'Close, then clear',
+      'search',
+      'switchView',
+      'move',
+      'rowEnds',
+      'page',
+      'open',
+      'select',
+      'close',
     ]);
-    expect(labels('shelf', false)).not.toContain('Page');
+    expect(labels('shelf', false)).not.toContain('page');
   });
 
   it('lists the Catalogue hints with Space to select', () => {
     expect(labels('catalogue', true)).toEqual([
-      'Search',
-      'Switch view',
-      'Move',
-      'Page',
-      'Select',
-      'Open',
-      'Close, then clear',
+      'search',
+      'switchView',
+      'move',
+      'page',
+      'select',
+      'open',
+      'close',
     ]);
     expect(
-      hintsFor('catalogue', true).find((h) => h.label === 'Select')?.keys,
+      hintsFor('catalogue', true).find((h) => h.label === 'select')?.keys,
     ).toEqual(['Space']);
   });
 
   it('keeps the Study hints ready for phase 2', () => {
     expect(labels('study', true)).toEqual([
-      'Search',
-      'Switch view',
-      'Along shelf',
-      'Between shelves',
-      'Shelf ends',
-      'Page',
-      'Open',
-      'Select',
-      'Close, then clear',
+      'search',
+      'switchView',
+      'alongShelf',
+      'betweenShelves',
+      'shelfEnds',
+      'page',
+      'open',
+      'select',
+      'close',
     ]);
   });
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Kbd,
   ToggleGroup,
@@ -10,21 +11,23 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { LayoutGrid, Library, type LucideIcon, Rows3 } from 'lucide-react';
 
-import { cn, ENABLED_VIEWS, isView, type View, VIEW_LABELS } from '@/lib';
+import { cn, ENABLED_VIEWS, isView, type View } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
-const ITEMS: Array<{ view: View; tooltip: string; Icon: LucideIcon }> = [
-  { view: 'shelf', tooltip: '書架 Shelf', Icon: LayoutGrid },
-  { view: 'catalogue', tooltip: '目錄 Catalogue', Icon: Rows3 },
-  { view: 'study', tooltip: '書房 Study', Icon: Library },
+const ITEMS: Array<{ view: View; Icon: LucideIcon }> = [
+  { view: 'shelf', Icon: LayoutGrid },
+  { view: 'catalogue', Icon: Rows3 },
+  { view: 'study', Icon: Library },
 ];
 
 export function ViewSwitch({ className }: { className?: string }) {
   const { view, setView } = useLibrary();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <div className={cn('flex items-center gap-1.5', className)}>
       <ToggleGroup
-        aria-label="View"
+        aria-label={t('view.label')}
         variant="outline"
         size="sm"
         value={[view]}
@@ -34,20 +37,20 @@ export function ViewSwitch({ className }: { className?: string }) {
         }}
       >
         {ITEMS.filter((item) => ENABLED_VIEWS.includes(item.view)).map(
-          ({ view: item, tooltip, Icon }) => (
+          ({ view: item, Icon }) => (
             <Tooltip key={item}>
               <TooltipTrigger
                 render={
                   <ToggleGroupItem
                     value={item}
-                    aria-label={`${VIEW_LABELS[item]} view`}
+                    aria-label={t('view.region', { name: t(`view.${item}`) })}
                   />
                 }
               >
                 <Icon aria-hidden />
-                <span className="hidden lg:inline">{VIEW_LABELS[item]}</span>
+                <span className="hidden lg:inline">{t(`view.${item}`)}</span>
               </TooltipTrigger>
-              <TooltipContent>{tooltip}</TooltipContent>
+              <TooltipContent>{t(`view.tooltip.${item}`)}</TooltipContent>
             </Tooltip>
           ),
         )}

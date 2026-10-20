@@ -4,11 +4,6 @@ export const VIEWS = ['shelf', 'catalogue', 'study'] as const;
 export type View = (typeof VIEWS)[number];
 export const ENABLED_VIEWS: readonly View[] = ['shelf', 'catalogue', 'study'];
 export const PREVIEW_VIEWS: readonly View[] = [];
-export const VIEW_LABELS: Record<View, string> = {
-  shelf: 'Shelf',
-  catalogue: 'Catalogue',
-  study: 'Study',
-};
 
 export const RENDERERS = [
   'css',

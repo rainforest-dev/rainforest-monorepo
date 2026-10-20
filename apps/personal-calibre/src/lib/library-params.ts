@@ -1,3 +1,5 @@
+import type { LibraryT } from '@rainforest-dev/library-shell';
+
 import type { LibraryQuery } from '@/lib/server';
 import type { DeliveryPlatform, FilterOptions } from '@/types';
 
@@ -179,45 +181,60 @@ function nameOf(
   return options.find((o) => o.id === id)?.name ?? `#${id}`;
 }
 
-function platformPhrase(params: LibraryParams, labels: FilterLabels): string {
+function platformPhrase(
+  params: LibraryParams,
+  labels: FilterLabels,
+  t: LibraryT,
+): string {
   const name =
     labels.platforms.find((p) => p.key === params.platform)?.name ??
     params.platform;
-  return `${params.delivered === false ? 'Not on' : 'On'} ${name}`;
+  return t(params.delivered === false ? 'filters.notOn' : 'filters.on', {
+    name,
+  });
 }
 
 export function activeFilters(
   params: LibraryParams,
   labels: FilterLabels,
+  t: LibraryT,
 ): ActiveFilter[] {
   const out: ActiveFilter[] = [];
   if (params.q)
-    out.push({ key: 'q', label: `"${params.q}"`, patch: { q: null } });
+    out.push({
+      key: 'q',
+      label: t('filters.query', { q: params.q }),
+      patch: { q: null },
+    });
   if (params.series) {
     out.push({
       key: 'series',
-      label: `Series: ${nameOf(labels.series, params.series)}`,
+      label: t('filters.seriesChip', {
+        name: nameOf(labels.series, params.series),
+      }),
       patch: { series: null },
     });
   }
   if (params.author) {
     out.push({
       key: 'author',
-      label: `Author: ${nameOf(labels.authors, params.author)}`,
+      label: t('filters.authorChip', {
+        name: nameOf(labels.authors, params.author),
+      }),
       patch: { author: null },
     });
   }
   if (params.tag) {
     out.push({
       key: 'tag',
-      label: `Tag: ${nameOf(labels.tags, params.tag)}`,
+      label: t('filters.tagChip', { name: nameOf(labels.tags, params.tag) }),
       patch: { tag: null },
     });
   }
   if (params.platform) {
     out.push({
       key: 'platform',
-      label: platformPhrase(params, labels),
+      label: platformPhrase(params, labels, t),
       patch: { platform: null },
     });
   }
@@ -227,13 +244,14 @@ export function activeFilters(
 export function scopeTitle(
   params: LibraryParams,
   labels: FilterLabels,
+  t: LibraryT,
 ): string {
-  if (params.q) return `Results for "${params.q}"`;
+  if (params.q) return t('scope.results', { q: params.q });
   if (params.series) return nameOf(labels.series, params.series);
   if (params.author) return nameOf(labels.authors, params.author);
   if (params.tag) return nameOf(labels.tags, params.tag);
-  if (params.platform) return platformPhrase(params, labels);
-  return 'All books';
+  if (params.platform) return platformPhrase(params, labels, t);
+  return t('scope.all');
 }
 
 export function toLibraryQuery(

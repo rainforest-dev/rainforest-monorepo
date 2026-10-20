@@ -1,8 +1,11 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Alert, AlertTitle, Button } from '@rainforest-dev/rainforest-react';
 import { TriangleAlert } from 'lucide-react';
 import { Component, type ReactNode } from 'react';
+
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 interface Props {
   onUseCss: () => void;
@@ -22,16 +25,22 @@ export class ThreeStudyBoundary extends Component<Props, State> {
 
   override render() {
     if (!this.state.failed) return this.props.children;
-    return (
-      <Alert variant="destructive" data-study-error="" className="my-6">
-        <TriangleAlert aria-hidden />
-        <AlertTitle>Couldn&apos;t start the 3D renderer</AlertTitle>
-        <div className="col-start-2 mt-2">
-          <Button variant="outline" size="sm" onClick={this.props.onUseCss}>
-            Use CSS study
-          </Button>
-        </div>
-      </Alert>
-    );
+    return <StudyError onUseCss={this.props.onUseCss} />;
   }
+}
+
+/** A function component, so the class boundary's fallback can use the translator hook. */
+function StudyError({ onUseCss }: Pick<Props, 'onUseCss'>) {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
+  return (
+    <Alert variant="destructive" data-study-error="" className="my-6">
+      <TriangleAlert aria-hidden />
+      <AlertTitle>{t('study.error')}</AlertTitle>
+      <div className="col-start-2 mt-2">
+        <Button variant="outline" size="sm" onClick={onUseCss}>
+          {t('study.useCss')}
+        </Button>
+      </div>
+    </Alert>
+  );
 }

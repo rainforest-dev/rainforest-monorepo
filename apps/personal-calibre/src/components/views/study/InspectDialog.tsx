@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import { X } from 'lucide-react';
 import {
@@ -26,6 +27,7 @@ import {
   type StudyBook,
   yawDegrees,
 } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 import { CssBook, cssBookSize } from './css/CssBook';
 import type { InspectStage } from './useStudyInspect';
@@ -47,11 +49,11 @@ const INERTIA_STOP = 0.0004;
 const FLY_MS = 420;
 const FLY_EASING = 'cubic-bezier(0.2, 0.7, 0.25, 1)';
 const SCRIM = 'color-mix(in oklch, black 45%, transparent)';
-const FACE_TEXT: Record<InspectFace, string> = {
-  front: 'Front cover',
-  spine: 'Spine',
-  back: 'Back cover',
-  edge: 'Page edges',
+const FACE_KEY: Record<InspectFace, string> = {
+  front: 'study.face.front',
+  spine: 'study.face.spine',
+  back: 'study.face.back',
+  edge: 'study.face.edge',
 };
 
 function visibleRect(element: HTMLElement): ScreenRect {
@@ -84,6 +86,7 @@ export function InspectDialog({
   slotRect,
   onClose,
 }: InspectDialogProps) {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const dialog = useRef<HTMLDialogElement>(null);
   const control = useRef<HTMLDivElement>(null);
   const flyer = useRef<HTMLDivElement>(null);
@@ -114,9 +117,9 @@ export function InspectDialog({
     const slider = control.current;
     if (slider) {
       slider.setAttribute('aria-valuenow', String(yawDegrees(yaw)));
-      slider.setAttribute('aria-valuetext', FACE_TEXT[faceAt(yaw)]);
+      slider.setAttribute('aria-valuetext', t(FACE_KEY[faceAt(yaw)]));
     }
-  }, [stage]);
+  }, [stage, t]);
 
   const rotateBy = useCallback(
     (yaw: number, pitch: number) => {
@@ -331,7 +334,7 @@ export function InspectDialog({
             aria-valuemin={0}
             aria-valuemax={359}
             aria-valuenow={0}
-            aria-valuetext={FACE_TEXT.front}
+            aria-valuetext={t(FACE_KEY.front)}
             data-inspect-stage
             onKeyDown={onSliderKey}
             onPointerDown={onPointerDown}
@@ -365,7 +368,7 @@ export function InspectDialog({
           <Button
             size="icon"
             variant="secondary"
-            aria-label="Close 3D view"
+            aria-label={t('study.close3d')}
             onClick={dismiss}
             className="absolute"
             style={{

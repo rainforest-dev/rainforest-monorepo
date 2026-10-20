@@ -1,3 +1,5 @@
+import type { LibraryT } from '@rainforest-dev/library-shell';
+
 import type { LibraryEntry } from '@/types';
 
 import type { GroupBy } from './library-params';
@@ -40,8 +42,14 @@ export function groupEntries(
   ];
 }
 
-export function groupTitle(group: EntryGroup): string {
-  return group.continued ? `${group.label} (continued)` : group.label;
+/** A group's heading. The group of books with no series, tag or author is named in the page's locale. */
+export function groupTitle(
+  group: Pick<EntryGroup, 'key' | 'label' | 'continued'>,
+  t: LibraryT,
+): string {
+  const [groupBy, id] = group.key.split(':');
+  const label = id === 'none' ? t(`group.none.${groupBy}`) : group.label;
+  return group.continued ? t('group.continued', { name: label }) : label;
 }
 
 export function navKey(entry: LibraryEntry): string {
@@ -64,8 +72,4 @@ export function contentKey(entries: readonly LibraryEntry[]): string {
       ].join('|'),
     )
     .join('\n');
-}
-
-export function booksLabel(n: number): string {
-  return `${n} book${n === 1 ? '' : 's'}`;
 }

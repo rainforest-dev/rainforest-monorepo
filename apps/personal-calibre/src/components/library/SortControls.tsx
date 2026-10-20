@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   ButtonGroup,
@@ -19,32 +20,34 @@ import {
   type SortBy,
   STUDY_GROUP_BYS,
 } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 const STUDY_GROUP_VALUES: readonly string[] = STUDY_GROUP_BYS;
 
-const GROUP_ITEMS = [
-  { value: 'none', label: 'None' },
-  { value: 'series', label: 'Series' },
-  { value: 'tag', label: 'Tag' },
-  { value: 'author', label: 'Author' },
-];
+const GROUP_VALUES = ['none', 'series', 'tag', 'author'] as const;
+const GROUP_KEYS = {
+  none: 'sort.groupNone',
+  series: 'sort.series',
+  tag: 'sort.tag',
+  author: 'sort.author',
+} as const;
 
-const SORT_ITEMS: Array<{ value: SortBy; label: string }> = [
-  { value: 'title', label: 'Title' },
-  { value: 'author', label: 'Author' },
-  { value: 'added', label: 'Date added' },
-  { value: 'pubdate', label: 'Published' },
-  { value: 'rating', label: 'Rating' },
+const SORT_VALUES: readonly SortBy[] = [
+  'title',
+  'author',
+  'added',
+  'pubdate',
+  'rating',
 ];
 
 export function GroupSelect({ className }: { className?: string }) {
   const params = parseLibraryParams(useSearchParams());
   const { replaceParams, view } = useLibrary();
-  const items =
-    view === 'study'
-      ? GROUP_ITEMS.filter((item) => STUDY_GROUP_VALUES.includes(item.value))
-      : GROUP_ITEMS;
+  const t = useLibraryT(CALIBRE_NAMESPACE);
+  const items = GROUP_VALUES.filter(
+    (value) => view !== 'study' || STUDY_GROUP_VALUES.includes(value),
+  ).map((value) => ({ value, label: t(GROUP_KEYS[value]) }));
   return (
     <Select
       items={items}
@@ -54,8 +57,12 @@ export function GroupSelect({ className }: { className?: string }) {
         replaceParams({ groupBy: next });
       }}
     >
-      <SelectTrigger size="sm" aria-label="Group" className={className}>
-        <span className="text-muted-foreground text-xs">Group</span>
+      <SelectTrigger
+        size="sm"
+        aria-label={t('sort.group')}
+        className={className}
+      >
+        <span className="text-muted-foreground text-xs">{t('sort.group')}</span>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -73,22 +80,29 @@ export function SortControls() {
   const params = parseLibraryParams(useSearchParams());
   const { replaceParams } = useLibrary();
   const descending = params.sortDir === 'desc';
+  const t = useLibraryT(CALIBRE_NAMESPACE);
+  const sortItems = SORT_VALUES.map((value) => ({
+    value,
+    label: t(`sort.${value}`),
+  }));
   return (
-    <ButtonGroup aria-label="Sort">
+    <ButtonGroup aria-label={t('sort.label')}>
       <Select
-        items={SORT_ITEMS}
+        items={sortItems}
         value={params.sortBy}
         onValueChange={(value) => {
           const next = SORT_BYS.find((s) => s === value);
           if (next) replaceParams({ sortBy: next });
         }}
       >
-        <SelectTrigger size="sm" aria-label="Sort">
-          <span className="text-muted-foreground text-xs">Sort</span>
+        <SelectTrigger size="sm" aria-label={t('sort.label')}>
+          <span className="text-muted-foreground text-xs">
+            {t('sort.label')}
+          </span>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {SORT_ITEMS.map((item) => (
+          {sortItems.map((item) => (
             <SelectItem key={item.value} value={item.value}>
               {item.label}
             </SelectItem>
@@ -98,7 +112,9 @@ export function SortControls() {
       <Button
         variant="outline"
         size="icon-sm"
-        aria-label={`Sort direction: ${descending ? 'descending' : 'ascending'}`}
+        aria-label={t('sort.direction', {
+          dir: t(descending ? 'sort.desc' : 'sort.asc'),
+        })}
         onClick={() => replaceParams({ sortDir: descending ? 'asc' : 'desc' })}
       >
         {descending ? <ArrowDown aria-hidden /> : <ArrowUp aria-hidden />}

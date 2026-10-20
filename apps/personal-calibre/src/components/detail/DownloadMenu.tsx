@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   DropdownMenu,
@@ -10,6 +11,7 @@ import {
 import { Download } from 'lucide-react';
 
 import { formatBytes } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 export interface DownloadFile {
   format: string;
@@ -19,11 +21,12 @@ export interface DownloadFile {
 }
 
 export function DownloadMenu({ files }: { files: DownloadFile[] }) {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
         <Download aria-hidden />
-        Download
+        {t('detail.download')}
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         {files.map((file) => (

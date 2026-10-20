@@ -1,11 +1,12 @@
 'use client';
 
-import { ShellLayout } from '@rainforest-dev/library-shell';
+import { ShellLayout, useLibraryT } from '@rainforest-dev/library-shell';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { useIsDesktop, useLibraryShortcuts } from '@/hooks';
 import { parseLibraryParams } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 import { LibraryHeader } from './LibraryHeader';
@@ -24,6 +25,7 @@ export function LibraryShell({
   const isDesktop = useIsDesktop();
   const { panelOpen, filtersOpen, setFiltersOpen, closeBook } = useLibrary();
   const [ready, setReady] = useState(false);
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   useEffect(() => setReady(true), []);
 
   const isList = pathname === '/';
@@ -43,7 +45,7 @@ export function LibraryShell({
       filtersSheetOpen={filtersOpen}
       onFiltersSheetOpenChange={setFiltersOpen}
       onPaneClose={closeBook}
-      labels={{ pane: 'Book details' }}
+      labels={{ pane: t('pane.label') }}
     >
       {children}
     </ShellLayout>

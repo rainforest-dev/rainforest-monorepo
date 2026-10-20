@@ -1,6 +1,9 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
+
 import { BASE_PATH, cn, seriesLine, spineClass } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import type { DeliveryPlatform, LibraryBook } from '@/types';
 
 import { DeliveryMarks } from './DeliveryMarks';
@@ -35,6 +38,7 @@ export function BookTile({
   onToggle,
   className,
 }: Props) {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <div
       role="option"
@@ -100,7 +104,7 @@ export function BookTile({
         )}
         {book.series && (
           <p className="text-muted-foreground line-clamp-1 text-xs">
-            {seriesLine(book.series, book.seriesIndex)}
+            {seriesLine(book.series, book.seriesIndex, t)}
           </p>
         )}
         {book.formats.length > 0 && (

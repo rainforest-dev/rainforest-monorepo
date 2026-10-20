@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Checkbox,
   TableCell,
@@ -7,6 +8,7 @@ import {
 } from '@rainforest-dev/rainforest-react';
 
 import { BASE_PATH, cn, seriesLine, spineClass, yearOf } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import type { DeliveryPlatform, LibraryBook } from '@/types';
 
 import { DeliveryPills } from './DeliveryPills';
@@ -56,7 +58,10 @@ export function CatalogueRow({
   onActivate,
   onToggle,
 }: Props) {
-  const series = book.series ? seriesLine(book.series, book.seriesIndex) : null;
+  const t = useLibraryT(CALIBRE_NAMESPACE);
+  const series = book.series
+    ? seriesLine(book.series, book.seriesIndex, t)
+    : null;
   return (
     <TableRow
       aria-selected={selected}
@@ -77,7 +82,7 @@ export function CatalogueRow({
       <TableCell className="w-10">
         <Checkbox
           tabIndex={-1}
-          aria-label={`Select ${book.title}`}
+          aria-label={t('catalogue.selectBook', { title: book.title })}
           checked={selected}
           onCheckedChange={onToggle}
           onClick={(event) => event.stopPropagation()}

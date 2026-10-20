@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Command,
@@ -10,6 +11,7 @@ import {
 import { type ReactNode, useId, useState } from 'react';
 
 import { cn } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 const VISIBLE_OPTIONS = 8;
 
@@ -36,12 +38,13 @@ export function Facet({
   children,
 }: Props) {
   const headingId = useId();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const [expanded, setExpanded] = useState(false);
   const selected = options.find((o) => o.value === value);
   const visible = options.slice(0, VISIBLE_OPTIONS);
   const shown =
     selected && !visible.includes(selected) ? [...visible, selected] : visible;
-  const filterLabel = `Filter ${title.toLowerCase()}`;
+  const filterLabel = t('filters.filterBy', { name: title.toLowerCase() });
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-1">
@@ -105,7 +108,9 @@ export function Facet({
           className="self-start"
           onClick={() => setExpanded((open) => !open)}
         >
-          {expanded ? 'Show fewer' : `Show all ${options.length}`}
+          {expanded
+            ? t('filters.showFewer')
+            : t('filters.showAll', { count: options.length })}
         </Button>
       )}
     </section>

@@ -79,6 +79,14 @@ describe('buildHall', () => {
     ]);
   });
 
+  it('names the bookcases in English for an en page', () => {
+    expect(buildHall(BOOKS, 'series', 'en').at(-1)?.label).toBe('No series');
+    expect(buildHall(BOOKS, 'collection', 'en').map((c) => c.label)).toEqual([
+      'Books',
+      'Notebooks',
+    ]);
+  });
+
   it('merges the smallest groups into one case past the limit', () => {
     const cases = buildHall(BOOKS, 'series', 'zh', 2);
     expect(cases.map((c) => [c.key, c.bookIds])).toEqual([

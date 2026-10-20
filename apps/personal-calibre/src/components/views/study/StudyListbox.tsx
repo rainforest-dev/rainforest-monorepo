@@ -1,9 +1,11 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import type { ReactNode } from 'react';
 
 import { GroupHeading } from '@/components/views/GroupHeading';
-import { booksLabel, cn, type StudyModel, type StudyShelf } from '@/lib';
+import { cn, groupTitle, type StudyModel, type StudyShelf } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 import type { StudyNav, StudyOptionState } from './StudyOption';
 import type { StudyInspect } from './useStudyInspect';
@@ -32,9 +34,6 @@ export interface StudyListboxProps {
   nav: StudyNav;
 }
 
-const shelfTitle = (shelf: StudyShelf) =>
-  shelf.continued ? `${shelf.label} (continued)` : shelf.label;
-
 export function StudyListbox({
   model,
   options,
@@ -46,11 +45,12 @@ export function StudyListbox({
   onBackgroundClick,
   nav,
 }: StudyListboxProps) {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <div
       ref={nav.containerRef}
       role="listbox"
-      aria-label="Bookshelves"
+      aria-label={t('study.shelves')}
       aria-multiselectable="true"
       onKeyDown={nav.onKeyDown}
       onClick={(event) => {
@@ -67,7 +67,10 @@ export function StudyListbox({
           <div
             key={shelf.key}
             role="group"
-            aria-label={`${shelfTitle(shelf)}, ${booksLabel(shelf.count)}`}
+            aria-label={t('study.shelf', {
+              name: groupTitle(shelf, t),
+              books: t('books', { count: shelf.count }),
+            })}
             data-shelf={shelf.key}
             className={cn('min-w-0', shelfClassName)}
           >

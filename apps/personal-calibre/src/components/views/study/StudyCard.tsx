@@ -1,10 +1,12 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { type PointerEvent, type RefObject, useRef } from 'react';
 
 import { BASE_PATH, cn, type StudyBook } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 const SWIPE_PX = 40;
 
@@ -31,6 +33,7 @@ export function StudyCard({
   onStep,
   onOpen,
 }: StudyCardProps) {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const onPointerUp = (event: PointerEvent) => {
     const from = swipe.current;
@@ -50,7 +53,7 @@ export function StudyCard({
       </div>
       {book && (
         <section
-          aria-label="Pulled book"
+          aria-label={t('study.pulled')}
           data-study-card
           data-book-id={book.id}
           data-scrubbing={scrubbing || undefined}
@@ -101,14 +104,14 @@ export function StudyCard({
               className="h-auto px-0"
               onClick={() => onOpen(book.id)}
             >
-              Open details
+              {t('study.openDetails')}
             </Button>
           </div>
           <div className="flex shrink-0 gap-1">
             <Button
               size="icon-sm"
               variant="outline"
-              aria-label="Previous book"
+              aria-label={t('study.previous')}
               disabled={!hasPrevious}
               onClick={() => onStep(-1)}
             >
@@ -117,7 +120,7 @@ export function StudyCard({
             <Button
               size="icon-sm"
               variant="outline"
-              aria-label="Next book"
+              aria-label={t('study.next')}
               disabled={!hasNext}
               onClick={() => onStep(1)}
             >

@@ -1,6 +1,11 @@
 'use client';
 
-import { SHELL_IDS, ShellHeader } from '@rainforest-dev/library-shell';
+import {
+  LocaleSwitch,
+  SHELL_IDS,
+  ShellHeader,
+  useLibraryT,
+} from '@rainforest-dev/library-shell';
 import { Badge, Button } from '@rainforest-dev/rainforest-react';
 import {
   LibraryBig,
@@ -12,6 +17,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 import { filterCount, parseLibraryParams } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 import { SearchField } from './SearchField';
@@ -21,6 +27,7 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
   const { panelOpen, togglePanel } = useLibrary();
   const params = parseLibraryParams(useSearchParams());
   const count = filterCount(params);
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <ShellHeader>
       {isList && (
@@ -28,7 +35,7 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
           variant="ghost"
           size="icon-sm"
           className="hidden lg:inline-flex"
-          aria-label={panelOpen ? 'Hide filters' : 'Show filters'}
+          aria-label={panelOpen ? t('filters.hide') : t('filters.show')}
           aria-expanded={panelOpen}
           aria-controls={SHELL_IDS.filters}
           onClick={togglePanel}
@@ -46,7 +53,7 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
         className="flex items-center gap-2 font-semibold tracking-tight"
       >
         <LibraryBig className="size-5" aria-hidden />
-        Library
+        {t('header.name')}
       </Link>
       {/* Another app now: here it redirects, on the library hostname it is served directly. */}
       <a
@@ -54,7 +61,7 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
         className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm"
       >
         <NotebookPen className="size-4" aria-hidden />
-        Notebooks
+        {t('header.notebooks')}
       </a>
       {isList && <ViewSwitch className="ml-auto lg:ml-2" />}
       {isList && (
@@ -64,9 +71,10 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
       )}
       {isList && !panelOpen && count > 0 && (
         <Badge variant="secondary" className="hidden lg:inline-flex">
-          {count} filter{count === 1 ? '' : 's'}
+          {t('filters.badge', { count })}
         </Badge>
       )}
+      <LocaleSwitch className={isList ? undefined : 'ml-auto'} />
     </ShellHeader>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { toast } from '@rainforest-dev/rainforest-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -31,6 +32,7 @@ import {
   toggleId,
   type View,
 } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 export type PendingFocus =
   | { kind: 'first'; page: number }
@@ -132,6 +134,7 @@ export function LibraryProvider({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const [prefs, setPrefs] = useState(initialPrefs);
   const [view, setViewState] = useState<View>(() =>
     resolveView(initialPrefs.view, searchParams.get('view')),
@@ -226,8 +229,8 @@ export function LibraryProvider({
   const fallBackToCss = useCallback(() => {
     if (readStudyFallback()) return;
     writeStudyFallback();
-    toast("3D isn't available here, showing the CSS study");
-  }, []);
+    toast(t('study.fallback'));
+  }, [t]);
 
   const togglePanel = useCallback(
     () => savePrefs({ panel: !prefs.panel }),
