@@ -5,6 +5,7 @@ import {
 } from '@rainforest-dev/mcp-kit';
 
 import { auditCall } from './audit';
+import { notebookToolsFromEnv } from './notebooks';
 import { type CalibreLibrary, calibreTools } from './tools';
 
 export const GATEWAY_HEADER = 'x-calibre-gateway';
@@ -16,8 +17,15 @@ export function calibreMcpHandler(
   env: Record<string, string | undefined>,
   library: CalibreLibrary,
   write?: (line: string) => void,
+  notebookFetch?: typeof fetch,
 ): (request: Request) => Promise<Response> {
-  const tools = calibreTools(library);
+  const tools = calibreTools(
+    library,
+    notebookToolsFromEnv(env, {
+      userHeader: LOGIN_HEADER,
+      ...(notebookFetch && { fetch: notebookFetch }),
+    }),
+  );
   const onCall = auditCall(write);
   return createMcpFetchHandler(
     MCP_SERVER,

@@ -93,6 +93,25 @@ const APPS = {
       };
     },
   },
+  'personal-notebook': {
+    kind: 'next',
+    root: 'apps/personal-notebook',
+    entry: 'apps/personal-notebook/server.js',
+    workdir: '.',
+    port: 39186,
+    prepare: (scratch) => ({
+      env: {
+        NOTEBOOK_DATA_DIR: join(scratch, 'data'),
+        NOTEBOOK_EMBED: 'fake',
+      },
+      checks: [
+        { path: '/notebooks' },
+        { path: '/notebooks/api/hall-items', type: 'application/json' },
+        { path: '/notebooks/api/search?q=ink', type: 'application/json' },
+        { path: '/notebooks/_shell/shell.css', type: 'text/css' },
+      ],
+    }),
+  },
   'personal-calibre': {
     kind: 'next',
     root: 'apps/personal-calibre',

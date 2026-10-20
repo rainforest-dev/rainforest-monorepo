@@ -12,6 +12,16 @@ describe('ShellHead', () => {
     expect(html).toContain('<script type="speculationrules">{"prerender"');
   });
 
+  it('links the files under an app base path when given one', () => {
+    const html = renderToStaticMarkup(
+      <ShellHead assetBase="/notebooks/_shell" />,
+    );
+    expect(html).toContain(
+      'href="/notebooks/_shell/fonts/inter-latin-wght-normal.woff2"',
+    );
+    expect(html).toContain('href="/notebooks/_shell/shell.css"');
+  });
+
   it('can leave prerendering off', () => {
     expect(renderToStaticMarkup(<ShellHead prerender={false} />)).not.toContain(
       'speculationrules',

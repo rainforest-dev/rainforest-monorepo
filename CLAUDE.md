@@ -11,6 +11,8 @@ Nx 23.2.1 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-liff-e2e** - Playwright e2e tests
 - **apps/personal-calibre** - Next.js Calibre library browser, shipped as a Docker image
 - **apps/personal-calibre-e2e** - Playwright e2e tests
+- **apps/personal-notebook** - Next.js Bullet Journal notebook app at `/notebooks` (Next `basePath`; dev port 8086), shipped as a Docker image. Owns the notebook DB, page images, OCR and the notebook MCP tools; calibre forwards those tools to it and redirects its old `/notebooks` links
+- **apps/personal-notebook-e2e** - Playwright e2e tests
 - **apps/reading-room** - Astro + React reading room of the library (renamed from rss-manager): the rack at `/rack` (reading-queue shelves, `/rack/sources` registry desk) and `/kb`, reserved for the knowledge base; shipped as a Docker image
 - **apps/reading-room-e2e** - Playwright e2e tests against a generated fictional vault and a local feed server
 - **apps/personal-memories** - Astro + React memories album (dev port 3004, bound to 127.0.0.1); private data stays outside the repo, and the homelab image mounts it read-only behind the Cloudflare Access gate
@@ -18,7 +20,8 @@ Nx 23.2.1 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **libs/personal-data** - Profile, work history and project data, read by the website and its MCP tools
 - **libs/personal-portfolio** - Case study content and the MCP registrations that expose it
 - **libs/web-ai** - Framework-free Chrome built-in AI helpers (Prompt API probe and sessions), used by the website and personal-memories
-- **libs/mcp-kit** - Framework-free MCP server kit: a stateless `(Request) => Response` handler, `defineTool`/`registerTools` over zod v4 shapes, result and error helpers, and `gatewayAuth` for the OAuth gateway's shared-secret header
+- **libs/mcp-kit** - Framework-free MCP server kit: a stateless `(Request) => Response` handler, `defineTool`/`registerTools` over zod v4 shapes, result and error helpers, `gatewayAuth` for the OAuth gateway's shared-secret header, and `forwardTools`/`httpToolCaller` to serve another server's tools
+- **libs/notebook-tools** - The nine notebook MCP tool definitions, run by personal-notebook and forwarded by personal-calibre
 - **libs/library-contract** - Framework-free contract for the one-hostname library (`library.rainforest.tools`): collection paths, the `hall-items` schema, shared URL filter params, the `library-prefs` cookie and cross-tab messages
 - **libs/library-shell** - React shell every library app shares: header, filters/content/pane layout, collection nav and phone tab bar, cross-document View Transitions, Speculation Rules, the `/_shell` fonts and same-origin shared state. An app that uses it runs `tools/library-shell/sync-assets.mjs` to serve `/_shell` from `public/`
 - **libs/rainforest-ui** - Lit web components library with Tailwind CSS v4.1 + Material Design 3
@@ -285,7 +288,7 @@ Caches the pnpm store via `actions/setup-node` with `cache: 'pnpm'`. Nx Cloud di
 
 ### Docker images
 
-The three homelab images (`personal-memories`, `reading-room`, `personal-calibre`) never build
+The homelab images (`personal-memories`, `reading-room`, `personal-calibre`, `personal-notebook`) never build
 inside Docker. `nx bundle <app>` builds the app through the normal `^build` chain and writes a
 self-contained runtime directory to `dist/artifacts/<app>`: the `@vercel/nft` trace of the Astro
 server entry, or Next's standalone output plus `static` and `public`. Its native binaries are

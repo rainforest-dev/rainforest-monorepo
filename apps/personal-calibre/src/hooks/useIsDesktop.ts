@@ -24,8 +24,3 @@ export function useIsDesktop(): boolean {
 export function useIsFinePointerDesktop(): boolean {
   return useMediaQuery(FINE_POINTER_DESKTOP_QUERY);
 }
-
-/** Wide enough to show two facing notebook pages. */
-export function useIsWide(): boolean {
-  return useMediaQuery('(min-width: 48rem)');
-}

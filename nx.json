@@ -102,6 +102,7 @@
         "projects": [
           "personal-calibre",
           "personal-memories",
+          "personal-notebook",
           "@rainforest-monorepo/reading-room"
         ],
         "projectsRelationship": "independent",

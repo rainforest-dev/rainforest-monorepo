@@ -36,6 +36,14 @@ describe('toolContent', () => {
     expect(toolResult(value)).toEqual({ content });
   });
 
+  it('carries structuredContent when given', () => {
+    const content = [{ type: 'text' as const, text: '{"a":1}' }];
+    expect(toolResult(toolContent(content, { a: 1 }))).toEqual({
+      content,
+      structuredContent: { a: 1 },
+    });
+  });
+
   it('does not mistake plain data for content', () => {
     expect(isToolContent({ content: [] })).toBe(false);
     expect(toolResult({ content: [] })).toEqual({

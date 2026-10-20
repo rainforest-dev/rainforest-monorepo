@@ -16,14 +16,23 @@ const CONTENT = Symbol.for('@rainforest-dev/mcp-kit/tool-content');
 export interface ToolContent {
   readonly [CONTENT]: true;
   readonly content: CallToolResult['content'];
+  readonly structuredContent?: CallToolResult['structuredContent'];
 }
 
 /**
  * Returns content blocks verbatim instead of JSON text, for results plain data cannot carry, such
- * as `{ type: 'image', data, mimeType }`. `toolResult` passes it through unchanged.
+ * as `{ type: 'image', data, mimeType }`. `toolResult` passes it through unchanged, with
+ * `structuredContent` when given.
  */
-export function toolContent(content: CallToolResult['content']): ToolContent {
-  return { [CONTENT]: true, content };
+export function toolContent(
+  content: CallToolResult['content'],
+  structuredContent?: CallToolResult['structuredContent'],
+): ToolContent {
+  return {
+    [CONTENT]: true,
+    content,
+    ...(structuredContent && { structuredContent }),
+  };
 }
 
 export const isToolContent = (value: unknown): value is ToolContent =>
@@ -35,7 +44,10 @@ export const isToolContent = (value: unknown): value is ToolContent =>
  * value goes out as its own content blocks.
  */
 export function toolResult(data: unknown): CallToolResult {
-  if (isToolContent(data)) return { content: data.content };
+  if (isToolContent(data))
+    return data.structuredContent
+      ? { content: data.content, structuredContent: data.structuredContent }
+      : { content: data.content };
   const content: CallToolResult['content'] = [
     { type: 'text', text: JSON.stringify(data ?? null) },
   ];
