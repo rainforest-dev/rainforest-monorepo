@@ -93,7 +93,7 @@ export async function gotoStudy(
     renderer: run.renderer,
   });
   new URLSearchParams(query).forEach((value, key) => params.set(key, value));
-  await page.goto(`/?${params.toString().replace(/=(?=&|$)/g, '')}`);
+  await page.goto(appPath(`/?${params.toString().replace(/=(?=&|$)/g, '')}`));
   await expect(page.locator('[data-library-ready]')).toHaveCount(1);
   await expect(page.locator('[data-study-ready]')).toHaveCount(1, {
     timeout: STUDY_READY_MS,

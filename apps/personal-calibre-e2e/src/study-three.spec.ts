@@ -936,7 +936,9 @@ for (const run of THREE_RUNS) {
         const context = await browser.newContext();
         const probe = await context.newPage();
         await probe.goto(
-          `/?view=study&groupBy=series&renderer=css&page=${pageNumber}`,
+          appPath(
+            `/?view=study&groupBy=series&renderer=css&page=${pageNumber}`,
+          ),
         );
         await expect(probe.locator('[data-study-ready]')).toHaveCount(1);
         await expect(studyOptions(probe).first()).toBeVisible();

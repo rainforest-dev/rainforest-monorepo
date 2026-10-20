@@ -19,8 +19,16 @@ test.describe('coming back to the hall', () => {
   }) => {
     await page.goto('/');
     await expect(page.locator('[data-hall-canvas] canvas')).toBeVisible();
-    // Let the scene draw so the pagehide capture has something to save.
-    await page.waitForTimeout(1500);
+    // Wait for the scene's first frame so the pagehide capture has something to save.
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as { __libraryHall?: { firstFrameAt: number | null } })
+              .__libraryHall?.firstFrameAt ?? null,
+        ),
+      )
+      .not.toBeNull();
     await page.reload();
     const saved = await page.evaluate(() =>
       sessionStorage.getItem('library-hall:memory'),
