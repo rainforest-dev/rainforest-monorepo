@@ -12,18 +12,20 @@ import {
   listBookDeliveryEvents,
   listDeliveryPlatforms,
 } from '@/lib/server';
+import { calibreT, pageLocale } from '@/locales';
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ lang: string; id: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: Pick<Props, 'params'>): Promise<Metadata> {
   const { id } = await params;
+  const t = calibreT(await pageLocale(params));
   const book = await getBook(Number(id));
-  if (!book) return { title: 'Book Not Found — Personal Calibre Library' };
-  return { title: `${book.title} — Personal Calibre Library` };
+  if (!book) return { title: t('meta.bookNotFound') };
+  return { title: t('meta.book', { title: book.title }) };
 }
 
 export default function BookPage(props: Props) {
@@ -36,6 +38,8 @@ export default function BookPage(props: Props) {
 
 async function BookPageContent({ params }: Props) {
   const { id } = await params;
+  const locale = await pageLocale(params);
+  const t = calibreT(locale);
   const bookId = Number(id);
   if (!Number.isInteger(bookId) || bookId < 1) notFound();
 
@@ -55,7 +59,7 @@ async function BookPageContent({ params }: Props) {
         className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
       >
         <ArrowLeft className="size-4" aria-hidden />
-        Library
+        {t('detail.back')}
       </Link>
       <BookDetail
         variant="page"
@@ -65,6 +69,7 @@ async function BookPageContent({ params }: Props) {
         platforms={platforms}
         allTags={options.tags}
         currentParams={{}}
+        locale={locale}
       />
     </div>
   );

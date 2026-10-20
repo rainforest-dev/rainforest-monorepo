@@ -1,10 +1,12 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import { PanelLeftClose } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
 import { cn, filterCount, parseLibraryParams } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 import type { DeliveryPlatform, FilterOptions } from '@/types';
 
@@ -36,12 +38,13 @@ export function FilterPanel({
   const params = parseLibraryParams(useSearchParams());
   const { replaceParams, clearFilters, togglePanel } = useLibrary();
   const count = filterCount(params);
+  const t = useLibraryT(CALIBRE_NAMESPACE);
 
   return (
     <div className="flex flex-col gap-5 px-2 py-4">
       <div className="flex items-center gap-2 px-2">
         <h2 className="text-sm font-semibold">
-          {count > 0 ? `Filters · ${count}` : 'Filters'}
+          {count > 0 ? t('filters.titleCount', { count }) : t('filters.title')}
         </h2>
         {count > 0 && (
           <Button
@@ -50,13 +53,13 @@ export function FilterPanel({
             className="ml-auto"
             onClick={clearFilters}
           >
-            Clear all
+            {t('filters.clearAll')}
           </Button>
         )}
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label="Collapse filters"
+          aria-label={t('filters.collapse')}
           onClick={togglePanel}
           className={cn('hidden lg:inline-flex', count === 0 && 'ml-auto')}
         >
@@ -65,8 +68,8 @@ export function FilterPanel({
       </div>
       <GroupSelect className="mx-2 lg:hidden" />
       <Facet
-        title="Delivery"
-        allLabel="Any platform"
+        title={t('filters.delivery')}
+        allLabel={t('filters.anyPlatform')}
         options={platforms.map((p) => ({ value: p.key, label: p.name }))}
         value={params.platform}
         onChange={(platform) => replaceParams({ platform })}
@@ -77,22 +80,22 @@ export function FilterPanel({
         />
       </Facet>
       <Facet
-        title="Tags"
-        allLabel="All tags"
+        title={t('filters.tags')}
+        allLabel={t('filters.allTags')}
         options={toOptions(options.tags)}
         value={params.tag === null ? null : String(params.tag)}
         onChange={(v) => replaceParams({ tag: toId(v) })}
       />
       <Facet
-        title="Series"
-        allLabel="All series"
+        title={t('filters.series')}
+        allLabel={t('filters.allSeries')}
         options={toOptions(options.series)}
         value={params.series === null ? null : String(params.series)}
         onChange={(v) => replaceParams({ series: toId(v) })}
       />
       <Facet
-        title="Authors"
-        allLabel="All authors"
+        title={t('filters.authors')}
+        allLabel={t('filters.allAuthors')}
         options={toOptions(options.authors)}
         value={params.author === null ? null : String(params.author)}
         onChange={(v) => replaceParams({ author: toId(v) })}

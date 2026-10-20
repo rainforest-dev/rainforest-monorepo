@@ -1,11 +1,11 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
 
 import { useRovingNav } from '@/hooks';
 import {
-  booksLabel,
   contentKey,
   type GroupBy,
   groupEntries,
@@ -13,6 +13,7 @@ import {
   navKey,
   parseLibraryParams,
 } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 import type { DeliveryPlatform, LibraryEntry } from '@/types';
 
@@ -28,6 +29,7 @@ interface Props {
 
 export function ShelfView({ entries, groupBy, platforms, page }: Props) {
   const key = contentKey(entries);
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const groups = useMemo(
     () => (groupBy ? groupEntries(entries, groupBy) : null),
     [key, groupBy],
@@ -72,7 +74,7 @@ export function ShelfView({ entries, groupBy, platforms, page }: Props) {
       <div
         ref={containerRef}
         role="listbox"
-        aria-label="Books"
+        aria-label={t('catalogue.books')}
         aria-multiselectable="true"
         onKeyDown={onKeyDown}
         className="grid grid-cols-2 gap-x-5 gap-y-7 lg:grid-cols-[repeat(auto-fill,minmax(148px,1fr))]"
@@ -92,13 +94,16 @@ export function ShelfView({ entries, groupBy, platforms, page }: Props) {
         <div key={group.key} className="flex flex-col gap-3">
           <div
             role="group"
-            aria-label={`${groupTitle(group)}, ${booksLabel(group.total)}`}
+            aria-label={t('shelf.group', {
+              name: groupTitle(group, t),
+              books: t('books', { count: group.total }),
+            })}
           >
             <GroupHeading group={group} shown={group.entries.length} />
           </div>
           <div
             role="listbox"
-            aria-label={`Books — ${groupTitle(group)}`}
+            aria-label={t('shelf.groupBooks', { name: groupTitle(group, t) })}
             aria-multiselectable="true"
             className="-mx-1 flex gap-5 overflow-x-auto px-1 pb-2"
           >

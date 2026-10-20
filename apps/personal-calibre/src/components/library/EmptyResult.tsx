@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Empty,
@@ -10,10 +11,12 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { SearchX } from 'lucide-react';
 
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 export function EmptyResult({ filtered }: { filtered: boolean }) {
   const { clearFilters } = useLibrary();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <Empty className="py-20">
       <EmptyHeader>
@@ -23,15 +26,13 @@ export function EmptyResult({ filtered }: { filtered: boolean }) {
           </EmptyMedia>
         )}
         <EmptyTitle>
-          {filtered
-            ? 'No books match these filters.'
-            : 'No books in this library yet.'}
+          {filtered ? t('empty.filtered') : t('empty.none')}
         </EmptyTitle>
       </EmptyHeader>
       {filtered && (
         <EmptyContent>
           <Button variant="outline" size="sm" onClick={clearFilters}>
-            Clear filters
+            {t('filters.clear')}
           </Button>
         </EmptyContent>
       )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Command,
@@ -16,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { BASE_PATH } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import type { FilterOptions } from '@/types';
 
 interface Props {
@@ -26,6 +28,7 @@ interface Props {
 
 export function TagEditor({ bookId, tagIds, allTags }: Props) {
   const router = useRouter();
+  const tr = useLibraryT(CALIBRE_NAMESPACE);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -79,7 +82,7 @@ export function TagEditor({ bookId, tagIds, allTags }: Props) {
             type="button"
             disabled={busy}
             onClick={() => void removeTag(tag.id)}
-            aria-label={`Remove tag ${tag.name}`}
+            aria-label={tr('tags.remove', { name: tag.name })}
             className="hover:bg-foreground/10 rounded-full p-0.5 disabled:opacity-50"
           >
             <X className="size-3" aria-hidden />
@@ -94,20 +97,22 @@ export function TagEditor({ bookId, tagIds, allTags }: Props) {
           }
         >
           <Plus aria-hidden />
-          Add tag
+          {tr('tags.add')}
         </PopoverTrigger>
         <PopoverContent className="w-56 p-0" align="start">
           <Command>
             <CommandInput
               name="tagSearch"
-              aria-label="Search or create tag"
-              placeholder="Search or create tag…"
+              aria-label={tr('tags.search')}
+              placeholder={tr('tags.searchPlaceholder')}
               value={inputValue}
               onValueChange={setInputValue}
             />
             <CommandList>
               <CommandEmpty>
-                {trimmed ? `Create "${trimmed}"` : 'No tags found.'}
+                {trimmed
+                  ? tr('tags.create', { name: trimmed })
+                  : tr('tags.none')}
               </CommandEmpty>
               {availableTags.map((t) => (
                 <CommandItem
@@ -123,7 +128,7 @@ export function TagEditor({ bookId, tagIds, allTags }: Props) {
                   value={`__create__${trimmed}`}
                   onSelect={() => void addTag(trimmed)}
                 >
-                  Create &quot;{trimmed}&quot;
+                  {tr('tags.create', { name: trimmed })}
                 </CommandItem>
               )}
             </CommandList>

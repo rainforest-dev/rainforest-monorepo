@@ -4,6 +4,7 @@ import {
   libraryLocaleOfRequest,
   parseLibraryPrefs,
   resolveLibraryLocale,
+  routeLibraryLocale,
   serializeLibraryPrefs,
 } from './prefs';
 
@@ -77,5 +78,37 @@ describe('libraryLocaleOfRequest', () => {
         new Headers({ cookie: 'a=1', 'accept-language': 'en-GB' }),
       ),
     ).toBe('en');
+  });
+});
+
+describe('routeLibraryLocale', () => {
+  const en = new Headers({ 'accept-language': 'en-US' });
+
+  it.each([
+    ['/', '/en'],
+    ['/books/1', '/en/books/1'],
+  ])('rewrites %s to the reader’s locale', (pathname, rewritten) => {
+    expect(routeLibraryLocale(pathname, en)).toEqual({
+      kind: 'rewrite',
+      pathname: rewritten,
+    });
+  });
+
+  it.each([
+    ['/zh', '/'],
+    ['/en/', '/'],
+    ['/zh/read/3', '/read/3'],
+  ])('redirects %s to the unprefixed path', (pathname, target) => {
+    expect(routeLibraryLocale(pathname, en)).toEqual({
+      kind: 'redirect',
+      pathname: target,
+    });
+  });
+
+  it('leaves a path that only starts like a locale alone', () => {
+    expect(routeLibraryLocale('/zhuyin', en)).toEqual({
+      kind: 'rewrite',
+      pathname: '/en/zhuyin',
+    });
   });
 });

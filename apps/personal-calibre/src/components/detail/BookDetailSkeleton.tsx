@@ -1,11 +1,17 @@
+'use client';
+
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Skeleton } from '@rainforest-dev/rainforest-react';
 
+import { CALIBRE_NAMESPACE } from '@/locales';
+
 export function BookDetailSkeleton() {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <div
       role="status"
       aria-busy="true"
-      aria-label="Loading book"
+      aria-label={t('detail.loading')}
       className="flex flex-col gap-6 p-4 lg:p-5"
     >
       <div className="flex gap-4">

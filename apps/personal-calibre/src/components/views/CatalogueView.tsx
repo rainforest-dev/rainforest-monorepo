@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Checkbox,
   Table,
@@ -21,6 +22,7 @@ import {
   pageCheckState,
   parseLibraryParams,
 } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 import type { DeliveryPlatform, LibraryEntry } from '@/types';
 
@@ -36,6 +38,7 @@ interface Props {
 
 export function CatalogueView({ entries, groupBy, platforms, page }: Props) {
   const key = contentKey(entries);
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const groups = useMemo<EntryGroup[]>(
     () =>
       groupBy
@@ -77,15 +80,15 @@ export function CatalogueView({ entries, groupBy, platforms, page }: Props) {
     <Table
       ref={containerRef}
       role="grid"
-      aria-label="Books"
+      aria-label={t('catalogue.books')}
       aria-multiselectable="true"
       onKeyDown={onKeyDown}
     >
       {compact ? (
         <TableHeader className="sr-only">
           <TableRow>
-            <TableHead>Select</TableHead>
-            <TableHead>Book</TableHead>
+            <TableHead>{t('catalogue.select')}</TableHead>
+            <TableHead>{t('catalogue.book')}</TableHead>
           </TableRow>
         </TableHeader>
       ) : (
@@ -93,7 +96,7 @@ export function CatalogueView({ entries, groupBy, platforms, page }: Props) {
           <TableRow>
             <TableHead className="w-10">
               <Checkbox
-                aria-label="Select all on this page"
+                aria-label={t('catalogue.selectPage')}
                 checked={headerState === 'all'}
                 indeterminate={headerState === 'some'}
                 onCheckedChange={() =>
@@ -101,11 +104,11 @@ export function CatalogueView({ entries, groupBy, platforms, page }: Props) {
                 }
               />
             </TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Author</TableHead>
-            {wide && <TableHead>Formats</TableHead>}
-            <TableHead>Delivered</TableHead>
-            {wide && <TableHead>Year</TableHead>}
+            <TableHead>{t('catalogue.title')}</TableHead>
+            <TableHead>{t('catalogue.author')}</TableHead>
+            {wide && <TableHead>{t('catalogue.formats')}</TableHead>}
+            <TableHead>{t('catalogue.delivered')}</TableHead>
+            {wide && <TableHead>{t('catalogue.year')}</TableHead>}
           </TableRow>
         </TableHeader>
       )}

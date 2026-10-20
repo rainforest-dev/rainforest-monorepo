@@ -1,4 +1,7 @@
-import { itemTransitionName } from '@rainforest-dev/library-contract';
+import {
+  itemTransitionName,
+  type LibraryLocale,
+} from '@rainforest-dev/library-contract';
 import { buttonVariants } from '@rainforest-dev/rainforest-react';
 import { BookOpen, Star } from 'lucide-react';
 import Link from 'next/link';
@@ -15,6 +18,7 @@ import {
   spineClass,
   staticDownloadUrl,
 } from '@/lib';
+import { calibreT } from '@/locales';
 import type {
   BookDeliveryEvent,
   BookDetail as BookDetailData,
@@ -36,6 +40,7 @@ interface Props {
   platforms: DeliveryPlatform[];
   allTags: FilterOptions['tags'];
   currentParams: RawSearchParams;
+  locale: LibraryLocale;
 }
 
 export function BookDetail({
@@ -46,7 +51,9 @@ export function BookDetail({
   platforms,
   allTags,
   currentParams,
+  locale,
 }: Props) {
+  const t = calibreT(locale);
   const inPane = variant === 'pane';
   const Title = inPane ? 'h2' : 'h1';
   const Section = inPane ? 'h3' : 'h2';
@@ -104,11 +111,11 @@ export function BookDetail({
                 {...linkProps}
                 className="text-muted-foreground w-fit text-sm hover:underline"
               >
-                {seriesLine(book.series, book.seriesIndex)}
+                {seriesLine(book.series, book.seriesIndex, t)}
               </Link>
             ) : (
               <p className="text-muted-foreground text-sm">
-                {seriesLine(book.series, book.seriesIndex)}
+                {seriesLine(book.series, book.seriesIndex, t)}
               </p>
             ))}
           <Title className="text-xl font-semibold leading-tight">
@@ -137,7 +144,7 @@ export function BookDetail({
           {stars !== null && (
             <p
               role="img"
-              aria-label={`Rated ${stars} of 5`}
+              aria-label={t('detail.rating', { stars })}
               className="text-chart-4 flex gap-0.5"
             >
               {[1, 2, 3, 4, 5].map((n) => (
@@ -162,7 +169,7 @@ export function BookDetail({
             className={buttonVariants({ size: 'sm' })}
           >
             <BookOpen aria-hidden />
-            Read
+            {t('detail.read')}
           </Link>
         )}
         {book.files.length > 0 && (
@@ -178,32 +185,32 @@ export function BookDetail({
       </div>
 
       <section className="flex flex-col gap-2">
-        <Section className={sectionHeading}>Tags</Section>
+        <Section className={sectionHeading}>{t('detail.tags')}</Section>
         <TagEditor bookId={book.id} tagIds={book.tagIds} allTags={allTags} />
       </section>
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
         {book.publisher && (
           <>
-            <dt className="text-muted-foreground">Publisher</dt>
+            <dt className="text-muted-foreground">{t('detail.publisher')}</dt>
             <dd>{book.publisher}</dd>
           </>
         )}
         {book.pubdate && (
           <>
-            <dt className="text-muted-foreground">Published</dt>
+            <dt className="text-muted-foreground">{t('detail.published')}</dt>
             <dd>{book.pubdate.slice(0, 10)}</dd>
           </>
         )}
         {book.language && (
           <>
-            <dt className="text-muted-foreground">Language</dt>
+            <dt className="text-muted-foreground">{t('detail.language')}</dt>
             <dd>{book.language}</dd>
           </>
         )}
         {book.formats.length > 0 && (
           <>
-            <dt className="text-muted-foreground">Formats</dt>
+            <dt className="text-muted-foreground">{t('detail.formats')}</dt>
             <dd className="font-mono text-xs">{book.formats.join(' · ')}</dd>
           </>
         )}
@@ -218,7 +225,9 @@ export function BookDetail({
 
       {description && (
         <section className="flex flex-col gap-2">
-          <Section className={sectionHeading}>Description</Section>
+          <Section className={sectionHeading}>
+            {t('detail.description')}
+          </Section>
           <div
             className="text-sm leading-relaxed [&_p]:mb-2"
             dangerouslySetInnerHTML={{ __html: description }}

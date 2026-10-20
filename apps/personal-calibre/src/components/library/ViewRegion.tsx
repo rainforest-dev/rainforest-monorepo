@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { useEffect } from 'react';
 
 import {
@@ -8,7 +9,8 @@ import {
   StudySkeleton,
   StudyView,
 } from '@/components/views';
-import { cn, type GroupBy, isStudyGroupBy, VIEW_LABELS } from '@/lib';
+import { cn, type GroupBy, isStudyGroupBy } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 import type { DeliveryPlatform, LibraryResult } from '@/types';
 
@@ -23,6 +25,7 @@ interface Props {
 
 export function ViewRegion({ library, groupBy, platforms, filtered }: Props) {
   const { view, isPending, pageInfo, setPageInfo } = useLibrary();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const { page, pageCount, entries } = library;
   useEffect(
     () => setPageInfo({ page, pageCount }),
@@ -32,7 +35,7 @@ export function ViewRegion({ library, groupBy, platforms, filtered }: Props) {
 
   return (
     <section
-      aria-label={`${VIEW_LABELS[view]} view`}
+      aria-label={t('view.region', { name: t(`view.${view}`) })}
       aria-busy={isPending}
       data-view-region={view}
       data-view-ready={ready || undefined}

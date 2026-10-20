@@ -1,8 +1,11 @@
 'use client';
 
+import type { LibraryT } from '@rainforest-dev/library-shell';
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { type RefObject, useEffect, useState } from 'react';
 
-import { booksLabel, cn, type StudyShelf } from '@/lib';
+import { cn, groupTitle, type StudyShelf } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 import type { ProjectedLabel } from './Scene';
 
@@ -13,11 +16,9 @@ const LABEL_CLASS =
 const PHOTO_SCRIM_CLASS =
   'rounded-sm in-data-[photo]:bg-[color-mix(in_oklab,var(--muted)_75%,var(--background))]';
 
-const labelText = (text: string, continued: boolean) =>
-  continued ? `${text} (continued)` : text;
-
 export function measureLabelPx(
   element: HTMLElement,
+  t: LibraryT,
 ): (shelf: StudyShelf, continued: boolean) => number {
   return (shelf, continued) => {
     const probe = document.createElement('div');
@@ -25,10 +26,10 @@ export function measureLabelPx(
     probe.style.visibility = 'hidden';
     const name = probe.appendChild(document.createElement('span'));
     name.className = 'font-semibold';
-    name.textContent = labelText(shelf.label, continued);
-    probe.appendChild(document.createElement('span')).textContent = booksLabel(
-      shelf.count,
-    );
+    name.textContent = groupTitle({ ...shelf, continued }, t);
+    probe.appendChild(document.createElement('span')).textContent = t('books', {
+      count: shelf.count,
+    });
     element.appendChild(probe);
     const width = probe.getBoundingClientRect().width;
     probe.remove();
@@ -41,6 +42,7 @@ export function ShelfLabels({
 }: {
   sinkRef: RefObject<LabelsSink | null>;
 }) {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const [labels, setLabels] = useState<readonly ProjectedLabel[]>([]);
   useEffect(() => {
     sinkRef.current = setLabels;
@@ -71,10 +73,17 @@ export function ShelfLabels({
               label.continued ? 'text-muted-foreground' : 'text-foreground',
             )}
           >
-            {labelText(label.text, label.continued)}
+            {groupTitle(
+              {
+                key: label.shelfKey,
+                label: label.text,
+                continued: label.continued,
+              },
+              t,
+            )}
           </span>
           <span className="text-muted-foreground shrink-0">
-            {booksLabel(label.count)}
+            {t('books', { count: label.count })}
           </span>
         </div>
       ))}

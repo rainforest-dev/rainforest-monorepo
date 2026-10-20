@@ -1,11 +1,13 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import ePub, { type Book, type Location, type Rendition } from 'epubjs';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { BASE_PATH } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 interface Props {
   bookId: number;
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export function EpubReader({ bookId, title }: Props) {
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const viewerRef = useRef<HTMLDivElement>(null);
   const [, setBook] = useState<Book | null>(null);
   const [rendition, setRendition] = useState<Rendition | null>(null);
@@ -81,11 +84,21 @@ export function EpubReader({ bookId, title }: Props) {
       />
 
       <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => rendition?.prev()}>
-          <ArrowLeft className="h-4 w-4" />
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={t('reader.previous')}
+          onClick={() => rendition?.prev()}
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
         </Button>
-        <Button variant="outline" size="icon" onClick={() => rendition?.next()}>
-          <ArrowRight className="h-4 w-4" />
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={t('reader.next')}
+          onClick={() => rendition?.next()}
+        >
+          <ArrowRight className="h-4 w-4" aria-hidden />
         </Button>
       </div>
     </div>

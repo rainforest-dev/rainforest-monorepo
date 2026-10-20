@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Alert,
   AlertDescription,
@@ -9,6 +10,7 @@ import {
 import { RotateCw, TriangleAlert } from 'lucide-react';
 
 import { cn } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 
 export function LoadError({
   variant,
@@ -20,6 +22,7 @@ export function LoadError({
   onRetry: () => void;
 }) {
   const compact = variant === 'compact';
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <Alert
       variant="destructive"
@@ -28,21 +31,18 @@ export function LoadError({
     >
       <TriangleAlert aria-hidden />
       <AlertTitle>
-        {compact ? "Couldn't load this book" : "Couldn't load the library"}
+        {compact ? t('loadError.book') : t('loadError.library')}
       </AlertTitle>
       {!compact && (
         <AlertDescription>
-          <p>
-            The book list request failed. Your filters and selection are kept,
-            so a retry picks up where you were.
-          </p>
+          <p>{t('loadError.detail')}</p>
           {digest && <p className="font-mono text-xs">{digest}</p>}
         </AlertDescription>
       )}
       <div className="col-start-2 mt-2">
         <Button variant="outline" size="sm" onClick={onRetry}>
           <RotateCw aria-hidden />
-          Retry
+          {t('loadError.retry')}
         </Button>
       </div>
     </Alert>

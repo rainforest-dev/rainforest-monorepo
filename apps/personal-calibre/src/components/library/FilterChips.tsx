@@ -1,16 +1,19 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import { X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
 import { activeFilters, type FilterLabels, parseLibraryParams } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 export function FilterChips({ labels }: { labels: FilterLabels }) {
   const params = parseLibraryParams(useSearchParams());
   const { replaceParams, clearFilters } = useLibrary();
-  const chips = activeFilters(params, labels);
+  const t = useLibraryT(CALIBRE_NAMESPACE);
+  const chips = activeFilters(params, labels, t);
   if (chips.length === 0) return null;
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:flex-wrap lg:pb-0">
@@ -22,7 +25,7 @@ export function FilterChips({ labels }: { labels: FilterLabels }) {
           {chip.label}
           <button
             type="button"
-            aria-label={`Remove filter ${chip.label}`}
+            aria-label={t('filters.remove', { label: chip.label })}
             onClick={() => replaceParams(chip.patch)}
             className="hover:bg-foreground/10 rounded-full p-0.5"
           >
@@ -36,7 +39,7 @@ export function FilterChips({ labels }: { labels: FilterLabels }) {
         className="shrink-0"
         onClick={clearFilters}
       >
-        Clear all
+        {t('filters.clearAll')}
       </Button>
     </div>
   );

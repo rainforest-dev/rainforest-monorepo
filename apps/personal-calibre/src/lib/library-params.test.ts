@@ -1,4 +1,7 @@
+import { libraryT } from '@rainforest-dev/library-shell';
 import { describe, expect, it } from 'vitest';
+
+import { CALIBRE_NAMESPACE, CALIBRE_RESOURCES } from '@/locales';
 
 import {
   activeFilters,
@@ -11,6 +14,8 @@ import {
   scopeTitle,
   toLibraryQuery,
 } from './library-params';
+
+const t = libraryT('en', CALIBRE_RESOURCES, CALIBRE_NAMESPACE);
 
 const labels: FilterLabels = {
   authors: [{ id: 4, name: 'Oren Halvik', sort: 'Halvik, Oren' }],
@@ -239,7 +244,7 @@ describe('labels', () => {
       platform: 'kobo',
       delivered: 'false',
     });
-    expect(activeFilters(params, labels)).toEqual([
+    expect(activeFilters(params, labels, t)).toEqual([
       { key: 'q', label: '"salt"', patch: { q: null } },
       { key: 'series', label: 'Series: Northbound', patch: { series: null } },
       { key: 'author', label: 'Author: Oren Halvik', patch: { author: null } },
@@ -247,26 +252,29 @@ describe('labels', () => {
       { key: 'platform', label: 'Not on Kobo', patch: { platform: null } },
     ]);
     expect(
-      activeFilters(parseLibraryParams({ tag: '99' }), labels)[0]?.label,
+      activeFilters(parseLibraryParams({ tag: '99' }), labels, t)[0]?.label,
     ).toBe('Tag: #99');
   });
 
   it('titles the scope by precedence', () => {
-    expect(scopeTitle(parseLibraryParams({}), labels)).toBe('All books');
+    expect(scopeTitle(parseLibraryParams({}), labels, t)).toBe('All books');
     expect(
-      scopeTitle(parseLibraryParams({ q: 'salt', series: '3' }), labels),
+      scopeTitle(parseLibraryParams({ q: 'salt', series: '3' }), labels, t),
     ).toBe('Results for "salt"');
     expect(
-      scopeTitle(parseLibraryParams({ series: '3', author: '4' }), labels),
+      scopeTitle(parseLibraryParams({ series: '3', author: '4' }), labels, t),
     ).toBe('Northbound');
-    expect(scopeTitle(parseLibraryParams({ tag: '6' }), labels)).toBe('winter');
-    expect(scopeTitle(parseLibraryParams({ platform: 'kobo' }), labels)).toBe(
-      'On Kobo',
+    expect(scopeTitle(parseLibraryParams({ tag: '6' }), labels, t)).toBe(
+      'winter',
     );
+    expect(
+      scopeTitle(parseLibraryParams({ platform: 'kobo' }), labels, t),
+    ).toBe('On Kobo');
     expect(
       scopeTitle(
         parseLibraryParams({ platform: 'kobo', delivered: 'false' }),
         labels,
+        t,
       ),
     ).toBe('Not on Kobo');
   });

@@ -1,7 +1,11 @@
+'use client';
+
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Badge } from '@rainforest-dev/rainforest-react';
 import { Check } from 'lucide-react';
 
 import { platformName } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import type { DeliveryPlatform } from '@/types';
 
 export function DeliveryPills({
@@ -12,11 +16,12 @@ export function DeliveryPills({
   platforms: readonly DeliveryPlatform[];
 }) {
   const unique = [...new Set(keys)];
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   if (unique.length === 0) {
     return (
       <span
         role="img"
-        aria-label="Not delivered"
+        aria-label={t('notDelivered')}
         className="text-muted-foreground"
       >
         —

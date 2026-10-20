@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Badge,
   Button,
@@ -35,6 +36,7 @@ import {
   latestByPlatform,
   safeExternalHref,
 } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import type { BookDeliveryEvent, DeliveryPlatform } from '@/types';
 
 interface Props {
@@ -44,8 +46,8 @@ interface Props {
   headingAs: 'h2' | 'h3';
 }
 
-const messageOf = (error: unknown) =>
-  error instanceof Error ? error.message : 'Unexpected error';
+const messageOf = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
 
 async function readError(res: Response, fallback: string): Promise<string> {
   try {
@@ -62,6 +64,7 @@ export function DeliveryRows({
   headingAs: Heading,
 }: Props) {
   const headingId = useId();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const latest = latestByPlatform(events);
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
@@ -69,7 +72,7 @@ export function DeliveryRows({
         id={headingId}
         className="text-muted-foreground text-xs font-medium uppercase tracking-wide"
       >
-        Deliveries
+        {t('deliveries.title')}
       </Heading>
       <ItemGroup className="gap-0 rounded-lg border">
         {platforms.map((platform) => (
@@ -86,7 +89,7 @@ export function DeliveryRows({
       {events.length > 0 && (
         <details className="text-sm">
           <summary className="text-muted-foreground cursor-pointer select-none">
-            History ({events.length})
+            {t('deliveries.history', { count: events.length })}
           </summary>
           <ItemGroup className="mt-2 gap-2">
             {events.map((event) => (
@@ -110,6 +113,7 @@ function DeliveryRow({
 }) {
   const router = useRouter();
   const fieldId = useId();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const [open, setOpen] = useState(false);
   const [externalRef, setExternalRef] = useState('');
   const [note, setNote] = useState('');
@@ -119,7 +123,7 @@ function DeliveryRow({
   async function save() {
     const trimmedRef = externalRef.trim();
     if (trimmedRef && !safeExternalHref(trimmedRef)) {
-      setRefError('Reference URL must start with http:// or https://');
+      setRefError(t('deliveries.badRef'));
       return;
     }
     setSaving(true);
@@ -130,15 +134,19 @@ function DeliveryRow({
         body: JSON.stringify({ platformKey: platform.key, note, externalRef }),
       });
       if (!res.ok)
-        throw new Error(await readError(res, 'Failed to add delivery event'));
-      toast.success(`Logged ${platform.name}`);
+        throw new Error(await readError(res, t('deliveries.addFailed')));
+      toast.success(t('deliveries.logged', { name: platform.name }));
       setOpen(false);
       setNote('');
       setExternalRef('');
       setRefError(null);
       router.refresh();
     } catch (error) {
-      toast.error(`Delivery failed — ${messageOf(error)}`);
+      toast.error(
+        t('deliveries.failed', {
+          message: messageOf(error, t('errors.unexpected')),
+        }),
+      );
     } finally {
       setSaving(false);
     }
@@ -159,20 +167,22 @@ function DeliveryRow({
               {formatDeliveryDate(latest.addedAt)}
             </Badge>
           ) : (
-            <Badge variant="muted">Not added</Badge>
+            <Badge variant="muted">{t('deliveries.notAdded')}</Badge>
           )}
         </ItemTitle>
       </ItemContent>
       <ItemActions>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger render={<Button variant="outline" size="xs" />}>
-            {latest ? 'Log again' : 'Mark added'}
+            {latest ? t('deliveries.logAgain') : t('deliveries.markAdded')}
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72">
             <PopoverHeader>
-              <PopoverTitle>Mark as added to {platform.name}</PopoverTitle>
+              <PopoverTitle>
+                {t('deliveries.markTitle', { name: platform.name })}
+              </PopoverTitle>
               <PopoverDescription>
-                Logs today&apos;s date. Both fields are optional.
+                {t('deliveries.markHint')}
               </PopoverDescription>
             </PopoverHeader>
             <form
@@ -185,7 +195,7 @@ function DeliveryRow({
               <FieldGroup className="gap-3">
                 <Field data-invalid={refError ? true : undefined}>
                   <FieldLabel htmlFor={`${fieldId}-ref`}>
-                    Reference URL
+                    {t('deliveries.ref')}
                   </FieldLabel>
                   <Input
                     id={`${fieldId}-ref`}
@@ -208,7 +218,9 @@ function DeliveryRow({
                   )}
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor={`${fieldId}-note`}>Note</FieldLabel>
+                  <FieldLabel htmlFor={`${fieldId}-note`}>
+                    {t('deliveries.note')}
+                  </FieldLabel>
                   <Input
                     id={`${fieldId}-note`}
                     name="note"
@@ -219,7 +231,7 @@ function DeliveryRow({
               </FieldGroup>
               <Button type="submit" size="sm" disabled={saving}>
                 {saving && <Spinner data-icon="inline-start" />}
-                Save
+                {t('deliveries.save')}
               </Button>
             </form>
           </PopoverContent>
@@ -237,6 +249,7 @@ function HistoryItem({
   event: BookDeliveryEvent;
 }) {
   const router = useRouter();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   const [busy, setBusy] = useState(false);
   const externalHref = safeExternalHref(event.externalRef);
 
@@ -250,12 +263,14 @@ function HistoryItem({
         },
       );
       if (!res.ok)
-        throw new Error(
-          await readError(res, 'Failed to delete delivery event'),
-        );
+        throw new Error(await readError(res, t('deliveries.deleteFailed')));
       router.refresh();
     } catch (error) {
-      toast.error(`Delivery failed — ${messageOf(error)}`);
+      toast.error(
+        t('deliveries.failed', {
+          message: messageOf(error, t('errors.unexpected')),
+        }),
+      );
     } finally {
       setBusy(false);
     }
@@ -287,7 +302,7 @@ function HistoryItem({
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label={`Remove ${event.platformName} event`}
+          aria-label={t('deliveries.remove', { name: event.platformName })}
           disabled={busy}
           onClick={() => void remove()}
         >

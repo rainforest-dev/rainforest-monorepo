@@ -1,3 +1,5 @@
+import type { LibraryT } from '@rainforest-dev/library-shell';
+
 export function formatBytes(bytes: number): string {
   if (bytes <= 0) return '';
   if (bytes < 1024) return `${bytes} B`;
@@ -5,9 +7,13 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function seriesLine(series: string, index: number | null): string {
+export function seriesLine(
+  series: string,
+  index: number | null,
+  t: LibraryT,
+): string {
   if (index === null) return series;
-  return `${series} · Book ${Number.isInteger(index) ? index : String(index)}`;
+  return t('series.line', { series, index: String(index) });
 }
 
 export function yearOf(pubdate: string | null): string | null {

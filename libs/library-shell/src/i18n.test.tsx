@@ -5,7 +5,7 @@ import { CollectionNav } from './collection-nav';
 import { createLibraryI18n, libraryT } from './i18n';
 import { LibraryI18nProvider, useLibraryT } from './i18n-provider';
 import { LocaleSwitch } from './locale-switch';
-import { readLibraryPrefs } from './prefs';
+import { readLibraryPrefs, writeLibraryPrefs } from './prefs';
 
 const RESOURCES = {
   zh: { demo: { greet: '你好，{{name}}', books_other: '{{count}} 本書' } },
@@ -79,4 +79,31 @@ describe('LocaleSwitch', () => {
     expect(readLibraryPrefs().locale).toBe('en');
     expect(reload).toHaveBeenCalled();
   });
+});
+
+describe('LibraryI18nProvider on a restored page', () => {
+  function restore() {
+    const event = new Event('pageshow');
+    Object.defineProperty(event, 'persisted', { value: true });
+    window.dispatchEvent(event);
+  }
+
+  it.each([
+    ['reloads', 'en', 1],
+    ['keeps the page', 'zh', 0],
+  ] as const)(
+    '%s when the cookie picks %s over a zh page',
+    (_, picked, reloads) => {
+      const reload = vi.fn();
+      vi.stubGlobal('location', { ...window.location, reload });
+      render(
+        <LibraryI18nProvider locale="zh" resources={RESOURCES}>
+          <Greeting />
+        </LibraryI18nProvider>,
+      );
+      writeLibraryPrefs({ locale: picked });
+      restore();
+      expect(reload).toHaveBeenCalledTimes(reloads);
+    },
+  );
 });

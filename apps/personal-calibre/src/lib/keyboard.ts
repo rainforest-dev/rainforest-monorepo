@@ -43,23 +43,24 @@ export function resolveShortcut(input: KeyInput): Shortcut | null {
   }
 }
 
+/** `label` is a key under `keys` in the calibre dictionary; the hint row translates it. */
 export interface KeyHint extends RowHint {
   paged?: true;
 }
 
-const SEARCH: KeyHint = { keys: ['/'], label: 'Search' };
-const SWITCH: KeyHint = { keys: ['v'], label: 'Switch view' };
-const PAGE: KeyHint = { keys: ['[', ']'], label: 'Page', paged: true };
-const OPEN: KeyHint = { keys: ['Enter'], label: 'Open' };
-const SELECT_X: KeyHint = { keys: ['x'], label: 'Select' };
-const CLOSE: KeyHint = { keys: ['Esc'], label: 'Close, then clear' };
+const SEARCH: KeyHint = { keys: ['/'], label: 'search' };
+const SWITCH: KeyHint = { keys: ['v'], label: 'switchView' };
+const PAGE: KeyHint = { keys: ['[', ']'], label: 'page', paged: true };
+const OPEN: KeyHint = { keys: ['Enter'], label: 'open' };
+const SELECT_X: KeyHint = { keys: ['x'], label: 'select' };
+const CLOSE: KeyHint = { keys: ['Esc'], label: 'close' };
 
 export const KEY_HINTS: Record<View, readonly KeyHint[]> = {
   shelf: [
     SEARCH,
     SWITCH,
-    { keys: ['←↑↓→'], label: 'Move' },
-    { keys: ['Home', 'End'], label: 'Row ends' },
+    { keys: ['←↑↓→'], label: 'move' },
+    { keys: ['Home', 'End'], label: 'rowEnds' },
     PAGE,
     OPEN,
     SELECT_X,
@@ -68,18 +69,18 @@ export const KEY_HINTS: Record<View, readonly KeyHint[]> = {
   catalogue: [
     SEARCH,
     SWITCH,
-    { keys: ['↑↓'], label: 'Move' },
+    { keys: ['↑↓'], label: 'move' },
     PAGE,
-    { keys: ['Space'], label: 'Select' },
+    { keys: ['Space'], label: 'select' },
     OPEN,
     CLOSE,
   ],
   study: [
     SEARCH,
     SWITCH,
-    { keys: ['←→'], label: 'Along shelf' },
-    { keys: ['↑↓'], label: 'Between shelves' },
-    { keys: ['Home', 'End'], label: 'Shelf ends' },
+    { keys: ['←→'], label: 'alongShelf' },
+    { keys: ['↑↓'], label: 'betweenShelves' },
+    { keys: ['Home', 'End'], label: 'shelfEnds' },
     PAGE,
     OPEN,
     SELECT_X,

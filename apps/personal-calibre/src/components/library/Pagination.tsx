@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button, buttonVariants } from '@rainforest-dev/rainforest-react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -7,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import type { MouseEvent, ReactNode } from 'react';
 
 import { buildLibraryHref } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 export function Pagination({
@@ -18,6 +20,7 @@ export function Pagination({
 }) {
   const searchParams = useSearchParams();
   const { goToPage } = useLibrary();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   if (pageCount <= 1) return null;
 
   const step = (target: number, label: ReactNode, enabled: boolean) => {
@@ -53,24 +56,24 @@ export function Pagination({
 
   return (
     <nav
-      aria-label="Pagination"
+      aria-label={t('pagination.label')}
       className="flex items-center justify-center gap-3 py-4 text-sm"
     >
       {step(
         page - 1,
         <>
           <ArrowLeft aria-hidden />
-          Prev
+          {t('pagination.prev')}
         </>,
         page > 1,
       )}
       <span className="text-muted-foreground tabular-nums">
-        Page {page} of {pageCount}
+        {t('pagination.pageOf', { page, pageCount })}
       </span>
       {step(
         page + 1,
         <>
-          Next
+          {t('pagination.next')}
           <ArrowRight aria-hidden />
         </>,
         page < pageCount,

@@ -15,12 +15,16 @@ import {
   listBookDeliveryEvents,
   listDeliveryPlatforms,
 } from '@/lib/server';
+import { calibreT, pageLocale } from '@/locales';
 
 export default async function PanePage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ lang: string }>;
   searchParams: Promise<RawSearchParams>;
 }) {
+  const locale = await pageLocale(params);
   const raw = await searchParams;
   const id = parseLibraryParams(raw).book;
   if (id === null) return null;
@@ -36,7 +40,11 @@ export default async function PanePage({
     getFilterOptions(),
   ]);
   if (!book)
-    return <p className="text-muted-foreground p-5 text-sm">Book not found.</p>;
+    return (
+      <p className="text-muted-foreground p-5 text-sm">
+        {calibreT(locale)('detail.notFound')}
+      </p>
+    );
   return (
     <BookDetail
       variant="pane"
@@ -46,6 +54,7 @@ export default async function PanePage({
       platforms={platforms}
       allTags={options.tags}
       currentParams={raw}
+      locale={locale}
     />
   );
 }

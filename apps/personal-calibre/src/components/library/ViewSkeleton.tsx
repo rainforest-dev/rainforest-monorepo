@@ -1,18 +1,21 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Skeleton } from '@rainforest-dev/rainforest-react';
 
 import { StudySkeleton } from '@/components/views';
 import { cn } from '@/lib';
+import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 export function ViewSkeleton() {
   const { view } = useLibrary();
+  const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
     <div
       role="status"
       aria-busy="true"
-      aria-label="Loading books"
+      aria-label={t('loadingBooks')}
       data-skeleton={view}
       className="py-4"
     >
