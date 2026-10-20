@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Dialog,
@@ -14,13 +15,12 @@ import {
 import { useState } from 'react';
 
 import { cn } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 import type { NotebookSummary } from '@/types';
 
 import { postNotebookBulk } from './api';
 
 type MergeableNotebook = Pick<NotebookSummary, 'id' | 'name' | 'pageCount'>;
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /**
  * Merges the selected notebooks into one of them. The others' pages go to the end of the
@@ -42,6 +42,8 @@ export function MergeNotebooksDialog({
     (best, n) => (best && best.pageCount >= n.pageCount ? best : n),
     undefined,
   );
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
+  const count = (n: number) => t('merge.notebooks', { count: n });
   const [chosen, setChosen] = useState<number | null>(null);
   const targetId =
     notebooks.find((n) => n.id === chosen)?.id ?? largest?.id ?? null;
@@ -58,13 +60,16 @@ export function MergeNotebooksDialog({
       );
       if (failed.length > 0) {
         toast.error(
-          `${plural(failed.length, 'notebook')} not merged: ${failed[0].error}`,
+          t('merge.notMerged', {
+            notebooks: count(failed.length),
+            error: failed[0].error,
+          }),
         );
       }
       if (done.length > 0) {
         const target = notebooks.find((n) => n.id === targetId)?.name;
         toast.success(
-          `Merged ${plural(done.length, 'notebook')} into ${target}`,
+          t('merge.merged', { notebooks: count(done.length), target }),
         );
       }
       onDone(done);
@@ -80,17 +85,13 @@ export function MergeNotebooksDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            Merge {plural(notebooks.length, 'notebook')}
+            {t('merge.title', { notebooks: count(notebooks.length) })}
           </DialogTitle>
-          <DialogDescription>
-            The other notebooks&apos; pages move to the end of the one you keep,
-            and the emptied notebooks are deleted. A page whose image is already
-            in it is dropped.
-          </DialogDescription>
+          <DialogDescription>{t('merge.description')}</DialogDescription>
         </DialogHeader>
         <fieldset className="flex flex-col gap-2">
           <legend className="text-muted-foreground mb-2 text-xs font-medium">
-            Keep
+            {t('merge.keep')}
           </legend>
           {notebooks.map((n) => (
             <label
@@ -112,7 +113,7 @@ export function MergeNotebooksDialog({
                 {n.name}
               </span>
               <span className="text-muted-foreground text-xs tabular-nums">
-                {plural(n.pageCount, 'page')}
+                {t('notebook.pages', { count: n.pageCount })}
               </span>
             </label>
           ))}
@@ -123,14 +124,14 @@ export function MergeNotebooksDialog({
             disabled={busy}
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             disabled={busy || targetId === null || notebooks.length < 2}
             onClick={() => void submit()}
           >
             {busy && <Spinner data-icon="inline-start" />}
-            Merge
+            {t('merge.submit')}
           </Button>
         </DialogFooter>
       </DialogContent>

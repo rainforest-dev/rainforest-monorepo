@@ -1,9 +1,13 @@
-import { getCollection } from '@rainforest-dev/library-contract';
+import {
+  getCollection,
+  type LibraryLocale,
+} from '@rainforest-dev/library-contract';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 
 import { cn, withBase } from '@/lib';
 import type { PageSearch, PageSearchOptions } from '@/lib/server';
+import { notebookT } from '@/locales';
 
 import { pageImageUrl } from './api';
 
@@ -14,10 +18,13 @@ const field =
 export function NotebookSearchForm({
   q = '',
   options = {},
+  locale,
 }: {
   q?: string;
   options?: PageSearchOptions;
+  locale: LibraryLocale;
 }) {
+  const t = notebookT(locale);
   const filtered = Boolean(options.from || options.to || options.exact);
   return (
     <form
@@ -26,7 +33,7 @@ export function NotebookSearchForm({
       className="flex flex-wrap items-end gap-2"
     >
       <label className="flex min-w-40 flex-1 flex-col gap-1 text-sm">
-        <span className="sr-only">Search notebook pages</span>
+        <span className="sr-only">{t('search.label')}</span>
         <span className="relative">
           <Search
             className="text-muted-foreground pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2"
@@ -36,18 +43,18 @@ export function NotebookSearchForm({
             type="search"
             name="q"
             defaultValue={q}
-            placeholder="Search pages"
+            placeholder={t('search.placeholder')}
             className={cn(field, 'w-full pl-8')}
           />
         </span>
       </label>
       <details className="group" open={filtered}>
         <summary className="text-muted-foreground hover:text-foreground flex h-9 cursor-pointer items-center rounded-md px-2 text-sm">
-          Filters
+          {t('search.filters')}
         </summary>
         <div className="flex flex-wrap items-end gap-2 pt-2">
           <label className="flex flex-col gap-1 text-xs">
-            Dated from
+            {t('search.from')}
             <input
               type="date"
               name="from"
@@ -56,7 +63,7 @@ export function NotebookSearchForm({
             />
           </label>
           <label className="flex flex-col gap-1 text-xs">
-            to
+            {t('search.to')}
             <input
               type="date"
               name="to"
@@ -72,7 +79,7 @@ export function NotebookSearchForm({
               defaultChecked={options.exact}
               className="accent-primary size-4"
             />
-            Exact words only
+            {t('search.exact')}
           </label>
         </div>
       </details>
@@ -80,7 +87,7 @@ export function NotebookSearchForm({
         type="submit"
         className="bg-primary text-primary-foreground focus-visible:outline-ring h-9 rounded-md px-4 text-sm font-medium outline-offset-2 focus-visible:outline-2"
       >
-        Search
+        {t('search.submit')}
       </button>
     </form>
   );
@@ -89,30 +96,33 @@ export function NotebookSearchForm({
 export function NotebookSearchResults({
   q,
   search,
+  locale,
 }: {
   q: string;
   search: PageSearch;
+  locale: LibraryLocale;
 }) {
+  const t = notebookT(locale);
   const { hits } = search;
   return (
     <section aria-labelledby="page-results" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 id="page-results" className="text-base font-semibold">
           {hits.length === 0
-            ? 'No pages match'
-            : `${hits.length} page${hits.length === 1 ? '' : 's'}`}
+            ? t('search.none')
+            : t('notebook.pages', { count: hits.length })}
         </h2>
         <p className="text-muted-foreground text-xs">
           {search.semantic === 'on'
-            ? 'Matched by words and by meaning'
-            : 'Matched by words'}
+            ? t('search.byMeaning')
+            : t('search.byWords')}
           {' · '}
           {/* Books is another app on the library hostname, so a full page load. */}
           <a
             href={`${getCollection('books').basePath}?q=${encodeURIComponent(q)}`}
             className="hover:text-foreground underline underline-offset-2"
           >
-            Search books for “{q}”
+            {t('search.books', { q })}
           </a>
         </p>
       </div>
@@ -133,12 +143,14 @@ export function NotebookSearchResults({
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex flex-wrap items-baseline gap-x-2">
                   <span className="font-medium">
-                    {hit.heading ?? 'Untitled page'}
+                    {hit.heading ?? t('search.untitled')}
                   </span>
                   <span className="text-muted-foreground text-xs">
                     {[
                       hit.notebookName,
-                      `p. ${hit.pageNumber ?? hit.position}`,
+                      t('page.shortNumber', {
+                        number: hit.pageNumber ?? hit.position,
+                      }),
                       hit.pageDate,
                     ]
                       .filter(Boolean)
@@ -152,7 +164,9 @@ export function NotebookSearchResults({
                         : 'bg-info/15 text-info',
                     )}
                   >
-                    {hit.match === 'words' ? 'Words' : 'Meaning'}
+                    {hit.match === 'words'
+                      ? t('search.words')
+                      : t('search.meaning')}
                   </span>
                 </span>
                 <span className="text-muted-foreground line-clamp-3 text-sm leading-relaxed">

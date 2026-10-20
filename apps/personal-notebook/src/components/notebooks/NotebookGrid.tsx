@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button, Spinner, toast } from '@rainforest-dev/rainforest-react';
 import {
   Archive,
@@ -18,13 +19,12 @@ import { useEffect, useState } from 'react';
 
 import { cn } from '@/lib';
 import { daysLeftInTrash, TRASH_DAYS } from '@/lib/notebook';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 import type { NotebookSummary } from '@/types';
 
 import { notebookPdfUrl, pageImageUrl, postNotebookBulk } from './api';
 import { MergeNotebooksDialog } from './MergeNotebooksDialog';
 import { RemoveNotebooksDialog } from './RemoveNotebooksDialog';
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 // On a phone the actions share a row of equal cells, icon over label, tall enough to tap.
 const action =
@@ -44,6 +44,8 @@ export function NotebookGrid({
   trash?: boolean;
 }) {
   const router = useRouter();
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
+  const plural = (n: number) => t('merge.notebooks', { count: n });
   const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState<ReadonlySet<number>>(new Set());
   const [dialog, setDialog] = useState<'remove' | 'merge' | null>(null);
@@ -88,16 +90,19 @@ export function NotebookGrid({
       );
       if (failed.length > 0) {
         toast.error(
-          `${plural(failed.length, 'notebook')} not changed: ${failed[0].error}`,
+          t('remove.notChanged', {
+            notebooks: plural(failed.length),
+            error: failed[0].error,
+          }),
         );
       }
-      const verb = {
-        archive: 'Archived',
-        reopen: 'Reopened',
-        restore: 'Restored',
+      const key = {
+        archive: 'remove.archived',
+        reopen: 'grid.reopened',
+        restore: 'grid.restored',
       }[action];
       if (done.length > 0)
-        toast.success(`${verb} ${plural(done.length, 'notebook')}`);
+        toast.success(t(key, { notebooks: plural(done.length) }));
       finish();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
@@ -119,9 +124,7 @@ export function NotebookGrid({
   if (notebooks.length === 0) {
     return (
       <p className="text-muted-foreground py-12 text-center text-sm">
-        {trash
-          ? 'Trash is empty.'
-          : 'No notebooks yet. Name one below to start its shelf.'}
+        {trash ? t('grid.trashEmpty') : t('grid.empty')}
       </p>
     );
   }
@@ -133,12 +136,11 @@ export function NotebookGrid({
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <p className="text-muted-foreground text-sm">
-          {plural(notebooks.length, 'notebook')} ·{' '}
-          {plural(
-            notebooks.reduce((sum, n) => sum + n.pageCount, 0),
-            'page',
-          )}
-          {trash && ` · deleted for good after ${TRASH_DAYS} days`}
+          {plural(notebooks.length)} ·{' '}
+          {t('notebook.pages', {
+            count: notebooks.reduce((sum, n) => sum + n.pageCount, 0),
+          })}
+          {trash && t('grid.purgeAfter', { days: TRASH_DAYS })}
         </p>
         <Button
           variant="outline"
@@ -147,7 +149,7 @@ export function NotebookGrid({
           aria-pressed={selecting}
           onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
         >
-          {selecting ? 'Done' : 'Select'}
+          {selecting ? t('grid.done') : t('grid.select')}
         </Button>
       </div>
       <ul
@@ -193,16 +195,18 @@ export function NotebookGrid({
                 )}
                 {notebook.status === 'archived' && !trash && (
                   <span className="bg-background/85 text-muted-foreground absolute bottom-2 right-2 rounded px-1.5 py-0.5 text-xs">
-                    Archived
+                    {t('grid.archivedBadge')}
                   </span>
                 )}
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{notebook.name}</p>
                 <p className="text-muted-foreground text-xs">
-                  {plural(notebook.pageCount, 'page')}
+                  {t('notebook.pages', { count: notebook.pageCount })}
                   {notebook.trashedAt &&
-                    ` · deleted in ${plural(daysLeftInTrash(notebook.trashedAt), 'day')}`}
+                    t('grid.deletedIn', {
+                      count: daysLeftInTrash(notebook.trashedAt),
+                    })}
                 </p>
               </div>
             </>
@@ -239,14 +243,14 @@ export function NotebookGrid({
       {selecting && (
         <div
           role="toolbar"
-          aria-label="Selected notebooks"
+          aria-label={t('grid.toolbar')}
           className="bg-card fixed inset-x-2 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 mx-auto flex flex-wrap items-center gap-2 rounded-xl border p-2 pl-3.5 shadow-lg sm:w-fit sm:max-w-[calc(100%-1rem)]"
         >
           <span
             className="text-sm font-semibold tabular-nums"
             aria-live="polite"
           >
-            {selected.length} selected
+            {t('grid.selected', { count: selected.length })}
           </span>
           {selected.length < notebooks.length && (
             <Button
@@ -254,7 +258,7 @@ export function NotebookGrid({
               size="xs"
               onClick={() => setPicked(new Set(notebooks.map((n) => n.id)))}
             >
-              Select all
+              {t('grid.selectAll')}
             </Button>
           )}
           <div
@@ -272,7 +276,7 @@ export function NotebookGrid({
                 onClick={() => void run('restore')}
               >
                 {busy ? <Spinner /> : <RotateCcw aria-hidden />}
-                Restore
+                {t('grid.restore')}
               </Button>
             ) : (
               <>
@@ -290,7 +294,7 @@ export function NotebookGrid({
                   ) : (
                     <Archive aria-hidden />
                   )}
-                  {allArchived ? 'Reopen' : 'Archive'}
+                  {allArchived ? t('grid.reopen') : t('remove.archive')}
                 </Button>
                 <Button
                   variant="outline"
@@ -300,7 +304,7 @@ export function NotebookGrid({
                   onClick={() => setDialog('merge')}
                 >
                   <Merge aria-hidden />
-                  Merge…
+                  {t('grid.mergeEllipsis')}
                 </Button>
                 <Button
                   variant="outline"
@@ -310,7 +314,7 @@ export function NotebookGrid({
                   onClick={exportPdfs}
                 >
                   <FileDown aria-hidden />
-                  Export PDF
+                  {t('grid.exportPdf')}
                 </Button>
               </>
             )}
@@ -325,14 +329,14 @@ export function NotebookGrid({
               onClick={() => setDialog('remove')}
             >
               <Trash2 aria-hidden />
-              {trash ? 'Delete now…' : 'Delete…'}
+              {trash ? t('grid.deleteNow') : t('grid.delete')}
             </Button>
           </div>
           <Button
             variant="ghost"
             size="icon-sm"
             className="ml-auto sm:order-last sm:ml-0"
-            aria-label="Stop selecting (Esc)"
+            aria-label={t('grid.stop')}
             onClick={stopSelecting}
           >
             <X aria-hidden />

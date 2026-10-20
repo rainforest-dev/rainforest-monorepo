@@ -20,10 +20,16 @@ async function createNotebook(
   layout: 'book' | 'pages' = 'pages',
 ): Promise<number> {
   await page.goto('/notebooks');
-  await page.getByLabel('Notebook name').fill(name);
-  // Enabled only once React has hydrated and seen the name.
+  // Enabled only once React has hydrated and seen the name. A name typed before hydration
+  // stays in the field but not in React's state, and React ignores the same value typed
+  // again, so the field is cleared before each try.
+  const field = page.getByLabel('Notebook name');
   const create = page.getByRole('button', { name: 'Create' });
-  await expect(create).toBeEnabled();
+  await expect(async () => {
+    await field.clear();
+    await field.fill(name);
+    await expect(create).toBeEnabled({ timeout: 1_000 });
+  }).toPass();
   await create.click();
   // A dev server compiles the notebook route on first visit.
   await expect(page).toHaveURL(/\/notebooks\/\d+$/, { timeout: 30_000 });
@@ -304,7 +310,7 @@ test.describe('notebooks', () => {
     await expect(page).toHaveURL(/view=calendar/);
     await page.goto('/notebooks?view=calendar&month=2026-10');
     await expect(
-      page.getByRole('heading', { name: '2026 年 10 月' }),
+      page.getByRole('heading', { name: 'October 2026' }),
     ).toBeVisible();
     const eleventh = page.locator('[data-date="2026-10-11"]');
     const ours = eleventh.getByRole('link', {
@@ -318,7 +324,7 @@ test.describe('notebooks', () => {
     ).toBeVisible();
     await page.getByRole('link', { name: 'Previous month' }).click();
     await expect(
-      page.getByRole('heading', { name: '2026 年 9 月' }),
+      page.getByRole('heading', { name: 'September 2026' }),
     ).toBeVisible();
     await page.getByRole('link', { name: 'Next month' }).click();
     await ours.click();
@@ -393,7 +399,7 @@ test.describe('notebooks', () => {
     await purge.getByRole('button', { name: 'Delete now' }).click();
     await expect(page.getByRole('link', { name: names[1] })).toHaveCount(0);
 
-    await page.getByRole('link', { name: 'All' }).click();
+    await page.getByRole('link', { name: 'All', exact: true }).click();
     await expect(page.getByRole('link', { name: names[0] })).toBeVisible();
     await expect(page.getByRole('link', { name: names[1] })).toHaveCount(0);
   });

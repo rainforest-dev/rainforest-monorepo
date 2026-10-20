@@ -1,3 +1,8 @@
+import {
+  HTML_LANG,
+  type LibraryLocale,
+} from '@rainforest-dev/library-contract';
+import type { LibraryT } from '@rainforest-dev/library-shell';
 import { CalendarClock, Circle, CircleDot } from 'lucide-react';
 import Link from 'next/link';
 
@@ -8,30 +13,45 @@ import {
   type TaskSource,
   type TaskState,
 } from '@/lib/notebook';
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+import { notebookT } from '@/locales';
 
 const STATES: Partial<
-  Record<TaskState, { label: string; Icon: typeof Circle; className: string }>
+  Record<TaskState, { key: string; Icon: typeof Circle; className: string }>
 > = {
-  open: { label: 'Open', Icon: Circle, className: 'text-muted-foreground' },
-  progress: { label: 'In progress', Icon: CircleDot, className: 'text-info' },
-  event: { label: 'Event', Icon: CalendarClock, className: 'text-primary' },
+  open: {
+    key: 'tasks.state.open',
+    Icon: Circle,
+    className: 'text-muted-foreground',
+  },
+  progress: {
+    key: 'tasks.state.progress',
+    Icon: CircleDot,
+    className: 'text-info',
+  },
+  event: {
+    key: 'tasks.state.event',
+    Icon: CalendarClock,
+    className: 'text-primary',
+  },
 };
 
 const sourceHref = (source: TaskSource) =>
   `/${source.notebookId}?page=${source.pageId}`;
 
-const pageLabel = (source: TaskSource) =>
-  [`p. ${source.number}`, source.pageDate].filter(Boolean).join(' · ');
+const pageLabel = (source: TaskSource, t: LibraryT) =>
+  [t('page.shortNumber', { number: source.number }), source.pageDate]
+    .filter(Boolean)
+    .join(' · ');
 
 /** A link to the page; a long notebook name is cut short so the page number and date stay whole. */
 function SourceLink({
   source,
   withNotebook = true,
+  t,
 }: {
   source: TaskSource;
   withNotebook?: boolean;
+  t: LibraryT;
 }) {
   return (
     <Link
@@ -42,7 +62,7 @@ function SourceLink({
       {withNotebook && (
         <span className="truncate">{source.notebookName}&nbsp;·&nbsp;</span>
       )}
-      <span className="shrink-0 whitespace-nowrap">{pageLabel(source)}</span>
+      <span className="shrink-0 whitespace-nowrap">{pageLabel(source, t)}</span>
     </Link>
   );
 }
@@ -59,50 +79,55 @@ function byMonth(tasks: readonly OpenTask[]) {
   );
 }
 
-const monthLabel = (month: string) =>
+const monthLabel = (month: string, locale: LibraryLocale, t: LibraryT) =>
   month
-    ? new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en', {
+    ? new Date(`${month}-01T00:00:00Z`).toLocaleDateString(HTML_LANG[locale], {
         month: 'long',
         year: 'numeric',
         timeZone: 'UTC',
       })
-    : 'Undated pages';
+    : t('tasks.undated');
 
 /**
  * The bullets still open across the notebooks, read from the pages' transcriptions with the
  * BuJo keys. Each links to the page it was last written on, to check against the paper.
  */
-export function NotebookTasks({ tasks }: { tasks: readonly OpenTask[] }) {
+export function NotebookTasks({
+  tasks,
+  locale,
+}: {
+  tasks: readonly OpenTask[];
+  locale: LibraryLocale;
+}) {
+  const t = notebookT(locale);
   if (tasks.length === 0) {
     return (
       <p className="text-muted-foreground py-12 text-center text-sm">
-        No open items. Bullets marked • ^ or ○ on transcribed pages show up
-        here.
+        {t('tasks.empty')}
       </p>
     );
   }
-  const stale = tasks.filter((t) => t.stale).length;
+  const stale = tasks.filter((task) => task.stale).length;
   return (
     <section aria-labelledby="open-items" className="flex flex-col gap-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 id="open-items" className="text-base font-semibold">
-          {plural(tasks.length, 'open item')}
+          {t('tasks.count', { count: tasks.length })}
         </h2>
         <p className="text-muted-foreground text-xs">
           {stale > 0 &&
-            `${stale} written over ${STALE_DAYS / 7} weeks ago and never crossed out · `}
-          Read from the transcriptions, so check the page before crossing one
-          out on paper.
+            t('tasks.stale', { count: stale, weeks: STALE_DAYS / 7 })}
+          {t('tasks.hint')}
         </p>
       </div>
       {byMonth(tasks).map(([month, items]) => (
         <section
           key={month || 'undated'}
-          aria-label={monthLabel(month)}
+          aria-label={monthLabel(month, locale, t)}
           className="flex flex-col gap-2"
         >
           <h3 className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-            {monthLabel(month)}
+            {monthLabel(month, locale, t)}
           </h3>
           <ul className="bg-card divide-y rounded-lg border">
             {items.map((task) => {
@@ -115,7 +140,7 @@ export function NotebookTasks({ tasks }: { tasks: readonly OpenTask[] }) {
                 >
                   <Icon
                     className={cn('mt-0.5 size-4 flex-none', state?.className)}
-                    aria-label={state?.label}
+                    aria-label={state && t(state.key)}
                   />
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <p className="text-sm">
@@ -127,21 +152,24 @@ export function NotebookTasks({ tasks }: { tasks: readonly OpenTask[] }) {
                       {task.text}
                       {task.stale && (
                         <span className="bg-warning/15 text-warning ml-2 inline-block whitespace-nowrap rounded-full px-2 text-xs">
-                          {STALE_DAYS / 7}+ weeks
+                          {t('tasks.weeks', { weeks: STALE_DAYS / 7 })}
                         </span>
                       )}
                     </p>
                     <div className="text-muted-foreground flex min-w-0 flex-col gap-x-2 text-xs sm:flex-row sm:flex-wrap">
-                      <SourceLink source={task.source} />
+                      <SourceLink source={task.source} t={t} />
                       {task.firstSeen && (
                         <span className="flex min-w-0 gap-1">
-                          <span className="shrink-0">first written</span>{' '}
+                          <span className="shrink-0">
+                            {t('tasks.firstWritten')}
+                          </span>{' '}
                           <SourceLink
                             source={task.firstSeen}
                             withNotebook={
                               task.firstSeen.notebookId !==
                               task.source.notebookId
                             }
+                            t={t}
                           />
                         </span>
                       )}

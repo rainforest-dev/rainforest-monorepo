@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Fragment } from 'react';
 
 import {
@@ -8,6 +9,7 @@ import {
   pageNumberOf,
   pageSegments,
 } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 import type { NotebookPage } from '@/types';
 
 import { LinkPreviewCard } from './LinkPreviewCard';
@@ -29,6 +31,7 @@ export function PageTranscript({
   backlinks: readonly Backlink[];
   onGoTo: (pageId: number) => void;
 }) {
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
   const segments = pageSegments(page, index);
   const firstUrl = segments.find((segment) => segment.kind === 'url');
   return (
@@ -40,7 +43,7 @@ export function PageTranscript({
         id={`transcript-${page.id}`}
         className="flex items-baseline gap-2 text-sm font-semibold"
       >
-        Page {pageNumberOf(page)}
+        {t('page.label', { number: pageNumberOf(page) })}
         {page.pageDate && (
           <span className="text-muted-foreground text-xs font-normal">
             {page.pageDate}
@@ -48,7 +51,9 @@ export function PageTranscript({
         )}
         {page.transcribedBy?.startsWith('ocr:') && (
           <span
-            title={`Read by ${page.transcribedBy.slice(4)}; may contain mistakes`}
+            title={t('page.ocrTitle', {
+              model: page.transcribedBy.slice(4),
+            })}
             className="bg-muted text-muted-foreground rounded-sm px-1 text-[10px] font-medium uppercase tracking-wide"
           >
             OCR
@@ -88,13 +93,15 @@ export function PageTranscript({
           })}
         </p>
       ) : (
-        <p className="text-muted-foreground text-sm">Not transcribed yet.</p>
+        <p className="text-muted-foreground text-sm">
+          {t('page.notTranscribed')}
+        </p>
       )}
       {firstUrl?.kind === 'url' && <LinkPreviewCard href={firstUrl.href} />}
       {backlinks.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <h3 className="text-muted-foreground text-xs font-medium">
-            Linked from
+            {t('page.linkedFrom')}
           </h3>
           <ul className="flex flex-col gap-1">
             {backlinks.map((link) => (
@@ -106,7 +113,7 @@ export function PageTranscript({
                 >
                   <span className="min-w-0 flex-1 truncate">{link.title}</span>
                   <span className="text-muted-foreground text-xs tabular-nums">
-                    p. {link.number}
+                    {t('page.shortNumber', { number: link.number })}
                   </span>
                 </button>
               </li>

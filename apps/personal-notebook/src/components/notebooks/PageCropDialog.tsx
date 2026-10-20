@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Dialog,
@@ -32,6 +33,7 @@ import {
   splitSpread,
   SPREAD_ASPECT,
 } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 
 import { cropPages, detectNormalisedQuad, drawScaled } from './crop-image';
 
@@ -51,11 +53,11 @@ const PREVIEW_EDGE = 1600;
 
 type HandleKey = 0 | 1 | 2 | 3 | 'seamTop' | 'seamBottom';
 
-const CORNER_LABELS = [
-  'Top-left corner',
-  'Top-right corner',
-  'Bottom-right corner',
-  'Bottom-left corner',
+const CORNER_KEYS = [
+  'crop.corner.0',
+  'crop.corner.1',
+  'crop.corner.2',
+  'crop.corner.3',
 ] as const;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
@@ -127,6 +129,7 @@ function CropEditor({
   onResolve: (outcome: CropOutcome) => void;
 }) {
   const spreadId = useId();
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
   const frame = useRef<HTMLDivElement>(null);
   const [detected] = useState(() => initialOutline(request.bitmap));
   const [outline, setOutline] = useState(detected);
@@ -217,7 +220,7 @@ function CropEditor({
       const files = await cropPages(bitmap, pages, request.file.name);
       onResolve({ kind: 'pages', files });
     } catch {
-      toast.error('Could not crop this image; uploading it as it is');
+      toast.error(t('crop.failed'));
       onResolve({ kind: 'skip' });
     } finally {
       setBusy(false);
@@ -232,18 +235,18 @@ function CropEditor({
     <>
       <DialogHeader>
         <DialogTitle>
-          Crop page
+          {t('crop.title')}
           {request.total > 1 && (
             <span className="text-muted-foreground font-normal">
-              {' '}
-              · {request.index + 1} of {request.total}
+              {' · '}
+              {t('crop.progress', {
+                index: request.index + 1,
+                total: request.total,
+              })}
             </span>
           )}
         </DialogTitle>
-        <DialogDescription>
-          Drag the corners onto the page edges. For a spread, line the seam up
-          with the gutter.
-        </DialogDescription>
+        <DialogDescription>{t('crop.hint')}</DialogDescription>
       </DialogHeader>
 
       <div className="bg-muted flex justify-center rounded-md p-2">
@@ -251,7 +254,7 @@ function CropEditor({
           <canvas
             ref={drawPreview}
             role="img"
-            aria-label={`Photo ${request.file.name}`}
+            aria-label={t('crop.photo', { name: request.file.name })}
             className="block h-auto max-h-[58dvh] w-auto max-w-full select-none"
           />
           <svg
@@ -285,10 +288,10 @@ function CropEditor({
                 type="button"
                 aria-label={
                   key === 'seamTop'
-                    ? 'Seam, top end'
+                    ? t('crop.seamTop')
                     : key === 'seamBottom'
-                      ? 'Seam, bottom end'
-                      : CORNER_LABELS[key]
+                      ? t('crop.seamBottom')
+                      : t(CORNER_KEYS[key])
                 }
                 data-handle={key}
                 onPointerDown={onPointerDown}
@@ -318,12 +321,12 @@ function CropEditor({
             onCheckedChange={(next) => setSpread(next)}
           />
           <Label htmlFor={spreadId} className="font-normal">
-            Two pages (spread)
+            {t('crop.spread')}
           </Label>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setOutline(detected)}>
           <RotateCcw aria-hidden />
-          Reset
+          {t('crop.reset')}
         </Button>
       </div>
 
@@ -333,11 +336,11 @@ function CropEditor({
           disabled={busy}
           onClick={() => onResolve({ kind: 'skip' })}
         >
-          Skip crop
+          {t('crop.skip')}
         </Button>
         <Button disabled={busy || !valid} onClick={() => void confirm()}>
           {busy && <Spinner />}
-          {outline.spread ? 'Crop 2 pages' : 'Crop page'}
+          {outline.spread ? t('crop.two') : t('crop.title')}
         </Button>
       </DialogFooter>
     </>

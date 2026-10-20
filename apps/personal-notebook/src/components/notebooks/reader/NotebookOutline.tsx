@@ -1,6 +1,9 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
+
 import { cn, type OutlineSection } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 
 /** The notebook's table of contents, from the first line of each transcribed page. */
 export function NotebookOutline({
@@ -12,18 +15,17 @@ export function NotebookOutline({
   currentIds: ReadonlySet<number>;
   onGoTo: (pageId: number) => void;
 }) {
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
   if (sections.length === 0)
     return (
-      <p className="text-muted-foreground px-2 text-sm">
-        The outline fills in as pages are transcribed.
-      </p>
+      <p className="text-muted-foreground px-2 text-sm">{t('outline.empty')}</p>
     );
   return (
     <div className="flex flex-col gap-4">
       {sections.map((section) => (
         <section key={section.group} className="flex flex-col gap-0.5">
           <h3 className="text-muted-foreground px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide">
-            {section.label}
+            {t(`outline.group.${section.group}`)}
           </h3>
           <ul className="flex flex-col gap-0.5">
             {section.entries.map((entry) => {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Sheet,
@@ -21,6 +22,7 @@ import {
   spreadOfPage,
   spreadsOf,
 } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 import type { NotebookPage } from '@/types';
 
 import { FlipBook, type FlipBookHandle } from './FlipBook';
@@ -46,6 +48,7 @@ export function NotebookReader({
   onOpenPage: (pageId: number) => void;
 }) {
   const wide = useIsWide();
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
   const reducedMotion = useReducedMotion();
   const mode = wide ? 'spread' : 'single';
   const spreads = useMemo(() => spreadsOf(pages.length, mode), [pages, mode]);
@@ -111,8 +114,10 @@ export function NotebookReader({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)_20rem]">
-      <nav aria-label="Outline" className="hidden lg:block">
-        <h2 className="px-2 pb-3 text-sm font-semibold">Outline</h2>
+      <nav aria-label={t('reader.outline')} className="hidden lg:block">
+        <h2 className="px-2 pb-3 text-sm font-semibold">
+          {t('reader.outline')}
+        </h2>
         <NotebookOutline
           sections={outline}
           currentIds={openIds}
@@ -121,9 +126,12 @@ export function NotebookReader({
       </nav>
       {/* Below `lg` the outline is a sheet, so it can be opened from beside the book. */}
       <Sheet side="bottom" open={outlineOpen} onOpenChange={setOutlineOpen}>
-        <SheetContent closeLabel="Close outline" className="max-h-[75dvh]">
+        <SheetContent
+          closeLabel={t('reader.closeOutline')}
+          className="max-h-[75dvh]"
+        >
           <SheetHeader>
-            <SheetTitle>Outline</SheetTitle>
+            <SheetTitle>{t('reader.outline')}</SheetTitle>
           </SheetHeader>
           <SheetBody className="px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <NotebookOutline
@@ -157,7 +165,7 @@ export function NotebookReader({
           <Button
             variant="outline"
             size="icon"
-            aria-label="Previous page"
+            aria-label={t('reader.previous')}
             disabled={spreadIndex === 0}
             onClick={() => book.current?.turn(-1)}
           >
@@ -165,7 +173,7 @@ export function NotebookReader({
           </Button>
           <input
             type="range"
-            aria-label="Page"
+            aria-label={t('reader.page')}
             min={0}
             max={spreads.length - 1}
             value={spreadIndex}
@@ -178,7 +186,7 @@ export function NotebookReader({
           <Button
             variant="outline"
             size="icon"
-            aria-label="Next page"
+            aria-label={t('reader.next')}
             disabled={spreadIndex === spreads.length - 1}
             onClick={() => book.current?.turn(1)}
           >
@@ -191,22 +199,21 @@ export function NotebookReader({
             onClick={() => setOutlineOpen(true)}
           >
             <ListTree aria-hidden />
-            Outline
+            {t('reader.outline')}
           </Button>
         </div>
         <p
           className="text-muted-foreground text-xs tabular-nums"
           aria-live="polite"
         >
-          {pageLabel ? `Page ${pageLabel} of ${pages.length}` : null}
-          <span className="hidden sm:inline">
-            {' '}
-            · Drag a page, click either side, or use ← →
-          </span>
+          {pageLabel
+            ? t('reader.position', { pages: pageLabel, total: pages.length })
+            : null}
+          <span className="hidden sm:inline">{t('reader.hint')}</span>
         </p>
       </div>
 
-      <aside aria-label="Page text" className="flex flex-col gap-6">
+      <aside aria-label={t('reader.pageText')} className="flex flex-col gap-6">
         {openPages.map((page) => (
           <div key={page.id} className="flex flex-col gap-2">
             <PageTranscript
@@ -222,7 +229,7 @@ export function NotebookReader({
               onClick={() => onOpenPage(page.id)}
             >
               <FileText aria-hidden />
-              Page details
+              {t('reader.details')}
             </Button>
           </div>
         ))}

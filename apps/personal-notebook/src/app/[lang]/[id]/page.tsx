@@ -1,5 +1,3 @@
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
@@ -11,22 +9,18 @@ import {
 } from '@/components/notebooks';
 import { daysLeftInTrash } from '@/lib/notebook';
 import { getNotebook } from '@/lib/server';
+import { notebookT, pageLocale } from '@/locales';
+
+import { BackLink } from './BackLink';
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ lang: string; id: string }>;
 }
 
 export default function NotebookPage({ params }: Props) {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
-      <Link
-        href="/"
-        prefetch={false}
-        className="text-muted-foreground hover:text-foreground flex w-fit items-center gap-1 text-sm"
-      >
-        <ChevronLeft className="size-4" aria-hidden />
-        Notebooks
-      </Link>
+      <BackLink />
       <Suspense
         fallback={<div className="bg-muted h-40 animate-pulse rounded-md" />}
       >
@@ -38,6 +32,7 @@ export default function NotebookPage({ params }: Props) {
 
 async function NotebookContent({ params }: Props) {
   await connection();
+  const t = notebookT(await pageLocale(params));
   const notebookId = Number((await params).id);
   if (!Number.isSafeInteger(notebookId) || notebookId < 1) notFound();
   const notebook = await getNotebook(notebookId);
@@ -51,11 +46,15 @@ async function NotebookContent({ params }: Props) {
             {notebook.name}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {notebook.pageCount} page{notebook.pageCount === 1 ? '' : 's'}
+            {t('notebook.pages', { count: notebook.pageCount })}
             {notebook.status === 'archived' &&
-              ` · Archived${notebook.endedOn ? ` ${notebook.endedOn}` : ''}`}
+              (notebook.endedOn
+                ? t('notebook.archivedOn', { date: notebook.endedOn })
+                : t('notebook.archived'))}
             {notebook.trashedAt &&
-              ` · In Trash, deleted in ${daysLeftInTrash(notebook.trashedAt)} days`}
+              t('notebook.inTrash', {
+                days: daysLeftInTrash(notebook.trashedAt),
+              })}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

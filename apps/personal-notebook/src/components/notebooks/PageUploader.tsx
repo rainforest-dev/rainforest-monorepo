@@ -1,17 +1,20 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button, Spinner, toast } from '@rainforest-dev/rainforest-react';
 import { ImagePlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ChangeEvent, useRef, useState } from 'react';
 
 import { withBase } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 
 import { readError } from './api';
 import { useCropStep } from './use-crop-step';
 
 export function PageUploader({ notebookId }: { notebookId: number }) {
   const router = useRouter();
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const { preparePages, cropping, dialog } = useCropStep();
@@ -27,7 +30,7 @@ export function PageUploader({ notebookId }: { notebookId: number }) {
       },
     );
     if (!response.ok) {
-      toast.error(await readError(response, 'Upload failed'));
+      toast.error(await readError(response, t('upload.failed')));
       return;
     }
     const { added, skipped } = (await response.json()) as {
@@ -35,13 +38,14 @@ export function PageUploader({ notebookId }: { notebookId: number }) {
       skipped: Array<{ name: string; reason: string }>;
     };
     if (added.length > 0) {
-      toast.success(
-        `Added ${added.length} page${added.length === 1 ? '' : 's'}`,
-      );
+      toast.success(t('upload.added', { count: added.length }));
     }
     if (skipped.length > 0) {
       toast.info(
-        `Skipped ${skipped.length}: ${skipped.map((s) => s.name).join(', ')}`,
+        t('upload.skipped', {
+          count: skipped.length,
+          names: skipped.map((s) => s.name).join(t('shell:list.separator')),
+        }),
       );
     }
     router.refresh();
@@ -57,7 +61,7 @@ export function PageUploader({ notebookId }: { notebookId: number }) {
       const pages = await preparePages(files);
       if (pages && pages.length > 0) await upload(pages);
     } catch {
-      toast.error('Upload failed');
+      toast.error(t('upload.failed'));
     } finally {
       setBusy(false);
     }
@@ -75,7 +79,11 @@ export function PageUploader({ notebookId }: { notebookId: number }) {
       />
       <Button disabled={busy} onClick={() => input.current?.click()}>
         {busy ? <Spinner /> : <ImagePlus aria-hidden />}
-        {!busy ? 'Add pages' : cropping ? 'Cropping…' : 'Uploading…'}
+        {!busy
+          ? t('upload.add')
+          : cropping
+            ? t('upload.cropping')
+            : t('upload.uploading')}
       </Button>
       {dialog}
     </>

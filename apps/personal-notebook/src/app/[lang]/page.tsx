@@ -1,4 +1,6 @@
 import { MONTH_RE } from '@rainforest-dev/journal-kit';
+import type { LibraryLocale } from '@rainforest-dev/library-contract';
+import type { LibraryT } from '@rainforest-dev/library-shell';
 import { CalendarDays, LayoutGrid, ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { connection } from 'next/server';
@@ -24,10 +26,12 @@ import {
   searchNotebookPages,
   undatedPages,
 } from '@/lib/server';
+import { notebookT, pageLocale } from '@/locales';
 
 type View = 'shelf' | 'calendar' | 'tasks';
 
 interface Props {
+  params: Promise<{ lang: string }>;
   searchParams: Promise<{
     view?: string | string[];
     month?: string | string[];
@@ -41,36 +45,37 @@ interface Props {
 
 const VIEWS: readonly {
   value: View;
-  label: string;
+  key: string;
   Icon: typeof LayoutGrid;
   href: string;
 }[] = [
-  { value: 'shelf', label: 'Shelf', Icon: LayoutGrid, href: '/' },
+  { value: 'shelf', key: 'view.shelf', Icon: LayoutGrid, href: '/' },
   {
     value: 'calendar',
-    label: 'Calendar',
+    key: 'view.calendar',
     Icon: CalendarDays,
     href: '/?view=calendar',
   },
   {
     value: 'tasks',
-    label: 'To-dos',
+    key: 'view.tasks',
     Icon: ListTodo,
     href: '/?view=tasks',
   },
 ];
 
-export default function NotebooksPage({ searchParams }: Props) {
+export default async function NotebooksPage({ params, searchParams }: Props) {
+  const t = notebookT(await pageLocale(params));
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold tracking-tight">Notebooks</h1>
-        <p className="text-muted-foreground text-sm">
-          Scanned pages of paper Bullet Journals, one shelf per notebook.
-        </p>
+        <h1 className="text-xl font-semibold tracking-tight">
+          {t('home.title')}
+        </h1>
+        <p className="text-muted-foreground text-sm">{t('home.intro')}</p>
       </div>
       <Suspense fallback={<NotebooksFallback />}>
-        <NotebooksView searchParams={searchParams} />
+        <NotebooksView params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
@@ -79,8 +84,10 @@ export default function NotebooksPage({ searchParams }: Props) {
 const first = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
-async function NotebooksView({ searchParams }: Props) {
+async function NotebooksView({ params: lang, searchParams }: Props) {
   await connection();
+  const locale = await pageLocale(lang);
+  const t = notebookT(locale);
   const params = await searchParams;
   const asked = first(params.view);
   const view: View =
@@ -92,10 +99,10 @@ async function NotebooksView({ searchParams }: Props) {
   return (
     <>
       <nav
-        aria-label="View"
+        aria-label={t('view.label')}
         className="bg-muted flex w-fit gap-0.5 rounded-lg p-0.5"
       >
-        {VIEWS.map(({ value, label, Icon, href }) => (
+        {VIEWS.map(({ value, key, Icon, href }) => (
           <Link
             key={value}
             href={href}
@@ -109,27 +116,28 @@ async function NotebooksView({ searchParams }: Props) {
             )}
           >
             <Icon className="size-4" aria-hidden />
-            {label}
+            {t(key)}
           </Link>
         ))}
       </nav>
-      <NotebookSearchForm q={typed} options={options} />
+      <NotebookSearchForm q={typed} options={options} locale={locale} />
       {typed && !q && (
         <p role="status" className="text-muted-foreground text-sm">
-          Type at least two letters, or one Chinese character.
+          {t('search.tooShort')}
         </p>
       )}
       {q ? (
         <NotebookSearchResults
           q={q}
           search={await searchNotebookPages(q, options)}
+          locale={locale}
         />
       ) : view === 'calendar' ? (
-        <CalendarView month={first(params.month)} />
+        <CalendarView month={first(params.month)} locale={locale} />
       ) : view === 'tasks' ? (
-        <NotebookTasks tasks={notebookTasks()} />
+        <NotebookTasks tasks={notebookTasks()} locale={locale} />
       ) : (
-        <ShelfView shelf={first(params.shelf)} />
+        <ShelfView shelf={first(params.shelf)} t={t} />
       )}
     </>
   );
@@ -155,13 +163,19 @@ function searchOptions(
 
 type Shelf = 'all' | 'archived' | 'trash';
 
-const SHELVES: readonly { value: Shelf; label: string; href: string }[] = [
-  { value: 'all', label: 'All', href: '/' },
-  { value: 'archived', label: 'Archived', href: '/?shelf=archived' },
-  { value: 'trash', label: 'Trash', href: '/?shelf=trash' },
+const SHELVES: readonly { value: Shelf; key: string; href: string }[] = [
+  { value: 'all', key: 'shelf.all', href: '/' },
+  { value: 'archived', key: 'shelf.archived', href: '/?shelf=archived' },
+  { value: 'trash', key: 'shelf.trash', href: '/?shelf=trash' },
 ];
 
-async function ShelfView({ shelf: asked }: { shelf: string | undefined }) {
+async function ShelfView({
+  shelf: asked,
+  t,
+}: {
+  shelf: string | undefined;
+  t: LibraryT;
+}) {
   const shelf: Shelf =
     asked === 'archived' || asked === 'trash' ? asked : 'all';
   // Purging on visit is enough: a notebook nobody looks at can wait in Trash a little longer.
@@ -174,8 +188,8 @@ async function ShelfView({ shelf: asked }: { shelf: string | undefined }) {
         );
   return (
     <>
-      <nav aria-label="Shelf" className="flex gap-1 text-sm">
-        {SHELVES.map(({ value, label, href }) => (
+      <nav aria-label={t('shelf.label')} className="flex gap-1 text-sm">
+        {SHELVES.map(({ value, key, href }) => (
           <Link
             key={value}
             href={href}
@@ -188,7 +202,7 @@ async function ShelfView({ shelf: asked }: { shelf: string | undefined }) {
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            {label}
+            {t(key)}
           </Link>
         ))}
       </nav>
@@ -198,7 +212,13 @@ async function ShelfView({ shelf: asked }: { shelf: string | undefined }) {
   );
 }
 
-function CalendarView({ month }: { month: string | undefined }) {
+function CalendarView({
+  month,
+  locale,
+}: {
+  month: string | undefined;
+  locale: LibraryLocale;
+}) {
   // In the server's zone, so near midnight on the 1st it can still name last month.
   const thisMonth = new Date().toLocaleDateString('sv').slice(0, 7);
   const shown =
@@ -208,6 +228,7 @@ function CalendarView({ month }: { month: string | undefined }) {
       calendar={notebookCalendar(shown)}
       undated={undatedPages()}
       thisMonth={thisMonth}
+      locale={locale}
     />
   );
 }

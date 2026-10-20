@@ -3,9 +3,11 @@
 import {
   CollectionNav,
   CollectionTabBar,
+  LocaleSwitch,
   type RenderShellLink,
   ShellHeader,
   ShellLayout,
+  useLibraryT,
   useReturnPoint,
 } from '@rainforest-dev/library-shell';
 import { NotebookPen } from 'lucide-react';
@@ -14,6 +16,7 @@ import { type ReactNode } from 'react';
 
 import { useIsDesktop } from '@/hooks';
 import { BASE_PATH } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 
 // The router adds the base path itself, so this app's own tab links to `/`; every other
 // collection is another app and gets a full page load.
@@ -38,6 +41,7 @@ const renderLink: RenderShellLink = (
 export function NotebookShell({ children }: { children: ReactNode }) {
   const isDesktop = useIsDesktop();
   useReturnPoint('notebooks');
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
   return (
     <ShellLayout
       mode="page"
@@ -50,7 +54,7 @@ export function NotebookShell({ children }: { children: ReactNode }) {
             className="flex items-center gap-2 font-semibold tracking-tight"
           >
             <NotebookPen className="size-5" aria-hidden />
-            Notebooks
+            {t('home.title')}
           </Link>
           <CollectionNav
             current="notebooks"
@@ -58,6 +62,7 @@ export function NotebookShell({ children }: { children: ReactNode }) {
             resume
             className="ml-auto"
           />
+          <LocaleSwitch />
         </ShellHeader>
       }
     >
