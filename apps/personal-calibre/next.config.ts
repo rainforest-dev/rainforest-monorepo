@@ -43,7 +43,7 @@ const nextConfig: WithNxOptions = {
       },
       {
         source:
-          '/:path((?!(?:books|api|mcp|opds|files|_shell|_next)(?:/|$)).+)',
+          '/:path((?!(?:books|api|mcp|opds|files|_shell|_next|favicon\\.ico)(?:/|$)).+)',
         has: onOldHost,
         destination: `${LIBRARY_ORIGIN}${BASE_PATH}/:path`,
         basePath: false,

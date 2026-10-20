@@ -63,6 +63,11 @@ test.describe('legacy URLs', () => {
         expect(status).toBe(308);
         expect(to).toBe(`/books${path}`);
       }
+      // The browser's own favicon request stays on the host it asked.
+      expect(await location('/favicon.ico', { host })).toEqual({
+        status: 307,
+        location: '/books/favicon.ico',
+      });
       expect(await location('/mcp', { host, method: 'POST' })).toEqual({
         status: 308,
         location: '/books/mcp',

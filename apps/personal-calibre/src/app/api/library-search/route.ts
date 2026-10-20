@@ -16,12 +16,9 @@ export async function GET(request: Request) {
   await connection();
   const q = librarySearchQuery(new URL(request.url).searchParams);
   const { ids } = await searchBookIds(q);
-  let rows: ReturnType<typeof ftsRowsById> = [];
-  try {
-    rows = ftsRowsById(ids, appSqlite).slice(0, LIBRARY_SEARCH_LIMIT);
-  } catch {
-    rows = [];
-  }
+  // No catch: an unreadable index must answer 500, so the hall names books as not answering
+  // instead of showing an empty result.
+  const rows = ftsRowsById(ids, appSqlite).slice(0, LIBRARY_SEARCH_LIMIT);
   return NextResponse.json({
     results: rows.map((row) => ({
       kind: 'book',
