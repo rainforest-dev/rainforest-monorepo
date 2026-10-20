@@ -61,6 +61,12 @@
       "path": "./libs/library-shell"
     },
     {
+      "path": "./apps/library-hall"
+    },
+    {
+      "path": "./apps/library-hall-e2e"
+    },
+    {
       "path": "./apps/personal-notebook"
     },
     {

@@ -1,0 +1,11 @@
+rt_hdr_alb_nrm_small.tza
+
+Trained weights for Intel Open Image Denoise (the small guided HDR model
+with albedo and normal inputs), used by the calibre Study photo mode.
+
+Source:  https://github.com/RenderKit/oidn-weights
+Commit:  28883d1769d5930e13cf7f1676dd852bd81ed9e7
+SHA-256: 980ea307e7825cae23ed8b1addf8de62ece84b61094795a5631ebf1c91b2e1a7
+
+Copyright Intel Corporation. Licensed under the Apache License, Version 2.0;
+see LICENSE.txt in this directory. The file is unmodified.

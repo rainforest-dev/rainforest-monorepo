@@ -1,0 +1,112 @@
+{
+  "name": "@rainforest-monorepo/library-hall",
+  "version": "0.0.1",
+  "private": true,
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "dependencies": {
+    "@rainforest-dev/library-contract": "workspace:*",
+    "@rainforest-dev/library-shell": "workspace:*",
+    "@rainforest-dev/rainforest-react": "workspace:*",
+    "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@react-three/fiber": "9.8.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.8.0",
+    "next": "catalog:",
+    "oidn-web": "0.4.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwind-merge": "^3.5.0",
+    "three": "0.186.1",
+    "three-gpu-pathtracer": "0.0.26",
+    "three-mesh-bvh": "0.9.15",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/three": "0.186.0",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
+  },
+  "nx": {
+    "name": "library-hall",
+    "projectType": "application",
+    "sourceRoot": "apps/library-hall/src",
+    "tags": [
+      "docker"
+    ],
+    "targets": {
+      "dev": {
+        "options": {
+          "port": 8087
+        },
+        "dependsOn": [
+          "^build",
+          "shell-assets"
+        ]
+      },
+      "build": {
+        "outputs": [
+          "{projectRoot}/.next/!(cache)/**/*",
+          "{projectRoot}/.next/!(cache)"
+        ],
+        "dependsOn": [
+          "^build",
+          "shell-assets"
+        ]
+      },
+      "typecheck": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/library-hall",
+          "command": "tsc --noEmit -p tsconfig.json"
+        },
+        "dependsOn": [
+          "^build"
+        ]
+      },
+      "build-deps": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "^build",
+          "shell-assets"
+        ]
+      },
+      "bundle": {
+        "command": "node tools/app-artifact/bundle.mjs next apps/library-hall"
+      },
+      "smoke-artifact": {
+        "command": "node tools/app-artifact/smoke.mjs library-hall"
+      },
+      "shell-assets": {
+        "command": "node tools/library-shell/sync-assets.mjs apps/library-hall",
+        "dependsOn": [
+          {
+            "projects": [
+              "library-shell"
+            ],
+            "target": "build"
+          }
+        ],
+        "inputs": [
+          "{workspaceRoot}/tools/library-shell/sync-assets.mjs",
+          {
+            "dependentTasksOutputFiles": "**/_shell/**"
+          }
+        ],
+        "outputs": [
+          "{projectRoot}/public/_shell"
+        ]
+      }
+    },
+    "release": {
+      "docker": {
+        "repositoryName": "rainforest-dev/library-hall"
+      }
+    }
+  }
+}

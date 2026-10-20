@@ -34,6 +34,10 @@ export const hallItemSchema = z.object({
   groups: z.array(z.string().min(1)),
   /** The item's detail page in its own collection. */
   href: sameOriginPath,
+  /** One line under the title on a cover or card: the authors, a page count, a site. */
+  subtitle: z.string().optional(),
+  /** A same-origin cover image, for items that have one. The hall draws a cover otherwise. */
+  cover: sameOriginPath.optional(),
 });
 export type HallItem = z.infer<typeof hallItemSchema>;
 
@@ -44,3 +48,40 @@ export type HallItemsResponse = z.infer<typeof hallItemsResponseSchema>;
 
 /** Every collection serves its shelf at `<basePath>/api/hall-items`. */
 export const HALL_ITEMS_PATH = '/api/hall-items';
+
+/**
+ * The `groups` prefixes the hall can sort by, besides the item's own collection. A collection
+ * emits the ones it knows, such as `tag:frontend`, `series:dune` or `month:2026-08`; the hall
+ * shelves an item by the first group under each prefix.
+ */
+export const HALL_GROUP_PREFIXES = [
+  'tag',
+  'series',
+  'author',
+  'month',
+] as const;
+export type HallGroupPrefix = (typeof HALL_GROUP_PREFIXES)[number];
+
+export function hallGroup(prefix: HallGroupPrefix, value: string): string {
+  return `${prefix}:${value}`;
+}
+
+/** The first group under `prefix`, without the prefix, or `null`. */
+export function hallGroupValue(
+  groups: readonly string[],
+  prefix: HallGroupPrefix,
+): string | null {
+  const head = `${prefix}:`;
+  const found = groups.find(
+    (g) => g.startsWith(head) && g.length > head.length,
+  );
+  return found ? found.slice(head.length) : null;
+}
+
+/**
+ * The `view-transition-name` an item's cover carries in the hall and on its detail page, so a
+ * cross-document navigation morphs one into the other. Books are `book-<id>`.
+ */
+export function itemTransitionName(kind: HallItemKind, id: string): string {
+  return `${kind}-${id.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+}

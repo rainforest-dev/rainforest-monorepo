@@ -2,6 +2,7 @@ export * from './book-query';
 export * from './delivery';
 export * from './files';
 export * from './hall';
+export * from './hall-items';
 export * from './library-query';
 export * from './notebook-app';
 export * from './prefs';

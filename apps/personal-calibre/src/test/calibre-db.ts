@@ -12,6 +12,8 @@ export interface TestBook {
   seriesIndex?: number;
   tagIds?: number[];
   pubdate?: string;
+  /** When the book was added, as Calibre stores it. */
+  timestamp?: string;
   hasCover?: boolean;
   comments?: string;
 }
@@ -65,12 +67,13 @@ export function createCalibreDb(library: TestLibrary): string {
     }
     for (const book of library.books) {
       db.prepare(
-        `INSERT INTO books (id, title, sort, pubdate, series_index, path, has_cover, last_modified)
-         VALUES (?, ?, ?, ?, ?, ?, ?, '2026-01-01T00:00:00+00:00')`,
+        `INSERT INTO books (id, title, sort, timestamp, pubdate, series_index, path, has_cover, last_modified)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, '2026-01-01T00:00:00+00:00')`,
       ).run(
         book.id,
         book.title,
         book.title,
+        book.timestamp ?? null,
         book.pubdate ?? null,
         book.seriesIndex ?? null,
         `b${book.id}`,

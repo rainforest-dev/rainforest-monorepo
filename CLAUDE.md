@@ -11,6 +11,8 @@ Nx 23.2.1 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-liff-e2e** - Playwright e2e tests
 - **apps/personal-calibre** - Next.js Calibre library browser, shipped as a Docker image
 - **apps/personal-calibre-e2e** - Playwright e2e tests
+- **apps/library-hall** - Next.js 3D hall at the root of `library.rainforest.tools` (dev port 8087), shipped as a Docker image. Its static page gathers every collection's `/api/hall-items` through `/api/items`, so the way back from a book is a bfcache restore; a non-bfcache return shows the last frame as a poster until the scene redraws
+- **apps/library-hall-e2e** - Playwright e2e tests against a production build and a fictional collections server
 - **apps/personal-notebook** - Next.js Bullet Journal notebook app at `/notebooks` (Next `basePath`; dev port 8086), shipped as a Docker image. Owns the notebook DB, page images, OCR and the notebook MCP tools; calibre forwards those tools to it and redirects its old `/notebooks` links
 - **apps/personal-notebook-e2e** - Playwright e2e tests
 - **apps/reading-room** - Astro + React reading room of the library (renamed from rss-manager): the rack at `/rack` (reading-queue shelves, `/rack/sources` registry desk) and `/kb`, reserved for the knowledge base; shipped as a Docker image
@@ -288,7 +290,7 @@ Caches the pnpm store via `actions/setup-node` with `cache: 'pnpm'`. Nx Cloud di
 
 ### Docker images
 
-The homelab images (`personal-memories`, `reading-room`, `personal-calibre`, `personal-notebook`) never build
+The homelab images (`personal-memories`, `reading-room`, `personal-calibre`, `personal-notebook`, `library-hall`) never build
 inside Docker. `nx bundle <app>` builds the app through the normal `^build` chain and writes a
 self-contained runtime directory to `dist/artifacts/<app>`: the `@vercel/nft` trace of the Astro
 server entry, or Next's standalone output plus `static` and `public`. Its native binaries are

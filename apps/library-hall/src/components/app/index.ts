@@ -1,0 +1,1 @@
+export { HallApp } from './HallApp';
