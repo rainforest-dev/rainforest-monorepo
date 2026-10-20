@@ -1,24 +1,10 @@
 /**
- * Notebooks moved to personal-notebook. What calibre keeps of them is a redirect for old links
- * and a pass-through for the inbox automation, until both point at the new app.
+ * Notebooks moved to personal-notebook. What calibre keeps of them is a pass-through for the
+ * inbox automation, until it points at the new app; next.config redirects old links.
  */
 
 const trimmed = (value: string | undefined) =>
   value?.trim().replace(/\/+$/, '') || null;
-
-/**
- * Where an old `/notebooks...` link now lives, keeping the rest of the path and the query; null
- * while `NOTEBOOK_URL` is unset.
- */
-export function movedNotebookUrl(
-  requestUrl: string,
-  env: Record<string, string | undefined> = process.env,
-): string | null {
-  const base = trimmed(env['NOTEBOOK_URL']);
-  if (!base) return null;
-  const { pathname, search } = new URL(requestUrl);
-  return `${base}${pathname.replace(/^\/notebooks/, '')}${search}`;
-}
 
 const FORWARDED_HEADERS = ['content-type', 'content-length', 'x-inbox-secret'];
 

@@ -4,7 +4,7 @@ import { Button } from '@rainforest-dev/rainforest-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { type PointerEvent, type RefObject, useRef } from 'react';
 
-import { cn, type StudyBook } from '@/lib';
+import { BASE_PATH, cn, type StudyBook } from '@/lib';
 
 const SWIPE_PX = 40;
 
@@ -78,7 +78,7 @@ export function StudyCard({
           >
             {book.hasCover && (
               <img
-                src={`/api/books/${book.id}/cover`}
+                src={`${BASE_PATH}/api/books/${book.id}/cover`}
                 alt=""
                 draggable={false}
                 className="size-full object-cover"

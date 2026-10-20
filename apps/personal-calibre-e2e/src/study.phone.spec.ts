@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+import { appPath } from './support/library';
 import {
   canvasWrap,
   collectConsole,
@@ -40,7 +41,9 @@ test.describe('Study on phone', () => {
     page,
   }) => {
     for (const renderer of ['three-pathtrace']) {
-      await page.goto(`/?view=study&groupBy=series&renderer=${renderer}`);
+      await page.goto(
+        appPath(`/?view=study&groupBy=series&renderer=${renderer}`),
+      );
       await expect(page.locator('[data-study-ready]')).toHaveAttribute(
         'data-renderer',
         'three-tsl',

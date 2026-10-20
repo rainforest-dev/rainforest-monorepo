@@ -2,7 +2,7 @@
 
 import type { CSSProperties, Ref } from 'react';
 
-import { cn, type StudyBook } from '@/lib';
+import { BASE_PATH, cn, type StudyBook } from '@/lib';
 
 export interface CssBookProps {
   book: StudyBook;
@@ -40,7 +40,7 @@ export function CssBook({ book, height, ref, className, style }: CssBookProps) {
       <div data-face="front" className="bk-face bk-front">
         {book.hasCover ? (
           <img
-            src={`/api/books/${book.id}/cover`}
+            src={`${BASE_PATH}/api/books/${book.id}/cover`}
             alt=""
             draggable={false}
             className="size-full object-cover"

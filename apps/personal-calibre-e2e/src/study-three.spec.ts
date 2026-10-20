@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoViolations } from './support/axe';
-import { readPrefs, setPrefs, tokenColor } from './support/library';
+import { appPath, readPrefs, setPrefs, tokenColor } from './support/library';
 import { COVER_IDS } from './support/seed';
 import {
   canvasWrap,
@@ -183,7 +183,9 @@ for (const run of THREE_RUNS) {
           },
         });
       }, FORCED_FAILURES[run.renderer]);
-      await page.goto(`/?view=study&groupBy=series&renderer=${run.renderer}`);
+      await page.goto(
+        appPath(`/?view=study&groupBy=series&renderer=${run.renderer}`),
+      );
 
       await expect(page.locator('[data-study-ready]')).toHaveAttribute(
         'data-renderer',

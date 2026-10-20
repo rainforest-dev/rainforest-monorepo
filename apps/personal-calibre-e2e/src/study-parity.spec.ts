@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises';
 
 import { type Browser, expect, type Page, test } from '@playwright/test';
 
+import { appPath } from './support/library';
 import { diffScreenshots } from './support/pixels';
 import { COVER_IDS } from './support/seed';
 import {
@@ -241,7 +242,7 @@ test.describe('Study parity', () => {
             needsWebGpu(pair) && testInfo.project.name !== 'study-webgpu',
             'WebGPU pairs run on the study-webgpu project',
           );
-          await page.goto('/favicon.ico');
+          await page.goto(appPath('/favicon.ico'));
           if (needsWebGpu(pair)) {
             test.skip(
               !(await hasWebGpu(page)),

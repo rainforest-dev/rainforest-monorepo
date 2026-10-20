@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 
-import { gotoLibrary, options, tokenColor } from './support/library';
+import { appPath, gotoLibrary, options, tokenColor } from './support/library';
 
 async function tileTitle(page: Page, id: string | null): Promise<string> {
   const label = await page
@@ -156,7 +156,7 @@ test.describe('shelf keyboard', () => {
     const secondId = await options(page).nth(1).getAttribute('data-book-id');
     const secondTitle = await tileTitle(page, secondId);
 
-    await page.goto(`/?q=${encodeURIComponent(secondTitle)}`);
+    await page.goto(appPath(`/?q=${encodeURIComponent(secondTitle)}`));
     await expect(page.locator('[data-library-ready]')).toHaveCount(1);
     await page.getByRole('link', { name: 'Library' }).click();
     await expect(page).toHaveURL('/');
@@ -211,7 +211,7 @@ test.describe('shelf keyboard', () => {
     const secondId = await options(page).nth(1).getAttribute('data-book-id');
     const secondTitle = await tileTitle(page, secondId);
 
-    await page.goto(`/?q=${encodeURIComponent(secondTitle)}`);
+    await page.goto(appPath(`/?q=${encodeURIComponent(secondTitle)}`));
     await expect(page.locator('[data-library-ready]')).toHaveCount(1);
     await page.getByRole('link', { name: 'Library' }).click();
     await expect(page).toHaveURL('/');

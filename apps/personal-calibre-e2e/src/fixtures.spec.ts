@@ -6,7 +6,7 @@ const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 test.describe('fixture library', () => {
   test('seeds the made-up library', async ({ request }) => {
-    const res = await request.get('/api/books?limit=100');
+    const res = await request.get('/books/api/books?limit=100');
     const body = (await res.json()) as {
       total: number;
       books: Array<{ id: number; title: string }>;
@@ -16,7 +16,7 @@ test.describe('fixture library', () => {
   });
 
   test('serves the seeded files', async ({ request }) => {
-    const res = await request.post('/api/books/download/bulk', {
+    const res = await request.post('/books/api/books/download/bulk', {
       data: { bookIds: [1, 2], format: 'EPUB' },
     });
     expect(res.ok()).toBe(true);
@@ -24,7 +24,7 @@ test.describe('fixture library', () => {
   });
 
   test('seeds three platforms and the seed deliveries', async ({ request }) => {
-    const res = await request.get('/api/books/1/deliveries');
+    const res = await request.get('/books/api/books/1/deliveries');
     const body = (await res.json()) as {
       events: Array<{ platformKey: string }>;
     };
@@ -36,15 +36,15 @@ test.describe('fixture library', () => {
 
   test('serves made-up covers for ids ending in 7', async ({ request }) => {
     for (const id of [7, 27]) {
-      const res = await request.get(`/api/books/${id}/cover`);
+      const res = await request.get(`/books/api/books/${id}/cover`);
       expect(res.status()).toBe(200);
       expect([...(await res.body()).subarray(0, 8)]).toEqual(PNG_SIGNATURE);
     }
-    expect((await request.get('/api/books/1/cover')).status()).toBe(404);
+    expect((await request.get('/books/api/books/1/cover')).status()).toBe(404);
   });
 
   test('reports hasCover exactly for the cover ids', async ({ request }) => {
-    const res = await request.get('/api/books?limit=100');
+    const res = await request.get('/books/api/books?limit=100');
     const body = (await res.json()) as {
       books: Array<{ id: number; hasCover: boolean | null }>;
     };

@@ -44,15 +44,11 @@ export function GroupSelect({ className }: { className?: string }) {
   const items =
     view === 'study'
       ? GROUP_ITEMS.filter((item) => STUDY_GROUP_VALUES.includes(item.value))
-      : view === 'hall'
-        ? GROUP_ITEMS.filter((item) => item.value !== 'none')
-        : GROUP_ITEMS;
-  // The hall always has bookcases, so it reads an ungrouped URL as grouped by series.
-  const fallback = view === 'hall' ? 'series' : 'none';
+      : GROUP_ITEMS;
   return (
     <Select
       items={items}
-      value={params.groupBy ?? fallback}
+      value={params.groupBy ?? 'none'}
       onValueChange={(value) => {
         const next = GROUP_BYS.find((g) => g === value) ?? null;
         replaceParams({ groupBy: next });

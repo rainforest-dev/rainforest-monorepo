@@ -38,7 +38,7 @@ test.describe('MCP gateway auth', () => {
 
 test.describe('MCP tools', () => {
   test('lists every tool with its annotations', async ({ request }) => {
-    const response = await rpc(request, '/mcp', 'tools/list');
+    const response = await rpc(request, '/books/mcp', 'tools/list');
     const { tools } = (await response.json()).result as {
       tools: { name: string; annotations: { readOnlyHint?: boolean } }[];
     };

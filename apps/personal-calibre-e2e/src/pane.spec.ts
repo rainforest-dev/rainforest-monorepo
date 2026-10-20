@@ -38,14 +38,14 @@ test.describe('detail pane', () => {
   test('Open full page loads the permalink', async ({ page }) => {
     await gotoLibrary(page, '/?book=38');
     await pane(page).getByRole('link', { name: 'Open full page' }).click();
-    await expect(page).toHaveURL(/\/books\/38$/);
+    await expect(page).toHaveURL(/\/books\/books\/38$/);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       tidewater2.title,
     );
     await expect(pane(page)).toHaveCount(0);
     await expect(
       page.getByRole('link', { name: 'Library' }).first(),
-    ).toHaveAttribute('href', '/');
+    ).toHaveAttribute('href', '/books');
   });
 
   test('Read links to the reader and is absent without an EPUB', async ({
@@ -54,7 +54,7 @@ test.describe('detail pane', () => {
     await gotoLibrary(page, '/?book=38');
     await expect(
       pane(page).getByRole('link', { name: 'Read' }),
-    ).toHaveAttribute('href', '/read/38');
+    ).toHaveAttribute('href', '/books/read/38');
     await gotoLibrary(page, '/?book=46');
     await expect(
       pane(page).getByRole('heading', { level: 2, name: bookById(46).title }),
@@ -82,7 +82,7 @@ test.describe('detail pane', () => {
     await pane(page).getByRole('button', { name: 'Download' }).click();
     await expect(page.getByRole('menuitem', { name: /EPUB/ })).toHaveAttribute(
       'href',
-      '/files/book-1/book-1.epub',
+      '/books/files/book-1/book-1.epub',
     );
     await expect(page.getByRole('menuitem', { name: /PDF/ })).toContainText(
       'KB',

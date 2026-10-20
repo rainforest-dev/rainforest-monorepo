@@ -62,7 +62,7 @@ test.describe('filters', () => {
   test('Clear all keeps book, view and group', async ({ page }) => {
     await gotoLibrary(page, '/?author=4&tag=6&book=38&groupBy=series');
     await panel(page).getByRole('button', { name: 'Clear all' }).click();
-    await expect(page).toHaveURL(/\/\?book=38&groupBy=series$/);
+    await expect(page).toHaveURL(/\/books\?book=38&groupBy=series$/);
   });
 
   test('sort, direction and group change the URL and drop page', async ({
@@ -88,7 +88,7 @@ test.describe('filters', () => {
   });
 
   test('a new tag appears in the filter panel', async ({ page }) => {
-    await page.request.post('/api/books/46/tags', {
+    await page.request.post('/books/api/books/46/tags', {
       data: { name: 'to-read' },
     });
     await gotoLibrary(page);

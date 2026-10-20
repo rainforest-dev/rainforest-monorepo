@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoViolations } from './support/axe';
-import { readPrefs, setPrefs } from './support/library';
+import { appPath, readPrefs, setPrefs } from './support/library';
 import {
   canvasWrap,
   gotoStudy,
@@ -92,7 +92,7 @@ test.describe('Study without WebGL or WebGPU', () => {
   }) => {
     await setPrefs(context, { view: 'study', renderer: 'three-tsl' });
     await prepareRun(page, RUN);
-    await page.goto('/?groupBy=series');
+    await page.goto(appPath('/?groupBy=series'));
     await expect(page.locator('[data-study-ready]')).toHaveAttribute(
       'data-renderer',
       'css',
@@ -108,7 +108,7 @@ test.describe('Study without WebGL or WebGPU', () => {
     context,
   }) => {
     await setPrefs(context, { view: 'study', renderer: 'three-glsl' });
-    await page.goto('/?groupBy=series');
+    await page.goto(appPath('/?groupBy=series'));
     const study = page.locator('[data-study-ready]');
     await expect(study).toHaveAttribute('data-renderer', 'css');
     await expect(study).toHaveAttribute('data-backend', 'css');
@@ -126,7 +126,7 @@ test.describe('Study without WebGL or WebGPU', () => {
   }) => {
     await setPrefs(context, { view: 'study', renderer: 'three-tsl' });
     await prepareRun(page, RUN);
-    await page.goto('/?groupBy=series');
+    await page.goto(appPath('/?groupBy=series'));
     await expect(page.locator('[data-study-ready]')).toHaveCount(1);
     await page.getByRole('combobox', { name: 'Renderer' }).click();
     await page.getByRole('option', { name: 'CSS', exact: true }).click();

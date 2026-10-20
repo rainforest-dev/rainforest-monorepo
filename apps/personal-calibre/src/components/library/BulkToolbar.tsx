@@ -16,7 +16,7 @@ import { Download, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
-import { platformName } from '@/lib';
+import { BASE_PATH, platformName } from '@/lib';
 import { useLibrary } from '@/providers';
 import type { DeliveryPlatform } from '@/types';
 
@@ -64,7 +64,7 @@ export function BulkToolbar({
     if (!platformKey) return;
     setPending('deliver');
     try {
-      const res = await fetch('/api/books/deliveries/bulk', {
+      const res = await fetch(`${BASE_PATH}/api/books/deliveries/bulk`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ bookIds: [...selected], platformKey }),
@@ -95,7 +95,7 @@ export function BulkToolbar({
   async function downloadZip() {
     setPending('zip');
     try {
-      const res = await fetch('/api/books/download/bulk', {
+      const res = await fetch(`${BASE_PATH}/api/books/download/bulk`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ bookIds: [...selected], format: zipFormat }),

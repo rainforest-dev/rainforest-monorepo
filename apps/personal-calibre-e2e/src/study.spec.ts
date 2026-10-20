@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import {
+  appPath,
   gotoLibrary,
   options,
   pane,
@@ -83,15 +84,15 @@ test.describe('Study', () => {
 
   test('entering Study with Tag replaces it with series', async ({ page }) => {
     await gotoLibrary(page, '/');
-    await page.goto('/?groupBy=tag&view=study');
+    await page.goto(appPath('/?groupBy=tag&view=study'));
     await expect(page).toHaveURL(/groupBy=series/);
     await expect(studyOptions(page).first()).toBeAttached();
     await page.goBack();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/books$/);
     await expect(
       page.getByRole('region', { name: 'Shelf view' }),
     ).toBeVisible();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/books$/);
   });
 
   test('Study keeps Author grouping', async ({ page }) => {
@@ -164,7 +165,9 @@ test.describe('Study', () => {
 
   test('the Skeleton shows three bays', async ({ page, context }) => {
     await setPrefs(context, { view: 'study' });
-    await page.goto('/?groupBy=series&__delay=1500', { waitUntil: 'commit' });
+    await page.goto(appPath('/?groupBy=series&__delay=1500'), {
+      waitUntil: 'commit',
+    });
     const skeleton = page.locator('[data-skeleton="study"]');
     await expect(skeleton).toBeVisible();
     await expect(skeleton.locator('[data-skeleton-bay]')).toHaveCount(3);
@@ -175,11 +178,10 @@ test.describe('Study', () => {
   }) => {
     await gotoLibrary(page, '/?groupBy=series');
     const views = page.getByRole('group', { name: 'View' }).getByRole('button');
-    await expect(views).toHaveCount(4);
+    await expect(views).toHaveCount(3);
     await expect(
       page.getByRole('button', { name: 'Study view' }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Hall view' })).toBeVisible();
     const first = options(page).first();
     await first.focus();
     for (const name of ['Catalogue', 'Study', 'Shelf']) {
@@ -265,7 +267,7 @@ test.describe('Study', () => {
     await expect(option(page, 7)).toHaveAttribute('data-pulled', 'true');
     await expect(card.locator('img')).toHaveAttribute(
       'src',
-      '/api/books/7/cover',
+      '/books/api/books/7/cover',
     );
     await expect(option(page, 7).locator('img, [data-cover-face]')).toHaveCount(
       0,

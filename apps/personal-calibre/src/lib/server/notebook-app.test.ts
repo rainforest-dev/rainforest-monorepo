@@ -1,27 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { forwardToNotebook, movedNotebookUrl } from './notebook-app';
-
-describe('movedNotebookUrl', () => {
-  const env = { NOTEBOOK_URL: 'https://library.example.test/notebooks/' };
-
-  it.each([
-    ['https://calibre.example.test/notebooks', ''],
-    ['https://calibre.example.test/notebooks/12?page=40', '/12?page=40'],
-    ['https://calibre.example.test/notebooks?view=calendar', '?view=calendar'],
-  ])('sends %s to the notebook app', (from, rest) => {
-    expect(movedNotebookUrl(from, env)).toBe(
-      `https://library.example.test/notebooks${rest}`,
-    );
-  });
-
-  it('is null while NOTEBOOK_URL is unset', () => {
-    expect(movedNotebookUrl('https://c.test/notebooks', {})).toBeNull();
-    expect(
-      movedNotebookUrl('https://c.test/notebooks', { NOTEBOOK_URL: ' ' }),
-    ).toBeNull();
-  });
-});
+import { forwardToNotebook } from './notebook-app';
 
 describe('forwardToNotebook', () => {
   const env = { NOTEBOOK_INTERNAL_URL: 'http://notebook.test:8086/notebooks' };

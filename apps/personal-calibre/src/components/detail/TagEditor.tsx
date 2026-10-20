@@ -15,6 +15,7 @@ import { Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { BASE_PATH } from '@/lib';
 import type { FilterOptions } from '@/types';
 
 interface Props {
@@ -32,7 +33,9 @@ export function TagEditor({ bookId, tagIds, allTags }: Props) {
   async function removeTag(tagId: number) {
     setBusy(true);
     try {
-      await fetch(`/api/books/${bookId}/tags/${tagId}`, { method: 'DELETE' });
+      await fetch(`${BASE_PATH}/api/books/${bookId}/tags/${tagId}`, {
+        method: 'DELETE',
+      });
       router.refresh();
     } finally {
       setBusy(false);
@@ -46,7 +49,7 @@ export function TagEditor({ bookId, tagIds, allTags }: Props) {
     setOpen(false);
     setInputValue('');
     try {
-      await fetch(`/api/books/${bookId}/tags`, {
+      await fetch(`${BASE_PATH}/api/books/${bookId}/tags`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name: trimmed }),

@@ -81,12 +81,18 @@ describe('resolveView', () => {
   });
 });
 
+describe('parsePrefs after the hall moved out', () => {
+  it('reads a saved hall view as the default view', () => {
+    const raw = JSON.stringify({ view: 'hall', panel: false });
+    expect(parsePrefs(raw)).toMatchObject({ view: 'shelf', panel: false });
+  });
+});
+
 describe('nextView', () => {
   it('cycles the enabled views', () => {
     expect(nextView('shelf')).toBe('catalogue');
     expect(nextView('catalogue')).toBe('study');
     expect(nextView('study')).toBe('shelf');
-    expect(nextView('hall')).toBe('shelf');
     expect(nextView('catalogue', ['shelf', 'catalogue'])).toBe('shelf');
   });
 });

@@ -5,6 +5,8 @@ import ePub, { type Book, type Location, type Rendition } from 'epubjs';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { BASE_PATH } from '@/lib';
+
 interface Props {
   bookId: number;
   title: string;
@@ -23,7 +25,7 @@ export function EpubReader({ bookId, title }: Props) {
     let cancelled = false;
     const container = viewerRef.current;
 
-    fetch(`/api/books/${bookId}/download/epub`)
+    fetch(`${BASE_PATH}/api/books/${bookId}/download/epub`)
       .then((res) => {
         if (!res.ok) throw new Error(`epub fetch failed: ${res.status}`);
         return res.arrayBuffer();

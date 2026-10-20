@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { atomDate } from '@/lib';
+import { atomDate, BASE_PATH } from '@/lib';
 
 export async function GET() {
   const xml = `<?xml version="1.0" encoding="utf-8"?>
@@ -11,13 +11,13 @@ export async function GET() {
   <author>
     <name>Rainforest Calibre Server</name>
   </author>
-  <link href="/opds" rel="self" type="application/atom+xml;profile=opds-catalog;kind=navigation" />
-  <link href="/opds" rel="start" type="application/atom+xml;profile=opds-catalog;kind=navigation" />
+  <link href="${BASE_PATH}/opds" rel="self" type="application/atom+xml;profile=opds-catalog;kind=navigation" />
+  <link href="${BASE_PATH}/opds" rel="start" type="application/atom+xml;profile=opds-catalog;kind=navigation" />
   <entry>
     <title>All Books</title>
     <id>urn:uuid:calibre-opds-all-books</id>
     <updated>${atomDate()}</updated>
-    <link href="/opds/books" type="application/atom+xml;profile=opds-catalog;kind=acquisition" />
+    <link href="${BASE_PATH}/opds/books" type="application/atom+xml;profile=opds-catalog;kind=acquisition" />
     <content type="text">Browse all books in the library</content>
   </entry>
 </feed>`;
