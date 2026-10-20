@@ -86,6 +86,29 @@ describe('searchLibrary', () => {
     ]);
   });
 
+  it('gives up on a collection that hangs and answers with the rest', async () => {
+    const fetcher = vi.fn((url: string | URL | Request, init?: RequestInit) =>
+      String(url).startsWith('http://slow')
+        ? new Promise<Response>((_, reject) =>
+            init?.signal?.addEventListener('abort', () =>
+              reject(init.signal?.reason),
+            ),
+          )
+        : respond({ results: [hit('kb', 'a')] }),
+    ) as unknown as typeof fetch;
+    const result = await searchLibrary(
+      'x',
+      { LIBRARY_BOOKS_URL: 'http://slow', LIBRARY_KB_URL: 'http://kb' },
+      fetcher,
+      20,
+    );
+    expect(result.results.map((r) => r.id)).toEqual(['a']);
+    expect(result.sources).toEqual([
+      { collection: 'books', ok: false, count: 0 },
+      { collection: 'kb', ok: true, count: 1 },
+    ]);
+  });
+
   it('asks nobody for an empty query', async () => {
     const fetcher = vi.fn() as unknown as typeof fetch;
     expect(

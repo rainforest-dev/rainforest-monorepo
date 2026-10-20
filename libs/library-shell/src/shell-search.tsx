@@ -14,10 +14,12 @@ import { type KeyboardEvent, useEffect, useId, useState } from 'react';
 import { COLLECTION_ICONS } from './collection-nav';
 
 const DEBOUNCE_MS = 200;
+const NO_RESULTS: MergedSearchResponse['results'] = [];
 
+/** While loading, `response` is the previous answer, kept on screen until the new one lands. */
 type State =
   | { status: 'idle' }
-  | { status: 'loading' }
+  | { status: 'loading'; response?: MergedSearchResponse }
   | { status: 'error' }
   | { status: 'done'; response: MergedSearchResponse };
 
@@ -31,7 +33,10 @@ function useLibrarySearch(q: string, endpoint: string): State {
       return;
     }
     const controller = new AbortController();
-    setState({ status: 'loading' });
+    setState((previous) => ({
+      status: 'loading',
+      response: 'response' in previous ? previous.response : undefined,
+    }));
     const timer = setTimeout(async () => {
       try {
         const response = await fetch(
@@ -75,16 +80,14 @@ export function ShellSearch({
   const [active, setActive] = useState(-1);
   const state = useLibrarySearch(q, endpoint);
   const listId = useId();
-  const results = state.status === 'done' ? state.response.results : [];
-  const missing =
-    state.status === 'done'
-      ? state.response.sources
-          .filter((s) => !s.ok)
-          .map((s) => getCollection(s.collection).label)
-      : [];
+  const response = 'response' in state ? state.response : undefined;
+  const results = response?.results ?? NO_RESULTS;
+  const missing = (response?.sources ?? [])
+    .filter((s) => !s.ok)
+    .map((s) => getCollection(s.collection).label);
   const shown = open && q.trim() !== '';
 
-  useEffect(() => setActive(-1), [state]);
+  useEffect(() => setActive(-1), [results]);
 
   const optionId = (i: number) => `${listId}-${i}`;
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {

@@ -1,3 +1,4 @@
+// The leading underscore keeps Astro from routing this file as an endpoint.
 import { rmSync } from 'node:fs';
 
 import { librarySearchResponseSchema } from '@rainforest-dev/library-contract';

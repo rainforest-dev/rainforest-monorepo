@@ -80,6 +80,37 @@ describe('ShellSearch', () => {
     expect(input.getAttribute('aria-activedescendant')).toBe(options[1]?.id);
   });
 
+  it('keeps the last hits on screen while the next query loads', async () => {
+    let answer: (response: Response) => void = () => undefined;
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        respond({
+          results: [{ kind: 'kb', id: 'a', title: 'Dune', href: '/kb/a' }],
+          sources: [{ collection: 'kb', ok: true, count: 1 }],
+        }),
+      )
+      .mockImplementationOnce(
+        () => new Promise<Response>((resolve) => (answer = resolve)),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<ShellSearch />);
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'dune' } });
+    await screen.findByRole('option');
+    fireEvent.change(input, { target: { value: 'dunes' } });
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByText('搜尋中…')).toBeTruthy();
+    answer(
+      new Response(JSON.stringify({ results: [], sources: [] }), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    expect(await screen.findByText('找不到符合的項目')).toBeTruthy();
+    expect(screen.queryAllByRole('option')).toHaveLength(0);
+  });
+
   it('says so when the search fails', async () => {
     vi.stubGlobal('fetch', () => respond({}, 502));
     render(<ShellSearch />);

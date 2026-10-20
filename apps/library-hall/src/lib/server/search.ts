@@ -32,6 +32,7 @@ async function searchSource(
   collection: SourceCollection,
   url: string,
   fetcher: typeof fetch,
+  timeoutMs: number,
 ) {
   const failed = {
     status: { collection, ok: false, count: 0 },
@@ -40,7 +41,7 @@ async function searchSource(
   try {
     const response = await fetcher(url, {
       cache: 'no-store',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       headers: { accept: 'application/json' },
     });
     if (!response.ok) return failed;
@@ -56,18 +57,20 @@ async function searchSource(
 /**
  * Every configured collection searched in parallel, their rankings merged by reciprocal rank
  * fusion. Each collection ranks by its own measure, so only the places count. A collection
- * that fails or answers out of shape is reported and left out; the rest still answer.
+ * that fails, answers out of shape or takes longer than `timeoutMs` is reported and left out;
+ * the rest still answer.
  */
 export async function searchLibrary(
   q: string,
   env: Record<string, string | undefined> = process.env,
   fetcher: typeof fetch = fetch,
+  timeoutMs = TIMEOUT_MS,
 ): Promise<MergedSearchResponse> {
   if (!q.trim()) return { results: [], sources: [] };
   const answers = await Promise.all(
     SOURCE_COLLECTIONS.flatMap((collection) => {
       const url = searchUrl(collection, q, env);
-      return url ? [searchSource(collection, url, fetcher)] : [];
+      return url ? [searchSource(collection, url, fetcher, timeoutMs)] : [];
     }),
   );
   const byKey = new Map<string, LibrarySearchHit>();
