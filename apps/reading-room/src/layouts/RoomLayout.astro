@@ -1,5 +1,5 @@
 ---
-import { type CollectionId } from '@rainforest-dev/library-contract';
+import { type CollectionId, HTML_LANG } from '@rainforest-dev/library-contract';
 import {
   SHELL_ASSETS,
   speculationRulesJson,
@@ -9,6 +9,7 @@ import {
   RoomHeader,
   type RoomSection,
 } from '@/components/shell/RoomHeader.tsx';
+import { roomT } from '@/locales';
 import { showsCollections } from '@/server';
 import '@/styles/global.css';
 
@@ -20,14 +21,16 @@ interface Props {
 
 const { title, collection, section } = Astro.props;
 const collections = showsCollections(Astro.url);
+const { locale } = Astro.locals;
+const t = roomT(locale);
 ---
 
 <!doctype html>
-<html lang="en" class="font-sans">
+<html lang={HTML_LANG[locale]} class="font-sans">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title} · Rainforest Library</title>
+    <title>{title} · {t('meta.site')}</title>
     <link rel="icon" href={SHELL_ASSETS.icon} type="image/svg+xml" />
     <link
       rel="preload"
@@ -53,6 +56,7 @@ const collections = showsCollections(Astro.url);
   >
     <RoomHeader
       client:idle
+      locale={locale}
       collection={collection}
       section={section}
       collections={collections}

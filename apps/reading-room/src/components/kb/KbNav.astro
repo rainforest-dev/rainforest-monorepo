@@ -1,11 +1,12 @@
 ---
 import {
-  KB_SOURCE_LABELS,
   KB_SOURCES,
   type KbShelf,
   type KbSource,
+  kbSourceLabel,
 } from '@/lib/kb';
 import { KB_PATH } from '@/lib/paths';
+import { roomT } from '@/locales';
 
 interface Props {
   source: KbSource;
@@ -16,12 +17,13 @@ interface Props {
 }
 
 const { source, counts, shelves, currentId } = Astro.props;
+const t = roomT(Astro.locals.locale);
 const sourceHref = (s: KbSource) => `${KB_PATH}?source=${s}`;
 const shelfHref = (shelf: string) =>
   `${KB_PATH}?source=${source}&shelf=${encodeURIComponent(shelf)}`;
 ---
 
-<nav aria-label="知識庫目錄" class="flex flex-col gap-1 p-4">
+<nav aria-label={t('kb.toc')} class="flex flex-col gap-1 p-4">
   <div class="bg-background mb-3 flex rounded-md border p-0.5">
     {
       KB_SOURCES.map((s) => (
@@ -33,7 +35,7 @@ const shelfHref = (shelf: string) =>
             s === source ? 'bg-accent font-semibold' : 'hover:bg-accent/60',
           ]}
         >
-          {KB_SOURCE_LABELS[s]} {counts[s]}
+          {kbSourceLabel(s, t)} {counts[s]}
         </a>
       ))
     }
@@ -69,6 +71,6 @@ const shelfHref = (shelf: string) =>
     ))
   }
   <p class="text-muted-foreground mt-6 text-xs leading-relaxed">
-    只顯示 wiki 與 Readwise。私人筆記與工作內容不在這裡。
+    {t('kb.scopeNote')}
   </p>
 </nav>

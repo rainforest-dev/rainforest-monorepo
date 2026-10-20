@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   buttonVariants,
@@ -5,13 +6,14 @@ import {
   Spinner,
 } from '@rainforest-dev/rainforest-react';
 
-import { READ_ONLY_NOTE, type Source } from '@/lib';
+import type { Source } from '@/lib';
 import {
+  actionLabel,
   canResubscribe,
-  SOURCE_ACTION_LABEL,
   SOURCE_RULES,
   type SourceAction,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import type { SourceActionsState } from './useRegistryActions';
 
@@ -27,6 +29,7 @@ export interface SourceActionsProps {
 
 export function SourceActions({ source, actions, layout }: SourceActionsProps) {
   const size = layout === 'row' ? 'xs' : 'sm';
+  const t = useLibraryT(ROOM_NAMESPACE);
   const tabIndex = layout === 'row' ? -1 : undefined;
   const width = layout === 'pane' && 'w-full';
   const busy = actions.pending.has(source.name);
@@ -53,12 +56,12 @@ export function SourceActions({ source, actions, layout }: SourceActionsProps) {
             void actions.run([source.name], action, layout);
           }}
           disabled={busy || !actions.writable}
-          title={actions.writable ? undefined : READ_ONLY_NOTE}
+          title={actions.writable ? undefined : t('desk.readOnly.note')}
         >
           {actions.isRunning(layout, action, source.name) && (
             <Spinner data-icon="inline-start" />
           )}
-          {SOURCE_ACTION_LABEL[action]}
+          {actionLabel(action, t)}
         </Button>
       ))}
       {resubscribe && (
@@ -67,7 +70,7 @@ export function SourceActions({ source, actions, layout }: SourceActionsProps) {
           target="_blank"
           rel="noopener noreferrer"
           tabIndex={tabIndex}
-          title={`Copies ${source.url} and opens Readwise — paste it there with Shift + A`}
+          title={t('desk.resubscribeTitle', { url: source.url })}
           onClick={(event) => {
             event.stopPropagation();
             actions.resubscribe(source.name, source.url);
@@ -78,7 +81,9 @@ export function SourceActions({ source, actions, layout }: SourceActionsProps) {
             className: width || undefined,
           })}
         >
-          {actions.copied === source.name ? 'Copied' : 'Re-subscribe'}
+          {actions.copied === source.name
+            ? t('desk.copied')
+            : t('desk.resubscribe')}
         </a>
       )}
     </div>

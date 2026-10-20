@@ -15,6 +15,9 @@ async function expectNoHiddenMarkers(page: Page): Promise<void> {
 }
 
 test.describe('knowledge base', () => {
+  // These read the Chinese copy; locale.spec.ts covers the English side.
+  test.use({ locale: 'zh-TW' });
+
   test('the index shelves the visible wiki pages and switches to Readwise', async ({
     page,
   }) => {

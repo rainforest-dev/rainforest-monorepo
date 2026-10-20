@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Checkbox,
@@ -7,14 +8,15 @@ import {
   TableRow,
 } from '@rainforest-dev/rainforest-react';
 
-import { READ_ONLY_NOTE, type Topic } from '@/lib';
+import type { Topic } from '@/lib';
 import {
-  ACTION_LABEL,
+  actionLabel,
   daysAgo,
   TOPIC_RULES,
   type TopicAction,
   topicSummary,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { DESK_ROW_CLASS, WIDE_ONLY } from './deskRow';
 import { StaleBadge, TopicStatusBadge } from './StatusBadges';
@@ -41,6 +43,7 @@ export function TopicRow({
   onToggle,
 }: TopicRowProps) {
   const summary = topicSummary(topic.description);
+  const t = useLibraryT(ROOM_NAMESPACE);
   const busy = actions.pending.has(topic.name);
   const writes = ACTIONS.filter((action) => TOPIC_RULES[action](topic));
   return (
@@ -56,7 +59,7 @@ export function TopicRow({
         <TableCell className="w-10">
           <Checkbox
             tabIndex={-1}
-            aria-label={`Select ${topic.name}`}
+            aria-label={t('desk.selectName', { name: topic.name })}
             checked={selected}
             onCheckedChange={onToggle}
             onClick={(event) => event.stopPropagation()}
@@ -84,7 +87,7 @@ export function TopicRow({
         className={cn('text-muted-foreground text-xs tabular-nums', WIDE_ONLY)}
       >
         {topic.status === 'proposed' && topic.proposedDate
-          ? daysAgo(topic.proposedDate)
+          ? daysAgo(topic.proposedDate, t)
           : null}
       </TableCell>
       <TableCell className="text-right">
@@ -100,12 +103,12 @@ export function TopicRow({
                 void actions.run([topic.name], action, 'row');
               }}
               disabled={busy || !actions.writable}
-              title={actions.writable ? undefined : READ_ONLY_NOTE}
+              title={actions.writable ? undefined : t('desk.readOnly.note')}
             >
               {actions.isRunning('row', action, topic.name) && (
                 <Spinner data-icon="inline-start" />
               )}
-              {ACTION_LABEL[action]}
+              {actionLabel(action, t)}
             </Button>
           ))}
         </div>

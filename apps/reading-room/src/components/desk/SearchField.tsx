@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   InputGroup,
   InputGroupAddon,
@@ -9,6 +10,7 @@ import { SearchIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import type { DeskTab } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { DESK_SEARCH_ATTR } from './useDeskShortcuts';
 
@@ -30,6 +32,7 @@ export function SearchField({
   className = 'w-full sm:w-72',
 }: SearchFieldProps) {
   const [text, setText] = useState(value);
+  const t = useLibraryT(ROOM_NAMESPACE);
   const [committed, setCommitted] = useState(value);
 
   if (value !== committed) {
@@ -68,7 +71,7 @@ export function SearchField({
         <InputGroupAddon align="inline-end">
           <InputGroupButton
             size="icon-xs"
-            aria-label="Clear search"
+            aria-label={t('desk.search.clear')}
             onClick={() => {
               setText('');
               onChange('');

@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Alert,
   AlertDescription,
@@ -5,16 +6,16 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { LockIcon } from 'lucide-react';
 
-import { READ_ONLY_NOTE } from '@/lib';
+import { ROOM_NAMESPACE } from '@/locales';
 
 export function ReadOnlyBanner() {
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <Alert variant="warning" role="status">
       <LockIcon />
-      <AlertTitle>Read-only vault</AlertTitle>
+      <AlertTitle>{t('desk.readOnly.title')}</AlertTitle>
       <AlertDescription>
-        {READ_ONLY_NOTE} Activate, Retire and Decline are turned off until it is
-        mounted read-write.
+        {t('desk.readOnly.note')} {t('desk.readOnly.off')}
       </AlertDescription>
     </Alert>
   );

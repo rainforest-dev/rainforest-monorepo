@@ -10,13 +10,14 @@ import {
 import KbFrame from '@/components/kb/KbFrame.astro';
 import RoomLayout from '@/layouts/RoomLayout.astro';
 import {
-  KB_SOURCE_LABELS,
   kbCounts,
   kbShelves,
+  kbSourceLabel,
   parseKbSource,
   searchKb,
 } from '@/lib/kb';
 import { KB_PATH } from '@/lib/paths';
+import { roomT } from '@/locales';
 import { getKbIndex } from '@/server';
 
 const params = Astro.url.searchParams;
@@ -24,20 +25,21 @@ const source = parseKbSource(params.get('source'));
 const shelfId = params.get('shelf') ?? undefined;
 const q = (params.get('q') ?? '').trim();
 
+const t = roomT(Astro.locals.locale);
 const index = getKbIndex();
-const shelves = kbShelves(index.docs, source);
+const shelves = kbShelves(index.docs, source, t);
 const shown = shelfId ? shelves.filter((s) => s.id === shelfId) : shelves;
 const hits = q ? searchKb(index.entries, q) : [];
 const mounted = index.mounted[source];
 ---
 
-<RoomLayout title="知識庫" collection="kb">
+<RoomLayout title={t('kb.title')} collection="kb">
   <KbFrame source={source} counts={kbCounts(index.docs)} shelves={shelves}>
     <main class="flex flex-col gap-6 px-4 py-6 sm:px-8 lg:px-14 lg:py-8">
       <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 class="text-xl font-semibold">知識庫</h2>
+        <h2 class="text-xl font-semibold">{t('kb.title')}</h2>
         <p class="text-muted-foreground text-sm">
-          vault 的 wiki 與 Readwise 摘錄，唯讀
+          {t('kb.intro')}
         </p>
       </div>
       <form
@@ -46,13 +48,13 @@ const mounted = index.mounted[source];
         role="search"
         class="flex max-w-xl gap-2"
       >
-        <label for="kb-q" class="sr-only">搜尋知識庫</label>
+        <label for="kb-q" class="sr-only">{t('kb.searchLabel')}</label>
         <input
           id="kb-q"
           name="q"
           type="search"
           value={q}
-          placeholder="搜尋 wiki 與 Readwise"
+          placeholder={t('kb.searchPlaceholder')}
           class="bg-background focus-visible:ring-ring h-10 min-w-0 flex-1 rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
         />
         <input type="hidden" name="source" value={source} />
@@ -60,7 +62,7 @@ const mounted = index.mounted[source];
           type="submit"
           class="bg-primary text-primary-foreground h-10 rounded-md px-4 text-sm font-medium"
         >
-          搜尋
+          {t('kb.search')}
         </button>
       </form>
 
@@ -68,10 +70,10 @@ const mounted = index.mounted[source];
         q ? (
           <section aria-labelledby="kb-results">
             <h3 id="kb-results" class="text-muted-foreground mb-3 text-sm">
-              「{q}」· {hits.length} 筆
+              {t('kb.results', { q, count: hits.length })}
             </h3>
             {hits.length === 0 ? (
-              <p class="text-muted-foreground text-sm">沒有符合的頁面。</p>
+              <p class="text-muted-foreground text-sm">{t('kb.noResults')}</p>
             ) : (
               <ul class="flex max-w-3xl flex-col divide-y">
                 {hits.map(({ doc, snippet }) => (
@@ -82,7 +84,7 @@ const mounted = index.mounted[source];
                     >
                       <span class="flex items-center gap-2">
                         <Badge variant="secondary">
-                          {KB_SOURCE_LABELS[doc.source]}
+                          {kbSourceLabel(doc.source, t)}
                         </Badge>
                         <span class="font-semibold">{doc.title}</span>
                       </span>
@@ -98,17 +100,17 @@ const mounted = index.mounted[source];
         ) : !mounted ? (
           <Empty className="border py-12">
             <EmptyHeader>
-              <EmptyTitle>{KB_SOURCE_LABELS[source]} 還沒有掛載</EmptyTitle>
-              <EmptyDescription>
-                容器裡找不到這個資料夾；homelab 的唯讀掛載設定好之後就會出現。
-              </EmptyDescription>
+              <EmptyTitle>
+                {t('kb.notMounted', { source: kbSourceLabel(source, t) })}
+              </EmptyTitle>
+              <EmptyDescription>{t('kb.notMountedHint')}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : shown.length === 0 ? (
           <Empty className="border py-12">
             <EmptyHeader>
-              <EmptyTitle>這個書櫃是空的</EmptyTitle>
-              <EmptyDescription>沒有可以顯示的頁面。</EmptyDescription>
+              <EmptyTitle>{t('kb.emptyShelf')}</EmptyTitle>
+              <EmptyDescription>{t('kb.emptyShelfHint')}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (

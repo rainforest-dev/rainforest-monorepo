@@ -1,3 +1,4 @@
+import { type LibraryLocale } from '@rainforest-dev/library-contract';
 import {
   Alert,
   AlertDescription,
@@ -18,12 +19,16 @@ import {
   SOURCES_PATH,
 } from '@/lib';
 import { type FileLoad } from '@/lib/desk';
+import { roomT } from '@/locales';
 
 export interface RackShelvesProps {
   queue: FileLoad<ReadingQueue | null>;
+  locale: LibraryLocale;
 }
 
-function ArticleCard({ item }: { item: QueueItem }) {
+type T = ReturnType<typeof roomT>;
+
+function ArticleCard({ item, t }: { item: QueueItem; t: T }) {
   const minutes = item.sort.readingMinutes;
   return (
     <li id={articleAnchor(item.id)} className="flex scroll-mt-20">
@@ -35,7 +40,7 @@ function ArticleCard({ item }: { item: QueueItem }) {
       >
         <span className="text-muted-foreground text-xs">
           {item.siteName}
-          {minutes > 0 && ` · ${minutes} min`}
+          {minutes > 0 && t('rack.minutes', { count: minutes })}
         </span>
         <span className="font-semibold leading-snug">{item.title}</span>
         <span className="text-muted-foreground mt-auto text-xs">
@@ -43,7 +48,7 @@ function ArticleCard({ item }: { item: QueueItem }) {
         </span>
         {item.decay === 'time-sensitive' && (
           <Badge variant="warning" className="self-start">
-            Time-sensitive
+            {t('rack.timeSensitive')}
           </Badge>
         )}
       </a>
@@ -55,14 +60,15 @@ function ArticleCard({ item }: { item: QueueItem }) {
  * The reading queue as shelves of cards, one shelf per tier. Server-rendered with no client
  * code: each card opens the article in Reader.
  */
-export function RackShelves({ queue }: RackShelvesProps) {
+export function RackShelves({ queue, locale }: RackShelvesProps) {
+  const t = roomT(locale);
   if (!queue.ok)
     return (
       <Alert variant="destructive">
         <CircleXIcon />
-        <AlertTitle>Couldn't read the reading queue</AlertTitle>
+        <AlertTitle>{t('rack.loadFailed')}</AlertTitle>
         <AlertDescription className="flex flex-col items-start gap-2">
-          <p>Reload after the vault finishes syncing.</p>
+          <p>{t('rack.reloadHint')}</p>
           <code className="bg-muted text-foreground break-all rounded px-1.5 py-0.5 font-mono text-xs">
             {queue.error}
           </code>
@@ -70,23 +76,22 @@ export function RackShelves({ queue }: RackShelvesProps) {
       </Alert>
     );
 
-  const shelves = queue.data ? rackShelves(queue.data) : [];
+  const shelves = queue.data ? rackShelves(queue.data, t) : [];
   if (shelves.length === 0)
     return (
       <Empty className="border py-12">
         <EmptyHeader>
           <EmptyTitle>
-            {queue.data
-              ? 'Nothing on the rack'
-              : 'No reading queue has been generated yet.'}
+            {queue.data ? t('rack.empty') : t('rack.noQueue')}
           </EmptyTitle>
           <EmptyDescription>
             {queue.data ? (
-              'The last reading-queue run queued no items.'
+              t('rack.emptyHint')
             ) : (
               <>
-                Run the <code className="text-primary">reading-queue</code>{' '}
-                skill to build one.
+                {t('rack.noQueueBefore')}
+                <code className="text-primary">reading-queue</code>
+                {t('rack.noQueueAfter')}
               </>
             )}
           </EmptyDescription>
@@ -115,22 +120,21 @@ export function RackShelves({ queue }: RackShelvesProps) {
             </h2>
             <ul className="grid grid-cols-1 gap-3 border-b-4 pb-3 sm:grid-cols-2 lg:grid-cols-4">
               {shelf.items.map((item) => (
-                <ArticleCard key={item.id} item={item} />
+                <ArticleCard key={item.id} item={item} t={t} />
               ))}
             </ul>
           </section>
         );
       })}
       <p className="text-muted-foreground text-sm">
-        Sorted by the reading-queue skill. The full table, with the stale items,
-        is under{' '}
+        {t('rack.footerBefore')}
         <a
           className="text-primary underline"
           href={`${SOURCES_PATH}?tab=queue`}
         >
-          Sources → Queue
+          {t('rack.footerLink')}
         </a>
-        .
+        {t('rack.footerAfter')}
       </p>
     </div>
   );

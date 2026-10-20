@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { roomT } from '@/locales';
+
+const t = roomT('en');
 import type { Source, StaleType } from '@/lib/registry.types';
 
 import {
@@ -208,7 +211,7 @@ describe('matchesSearch', () => {
 
 describe('facetOptions', () => {
   it('counts every option with no filters, stale skipping retired sources', () => {
-    const facets = facetOptions(SOURCES, NONE);
+    const facets = facetOptions(SOURCES, NONE, t);
     expect(facets.status.map((o) => [o.label, o.count])).toEqual([
       ['Active', 3],
       ['Proposed', 2],
@@ -225,7 +228,7 @@ describe('facetOptions', () => {
 
   it('lists categories by name with Uncategorised last', () => {
     expect(
-      facetOptions(SOURCES, NONE).cat.map((o) => [o.value, o.count]),
+      facetOptions(SOURCES, NONE, t).cat.map((o) => [o.value, o.count]),
     ).toEqual([
       ['Frontend', 2],
       ['Infra', 1],
@@ -235,7 +238,7 @@ describe('facetOptions', () => {
   });
 
   it('sorts tags by count, then name', () => {
-    expect(facetOptions(SOURCES, NONE).tag.map((o) => o.value)).toEqual([
+    expect(facetOptions(SOURCES, NONE, t).tag.map((o) => o.value)).toEqual([
       'domain/frontend',
       'domain/news',
       'devops',
@@ -247,7 +250,7 @@ describe('facetOptions', () => {
 
   it('counts an option against every other group and the search, not its own', () => {
     const f = filters({ status: ['active'], cat: ['Frontend'] });
-    const facets = facetOptions(SOURCES, f);
+    const facets = facetOptions(SOURCES, f, t);
     expect(countOf(facets, 'status', 'active')).toBe(2);
     expect(countOf(facets, 'status', 'proposed')).toBe(0);
     expect(countOf(facets, 'cat', 'Frontend')).toBe(2);
@@ -255,13 +258,17 @@ describe('facetOptions', () => {
     expect(countOf(facets, 'cat', 'Writing')).toBe(0);
     expect(countOf(facets, 'stale', 'feed-dead')).toBe(1);
 
-    const searched = facetOptions(SOURCES, { ...f, q: 'signal' });
+    const searched = facetOptions(SOURCES, { ...f, q: 'signal' }, t);
     expect(countOf(searched, 'status', 'active')).toBe(1);
     expect(countOf(searched, 'status', 'retired')).toBe(0);
   });
 
   it('keeps zero-count options and marks the chosen ones', () => {
-    const facets = facetOptions(SOURCES, filters({ stale: ['unspecified'] }));
+    const facets = facetOptions(
+      SOURCES,
+      filters({ stale: ['unspecified'] }),
+      t,
+    );
     const unspecified = facets.stale.find((o) => o.value === 'unspecified');
     expect(unspecified).toEqual({
       value: 'unspecified',
@@ -276,6 +283,7 @@ describe('facetOptions', () => {
     const facets = facetOptions(
       SOURCES,
       filters({ cat: ['Gone'], tag: ['tech/gone'] }),
+      t,
     );
     expect(facets.cat.at(-1)).toMatchObject({
       value: 'Gone',
@@ -291,7 +299,7 @@ describe('facetOptions', () => {
   it('omits Uncategorised when every source has a category', () => {
     const categorised = SOURCES.filter((s) => s.category);
     expect(
-      facetOptions(categorised, NONE).cat.map((o) => o.value),
+      facetOptions(categorised, NONE, t).cat.map((o) => o.value),
     ).not.toContain(UNCATEGORISED);
   });
 });
@@ -319,7 +327,7 @@ describe('chips', () => {
       cat: [UNCATEGORISED],
       tag: ['tech/css'],
     });
-    expect(activeChips(f)).toEqual([
+    expect(activeChips(f, t)).toEqual([
       { key: 'q', label: 'Search: notes', patch: { q: '' } },
       {
         key: 'status:proposed',
@@ -348,7 +356,7 @@ describe('chips', () => {
   });
 
   it('has no chips and nothing to clear without filters', () => {
-    expect(activeChips(NONE)).toEqual([]);
+    expect(activeChips(NONE, t)).toEqual([]);
     expect(hasSourceFilters(NONE)).toBe(false);
     expect(hasSourceFilters(filters({ q: 'x' }))).toBe(true);
   });
@@ -360,7 +368,7 @@ describe('chips', () => {
       tag: ['devops'],
       source: 'Ferry Ops',
     });
-    expect(activeChips(cleared)).toEqual([]);
+    expect(activeChips(cleared, t)).toEqual([]);
     expect(cleared.source).toBe('Ferry Ops');
   });
 });

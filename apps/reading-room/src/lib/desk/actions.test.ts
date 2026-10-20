@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { roomT } from '@/locales';
+
+const t = roomT('en');
 import type { Source, StaleType, Topic } from '@/lib/registry.types';
 
 import {
@@ -159,10 +162,10 @@ describe('applicable counts', () => {
   });
 
   it('says why a bulk action applies to none', () => {
-    expect(notApplicableNote('activate')).toBe(
+    expect(notApplicableNote('activate', t)).toBe(
       'None of the selected sources can be activated. Activate applies to proposed and retired sources.',
     );
-    expect(notApplicableNote('retire')).toContain('without a delivery gap');
+    expect(notApplicableNote('retire', t)).toContain('without a delivery gap');
   });
 });
 
@@ -199,10 +202,10 @@ describe('topic applicable counts', () => {
   });
 
   it('says why a topic bulk action applies to none', () => {
-    expect(notApplicableNote('decline', 'topics')).toBe(
+    expect(notApplicableNote('decline', t, 'topics')).toBe(
       'None of the selected topics can be declined. Decline applies to proposed topics.',
     );
-    expect(notApplicableNote('activate', 'topics')).toContain(
+    expect(notApplicableNote('activate', t, 'topics')).toContain(
       'proposed and declined topics',
     );
   });
@@ -233,27 +236,40 @@ describe('selection helpers', () => {
 });
 
 describe('write messages', () => {
+  it('speaks Chinese to a Chinese reader', () => {
+    const zh = roomT('zh');
+    expect(writeSummary('retire', ['a', 'b'], zh)).toBe('已停用 2 個來源');
+    expect(writeFailure('decline', ['Crypto markets'], zh, 'topics')).toBe(
+      '無法把 Crypto markets 標成不採用',
+    );
+    expect(notApplicableNote('decline', zh, 'topics')).toBe(
+      '選取的主題都不能標成不採用。不採用只適用於提議中的主題。',
+    );
+  });
+
   it('names a single source and counts several', () => {
-    expect(writeSummary('activate', ['Paper Cartography'])).toBe(
+    expect(writeSummary('activate', ['Paper Cartography'], t)).toBe(
       'Activated Paper Cartography',
     );
-    expect(writeSummary('retire', ['a', 'b', 'c'])).toBe('Retired 3 sources');
-    expect(writeFailure('retire', ['a', 'b', 'c'])).toBe(
+    expect(writeSummary('retire', ['a', 'b', 'c'], t)).toBe(
+      'Retired 3 sources',
+    );
+    expect(writeFailure('retire', ['a', 'b', 'c'], t)).toBe(
       "Couldn't retire 3 sources",
     );
-    expect(writeFailure('activate', ['Kite & Key'])).toBe(
+    expect(writeFailure('activate', ['Kite & Key'], t)).toBe(
       "Couldn't activate Kite & Key",
     );
   });
 
   it('counts topics as topics', () => {
-    expect(writeSummary('decline', ['Crypto markets'], 'topics')).toBe(
+    expect(writeSummary('decline', ['Crypto markets'], t, 'topics')).toBe(
       'Declined Crypto markets',
     );
-    expect(writeSummary('activate', ['a', 'b'], 'topics')).toBe(
+    expect(writeSummary('activate', ['a', 'b'], t, 'topics')).toBe(
       'Activated 2 topics',
     );
-    expect(writeFailure('decline', ['a', 'b', 'c'], 'topics')).toBe(
+    expect(writeFailure('decline', ['a', 'b', 'c'], t, 'topics')).toBe(
       "Couldn't decline 3 topics",
     );
   });

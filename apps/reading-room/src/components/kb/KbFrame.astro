@@ -1,5 +1,6 @@
 ---
 import { type KbShelf, type KbSource } from '@/lib/kb';
+import { roomT } from '@/locales';
 
 import KbNav from './KbNav.astro';
 
@@ -13,6 +14,7 @@ interface Props {
 }
 
 const { aside = false, ...nav } = Astro.props;
+const t = roomT(Astro.locals.locale);
 const SIDE =
   'lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:overflow-y-auto';
 ---
@@ -33,7 +35,7 @@ const SIDE =
       <summary
         class="flex min-h-11 cursor-pointer items-center px-4 text-sm font-semibold"
       >
-        知識庫目錄
+        {t('kb.toc')}
       </summary>
       <div class="max-h-[60dvh] overflow-y-auto border-t">
         <KbNav {...nav} />
@@ -44,7 +46,7 @@ const SIDE =
   {
     aside && (
       <aside
-        aria-label="相關內容"
+        aria-label={t('kb.related')}
         class:list={[
           'border-t p-5 lg:col-start-2 xl:col-start-auto xl:border-l xl:border-t-0',
           'xl:sticky xl:top-14 xl:h-[calc(100dvh-3.5rem)] xl:overflow-y-auto',

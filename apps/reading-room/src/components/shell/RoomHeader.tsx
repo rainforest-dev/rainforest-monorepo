@@ -1,23 +1,32 @@
-import { type CollectionId } from '@rainforest-dev/library-contract';
+import {
+  type CollectionId,
+  type LibraryLocale,
+} from '@rainforest-dev/library-contract';
 import {
   CollectionNav,
   CollectionTabBar,
+  LocaleSwitch,
   ShellHeader,
+  useLibraryT,
   useReturnPoint,
 } from '@rainforest-dev/library-shell';
 import { cn } from '@rainforest-dev/rainforest-react';
 import { Library, Newspaper } from 'lucide-react';
 
 import { KB_PATH, RACK_PATH, SOURCES_PATH } from '@/lib/paths';
+import { ROOM_NAMESPACE } from '@/locales';
+
+import { RoomI18n } from './RoomI18n';
 
 export type RoomSection = 'rack' | 'sources';
 
-const SECTIONS: { id: RoomSection; label: string; href: string }[] = [
-  { id: 'rack', label: 'Rack', href: RACK_PATH },
-  { id: 'sources', label: 'Sources', href: SOURCES_PATH },
+const SECTIONS: { id: RoomSection; href: string }[] = [
+  { id: 'rack', href: RACK_PATH },
+  { id: 'sources', href: SOURCES_PATH },
 ];
 
 export interface RoomHeaderProps {
+  locale: LibraryLocale;
   collection: CollectionId;
   /** The rack's page, for its section switcher; absent outside the rack. */
   section?: RoomSection;
@@ -33,12 +42,21 @@ export interface RoomHeaderProps {
  * The bar keeps the shell's view-transition name, so a hop from another collection holds it
  * still.
  */
-export function RoomHeader({
+export function RoomHeader({ locale, ...props }: RoomHeaderProps) {
+  return (
+    <RoomI18n locale={locale}>
+      <RoomBar {...props} />
+    </RoomI18n>
+  );
+}
+
+function RoomBar({
   collection,
   section,
   collections,
-}: RoomHeaderProps) {
+}: Omit<RoomHeaderProps, 'locale'>) {
   useReturnPoint(collection);
+  const t = useLibraryT(ROOM_NAMESPACE);
   const kb = collection === 'kb';
   const Icon = kb ? Library : Newspaper;
   return (
@@ -49,12 +67,12 @@ export function RoomHeader({
           className="flex h-10 items-center gap-2 rounded-md text-base font-semibold"
         >
           <Icon aria-hidden="true" className="text-primary size-4" />
-          <h1>{kb ? 'Knowledge base' : 'Reading room'}</h1>
+          <h1>{kb ? t('header.kb') : t('header.room')}</h1>
         </a>
         {collections && <CollectionNav current={collection} resume />}
         {section && (
-          <nav aria-label="Reading room" className="ml-auto flex gap-1">
-            {SECTIONS.map(({ id, label, href }) => (
+          <nav aria-label={t('header.sections')} className="ml-auto flex gap-1">
+            {SECTIONS.map(({ id, href }) => (
               <a
                 key={id}
                 href={href}
@@ -64,11 +82,12 @@ export function RoomHeader({
                   id === section && 'bg-accent font-semibold',
                 )}
               >
-                {label}
+                {t(`header.${id}`)}
               </a>
             ))}
           </nav>
         )}
+        <LocaleSwitch className={section ? undefined : 'ml-auto'} />
       </ShellHeader>
       {collections && <CollectionTabBar current={collection} resume />}
     </>

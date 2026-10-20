@@ -28,7 +28,10 @@ afterAll(() => {
 
 const search = async (q: string) => {
   const url = new URL(`http://kb.test/kb/api/library-search?q=${q}`);
-  const response = await GET({ url } as APIContext);
+  const response = await GET({
+    url,
+    locals: { locale: 'zh' },
+  } as unknown as APIContext);
   return { status: response.status, body: await response.json() };
 };
 

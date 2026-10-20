@@ -4,6 +4,7 @@ import {
   LIBRARY_SEARCH_LIMIT,
   type LibrarySearchHit,
 } from '@rainforest-dev/library-contract';
+import type { LibraryT } from '@rainforest-dev/library-shell';
 import { lexicalRank, whitespaceTerms } from '@rainforest-dev/search';
 
 import { tierLabel } from '@/lib/desk';
@@ -18,7 +19,7 @@ export interface Shelf {
 }
 
 /** The queue as shelves, one per tier in tier order, each in the skill's rank order. */
-export function rackShelves(queue: ReadingQueue): Shelf[] {
+export function rackShelves(queue: ReadingQueue, t: LibraryT): Shelf[] {
   const byTier = new Map<number, QueueItem[]>();
   for (const item of queue.queue) {
     const shelf = byTier.get(item.tier) ?? [];
@@ -29,7 +30,7 @@ export function rackShelves(queue: ReadingQueue): Shelf[] {
     .sort(([a], [b]) => a - b)
     .map(([tier, items]) => ({
       tier,
-      label: tierLabel(tier),
+      label: tierLabel(tier, t),
       items: [...items].sort((a, b) => a.rank - b.rank),
     }));
 }

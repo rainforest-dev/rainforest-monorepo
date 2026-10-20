@@ -2,6 +2,7 @@
 import { RackShelves } from '@/components/rack/RackShelves.tsx';
 import RoomLayout from '@/layouts/RoomLayout.astro';
 import { loadFailure } from '@/lib/desk';
+import { roomT } from '@/locales';
 import { readReadingQueue } from '@/server';
 
 function readQueue() {
@@ -14,18 +15,18 @@ function readQueue() {
 
 const queue = readQueue();
 const generated = queue.ok ? queue.data?.generated : undefined;
+const { locale } = Astro.locals;
+const t = roomT(locale);
 ---
 
-<RoomLayout title="Rack" collection="rack" section="rack">
+<RoomLayout title={t('rack.title')} collection="rack" section="rack">
   <main class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 lg:px-6">
     <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <h2 class="text-xl font-semibold">Rack</h2>
+      <h2 class="text-xl font-semibold">{t('rack.title')}</h2>
       <p class="text-muted-foreground text-sm">
-        Unread Reader documents, shelved by why they matter now{
-          generated && ` · generated ${generated}`
-        }
+        {t('rack.intro')}{generated && t('rack.generated', { date: generated })}
       </p>
     </div>
-    <RackShelves queue={queue} />
+    <RackShelves queue={queue} locale={locale} />
   </main>
 </RoomLayout>

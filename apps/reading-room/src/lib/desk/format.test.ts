@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { roomT } from '@/locales';
+
+const t = roomT('en');
 import { daysAgo, feedHost, topicSummary } from './format.js';
 
 const NOW = Date.parse('2026-10-03T12:00:00Z');
@@ -11,11 +14,11 @@ describe('daysAgo', () => {
     ['2026-09-21', '12d ago'],
     ['2026-11-01', 'today'],
   ])('%s is %s', (date, label) => {
-    expect(daysAgo(date, NOW)).toBe(label);
+    expect(daysAgo(date, t, NOW)).toBe(label);
   });
 
   it('gives nothing for a date it cannot read', () => {
-    expect(daysAgo('someday', NOW)).toBeNull();
+    expect(daysAgo('someday', t, NOW)).toBeNull();
   });
 });
 

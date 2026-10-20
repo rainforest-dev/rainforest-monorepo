@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Badge,
   type BadgeProps,
@@ -8,6 +9,7 @@ import {
 
 import type { Decay, QueueItem } from '@/lib';
 import { readLabel, savedLabel, tierLabel } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { DESK_ROW_CLASS, WIDE_ONLY } from './deskRow';
 import { TagBadges } from './TagBadges';
@@ -19,8 +21,11 @@ const DECAY_VARIANT: Record<Decay, BadgeProps['variant'] | null> = {
 };
 
 export function DecayBadge({ decay }: { decay: Decay }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   const variant = DECAY_VARIANT[decay];
-  return variant ? <Badge variant={variant}>{decay}</Badge> : null;
+  return variant ? (
+    <Badge variant={variant}>{t(`decay.${decay}`)}</Badge>
+  ) : null;
 }
 
 const NUMBER_CELL = 'text-muted-foreground text-right tabular-nums';
@@ -32,6 +37,7 @@ export function QueueRow({
   item: QueueItem;
   tabIndex: 0 | -1;
 }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <TableRow
       data-nav-key={item.id}
@@ -40,7 +46,7 @@ export function QueueRow({
     >
       <TableCell className={NUMBER_CELL}>{item.rank}</TableCell>
       <TableCell>
-        <Badge variant="muted" title={tierLabel(item.tier)}>
+        <Badge variant="muted" title={tierLabel(item.tier, t)}>
           T{item.tier}
         </Badge>
       </TableCell>
@@ -74,13 +80,13 @@ export function QueueRow({
       </TableCell>
       <TableCell className={NUMBER_CELL}>{item.sort.readingMinutes}</TableCell>
       <TableCell className={cn(NUMBER_CELL, WIDE_ONLY)}>
-        {savedLabel(item.sort.savedDaysAgo)}
+        {savedLabel(item.sort.savedDaysAgo, t)}
       </TableCell>
       <TableCell className={cn(NUMBER_CELL, WIDE_ONLY)}>
         {item.sort.wikiSources}
       </TableCell>
       <TableCell className={cn(NUMBER_CELL, 'text-xs')}>
-        {readLabel(item.sort.progress)}
+        {readLabel(item.sort.progress, t)}
       </TableCell>
     </TableRow>
   );

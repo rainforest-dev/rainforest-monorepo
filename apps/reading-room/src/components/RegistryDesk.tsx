@@ -1,3 +1,5 @@
+import { type LibraryLocale } from '@rainforest-dev/library-contract';
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   KeyHints,
   Tabs,
@@ -22,6 +24,7 @@ import {
   ValidatePopover,
   type ViewKeys,
 } from '@/components/desk';
+import { RoomI18n } from '@/components/shell/RoomI18n';
 import {
   clearSourceFilters,
   DESK_TABS,
@@ -32,27 +35,32 @@ import {
   type DeskTab,
   type FileLoad,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 export interface RegistryDeskProps {
+  locale: LibraryLocale;
   initialParams: DeskParams;
   data: DeskData;
   files: Record<DeskFile, string>;
 }
 
-const FILE_LABEL: Record<DeskFile, string> = {
-  sources: 'source registry',
-  topics: 'topic registry',
-  queue: 'reading queue',
-};
-
 const isDeskTab = (value: unknown): value is DeskTab =>
   (DESK_TABS as readonly unknown[]).includes(value);
 
-export function RegistryDesk({
+export function RegistryDesk({ locale, ...props }: RegistryDeskProps) {
+  return (
+    <RoomI18n locale={locale}>
+      <Desk {...props} />
+    </RoomI18n>
+  );
+}
+
+function Desk({
   initialParams,
   data: initialData,
   files,
-}: RegistryDeskProps) {
+}: Omit<RegistryDeskProps, 'locale'>) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   const { params, navigate } = useDeskParams(initialParams);
   const desk = useDeskData(initialData);
   const [validateOpen, setValidateOpen] = useState(initialParams.validate);
@@ -90,7 +98,7 @@ export function RegistryDesk({
     return (
       <>
         <LoadError
-          what={FILE_LABEL[file]}
+          what={t(`desk.file.${file}`)}
           error={load.error}
           retrying={retrying}
           onRetry={() => void desk.retry(file)}
@@ -103,7 +111,7 @@ export function RegistryDesk({
   const padded = 'flex flex-col gap-4 px-4 py-6 lg:px-6';
   const hints = (tab: DeskTab) => (
     <KeyHints
-      hints={deskHints(tab, false)}
+      hints={deskHints(tab, false, t)}
       className="bg-background sticky bottom-0 z-[5] mt-auto hidden border-t py-2 lg:flex"
     />
   );
@@ -134,7 +142,9 @@ export function RegistryDesk({
           value="sources"
           className={sources.ok ? undefined : padded}
         >
-          {!sources.ok && <h2 className="text-lg font-semibold">Sources</h2>}
+          {!sources.ok && (
+            <h2 className="text-lg font-semibold">{t('desk.tab.sources')}</h2>
+          )}
           {body('sources', sources, (data) => (
             <SourcesView
               sources={data.sources}
@@ -149,7 +159,9 @@ export function RegistryDesk({
           ))}
         </TabsContent>
         <TabsContent value="topics" className={topics.ok ? undefined : padded}>
-          {!topics.ok && <h2 className="text-lg font-semibold">Topics</h2>}
+          {!topics.ok && (
+            <h2 className="text-lg font-semibold">{t('desk.tab.topics')}</h2>
+          )}
           {body('topics', topics, (data) => (
             <TopicsView
               topics={data.topics}
@@ -164,7 +176,7 @@ export function RegistryDesk({
         </TabsContent>
         <TabsContent value="queue" className={queue.ok ? undefined : padded}>
           {!queue.ok && (
-            <h2 className="text-lg font-semibold">Reading queue</h2>
+            <h2 className="text-lg font-semibold">{t('desk.queue.heading')}</h2>
           )}
           {body('queue', queue, (data) => (
             <QueueView

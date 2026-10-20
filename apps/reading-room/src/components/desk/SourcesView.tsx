@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Badge,
   Button,
@@ -37,6 +38,7 @@ import {
   toggleValue,
   type ViewCommand,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { BulkToolbar } from './BulkToolbar';
 import { WIDE_ONLY } from './deskRow';
@@ -85,8 +87,9 @@ export function SourcesView({
 }: SourcesViewProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { isDesktop, showTable, showList } = useDeskLayout();
+  const t = useLibraryT(ROOM_NAMESPACE);
 
-  const facets = facetOptions(sources, params);
+  const facets = facetOptions(sources, params, t);
   const filtered = filterSources(sources, params);
   const page = clampPage(params.page, filtered.length);
   const pageCount = Math.max(1, Math.ceil(filtered.length / SOURCES_PAGE_SIZE));
@@ -99,7 +102,7 @@ export function SourcesView({
   const { selectMode } = selection;
   const bulk = selectMode && selection.selected.size > 0;
   const inlineBulk = bulk && isDesktop;
-  const chips = activeChips(params);
+  const chips = activeChips(params, t);
   const openName = params.source;
   const open = openName ? sources.find((s) => s.name === openName) : undefined;
   const paneOpen = openName !== null;
@@ -217,7 +220,7 @@ export function SourcesView({
   const bulkOptions = BULK_ACTIONS.map((action) => ({
     action,
     names: applicableNames(sources, selection.selected, action),
-    emptyNote: notApplicableNote(action),
+    emptyNote: notApplicableNote(action, t),
   }));
 
   const filterCount = facetCount(params);
@@ -231,7 +234,7 @@ export function SourcesView({
       )}
     >
       <aside
-        aria-label="Filters"
+        aria-label={t('desk.filters.title')}
         className="bg-sidebar text-sidebar-foreground max-lg:hidden lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:border-r"
       >
         <ScrollArea className="h-full">
@@ -259,13 +262,13 @@ export function SourcesView({
               id="sources-heading"
               className="text-lg font-semibold max-lg:sr-only"
             >
-              Sources
+              {t('desk.tab.sources')}
             </h2>
             {inlineBulk ? (
               <BulkToolbar
                 options={bulkOptions}
                 shownNames={pageNames}
-                shownLabel="on this page"
+                shownScope="page"
                 selection={selection}
                 actions={actions}
               />
@@ -276,8 +279,11 @@ export function SourcesView({
                   className="text-muted-foreground text-sm max-lg:order-2"
                 >
                   {filtered.length === total
-                    ? `${total} sources`
-                    : `${filtered.length} of ${total} sources`}
+                    ? t('desk.sources.count', { total })
+                    : t('desk.sources.countOf', {
+                        shown: filtered.length,
+                        total,
+                      })}
                 </p>
                 <div className="flex w-full items-center gap-2 max-lg:contents lg:ml-auto lg:w-auto">
                   <Button
@@ -287,17 +293,19 @@ export function SourcesView({
                     aria-haspopup="dialog"
                     onClick={() => setFiltersOpen(true)}
                   >
-                    Filters{' '}
+                    {t('desk.filters.title')}{' '}
                     {filterCount > 0 && (
                       <Badge className="tabular-nums">
                         {filterCount}
-                        <span className="sr-only"> applied</span>
+                        <span className="sr-only">
+                          {t('desk.filters.applied')}
+                        </span>
                       </Badge>
                     )}
                   </Button>
                   <SearchField
                     value={params.q}
-                    label="Search sources"
+                    label={t('desk.search.sources')}
                     tab="sources"
                     className="w-full max-lg:order-first lg:w-72"
                     onChange={(q) => {
@@ -311,7 +319,7 @@ export function SourcesView({
                       className="max-lg:order-3 max-lg:ml-auto"
                       onClick={selectMode ? selection.done : selection.start}
                     >
-                      {selectMode ? 'Done' : 'Select'}
+                      {selectMode ? t('desk.bulk.done') : t('desk.select')}
                     </Button>
                   )}
                 </div>
@@ -334,30 +342,26 @@ export function SourcesView({
         {total === 0 ? (
           <Empty className="border py-12">
             <EmptyHeader>
-              <EmptyTitle>No sources yet</EmptyTitle>
-              <EmptyDescription>
-                Sources show up here once rss-discover proposes them.
-              </EmptyDescription>
+              <EmptyTitle>{t('desk.sources.none')}</EmptyTitle>
+              <EmptyDescription>{t('desk.sources.noneHint')}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Button variant="outline" size="sm" onClick={onValidate}>
-                Validate a feed URL
+                {t('desk.sources.validate')}
               </Button>
             </EmptyContent>
           </Empty>
         ) : filtered.length === 0 ? (
           <Empty className="border py-12">
             <EmptyHeader>
-              <EmptyTitle>No sources match</EmptyTitle>
+              <EmptyTitle>{t('desk.sources.noMatch')}</EmptyTitle>
               <EmptyDescription>
-                {chips.length === 1
-                  ? '1 filter applied. Remove it or clear them all.'
-                  : `${chips.length} filters applied. Remove one or clear them all.`}
+                {t('desk.sources.noMatchHint', { count: chips.length })}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Button variant="outline" size="sm" onClick={onClearFilters}>
-                Clear filters
+                {t('desk.sources.clearFilters')}
               </Button>
             </EmptyContent>
           </Empty>
@@ -376,7 +380,7 @@ export function SourcesView({
                     {selectMode && (
                       <TableHead className="w-10">
                         <Checkbox
-                          aria-label="Select all on this page"
+                          aria-label={t('desk.selectAllPage')}
                           checked={pageCheck === 'all'}
                           indeterminate={pageCheck === 'some'}
                           onCheckedChange={() =>
@@ -387,19 +391,25 @@ export function SourcesView({
                         />
                       </TableHead>
                     )}
-                    <TableHead>Source</TableHead>
+                    <TableHead>{t('desk.col.source')}</TableHead>
                     {!paneOpen && (
                       <>
-                        <TableHead className={WIDE_ONLY}>Category</TableHead>
-                        <TableHead className={WIDE_ONLY}>Tags</TableHead>
+                        <TableHead className={WIDE_ONLY}>
+                          {t('desk.col.category')}
+                        </TableHead>
+                        <TableHead className={WIDE_ONLY}>
+                          {t('desk.col.tags')}
+                        </TableHead>
                       </>
                     )}
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t('desk.col.status')}</TableHead>
                     {!paneOpen && (
-                      <TableHead className={WIDE_ONLY}>Proposed</TableHead>
+                      <TableHead className={WIDE_ONLY}>
+                        {t('desk.col.proposed')}
+                      </TableHead>
                     )}
                     <TableHead className="w-40">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{t('desk.col.actions')}</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -445,7 +455,7 @@ export function SourcesView({
           </>
         )}
         <KeyHints
-          hints={deskHints('sources', pageCount > 1)}
+          hints={deskHints('sources', pageCount > 1, t)}
           className="bg-background sticky bottom-0 z-[5] mt-auto hidden border-t py-2 lg:flex"
         />
       </section>
@@ -453,7 +463,7 @@ export function SourcesView({
       {openName !== null && isDesktop && (
         <aside
           id={SOURCE_DETAIL_ID}
-          aria-label="Source details"
+          aria-label={t('desk.sources.details')}
           className="bg-card text-card-foreground max-lg:hidden lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:overflow-y-auto lg:border-l"
         >
           <SourceDetail
@@ -490,7 +500,7 @@ export function SourcesView({
               floating
               options={bulkOptions}
               shownNames={pageNames}
-              shownLabel="on this page"
+              shownScope="page"
               selection={selection}
               actions={actions}
             />

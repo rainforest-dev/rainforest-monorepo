@@ -1,5 +1,8 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
+
+import { ROOM_NAMESPACE } from '@/locales';
 
 export interface PagerProps {
   page: number;
@@ -9,6 +12,7 @@ export interface PagerProps {
 }
 
 export function Pager({ page, pageSize, total, onPage }: PagerProps) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   if (pageCount <= 1) return null;
   const first = (page - 1) * pageSize + 1;
@@ -16,11 +20,11 @@ export function Pager({ page, pageSize, total, onPage }: PagerProps) {
 
   return (
     <nav
-      aria-label="Pages"
+      aria-label={t('desk.pager.label')}
       className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm"
     >
       <p className="text-muted-foreground tabular-nums">
-        {first}–{last} of {total}
+        {t('desk.pager.range', { first, last, total })}
       </p>
       <div className="flex items-center gap-3">
         <Button
@@ -30,10 +34,10 @@ export function Pager({ page, pageSize, total, onPage }: PagerProps) {
           onClick={() => onPage(page - 1)}
         >
           <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />
-          Prev
+          {t('desk.pager.prev')}
         </Button>
         <span className="tabular-nums">
-          Page {page} of {pageCount}
+          {t('desk.pager.page', { page, count: pageCount })}
         </span>
         <Button
           variant="outline"
@@ -41,7 +45,7 @@ export function Pager({ page, pageSize, total, onPage }: PagerProps) {
           disabled={page >= pageCount}
           onClick={() => onPage(page + 1)}
         >
-          Next
+          {t('desk.pager.next')}
           <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
         </Button>
       </div>

@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Alert,
   AlertDescription,
@@ -6,8 +7,10 @@ import {
 import { CircleCheckIcon, CircleXIcon } from 'lucide-react';
 
 import type { FeedResult } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 export function ValidateResult({ result }: { result: FeedResult }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   if (!result.valid)
     return (
       <Alert variant="destructive">
@@ -19,13 +22,17 @@ export function ValidateResult({ result }: { result: FeedResult }) {
   return (
     <Alert variant="success">
       <CircleCheckIcon />
-      <AlertTitle>Valid {result.format?.toUpperCase()} feed</AlertTitle>
+      <AlertTitle>
+        {t('desk.validate.valid', {
+          format: result.format?.toUpperCase() ?? '',
+        })}
+      </AlertTitle>
       <AlertDescription className="[&_p:not(:last-child)]:mb-0">
-        {result.title && <p>Title: {result.title}</p>}
+        {result.title && (
+          <p>{t('desk.validate.title', { title: result.title })}</p>
+        )}
         {result.itemCount !== undefined && (
-          <p>
-            {result.itemCount} item{result.itemCount !== 1 ? 's' : ''} found
-          </p>
+          <p>{t('desk.validate.items', { count: result.itemCount })}</p>
         )}
       </AlertDescription>
     </Alert>

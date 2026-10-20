@@ -114,13 +114,16 @@ test.describe('rack', () => {
 });
 
 test.describe('library shell', () => {
+  // These read the Chinese copy; locale.spec.ts covers the English side.
+  test.use({ locale: 'zh-TW' });
+
   test('the top bar names the room, links every collection and marks the rack', async ({
     page,
   }) => {
     await page.goto('/rack');
     const banner = page.getByRole('banner');
     await expect(
-      banner.getByRole('heading', { level: 1, name: 'Reading room' }),
+      banner.getByRole('heading', { level: 1, name: '閱覽室' }),
     ).toBeVisible();
     const collections = banner.getByRole('navigation', { name: '館藏' });
     await expect(collections.getByRole('link')).toHaveText([
@@ -138,17 +141,17 @@ test.describe('library shell', () => {
       '/books',
     );
 
-    const sections = banner.getByRole('navigation', { name: 'Reading room' });
-    await expect(sections.getByRole('link', { name: 'Rack' })).toHaveAttribute(
+    const sections = banner.getByRole('navigation', { name: '閱覽室' });
+    await expect(sections.getByRole('link', { name: '報架' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    await sections.getByRole('link', { name: 'Sources' }).click();
+    await sections.getByRole('link', { name: '來源' }).click();
     await expect(page).toHaveURL(/\/rack\/sources$/);
     await expect(
       page
-        .getByRole('navigation', { name: 'Reading room' })
-        .getByRole('link', { name: 'Sources' }),
+        .getByRole('navigation', { name: '閱覽室' })
+        .getByRole('link', { name: '來源' }),
     ).toHaveAttribute('aria-current', 'page');
   });
 
@@ -196,7 +199,7 @@ test.describe('library shell', () => {
     const res = await page.goto('/kb');
     expect(res?.status()).toBe(200);
     await expect(
-      page.getByRole('banner').getByRole('heading', { name: 'Knowledge base' }),
+      page.getByRole('banner').getByRole('heading', { name: '知識庫' }),
     ).toBeVisible();
     await expect(
       page

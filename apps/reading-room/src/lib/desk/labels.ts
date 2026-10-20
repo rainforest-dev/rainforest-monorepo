@@ -1,17 +1,14 @@
+import type { LibraryT } from '@rainforest-dev/library-shell';
+
 import type { Source, StaleType, Topic } from '@/lib/registry.types';
 
-export const SOURCE_STATUS_LABEL: Record<Source['status'], string> = {
-  active: 'Active',
-  proposed: 'Proposed',
-  'no-rss': 'No RSS',
-  retired: 'Retired',
-};
+export function sourceStatusLabel(status: Source['status'], t: LibraryT) {
+  return t(`status.source.${status}`);
+}
 
-export const TOPIC_STATUS_LABEL: Record<Topic['status'], string> = {
-  active: 'Active',
-  proposed: 'Proposed',
-  declined: 'Declined',
-};
+export function topicStatusLabel(status: Topic['status'], t: LibraryT) {
+  return t(`status.topic.${status}`);
+}
 
 export interface StaleCopy {
   label: string;
@@ -19,27 +16,17 @@ export interface StaleCopy {
   fix: string | null;
 }
 
-export const STALE_COPY: Record<StaleType, StaleCopy> = {
-  'feed-dead': {
-    label: 'Feed dead',
-    hint: 'The feed stopped answering or returns an error.',
-    fix: 'Validate the feed below. If it is still down, retire the source.',
-  },
-  'delivery-gap': {
-    label: 'Delivery gap',
-    hint: 'The feed still publishes, but Readwise stopped delivering it.',
-    fix: 'Re-subscribe in Readwise: paste the feed URL into Add feeds (Shift + A).',
-  },
-  'low-value': {
-    label: 'Low value',
-    hint: 'The feed publishes, but little of it is worth reading.',
-    fix: 'Retire it unless the last few weeks changed your mind.',
-  },
-  unspecified: {
-    label: 'Unspecified',
-    hint: 'Flagged before stale comments carried a type.',
-    fix: null,
-  },
-};
+export function staleCopy(type: StaleType, t: LibraryT): StaleCopy {
+  return {
+    label: t(`stale.${type}.label`),
+    hint: t(`stale.${type}.hint`),
+    fix: type === 'unspecified' ? null : t(`stale.${type}.fix`),
+  };
+}
 
+/** The filter value for sources without a category; shown through `categoryLabel`. */
 export const UNCATEGORISED = 'Uncategorised';
+
+export function categoryLabel(value: string, t: LibraryT): string {
+  return value === UNCATEGORISED ? t('desk.uncategorised') : value;
+}

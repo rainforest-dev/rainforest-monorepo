@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Popover,
@@ -10,6 +11,8 @@ import {
 import { ScanSearchIcon } from 'lucide-react';
 import { useRef } from 'react';
 
+import { ROOM_NAMESPACE } from '@/locales';
+
 import { useFeedValidation } from './useFeedValidation';
 import { ValidateForm } from './ValidateForm';
 
@@ -21,16 +24,21 @@ export interface ValidatePopoverProps {
 export function ValidatePopover({ open, onOpenChange }: ValidatePopoverProps) {
   const validation = useFeedValidation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useLibraryT(ROOM_NAMESPACE);
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger
         render={
-          <Button variant="outline" size="sm" aria-label="Validate URL" />
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label={t('desk.validate.button')}
+          />
         }
       >
         <ScanSearchIcon data-icon="inline-start" />
-        <span className="max-lg:hidden">Validate URL</span>
+        <span className="max-lg:hidden">{t('desk.validate.button')}</span>
       </PopoverTrigger>
       <PopoverContent
         align="end"
@@ -38,9 +46,11 @@ export function ValidatePopover({ open, onOpenChange }: ValidatePopoverProps) {
         className="w-96 max-w-[calc(100vw-2rem)] gap-3 p-4"
       >
         <PopoverHeader>
-          <PopoverTitle className="text-base">Validate a feed</PopoverTitle>
+          <PopoverTitle className="text-base">
+            {t('desk.validate.heading')}
+          </PopoverTitle>
           <PopoverDescription>
-            Check a URL before proposing it as a source.
+            {t('desk.validate.description')}
           </PopoverDescription>
         </PopoverHeader>
         <ValidateForm validation={validation} inputRef={inputRef} />

@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Alert,
   AlertDescription,
@@ -22,11 +23,13 @@ import { type ReactNode, useState } from 'react';
 import type { Source } from '@/lib';
 import {
   canResubscribe,
+  categoryLabel,
   daysAgo,
-  STALE_COPY,
+  staleCopy,
   UNCATEGORISED,
   visibleStale,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { SourceActions } from './SourceActions';
 import { STALE_ICON, StaleBadge, StatusBadge } from './StatusBadges';
@@ -50,19 +53,20 @@ export function SourceDetail({
   actions,
   onClose,
 }: SourceDetailProps) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-center gap-1">
         <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-          Source
+          {t('detail.kicker')}
         </p>
         <span className="text-muted-foreground ml-auto inline-flex items-center gap-1 pr-1 text-xs max-lg:hidden">
-          <Kbd>Esc</Kbd> close
+          <Kbd>Esc</Kbd> {t('detail.escClose')}
         </span>
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Close details"
+          aria-label={t('detail.close')}
           className="max-lg:ml-auto"
           onClick={onClose}
         >
@@ -74,10 +78,8 @@ export function SourceDetail({
       ) : (
         <Empty className="p-6">
           <EmptyHeader>
-            <EmptyTitle>No source named “{name}”</EmptyTitle>
-            <EmptyDescription>
-              It may have been renamed or removed in the vault.
-            </EmptyDescription>
+            <EmptyTitle>{t('detail.missing', { name })}</EmptyTitle>
+            <EmptyDescription>{t('detail.missingHint')}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       )}
@@ -103,6 +105,7 @@ export function SourceDetailSheet({
   const [shown, setShown] = useState(name);
   if (name !== null && name !== shown) setShown(name);
   const source = sources.find((s) => s.name === shown);
+  const t = useLibraryT(ROOM_NAMESPACE);
 
   return (
     <Sheet
@@ -120,7 +123,7 @@ export function SourceDetailSheet({
         }
       >
         <SheetTitle className="sr-only" render={<span />}>
-          Source details
+          {t('desk.sources.details')}
         </SheetTitle>
         <SheetBody className="px-0">
           {shown !== null && (
@@ -144,10 +147,11 @@ function SourceBody({
   source: Source;
   actions: SourceActionsState;
 }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   const stale = visibleStale(source);
-  const copy = stale ? STALE_COPY[stale.type] : null;
+  const copy = stale ? staleCopy(stale.type, t) : null;
   const StaleIcon = stale ? STALE_ICON[stale.type] : null;
-  const age = source.proposedDate ? daysAgo(source.proposedDate) : null;
+  const age = source.proposedDate ? daysAgo(source.proposedDate, t) : null;
 
   return (
     <>
@@ -157,7 +161,7 @@ function SourceBody({
           <StatusBadge status={source.status} />
           {stale && <StaleBadge stale={stale} />}
           <span className="text-muted-foreground text-sm">
-            {source.category || UNCATEGORISED}
+            {categoryLabel(source.category || UNCATEGORISED, t)}
           </span>
         </div>
       </div>
@@ -174,7 +178,7 @@ function SourceBody({
       )}
 
       <dl className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
-        <Row label="Feed">
+        <Row label={t('detail.feed')}>
           <span className="flex min-w-0 items-center gap-1">
             <span className="truncate font-mono text-xs" title={source.url}>
               {source.url}
@@ -183,7 +187,7 @@ function SourceBody({
           </span>
         </Row>
         {source.siteUrl && (
-          <Row label="Site">
+          <Row label={t('detail.site')}>
             <a
               href={source.siteUrl}
               target="_blank"
@@ -195,7 +199,7 @@ function SourceBody({
             </a>
           </Row>
         )}
-        <Row label="Tags">
+        <Row label={t('detail.tags')}>
           {source.tags.length > 0 ? (
             <span className="flex flex-wrap gap-1">
               {source.tags.map((tag) => (
@@ -205,11 +209,11 @@ function SourceBody({
               ))}
             </span>
           ) : (
-            <span className="text-muted-foreground">None</span>
+            <span className="text-muted-foreground">{t('detail.none')}</span>
           )}
         </Row>
         {source.status === 'proposed' && source.proposedDate && (
-          <Row label="Proposed">
+          <Row label={t('detail.proposed')}>
             {source.proposedDate}
             {age && <span className="text-muted-foreground"> · {age}</span>}
           </Row>
@@ -220,7 +224,7 @@ function SourceBody({
 
       <section aria-labelledby="feed-check" className="flex flex-col gap-2">
         <h3 id="feed-check" className="text-sm font-semibold">
-          Feed check
+          {t('detail.feedCheck')}
         </h3>
         {source.status === 'no-rss' ? (
           <NoRssCheck url={source.url} />
@@ -235,18 +239,17 @@ function SourceBody({
         <SourceActions source={source} actions={actions} layout="pane" />
         {canResubscribe(source) && (
           <p className="text-muted-foreground text-xs">
-            Not offered for retirement: the feed still publishes, and Readwise
-            is the part that stopped.
+            {t('detail.noRetire')}
           </p>
         )}
         {actions.resubscribed.has(source.name) && (
           <p className="text-sm">
             <span className="inline-flex items-center gap-1.5 font-medium">
               <CheckIcon aria-hidden="true" className="text-success size-4" />
-              Re-subscribed in this session
+              {t('detail.resubscribed')}
             </span>
             <span className="text-muted-foreground block text-xs">
-              The flag stays until rss-discover next rewrites the registry.
+              {t('detail.resubscribedHint')}
             </span>
           </p>
         )}
@@ -266,11 +269,12 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 function CopyButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <Button
       variant="ghost"
       size="icon-xs"
-      aria-label={copied ? 'Feed URL copied' : 'Copy feed URL'}
+      aria-label={copied ? t('detail.copied') : t('detail.copy')}
       onClick={() => {
         void navigator.clipboard.writeText(url).then(() => {
           setCopied(true);
@@ -288,6 +292,7 @@ function CopyButton({ url }: { url: string }) {
 }
 
 function FeedCheck({ url }: { url: string }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   const validation = useFeedValidation(url);
   const { pending, result, validate } = validation;
   return (
@@ -300,10 +305,12 @@ function FeedCheck({ url }: { url: string }) {
         onClick={() => void validate()}
       >
         {pending && <Spinner data-icon="inline-start" />}
-        Validate feed
+        {t('detail.validate')}
       </Button>
       {pending && (
-        <p className="text-muted-foreground text-sm">Fetching the feed…</p>
+        <p className="text-muted-foreground text-sm">
+          {t('desk.validate.fetching')}
+        </p>
       )}
       {!pending && result && <ValidateResult result={result} />}
     </>
@@ -311,12 +318,11 @@ function FeedCheck({ url }: { url: string }) {
 }
 
 function NoRssCheck({ url }: { url: string }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   const validation = useFeedValidation(url);
   return (
     <>
-      <p className="text-muted-foreground text-sm">
-        No feed was found for this site. Check a feed URL for it:
-      </p>
+      <p className="text-muted-foreground text-sm">{t('detail.noRss')}</p>
       <ValidateForm validation={validation} />
     </>
   );

@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Checkbox,
@@ -13,13 +14,14 @@ import {
 } from '@rainforest-dev/rainforest-react';
 import { Fragment } from 'react';
 
-import { READ_ONLY_NOTE, type Topic } from '@/lib';
+import type { Topic } from '@/lib';
 import {
-  ACTION_LABEL,
+  actionLabel,
   TOPIC_RULES,
   type TopicAction,
   topicSummary,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { PHONE_ITEM_CLASS } from './SourceList';
 import { StaleBadge, TopicStatusBadge } from './StatusBadges';
@@ -42,6 +44,7 @@ export function TopicList({
   selection,
 }: TopicListProps) {
   const { selectMode, selected } = selection;
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <ItemGroup
       aria-labelledby={labelledBy}
@@ -70,7 +73,7 @@ export function TopicList({
             >
               {selectMode && (
                 <Checkbox
-                  aria-label={`Select ${topic.name}`}
+                  aria-label={t('desk.selectName', { name: topic.name })}
                   checked={isSelected}
                   onCheckedChange={() => selection.toggle(topic.name)}
                   onClick={(event) => event.stopPropagation()}
@@ -101,12 +104,14 @@ export function TopicList({
                         void actions.run([topic.name], action, 'row')
                       }
                       disabled={busy || !actions.writable}
-                      title={actions.writable ? undefined : READ_ONLY_NOTE}
+                      title={
+                        actions.writable ? undefined : t('desk.readOnly.note')
+                      }
                     >
                       {actions.isRunning('row', action, topic.name) && (
                         <Spinner data-icon="inline-start" />
                       )}
-                      {ACTION_LABEL[action]}
+                      {actionLabel(action, t)}
                     </Button>
                   ))}
                 </ItemActions>

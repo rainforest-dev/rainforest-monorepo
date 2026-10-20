@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { QueueItem, StaleItem } from '@/lib/readingQueue';
+import { roomT } from '@/locales';
 
 import {
   filterQueue,
@@ -10,6 +11,8 @@ import {
   savedLabel,
   tierLabel,
 } from './queue.js';
+
+const t = roomT('en');
 
 const item = (rank: number, tier: number) =>
   ({ rank, tier, id: `q${rank}` }) as QueueItem;
@@ -48,38 +51,47 @@ describe('readLabel', () => {
     [0.155, '16% read'],
     [1, '100% read'],
   ])('%d is %j', (progress, label) => {
-    expect(readLabel(progress)).toBe(label);
+    expect(readLabel(progress, t)).toBe(label);
   });
 });
 
 describe('savedLabel', () => {
   it('reads days since saved', () => {
-    expect(savedLabel(0)).toBe('today');
-    expect(savedLabel(12)).toBe('12d ago');
+    expect(savedLabel(0, t)).toBe('today');
+    expect(savedLabel(12, t)).toBe('12d ago');
   });
 });
 
 describe('tierLabel', () => {
   it('names the four tiers and falls back for others', () => {
-    expect(tierLabel(1)).toBe('Finish what you started');
-    expect(tierLabel(4)).toBe('Covered interest');
-    expect(tierLabel(7)).toBe('Tier 7');
+    expect(tierLabel(1, t)).toBe('Finish what you started');
+    expect(tierLabel(4, t)).toBe('Covered interest');
+    expect(tierLabel(7, t)).toBe('Tier 7');
   });
 });
 
 describe('groupStale', () => {
   it('groups by reason in panel order and drops empty reasons', () => {
-    const groups = groupStale([
-      stale('a', 'duplicate'),
-      stale('b', 'done-unfiled'),
-      stale('c', 'duplicate'),
-      stale('d', 'expired'),
-    ]);
+    const groups = groupStale(
+      [
+        stale('a', 'duplicate'),
+        stale('b', 'done-unfiled'),
+        stale('c', 'duplicate'),
+        stale('d', 'expired'),
+      ],
+      t,
+    );
     expect(groups.map((g) => [g.reason, g.items.map((i) => i.id)])).toEqual([
       ['done-unfiled', ['b']],
       ['expired', ['d']],
       ['duplicate', ['a', 'c']],
     ]);
     expect(groups[0]?.label).toBe('Read but never archived');
+  });
+
+  it('names the reasons in Chinese too', () => {
+    const [group] = groupStale([stale('a', 'abandoned')], roomT('zh'));
+    expect(group?.label).toBe('讀到一半放棄');
+    expect(tierLabel(2, roomT('zh'))).toBe('你技術棧裡的盲點');
   });
 });

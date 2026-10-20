@@ -1,3 +1,4 @@
+import type { LibraryT } from '@rainforest-dev/library-shell';
 import type { KeyHint } from '@rainforest-dev/rainforest-react';
 
 import type { Source, Topic } from '@/lib/registry.types';
@@ -178,31 +179,31 @@ export interface DeskHint extends KeyHint {
 }
 
 const SOURCES_HINTS: readonly DeskHint[] = [
-  { keys: ['/'], label: 'Search' },
-  { keys: ['↑', '↓'], label: 'Move' },
-  { keys: ['←', '→'], label: 'Page', paged: true },
-  { keys: ['Enter'], label: 'Details' },
-  { keys: ['x'], label: 'Select' },
-  { keys: ['a'], label: 'Activate' },
-  { keys: ['r'], label: 'Retire' },
-  { keys: ['Esc'], label: 'Close, then clear' },
+  { keys: ['/'], label: 'search' },
+  { keys: ['↑', '↓'], label: 'move' },
+  { keys: ['←', '→'], label: 'page', paged: true },
+  { keys: ['Enter'], label: 'details' },
+  { keys: ['x'], label: 'select' },
+  { keys: ['a'], label: 'activate' },
+  { keys: ['r'], label: 'retire' },
+  { keys: ['Esc'], label: 'closeClear' },
 ];
 
-const TAB_HINT: DeskHint = { keys: ['1', '2', '3'], label: 'Switch tab' };
+const TAB_HINT: DeskHint = { keys: ['1', '2', '3'], label: 'switchTab' };
 
 const TOPICS_HINTS: readonly DeskHint[] = [
-  { keys: ['/'], label: 'Search' },
-  { keys: ['↑', '↓'], label: 'Move' },
-  { keys: ['x'], label: 'Select' },
-  { keys: ['a'], label: 'Activate' },
-  { keys: ['d'], label: 'Decline' },
-  { keys: ['Esc'], label: 'Clear selection' },
+  { keys: ['/'], label: 'search' },
+  { keys: ['↑', '↓'], label: 'move' },
+  { keys: ['x'], label: 'select' },
+  { keys: ['a'], label: 'activate' },
+  { keys: ['d'], label: 'decline' },
+  { keys: ['Esc'], label: 'clearSelection' },
   TAB_HINT,
 ];
 
 const QUEUE_HINTS: readonly DeskHint[] = [
-  { keys: ['↑', '↓'], label: 'Move' },
-  { keys: ['Enter'], label: 'Open in Reader' },
+  { keys: ['↑', '↓'], label: 'move' },
+  { keys: ['Enter'], label: 'openReader' },
   TAB_HINT,
 ];
 
@@ -212,8 +213,13 @@ export const DESK_HINTS: Record<DeskTab, readonly DeskHint[]> = {
   queue: QUEUE_HINTS,
 };
 
-export function deskHints(tab: DeskTab, paged: boolean): readonly KeyHint[] {
+/** The key hints a tab shows; each hint's `label` names its `hint.*` string until translated here. */
+export function deskHints(
+  tab: DeskTab,
+  paged: boolean,
+  t: LibraryT,
+): readonly KeyHint[] {
   return DESK_HINTS[tab]
     .filter((hint) => paged || !hint.paged)
-    .map(({ keys, label }) => ({ keys, label }));
+    .map(({ keys, label }) => ({ keys, label: t(`hint.${label}`) }));
 }

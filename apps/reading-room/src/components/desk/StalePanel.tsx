@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Item,
   ItemActions,
@@ -11,10 +12,12 @@ import { Fragment } from 'react';
 
 import type { StaleItem } from '@/lib';
 import { groupStale } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { DecayBadge } from './QueueRow';
 
 export function StalePanel({ stale }: { stale: readonly StaleItem[] }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <section
       aria-labelledby="stale-heading"
@@ -22,14 +25,11 @@ export function StalePanel({ stale }: { stale: readonly StaleItem[] }) {
     >
       <div>
         <h3 id="stale-heading" className="text-base font-semibold">
-          Stale ({stale.length})
+          {t('desk.stale.title', { count: stale.length })}
         </h3>
-        <p className="text-muted-foreground text-sm">
-          Read-only. Archive these in Readwise yourself; this app never writes
-          to Reader.
-        </p>
+        <p className="text-muted-foreground text-sm">{t('desk.stale.hint')}</p>
       </div>
-      {groupStale(stale).map(({ reason, label, items }) => (
+      {groupStale(stale, t).map(({ reason, label, items }) => (
         <div key={reason} className="flex flex-col gap-2">
           <h4
             id={`stale-${reason}`}

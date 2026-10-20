@@ -1,13 +1,15 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 
 import {
-  FACET_TITLE,
   facetCount,
   type FacetKey,
   type Facets,
+  facetTitle,
   hasSourceFilters,
   type SourceFilters,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { Facet } from './Facet';
 
@@ -30,12 +32,15 @@ export function FilterPanel({
   header = true,
 }: FilterPanelProps) {
   const count = facetCount(filters);
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <div className="flex flex-col gap-5 px-2 py-4">
       {header && (
         <div className="flex h-6 items-center gap-2 px-2">
           <h2 className="text-sm font-semibold">
-            {count > 0 ? `Filters · ${count}` : 'Filters'}
+            {count > 0
+              ? t('desk.filters.titleCount', { count })
+              : t('desk.filters.title')}
           </h2>
           {hasSourceFilters(filters) && (
             <Button
@@ -44,7 +49,7 @@ export function FilterPanel({
               className="ml-auto"
               onClick={onClear}
             >
-              Clear all
+              {t('desk.filters.clearAll')}
             </Button>
           )}
         </div>
@@ -52,7 +57,7 @@ export function FilterPanel({
       {ORDER.map((key) => (
         <Facet
           key={key}
-          title={FACET_TITLE[key]}
+          title={facetTitle(key, t)}
           options={facets[key]}
           limit={key === 'tag' ? TAG_LIMIT : undefined}
           onToggle={(value) => onToggle(key, value)}
