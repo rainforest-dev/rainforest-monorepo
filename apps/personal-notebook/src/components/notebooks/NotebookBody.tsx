@@ -1,10 +1,12 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { BookOpen, LayoutGrid } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 import { cn } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 import type { NotebookPage } from '@/types';
 
 import { NotebookPageGrid } from './NotebookPageGrid';
@@ -15,11 +17,11 @@ type Layout = 'book' | 'pages';
 
 const LAYOUTS: readonly {
   value: Layout;
-  label: string;
+  key: string;
   Icon: typeof BookOpen;
 }[] = [
-  { value: 'book', label: 'Book', Icon: BookOpen },
-  { value: 'pages', label: 'Pages', Icon: LayoutGrid },
+  { value: 'book', key: 'layout.book', Icon: BookOpen },
+  { value: 'pages', key: 'layout.pages', Icon: LayoutGrid },
 ];
 
 /** A notebook's pages, read as a book or laid out as a grid to organise; `?layout=` keeps the choice. */
@@ -31,6 +33,7 @@ export function NotebookBody({
   pages: readonly NotebookPage[];
 }) {
   const params = useSearchParams();
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
   const [layout, setLayout] = useState<Layout>(
     params.get('layout') === 'pages' ? 'pages' : 'book',
   );
@@ -53,10 +56,10 @@ export function NotebookBody({
     <div className="flex flex-col gap-5">
       <div
         role="group"
-        aria-label="Layout"
+        aria-label={t('layout.label')}
         className="bg-muted flex w-fit gap-0.5 rounded-lg p-0.5"
       >
-        {LAYOUTS.map(({ value, label, Icon }) => (
+        {LAYOUTS.map(({ value, key, Icon }) => (
           <button
             key={value}
             type="button"
@@ -70,7 +73,7 @@ export function NotebookBody({
             )}
           >
             <Icon className="size-4" aria-hidden />
-            {label}
+            {t(key)}
           </button>
         ))}
       </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { type LibraryT, useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   buttonVariants,
@@ -17,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { type ChangeEvent, useRef, useState } from 'react';
 
 import { notebookPageFileName, withBase } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 import type { NotebookPage } from '@/types';
 
 import { pageImageUrl, readError } from './api';
@@ -26,11 +28,11 @@ import { useCropStep } from './use-crop-step';
 const action =
   'h-12 flex-col gap-0.5 px-1 text-xs leading-tight sm:h-8 sm:flex-row sm:gap-1.5 sm:px-2.5 sm:text-sm';
 
-export const pageLabel = (page: NotebookPage) =>
+export const pageLabel = (page: NotebookPage, t: LibraryT) =>
   [
-    `Page ${page.pageNumber ?? page.position}`,
+    t('page.label', { number: page.pageNumber ?? page.position }),
     page.pageDate,
-    page.transcription ? 'transcribed' : null,
+    page.transcription ? t('page.transcribed') : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -46,6 +48,7 @@ export function PageDetailDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
   const [deleting, setDeleting] = useState(false);
   const [replacing, setReplacing] = useState(false);
   const replaceInput = useRef<HTMLInputElement>(null);
@@ -64,7 +67,7 @@ export function PageDetailDialog({
       const prepared = await preparePages([file]);
       if (!prepared) return;
       if (prepared.length !== 1) {
-        toast.error('Replace takes one page; crop the photo to a single page');
+        toast.error(t('page.replaceOne'));
         return;
       }
       const form = new FormData();
@@ -77,20 +80,20 @@ export function PageDetailDialog({
         },
       );
       if (!response.ok) {
-        toast.error(await readError(response, 'Could not replace page'));
+        toast.error(await readError(response, t('page.replaceFailed')));
         return;
       }
-      toast.success('Page replaced');
+      toast.success(t('page.replaced'));
       router.refresh();
     } catch {
-      toast.error('Could not replace page');
+      toast.error(t('page.replaceFailed'));
     } finally {
       setReplacing(false);
     }
   }
 
   async function deleteOpenPage() {
-    if (!open || !window.confirm('Delete this page and its image?')) return;
+    if (!open || !window.confirm(t('page.confirmDelete'))) return;
     setDeleting(true);
     try {
       const response = await fetch(
@@ -100,7 +103,7 @@ export function PageDetailDialog({
         },
       );
       if (!response.ok) {
-        toast.error(await readError(response, 'Could not delete page'));
+        toast.error(await readError(response, t('page.deleteFailed')));
         return;
       }
       onClose();
@@ -122,17 +125,17 @@ export function PageDetailDialog({
           {open && (
             <>
               <DialogHeader>
-                <DialogTitle>{pageLabel(open)}</DialogTitle>
+                <DialogTitle>{pageLabel(open, t)}</DialogTitle>
                 <DialogDescription>
                   {notebookPageFileName({ notebookName, ...open })}
                   <span className="block text-xs">
-                    Uploaded as {open.fileName}
+                    {t('page.uploadedAs', { name: open.fileName })}
                   </span>
                 </DialogDescription>
               </DialogHeader>
               <img
                 src={pageImageUrl(open.id)}
-                alt={`Scan of ${pageLabel(open)}`}
+                alt={t('page.scanOf', { label: pageLabel(open, t) })}
                 className="bg-muted max-h-[40dvh] w-full rounded-md object-contain sm:max-h-[70dvh]"
               />
               {open.transcription ? (
@@ -141,7 +144,7 @@ export function PageDetailDialog({
                 </pre>
               ) : (
                 <p className="text-muted-foreground text-sm">
-                  Not transcribed yet.
+                  {t('page.notTranscribed')}
                 </p>
               )}
               <DialogFooter className="bg-muted sticky -bottom-4 grid grid-cols-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex sm:pb-4">
@@ -155,8 +158,10 @@ export function PageDetailDialog({
                 >
                   <FileDown aria-hidden />
                   <span>
-                    Download
-                    <span className="max-sm:sr-only"> page</span>
+                    {t('page.download')}
+                    <span className="max-sm:sr-only">
+                      {t('page.downloadMore')}
+                    </span>
                   </span>
                 </a>
                 <input
@@ -174,8 +179,10 @@ export function PageDetailDialog({
                 >
                   {replacing ? <Spinner /> : <ImageUp aria-hidden />}
                   <span>
-                    Replace
-                    <span className="max-sm:sr-only"> image</span>
+                    {t('page.replace')}
+                    <span className="max-sm:sr-only">
+                      {t('page.replaceMore')}
+                    </span>
                   </span>
                 </Button>
                 <Button
@@ -186,8 +193,10 @@ export function PageDetailDialog({
                 >
                   <Trash2 aria-hidden />
                   <span>
-                    Delete
-                    <span className="max-sm:sr-only"> page</span>
+                    {t('page.delete')}
+                    <span className="max-sm:sr-only">
+                      {t('page.deleteMore')}
+                    </span>
                   </span>
                 </Button>
               </DialogFooter>

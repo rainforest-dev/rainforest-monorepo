@@ -1,14 +1,22 @@
-import { monthLabel, shiftMonth } from '@rainforest-dev/journal-kit';
+import {
+  monthLabel as zhMonthLabel,
+  shiftMonth,
+} from '@rainforest-dev/journal-kit';
+import {
+  HTML_LANG,
+  type LibraryLocale,
+} from '@rainforest-dev/library-contract';
+import type { LibraryT } from '@rainforest-dev/library-shell';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 import { cn } from '@/lib';
 import { calendarDays, notebookSlots } from '@/lib/notebook';
 import type { NotebookCalendar as Calendar, UndatedPages } from '@/lib/server';
+import { notebookT } from '@/locales';
 
 import { pageImageUrl } from './api';
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SLOT_BG = [
   'bg-chart-1',
   'bg-chart-2',
@@ -17,6 +25,25 @@ const SLOT_BG = [
   'bg-chart-5',
 ];
 const MAX_THUMBS = 3;
+
+/** Sunday to Saturday, short, in the page's language. */
+const weekdays = (locale: LibraryLocale) =>
+  Array.from({ length: 7 }, (_, i) =>
+    // 2023-01-01 was a Sunday.
+    new Date(Date.UTC(2023, 0, 1 + i)).toLocaleDateString(HTML_LANG[locale], {
+      weekday: 'short',
+      timeZone: 'UTC',
+    }),
+  );
+
+const monthName = (month: string, locale: LibraryLocale) =>
+  locale === 'zh'
+    ? zhMonthLabel(month)
+    : new Date(`${month}-01T00:00:00Z`).toLocaleDateString(HTML_LANG[locale], {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
 
 const monthHref = (month: string) => `/?view=calendar&month=${month}`;
 const pageHref = (notebookId: number, pageId: number) =>
@@ -27,11 +54,15 @@ export function NotebookCalendar({
   calendar,
   undated,
   thisMonth,
+  locale,
 }: {
   calendar: Calendar;
   undated: UndatedPages;
   thisMonth: string;
+  locale: LibraryLocale;
 }) {
+  const t = notebookT(locale);
+  const monthLabel = (m: string) => monthName(m, locale);
   const { month, pages } = calendar;
   const weeks = calendarDays(month, pages);
   const slots = notebookSlots(pages, SLOT_BG.length);
@@ -55,7 +86,7 @@ export function NotebookCalendar({
         <Link
           href={monthHref(shiftMonth(month, -1))}
           prefetch={false}
-          aria-label="Previous month"
+          aria-label={t('calendar.prev')}
           className={nav}
         >
           <ChevronLeft className="size-4" aria-hidden />
@@ -63,7 +94,7 @@ export function NotebookCalendar({
         <Link
           href={monthHref(shiftMonth(month, 1))}
           prefetch={false}
-          aria-label="Next month"
+          aria-label={t('calendar.next')}
           className={nav}
         >
           <ChevronRight className="size-4" aria-hidden />
@@ -74,11 +105,11 @@ export function NotebookCalendar({
             prefetch={false}
             className="focus-visible:outline-ring flex h-8 items-center rounded-md border px-3 text-sm outline-offset-1 focus-visible:outline-2"
           >
-            This month
+            {t('calendar.thisMonth')}
           </Link>
         )}
         <p className="text-muted-foreground ml-auto text-xs">
-          {pages.length} dated page{pages.length === 1 ? '' : 's'} this month
+          {t('calendar.dated', { count: pages.length })}
           {calendar.prev && (
             <>
               {' · '}
@@ -87,7 +118,7 @@ export function NotebookCalendar({
                 prefetch={false}
                 className="hover:text-foreground underline underline-offset-2"
               >
-                earlier: {monthLabel(calendar.prev)}
+                {t('calendar.earlier', { month: monthLabel(calendar.prev) })}
               </Link>
             </>
           )}
@@ -99,7 +130,7 @@ export function NotebookCalendar({
                 prefetch={false}
                 className="hover:text-foreground underline underline-offset-2"
               >
-                later: {monthLabel(calendar.next)}
+                {t('calendar.later', { month: monthLabel(calendar.next) })}
               </Link>
             </>
           )}
@@ -120,10 +151,10 @@ export function NotebookCalendar({
         </ul>
       )}
 
-      <UndatedNote undated={undated} />
+      <UndatedNote undated={undated} t={t} />
 
       <div className="bg-border grid grid-cols-7 gap-px overflow-hidden rounded-lg border">
-        {WEEKDAYS.map((day) => (
+        {weekdays(locale).map((day) => (
           <div
             key={day}
             className="bg-muted text-muted-foreground px-2 py-1.5 text-xs font-medium"
@@ -158,7 +189,11 @@ export function NotebookCalendar({
                         <Link
                           href={pageHref(page.notebookId, page.id)}
                           prefetch={false}
-                          aria-label={`${page.notebookName}, page ${page.position}, ${day.date}`}
+                          aria-label={t('calendar.pageLink', {
+                            notebook: page.notebookName,
+                            number: page.position,
+                            date: day.date,
+                          })}
                           className="focus-visible:outline-ring relative block w-6 overflow-hidden rounded-sm border outline-offset-1 focus-visible:outline-2 sm:w-9"
                         >
                           <img
@@ -194,28 +229,28 @@ export function NotebookCalendar({
           ),
         )}
       </div>
-      <p className="text-muted-foreground text-xs">
-        Pages are placed by the date read off each page. Open one to read it in
-        its notebook.
-      </p>
+      <p className="text-muted-foreground text-xs">{t('calendar.hint')}</p>
     </section>
   );
 }
 
-function UndatedNote({ undated }: { undated: UndatedPages }) {
+function UndatedNote({ undated, t }: { undated: UndatedPages; t: LibraryT }) {
   const total = undated.waiting + undated.noDate + undated.gaveUp;
   if (total === 0) return null;
   const reasons = [
-    undated.waiting > 0 && `${undated.waiting} waiting for OCR`,
-    undated.noDate > 0 && `${undated.noDate} with no date found on the page`,
-    undated.gaveUp > 0 && `${undated.gaveUp} OCR could not read`,
+    undated.waiting > 0 && t('calendar.waiting', { count: undated.waiting }),
+    undated.noDate > 0 && t('calendar.noDate', { count: undated.noDate }),
+    undated.gaveUp > 0 && t('calendar.gaveUp', { count: undated.gaveUp }),
   ].filter(Boolean);
   return (
     <p className="bg-muted/50 rounded-lg border border-dashed px-3 py-2 text-sm">
       <span className="font-medium">
-        {total} page{total === 1 ? ' has' : 's have'} no date yet:
+        {t('calendar.undated', { count: total })}
       </span>{' '}
-      <span className="text-muted-foreground">{reasons.join(', ')}.</span>
+      <span className="text-muted-foreground">
+        {reasons.join(t('calendar.reasonSeparator'))}
+        {t('calendar.end')}
+      </span>
     </p>
   );
 }

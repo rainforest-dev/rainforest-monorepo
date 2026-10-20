@@ -1,5 +1,6 @@
 'use client';
 
+import { type LibraryT, useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Dialog,
@@ -15,6 +16,7 @@ import { useState } from 'react';
 
 import { cn } from '@/lib';
 import { TRASH_DAYS } from '@/lib/notebook';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 import type { NotebookBulkAction, NotebookSummary } from '@/types';
 
 import { postNotebookBulk } from './api';
@@ -26,12 +28,15 @@ export type RemovableNotebook = Pick<
   'id' | 'name' | 'status' | 'pageCount' | 'trashedAt'
 >;
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-
-const names = (notebooks: readonly RemovableNotebook[]) =>
-  notebooks.length <= 2
-    ? notebooks.map((n) => n.name).join(' and ')
-    : `${notebooks[0].name} and ${notebooks.length - 1} more`;
+const names = (notebooks: readonly RemovableNotebook[], t: LibraryT) =>
+  notebooks.length === 1
+    ? notebooks[0].name
+    : notebooks.length === 2
+      ? t('remove.names.two', { a: notebooks[0].name, b: notebooks[1].name })
+      : t('remove.names.more', {
+          first: notebooks[0].name,
+          count: notebooks.length - 1,
+        });
 
 /**
  * Asks how to take notebooks off the shelf: archive them, move them to Trash (the default), or
@@ -49,6 +54,8 @@ export function RemoveNotebooksDialog({
   /** Called after the action ran, with the ids it changed. */
   onDone: (mode: Mode, done: number[]) => void;
 }) {
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
+  const plural = (n: number) => t('merge.notebooks', { count: n });
   const inTrash = notebooks.every((n) => n.trashedAt !== null);
   const allArchived = notebooks.every((n) => n.status === 'archived');
   const modes: Mode[] = inTrash
@@ -64,23 +71,21 @@ export function RemoveNotebooksDialog({
 
   const options: Record<Mode, { label: string; detail: string }> = {
     archive: {
-      label: 'Archive',
-      detail:
-        'Marks them finished. They stay on the shelf under Archived and can be reopened any time.',
+      label: t('remove.archive'),
+      detail: t('remove.archiveDetail'),
     },
     trash: {
-      label: 'Move to Trash',
-      detail: `Hidden everywhere, including search and the calendar. Restore from Trash within ${TRASH_DAYS} days; after that the pages and images are deleted.`,
+      label: t('remove.trash'),
+      detail: t('remove.trashDetail', { days: TRASH_DAYS }),
     },
     delete: {
-      label: 'Delete now',
-      detail: `${
+      label: t('remove.delete'),
+      detail:
         pages === 0
-          ? `Deletes ${count === 1 ? 'it' : 'them'}`
+          ? t(count === 1 ? 'remove.deleteIt' : 'remove.deleteThem')
           : pages === 1
-            ? 'Deletes the page and its image'
-            : `Deletes all ${plural(pages, 'page')} and their images`
-      } immediately. This cannot be undone.`,
+            ? t('remove.deletePage')
+            : t('remove.deletePages', { count: pages }),
     },
   };
 
@@ -93,15 +98,18 @@ export function RemoveNotebooksDialog({
       );
       if (failed.length > 0) {
         toast.error(
-          `${plural(failed.length, 'notebook')} not changed: ${failed[0].error}`,
+          t('remove.notChanged', {
+            notebooks: plural(failed.length),
+            error: failed[0].error,
+          }),
         );
       }
       if (done.length > 0) {
         toast.success(
           {
-            archive: `Archived ${plural(done.length, 'notebook')}`,
-            trash: `Moved ${plural(done.length, 'notebook')} to Trash`,
-            delete: `Deleted ${plural(done.length, 'notebook')}`,
+            archive: t('remove.archived', { notebooks: plural(done.length) }),
+            trash: t('remove.trashed', { notebooks: plural(done.length) }),
+            delete: t('remove.deleted', { notebooks: plural(done.length) }),
           }[mode],
         );
       }
@@ -118,18 +126,19 @@ export function RemoveNotebooksDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {inTrash ? 'Delete' : 'Remove'}{' '}
-            {count === 1 ? notebooks[0]?.name : plural(count, 'notebook')}?
+            {t(inTrash ? 'remove.titleDelete' : 'remove.titleRemove', {
+              what: count === 1 ? notebooks[0]?.name : plural(count),
+            })}
           </DialogTitle>
           <DialogDescription>
-            {count > 1 && `${names(notebooks)} · `}
-            {plural(pages, 'page')}
+            {count > 1 && `${names(notebooks, t)} · `}
+            {t('notebook.pages', { count: pages })}
           </DialogDescription>
         </DialogHeader>
         {modes.length > 1 ? (
           <fieldset className="flex flex-col gap-2.5">
             <legend className="text-muted-foreground mb-2 text-xs font-medium">
-              What should happen
+              {t('remove.question')}
             </legend>
             {modes.map((value) => (
               <label
@@ -180,7 +189,7 @@ export function RemoveNotebooksDialog({
             disabled={busy}
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant={mode === 'delete' ? 'destructive' : 'default'}

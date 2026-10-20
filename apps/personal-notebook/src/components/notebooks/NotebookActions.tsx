@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   buttonVariants,
@@ -18,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { withBase } from '@/lib';
+import { NOTEBOOK_NAMESPACE } from '@/locales';
 import type { NotebookStatus } from '@/types';
 
 import { notebookPdfUrl, postNotebookBulk, readError } from './api';
@@ -37,6 +39,7 @@ export function NotebookActions({
   trashedAt: string | null;
 }) {
   const router = useRouter();
+  const t = useLibraryT(NOTEBOOK_NAMESPACE);
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState(false);
   const archived = status === 'archived';
@@ -74,7 +77,7 @@ export function NotebookActions({
       <>
         <Button disabled={busy} onClick={() => void restore()}>
           {busy ? <Spinner /> : <RotateCcw aria-hidden />}
-          Restore
+          {t('grid.restore')}
         </Button>
         <Button
           variant="outline"
@@ -83,7 +86,7 @@ export function NotebookActions({
           onClick={() => setRemoving(true)}
         >
           <Trash2 aria-hidden />
-          Delete now…
+          {t('grid.deleteNow')}
         </Button>
         {removeDialog}
       </>
@@ -99,7 +102,7 @@ export function NotebookActions({
         body: JSON.stringify(change),
       });
       if (!response.ok) {
-        toast.error(await readError(response, 'Could not update notebook'));
+        toast.error(await readError(response, t('actions.updateFailed')));
         return;
       }
       router.refresh();
@@ -109,7 +112,7 @@ export function NotebookActions({
   }
 
   function rename() {
-    const next = window.prompt('Rename notebook', name)?.trim();
+    const next = window.prompt(t('actions.renamePrompt'), name)?.trim();
     if (next && next !== name) void update({ name: next });
   }
 
@@ -122,12 +125,12 @@ export function NotebookActions({
           className={buttonVariants({ variant: 'outline' })}
         >
           <FileDown aria-hidden />
-          Download PDF
+          {t('actions.downloadPdf')}
         </a>
       )}
       <Button variant="outline" disabled={busy} onClick={rename}>
         <Pencil aria-hidden />
-        Rename
+        {t('actions.rename')}
       </Button>
       <Button
         variant="outline"
@@ -143,7 +146,7 @@ export function NotebookActions({
         ) : (
           <Archive aria-hidden />
         )}
-        {archived ? 'Reopen' : 'Archive'}
+        {archived ? t('grid.reopen') : t('remove.archive')}
       </Button>
       <Button
         variant="outline"
@@ -152,7 +155,7 @@ export function NotebookActions({
         onClick={() => setRemoving(true)}
       >
         <Trash2 aria-hidden />
-        Delete…
+        {t('grid.delete')}
       </Button>
       {removeDialog}
     </>
