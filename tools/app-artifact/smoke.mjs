@@ -86,9 +86,14 @@ const APPS = {
           { path: '/rack/sources' },
           { path: '/rack/api/sources', type: 'application/json' },
           { path: '/rack/api/hall-items', type: 'application/json' },
+          {
+            path: '/rack/api/library-search?q=the',
+            type: 'application/json',
+          },
           { path: '/kb' },
           { path: '/kb/pages/tech-kites' },
           { path: '/kb/api/hall-items', type: 'application/json' },
+          { path: '/kb/api/library-search?q=kites', type: 'application/json' },
         ],
       };
     },
@@ -108,6 +113,10 @@ const APPS = {
         { path: '/notebooks' },
         { path: '/notebooks/api/hall-items', type: 'application/json' },
         { path: '/notebooks/api/search?q=ink', type: 'application/json' },
+        {
+          path: '/notebooks/api/library-search?q=ink',
+          type: 'application/json',
+        },
         { path: '/notebooks/_shell/shell.css', type: 'text/css' },
       ],
     }),
@@ -132,11 +141,16 @@ const APPS = {
           CALIBRE_APP_DB_PATH: join(fixtures, 'app.db'),
         },
         checks: [
-          { path: '/' },
-          { path: '/books/1' },
-          { path: '/?view=study&groupBy=series' },
-          { path: '/api/books', type: 'application/json' },
-          { path: '/api/hall-items', type: 'application/json' },
+          { path: '/books' },
+          { path: '/books/books/1' },
+          { path: '/books?view=study&groupBy=series' },
+          { path: '/books/api/books', type: 'application/json' },
+          { path: '/books/api/hall-items', type: 'application/json' },
+          {
+            path: '/books/api/library-search?q=the',
+            type: 'application/json',
+          },
+          { path: '/books/_shell/shell.css', type: 'text/css' },
         ],
       };
     },
@@ -151,7 +165,11 @@ const APPS = {
     // aggregating route from the artifact.
     prepare: () => ({
       env: {},
-      checks: [{ path: '/' }, { path: '/api/items', type: 'application/json' }],
+      checks: [
+        { path: '/' },
+        { path: '/api/items', type: 'application/json' },
+        { path: '/api/search?q=the', type: 'application/json' },
+      ],
     }),
   },
 };
