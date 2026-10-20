@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import { X } from 'lucide-react';
 import {
@@ -20,12 +21,12 @@ import {
   INSPECT_DRAG_RAD_PER_PX,
   INSPECT_KEY_PITCH,
   INSPECT_KEY_YAW,
-  type InspectFace,
   inspectHeightPx,
   type ScreenRect,
   type StudyBook,
   yawDegrees,
 } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 
 import { CssBook, cssBookSize } from './css/CssBook';
 import type { InspectStage } from './useStudyInspect';
@@ -47,12 +48,6 @@ const INERTIA_STOP = 0.0004;
 const FLY_MS = 420;
 const FLY_EASING = 'cubic-bezier(0.2, 0.7, 0.25, 1)';
 const SCRIM = 'color-mix(in oklch, black 45%, transparent)';
-const FACE_TEXT: Record<InspectFace, string> = {
-  front: '封面',
-  spine: '書背',
-  back: '封底',
-  edge: '書口',
-};
 
 function visibleRect(element: HTMLElement): ScreenRect {
   const rect = element.getBoundingClientRect();
@@ -84,6 +79,7 @@ export function InspectDialog({
   slotRect,
   onClose,
 }: InspectDialogProps) {
+  const t = useLibraryT(HALL_NAMESPACE);
   const dialog = useRef<HTMLDialogElement>(null);
   const control = useRef<HTMLDivElement>(null);
   const flyer = useRef<HTMLDivElement>(null);
@@ -114,9 +110,9 @@ export function InspectDialog({
     const slider = control.current;
     if (slider) {
       slider.setAttribute('aria-valuenow', String(yawDegrees(yaw)));
-      slider.setAttribute('aria-valuetext', FACE_TEXT[faceAt(yaw)]);
+      slider.setAttribute('aria-valuetext', t(`inspect.${faceAt(yaw)}`));
     }
-  }, [stage]);
+  }, [stage, t]);
 
   const rotateBy = useCallback(
     (yaw: number, pitch: number) => {
@@ -305,10 +301,10 @@ export function InspectDialog({
       className="fixed inset-0 m-0 size-full max-h-none max-w-none overflow-hidden bg-transparent p-0 backdrop:bg-transparent"
     >
       <h2 id={titleId} className="sr-only">
-        {`《${book.title}》3D 翻看`}
+        {t('inspect.title', { title: book.title })}
       </h2>
       <p id={hintId} className="sr-only">
-        拖曳或用方向鍵轉動，按 Esc 關閉。
+        {t('inspect.help')}
       </p>
       {rect && (
         <>
@@ -326,12 +322,12 @@ export function InspectDialog({
             ref={control}
             role="slider"
             tabIndex={0}
-            aria-label={`轉動《${book.title}》`}
+            aria-label={t('inspect.rotate', { title: book.title })}
             aria-describedby={hintId}
             aria-valuemin={0}
             aria-valuemax={359}
             aria-valuenow={0}
-            aria-valuetext={FACE_TEXT.front}
+            aria-valuetext={t('inspect.front')}
             data-inspect-stage
             onKeyDown={onSliderKey}
             onPointerDown={onPointerDown}
@@ -365,7 +361,7 @@ export function InspectDialog({
           <Button
             size="icon"
             variant="secondary"
-            aria-label="關閉 3D 翻看"
+            aria-label={t('inspect.close')}
             onClick={dismiss}
             className="absolute"
             style={{

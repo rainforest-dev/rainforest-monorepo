@@ -1,5 +1,6 @@
 'use client';
 
+import { useLibraryLocale, useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import { Box } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -7,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { canUseWebGL2 } from '@/components/study/capabilities';
 import { useIsPhone, useReducedMotion } from '@/hooks';
 import { buildHall, cn, HALL_GROUP_BYS, layoutHall } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
 import { CssHall } from './CssHall';
@@ -28,6 +30,8 @@ function phoneOptedIn(): boolean {
 export function HallView() {
   const { books, cases, enterBookcase, hallReturn, studyFallback } = useHall();
   const reducedMotion = useReducedMotion();
+  const locale = useLibraryLocale();
+  const t = useLibraryT(HALL_NAMESPACE);
   const phone = useIsPhone();
   const [webgl, setWebgl] = useState<boolean | null>(null);
   const [phone3d, setPhone3d] = useState(false);
@@ -42,9 +46,11 @@ export function HallView() {
   const layout = useMemo(
     () =>
       layoutHall(
-        Math.max(...HALL_GROUP_BYS.map((g) => buildHall(books, g).length)),
+        Math.max(
+          ...HALL_GROUP_BYS.map((g) => buildHall(books, g, locale).length),
+        ),
       ),
-    [books],
+    [books, locale],
   );
   // Read once per mount: a reload or a non-bfcache Back resumes where the reader stood.
   const [memory] = useState(() =>
@@ -118,12 +124,12 @@ export function HallView() {
               }}
             >
               <Box aria-hidden />
-              進入 3D 大廳
+              {t('hall.enter3d')}
             </Button>
           )}
           {webgl && (
             <p className="text-muted-foreground -mt-1 text-xs">
-              手機預設不載入 3D，省電也省記憶體。進去之後點地板走路。
+              {t('hall.phone3dHint')}
             </p>
           )}
           <CssHall cases={cases} onEnter={enterBookcase} />

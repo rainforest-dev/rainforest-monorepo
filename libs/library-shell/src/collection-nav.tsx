@@ -3,6 +3,7 @@
 import {
   type Collection,
   type CollectionId,
+  collectionLabel,
   COLLECTIONS,
 } from '@rainforest-dev/library-contract';
 import { cn } from '@rainforest-dev/rainforest-react';
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
+import { useLibraryLocale, useLibraryT } from './i18n-provider';
 import { SHELL_TRANSITION_NAMES } from './ids';
 import { returnPoint } from './shared-state';
 
@@ -53,6 +55,7 @@ interface NavProps {
   collections?: readonly CollectionId[];
   renderLink?: RenderShellLink;
   className?: string;
+  /** The nav's accessible name; the shell's "Collections" in the page's locale by default. */
   label?: string;
   /** Link each other collection to where this tab last left it, instead of its root. */
   resume?: boolean;
@@ -97,14 +100,16 @@ export function CollectionNav({
   collections,
   renderLink = renderAnchor,
   className,
-  label = '館藏',
+  label,
   resume = false,
 }: NavProps) {
   const shown = pick(collections);
   const hrefs = useHrefs(shown, current, resume);
+  const locale = useLibraryLocale();
+  const t = useLibraryT();
   return (
     <nav
-      aria-label={label}
+      aria-label={label ?? t('collections')}
       className={cn('hidden items-center gap-1 sm:flex', className)}
     >
       {shown.map((collection) => {
@@ -119,7 +124,7 @@ export function CollectionNav({
                   'text-foreground hover:bg-accent rounded-md px-3 py-1.5 text-sm',
                   active && 'bg-accent font-semibold',
                 ),
-                children: collection.label,
+                children: collectionLabel(collection, locale),
               },
               collection,
             )}
@@ -136,14 +141,16 @@ export function CollectionTabBar({
   collections,
   renderLink = renderAnchor,
   className,
-  label = '館藏',
+  label,
   resume = false,
 }: NavProps) {
   const shown = pick(collections);
   const hrefs = useHrefs(shown, current, resume);
+  const locale = useLibraryLocale();
+  const t = useLibraryT();
   return (
     <nav
-      aria-label={label}
+      aria-label={label ?? t('collections')}
       className={cn(
         'bg-background fixed inset-x-0 bottom-0 z-30 flex h-16 border-t pb-[env(safe-area-inset-bottom)] sm:hidden',
         className,
@@ -168,7 +175,7 @@ export function CollectionTabBar({
                 children: (
                   <>
                     <Icon className="size-5" aria-hidden />
-                    {collection.label}
+                    {collectionLabel(collection, locale)}
                   </>
                 ),
               },

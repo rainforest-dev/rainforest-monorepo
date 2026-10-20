@@ -1,18 +1,21 @@
 'use client';
 
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { cn } from '@rainforest-dev/rainforest-react';
 
-import { availableGroupBys, GROUP_LABELS } from '@/lib';
+import { availableGroupBys } from '@/lib';
+import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
 /** How the bookcases are sorted. Switching sends every book flying to its new bookcase. */
 export function GroupSwitch() {
   const { books, groupBy, setGroupBy } = useHall();
   const options = availableGroupBys(books);
+  const t = useLibraryT(HALL_NAMESPACE);
   return (
     <div
       role="group"
-      aria-label="分櫃方式"
+      aria-label={t('groupBy.label')}
       className="bg-card flex w-fit flex-wrap rounded-lg border p-0.5"
     >
       {options.map((option) => (
@@ -29,7 +32,7 @@ export function GroupSwitch() {
               : 'text-foreground hover:bg-muted',
           )}
         >
-          {GROUP_LABELS[option]}
+          {t(`groupBy.${option}`)}
         </button>
       ))}
     </div>

@@ -46,6 +46,7 @@
   "dependencies": {
     "@rainforest-dev/library-contract": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
+    "i18next": "^25.8.0",
     "lucide-react": "^1.8.0"
   },
   "devDependencies": {
