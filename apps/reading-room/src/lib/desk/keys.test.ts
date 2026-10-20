@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { roomT } from '@/locales';
+
+const t = roomT('en');
 import type { Source, StaleType, Topic } from '@/lib/registry.types';
 
 import {
@@ -353,7 +356,7 @@ describe('guards', () => {
 
 describe('key hints', () => {
   it('Sources lists the spec keys, with the page hint only when paged', () => {
-    expect(deskHints('sources', true).map((h) => h.label)).toEqual([
+    expect(deskHints('sources', true, t).map((h) => h.label)).toEqual([
       'Search',
       'Move',
       'Page',
@@ -363,13 +366,13 @@ describe('key hints', () => {
       'Retire',
       'Close, then clear',
     ]);
-    expect(deskHints('sources', false).map((h) => h.label)).not.toContain(
+    expect(deskHints('sources', false, t).map((h) => h.label)).not.toContain(
       'Page',
     );
   });
 
   it('Topics lists its row keys and the tab keys; Queue moves, opens and switches tab', () => {
-    expect(deskHints('topics', false).map((h) => h.label)).toEqual([
+    expect(deskHints('topics', false, t).map((h) => h.label)).toEqual([
       'Search',
       'Move',
       'Select',
@@ -378,7 +381,7 @@ describe('key hints', () => {
       'Clear selection',
       'Switch tab',
     ]);
-    expect(deskHints('queue', true)).toEqual([
+    expect(deskHints('queue', true, t)).toEqual([
       { keys: ['↑', '↓'], label: 'Move' },
       { keys: ['Enter'], label: 'Open in Reader' },
       { keys: ['1', '2', '3'], label: 'Switch tab' },
@@ -387,7 +390,7 @@ describe('key hints', () => {
   });
 
   it('hints carry no flags into the row', () => {
-    for (const hint of deskHints('sources', true))
+    for (const hint of deskHints('sources', true, t))
       expect(Object.keys(hint).sort()).toEqual(['keys', 'label']);
   });
 });

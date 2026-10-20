@@ -1,8 +1,14 @@
+import type { LibraryT } from '@rainforest-dev/library-shell';
 import { matchesAllTerms, whitespaceTerms } from '@rainforest-dev/search';
 
 import type { Source, StaleType } from '@/lib/registry.types';
 
-import { SOURCE_STATUS_LABEL, STALE_COPY, UNCATEGORISED } from './labels';
+import {
+  categoryLabel,
+  sourceStatusLabel,
+  staleCopy,
+  UNCATEGORISED,
+} from './labels';
 import {
   type DeskParams,
   type DeskPatch,
@@ -19,19 +25,9 @@ export type SourceFilters = Pick<
 
 export type FacetKey = 'status' | 'stale' | 'cat' | 'tag';
 
-export const FACET_TITLE: Record<FacetKey, string> = {
-  status: 'Status',
-  stale: 'Stale',
-  cat: 'Category',
-  tag: 'Tags',
-};
-
-const CHIP_PREFIX: Record<FacetKey, string> = {
-  status: 'Status',
-  stale: 'Stale',
-  cat: 'Category',
-  tag: 'Tag',
-};
+export function facetTitle(key: FacetKey, t: LibraryT): string {
+  return t(`filter.facet.${key}`);
+}
 
 export interface FacetOption {
   value: string;
@@ -118,6 +114,7 @@ function tagValues(sources: readonly Source[]): string[] {
 export function facetOptions(
   sources: readonly Source[],
   filters: SourceFilters,
+  t: LibraryT,
 ): Facets {
   const values: Record<FacetKey, readonly string[]> = {
     status: SOURCE_STATUSES,
@@ -132,7 +129,7 @@ export function facetOptions(
     const pool = sources.filter((s) => matchSource(s, filters, key));
     return all.map((value) => ({
       value,
-      label: optionLabel(key, value),
+      label: optionLabel(key, value, t),
       count: pool.filter((s) => hasOption(key, value, s)).length,
       selected: chosen.includes(value),
     }));
@@ -145,10 +142,19 @@ export function facetOptions(
   };
 }
 
-export function optionLabel(key: FacetKey, value: string): string {
+const SOURCE_STATUS_SET: ReadonlySet<string> = new Set(SOURCE_STATUSES);
+const STALE_TYPE_SET: ReadonlySet<string> = new Set(STALE_TYPES);
+
+export function optionLabel(key: FacetKey, value: string, t: LibraryT): string {
   if (key === 'status')
-    return SOURCE_STATUS_LABEL[value as Source['status']] ?? value;
-  if (key === 'stale') return STALE_COPY[value as StaleType]?.label ?? value;
+    return SOURCE_STATUS_SET.has(value)
+      ? sourceStatusLabel(value as Source['status'], t)
+      : value;
+  if (key === 'stale')
+    return STALE_TYPE_SET.has(value)
+      ? staleCopy(value as StaleType, t).label
+      : value;
+  if (key === 'cat') return categoryLabel(value, t);
   return value;
 }
 
@@ -169,16 +175,23 @@ export function hasSourceFilters(filters: SourceFilters): boolean {
   return filters.q !== '' || facetCount(filters) > 0;
 }
 
-export function activeChips(filters: SourceFilters): FilterChip[] {
+export function activeChips(filters: SourceFilters, t: LibraryT): FilterChip[] {
   const chips: FilterChip[] = [];
   if (filters.q)
-    chips.push({ key: 'q', label: `Search: ${filters.q}`, patch: { q: '' } });
+    chips.push({
+      key: 'q',
+      label: t('filter.search', { q: filters.q }),
+      patch: { q: '' },
+    });
   for (const key of FACET_KEYS) {
     const chosen: readonly string[] = filters[key];
     for (const value of chosen) {
       chips.push({
         key: `${key}:${value}`,
-        label: `${CHIP_PREFIX[key]}: ${optionLabel(key, value)}`,
+        label: t('filter.chipLabel', {
+          prefix: t(`filter.chip.${key}`),
+          value: optionLabel(key, value, t),
+        }),
         patch: { [key]: chosen.filter((v) => v !== value) },
       });
     }

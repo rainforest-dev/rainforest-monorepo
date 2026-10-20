@@ -2,15 +2,22 @@
 import { RegistryDesk } from '@/components/RegistryDesk.tsx';
 import RoomLayout from '@/layouts/RoomLayout.astro';
 import { parseDeskParams } from '@/lib/desk';
+import { roomT } from '@/locales';
 import { QUEUE_FILE, readDeskData, SOURCES_FILE, TOPICS_FILE } from '@/server';
 
 const params = parseDeskParams(Astro.url.searchParams);
 const data = readDeskData();
+const { locale } = Astro.locals;
 ---
 
-<RoomLayout title="Sources" collection="rack" section="sources">
+<RoomLayout
+  title={roomT(locale)('header.sources')}
+  collection="rack"
+  section="sources"
+>
   <RegistryDesk
     client:load
+    locale={locale}
     initialParams={params}
     data={data}
     files={{ sources: SOURCES_FILE, topics: TOPICS_FILE, queue: QUEUE_FILE }}

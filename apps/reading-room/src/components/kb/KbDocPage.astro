@@ -5,11 +5,12 @@ import RoomLayout from '@/layouts/RoomLayout.astro';
 import {
   kbCounts,
   kbShelves,
-  KB_SOURCE_LABELS,
   type KbSource,
+  kbSourceLabel,
   shelfLabel,
 } from '@/lib/kb';
 import { KB_PATH } from '@/lib/paths';
+import { roomT } from '@/locales';
 import { getKbIndex, renderKbDoc } from '@/server';
 
 import KbFrame from './KbFrame.astro';
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const { source, path } = Astro.props;
+const t = roomT(Astro.locals.locale);
 const index = getKbIndex();
 const id = `${source}:${path}`;
 const doc = index.get(id);
@@ -36,11 +38,11 @@ const notes = outbound.flatMap((l) => (l.kind === 'obsidian' ? [l] : []));
 const shown = doc?.source ?? source;
 ---
 
-<RoomLayout title={doc?.title ?? '找不到這一頁'} collection="kb">
+<RoomLayout title={doc?.title ?? t('kb.notFound')} collection="kb">
   <KbFrame
     source={shown}
     counts={kbCounts(index.docs)}
-    shelves={kbShelves(index.docs, shown)}
+    shelves={kbShelves(index.docs, shown, t)}
     currentId={doc?.id}
     aside={!!doc && html !== null}
   >
@@ -49,9 +51,11 @@ const shown = doc?.source ?? source;
         doc && html !== null ? (
           <article class="max-w-[42rem]">
             <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-              <Badge variant="secondary">{KB_SOURCE_LABELS[doc.source]}</Badge>
-              <span>{doc.tags[0] ?? shelfLabel(doc.source, doc.shelf)}</span>
-              {doc.updated && <span>· 更新 {doc.updated}</span>}
+              <Badge variant="secondary">{kbSourceLabel(doc.source, t)}</Badge>
+              <span>{doc.tags[0] ?? shelfLabel(doc.source, doc.shelf, t)}</span>
+              {doc.updated && (
+                <span>{t('kb.updated', { date: doc.updated })}</span>
+              )}
               {doc.status && <span>· {doc.status}</span>}
               {doc.author && <span>· {doc.author}</span>}
             </div>
@@ -62,12 +66,10 @@ const shown = doc?.source ?? source;
           </article>
         ) : (
           <div class="max-w-[42rem] py-12">
-            <h2 class="text-xl font-semibold">找不到這一頁</h2>
-            <p class="text-muted-foreground mt-2">
-              這一頁不存在，或不在知識庫裡。
-            </p>
+            <h2 class="text-xl font-semibold">{t('kb.notFound')}</h2>
+            <p class="text-muted-foreground mt-2">{t('kb.notFoundHint')}</p>
             <a href={KB_PATH} class="text-primary mt-4 inline-block underline">
-              回到知識庫
+              {t('kb.back')}
             </a>
           </div>
         )
@@ -76,11 +78,11 @@ const shown = doc?.source ?? source;
     <Fragment slot="aside">
       <section aria-labelledby="kb-backlinks" class="flex flex-col gap-2">
         <h3 id="kb-backlinks" class="text-muted-foreground text-xs">
-          反向連結 · {backlinks.length}
+          {t('kb.backlinks', { count: backlinks.length })}
         </h3>
         {
           backlinks.length === 0 ? (
-            <p class="text-muted-foreground text-sm">沒有其他頁連到這裡。</p>
+            <p class="text-muted-foreground text-sm">{t('kb.noBacklinks')}</p>
           ) : (
             <ul class="flex flex-col gap-1">
               {backlinks.map((b) => (
@@ -104,7 +106,7 @@ const shown = doc?.source ?? source;
             class="mt-5 flex flex-col gap-2 border-t pt-4"
           >
             <h3 id="kb-sources" class="text-muted-foreground text-xs">
-              連到的來源
+              {t('kb.linkedSources')}
             </h3>
             <ul class="flex flex-col gap-1">
               {readwiseSources.map((r) => (
@@ -121,7 +123,7 @@ const shown = doc?.source ?? source;
               {notes.map((n) => (
                 <li>
                   <a href={n.href} class="text-primary block py-1 text-sm">
-                    {n.label} · 在 Obsidian 開啟 ↗
+                    {t('kb.openInObsidian', { label: n.label })}
                   </a>
                 </li>
               ))}
@@ -138,7 +140,7 @@ const shown = doc?.source ?? source;
               rel="noreferrer"
               class="text-primary text-sm underline"
             >
-              原文 ↗
+              {t('kb.original')}
             </a>
           </section>
         )

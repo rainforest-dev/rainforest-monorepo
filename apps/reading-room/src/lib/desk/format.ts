@@ -1,10 +1,16 @@
+import type { LibraryT } from '@rainforest-dev/library-shell';
+
 const DAY_MS = 86_400_000;
 
-export function daysAgo(date: string, now = Date.now()): string | null {
+export function daysAgo(
+  date: string,
+  t: LibraryT,
+  now = Date.now(),
+): string | null {
   const time = new Date(date).getTime();
   if (Number.isNaN(time)) return null;
   const days = Math.max(0, Math.floor((now - time) / DAY_MS));
-  return days === 0 ? 'today' : `${days}d ago`;
+  return days === 0 ? t('desk.today') : t('desk.daysAgo', { days });
 }
 
 export function feedHost(url: string): string {

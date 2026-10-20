@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   ButtonGroup,
@@ -7,6 +8,8 @@ import {
   Spinner,
 } from '@rainforest-dev/rainforest-react';
 import { type Ref, useId } from 'react';
+
+import { ROOM_NAMESPACE } from '@/locales';
 
 import type { FeedValidation } from './useFeedValidation';
 import { ValidateResult } from './ValidateResult';
@@ -18,6 +21,7 @@ export interface ValidateFormProps {
 
 export function ValidateForm({ validation, inputRef }: ValidateFormProps) {
   const inputId = useId();
+  const t = useLibraryT(ROOM_NAMESPACE);
   const { url, setUrl, pending, result, validate } = validation;
 
   return (
@@ -30,7 +34,9 @@ export function ValidateForm({ validation, inputRef }: ValidateFormProps) {
         }}
       >
         <Field>
-          <FieldLabel htmlFor={inputId}>Feed URL</FieldLabel>
+          <FieldLabel htmlFor={inputId}>
+            {t('desk.validate.feedUrl')}
+          </FieldLabel>
           <ButtonGroup className="w-full">
             <Input
               ref={inputRef}
@@ -45,14 +51,14 @@ export function ValidateForm({ validation, inputRef }: ValidateFormProps) {
             />
             <Button type="submit" disabled={!url.trim() || pending}>
               {pending && <Spinner data-icon="inline-start" />}
-              Validate
+              {t('desk.validate.submit')}
             </Button>
           </ButtonGroup>
         </Field>
       </form>
       {pending && (
         <p role="status" className="text-muted-foreground text-sm">
-          Fetching the feed…
+          {t('desk.validate.fetching')}
         </p>
       )}
       {!pending && result && <ValidateResult result={result} />}

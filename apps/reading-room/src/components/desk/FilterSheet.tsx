@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Badge,
   Button,
@@ -16,6 +17,7 @@ import {
   hasSourceFilters,
   type SourceFilters,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { FilterPanel } from './FilterPanel';
 
@@ -39,18 +41,19 @@ export function FilterSheet({
   onClear,
 }: FilterSheetProps) {
   const count = facetCount(filters);
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <Sheet side="bottom" open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        closeLabel="Close filters"
+        closeLabel={t('desk.filters.close')}
         className="bg-sidebar text-sidebar-foreground h-auto max-h-[85dvh] gap-0"
       >
         <SheetHeader className="flex-row items-center gap-2 pb-0 pr-14">
-          <SheetTitle>Filters</SheetTitle>
+          <SheetTitle>{t('desk.filters.title')}</SheetTitle>
           {count > 0 && (
             <Badge variant="muted" className="tabular-nums">
               {count}
-              <span className="sr-only"> applied</span>
+              <span className="sr-only">{t('desk.filters.applied')}</span>
             </Badge>
           )}
           {hasSourceFilters(filters) && (
@@ -60,7 +63,7 @@ export function FilterSheet({
               className="ml-auto"
               onClick={onClear}
             >
-              Clear all
+              {t('desk.filters.clearAll')}
             </Button>
           )}
         </SheetHeader>
@@ -75,7 +78,7 @@ export function FilterSheet({
         </SheetBody>
         <SheetFooter className="border-t">
           <Button onClick={() => onOpenChange(false)}>
-            Show {shown} {shown === 1 ? 'source' : 'sources'}
+            {t('desk.filters.show', { count: shown })}
           </Button>
         </SheetFooter>
       </SheetContent>

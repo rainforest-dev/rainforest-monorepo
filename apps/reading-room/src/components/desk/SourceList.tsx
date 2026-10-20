@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Checkbox,
   cn,
@@ -14,6 +15,7 @@ import { Fragment } from 'react';
 
 import type { Source } from '@/lib';
 import { feedHost, visibleStale } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { StaleBadge, StatusBadge } from './StatusBadges';
 import type { RowSelection } from './useRowSelection';
@@ -55,6 +57,7 @@ export function SourceList({
   onOpen,
 }: SourceListProps) {
   const { selectMode, selected } = selection;
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <ItemGroup
       aria-labelledby={labelledBy}
@@ -81,7 +84,7 @@ export function SourceList({
             >
               {selectMode && (
                 <Checkbox
-                  aria-label={`Select ${source.name}`}
+                  aria-label={t('desk.selectName', { name: source.name })}
                   checked={isSelected}
                   onCheckedChange={() => selection.toggle(source.name)}
                   onClick={(event) => event.stopPropagation()}

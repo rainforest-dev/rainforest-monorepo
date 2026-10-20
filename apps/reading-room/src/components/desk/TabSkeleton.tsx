@@ -1,6 +1,8 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { cn, Skeleton } from '@rainforest-dev/rainforest-react';
 
 import type { DeskTab } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 const ROWS: Record<DeskTab, number> = { sources: 12, topics: 8, queue: 10 };
 const PHONE_ROWS: Record<DeskTab, number> = {
@@ -10,11 +12,12 @@ const PHONE_ROWS: Record<DeskTab, number> = {
 };
 
 export function TabSkeleton({ tab }: { tab: DeskTab }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <div
       role="status"
       aria-busy="true"
-      aria-label="Loading"
+      aria-label={t('desk.loading')}
       className="flex flex-col gap-2"
     >
       {Array.from({ length: ROWS[tab] }, (_, i) => (

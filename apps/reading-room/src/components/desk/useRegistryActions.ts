@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { toast } from '@rainforest-dev/rainforest-react';
 import { useRef, useState } from 'react';
 
@@ -10,6 +11,7 @@ import {
   writeFailure,
   writeSummary,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 export type WriteOrigin = 'row' | 'pane' | 'bulk';
 
@@ -67,6 +69,7 @@ function useRegistryActions<T, A extends RegistryAction>(
 ): RegistryActionsState<A> {
   const [writes, setWrites] = useState<readonly Write<A>[]>([]);
   const inFlight = useRef(new Set<string>());
+  const t = useLibraryT(ROOM_NAMESPACE);
 
   const pending = new Set(writes.flatMap((w) => w.names));
 
@@ -96,7 +99,7 @@ function useRegistryActions<T, A extends RegistryAction>(
       if (!result.ok) {
         if (result.readOnly) onReadOnly();
         else
-          toast.error(writeFailure(action, names, kind), {
+          toast.error(writeFailure(action, names, t, kind), {
             description: result.error,
           });
         return;
@@ -104,11 +107,11 @@ function useRegistryActions<T, A extends RegistryAction>(
       onItemsChange(() => result.items);
       if (!result.writable) onReadOnly();
       onSuccess?.();
-      toast.success(writeSummary(action, result.applied, kind), {
-        description: `Written to ${registryFile}`,
+      toast.success(writeSummary(action, result.applied, t, kind), {
+        description: t('action.written', { file: registryFile }),
       });
     } catch (error) {
-      toast.error(writeFailure(action, names, kind), {
+      toast.error(writeFailure(action, names, t, kind), {
         description: messageOf(error),
       });
     } finally {
@@ -130,6 +133,7 @@ export function useSourceActions(
   options: RegistryActionsOptions<Source>,
 ): SourceActionsState {
   const writes = useRegistryActions<Source, SourceAction>('sources', options);
+  const t = useLibraryT(ROOM_NAMESPACE);
   const [copied, setCopied] = useState<string | null>(null);
   const [resubscribed, setResubscribed] = useState<ReadonlySet<string>>(
     new Set(),
@@ -138,8 +142,8 @@ export function useSourceActions(
   function resubscribe(name: string, url: string) {
     setResubscribed((prev) => new Set(prev).add(name));
     const failed = () =>
-      toast.error("Couldn't copy the feed URL", {
-        description: `Paste it into Readwise by hand: ${url}`,
+      toast.error(t('action.copyFailed'), {
+        description: t('action.copyByHand', { url }),
       });
     try {
       navigator.clipboard.writeText(url).then(() => {

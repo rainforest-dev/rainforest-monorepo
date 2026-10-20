@@ -1,3 +1,5 @@
+import type { LibraryT } from '@rainforest-dev/library-shell';
+
 import type { Source, Topic } from '@/lib/registry.types';
 
 type SourceState = Pick<Source, 'status' | 'stale'>;
@@ -43,30 +45,14 @@ export const TOPIC_RULES: Record<TopicAction, (topic: TopicState) => boolean> =
     decline: canDeclineTopic,
   };
 
-export const ACTION_LABEL: Record<RegistryAction, string> = {
-  activate: 'Activate',
-  retire: 'Retire',
-  decline: 'Decline',
-};
+export function actionLabel(action: RegistryAction, t: LibraryT): string {
+  return t(`action.label.${action}`);
+}
 
-export const SOURCE_ACTION_LABEL: Record<SourceAction, string> = ACTION_LABEL;
-
-const PAST: Record<RegistryAction, string> = {
-  activate: 'Activated',
-  retire: 'Retired',
-  decline: 'Declined',
-};
-
-const SCOPE: Record<RegistryKind, Partial<Record<RegistryAction, string>>> = {
-  sources: {
-    activate: 'Activate applies to proposed and retired sources.',
-    retire:
-      'Retire applies to proposed, active and no-RSS sources without a delivery gap.',
-  },
-  topics: {
-    activate: 'Activate applies to proposed and declined topics.',
-    decline: 'Decline applies to proposed topics.',
-  },
+/** The actions each kind explains the scope of when none of a selection qualifies. */
+const SCOPED: Record<RegistryKind, readonly RegistryAction[]> = {
+  sources: ['activate', 'retire'],
+  topics: ['activate', 'decline'],
 };
 
 function selectedWhere<T extends { name: string }>(
@@ -102,31 +88,44 @@ export function applicableTopicNames(
 
 export function notApplicableNote(
   action: RegistryAction,
+  t: LibraryT,
   kind: RegistryKind = 'sources',
 ): string {
-  const scope = SCOPE[kind][action];
-  const none = `None of the selected ${kind} can be ${PAST[action].toLowerCase()}.`;
-  return scope ? `${none} ${scope}` : none;
+  const none = t(`action.none.${kind}.${action}`);
+  return SCOPED[kind].includes(action)
+    ? t('action.noteJoin', {
+        none,
+        scope: t(`action.scope.${kind}.${action}`),
+      })
+    : none;
 }
 
-function itemsLabel(names: readonly string[], kind: RegistryKind): string {
-  return names.length === 1 ? (names[0] ?? '') : `${names.length} ${kind}`;
+function itemsLabel(
+  names: readonly string[],
+  kind: RegistryKind,
+  t: LibraryT,
+): string {
+  return names.length === 1
+    ? (names[0] ?? '')
+    : t(`action.count.${kind}`, { n: names.length });
 }
 
 export function writeSummary(
   action: RegistryAction,
   names: readonly string[],
+  t: LibraryT,
   kind: RegistryKind = 'sources',
 ): string {
-  return `${PAST[action]} ${itemsLabel(names, kind)}`;
+  return t(`action.done.${action}`, { items: itemsLabel(names, kind, t) });
 }
 
 export function writeFailure(
   action: RegistryAction,
   names: readonly string[],
+  t: LibraryT,
   kind: RegistryKind = 'sources',
 ): string {
-  return `Couldn't ${action} ${itemsLabel(names, kind)}`;
+  return t(`action.failed.${action}`, { items: itemsLabel(names, kind, t) });
 }
 
 export type PageCheck = 'none' | 'some' | 'all';

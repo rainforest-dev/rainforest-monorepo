@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   Checkbox,
@@ -27,12 +28,13 @@ import {
   filterTopics,
   notApplicableNote,
   pageCheckState,
-  TOPIC_STATUS_LABEL,
   TOPIC_STATUSES,
   type TopicAction,
   topicStatusCounts,
+  topicStatusLabel,
   type ViewCommand,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { BulkToolbar } from './BulkToolbar';
 import { WIDE_ONLY } from './deskRow';
@@ -48,16 +50,10 @@ import type { RowSelection } from './useRowSelection';
 
 const BULK_ACTIONS: readonly TopicAction[] = ['activate', 'decline'];
 
-const STATUS_FILTERS = [
-  { value: 'all', label: 'All' },
-  ...TOPIC_STATUSES.map((status) => ({
-    value: status,
-    label: TOPIC_STATUS_LABEL[status],
-  })),
-] as const;
+const STATUS_FILTERS = ['all', ...TOPIC_STATUSES] as const;
 
 const isStatusFilter = (value: unknown): value is Topic['status'] | 'all' =>
-  STATUS_FILTERS.some((option) => option.value === value);
+  (STATUS_FILTERS as readonly unknown[]).includes(value);
 
 export interface TopicsViewProps {
   topics: Topic[];
@@ -76,6 +72,7 @@ export function TopicsView({
   selection,
   keys,
 }: TopicsViewProps) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   const filtered = filterTopics(topics, params);
   const counts = topicStatusCounts(topics, params.tq);
   const names = filtered.map((t) => t.name);
@@ -88,7 +85,7 @@ export function TopicsView({
   const bulkOptions = BULK_ACTIONS.map((action) => ({
     action,
     names: applicableTopicNames(topics, selected, action),
-    emptyNote: notApplicableNote(action, 'topics'),
+    emptyNote: notApplicableNote(action, t, 'topics'),
   }));
 
   const runKey = (
@@ -171,15 +168,15 @@ export function TopicsView({
             id="topics-heading"
             className="text-lg font-semibold max-lg:sr-only"
           >
-            Topics
+            {t('desk.tab.topics')}
           </h2>
           <p className="text-muted-foreground text-sm max-lg:hidden">
-            What rss-discover looks for when it proposes sources.
+            {t('desk.topics.intro')}
           </p>
           <div className="flex w-full items-center gap-2 lg:ml-auto lg:w-auto">
             <SearchField
               value={params.tq}
-              label="Search topics"
+              label={t('desk.search.topics')}
               tab="topics"
               className="w-full lg:w-72"
               onChange={(tq) => {
@@ -192,7 +189,7 @@ export function TopicsView({
                 size="sm"
                 onClick={selectMode ? selection.done : selection.start}
               >
-                {selectMode ? 'Done' : 'Select'}
+                {selectMode ? t('desk.bulk.done') : t('desk.select')}
               </Button>
             )}
           </div>
@@ -201,13 +198,13 @@ export function TopicsView({
           <BulkToolbar
             options={bulkOptions}
             shownNames={names}
-            shownLabel="shown"
+            shownScope="shown"
             selection={selection}
             actions={actions}
           />
         ) : (
           <ToggleGroup
-            aria-label="Topic status"
+            aria-label={t('desk.topics.status')}
             variant="outline"
             size="sm"
             className="max-w-full overflow-x-auto"
@@ -219,9 +216,12 @@ export function TopicsView({
               if (tstatus !== params.tstatus) navigate({ tstatus });
             }}
           >
-            {STATUS_FILTERS.map(({ value, label }) => (
+            {STATUS_FILTERS.map((value) => (
               <ToggleGroupItem key={value} value={value}>
-                {label} <span className="tabular-nums">{counts[value]}</span>
+                {value === 'all'
+                  ? t('desk.topics.all')
+                  : topicStatusLabel(value, t)}{' '}
+                <span className="tabular-nums">{counts[value]}</span>
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
@@ -237,19 +237,15 @@ export function TopicsView({
       {total === 0 ? (
         <Empty className="border py-12">
           <EmptyHeader>
-            <EmptyTitle>No topics yet</EmptyTitle>
-            <EmptyDescription>
-              Topics show up here once rss-discover proposes them.
-            </EmptyDescription>
+            <EmptyTitle>{t('desk.topics.none')}</EmptyTitle>
+            <EmptyDescription>{t('desk.topics.noneHint')}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : filtered.length === 0 ? (
         <Empty className="border py-12">
           <EmptyHeader>
-            <EmptyTitle>No topics here</EmptyTitle>
-            <EmptyDescription>
-              No topic matches this search and status.
-            </EmptyDescription>
+            <EmptyTitle>{t('desk.topics.noMatch')}</EmptyTitle>
+            <EmptyDescription>{t('desk.topics.noMatchHint')}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button
@@ -257,7 +253,7 @@ export function TopicsView({
               size="sm"
               onClick={() => navigate({ tq: '', tstatus: null })}
             >
-              Show all topics
+              {t('desk.topics.showAll')}
             </Button>
           </EmptyContent>
         </Empty>
@@ -275,7 +271,7 @@ export function TopicsView({
                 {selectMode && (
                   <TableHead className="w-10">
                     <Checkbox
-                      aria-label="Select all shown"
+                      aria-label={t('desk.selectAllShown')}
                       checked={shownCheck === 'all'}
                       indeterminate={shownCheck === 'some'}
                       onCheckedChange={() =>
@@ -286,12 +282,16 @@ export function TopicsView({
                     />
                   </TableHead>
                 )}
-                <TableHead>Topic</TableHead>
-                <TableHead className={WIDE_ONLY}>Tags</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className={WIDE_ONLY}>Proposed</TableHead>
+                <TableHead>{t('desk.col.topic')}</TableHead>
+                <TableHead className={WIDE_ONLY}>
+                  {t('desk.col.tags')}
+                </TableHead>
+                <TableHead>{t('desk.col.status')}</TableHead>
+                <TableHead className={WIDE_ONLY}>
+                  {t('desk.col.proposed')}
+                </TableHead>
                 <TableHead className="w-40">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t('desk.col.actions')}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -324,13 +324,13 @@ export function TopicsView({
           floating
           options={bulkOptions}
           shownNames={names}
-          shownLabel="shown"
+          shownScope="shown"
           selection={selection}
           actions={actions}
         />
       )}
       <KeyHints
-        hints={deskHints('topics', false)}
+        hints={deskHints('topics', false, t)}
         className="bg-background sticky bottom-0 z-[5] mt-auto hidden border-t py-2 lg:flex"
       />
     </section>

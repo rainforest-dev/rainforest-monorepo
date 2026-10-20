@@ -1,7 +1,9 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Badge, Button } from '@rainforest-dev/rainforest-react';
 import { XIcon } from 'lucide-react';
 
 import type { DeskPatch, FilterChip } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 export interface FilterChipsProps {
   chips: FilterChip[];
@@ -10,10 +12,11 @@ export interface FilterChipsProps {
 }
 
 export function FilterChips({ chips, onRemove, onClear }: FilterChipsProps) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   if (chips.length === 0) return null;
   return (
     <ul
-      aria-label="Active filters"
+      aria-label={t('desk.filters.active')}
       className="flex items-center gap-1.5 max-lg:overflow-x-auto max-lg:pb-1 lg:flex-wrap"
     >
       {chips.map((chip) => (
@@ -23,7 +26,7 @@ export function FilterChips({ chips, onRemove, onClear }: FilterChipsProps) {
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label={`Remove ${chip.label}`}
+              aria-label={t('desk.filters.remove', { label: chip.label })}
               className="size-5 rounded-full"
               onClick={() => onRemove(chip.patch)}
             >
@@ -34,7 +37,7 @@ export function FilterChips({ chips, onRemove, onClear }: FilterChipsProps) {
       ))}
       <li className="max-lg:shrink-0">
         <Button variant="link" size="xs" onClick={onClear}>
-          Clear all
+          {t('desk.filters.clearAll')}
         </Button>
       </li>
     </ul>

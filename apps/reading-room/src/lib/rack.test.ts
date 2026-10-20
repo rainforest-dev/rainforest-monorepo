@@ -6,6 +6,8 @@ import {
 } from '@rainforest-dev/library-contract';
 import { describe, expect, it } from 'vitest';
 
+import { roomT } from '@/locales';
+
 import {
   articleAnchor,
   rackHallItems,
@@ -13,6 +15,8 @@ import {
   searchRack,
 } from './rack.js';
 import { parseReadingQueue, type ReadingQueue } from './readingQueue.js';
+
+const t = roomT('en');
 
 const QUEUE = parseReadingQueue(
   readFileSync(
@@ -27,7 +31,7 @@ function withItems(queue: ReadingQueue['queue']): ReadingQueue {
 
 describe('rackShelves', () => {
   it('puts each tier on its own shelf, in tier order, labelled', () => {
-    const shelves = rackShelves(QUEUE);
+    const shelves = rackShelves(QUEUE, t);
     expect(shelves.map((s) => s.tier)).toEqual(
       [...new Set(QUEUE.queue.map((i) => i.tier))].sort((a, b) => a - b),
     );
@@ -41,18 +45,18 @@ describe('rackShelves', () => {
       { ...first, id: 'b', rank: 9 },
       { ...first, id: 'a', rank: 2 },
     ];
-    const [shelf] = rackShelves(withItems(items));
+    const [shelf] = rackShelves(withItems(items), t);
     expect(shelf.items.map((i) => i.id)).toEqual(['a', 'b']);
   });
 
   it('names a tier it has no label for', () => {
     const [first] = QUEUE.queue;
-    const [shelf] = rackShelves(withItems([{ ...first, tier: 7 }]));
+    const [shelf] = rackShelves(withItems([{ ...first, tier: 7 }]), t);
     expect(shelf.label).toBe('Tier 7');
   });
 
   it('has no shelves for an empty queue', () => {
-    expect(rackShelves(withItems([]))).toEqual([]);
+    expect(rackShelves(withItems([]), t)).toEqual([]);
   });
 });
 

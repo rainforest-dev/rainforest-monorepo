@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Badge, type BadgeProps } from '@rainforest-dev/rainforest-react';
 import {
   CircleOffIcon,
@@ -8,11 +9,8 @@ import {
 } from 'lucide-react';
 
 import type { Source, Stale, StaleType, Topic } from '@/lib';
-import {
-  SOURCE_STATUS_LABEL,
-  STALE_COPY,
-  TOPIC_STATUS_LABEL,
-} from '@/lib/desk';
+import { sourceStatusLabel, staleCopy, topicStatusLabel } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 const STATUS_VARIANT: Record<Source['status'], BadgeProps['variant']> = {
   active: 'success',
@@ -36,9 +34,10 @@ export const STALE_ICON: Record<StaleType, LucideIcon> = {
 };
 
 export function StatusBadge({ status }: { status: Source['status'] }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <Badge variant={STATUS_VARIANT[status]}>
-      {SOURCE_STATUS_LABEL[status]}
+      {sourceStatusLabel(status, t)}
     </Badge>
   );
 }
@@ -50,19 +49,21 @@ const TOPIC_STATUS_VARIANT: Record<Topic['status'], BadgeProps['variant']> = {
 };
 
 export function TopicStatusBadge({ status }: { status: Topic['status'] }) {
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <Badge variant={TOPIC_STATUS_VARIANT[status]}>
-      {TOPIC_STATUS_LABEL[status]}
+      {topicStatusLabel(status, t)}
     </Badge>
   );
 }
 
 export function StaleBadge({ stale }: { stale: Stale }) {
   const Icon = STALE_ICON[stale.type];
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <Badge variant={STALE_VARIANT[stale.type]} title={stale.note || undefined}>
       <Icon data-icon="inline-start" aria-hidden="true" />
-      {STALE_COPY[stale.type].label}
+      {staleCopy(stale.type, t).label}
     </Badge>
   );
 }

@@ -1,28 +1,25 @@
+import type { LibraryT } from '@rainforest-dev/library-shell';
+
 import type { QueueItem, StaleItem, StaleReason } from '@/lib/readingQueue';
 
 import { QUEUE_TIERS, type QueueTier } from './params.js';
 
-export const TIER_LABELS: Record<QueueTier, string> = {
-  1: 'Finish what you started',
-  2: 'Blind spot in your stack',
-  3: 'Wiki leverage',
-  4: 'Covered interest',
-};
+/** A tier's shelf name; a tier outside 1 to 4 gets its number. */
+export const tierLabel = (tier: number, t: LibraryT): string =>
+  (QUEUE_TIERS as readonly number[]).includes(tier)
+    ? t(`tier.${tier}`)
+    : t('tier.other', { tier });
 
-export const tierLabel = (tier: number): string =>
-  TIER_LABELS[tier as QueueTier] ?? `Tier ${tier}`;
-
-export const STALE_REASON_LABELS: Record<StaleReason, string> = {
-  'done-unfiled': 'Read but never archived',
-  expired: 'Time-sensitive and past its window',
-  'off-stack': 'Evergreen, but off your current stack',
-  'deferred-dead': 'Deferred to Later and never opened',
-  abandoned: 'Abandoned part-way',
-  duplicate: 'Duplicate of another saved item',
-  malformed: 'Malformed title',
-};
-
-const STALE_REASON_ORDER = Object.keys(STALE_REASON_LABELS) as StaleReason[];
+/** The stale panel's reasons, in the order it lists them. */
+const STALE_REASON_ORDER: readonly StaleReason[] = [
+  'done-unfiled',
+  'expired',
+  'off-stack',
+  'deferred-dead',
+  'abandoned',
+  'duplicate',
+  'malformed',
+];
 
 export interface StaleGroup {
   reason: StaleReason;
@@ -30,10 +27,13 @@ export interface StaleGroup {
   items: StaleItem[];
 }
 
-export function groupStale(items: readonly StaleItem[]): StaleGroup[] {
+export function groupStale(
+  items: readonly StaleItem[],
+  t: LibraryT,
+): StaleGroup[] {
   return STALE_REASON_ORDER.map((reason) => ({
     reason,
-    label: STALE_REASON_LABELS[reason],
+    label: t(`staleReason.${reason}`),
     items: items.filter((item) => item.reason === reason),
   })).filter((group) => group.items.length > 0);
 }
@@ -52,10 +52,14 @@ export function filterQueue(
     : items.filter((item) => item.tier === tier);
 }
 
-export function readLabel(progress: number): string {
-  return progress > 0 ? `${Math.round(progress * 100)}% read` : '';
+export function readLabel(progress: number, t: LibraryT): string {
+  return progress > 0
+    ? t('queue.read', { percent: Math.round(progress * 100) })
+    : '';
 }
 
-export function savedLabel(daysAgo: number): string {
-  return daysAgo === 0 ? 'today' : `${daysAgo}d ago`;
+export function savedLabel(daysAgo: number, t: LibraryT): string {
+  return daysAgo === 0
+    ? t('queue.savedToday')
+    : t('queue.savedAgo', { days: daysAgo });
 }

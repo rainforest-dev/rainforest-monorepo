@@ -6,10 +6,12 @@ import {
 import type { APIRoute } from 'astro';
 
 import { searchKb, shelfLabel } from '@/lib/kb';
+import { roomT } from '@/locales';
 import { getKbIndex } from '@/server';
 
 /** `GET /kb/api/library-search?q=`: wiki pages and Readwise notes for the library-wide search. */
-export const GET: APIRoute = ({ url }) => {
+export const GET: APIRoute = ({ url, locals }) => {
+  const t = roomT(locals.locale);
   try {
     const q = librarySearchQuery(url.searchParams);
     const results = searchKb(getKbIndex().entries, q, LIBRARY_SEARCH_LIMIT).map(
@@ -17,7 +19,7 @@ export const GET: APIRoute = ({ url }) => {
         kind: 'kb' as const,
         id: doc.id,
         title: doc.title,
-        subtitle: shelfLabel(doc.source, doc.shelf),
+        subtitle: shelfLabel(doc.source, doc.shelf, t),
         ...(snippet && { snippet: clipSnippet(snippet) }),
         href: doc.href,
       }),

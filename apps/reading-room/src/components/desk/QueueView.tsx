@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Button,
   cn,
@@ -33,6 +34,7 @@ import {
   tierLabel,
   type ViewCommand,
 } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { WIDE_ONLY } from './deskRow';
 import { QueueList, QueueSort } from './QueueList';
@@ -44,31 +46,23 @@ import { useRovingRows } from './useRovingRows';
 
 interface Column {
   key: QueueSortKey | null;
-  label: ReactNode;
+  /** The column's `desk.col.*` string. */
+  label: string;
   className?: string;
 }
 
 const NUMERIC = 'text-right [&>button]:-mr-2 [&>button]:ml-auto';
 
 const COLUMNS: readonly Column[] = [
-  {
-    key: 'rank',
-    label: (
-      <>
-        <span aria-hidden="true">#</span>
-        <span className="sr-only">Rank</span>
-      </>
-    ),
-    className: cn('w-14', NUMERIC),
-  },
-  { key: 'tier', label: 'Tier', className: 'w-16' },
-  { key: 'title', label: 'Item' },
-  { key: null, label: 'Why', className: cn('text-xs', WIDE_ONLY) },
-  { key: 'decay', label: 'Decay', className: WIDE_ONLY },
-  { key: 'minutes', label: 'Min', className: NUMERIC },
-  { key: 'saved', label: 'Saved', className: cn(NUMERIC, WIDE_ONLY) },
-  { key: 'wiki', label: 'Wiki', className: cn(NUMERIC, WIDE_ONLY) },
-  { key: 'read', label: 'Read', className: NUMERIC },
+  { key: 'rank', label: 'rank', className: cn('w-14', NUMERIC) },
+  { key: 'tier', label: 'tier', className: 'w-16' },
+  { key: 'title', label: 'item' },
+  { key: null, label: 'why', className: cn('text-xs', WIDE_ONLY) },
+  { key: 'decay', label: 'decay', className: WIDE_ONLY },
+  { key: 'minutes', label: 'min', className: NUMERIC },
+  { key: 'saved', label: 'saved', className: cn(NUMERIC, WIDE_ONLY) },
+  { key: 'wiki', label: 'wiki', className: cn(NUMERIC, WIDE_ONLY) },
+  { key: 'read', label: 'read', className: NUMERIC },
 ];
 
 const ALL = 'all';
@@ -82,6 +76,16 @@ export interface QueueViewProps {
 
 export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
   const queue = data?.queue;
+  const t = useLibraryT(ROOM_NAMESPACE);
+  const columnLabel = (column: Column): ReactNode =>
+    column.key === 'rank' ? (
+      <>
+        <span aria-hidden="true">#</span>
+        <span className="sr-only">{t('desk.col.rank')}</span>
+      </>
+    ) : (
+      t(`desk.col.${column.label}`)
+    );
   const items = useMemo(
     () =>
       sortQueue(filterQueue(queue ?? [], params.tier), params.sort, params.dir),
@@ -137,19 +141,23 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
             id="queue-heading"
             className="text-lg font-semibold max-lg:sr-only"
           >
-            Reading queue
+            {t('desk.queue.heading')}
           </h2>
           {data && (
             <p className="text-muted-foreground text-sm">
-              {data.counts.queued} queued · {data.counts.backlog} in backlog ·{' '}
-              {data.counts.stale} stale · {data.counts.scanned} scanned ·
-              generated {data.generated}
+              {t('desk.queue.counts', {
+                queued: data.counts.queued,
+                backlog: data.counts.backlog,
+                stale: data.counts.stale,
+                scanned: data.counts.scanned,
+                generated: data.generated,
+              })}
             </p>
           )}
         </div>
         {data && tiers.length > 0 && (
           <ToggleGroup
-            aria-label="Tier"
+            aria-label={t('desk.queue.tierLabel')}
             variant="outline"
             size="sm"
             className="max-w-full overflow-x-auto"
@@ -162,17 +170,19 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
               if (tier !== params.tier) navigate({ tier });
             }}
           >
-            <ToggleGroupItem value={ALL}>All</ToggleGroupItem>
+            <ToggleGroupItem value={ALL}>{t('desk.queue.all')}</ToggleGroupItem>
             {tiers.map((tier) => (
               <Tooltip key={tier}>
                 <TooltipTrigger
-                  aria-label={`T${tier}: ${tierLabel(tier)}`}
+                  aria-label={`T${tier}: ${tierLabel(tier, t)}`}
                   render={<ToggleGroupItem value={String(tier)} />}
                 >
                   T{tier}
                 </TooltipTrigger>
                 {/* Base UI portals the popup outside every landmark and links it to nothing; the trigger's aria-label already carries the text. */}
-                <TooltipContent aria-hidden>{tierLabel(tier)}</TooltipContent>
+                <TooltipContent aria-hidden>
+                  {tierLabel(tier, t)}
+                </TooltipContent>
               </Tooltip>
             ))}
           </ToggleGroup>
@@ -192,10 +202,11 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
       {!data ? (
         <Empty className="border py-12">
           <EmptyHeader>
-            <EmptyTitle>No reading queue has been generated yet.</EmptyTitle>
+            <EmptyTitle>{t('desk.queue.noneTitle')}</EmptyTitle>
             <EmptyDescription>
-              Run the <code className="text-primary">reading-queue</code> skill
-              to build one.
+              {t('desk.queue.noneBefore')}
+              <code className="text-primary">reading-queue</code>
+              {t('desk.queue.noneAfter')}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -204,13 +215,13 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
           <EmptyHeader>
             <EmptyTitle>
               {params.tier === null
-                ? 'Nothing queued'
-                : `No items in tier ${params.tier}`}
+                ? t('desk.queue.empty')
+                : t('desk.queue.emptyTier', { tier: params.tier })}
             </EmptyTitle>
             <EmptyDescription>
               {params.tier === null
-                ? 'The last reading-queue run queued no items.'
-                : 'Every queued item sits in another tier.'}
+                ? t('desk.queue.emptyHint')
+                : t('desk.queue.emptyTierHint')}
             </EmptyDescription>
           </EmptyHeader>
           {params.tier !== null && (
@@ -220,7 +231,7 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
                 size="sm"
                 onClick={() => navigate({ tier: null })}
               >
-                Show all tiers
+                {t('desk.queue.allTiers')}
               </Button>
             </EmptyContent>
           )}
@@ -239,7 +250,7 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
                   if (!column.key)
                     return (
                       <TableHead key={i} className={column.className}>
-                        {column.label}
+                        {columnLabel(column)}
                       </TableHead>
                     );
                   const active = column.key === params.sort;
@@ -267,7 +278,7 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
                         className="-ml-2 flex"
                         onClick={() => sortBy(key)}
                       >
-                        {column.label}
+                        {columnLabel(column)}
                         <Icon
                           data-icon="inline-end"
                           aria-hidden="true"
@@ -298,7 +309,7 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
       {data && data.stale.length > 0 && <StalePanel stale={data.stale} />}
 
       <KeyHints
-        hints={deskHints('queue', false)}
+        hints={deskHints('queue', false, t)}
         className="bg-background sticky bottom-0 z-[5] mt-auto hidden border-t py-2 lg:flex"
       />
     </section>

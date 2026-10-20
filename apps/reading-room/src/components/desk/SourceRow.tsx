@@ -1,3 +1,4 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import {
   Checkbox,
   cn,
@@ -7,6 +8,7 @@ import {
 
 import type { Source } from '@/lib';
 import { daysAgo, feedHost, visibleStale } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 import { DESK_ROW_CLASS, WIDE_ONLY } from './deskRow';
 import { SourceActions } from './SourceActions';
@@ -39,6 +41,7 @@ export function SourceRow({
   onOpen,
 }: SourceRowProps) {
   const stale = visibleStale(source);
+  const t = useLibraryT(ROOM_NAMESPACE);
   return (
     <TableRow
       data-nav-key={source.name}
@@ -57,7 +60,7 @@ export function SourceRow({
         <TableCell className="w-10">
           <Checkbox
             tabIndex={-1}
-            aria-label={`Select ${source.name}`}
+            aria-label={t('desk.selectName', { name: source.name })}
             checked={selected}
             onCheckedChange={onToggle}
             onClick={(event) => event.stopPropagation()}
@@ -109,7 +112,7 @@ export function SourceRow({
           )}
         >
           {source.status === 'proposed' && source.proposedDate
-            ? daysAgo(source.proposedDate)
+            ? daysAgo(source.proposedDate, t)
             : null}
         </TableCell>
       )}

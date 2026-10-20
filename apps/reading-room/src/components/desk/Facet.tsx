@@ -1,7 +1,9 @@
+import { useLibraryT } from '@rainforest-dev/library-shell';
 import { Button, Checkbox } from '@rainforest-dev/rainforest-react';
 import { useState } from 'react';
 
 import type { FacetOption } from '@/lib/desk';
+import { ROOM_NAMESPACE } from '@/locales';
 
 export interface FacetProps {
   title: string;
@@ -12,6 +14,7 @@ export interface FacetProps {
 
 export function Facet({ title, options, limit, onToggle }: FacetProps) {
   const [expanded, setExpanded] = useState(false);
+  const t = useLibraryT(ROOM_NAMESPACE);
   const collapsible = limit !== undefined && options.length > limit;
   const shown =
     collapsible && !expanded
@@ -47,7 +50,9 @@ export function Facet({ title, options, limit, onToggle }: FacetProps) {
           aria-expanded={expanded}
           onClick={() => setExpanded((open) => !open)}
         >
-          {expanded ? 'Show fewer' : `Show all ${options.length}`}
+          {expanded
+            ? t('desk.facet.fewer')
+            : t('desk.facet.all', { count: options.length })}
         </Button>
       )}
     </fieldset>
