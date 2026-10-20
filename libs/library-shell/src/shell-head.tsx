@@ -1,22 +1,17 @@
-import { SHELL_ASSET_BASE, shellAssets } from './assets';
+import { SHELL_ASSETS } from './assets';
 import { speculationRulesJson } from './speculation';
 
 interface ShellHeadProps {
   /** Prerender collection pages on hover. Off for an app whose pages all write. */
   prerender?: boolean;
-  /** Where this app serves `/_shell`; see `shellAssets`. */
-  assetBase?: string;
 }
 
 /**
  * The shared `<head>` additions: the font preload and stylesheet from `/_shell`, and the
  * Speculation Rules. React 19 hoists the links into `<head>` wherever this renders.
  */
-export function ShellHead({
-  prerender = true,
-  assetBase = SHELL_ASSET_BASE,
-}: ShellHeadProps) {
-  const assets = shellAssets(assetBase);
+export function ShellHead({ prerender = true }: ShellHeadProps) {
+  const assets = SHELL_ASSETS;
   return (
     <>
       <link

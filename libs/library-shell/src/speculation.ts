@@ -1,7 +1,7 @@
 import { COLLECTIONS } from '@rainforest-dev/library-contract';
 
 /**
- * Paths under a collection that write, stream or download. They are never prerendered, even
+ * Paths under a collection that write, stream, download or load a whole book. They are never prerendered, even
  * though they sit under a read-only mount.
  */
 export const NO_PRERENDER_PATHS = [
@@ -11,8 +11,12 @@ export const NO_PRERENDER_PATHS = [
   '/hall-next/*',
   '/opds',
   '/opds/*',
+  '/*/opds',
+  '/*/opds/*',
   '/files/*',
   '/*/files/*',
+  // The EPUB reader loads the whole book.
+  '/*/read/*',
 ] as const;
 
 function readPatterns(): string[] {

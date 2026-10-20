@@ -67,13 +67,13 @@ const nextConfig: WithNxOptions = {
         }),
       ),
       // Shell assets belong to the hall on the library hostname; elsewhere (dev, e2e, the old
-      // hostname) the app's own copy answers.
-      {
-        source: '/_shell/:path*',
-        destination: `${BASE_PATH}/_shell/:path*`,
-        basePath: false,
+      // hostname) the app's own copy answers. Browsers ask for `/favicon.ico` on their own.
+      ...['/_shell/:path*', '/favicon.ico'].map((source) => ({
+        source,
+        destination: `${BASE_PATH}${source}`,
+        basePath: false as const,
         permanent: false,
-      },
+      })),
       {
         source: '/',
         destination: BASE_PATH,
