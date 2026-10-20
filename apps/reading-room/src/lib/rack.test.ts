@@ -1,9 +1,17 @@
 import { readFileSync } from 'node:fs';
 
-import { hallItemsResponseSchema } from '@rainforest-dev/library-contract';
+import {
+  hallItemsResponseSchema,
+  librarySearchResponseSchema,
+} from '@rainforest-dev/library-contract';
 import { describe, expect, it } from 'vitest';
 
-import { articleAnchor, rackHallItems, rackShelves } from './rack.js';
+import {
+  articleAnchor,
+  rackHallItems,
+  rackShelves,
+  searchRack,
+} from './rack.js';
 import { parseReadingQueue, type ReadingQueue } from './readingQueue.js';
 
 const QUEUE = parseReadingQueue(
@@ -93,5 +101,28 @@ describe('rackHallItems', () => {
 
   it('is empty before the queue is generated', () => {
     expect(rackHallItems(null)).toEqual([]);
+  });
+});
+
+describe('searchRack', () => {
+  const [first] = QUEUE.queue;
+  const items = [
+    { ...first, id: 'body', title: 'Notes', tags: [], why: 'about signals' },
+    { ...first, id: 'title', title: 'Signals in Solid', tags: [], why: '' },
+    { ...first, id: 'none', title: 'Unrelated', tags: [], why: 'other' },
+  ];
+
+  it('ranks title hits above reason hits and leaves misses out', () => {
+    const hits = searchRack(withItems(items), 'signals');
+    expect(hits.map((h) => h.id)).toEqual(['title', 'body']);
+    expect(hits[0].href).toBe(`/rack#${articleAnchor('title')}`);
+    expect(
+      librarySearchResponseSchema.safeParse({ results: hits }).success,
+    ).toBe(true);
+  });
+
+  it('finds nothing for an empty query or a missing queue', () => {
+    expect(searchRack(withItems(items), '  ')).toEqual([]);
+    expect(searchRack(null, 'signals')).toEqual([]);
   });
 });

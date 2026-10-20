@@ -10,6 +10,7 @@
     "@rainforest-dev/library-shell": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
+    "@rainforest-dev/search": "workspace:*",
     "@react-three/fiber": "9.8.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",

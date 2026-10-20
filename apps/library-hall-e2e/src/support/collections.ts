@@ -1,6 +1,9 @@
 import { createServer } from 'node:http';
 
-/** Stands in for every collection app: each serves its shelf at `<basePath>/api/hall-items`. */
+/**
+ * Stands in for every collection app: each serves its shelf at `<basePath>/api/hall-items` and
+ * its search at `<basePath>/api/library-search`.
+ */
 export const COLLECTIONS_PORT = 3041;
 export const COLLECTIONS_ORIGIN = `http://127.0.0.1:${COLLECTIONS_PORT}`;
 
@@ -43,15 +46,32 @@ export const NOTEBOOKS = [
   },
 ];
 
+type Item = (typeof BOOKS)[number] | (typeof NOTEBOOKS)[number];
+
+/** A title match, shaped like a collection's search hit. */
+function search(items: Item[], q: string) {
+  const needle = q.toLowerCase();
+  return items
+    .filter((item) => item.title.toLowerCase().includes(needle))
+    .map(({ kind, id, title, href }) => ({ kind, id, title, href }));
+}
+
 export function startCollections(): Promise<() => Promise<void>> {
   const server = createServer((req, res) => {
     const send = (status: number, body: unknown) => {
       res.writeHead(status, { 'content-type': 'application/json' });
       res.end(JSON.stringify(body));
     };
-    if (req.url === '/books/api/hall-items') return send(200, { items: BOOKS });
-    if (req.url === '/notebooks/api/hall-items')
+    const url = new URL(req.url ?? '/', COLLECTIONS_ORIGIN);
+    const q = url.searchParams.get('q') ?? '';
+    if (url.pathname === '/books/api/hall-items')
+      return send(200, { items: BOOKS });
+    if (url.pathname === '/notebooks/api/hall-items')
       return send(200, { items: NOTEBOOKS });
+    if (url.pathname === '/books/api/library-search')
+      return send(200, { results: search(BOOKS, q) });
+    if (url.pathname === '/notebooks/api/library-search')
+      return send(200, { results: search(NOTEBOOKS, q) });
     // The rack is down, so the hall shows the rest and says which collection is missing.
     return send(500, { error: 'down' });
   });

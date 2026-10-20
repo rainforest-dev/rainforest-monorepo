@@ -1,0 +1,96 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import { searchLibrary, searchUrl } from './search';
+
+const hit = (kind: string, id: string, href = `/x/${id}`) => ({
+  kind,
+  id,
+  title: id,
+  href,
+});
+
+const respond = (body: unknown, status = 200) =>
+  Promise.resolve(
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { 'content-type': 'application/json' },
+    }),
+  );
+
+describe('searchUrl', () => {
+  it('joins the base, the search path and the query', () => {
+    expect(
+      searchUrl('notebooks', '胃 食道', {
+        LIBRARY_NOTEBOOKS_URL: 'http://host.docker.internal:8086/notebooks/',
+      }),
+    ).toBe(
+      'http://host.docker.internal:8086/notebooks/api/library-search?q=%E8%83%83+%E9%A3%9F%E9%81%93',
+    );
+  });
+
+  it('skips a collection with no URL', () => {
+    expect(searchUrl('kb', 'x', {})).toBeNull();
+  });
+});
+
+describe('searchLibrary', () => {
+  it('interleaves the collections by rank', async () => {
+    const fetcher = vi.fn((url: string | URL | Request) =>
+      String(url).startsWith('http://books')
+        ? respond({ results: [hit('book', '1'), hit('book', '2')] })
+        : respond({ results: [hit('kb', 'a'), hit('kb', 'b')] }),
+    ) as unknown as typeof fetch;
+    const result = await searchLibrary(
+      'dune',
+      { LIBRARY_BOOKS_URL: 'http://books', LIBRARY_KB_URL: 'http://kb' },
+      fetcher,
+    );
+    expect(result.results.map((r) => `${r.kind}:${r.id}`)).toEqual([
+      'book:1',
+      'kb:a',
+      'book:2',
+      'kb:b',
+    ]);
+    expect(result.sources).toEqual([
+      { collection: 'books', ok: true, count: 2 },
+      { collection: 'kb', ok: true, count: 2 },
+    ]);
+  });
+
+  it('keeps the other collections when one fails or lies', async () => {
+    const fetcher = vi.fn((url: string | URL | Request) => {
+      const u = String(url);
+      if (u.startsWith('http://down'))
+        return Promise.reject(new Error('refused'));
+      if (u.startsWith('http://bad'))
+        return respond({ results: [hit('book', '9', '//evil')] });
+      if (u.startsWith('http://err')) return respond({}, 500);
+      return respond({ results: [hit('notebook', 'page-1')] });
+    }) as unknown as typeof fetch;
+    const result = await searchLibrary(
+      'x',
+      {
+        LIBRARY_BOOKS_URL: 'http://bad',
+        LIBRARY_NOTEBOOKS_URL: 'http://ok',
+        LIBRARY_RACK_URL: 'http://down',
+        LIBRARY_KB_URL: 'http://err',
+      },
+      fetcher,
+    );
+    expect(result.results.map((r) => r.id)).toEqual(['page-1']);
+    expect(result.sources.map((s) => [s.collection, s.ok])).toEqual([
+      ['books', false],
+      ['notebooks', true],
+      ['rack', false],
+      ['kb', false],
+    ]);
+  });
+
+  it('asks nobody for an empty query', async () => {
+    const fetcher = vi.fn() as unknown as typeof fetch;
+    expect(
+      await searchLibrary(' ', { LIBRARY_BOOKS_URL: 'http://books' }, fetcher),
+    ).toEqual({ results: [], sources: [] });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+});

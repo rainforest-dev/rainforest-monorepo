@@ -1,4 +1,10 @@
-import { type HallItem } from '@rainforest-dev/library-contract';
+import {
+  clipSnippet,
+  type HallItem,
+  LIBRARY_SEARCH_LIMIT,
+  type LibrarySearchHit,
+} from '@rainforest-dev/library-contract';
+import { lexicalRank, whitespaceTerms } from '@rainforest-dev/search';
 
 import { tierLabel } from '@/lib/desk';
 
@@ -31,6 +37,10 @@ export function rackShelves(queue: ReadingQueue): Shelf[] {
 /** The element id of an article's card on the rack, the target of its hall link. */
 export const articleAnchor = (id: string): string => `article-${id}`;
 
+/** Where an article's card is on the rack. */
+const articleHref = (id: string): string =>
+  `${RACK_PATH}#${encodeURIComponent(articleAnchor(id))}`;
+
 /**
  * Spine colours for the hall, one per tier. The hall needs hex, so these are fixed shades
  * around the rack's `chart-2` blue, darker for the tiers to read first.
@@ -57,6 +67,43 @@ export function rackHallItems(queue: ReadingQueue | null): HallItem[] {
       ...(item.siteName ? [`site:${item.siteName}`] : []),
       ...item.tags.map((tag) => `tag:${tag}`),
     ],
-    href: `${RACK_PATH}#${encodeURIComponent(articleAnchor(item.id))}`,
+    href: articleHref(item.id),
   }));
+}
+
+/**
+ * Queued articles for the library-wide search, best first: every term must appear in the title,
+ * site, tags or the reason it was queued, and title and tag hits rank first.
+ */
+export function searchRack(
+  queue: ReadingQueue | null,
+  query: string,
+  limit = LIBRARY_SEARCH_LIMIT,
+): LibrarySearchHit[] {
+  const terms = whitespaceTerms(query);
+  if (!queue || terms.length === 0) return [];
+  const byId = new Map(queue.queue.map((item) => [item.id, item]));
+  const ids = lexicalRank(queue.queue, terms, {
+    id: (item) => item.id,
+    text: (item) =>
+      [item.title, item.siteName, item.tags.join(' '), item.why].join('\n'),
+    facets: [
+      { values: (item) => [item.title, ...item.tags], match: 'substring' },
+    ],
+    tieBreak: (a, b) => a.tier - b.tier || a.rank - b.rank,
+  });
+  return ids.slice(0, limit).flatMap((id) => {
+    const item = byId.get(id);
+    if (!item) return [];
+    return [
+      {
+        kind: 'article' as const,
+        id: item.id,
+        title: item.title,
+        ...(item.siteName && { subtitle: item.siteName }),
+        ...(item.why && { snippet: clipSnippet(item.why) }),
+        href: articleHref(item.id),
+      },
+    ];
+  });
 }

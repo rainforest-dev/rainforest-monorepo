@@ -6,4 +6,5 @@ export * from './shared-state';
 export * from './shell-head';
 export * from './shell-header';
 export * from './shell-layout';
+export * from './shell-search';
 export * from './speculation';
