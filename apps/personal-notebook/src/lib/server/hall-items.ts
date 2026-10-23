@@ -122,6 +122,8 @@ export async function notebookHallItems(): Promise<HallItem[]> {
     })
     .from(notebookPages)
     .where(like(notebookPages.transcription, '%#%'))
+    // In page order, so a tie between two tags goes to the one written first.
+    .orderBy(notebookPages.notebookId, notebookPages.position)
     .all()) {
     tagged.set(notebookId, [...(tagged.get(notebookId) ?? []), transcription]);
   }
