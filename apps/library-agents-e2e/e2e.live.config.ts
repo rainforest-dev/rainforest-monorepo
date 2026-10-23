@@ -1,4 +1,3 @@
-import { github } from '@e2e-dev/github';
 import { web } from '@e2e-dev/web';
 import type { E2EConfig } from 'e2e';
 
@@ -6,8 +5,8 @@ import { agents } from './support/agents.ts';
 
 /**
  * The deployed library, read-only. Cloudflare Access guards it, so the run needs an Access
- * service token that the library's Access policy accepts. The browser sends these headers to the
- * library's own hostname only.
+ * service token that the library's Access policy accepts. The web engine sends these headers to
+ * the app's own site only (`siteHeadersFor` in `@e2e-dev/web`), never to other origins.
  */
 const config: E2EConfig = {
   targets: [
@@ -31,9 +30,10 @@ const config: E2EConfig = {
   agents,
   // The live shelves change every day, so a recording would rarely replay.
   cache: { mode: 'off' },
-  reporters: process.env['GITHUB_ACTIONS']
-    ? ['list', 'junit', github()]
-    : ['list'],
+  // The repository is public, and so are its Actions logs. In CI the run writes only a JUnit
+  // file, which stays on the runner; the job prints its pass and fail counts and nothing a page
+  // showed.
+  reporters: process.env['GITHUB_ACTIONS'] ? ['junit'] : ['list'],
 };
 
 export default config;

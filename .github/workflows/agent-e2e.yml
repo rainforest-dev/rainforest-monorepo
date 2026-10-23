@@ -27,7 +27,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: agent-e2e-${{ github.ref }}
+  # Per event and suite, so a manual run on main never cancels the nightly one.
+  group: agent-e2e-${{ github.ref }}-${{ github.event_name }}-${{ inputs.suite || 'hall' }}
   cancel-in-progress: true
 
 env:
@@ -37,9 +38,11 @@ env:
 
 jobs:
   hall:
+    # Adding some other label to a PR that already carries `agent-e2e` is no reason to run again.
     if: >-
       (github.event_name == 'pull_request' &&
         contains(github.event.pull_request.labels.*.name, 'agent-e2e') &&
+        (github.event.action != 'labeled' || github.event.label.name == 'agent-e2e') &&
         github.event.pull_request.head.repo.full_name == github.repository) ||
       (github.event_name == 'workflow_dispatch' && inputs.suite != 'live')
     runs-on: ubuntu-latest
@@ -141,13 +144,20 @@ jobs:
       - name: Install Chromium
         if: steps.secrets.outputs.ready == 'true'
         run: pnpm exec e2e-web install chromium --with-deps
+      # The live suite sees private shelves and this repository is public, so its results stay on
+      # the runner: the log gets the counts only, and nothing is uploaded.
       - name: Run the live suite
         if: steps.secrets.outputs.ready == 'true'
-        run: pnpm exec e2e run --config e2e.live.config.ts
-      - uses: actions/upload-artifact@v7
+        run: pnpm exec e2e run --config e2e.live.config.ts > /dev/null 2>&1
+      - name: Live suite counts
         if: ${{ !cancelled() && steps.secrets.outputs.ready == 'true' }}
-        with:
-          name: agent-e2e-live
-          path: apps/library-agents-e2e/.e2e/results
-          if-no-files-found: ignore
-          retention-days: 7
+        run: |
+          report=.e2e/junit.xml
+          if [ ! -f "$report" ]; then
+            echo "::error::The live suite wrote no report."
+            exit 1
+          fi
+          tests=$(grep -o '<testsuites[^>]*' "$report" | grep -o ' tests="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          failures=$(grep -o '<testsuites[^>]*' "$report" | grep -o ' failures="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          errors=$(grep -o '<testsuites[^>]*' "$report" | grep -o ' errors="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          echo "Live suite: ${tests} tests, ${failures} failed, ${errors} errors" | tee -a "$GITHUB_STEP_SUMMARY"
