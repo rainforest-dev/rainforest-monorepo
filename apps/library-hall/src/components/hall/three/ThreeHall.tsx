@@ -66,10 +66,12 @@ import { Avatar, type AvatarMotion } from './Avatar';
 import {
   buildDecor,
   caseGeometry,
-  FLOOR_APRON,
   floorTexture,
+  grassTexture,
   hallPalette,
+  surfaceTexture,
 } from './decor';
+import { HallSky } from './Sky';
 
 export interface ThreeHallProps {
   books: readonly HallBook[];
@@ -103,6 +105,8 @@ const DRAG_YAW = 0.006;
 const DRAG_PITCH = 0.004;
 /** A press that moves further than this is a drag that turns the view, not a click. */
 const DRAG_SLOP = 6;
+/** The grass runs out well past the hills, so its edge is never in view. */
+const GROUND_SIZE = 240;
 /** Radians per second while Q or E is held. */
 const KEY_TURN = 1.8;
 const BUTTON_TURN = Math.PI / 4;
@@ -376,13 +380,27 @@ function HallScene({
   const decor = useMemo(() => buildDecor(layout, palette), [layout, palette]);
   useEffect(
     () => () => {
-      decor.solid.dispose();
-      decor.glow.dispose();
+      for (const geometry of Object.values(decor)) geometry.dispose();
     },
     [decor],
   );
   const floorMap = useMemo(() => floorTexture(palette), [palette]);
   useEffect(() => () => floorMap?.dispose(), [floorMap]);
+  const surfaceMap = useMemo(surfaceTexture, []);
+  const grassMap = useMemo(grassTexture, []);
+  useEffect(
+    () => () => {
+      surfaceMap?.dispose();
+      grassMap?.dispose();
+    },
+    [surfaceMap, grassMap],
+  );
+  // The avatar casts a shadow like everything else in the sun.
+  useEffect(() => {
+    avatar.current?.traverse((part) => {
+      part.castShadow = true;
+    });
+  }, []);
 
   // A new grouping sends every book flying from where it stood to its new bookcase.
   useLayoutEffect(() => {
@@ -635,42 +653,57 @@ function HallScene({
   const roomWidth = room.maxX - room.minX;
   const roomDepth = room.maxZ - room.minZ;
   const roomX = (room.minX + room.maxX) / 2;
-  const floorDepth = roomDepth + FLOOR_APRON;
-  const floorZ = room.minZ + floorDepth / 2;
-  if (floorMap) floorMap.repeat.set(roomWidth / 2.4, floorDepth / 2.4);
-  const background = toColor(tokens.background);
+  const roomZ = (room.minZ + room.maxZ) / 2;
+  if (floorMap) floorMap.repeat.set(roomWidth / 2.4, roomDepth / 2.4);
+  if (grassMap) grassMap.repeat.set(GROUND_SIZE / 3, GROUND_SIZE / 3);
+  const walkOnFloor = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    if (e.delta > DRAG_SLOP) return;
+    walkTo({ x: e.point.x, z: e.point.z }, null);
+  };
 
   return (
     <>
-      <color attach="background" args={[background]} />
-      <fog attach="fog" args={[background, 20, 46]} />
-      <hemisphereLight
-        args={[toColor(palette.glass), toColor(palette.darkWood), 1.15]}
-      />
-      <ambientLight intensity={0.55} />
-      <directionalLight
-        position={[5, 10, 7]}
-        intensity={1.6}
-        color={toColor(palette.lamp)}
-      />
-      <directionalLight position={[-6, 6, -4]} intensity={0.45} />
+      <HallSky layout={layout} />
       <mesh
         rotation-x={-Math.PI / 2}
-        position={[roomX, 0, floorZ]}
-        onClick={(e: ThreeEvent<MouseEvent>) => {
-          e.stopPropagation();
-          if (e.delta > DRAG_SLOP) return;
-          walkTo({ x: e.point.x, z: e.point.z }, null);
-        }}
+        position={[roomX, 0, roomZ]}
+        receiveShadow
+        onClick={walkOnFloor}
       >
-        <planeGeometry args={[roomWidth, floorDepth]} />
-        <meshLambertMaterial
+        <planeGeometry args={[roomWidth, roomDepth]} />
+        <meshStandardMaterial
           map={floorMap}
           color={floorMap ? '#ffffff' : toColor(palette.floor)}
+          roughness={0.7}
         />
       </mesh>
-      <mesh geometry={decor.solid}>
-        <meshLambertMaterial vertexColors />
+      <mesh
+        rotation-x={-Math.PI / 2}
+        position={[0, -0.005, roomZ]}
+        receiveShadow
+        onClick={walkOnFloor}
+      >
+        <planeGeometry args={[GROUND_SIZE, GROUND_SIZE]} />
+        <meshStandardMaterial map={grassMap} roughness={1} />
+      </mesh>
+      <mesh geometry={decor.solid} castShadow receiveShadow>
+        <meshStandardMaterial vertexColors map={surfaceMap} roughness={0.85} />
+      </mesh>
+      <mesh geometry={decor.scenery}>
+        <meshStandardMaterial vertexColors roughness={1} />
+      </mesh>
+      <mesh geometry={decor.glass}>
+        <meshStandardMaterial
+          vertexColors
+          transparent
+          opacity={0.22}
+          roughness={0.05}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh geometry={decor.roof} castShadow>
+        <meshBasicMaterial colorWrite={false} depthWrite={false} />
       </mesh>
       <mesh geometry={decor.glow}>
         <meshBasicMaterial vertexColors toneMapped={false} />
@@ -679,19 +712,29 @@ function HallScene({
         ref={caseMesh}
         // Room for every case one grouping can need, and as many sinking out of the way.
         args={[caseGeo, undefined, CASE_CAPACITY * 2]}
+        castShadow
+        receiveShadow
         onClick={(e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
           if (e.delta > DRAG_SLOP) return;
           if (e.instanceId !== undefined) walkToCase(e.instanceId);
         }}
       >
-        <meshLambertMaterial vertexColors color={toColor(palette.wood)} />
+        <meshStandardMaterial
+          vertexColors
+          map={surfaceMap}
+          // A shade lighter than the trim, so the shelves read against the floor in shade.
+          color={toColor(mixRgb(palette.wood, [196, 150, 108], 0.7))}
+          roughness={0.75}
+        />
       </instancedMesh>
       <instancedMesh
         // The instance count is fixed at creation; a refresh with more books needs a new mesh.
         key={books.length}
         ref={bookMesh}
         args={[undefined, undefined, Math.max(1, books.length)]}
+        castShadow
+        receiveShadow
         onClick={(e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
           if (e.delta > DRAG_SLOP) return;
@@ -702,7 +745,7 @@ function HallScene({
         }}
       >
         <boxGeometry />
-        <meshLambertMaterial />
+        <meshStandardMaterial roughness={0.8} />
       </instancedMesh>
       <group ref={avatar}>
         <Avatar motion={motion} />
@@ -796,6 +839,7 @@ export default function ThreeHall(props: ThreeHallProps) {
       {tokens && (
         <Canvas
           frameloop="demand"
+          shadows
           dpr={[1, 2]}
           camera={{ fov: 45, near: 0.1, far: 120 }}
           aria-hidden
