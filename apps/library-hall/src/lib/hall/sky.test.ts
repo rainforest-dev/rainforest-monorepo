@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { skyLight, sunDirection, sunPosition } from './sky';
+import { hallClock, skyLight, sunDirection, sunPosition } from './sky';
 
 const deg = (radians: number) => (radians * 180) / Math.PI;
 // Taipei is UTC+8 all year.
@@ -36,6 +36,24 @@ describe('sunDirection', () => {
     expect(d.z).toBeGreaterThan(0.7);
     expect(d.y).toBeGreaterThan(0.7);
     expect(Math.abs(d.x)).toBeLessThan(1e-9);
+  });
+
+  it('puts east at +x and north at -z', () => {
+    const east = sunDirection({ elevation: 0.2, azimuth: Math.PI / 2 });
+    const north = sunDirection({ elevation: 0.2, azimuth: 0 });
+    expect(east.x).toBeGreaterThan(0.9);
+    expect(north.z).toBeLessThan(-0.9);
+  });
+});
+
+describe('hallClock', () => {
+  it('reads the time in Taipei, whatever zone the machine is in', () => {
+    // 23:30 UTC on the 22nd is already the 23rd in Taipei.
+    const pinned = hallClock(12, 0, new Date('2026-10-22T23:30:00Z'));
+    expect(pinned.toISOString()).toBe('2026-10-23T04:00:00.000Z');
+    expect(
+      hallClock(7, 15, new Date('2026-10-23T10:00:00Z')).toISOString(),
+    ).toBe('2026-10-22T23:15:00.000Z');
   });
 });
 

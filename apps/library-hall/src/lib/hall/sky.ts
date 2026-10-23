@@ -1,5 +1,5 @@
 /**
- * The light outside the hall's windows, from the reader's own clock: where the sun stands, and the
+ * The light outside the hall's windows, from the real sun over Taipei: where it stands now, and the
  * colours of the sky, the sunlight and the lamps that follow from it. Weather is not modelled.
  *
  * The hall's entrance faces south, so north is -z and east is +x.
@@ -12,6 +12,26 @@ export const HALL_LATITUDE = 25.05;
 export const HALL_LONGITUDE = 121.6;
 
 const RAD = Math.PI / 180;
+/** Taipei keeps UTC+8 all year. */
+const HALL_UTC_OFFSET_HOURS = 8;
+
+/** The instant it is `hours`:`minutes` in Taipei on the Taipei calendar day that contains `now`. */
+export function hallClock(
+  hours: number,
+  minutes: number,
+  now = new Date(),
+): Date {
+  const local = new Date(now.getTime() + HALL_UTC_OFFSET_HOURS * 3_600_000);
+  return new Date(
+    Date.UTC(
+      local.getUTCFullYear(),
+      local.getUTCMonth(),
+      local.getUTCDate(),
+      hours - HALL_UTC_OFFSET_HOURS,
+      minutes,
+    ),
+  );
+}
 
 export interface SunPosition {
   /** Radians above the horizon; negative at night. */

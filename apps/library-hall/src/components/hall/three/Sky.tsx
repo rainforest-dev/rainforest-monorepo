@@ -13,24 +13,31 @@ import {
 } from 'three';
 
 import { mixRgb, type Rgb, toColor } from '@/components/study/three/tokens';
-import { type HallLayout, skyLight, sunDirection, sunPosition } from '@/lib';
+import {
+  hallClock,
+  type HallLayout,
+  skyLight,
+  sunDirection,
+  sunPosition,
+} from '@/lib';
 
 const SKY_RADIUS = 100;
 const DISC_DISTANCE = 90;
 /** Where the moon stands at night: high in the south, so it lights the way in. */
 const MOON = new Vector3(-0.35, 0.8, 0.5).normalize();
 
-/** `?hallTime=HH:MM` pins the hall to that time today, for screenshots and checks. */
+/**
+ * `?hallTime=HH:MM` pins the hall to that time today in Taipei, so a screenshot looks the same
+ * whatever zone the machine taking it is in.
+ */
 function pinnedTime(): Date | null {
   const raw = new URLSearchParams(window.location.search).get('hallTime');
   const match = raw?.match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return null;
-  const date = new Date();
-  date.setHours(Number(match[1]), Number(match[2]), 0, 0);
-  return date;
+  return hallClock(Number(match[1]), Number(match[2]));
 }
 
-/** The reader's clock, read again every minute, which is as often as a shadow visibly moves. */
+/** The current instant, read again every minute, which is as often as a shadow visibly moves. */
 function useHallTime(): Date {
   const [now, setNow] = useState(() => pinnedTime() ?? new Date());
   useEffect(() => {
@@ -78,7 +85,7 @@ const skyMaterial = (uniforms: SkyUniforms) =>
   });
 
 /**
- * The sky, the sun and the light they cast, set from the reader's own time in Taipei: a gradient
+ * The sky, the sun and the light they cast, set from the real sun over Taipei: a gradient
  * dome, the sun's disc (or the moon's), one shadow-casting light from where it stands, the sky's
  * fill light, and the hall's lamps, which come up as the daylight goes.
  */
