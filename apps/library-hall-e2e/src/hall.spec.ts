@@ -25,6 +25,25 @@ test.describe('the hall', () => {
     ).toBeAttached();
   });
 
+  for (const time of ['12:00', '23:00']) {
+    test(`draws the hall by day and by night (${time})`, async ({ page }) => {
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await page.goto(`/?hallTime=${time}`);
+      await expect(page.locator('[data-hall-canvas] canvas')).toBeVisible();
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () =>
+              (window as { __libraryHall?: { firstFrameAt: number | null } })
+                .__libraryHall?.firstFrameAt ?? null,
+          ),
+        )
+        .not.toBeNull();
+      expect(errors).toEqual([]);
+    });
+  }
+
   test('raises and sinks bookcases as the grouping needs', async ({ page }) => {
     await page.goto('/');
     const standing = page.locator('[data-hall-canvas] [data-hall-label]');
