@@ -26,8 +26,8 @@ import {
   DEFAULT_GROUP_BY,
   type HallBook,
   type HallGroupBy,
-  isHallGroupBy,
   pageCount,
+  parseHallGroupBy,
   pickRenderer,
   readLibraryPrefs,
   type Renderer,
@@ -53,7 +53,7 @@ interface HallContextValue {
   groupBy: HallGroupBy;
   setGroupBy: (groupBy: HallGroupBy) => void;
   cases: readonly Bookcase[];
-  /** The same cases, one wing per collection, as the hall stands them. */
+  /** The same cases in wings, as the hall stands them. */
   wings: readonly Wing[];
   /** The bookcase open in the Study, or `null` in the hall. */
   bookcase: Bookcase | null;
@@ -155,8 +155,7 @@ export function HallProvider({
   const locale = useLibraryLocale();
   const t = useLibraryT(HALL_NAMESPACE);
 
-  const groupParam = searchParams.get('group');
-  const groupBy = isHallGroupBy(groupParam) ? groupParam : DEFAULT_GROUP_BY;
+  const groupBy = parseHallGroupBy(searchParams.get('group'));
   const wings = useMemo(
     () => buildWings(books, groupBy, locale),
     [books, groupBy, locale],

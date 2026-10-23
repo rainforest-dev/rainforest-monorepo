@@ -68,7 +68,7 @@ export function savedMonth(
 
 /**
  * The rack's shelf for the hall: every queued article, linked to its card on `/rack`. The site
- * stands in for the author, and the month is when the article was saved to Reader.
+ * stands in for the creator, and the month is when the article was saved to Reader.
  */
 export function rackHallItems(queue: ReadingQueue | null): HallItem[] {
   if (!queue) return [];
@@ -83,9 +83,9 @@ export function rackHallItems(queue: ReadingQueue | null): HallItem[] {
         `tier:${item.tier}`,
         `decay:${item.decay}`,
         ...(item.siteName
-          ? [`site:${item.siteName}`, `author:${item.siteName}`]
+          ? [`site:${item.siteName}`, `creator:${item.siteName}`]
           : []),
-        ...item.tags.map((tag) => `tag:${tag}`),
+        ...item.tags.map((tag) => `topic:${tag}`),
         ...(month ? [`month:${month}`] : []),
       ],
       href: articleHref(item.id),

@@ -74,7 +74,7 @@ describe('rackHallItems', () => {
     expect(item.href).toBe(`/rack#${articleAnchor(QUEUE.queue[0].id)}`);
   });
 
-  it('groups by tier, decay, site as author, tags and the month it was saved', () => {
+  it('groups by tier, decay, site as creator, tags and the month it was saved', () => {
     const [first] = QUEUE.queue;
     const [item] = rackHallItems({
       ...withItems([
@@ -93,8 +93,8 @@ describe('rackHallItems', () => {
       'tier:2',
       'decay:evergreen',
       'site:a.example',
-      'author:a.example',
-      'tag:tech/x',
+      'creator:a.example',
+      'topic:tech/x',
       'month:2026-08',
     ]);
   });

@@ -1,9 +1,11 @@
 import {
+  hallDimensionValue,
   hallGroup,
   hallGroupValue,
   hallItemSchema,
   hallItemsResponseSchema,
   itemTransitionName,
+  missingHallDimensions,
 } from './hall-items';
 
 const book = {
@@ -11,7 +13,7 @@ const book = {
   id: '42',
   title: 'Dune',
   color: '#3e7d7d',
-  groups: ['tag:fiction', 'series:dune'],
+  groups: ['topic:fiction', 'creator:Frank Herbert', 'month:2026-08'],
   href: '/books?book=42',
 };
 
@@ -65,15 +67,33 @@ describe('hallItemsResponseSchema', () => {
 
 describe('hall groups', () => {
   it('reads the first group under a prefix', () => {
-    const groups = ['tag:fiction', 'series:dune', 'tag:classic'];
-    expect(hallGroupValue(groups, 'tag')).toBe('fiction');
-    expect(hallGroupValue(groups, 'series')).toBe('dune');
-    expect(hallGroupValue(groups, 'author')).toBeNull();
+    const groups = ['topic:fiction', 'series:dune', 'topic:classic'];
+    expect(hallGroupValue(groups, 'topic')).toBe('fiction');
+    expect(hallGroupValue(groups, 'creator')).toBeNull();
   });
 
   it('keeps colons inside the value and skips an empty one', () => {
-    expect(hallGroupValue([hallGroup('tag', 'a:b')], 'tag')).toBe('a:b');
-    expect(hallGroupValue(['tag:', 'tag:x'], 'tag')).toBe('x');
+    expect(hallGroupValue([hallGroup('topic', 'a:b')], 'topic')).toBe('a:b');
+    expect(hallGroupValue(['topic:', 'topic:x'], 'topic')).toBe('x');
+  });
+
+  it('answers a dimension from its legacy prefix when the new one is absent', () => {
+    expect(hallDimensionValue(['tag:fiction'], 'topic')).toBe('fiction');
+    expect(hallDimensionValue(['author:Le Guin'], 'creator')).toBe('Le Guin');
+    expect(hallDimensionValue(['tag:old', 'topic:new'], 'topic')).toBe('new');
+    expect(hallDimensionValue(['tag:2026-08'], 'month')).toBeNull();
+  });
+
+  it('names the dimensions an item leaves unanswered', () => {
+    expect(
+      missingHallDimensions({
+        groups: ['topic:sea', 'creator:Oren', 'month:2026-08'],
+      }),
+    ).toEqual([]);
+    // Legacy keys still shelve the item, but the check asks for the new ones.
+    expect(
+      missingHallDimensions({ groups: ['tag:sea', 'month:2026-08'] }),
+    ).toEqual(['topic', 'creator']);
   });
 });
 

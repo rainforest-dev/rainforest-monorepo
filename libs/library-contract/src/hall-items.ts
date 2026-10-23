@@ -30,7 +30,7 @@ export const hallItemSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
   color: hexColor,
-  /** Shelf keys the hall can group by, such as `tag:frontend` or `series:dune`. */
+  /** Shelf keys the hall can group by, such as `topic:frontend` or `month:2026-08`. */
   groups: z.array(z.string().min(1)),
   /** The item's detail page in its own collection. */
   href: sameOriginPath,
@@ -50,20 +50,42 @@ export type HallItemsResponse = z.infer<typeof hallItemsResponseSchema>;
 export const HALL_ITEMS_PATH = '/api/hall-items';
 
 /**
- * The `groups` prefixes the hall can sort by, besides the item's own collection. A collection
- * emits the ones it knows, such as `tag:frontend`, `series:dune` or `month:2026-08`; the hall
- * shelves an item by the first group under each prefix.
+ * The dimensions every collection shelves its items by, besides the collection itself. Each
+ * item answers all three in `groups`: `topic:frontend`, `creator:Ursula K. Le Guin`,
+ * `month:2026-08`. Time is when the item entered the owner's life (added to Calibre, saved to
+ * Reader, a notebook's first page), never a publish date. An item with no answer is shelved
+ * as unsorted, and the hall says how many there are.
  */
+export const HALL_DIMENSIONS = ['topic', 'creator', 'month'] as const;
+export type HallDimension = (typeof HALL_DIMENSIONS)[number];
+
+/**
+ * The prefixes collections sent before the shared dimensions, still read for one release so a
+ * collection deployed before the hall, or after it, keeps its bookcases.
+ */
+const LEGACY_PREFIX: Partial<Record<HallDimension, string>> = {
+  topic: 'tag',
+  creator: 'author',
+};
+
+/** Every prefix `hallGroupValue` reads, the legacy ones included. */
 export const HALL_GROUP_PREFIXES = [
+  ...HALL_DIMENSIONS,
   'tag',
-  'series',
   'author',
-  'month',
 ] as const;
 export type HallGroupPrefix = (typeof HALL_GROUP_PREFIXES)[number];
 
-export function hallGroup(prefix: HallGroupPrefix, value: string): string {
+export function hallGroup(prefix: HallDimension, value: string): string {
   return `${prefix}:${value}`;
+}
+
+function firstUnder(groups: readonly string[], prefix: string): string | null {
+  const head = `${prefix}:`;
+  const found = groups.find(
+    (g) => g.startsWith(head) && g.length > head.length,
+  );
+  return found ? found.slice(head.length) : null;
 }
 
 /** The first group under `prefix`, without the prefix, or `null`. */
@@ -71,11 +93,32 @@ export function hallGroupValue(
   groups: readonly string[],
   prefix: HallGroupPrefix,
 ): string | null {
-  const head = `${prefix}:`;
-  const found = groups.find(
-    (g) => g.startsWith(head) && g.length > head.length,
+  return firstUnder(groups, prefix);
+}
+
+/**
+ * The item's answer to a dimension: its first group under the dimension's prefix, or under
+ * the legacy prefix the dimension replaced, or `null`.
+ */
+export function hallDimensionValue(
+  groups: readonly string[],
+  dimension: HallDimension,
+): string | null {
+  const legacy = LEGACY_PREFIX[dimension];
+  return (
+    firstUnder(groups, dimension) ??
+    (legacy ? firstUnder(groups, legacy) : null)
   );
-  return found ? found.slice(head.length) : null;
+}
+
+/**
+ * The dimensions an item leaves unanswered under their current prefixes. A collection's
+ * `hall-items` test asserts this is empty, or names what it cannot answer yet.
+ */
+export function missingHallDimensions(
+  item: Pick<HallItem, 'groups'>,
+): HallDimension[] {
+  return HALL_DIMENSIONS.filter((d) => firstUnder(item.groups, d) === null);
 }
 
 /**

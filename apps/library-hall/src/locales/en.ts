@@ -12,21 +12,29 @@ export const en: Translation<typeof zh> = {
   groupBy: {
     label: 'Sort bookcases',
     hint: 'Books fly to their new bookcase when you switch',
-    tag: 'By topic',
-    collection: 'By collection',
-    series: 'By series',
-    author: 'By author or source',
+    topic: 'By topic',
+    creator: 'By author or source',
     month: 'By date',
+    collection: 'By collection',
   },
   bookcase: {
     none: {
-      tag: 'Untagged',
-      collection: 'Other',
-      series: 'No series',
-      author: 'No author or source',
+      topic: 'No topic',
+      creator: 'No author or source',
       month: 'Undated',
     },
     other: 'Other',
+  },
+  wing: {
+    topics: 'Topics',
+    unsorted: {
+      topic_one: '{{count}} item has no topic',
+      topic_other: '{{count}} items have no topic',
+      creator_one: '{{count}} item has no author or source',
+      creator_other: '{{count}} items have no author or source',
+      month_one: '{{count}} item has no date',
+      month_other: '{{count}} items have no date',
+    },
   },
   hall: {
     region: 'Hall',

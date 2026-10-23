@@ -52,10 +52,6 @@ export function listBookHallItems(): HallItem[] {
     `SELECT l.book, a.name FROM books_authors_link l
      JOIN authors a ON a.id = l.author ORDER BY l.id`,
   );
-  const series = namesByBook(
-    `SELECT l.book, s.name FROM books_series_link l
-     JOIN series s ON s.id = l.series ORDER BY l.id`,
-  );
   const tags = namesByBook(
     `SELECT l.book, t.name FROM books_tags_link l
      JOIN tags t ON t.id = l.tag ORDER BY l.id`,
@@ -75,9 +71,8 @@ export function listBookHallItems(): HallItem[] {
     const bookAuthors = authors.get(row.id) ?? [];
     const month = monthOf(row.timestamp);
     const groups = [
-      ...(tags.get(row.id) ?? []).map((t) => hallGroup('tag', t)),
-      ...(series.get(row.id) ?? []).map((s) => hallGroup('series', s)),
-      ...bookAuthors.map((a) => hallGroup('author', a)),
+      ...(tags.get(row.id) ?? []).map((t) => hallGroup('topic', t)),
+      ...bookAuthors.map((a) => hallGroup('creator', a)),
       ...(month ? [hallGroup('month', month)] : []),
     ];
     return {

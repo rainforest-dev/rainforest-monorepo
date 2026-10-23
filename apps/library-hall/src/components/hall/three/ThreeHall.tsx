@@ -30,6 +30,7 @@ import {
   type HallMemory,
   writeHallMemory,
 } from '@/components/hall/memory';
+import { useUnsortedNote } from '@/components/hall/useUnsortedNote';
 import {
   mixRgb,
   type Rgb,
@@ -762,6 +763,7 @@ const clampDistance = (distance: number) =>
 export default function ThreeHall(props: ThreeHallProps) {
   const tokens = useTokens();
   const t = useLibraryT(HALL_NAMESPACE);
+  const unsortedNote = useUnsortedNote();
   const frame = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const signs = useRef<HTMLDivElement>(null);
@@ -897,6 +899,14 @@ export default function ThreeHall(props: ThreeHallProps) {
             style={{ visibility: 'hidden' }}
           >
             {wing.label}
+            {unsortedNote(wing) ? (
+              <span
+                data-hall-unsorted
+                className="block text-xs font-normal opacity-90"
+              >
+                {unsortedNote(wing)}
+              </span>
+            ) : null}
           </div>
         ))}
       </div>

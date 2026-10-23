@@ -6,6 +6,8 @@ import { type Bookcase, cn, spineColor, type Wing } from '@/lib';
 import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
+import { useUnsortedNote } from './useUnsortedNote';
+
 const PREVIEW_SPINES = 14;
 
 interface Props {
@@ -15,9 +17,10 @@ interface Props {
   hidden?: boolean;
 }
 
-/** The hall without 3D: each collection's bookcases under its name, each opening in the Study. */
+/** The hall without 3D: each wing's bookcases under its name, each opening in the Study. */
 export function CssHall({ wings, onEnter, hidden = false }: Props) {
   const { bookById } = useHall();
+  const unsortedNote = useUnsortedNote();
   const t = useLibraryT(HALL_NAMESPACE);
   return (
     <div
@@ -26,24 +29,36 @@ export function CssHall({ wings, onEnter, hidden = false }: Props) {
       data-hall-list
       className={cn(hidden ? 'sr-only' : 'flex flex-col gap-5')}
     >
-      {wings.map((wing) => (
-        <section key={wing.id} data-hall-wing={wing.id} aria-label={wing.label}>
-          <h2 className="text-muted-foreground mb-2 text-sm font-semibold">
-            {wing.label}
-          </h2>
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-3">
-            {wing.cases.map((bookcase) => (
-              <CaseButton
-                key={bookcase.key}
-                bookcase={bookcase}
-                onEnter={onEnter}
-                colorOf={(id) => bookById.get(id)?.color ?? '#888'}
-                count={t('items', { count: bookcase.bookIds.length })}
-              />
-            ))}
-          </ul>
-        </section>
-      ))}
+      {wings.map((wing) => {
+        const note = unsortedNote(wing);
+        return (
+          <section
+            key={wing.id}
+            data-hall-wing={wing.id}
+            aria-label={wing.label}
+          >
+            <h2 className="text-muted-foreground mb-2 text-sm font-semibold">
+              {wing.label}
+              {note ? (
+                <span data-hall-unsorted className="ms-2 font-normal">
+                  {note}
+                </span>
+              ) : null}
+            </h2>
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-3">
+              {wing.cases.map((bookcase) => (
+                <CaseButton
+                  key={bookcase.key}
+                  bookcase={bookcase}
+                  onEnter={onEnter}
+                  colorOf={(id) => bookById.get(id)?.color ?? '#888'}
+                  count={t('items', { count: bookcase.bookIds.length })}
+                />
+              ))}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 }

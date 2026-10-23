@@ -54,11 +54,11 @@ export function toHallItem(
     id: String(notebook.id),
     title: notebook.name,
     color: notebookColor(notebook.name),
-    // The hall can sort by `month:` only; under its other groupings the notebooks share one case.
+    // No `topic:` yet: the hall shelves notebooks as unsorted by topic until page tags are read.
     groups: [
       `status:${notebook.status}`,
       // A notebook is the owner's own handwriting.
-      `author:${NOTEBOOK_AUTHOR}`,
+      `creator:${NOTEBOOK_AUTHOR}`,
       `year:${date.slice(0, 4)}`,
       ...(/^\d{4}-\d{2}/.test(date) ? [`month:${date.slice(0, 7)}`] : []),
     ],
