@@ -35,8 +35,10 @@ describe('the hall', { tags: ['hall'] }, () => {
 
   test('opens a bookcase and comes back', async ({ app, agent, screen }) => {
     await app.open('/');
+    // The list of bookcases on a desktop is for the keyboard and screen readers only, and
+    // 以清單瀏覽 leaves the hall for the books collection, so open the bookcase in the room.
     await agent.act(
-      'browse the bookcases as a list and open the one for books about the sea',
+      'in the 3D room, click the bookcase labelled "sea" to open it (if it is out of view, turn the view first)',
     );
     await expect(screen.getByRole('button', '回到大廳')).toBeVisible();
     await agent.assert(
