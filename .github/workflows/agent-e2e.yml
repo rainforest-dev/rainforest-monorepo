@@ -1,0 +1,153 @@
+name: Agent e2e
+
+# Agent-driven e2e for the library (apps/library-agents-e2e), on TesterArmy's open-source `e2e`
+# runner. Every run spends Anthropic tokens, so nothing runs on its own except the nightly check
+# of the deployed library:
+# - a PR runs the hall suite once it carries the `agent-e2e` label, and again on each push
+#   while it does;
+# - "Run workflow" picks the hall suite, the deployed library, or a bug bash with a goal.
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  schedule:
+    - cron: '30 19 * * *' # 03:30 in Taipei, after the nightly imports
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: What to run
+        type: choice
+        options: [hall, live, bug-bash]
+        default: hall
+      goal:
+        description: Bug bash goal (bug-bash only)
+        type: string
+        default: Explore the hall like a first-time reader and report anything broken or confusing
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NX_NO_CLOUD: true
+  E2E_TELEMETRY_DISABLED: 1
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+jobs:
+  hall:
+    if: >-
+      (github.event_name == 'pull_request' &&
+        contains(github.event.pull_request.labels.*.name, 'agent-e2e') &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'workflow_dispatch' && inputs.suite != 'live')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: apps/library-agents-e2e
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - name: Check the model key
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::Add the ANTHROPIC_API_KEY repository secret to run agent e2e."
+            exit 1
+          fi
+      - name: Install Chromium
+        run: pnpm exec e2e-web install chromium --with-deps
+      - name: Build the hall
+        run: pnpm exec nx run library-hall:build
+        working-directory: .
+      # Replayed steps make no model call. Each run saves the cache under a new key, and the
+      # next run restores the newest one.
+      - uses: actions/cache@v5
+        with:
+          path: apps/library-agents-e2e/.e2e/cache
+          key: agent-e2e-cache-${{ github.run_id }}
+          restore-keys: agent-e2e-cache-
+      - name: Run the hall suite
+        if: github.event_name == 'pull_request' || inputs.suite == 'hall'
+        run: pnpm exec e2e run
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Bug bash
+        if: github.event_name == 'workflow_dispatch' && inputs.suite == 'bug-bash'
+        run: pnpm exec e2e explore --agent newcomer --reporter list,markdown "$GOAL"
+        env:
+          GOAL: ${{ inputs.goal }}
+      - name: Findings to the job summary
+        if: ${{ !cancelled() && inputs.suite == 'bug-bash' }}
+        run: cat .e2e/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: agent-e2e-hall
+          path: |
+            apps/library-agents-e2e/.e2e/results
+            apps/library-agents-e2e/.e2e/logs
+            apps/library-agents-e2e/.e2e/*.xml
+            apps/library-agents-e2e/.e2e/*.md
+          if-no-files-found: ignore
+          retention-days: 7
+
+  live:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.suite == 'live')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LIBRARY_URL: https://library.rainforest.tools
+      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+    defaults:
+      run:
+        working-directory: apps/library-agents-e2e
+    steps:
+      - name: Check the secrets
+        id: secrets
+        working-directory: .
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ] || [ -z "$CF_ACCESS_CLIENT_ID" ]; then
+            echo "::notice::Skipped: the live suite needs ANTHROPIC_API_KEY and an Access service token (CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.secrets.outputs.ready == 'true'
+      - uses: pnpm/action-setup@v6
+        if: steps.secrets.outputs.ready == 'true'
+      - uses: actions/setup-node@v7
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          node-version: 24
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+        if: steps.secrets.outputs.ready == 'true'
+        working-directory: .
+      - name: Install Chromium
+        if: steps.secrets.outputs.ready == 'true'
+        run: pnpm exec e2e-web install chromium --with-deps
+      - name: Run the live suite
+        if: steps.secrets.outputs.ready == 'true'
+        run: pnpm exec e2e run --config e2e.live.config.ts
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && steps.secrets.outputs.ready == 'true' }}
+        with:
+          name: agent-e2e-live
+          path: apps/library-agents-e2e/.e2e/results
+          if-no-files-found: ignore
+          retention-days: 7
