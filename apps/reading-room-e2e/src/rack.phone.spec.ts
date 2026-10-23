@@ -10,6 +10,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('rack on phone', () => {
+  // These read the Chinese copy; locale.spec.ts covers the English side.
+  test.use({ locale: 'zh-TW' });
+
   test('collections move to a bottom tab bar, and nothing scrolls sideways', async ({
     page,
   }) => {
