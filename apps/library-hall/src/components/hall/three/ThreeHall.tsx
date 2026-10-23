@@ -619,7 +619,9 @@ function HallScene({
     if (state.camera.position.distanceTo(goal) > 0.01) busy = true;
 
     // Name plates follow their bookcases on screen, and each wing's sign stands clear of the
-    // plates in front of it. Sizes are read before any write so a frame lays out once.
+    // plates in front of it. Sizes are read before any write so a frame lays out once. CSS keeps
+    // each element centred on its point, so a size read before the web font loads only skews
+    // how far a sign is lifted, never where a plate stands.
     const plates = labels.current?.children;
     const boards = signs.current?.children;
     const { width, height } = state.size;
@@ -674,13 +676,13 @@ function HallScene({
       const plate = plates?.[i] as HTMLElement | undefined;
       if (!plate || !box) return;
       plate.style.visibility = box.hidden ? 'hidden' : 'visible';
-      plate.style.transform = `translate(${box.x}px, ${box.y}px)`;
+      plate.style.transform = `translate(-50%, -100%) translate(${box.x + box.w / 2}px, ${box.y + box.h}px)`;
     });
     boardBoxes.forEach((box, i) => {
       const board = boards?.[i] as HTMLElement | undefined;
       if (!board || !box) return;
       board.style.visibility = box.hidden ? 'hidden' : 'visible';
-      board.style.transform = `translate(${box.x}px, ${box.y}px)`;
+      board.style.transform = `translate(-50%, -50%) translate(${box.x + box.w / 2}px, ${box.y + box.h / 2}px)`;
     });
 
     if (busy || keys.current.size > 0) invalidate();
