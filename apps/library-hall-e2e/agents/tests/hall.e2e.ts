@@ -41,8 +41,11 @@ describe('the hall', { tags: ['hall'] }, () => {
       'in the 3D room, click the bookcase labelled "sea" to open it (if it is out of view, turn the view first)',
     );
     await expect(screen.getByRole('button', '回到大廳')).toBeVisible();
-    await agent.assert(
+    // The Study draws its books in 3D, so the titles are in pixels, and they arrive after the
+    // bookcase opens.
+    await agent.waitFor(
       'the bookcase holds The Salt Archive and Northbound Ferry',
+      { vision: true },
     );
     await agent.act('go back to the hall');
     await expect(screen.getByRole('button', '視角向右轉')).toBeVisible();
