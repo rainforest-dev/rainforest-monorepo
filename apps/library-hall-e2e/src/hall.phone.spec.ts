@@ -7,7 +7,7 @@ test.describe('the hall on a phone', () => {
     await page.goto('/');
     await expect(page.locator('[data-hall-mode="css"]')).toBeAttached();
     await expect(
-      page.locator('[data-hall-case="books-tag-sea"]'),
+      page.locator('[data-hall-case="topics-topic-sea"]'),
     ).toBeVisible();
 
     await page.locator('[data-hall-enter-3d]').click();

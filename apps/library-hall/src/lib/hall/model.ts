@@ -2,7 +2,6 @@ import {
   COLLECTION_OF_KIND,
   type CollectionId,
   HALL_ITEM_KINDS,
-  type HallItemKind,
   type LibraryLocale,
 } from '@rainforest-dev/library-contract';
 
@@ -11,21 +10,29 @@ import { hallMessages } from '@/locales';
 
 export type BookcaseKind = 'group' | 'none' | 'other' | 'all';
 
+/** A collection's wing, or the one wing every collection shares when sorted by topic. */
+export type WingId = CollectionId | 'topics';
+
 export interface Bookcase {
   key: string;
   label: string;
   kind: BookcaseKind;
-  /** The collection whose wing of the hall the case stands in. */
-  wing: CollectionId;
+  /** The wing of the hall the case stands in. */
+  wing: WingId;
   bookIds: number[];
 }
 
-/** One row of the hall per collection, so no collection can crowd another off the floor. */
+/**
+ * One row of the hall. By creator, month or collection there is one wing per collection, so
+ * no collection can crowd another off the floor; by topic one wing holds them all, so a
+ * topic's books, notes and articles stand on the same case.
+ */
 export interface Wing {
-  id: CollectionId;
-  kind: HallItemKind;
+  id: WingId;
   label: string;
   cases: Bookcase[];
+  /** Items with no answer for this grouping, shelved on the wing's unsorted case. */
+  unsorted: number;
 }
 
 /** A wing holds one row of cases; past this the smallest groups in it share one "other" case. */
@@ -39,25 +46,14 @@ function compare(a: Bookcase, b: Bookcase, groupBy: HallGroupBy): number {
   return b.bookIds.length - a.bookIds.length || a.label.localeCompare(b.label);
 }
 
-function wingCases(
+function groupCases(
   books: readonly HallBook[],
-  kind: HallItemKind,
-  groupBy: HallGroupBy,
+  wing: WingId,
+  groupBy: Exclude<HallGroupBy, 'collection'>,
   locale: LibraryLocale,
   max: number,
 ): Bookcase[] {
-  const wing = COLLECTION_OF_KIND[kind];
   const { bookcase: labels } = hallMessages(locale);
-  const all = (): Bookcase[] => [
-    {
-      key: `${wing}-all`,
-      label: kindLabel(kind, locale),
-      kind: 'all',
-      wing,
-      bookIds: books.map((b) => b.id),
-    },
-  ];
-  if (groupBy === 'collection') return all();
   const byGroup = new Map<string | null, number[]>();
   for (const book of books) {
     const value = book.groups[groupBy];
@@ -65,8 +61,6 @@ function wingCases(
     if (list) list.push(book.id);
     else byGroup.set(value, [book.id]);
   }
-  // A collection that knows nothing of this grouping (notebooks have no author) stays whole.
-  if (byGroup.size === 1 && byGroup.has(null)) return all();
   const cases = [...byGroup].map(([value, bookIds]): Bookcase =>
     value === null
       ? {
@@ -86,23 +80,30 @@ function wingCases(
   );
   cases.sort((a, b) => compare(a, b, groupBy));
   if (cases.length <= max) return cases;
-  const kept = cases.slice(0, Math.max(0, max - 1));
-  const rest = cases.slice(kept.length);
-  return [
-    ...kept,
-    {
+  // The unsorted case stays its own, so the count under the wing's sign matches a case.
+  const none = cases.at(-1)?.kind === 'none' ? cases.pop() : undefined;
+  const room = Math.max(1, max - (none ? 1 : 0));
+  if (cases.length > room) {
+    const rest = cases.splice(room - 1);
+    cases.push({
       key: `${wing}-other`,
       label: labels.other,
       kind: 'other',
       wing,
       bookIds: rest.flatMap((c) => c.bookIds),
-    },
-  ];
+    });
+  }
+  return none ? [...cases, none] : cases;
+}
+
+function unsortedOf(cases: readonly Bookcase[]): number {
+  return cases.find((c) => c.kind === 'none')?.bookIds.length ?? 0;
 }
 
 /**
- * Sorts the items into wings, one per collection in shelf order, and each wing's items onto
- * bookcases for one grouping. Sorting by collection gives each wing a single case.
+ * Sorts the items into wings and each wing's items onto bookcases for one grouping. By topic
+ * every collection shares one wing; otherwise each collection, in shelf order, has its own,
+ * and sorting by collection gives each wing a single case.
  */
 export function buildWings(
   books: readonly HallBook[],
@@ -110,17 +111,48 @@ export function buildWings(
   locale: LibraryLocale,
   max = CASES_PER_WING,
 ): Wing[] {
-  return HALL_ITEM_KINDS.flatMap((kind) => {
-    const own = books.filter((b) => b.kind === kind);
-    if (own.length === 0) return [];
+  const kinds = HALL_ITEM_KINDS.filter((kind) =>
+    books.some((b) => b.kind === kind),
+  );
+  if (groupBy === 'topic') {
+    if (books.length === 0) return [];
+    // Shelf order within a case: books, then notebooks, articles and pages.
+    const ordered = kinds.flatMap((kind) =>
+      books.filter((b) => b.kind === kind),
+    );
+    const cases = groupCases(
+      ordered,
+      'topics',
+      groupBy,
+      locale,
+      max * kinds.length,
+    );
     return [
       {
-        id: COLLECTION_OF_KIND[kind],
-        kind,
-        label: kindLabel(kind, locale),
-        cases: wingCases(own, kind, groupBy, locale, max),
+        id: 'topics',
+        label: hallMessages(locale).wing.topics,
+        cases,
+        unsorted: unsortedOf(cases),
       },
     ];
+  }
+  return kinds.map((kind) => {
+    const own = books.filter((b) => b.kind === kind);
+    const id = COLLECTION_OF_KIND[kind];
+    const label = kindLabel(kind, locale);
+    const cases =
+      groupBy === 'collection'
+        ? [
+            {
+              key: `${id}-all`,
+              label,
+              kind: 'all' as const,
+              wing: id,
+              bookIds: own.map((b) => b.id),
+            },
+          ]
+        : groupCases(own, id, groupBy, locale, max);
+    return { id, label, cases, unsorted: unsortedOf(cases) };
   });
 }
 

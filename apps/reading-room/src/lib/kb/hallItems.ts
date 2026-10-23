@@ -16,7 +16,7 @@ export const WIKI_AUTHOR = 'Rainforest';
 
 const authorGroup = (doc: KbDoc): string[] => {
   const author = doc.source === 'wiki' ? WIKI_AUTHOR : doc.author?.trim();
-  return author ? [`author:${author}`] : [];
+  return author ? [`creator:${author}`] : [];
 };
 
 /**
@@ -33,7 +33,7 @@ export function kbHallItems(docs: readonly KbDoc[]): HallItem[] {
       `source:${doc.source}`,
       `shelf:${doc.shelf}`,
       ...(doc.status ? [`status:${doc.status}`] : []),
-      ...doc.tags.map((tag) => `tag:${tag}`),
+      ...doc.tags.map((tag) => `topic:${tag}`),
       ...authorGroup(doc),
       ...(/^\d{4}-\d{2}/.test(doc.updated ?? '')
         ? [`month:${doc.updated?.slice(0, 7)}`]

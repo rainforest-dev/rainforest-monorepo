@@ -1,7 +1,7 @@
 import { type HallItem } from '@rainforest-dev/library-contract';
 import { describe, expect, it } from 'vitest';
 
-import { toHallBooks } from '@/lib/items';
+import { parseHallGroupBy, toHallBooks } from '@/lib/items';
 
 import {
   CASE_DEPTH,
@@ -29,22 +29,26 @@ const item = (
 });
 
 const BOOKS = toHallBooks([
-  item('book', '1', ['tag:Fiction', 'series:Earthsea', 'author:Le Guin']),
-  item('book', '2', ['tag:Fiction', 'series:Earthsea', 'author:Le Guin']),
-  item('book', '3', ['series:Earthsea', 'author:Le Guin']),
-  item('book', '4', ['series:Hainish', 'author:Le Guin']),
-  item('notebook', '5', ['tag:Fiction', 'month:2026-08']),
+  item('book', '1', ['topic:Fiction', 'creator:Le Guin', 'month:2026-07']),
+  item('book', '2', ['topic:Fiction', 'creator:Le Guin', 'month:2026-08']),
+  item('book', '3', ['creator:Le Guin', 'month:2026-08']),
+  item('book', '4', ['topic:Sea', 'creator:Herbert']),
+  item('notebook', '5', ['topic:Fiction', 'month:2026-08']),
 ]);
 const idOf = (n: number) => BOOKS[n - 1]?.id;
 
 describe('toHallBooks', () => {
-  it('reads each grouping from the item groups', () => {
+  it('reads each dimension from the item groups', () => {
     expect(BOOKS[0]?.groups).toEqual({
-      tag: 'Fiction',
-      series: 'Earthsea',
-      author: 'Le Guin',
-      month: null,
+      topic: 'Fiction',
+      creator: 'Le Guin',
+      month: '2026-07',
     });
+  });
+
+  it('reads the legacy tag and author keys', () => {
+    const [old] = toHallBooks([item('book', '9', ['tag:Sea', 'author:Ada'])]);
+    expect(old?.groups).toEqual({ topic: 'Sea', creator: 'Ada', month: null });
   });
 
   it('gives every key one stable, distinct id and drops repeats', () => {
@@ -59,26 +63,60 @@ describe('toHallBooks', () => {
   });
 });
 
+describe('parseHallGroupBy', () => {
+  it('maps old links onto the shared dimensions and falls back to topic', () => {
+    expect(parseHallGroupBy('month')).toBe('month');
+    expect(parseHallGroupBy('tag')).toBe('topic');
+    expect(parseHallGroupBy('author')).toBe('creator');
+    expect(parseHallGroupBy('series')).toBe('topic');
+    expect(parseHallGroupBy(null)).toBe('topic');
+  });
+});
+
 describe('buildHall', () => {
-  it('gives each collection its own wing, groups biggest first, ungrouped last', () => {
-    const cases = buildHall(BOOKS, 'series', 'zh');
-    expect(cases.map((c) => [c.wing, c.label, c.bookIds])).toEqual([
-      ['books', 'Earthsea', [idOf(1), idOf(2), idOf(3)]],
-      ['books', 'Hainish', [idOf(4)]],
-      // Notebooks have no series, so they stay together under their collection's name.
-      ['notebooks', '筆記本', [idOf(5)]],
+  it('stands every collection in one wing by topic, so a topic shares a case', () => {
+    const wings = buildWings(BOOKS, 'topic', 'zh');
+    expect(wings.map((w) => [w.id, w.label, w.unsorted])).toEqual([
+      ['topics', '主題', 1],
+    ]);
+    expect(wings[0]?.cases.map((c) => [c.key, c.label, c.bookIds])).toEqual([
+      ['topics-topic-Fiction', 'Fiction', [idOf(1), idOf(2), idOf(5)]],
+      ['topics-topic-Sea', 'Sea', [idOf(4)]],
+      ['topics-none', '未分類', [idOf(3)]],
+    ]);
+  });
+
+  it('gives each collection its own wing by creator, unsorted items on a case of their own', () => {
+    const wings = buildWings(BOOKS, 'creator', 'zh');
+    expect(
+      wings.map((w) => [w.id, w.unsorted, w.cases.map((c) => c.label)]),
+    ).toEqual([
+      ['books', 0, ['Le Guin', 'Herbert']],
+      // The notebook has no creator: it is counted, not folded into a case named after its wing.
+      ['notebooks', 1, ['無作者或來源']],
+    ]);
+  });
+
+  it('reads months as a timeline, newest first, in every wing', () => {
+    expect(
+      buildHall(BOOKS, 'month', 'zh').map((c) => [c.wing, c.label]),
+    ).toEqual([
+      ['books', '2026-08'],
+      ['books', '2026-07'],
+      ['books', '無日期'],
+      ['notebooks', '2026-08'],
     ]);
   });
 
   it('keeps a small collection on the floor beside a big one', () => {
     const many = toHallBooks([
       ...Array.from({ length: 40 }, (_, i) =>
-        item('article', `a${i}`, [`tag:t${i}`]),
+        item('article', `a${i}`, [`creator:site${i}`]),
       ),
-      item('book', 'b1', ['tag:Fiction']),
+      item('book', 'b1', ['creator:Le Guin']),
       item('notebook', 'n1', []),
     ]);
-    const wings = buildWings(many, 'tag', 'zh');
+    const wings = buildWings(many, 'creator', 'zh');
     expect(wings.map((w) => [w.id, w.cases.length])).toEqual([
       ['books', 1],
       ['notebooks', 1],
@@ -86,54 +124,57 @@ describe('buildHall', () => {
     ]);
   });
 
-  it('regroups the same items by tag or by collection', () => {
-    expect(buildHall(BOOKS, 'tag', 'zh').map((c) => c.label)).toEqual([
-      'Fiction',
-      '未分類',
-      'Fiction',
+  it('gives the shared topic wing a row per collection', () => {
+    const many = toHallBooks([
+      ...Array.from({ length: 40 }, (_, i) =>
+        item('article', `a${i}`, [`topic:t${i}`]),
+      ),
+      item('book', 'b1', ['topic:t0']),
     ]);
-    expect(buildHall(BOOKS, 'collection', 'zh').map((c) => c.label)).toEqual([
-      '書',
-      '筆記本',
-    ]);
-  });
-
-  it('gives every case a key no other wing uses', () => {
-    const keys = buildHall(BOOKS, 'tag', 'zh').map((c) => c.key);
-    expect(keys).toEqual([
-      'books-tag-Fiction',
-      'books-none',
-      'notebooks-tag-Fiction',
-    ]);
+    const [wing] = buildWings(many, 'topic', 'zh');
+    expect(wing?.cases).toHaveLength(CASES_PER_WING * 2);
+    expect(wing?.cases.at(-1)?.kind).toBe('other');
   });
 
   it('names the bookcases in English for an en page', () => {
-    expect(buildHall(BOOKS, 'tag', 'en')[1]?.label).toBe('Untagged');
+    expect(buildHall(BOOKS, 'topic', 'en').at(-1)?.label).toBe('No topic');
+    expect(buildWings(BOOKS, 'topic', 'en')[0]?.label).toBe('Topics');
     expect(buildHall(BOOKS, 'collection', 'en').map((c) => c.label)).toEqual([
       'Books',
       'Notebooks',
     ]);
   });
 
-  it('merges the smallest groups of a wing into one case past the limit', () => {
-    const series = toHallBooks([
-      item('book', '1', ['series:A']),
-      item('book', '2', ['series:A']),
-      item('book', '3', ['series:B']),
-      item('book', '4', ['series:C']),
+  it('merges the smallest groups past the limit and keeps the unsorted case apart', () => {
+    const topics = toHallBooks([
+      item('book', '1', ['topic:A']),
+      item('book', '2', ['topic:A']),
+      item('book', '3', ['topic:B']),
+      item('book', '4', ['topic:C']),
+      item('book', '5', []),
     ]);
-    const cases = buildHall(series, 'series', 'zh', 2);
-    expect(cases.map((c) => [c.key, c.bookIds.length])).toEqual([
-      ['books-series-A', 2],
-      ['books-other', 2],
+    const cases = buildHall(topics, 'creator', 'zh', 2);
+    expect(cases.map((c) => c.key)).toEqual(['books-none']);
+    const wing = buildWings(topics, 'topic', 'zh', 3)[0];
+    expect(wing?.cases.map((c) => [c.key, c.bookIds.length])).toEqual([
+      ['topics-topic-A', 2],
+      ['topics-other', 2],
+      ['topics-none', 1],
     ]);
   });
 
   it('keeps every item exactly once', () => {
-    const cases = buildHall(BOOKS, 'series', 'zh', 1);
-    expect(cases.flatMap((c) => c.bookIds).sort()).toEqual(
-      BOOKS.map((b) => b.id).sort(),
-    );
+    for (const groupBy of [
+      'topic',
+      'creator',
+      'month',
+      'collection',
+    ] as const) {
+      const cases = buildHall(BOOKS, groupBy, 'zh', 1);
+      expect(cases.flatMap((c) => c.bookIds).sort()).toEqual(
+        BOOKS.map((b) => b.id).sort(),
+      );
+    }
   });
 });
 
@@ -241,8 +282,8 @@ describe('walking', () => {
 describe('re-sort', () => {
   it('moves each book from its old slot to its new one', () => {
     const layout = layoutHall(3);
-    const before = placeBooks(buildHall(BOOKS, 'series', 'zh'), layout);
-    const after = placeBooks(buildHall(BOOKS, 'author', 'zh'), layout);
+    const before = placeBooks(buildHall(BOOKS, 'topic', 'zh'), layout);
+    const after = placeBooks(buildHall(BOOKS, 'creator', 'zh'), layout);
     const from = before.get(idOf(4) ?? 0);
     const to = after.get(idOf(4) ?? 0);
     if (!from || !to) throw new Error('book 4 not placed');

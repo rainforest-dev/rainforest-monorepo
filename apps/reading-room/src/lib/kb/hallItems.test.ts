@@ -21,8 +21,8 @@ describe('kbHallItems', () => {
     expect(item?.groups).toEqual([
       'source:wiki',
       'shelf:topic',
-      'tag:wind',
-      `author:${WIKI_AUTHOR}`,
+      'topic:wind',
+      `creator:${WIKI_AUTHOR}`,
       'month:2026-09',
     ]);
     expect(() =>
@@ -34,12 +34,12 @@ describe('kbHallItems', () => {
     const [item] = kbHallItems([
       doc({ id: 'readwise:a', source: 'readwise', author: ' Ada Vale ' }),
     ]);
-    expect(item?.groups).toContain('author:Ada Vale');
+    expect(item?.groups).toContain('creator:Ada Vale');
     expect(item?.groups.some((g) => g.startsWith('month:'))).toBe(false);
   });
 
   it('leaves a Readwise document with no author out of every author shelf', () => {
     const [item] = kbHallItems([doc({ id: 'readwise:b', source: 'readwise' })]);
-    expect(item?.groups.some((g) => g.startsWith('author:'))).toBe(false);
+    expect(item?.groups.some((g) => g.startsWith('creator:'))).toBe(false);
   });
 });

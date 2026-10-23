@@ -9,21 +9,29 @@ export const zh = {
   groupBy: {
     label: '分櫃方式',
     hint: '切換時書會飛到新書櫃',
-    tag: '依主題',
-    collection: '依館藏',
-    series: '依系列',
-    author: '依作者／來源',
+    topic: '依主題',
+    creator: '依作者／來源',
     month: '依時間',
+    collection: '依館藏',
   },
   bookcase: {
     none: {
-      tag: '未分類',
-      collection: '其他',
-      series: '無系列',
-      author: '無作者或來源',
+      topic: '未分類',
+      creator: '無作者或來源',
       month: '無日期',
     },
     other: '其他',
+  },
+  wing: {
+    topics: '主題',
+    unsorted: {
+      topic_one: '{{count}} 件沒有主題',
+      topic_other: '{{count}} 件沒有主題',
+      creator_one: '{{count}} 件沒有作者或來源',
+      creator_other: '{{count}} 件沒有作者或來源',
+      month_one: '{{count}} 件沒有日期',
+      month_other: '{{count}} 件沒有日期',
+    },
   },
   hall: {
     region: '大廳',

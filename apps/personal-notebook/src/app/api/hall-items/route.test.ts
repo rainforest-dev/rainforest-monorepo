@@ -1,4 +1,7 @@
-import { hallItemsResponseSchema } from '@rainforest-dev/library-contract';
+import {
+  hallItemsResponseSchema,
+  missingHallDimensions,
+} from '@rainforest-dev/library-contract';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -45,7 +48,9 @@ describe('GET /api/hall-items', () => {
     });
     expect(NOTEBOOK_COLORS).toContain(item?.color);
     expect(item?.groups).toContain('status:active');
-    expect(item?.groups).toContain('author:Rainforest');
+    expect(item?.groups).toContain('creator:Rainforest');
+    // Topics wait for page tags; the hall shelves notebooks as unsorted by topic until then.
+    expect(item && missingHallDimensions(item)).toEqual(['topic']);
     expect(item?.groups.some((g) => /^year:\d{4}$/.test(g))).toBe(true);
     expect(item?.groups.some((g) => /^month:\d{4}-\d{2}$/.test(g))).toBe(true);
     expect(items.find((i) => i.id === String(archived.id))?.groups).toContain(

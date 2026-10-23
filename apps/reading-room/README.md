@@ -64,8 +64,9 @@ the current vault).
 ## Hall items
 
 `GET /rack/api/hall-items` answers `{ items: HallItem[] }` from `@rainforest-dev/library-contract`:
-one `article` per queued document, coloured by tier, grouped by `tier:`, `decay:`, `site:` and
-`tag:`, and linked to its card at `/rack#article-<id>`. Before the queue is generated it is empty.
+one `article` per queued document, coloured by tier, grouped by `tier:`, `decay:` and `site:`, and
+by the hall's shared `topic:` (the Reader tags), `creator:` (the site) and `month:` (when it was
+saved), and linked to its card at `/rack#article-<id>`. Before the queue is generated it is empty.
 
 ## Registry desk
 

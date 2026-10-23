@@ -1,7 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { hallItemSchema } from '@rainforest-dev/library-contract';
+import {
+  hallItemSchema,
+  missingHallDimensions,
+} from '@rainforest-dev/library-contract';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createCalibreDb } from '@/test';
@@ -44,7 +47,7 @@ afterAll(() => {
 });
 
 describe('listBookHallItems', () => {
-  it('shelves each book by its tags, series, authors and month added', () => {
+  it('shelves each book by its tags, authors and month added', () => {
     const [brine] = listBookHallItems();
     expect(brine).toEqual({
       kind: 'book',
@@ -52,17 +55,17 @@ describe('listBookHallItems', () => {
       title: 'Brine and Bell',
       color: expect.stringMatching(/^#[0-9a-f]{6}$/),
       groups: [
-        'tag:winter',
-        'tag:sea',
-        'series:Amber Road',
-        'author:Tobiah Quell',
-        'author:Mara Ostrand',
+        'topic:winter',
+        'topic:sea',
+        'creator:Tobiah Quell',
+        'creator:Mara Ostrand',
         'month:2026-08',
       ],
       href: '/books?book=1',
       subtitle: 'Tobiah Quell、Mara Ostrand',
       cover: '/books/api/books/1/cover',
     });
+    expect(brine && missingHallDimensions(brine)).toEqual([]);
   });
 
   it('leaves out the cover and subtitle a book does not have', () => {

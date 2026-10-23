@@ -7,15 +7,22 @@ test.describe('the hall', () => {
     await page.goto('/');
     await expect(page.locator('[data-hall-mode="3d"]')).toBeAttached();
     await expect(page.locator('[data-hall-canvas] canvas')).toBeVisible();
-    // Sorted by topic by default: the books' tags, then the shelf without one.
+    // Sorted by topic by default, every collection in one wing. The fixture still sends the
+    // legacy `tag:` keys, which the hall reads as topics.
     await expect(
-      page.locator('[data-hall-case="books-tag-sea"]'),
+      page.locator('[data-hall-case="topics-topic-sea"]'),
     ).toBeAttached();
     await expect(
-      page.locator('[data-hall-case="books-tag-winter"]'),
+      page.locator('[data-hall-case="topics-topic-winter"]'),
     ).toBeAttached();
     await expect(page.locator('[data-hall-missing]')).toContainText('報架');
-    // Each collection stands in a wing of its own, under its name.
+    // One untagged book and both notebooks have no topic, and the sign says so.
+    await expect(page.locator('[data-hall-sign="topics"]')).toHaveText(
+      '主題3 件沒有主題',
+    );
+    await expect(page.locator('[data-hall-case="topics-none"]')).toBeAttached();
+    // By collection, each collection stands in a wing of its own, under its name.
+    await page.locator('[data-group-by="collection"]').click();
     await expect(page.locator('[data-hall-sign="books"]')).toHaveText('書');
     await expect(page.locator('[data-hall-sign="notebooks"]')).toHaveText(
       '筆記本',
@@ -23,6 +30,24 @@ test.describe('the hall', () => {
     await expect(
       page.locator('[data-hall-case="notebooks-all"]'),
     ).toBeAttached();
+  });
+
+  test('offers the four shared groupings and reads an old link', async ({
+    page,
+  }) => {
+    await page.goto('/?group=tag');
+    const options = page.locator('[data-group-by]');
+    await expect(options).toHaveCount(4);
+    expect(
+      await options.evaluateAll((els) =>
+        els.map((el) => el.getAttribute('data-group-by')),
+      ),
+    ).toEqual(['topic', 'creator', 'month', 'collection']);
+    await expect(page.locator('[data-group-by="topic"]')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.locator('[data-group-by="series"]')).toHaveCount(0);
   });
 
   for (const time of ['12:00', '23:00']) {
@@ -47,8 +72,8 @@ test.describe('the hall', () => {
   test('raises and sinks bookcases as the grouping needs', async ({ page }) => {
     await page.goto('/');
     const standing = page.locator('[data-hall-canvas] [data-hall-label]');
-    // By topic: sea, winter and untagged books, and the notebooks.
-    await expect(standing).toHaveCount(4);
+    // By topic: sea, winter, and one case for everything without a topic.
+    await expect(standing).toHaveCount(3);
     await page.locator('[data-group-by="collection"]').click();
     await expect(standing).toHaveCount(2);
     await expect

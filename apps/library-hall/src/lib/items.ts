@@ -1,26 +1,37 @@
 import {
   COLLECTION_OF_KIND,
   collectionLabel,
-  type HallGroupPrefix,
-  hallGroupValue,
+  type HallDimension,
+  hallDimensionValue,
   type HallItem,
   type HallItemKind,
   type LibraryLocale,
 } from '@rainforest-dev/library-contract';
 
-/** How the hall can sort its bookcases: by a group prefix, or by the item's own collection. */
+/** How the hall can sort its bookcases: by a shared dimension, or by the item's own collection. */
 export const HALL_GROUP_BYS = [
-  'tag',
-  'collection',
-  'series',
-  'author',
+  'topic',
+  'creator',
   'month',
+  'collection',
 ] as const;
 export type HallGroupBy = (typeof HALL_GROUP_BYS)[number];
-export const DEFAULT_GROUP_BY: HallGroupBy = 'tag';
+export const DEFAULT_GROUP_BY: HallGroupBy = 'topic';
+
+/** `?group=` values from before the shared dimensions, so old links still land on a grouping. */
+const LEGACY_GROUP_BYS: Record<string, HallGroupBy> = {
+  tag: 'topic',
+  author: 'creator',
+};
 
 export function isHallGroupBy(value: unknown): value is HallGroupBy {
   return HALL_GROUP_BYS.some((g) => g === value);
+}
+
+/** The grouping a `?group=` value names, an old one included, or the default. */
+export function parseHallGroupBy(value: string | null): HallGroupBy {
+  if (isHallGroupBy(value)) return value;
+  return (value && LEGACY_GROUP_BYS[value]) || DEFAULT_GROUP_BY;
 }
 
 /**
@@ -39,7 +50,7 @@ export interface HallBook {
   color: string;
   cover: string | null;
   href: string;
-  groups: Record<HallGroupPrefix, string | null>;
+  groups: Record<HallDimension, string | null>;
 }
 
 /** FNV-1a, folded to a positive 31-bit integer so it is a safe array-free map key. */
@@ -82,10 +93,9 @@ export function toHallBooks(items: readonly HallItem[]): HallBook[] {
       cover: item.cover ?? null,
       href: item.href,
       groups: {
-        tag: hallGroupValue(item.groups, 'tag'),
-        series: hallGroupValue(item.groups, 'series'),
-        author: hallGroupValue(item.groups, 'author'),
-        month: hallGroupValue(item.groups, 'month'),
+        topic: hallDimensionValue(item.groups, 'topic'),
+        creator: hallDimensionValue(item.groups, 'creator'),
+        month: hallDimensionValue(item.groups, 'month'),
       },
     });
   }
