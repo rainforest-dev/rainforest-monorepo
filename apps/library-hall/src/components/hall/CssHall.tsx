@@ -2,62 +2,86 @@
 
 import { useLibraryT } from '@rainforest-dev/library-shell';
 
-import { type Bookcase, cn, spineColor } from '@/lib';
+import { type Bookcase, cn, spineColor, type Wing } from '@/lib';
 import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
 const PREVIEW_SPINES = 14;
 
 interface Props {
-  cases: readonly Bookcase[];
+  wings: readonly Wing[];
   onEnter: (bookcase: Bookcase) => void;
   /** Visually hidden: the 3D hall's keyboard and screen-reader route to the same bookcases. */
   hidden?: boolean;
 }
 
-/** The hall without 3D: one button per bookcase, opening it in the Study. */
-export function CssHall({ cases, onEnter, hidden = false }: Props) {
+/** The hall without 3D: each collection's bookcases under its name, each opening in the Study. */
+export function CssHall({ wings, onEnter, hidden = false }: Props) {
   const { bookById } = useHall();
   const t = useLibraryT(HALL_NAMESPACE);
   return (
-    <ul
+    <div
       aria-label={t('hall.list')}
+      role="group"
       data-hall-list
-      className={cn(
-        hidden
-          ? 'sr-only'
-          : 'grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-3',
-      )}
+      className={cn(hidden ? 'sr-only' : 'flex flex-col gap-5')}
     >
-      {cases.map((bookcase) => (
-        <li key={bookcase.key}>
-          <button
-            type="button"
-            data-hall-case={bookcase.key}
-            onClick={() => onEnter(bookcase)}
-            className="bg-card hover:bg-muted focus-visible:ring-ring flex w-full flex-col gap-2 rounded-lg border p-3 text-left outline-none focus-visible:ring-2"
-          >
-            <span aria-hidden className="flex h-12 items-end gap-0.5">
-              {bookcase.bookIds.slice(0, PREVIEW_SPINES).map((id) => (
-                <span
-                  key={id}
-                  className="w-2 rounded-[2px]"
-                  style={{
-                    height: `${60 + ((id * 13) % 38)}%`,
-                    background: spineColor(bookById.get(id)?.color ?? '#888'),
-                  }}
-                />
-              ))}
-            </span>
-            <span className="truncate text-sm font-medium">
-              {bookcase.label}
-            </span>
-            <span className="text-muted-foreground text-xs">
-              {t('items', { count: bookcase.bookIds.length })}
-            </span>
-          </button>
-        </li>
+      {wings.map((wing) => (
+        <section key={wing.id} data-hall-wing={wing.id} aria-label={wing.label}>
+          <h2 className="text-muted-foreground mb-2 text-sm font-semibold">
+            {wing.label}
+          </h2>
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-3">
+            {wing.cases.map((bookcase) => (
+              <CaseButton
+                key={bookcase.key}
+                bookcase={bookcase}
+                onEnter={onEnter}
+                colorOf={(id) => bookById.get(id)?.color ?? '#888'}
+                count={t('items', { count: bookcase.bookIds.length })}
+              />
+            ))}
+          </ul>
+        </section>
       ))}
-    </ul>
+    </div>
+  );
+}
+
+function CaseButton({
+  bookcase,
+  onEnter,
+  colorOf,
+  count,
+}: {
+  bookcase: Bookcase;
+  onEnter: (bookcase: Bookcase) => void;
+  colorOf: (id: number) => string;
+  count: string;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        data-hall-case={bookcase.key}
+        onClick={() => onEnter(bookcase)}
+        className="bg-card hover:bg-muted focus-visible:ring-ring flex w-full flex-col gap-2 rounded-lg border p-3 text-left outline-none focus-visible:ring-2"
+      >
+        <span aria-hidden className="flex h-12 items-end gap-0.5">
+          {bookcase.bookIds.slice(0, PREVIEW_SPINES).map((id) => (
+            <span
+              key={id}
+              className="w-2 rounded-[2px]"
+              style={{
+                height: `${60 + ((id * 13) % 38)}%`,
+                background: spineColor(colorOf(id)),
+              }}
+            />
+          ))}
+        </span>
+        <span className="truncate text-sm font-medium">{bookcase.label}</span>
+        <span className="text-muted-foreground text-xs">{count}</span>
+      </button>
+    </li>
   );
 }

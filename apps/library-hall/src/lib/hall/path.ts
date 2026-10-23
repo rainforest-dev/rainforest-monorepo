@@ -39,7 +39,12 @@ export function buildGrid(layout: HallLayout): WalkGrid {
           Math.abs(x - p.x) < CASE_WIDTH / 2 + AVATAR_RADIUS &&
           Math.abs(z - p.z) < CASE_DEPTH / 2 + AVATAR_RADIUS,
       );
-      open.push(insideWalls && !hitsCase);
+      const hitsFurniture = layout.furniture.some(
+        (f) =>
+          Math.abs(x - f.x) < f.w / 2 + AVATAR_RADIUS &&
+          Math.abs(z - f.z) < f.d / 2 + AVATAR_RADIUS,
+      );
+      open.push(insideWalls && !hitsCase && !hitsFurniture);
     }
   }
   return { originX, originZ, columns, rows, open };

@@ -78,10 +78,28 @@ describe('loadHallItems', () => {
     );
     expect(result.items.map((i) => i.id)).toEqual(['n1']);
     expect(result.sources.map((s) => [s.collection, s.ok])).toEqual([
-      ['books', false],
+      ['books', true],
       ['notebooks', true],
       ['rack', false],
       ['kb', false],
     ]);
+  });
+
+  it('drops a bad item and keeps the rest of its shelf', async () => {
+    const fetcher = vi.fn(() =>
+      respond({
+        items: [item('book', '1'), { ...item('book', '2'), color: 'teal' }],
+      }),
+    ) as unknown as typeof fetch;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const result = await loadHallItems(
+      { LIBRARY_BOOKS_URL: 'http://calibre:8082' },
+      fetcher,
+    );
+    expect(result.items.map((i) => i.id)).toEqual(['1']);
+    expect(result.sources).toEqual([
+      { collection: 'books', ok: true, count: 1, skipped: 1 },
+    ]);
+    warn.mockRestore();
   });
 });

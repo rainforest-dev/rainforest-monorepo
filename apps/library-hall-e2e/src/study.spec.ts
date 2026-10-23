@@ -9,8 +9,8 @@ async function enterBookcase(page: Page, key: string) {
 test.describe('a bookcase', () => {
   test('opens in the study and goes back to the hall', async ({ page }) => {
     await page.goto('/?renderer=css');
-    await enterBookcase(page, 'tag-sea');
-    await expect(page).toHaveURL(/case=tag-sea/);
+    await enterBookcase(page, 'books-tag-sea');
+    await expect(page).toHaveURL(/case=books-tag-sea/);
     await expect(page.locator('[role="option"]')).toHaveCount(3);
 
     await page.locator('[data-hall-back]').click();
@@ -19,7 +19,7 @@ test.describe('a bookcase', () => {
 
     // The study was a history entry, so the browser's Back left it too.
     await page.goForward();
-    await expect(page).toHaveURL(/case=tag-sea/);
+    await expect(page).toHaveURL(/case=books-tag-sea/);
     await page.goBack();
     await expect(page).not.toHaveURL(/case=/);
   });
@@ -27,7 +27,7 @@ test.describe('a bookcase', () => {
   test('links a pulled book to its collection, with the cover named for the morph', async ({
     page,
   }) => {
-    await page.goto('/?case=tag-winter&renderer=css');
+    await page.goto('/?case=books-tag-winter&renderer=css');
     await page.locator('[role="option"]').first().click();
     const link = page.getByRole('link', { name: '查看詳細' });
     await expect(link).toHaveAttribute('href', /^\/books\?book=\d+$/);

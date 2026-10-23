@@ -25,9 +25,9 @@ export const notebookColor = (name: string): string =>
   NOTEBOOK_COLORS[Number.parseInt(fnv1a(name), 16) % NOTEBOOK_COLORS.length] ??
   NOTEBOOK_COLORS[0];
 
-/** The year a notebook belongs to: when it was started, else when it was added. */
-const yearOf = (notebook: NotebookSummary) =>
-  (notebook.startedOn ?? notebook.createdAt).slice(0, 4);
+/** When a notebook belongs: when it was started, else when it was added. */
+const dateOf = (notebook: NotebookSummary) =>
+  notebook.startedOn ?? notebook.createdAt;
 
 export function toHallItem(notebook: NotebookSummary): HallItem {
   return {
@@ -35,7 +35,14 @@ export function toHallItem(notebook: NotebookSummary): HallItem {
     id: String(notebook.id),
     title: notebook.name,
     color: notebookColor(notebook.name),
-    groups: [`status:${notebook.status}`, `year:${yearOf(notebook)}`],
+    // The hall can sort by `month:` only; under its other groupings the notebooks share one case.
+    groups: [
+      `status:${notebook.status}`,
+      `year:${dateOf(notebook).slice(0, 4)}`,
+      ...(/^\d{4}-\d{2}/.test(dateOf(notebook))
+        ? [`month:${dateOf(notebook).slice(0, 7)}`]
+        : []),
+    ],
     href: withBase(`/${notebook.id}`),
   };
 }

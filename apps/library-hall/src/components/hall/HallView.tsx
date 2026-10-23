@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { canUseWebGL2 } from '@/components/study/capabilities';
 import { useIsPhone, useReducedMotion } from '@/hooks';
-import { buildHall, cn, HALL_GROUP_BYS, layoutHall } from '@/lib';
+import { buildWings, cn, frameFor, HALL_GROUP_BYS, layoutHall } from '@/lib';
 import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
@@ -28,7 +28,8 @@ function phoneOptedIn(): boolean {
 }
 
 export function HallView() {
-  const { books, cases, enterBookcase, hallReturn, studyFallback } = useHall();
+  const { books, cases, wings, enterBookcase, hallReturn, studyFallback } =
+    useHall();
   const reducedMotion = useReducedMotion();
   const locale = useLibraryLocale();
   const t = useLibraryT(HALL_NAMESPACE);
@@ -42,15 +43,24 @@ export function HallView() {
   // Phones start on the bookcase list and load 3D only when asked: it costs battery and memory.
   const three = webgl === null ? null : webgl && (!phone || phone3d);
 
-  // Sized for the grouping with the most bookcases, so switching grouping moves books, not furniture.
-  const layout = useMemo(
+  // The room fits the grouping that needs the most bookcases, so its walls stay put; the
+  // bookcases inside rise and sink as a new grouping needs more or fewer.
+  const frame = useMemo(
     () =>
-      layoutHall(
-        Math.max(
-          ...HALL_GROUP_BYS.map((g) => buildHall(books, g, locale).length),
+      frameFor(
+        HALL_GROUP_BYS.map((g) =>
+          buildWings(books, g, locale).map((w) => w.cases.length),
         ),
       ),
     [books, locale],
+  );
+  const layout = useMemo(
+    () =>
+      layoutHall(
+        wings.map((w) => w.cases.length),
+        frame,
+      ),
+    [wings, frame],
   );
   // Read once per mount: a reload or a non-bfcache Back resumes where the reader stood.
   const [memory] = useState(() =>
@@ -77,13 +87,14 @@ export function HallView() {
         <HallSkeleton />
       ) : three ? (
         <HallBoundary
-          fallback={<CssHall cases={cases} onEnter={enterBookcase} />}
+          fallback={<CssHall wings={wings} onEnter={enterBookcase} />}
         >
-          <CssHall cases={cases} onEnter={enterBookcase} hidden />
+          <CssHall wings={wings} onEnter={enterBookcase} hidden />
           <div className="relative">
             <LoadThreeHall
               books={books}
               cases={cases}
+              wings={wings}
               layout={layout}
               startKey={hallReturn?.key ?? null}
               memory={resume}
@@ -132,7 +143,7 @@ export function HallView() {
               {t('hall.phone3dHint')}
             </p>
           )}
-          <CssHall cases={cases} onEnter={enterBookcase} />
+          <CssHall wings={wings} onEnter={enterBookcase} />
         </div>
       )}
     </div>

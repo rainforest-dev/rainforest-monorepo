@@ -4,7 +4,6 @@ export const zh = {
     title: 'Rainforest 圖書館',
     description: '走進書櫃之間，瀏覽每個館藏',
   },
-  header: { name: 'Rainforest 圖書館' },
   items_one: '{{count}} 件',
   items_other: '{{count}} 件',
   groupBy: {
@@ -31,7 +30,11 @@ export const zh = {
     list: '書櫃',
     browseList: '以清單瀏覽',
     missing: '{{names}}暫時無法載入，書櫃上先不放它們。',
-    canvas: '圖書館大廳。用 W A S D 或方向鍵走路，點地板或書櫃走過去。',
+    canvas:
+      '圖書館大廳。用 W A S D 或方向鍵走路，點地板或書櫃走過去；拖曳畫面或按 Q、E 轉視角，捏合，或點進大廳後用滾輪，可以拉近拉遠。',
+    turnLeft: '視角向左轉',
+    turnRight: '視角向右轉',
+    resetView: '回到預設視角',
     enter3d: '進入 3D 大廳',
     phone3dHint: '手機預設不載入 3D，省電也省記憶體。進去之後點地板走路。',
     no3d: '這台裝置無法顯示 3D，改用 CSS 書牆',

@@ -2,8 +2,9 @@ import {
   type CollectionId,
   HALL_ITEMS_PATH,
   type HallItem,
-  hallItemsResponseSchema,
+  hallItemSchema,
 } from '@rainforest-dev/library-contract';
+import { z } from 'zod';
 
 /** The collections that put items on the hall's shelves, in shelf order. */
 export const SOURCE_COLLECTIONS = [
@@ -18,7 +19,12 @@ export interface SourceStatus {
   collection: SourceCollection;
   ok: boolean;
   count: number;
+  /** Items the collection sent that did not match the contract and were left off the shelf. */
+  skipped?: number;
 }
+
+/** The envelope only: each item is checked on its own, so one bad item never empties a shelf. */
+const envelopeSchema = z.object({ items: z.array(z.unknown()) });
 
 export interface HallItemsResult {
   items: HallItem[];
@@ -54,11 +60,26 @@ async function fetchSource(
       headers: { accept: 'application/json' },
     });
     if (!response.ok) return failed;
-    const parsed = hallItemsResponseSchema.safeParse(await response.json());
+    const parsed = envelopeSchema.safeParse(await response.json());
     if (!parsed.success) return failed;
+    const items: HallItem[] = [];
+    for (const raw of parsed.data.items) {
+      const item = hallItemSchema.safeParse(raw);
+      if (item.success) items.push(item.data);
+    }
+    const skipped = parsed.data.items.length - items.length;
+    if (skipped > 0)
+      console.warn(
+        `[hall] ${collection}: left ${skipped} of ${parsed.data.items.length} items off the shelf; they do not match the hall-items contract`,
+      );
     return {
-      status: { collection, ok: true, count: parsed.data.items.length },
-      items: parsed.data.items,
+      status: {
+        collection,
+        ok: true,
+        count: items.length,
+        ...(skipped > 0 && { skipped }),
+      },
+      items,
     };
   } catch {
     return failed;
