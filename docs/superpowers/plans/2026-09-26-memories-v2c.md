@@ -2527,8 +2527,8 @@ const PHONE_GRID_COLS = 'grid-cols-[28px_repeat(31,8px)_minmax(0,1fr)]';
    `class="text-heading mt-3.5 font-semibold tabular-nums first:mt-0"`.
 5. Change the desktop row wrapper `class={`grid h-[30px] items-center ${GRID_COLS}`}` to
    ``class={`grid h-8 items-center ${GRID_COLS}`}``, change the month link class to
-`text-meta text-muted-foreground hover:text-foreground font-medium tabular-nums`, and after
-`{row.cells.map(…)}` add:
+   `text-meta text-muted-foreground hover:text-foreground font-medium tabular-nums`, and after
+   `{row.cells.map(…)}` add:
 
 ```astro
 <span
