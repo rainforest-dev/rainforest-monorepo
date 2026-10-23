@@ -7,7 +7,6 @@ import {
   type LibraryLocale,
 } from '@rainforest-dev/library-contract';
 import {
-  CollectionTabBar,
   openLibraryChannel,
   ShellLayout,
   useLibraryLocale,
@@ -170,7 +169,6 @@ export function HallApp() {
       data-hall-restored={restored ? 'bfcache' : undefined}
     >
       {content}
-      <CollectionTabBar current="hall" resume />
     </ShellLayout>
   );
 }

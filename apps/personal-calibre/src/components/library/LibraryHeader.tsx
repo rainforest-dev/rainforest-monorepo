@@ -1,68 +1,77 @@
 'use client';
 
 import {
-  LocaleSwitch,
+  LibraryBar,
+  type RenderShellLink,
   SHELL_IDS,
-  ShellHeader,
   useLibraryT,
 } from '@rainforest-dev/library-shell';
 import { Badge, Button } from '@rainforest-dev/rainforest-react';
-import {
-  LibraryBig,
-  NotebookPen,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-import { filterCount, parseLibraryParams } from '@/lib';
+import { BASE_PATH, filterCount, parseLibraryParams } from '@/lib';
 import { CALIBRE_NAMESPACE } from '@/locales';
 import { useLibrary } from '@/providers';
 
 import { SearchField } from './SearchField';
 import { ViewSwitch } from './ViewSwitch';
 
+// The router adds the base path itself, so this app's own tab links to `/`; every other
+// collection is another app and gets a full page load.
+const renderLink: RenderShellLink = (
+  { children, href, ...props },
+  collection,
+) =>
+  collection.id === 'books' ? (
+    <Link
+      href={href.slice(BASE_PATH.length) || '/'}
+      prefetch={false}
+      {...props}
+    >
+      {children}
+    </Link>
+  ) : (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  );
+
+/**
+ * The library's shared top bar with the catalogue's own controls. On the list, its own search
+ * field stands in for the library-wide one.
+ */
 export function LibraryHeader({ isList }: { isList: boolean }) {
   const { panelOpen, togglePanel } = useLibrary();
   const params = parseLibraryParams(useSearchParams());
   const count = filterCount(params);
   const t = useLibraryT(CALIBRE_NAMESPACE);
   return (
-    <ShellHeader>
-      {isList && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="hidden lg:inline-flex"
-          aria-label={panelOpen ? t('filters.hide') : t('filters.show')}
-          aria-expanded={panelOpen}
-          aria-controls={SHELL_IDS.filters}
-          onClick={togglePanel}
-        >
-          {panelOpen ? (
-            <PanelLeftClose aria-hidden />
-          ) : (
-            <PanelLeftOpen aria-hidden />
-          )}
-        </Button>
-      )}
-      <Link
-        href="/"
-        prefetch={false}
-        className="flex items-center gap-2 font-semibold tracking-tight"
-      >
-        <LibraryBig className="size-5" aria-hidden />
-        {t('header.name')}
-      </Link>
-      {/* Another app now: here it redirects, on the library hostname it is served directly. */}
-      <a
-        href="/notebooks"
-        className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm"
-      >
-        <NotebookPen className="size-4" aria-hidden />
-        {t('header.notebooks')}
-      </a>
+    <LibraryBar
+      current="books"
+      renderLink={renderLink}
+      search={!isList}
+      leading={
+        isList && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="hidden lg:inline-flex"
+            aria-label={panelOpen ? t('filters.hide') : t('filters.show')}
+            aria-expanded={panelOpen}
+            aria-controls={SHELL_IDS.filters}
+            onClick={togglePanel}
+          >
+            {panelOpen ? (
+              <PanelLeftClose aria-hidden />
+            ) : (
+              <PanelLeftOpen aria-hidden />
+            )}
+          </Button>
+        )
+      }
+    >
       {isList && <ViewSwitch className="ml-auto lg:ml-2" />}
       {isList && (
         <div className="order-last w-full lg:order-none lg:mx-auto lg:w-auto lg:max-w-[420px] lg:flex-1">
@@ -74,7 +83,6 @@ export function LibraryHeader({ isList }: { isList: boolean }) {
           {t('filters.badge', { count })}
         </Badge>
       )}
-      <LocaleSwitch className={isList ? undefined : 'ml-auto'} />
-    </ShellHeader>
+    </LibraryBar>
   );
 }

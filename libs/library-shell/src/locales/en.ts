@@ -2,6 +2,7 @@ import type { Translation } from '../translation';
 import type { zh } from './zh';
 
 export const en: Translation<typeof zh> = {
+  brand: 'Rainforest Library',
   collections: 'Collections',
   search: {
     label: 'Search the whole library',

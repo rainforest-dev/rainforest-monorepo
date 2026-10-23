@@ -96,10 +96,6 @@ export const en: Translation<typeof zh> = {
     openPage: 'Open full page',
     closeDetails: 'Close details',
   },
-  header: {
-    name: 'Library',
-    notebooks: 'Notebooks',
-  },
   toolbar: {
     matching: '{{matching}} of {{total}}',
     done: 'Done',

@@ -120,7 +120,10 @@ describe('ShellLayout page mode', () => {
         reader
       </ShellLayout>,
     );
-    expect(screen.getByRole('main').classList.contains('py-6')).toBe(true);
+    const main = screen.getByRole('main');
+    expect(main.classList.contains('pt-6')).toBe(true);
+    // Room below the content for the phone tab bar.
+    expect(main.classList.contains('pb-24')).toBe(true);
     expect(screen.queryByText('filters')).toBeNull();
   });
 });

@@ -96,7 +96,14 @@ export function ShellLayout({
         : 'none';
 
   return (
-    <div className={cn('min-h-dvh', className)} {...props}>
+    <div
+      // Floating bars read --library-tab-bar to sit above the phone tab bar.
+      className={cn(
+        'min-h-dvh [--library-tab-bar:4rem] sm:[--library-tab-bar:0px]',
+        className,
+      )}
+      {...props}
+    >
       {header}
       {browse ? (
         <div className={cn('lg:grid', COLUMNS[columns])}>
@@ -129,7 +136,8 @@ export function ShellLayout({
           )}
         </div>
       ) : (
-        <main id={SHELL_IDS.main} className="px-3 py-6 lg:px-6">
+        // Bottom room below `sm` for the phone tab bar.
+        <main id={SHELL_IDS.main} className="px-3 pb-24 pt-6 sm:pb-6 lg:px-6">
           {children}
         </main>
       )}

@@ -93,10 +93,6 @@ export const zh = {
     openPage: '開啟完整頁面',
     closeDetails: '關閉詳細資料',
   },
-  header: {
-    name: '書庫',
-    notebooks: '筆記本',
-  },
   toolbar: {
     matching: '{{matching}} / {{total}}',
     done: '完成',
