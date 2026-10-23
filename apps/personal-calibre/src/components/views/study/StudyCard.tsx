@@ -47,7 +47,7 @@ export function StudyCard({
   };
 
   return (
-    <div className="pointer-events-none sticky bottom-3 z-10 mt-3 flex justify-center">
+    <div className="pointer-events-none sticky bottom-[calc(var(--library-tab-bar,0px)+0.75rem)] z-10 mt-3 flex justify-center">
       <div aria-live="polite" className="sr-only">
         {book ? `${book.title}, ${book.authors.join(', ')}` : ''}
       </div>

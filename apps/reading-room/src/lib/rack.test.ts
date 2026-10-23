@@ -12,6 +12,7 @@ import {
   articleAnchor,
   rackHallItems,
   rackShelves,
+  savedMonth,
   searchRack,
 } from './rack.js';
 import { parseReadingQueue, type ReadingQueue } from './readingQueue.js';
@@ -73,25 +74,33 @@ describe('rackHallItems', () => {
     expect(item.href).toBe(`/rack#${articleAnchor(QUEUE.queue[0].id)}`);
   });
 
-  it('groups by tier, decay, site and tags', () => {
+  it('groups by tier, decay, site as author, tags and the month it was saved', () => {
     const [first] = QUEUE.queue;
-    const [item] = rackHallItems(
-      withItems([
+    const [item] = rackHallItems({
+      ...withItems([
         {
           ...first,
           tier: 2,
           decay: 'evergreen',
           siteName: 'a.example',
           tags: ['tech/x'],
+          sort: { ...first.sort, savedDaysAgo: 40 },
         },
       ]),
-    );
+      generated: '2026-10-05',
+    });
     expect(item.groups).toEqual([
       'tier:2',
       'decay:evergreen',
       'site:a.example',
+      'author:a.example',
       'tag:tech/x',
+      'month:2026-08',
     ]);
+  });
+
+  it('has no month when the generated date does not parse', () => {
+    expect(savedMonth('soon', 3)).toBeNull();
   });
 
   it('keeps an id with URL characters inside the same-origin href', () => {

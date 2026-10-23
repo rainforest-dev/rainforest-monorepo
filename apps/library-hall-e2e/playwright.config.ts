@@ -8,6 +8,10 @@ const PORT = 3040;
 const externalServer = process.env['BASE_URL'];
 const baseURL = externalServer ?? `http://127.0.0.1:${PORT}`;
 
+// The headless shell never restores a page from the back/forward cache (it reports the reason
+// as `masked`); Chrome's own headless mode does.
+const channel = 'chromium';
+
 const launchOptions = {
   args: ['--enable-unsafe-swiftshader'],
   // Playwright turns the back/forward cache off by default; the hall is built to be restored from it.
@@ -41,7 +45,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], launchOptions },
+      use: { ...devices['Desktop Chrome'], channel, launchOptions },
       testIgnore: /\.phone\.spec\.ts$/,
     },
     {
@@ -52,6 +56,7 @@ export default defineConfig({
         isMobile: true,
         hasTouch: true,
         deviceScaleFactor: 2,
+        channel,
         launchOptions,
       },
       testMatch: /\.phone\.spec\.ts$/,

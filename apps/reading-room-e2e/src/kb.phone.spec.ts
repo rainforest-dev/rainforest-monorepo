@@ -4,6 +4,9 @@ import { expectNoViolations } from './support/axe';
 import { hideDevToolbar } from './support/phone';
 
 test.describe('knowledge base on a phone', () => {
+  // These read the Chinese copy; locale.spec.ts covers the English side.
+  test.use({ locale: 'zh-TW' });
+
   test.beforeEach(({ page }) => hideDevToolbar(page));
 
   test('the contents fold into a disclosure and the page reads in one column', async ({

@@ -236,6 +236,15 @@ for (const run of [...WEBGL2_RUNS, CSS]) {
       if (a === undefined) throw new Error('no book');
       await tapBook(page, run, a);
       await expectPulled(page, run, a);
+      // The card floats above the library's tab bar, never under it.
+      const cardBox = await card(page).boundingBox();
+      const tabs = await page
+        .getByRole('navigation', { name: 'Collections' })
+        .last()
+        .boundingBox();
+      expect(cardBox && cardBox.y + cardBox.height).toBeLessThanOrEqual(
+        tabs?.y ?? 0,
+      );
       await page.waitForTimeout(400);
       await tapBook(page, run, a);
       await expect(page).toHaveURL(new RegExp(`book=${a}\\b`));

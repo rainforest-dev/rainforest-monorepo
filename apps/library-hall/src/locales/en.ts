@@ -15,7 +15,7 @@ export const en: Translation<typeof zh> = {
     tag: 'By topic',
     collection: 'By collection',
     series: 'By series',
-    author: 'By author',
+    author: 'By author or source',
     month: 'By date',
   },
   bookcase: {
@@ -23,7 +23,7 @@ export const en: Translation<typeof zh> = {
       tag: 'Untagged',
       collection: 'Other',
       series: 'No series',
-      author: 'No author',
+      author: 'No author or source',
       month: 'Undated',
     },
     other: 'Other',

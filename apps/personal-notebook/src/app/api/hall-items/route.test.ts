@@ -2,12 +2,14 @@ import { hallItemsResponseSchema } from '@rainforest-dev/library-contract';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
+  appendPages,
   createNotebook,
   NOTEBOOK_COLORS,
   setNotebookStatus,
+  setPageTranscription,
   trashNotebook,
 } from '@/lib/server';
-import { setUpNotebookShelf } from '@/test';
+import { pagePng, setUpNotebookShelf } from '@/test';
 
 import { GET } from './route';
 
@@ -43,10 +45,38 @@ describe('GET /api/hall-items', () => {
     });
     expect(NOTEBOOK_COLORS).toContain(item?.color);
     expect(item?.groups).toContain('status:active');
+    expect(item?.groups).toContain('author:Rainforest');
     expect(item?.groups.some((g) => /^year:\d{4}$/.test(g))).toBe(true);
     expect(item?.groups.some((g) => /^month:\d{4}-\d{2}$/.test(g))).toBe(true);
     expect(items.find((i) => i.id === String(archived.id))?.groups).toContain(
       'status:archived',
+    );
+  });
+
+  it('dates a notebook with no start by its earliest dated page, else by its name', async () => {
+    const paged = await createNotebook('Hall Paged 2026-08');
+    const pages = (
+      await appendPages(paged.id, [
+        { name: 'a.png', type: 'image/png', bytes: await pagePng(21) },
+        { name: 'b.png', type: 'image/png', bytes: await pagePng(22) },
+      ])
+    ).added;
+    await setPageTranscription(pages[0] ?? 0, {
+      transcription: 'later',
+      pageDate: '2026-07-20',
+    });
+    await setPageTranscription(pages[1] ?? 0, {
+      transcription: 'earlier',
+      pageDate: '2026-07-03',
+    });
+    const named = await createNotebook('Bullet Journal 2025-11');
+
+    const { items } = hallItemsResponseSchema.parse(await (await GET()).json());
+    const groups = (id: number) =>
+      items.find((i) => i.id === String(id))?.groups;
+    expect(groups(paged.id)).toContain('month:2026-07');
+    expect(groups(named.id)).toEqual(
+      expect.arrayContaining(['month:2025-11', 'year:2025']),
     );
   });
 

@@ -52,6 +52,16 @@ export async function setPrefs(
   ]);
 }
 
+/**
+ * The shared bar's own tab for this collection: back to the catalogue with no filters, in the
+ * same app. The library's name next to it goes to the hall instead.
+ */
+export function booksTab(page: Page) {
+  return page
+    .getByRole('navigation', { name: 'Collections' })
+    .getByRole('link', { name: 'Books', exact: true });
+}
+
 export function options(page: Page) {
   return page.getByRole('listbox', { name: 'Books' }).getByRole('option');
 }

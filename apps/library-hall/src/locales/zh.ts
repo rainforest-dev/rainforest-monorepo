@@ -12,7 +12,7 @@ export const zh = {
     tag: '依主題',
     collection: '依館藏',
     series: '依系列',
-    author: '依作者',
+    author: '依作者／來源',
     month: '依時間',
   },
   bookcase: {
@@ -20,7 +20,7 @@ export const zh = {
       tag: '未分類',
       collection: '其他',
       series: '無系列',
-      author: '無作者',
+      author: '無作者或來源',
       month: '無日期',
     },
     other: '其他',

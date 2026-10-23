@@ -1,0 +1,62 @@
+{
+  "name": "library-agents-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "projectType": "application",
+    "implicitDependencies": [
+      "library-hall"
+    ],
+    "targets": {
+      "agent-e2e": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          {
+            "projects": [
+              "library-hall"
+            ],
+            "target": "build"
+          }
+        ],
+        "options": {
+          "cwd": "apps/library-agents-e2e",
+          "command": "e2e run"
+        },
+        "cache": false
+      },
+      "agent-e2e-live": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/library-agents-e2e",
+          "command": "e2e run --config e2e.live.config.ts"
+        },
+        "cache": false
+      },
+      "bug-bash": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          {
+            "projects": [
+              "library-hall"
+            ],
+            "target": "build"
+          }
+        ],
+        "options": {
+          "cwd": "apps/library-agents-e2e",
+          "command": "e2e explore --agent newcomer"
+        },
+        "cache": false
+      }
+    }
+  },
+  "devDependencies": {
+    "@ai-sdk/anthropic": "^4.0.85",
+    "@e2e-dev/github": "^0.4.2",
+    "@e2e-dev/web": "^0.15.2",
+    "@types/node": "catalog:",
+    "ai": "^7.0.148",
+    "e2e": "^0.21.2"
+  }
+}
