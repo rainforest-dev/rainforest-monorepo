@@ -87,7 +87,8 @@ export function HallSky({ layout }: { layout: HallLayout }) {
   const now = useHallTime();
   const sun = useMemo(() => sunPosition(now), [now]);
   const sky = useMemo(() => skyLight(sun.elevation), [sun]);
-  const up = sun.elevation > -0.03;
+  // One switch for the light's colour, strength and direction, so none of them jumps alone.
+  const up = sky.sunUp;
   const direction = useMemo(() => {
     if (!up) return MOON.clone();
     const d = sunDirection(sun);

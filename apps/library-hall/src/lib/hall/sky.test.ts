@@ -54,4 +54,18 @@ describe('skyLight', () => {
     const [r, , b] = sunset.horizon;
     expect(r).toBeGreaterThan(b);
   });
+
+  it('blends through dusk and hands the light to the moon in one step', () => {
+    const at = (degrees: number) => skyLight((degrees * Math.PI) / 180);
+    const dusk = at(-4);
+    const lowSun = at(5);
+    for (const light of [dusk, lowSun]) {
+      expect(light.night).toBeGreaterThan(0);
+      expect(light.night).toBeLessThan(1);
+    }
+    expect(lowSun.lampIntensity).toBeLessThan(dusk.lampIntensity);
+    expect(lowSun.sunUp).toBe(true);
+    expect(at(-9).sunUp).toBe(false);
+    expect(at(-9).sunIntensity).toBeLessThan(lowSun.sunIntensity);
+  });
 });

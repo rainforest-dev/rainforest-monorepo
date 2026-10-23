@@ -89,6 +89,8 @@ export interface SkyLight {
   zenith: Rgb;
   horizon: Rgb;
   ground: Rgb;
+  /** Whether the shadow-casting light is the sun (true) or the moon. */
+  sunUp: boolean;
   /** Sunlight (or moonlight) colour and strength, for the one shadow-casting light. */
   sun: Rgb;
   sunIntensity: number;
@@ -142,15 +144,17 @@ export function skyLight(elevation: number): SkyLight {
     GOLDEN.horizon,
     golden,
   );
-  const sun = day > 0.02 ? mix(DAY.sun, GOLDEN.sun, golden) : NIGHT.moon;
+  const sunUp = day > 0.02;
+  const sun = sunUp ? mix(DAY.sun, GOLDEN.sun, golden) : NIGHT.moon;
   return {
     night: 1 - day,
     zenith,
     horizon,
     ground: mix(NIGHT.ground, DAY.ground, day),
+    sunUp,
     sun,
     // The sun's strength grows as it climbs; at night a faint moon keeps shapes readable.
-    sunIntensity: day > 0.02 ? 0.4 + 2.2 * smooth(-2, 40, degrees) : 0.25,
+    sunIntensity: sunUp ? 0.4 + 2.2 * smooth(-2, 40, degrees) : 0.25,
     lampIntensity: 0.6 + 2.4 * (1 - day),
     ambientIntensity: 0.25 + 0.4 * day,
   };
