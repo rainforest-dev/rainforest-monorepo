@@ -22,7 +22,7 @@ won't turn.
 
 The runner needs Node 24.8 or newer, and an Anthropic key in `ANTHROPIC_API_KEY`. Locally,
 keep it in `apps/library-hall-e2e/.env.local` (gitignored); Nx loads that file for this project's
-targets. These targets are separate from `e2e`, so `nx affected -t e2e` never runs them.
+targets. These targets are separate from `e2e`, so `nx affected -t e2e` and CI never run them.
 `E2E_MODEL` overrides the model, which defaults to `claude-sonnet-5-5`.
 
 ```bash
@@ -35,22 +35,8 @@ cd apps/library-hall-e2e/agents && pnpm exec e2e run --headed     # watch it
 Verified `agent.act` steps are recorded in `.e2e/cache/` and replay later without a model
 call. Assertions always run live. Each run prints its tokens and cost.
 
-## CI
+## Not in CI
 
-`.github/workflows/agent-e2e.yml` runs these suites:
-
-- **Hall suite on a PR:** runs once the PR carries the `agent-e2e` label, and again on every
-  push while the label stays.
-- **Live suite:** runs every night, and only when its secrets are set.
-- **Manual runs:** "Run workflow" can start the hall suite, the live suite, or a bug bash
-  with a goal.
-
-On a PR, the results are posted as one PR comment. The replay cache is kept in an Actions
-cache.
-
-The workflow reads these repository secrets:
-
-| Secret                                           | For                                                                                                                    |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`                              | Every model call                                                                                                       |
-| `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | The live suite: an Access service token. The library's Access application needs a Service Auth policy that accepts it. |
+These suites run on a machine with a key, not in GitHub Actions. The live suite also needs
+`CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`, an Access service token that the
+library's Access application accepts through a Service Auth policy.

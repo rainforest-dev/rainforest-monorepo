@@ -1,4 +1,3 @@
-import { github } from '@e2e-dev/github';
 import { web } from '@e2e-dev/web';
 import type { E2EConfig } from 'e2e';
 
@@ -29,11 +28,8 @@ const config: E2EConfig = {
   ],
   tests: ['tests/**/*.e2e.ts'],
   agents,
-  // CI keeps the cache in an Actions cache, so it records too and later runs replay.
   cache: { mode: 'read-write' },
-  reporters: process.env['GITHUB_ACTIONS']
-    ? ['list', 'junit', github()]
-    : ['list'],
+  reporters: ['list'],
 };
 
 export default config;

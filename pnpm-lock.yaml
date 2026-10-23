@@ -292,9 +292,6 @@ importers:
       '@ai-sdk/anthropic':
         specifier: ^4.0.85
         version: 4.0.85(zod@4.6.5)
-      '@e2e-dev/github':
-        specifier: ^0.4.2
-        version: 0.4.2(e2e@0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5)))
       '@e2e-dev/web':
         specifier: ^0.15.2
         version: 0.15.2(e2e@0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5)))
@@ -2373,12 +2370,6 @@ packages:
 
   '@dimforge/rapier3d-compat@0.12.0':
     resolution: {integrity: sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==}
-
-  '@e2e-dev/github@0.4.2':
-    resolution: {integrity: sha512-TO4zowarRLMWf3rLfUwhiEhfRHwi4W5rFg8yvV8IrgpZxpBW+VsHzA1cZ+mCC5gh9Rc5fXDxQjLM654D61q6Fw==}
-    engines: {node: ^22.22.3 || >=24.8.0}
-    peerDependencies:
-      e2e: '>=0.15.0 <1'
 
   '@e2e-dev/web@0.15.2':
     resolution: {integrity: sha512-XidBXbpiEeJQqPsXcEwMOon5KDk8PEaaXR65rDu5P1u115bW+2KK7DlWqYvLg/RpjK/pnOa5iNuD9JthqODLVQ==}
@@ -15345,10 +15336,6 @@ snapshots:
       uuid: 8.3.2
 
   '@dimforge/rapier3d-compat@0.12.0': {}
-
-  '@e2e-dev/github@0.4.2(e2e@0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5)))':
-    dependencies:
-      e2e: 0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5))
 
   '@e2e-dev/web@0.15.2(e2e@0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5)))':
     dependencies:

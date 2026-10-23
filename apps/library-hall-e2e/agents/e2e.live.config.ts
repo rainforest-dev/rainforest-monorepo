@@ -30,10 +30,7 @@ const config: E2EConfig = {
   agents,
   // The live shelves change every day, so a recording would rarely replay.
   cache: { mode: 'off' },
-  // The repository is public, and so are its Actions logs. In CI the run writes only a JUnit
-  // file, which stays on the runner; the job prints its pass and fail counts and nothing a page
-  // showed.
-  reporters: process.env['GITHUB_ACTIONS'] ? ['junit'] : ['list'],
+  reporters: ['list'],
 };
 
 export default config;
