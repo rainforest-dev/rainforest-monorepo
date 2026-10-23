@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { gotoLibrary, pane } from './support/library';
+import { booksTab, gotoLibrary, pane } from './support/library';
 import { authorName, bookById } from './support/seed';
 
 const tidewater2 = bookById(38);
@@ -43,9 +43,7 @@ test.describe('detail pane', () => {
       tidewater2.title,
     );
     await expect(pane(page)).toHaveCount(0);
-    await expect(
-      page.getByRole('link', { name: 'Library' }).first(),
-    ).toHaveAttribute('href', '/books');
+    await expect(booksTab(page)).toHaveAttribute('href', '/books');
   });
 
   test('Read links to the reader and is absent without an EPUB', async ({

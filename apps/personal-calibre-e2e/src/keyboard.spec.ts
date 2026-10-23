@@ -1,6 +1,12 @@
 import { expect, type Page, test } from '@playwright/test';
 
-import { appPath, gotoLibrary, options, tokenColor } from './support/library';
+import {
+  appPath,
+  booksTab,
+  gotoLibrary,
+  options,
+  tokenColor,
+} from './support/library';
 
 async function tileTitle(page: Page, id: string | null): Promise<string> {
   const label = await page
@@ -158,8 +164,8 @@ test.describe('shelf keyboard', () => {
 
     await page.goto(appPath(`/?q=${encodeURIComponent(secondTitle)}`));
     await expect(page.locator('[data-library-ready]')).toHaveCount(1);
-    await page.getByRole('link', { name: 'Library' }).click();
-    await expect(page).toHaveURL('/');
+    await booksTab(page).click();
+    await expect(page).toHaveURL(appPath('/'));
 
     const first = page.locator(`[role="option"][data-book-id="${firstId}"]`);
     await expect(first).toBeVisible();
@@ -180,8 +186,8 @@ test.describe('shelf keyboard', () => {
     await gotoLibrary(page, '/?series=4');
     const trackedId = await options(page).first().getAttribute('data-book-id');
 
-    await page.getByRole('link', { name: 'Library' }).click();
-    await expect(page).toHaveURL('/');
+    await booksTab(page).click();
+    await expect(page).toHaveURL(appPath('/'));
 
     const tracked = page.locator(
       `[role="option"][data-book-id="${trackedId}"]`,
@@ -213,8 +219,8 @@ test.describe('shelf keyboard', () => {
 
     await page.goto(appPath(`/?q=${encodeURIComponent(secondTitle)}`));
     await expect(page.locator('[data-library-ready]')).toHaveCount(1);
-    await page.getByRole('link', { name: 'Library' }).click();
-    await expect(page).toHaveURL('/');
+    await booksTab(page).click();
+    await expect(page).toHaveURL(appPath('/'));
 
     const first = page.locator(`[role="option"][data-book-id="${firstId}"]`);
     await expect(first).toBeVisible();
@@ -239,7 +245,7 @@ test.describe('shelf keyboard', () => {
     await expect.poll(() => isActiveElementBody(page)).toBe(true);
 
     await page.goForward();
-    await expect(page).toHaveURL('/');
+    await expect(page).toHaveURL(appPath('/'));
     await expect(options(page).first()).toHaveAttribute(
       'data-book-id',
       firstId ?? '',

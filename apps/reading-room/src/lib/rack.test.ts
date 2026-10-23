@@ -11,8 +11,8 @@ import { roomT } from '@/locales';
 import {
   articleAnchor,
   rackHallItems,
-  savedMonth,
   rackShelves,
+  savedMonth,
   searchRack,
 } from './rack.js';
 import { parseReadingQueue, type ReadingQueue } from './readingQueue.js';

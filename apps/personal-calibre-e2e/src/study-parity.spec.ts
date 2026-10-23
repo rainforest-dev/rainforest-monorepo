@@ -135,7 +135,7 @@ async function stableShot(page: Page): Promise<Buffer> {
 }
 
 async function focusFirstOption(page: Page): Promise<void> {
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 80; i++) {
     const role = await page.evaluate(() =>
       document.activeElement?.getAttribute('role'),
     );

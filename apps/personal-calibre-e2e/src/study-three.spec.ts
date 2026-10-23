@@ -784,7 +784,7 @@ async function expectOverlayInCanvas(page: Page): Promise<void> {
 }
 
 async function tabIntoListbox(page: Page): Promise<void> {
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 80; i++) {
     await page.keyboard.press('Tab');
     const role = await page.evaluate(() =>
       document.activeElement?.getAttribute('role'),

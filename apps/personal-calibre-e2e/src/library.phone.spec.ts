@@ -47,8 +47,16 @@ test.describe('library on phone', () => {
     await expect(options(page).nth(1)).toHaveAttribute('aria-selected', 'true');
     const bar = page.getByRole('toolbar', { name: 'Bulk actions' });
     await expect(bar).toContainText('2 selected');
+    // It floats just above the library's tab bar at the foot of the screen.
     const box = await bar.boundingBox();
-    expect(box && box.y + box.height).toBeGreaterThan(844 - 24);
+    const tabs = await page
+      .getByRole('navigation', { name: 'Collections' })
+      .last()
+      .boundingBox();
+    const bottom = box ? box.y + box.height : 0;
+    expect(tabs?.y).toBeGreaterThan(844 - 100);
+    expect(bottom).toBeLessThanOrEqual(tabs?.y ?? 0);
+    expect(bottom).toBeGreaterThan((tabs?.y ?? 0) - 24);
     await page.getByRole('button', { name: 'Done' }).click();
     await expect(bar).toHaveCount(0);
   });

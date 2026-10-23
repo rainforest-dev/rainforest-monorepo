@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  appPath,
   BASE_URL,
+  booksTab,
   FAULT_COOKIE,
   gotoLibrary,
   options,
@@ -101,8 +103,8 @@ test.describe('search', () => {
     const input = page.getByPlaceholder('Search books');
     await expect(input).toHaveValue('Halvik');
 
-    await page.getByRole('link', { name: 'Library' }).click();
-    await expect(page).toHaveURL('/');
+    await booksTab(page).click();
+    await expect(page).toHaveURL(appPath('/'));
     await expect(input).toHaveValue('');
 
     await input.focus();
