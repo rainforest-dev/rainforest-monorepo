@@ -3,8 +3,12 @@ import {
   HALL_ITEMS_PATH,
   type HallItem,
   hallItemSchema,
+  mapTopicGroups,
+  type TopicMap,
 } from '@rainforest-dev/library-contract';
 import { z } from 'zod';
+
+import { loadTopicMap } from './topic-map';
 
 /** The collections that put items on the hall's shelves, in shelf order. */
 export const SOURCE_COLLECTIONS = [
@@ -86,19 +90,32 @@ async function fetchSource(
   }
 }
 
-/** Every configured collection's shelf, fetched in parallel. One failing source never blanks the rest. */
+/**
+ * Every configured collection's shelf, fetched in parallel. One failing source never blanks the
+ * rest. Each item's topics are renamed through the vault's topic map, so the same subject shares
+ * a bookcase whatever each collection calls it.
+ */
 export async function loadHallItems(
   env: Record<string, string | undefined> = process.env,
   fetcher: typeof fetch = fetch,
+  topicMap?: TopicMap,
 ): Promise<HallItemsResult> {
-  const results = await Promise.all(
-    SOURCE_COLLECTIONS.flatMap((collection) => {
-      const url = sourceUrl(collection, env);
-      return url ? [fetchSource(collection, url, fetcher)] : [];
-    }),
-  );
+  const [map, results] = await Promise.all([
+    topicMap ?? loadTopicMap(env),
+    Promise.all(
+      SOURCE_COLLECTIONS.flatMap((collection) => {
+        const url = sourceUrl(collection, env);
+        return url ? [fetchSource(collection, url, fetcher)] : [];
+      }),
+    ),
+  ]);
   return {
-    items: results.flatMap((r) => r.items),
+    items: results.flatMap((r) =>
+      r.items.map((item) => ({
+        ...item,
+        groups: mapTopicGroups(item.groups, map),
+      })),
+    ),
     sources: results.map((r) => r.status),
   };
 }

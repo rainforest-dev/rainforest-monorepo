@@ -11,7 +11,11 @@ test.describe('a bookcase', () => {
     await page.goto('/?renderer=css');
     await enterBookcase(page, 'topics-topic-sea');
     await expect(page).toHaveURL(/case=topics-topic-sea/);
-    await expect(page.locator('[role="option"]')).toHaveCount(3);
+    // Three books, and the notebook the topic map files under `sea`.
+    await expect(page.locator('[role="option"]')).toHaveCount(4);
+    await expect(
+      page.locator('[role="option"]', { hasText: 'Field Sketches' }),
+    ).toHaveCount(1);
 
     await page.locator('[data-hall-back]').click();
     await expect(page).not.toHaveURL(/case=/);

@@ -33,7 +33,8 @@ export const NOTEBOOKS = [
     id: 'n-1',
     title: 'Field Sketches',
     color: '#2f8f83',
-    groups: ['month:2026-07'],
+    // `ocean` is a word the books never use; the topic map files it under their `sea`.
+    groups: ['topic:ocean', 'month:2026-07'],
     href: '/notebooks/n-1',
   },
   {
@@ -45,6 +46,14 @@ export const NOTEBOOKS = [
     href: '/notebooks/n-2',
   },
 ];
+
+/** The vault's topic map, as the hall reads it from `LIBRARY_TOPIC_MAP`. */
+export const TOPIC_MAP = `# Topic Map
+
+| Topic | Tags |
+| --- | --- |
+| sea | \`ocean\` |
+`;
 
 type Item = (typeof BOOKS)[number] | (typeof NOTEBOOKS)[number];
 

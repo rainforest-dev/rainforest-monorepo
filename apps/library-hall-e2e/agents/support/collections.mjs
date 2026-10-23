@@ -49,7 +49,13 @@ export const SHELVES = {
       'n-2',
       'Garden Plans 2026-09',
       '#7a3b2e',
-      ['status:archived', 'creator:Rainforest', 'month:2026-09'],
+      // A `#garden` written on its pages; the topic map files it under the rack's `nature`.
+      [
+        'topic:garden',
+        'status:archived',
+        'creator:Rainforest',
+        'month:2026-09',
+      ],
       '/notebooks/n-2',
     ),
   ],
@@ -92,6 +98,14 @@ export const SHELVES = {
     ),
   ],
 };
+
+/** The vault's topic map, as the hall reads it from `LIBRARY_TOPIC_MAP`. */
+export const TOPIC_MAP = `# Topic Map
+
+| Topic | Tags |
+| --- | --- |
+| nature | \`garden\` \`plants\` |
+`;
 
 const search = (items, q) => {
   const needle = q.toLowerCase();

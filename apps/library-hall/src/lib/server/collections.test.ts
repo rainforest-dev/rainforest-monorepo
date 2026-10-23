@@ -1,3 +1,4 @@
+import { parseTopicMap } from '@rainforest-dev/library-contract';
 import { describe, expect, it, vi } from 'vitest';
 
 import { loadHallItems, sourceUrl } from './collections';
@@ -101,5 +102,29 @@ describe('loadHallItems', () => {
       { collection: 'books', ok: true, count: 1, skipped: 1 },
     ]);
     warn.mockRestore();
+  });
+
+  it("renames each item's topics through the topic map", async () => {
+    const fetcher = vi.fn((url: string | URL | Request) =>
+      respond({
+        items: [
+          String(url).includes('8082')
+            ? { ...item('book', '1'), groups: ['topic:藝術設計', 'month:x'] }
+            : { ...item('article', 'a'), groups: ['topic:ui-ux'] },
+        ],
+      }),
+    ) as unknown as typeof fetch;
+    const result = await loadHallItems(
+      {
+        LIBRARY_BOOKS_URL: 'http://calibre:8082',
+        LIBRARY_RACK_URL: 'http://rack:1',
+      },
+      fetcher,
+      parseTopicMap('| 設計 | `藝術設計` `ui-ux` |'),
+    );
+    expect(result.items.map((i) => i.groups)).toEqual([
+      ['topic:設計', 'month:x'],
+      ['topic:設計'],
+    ]);
   });
 });

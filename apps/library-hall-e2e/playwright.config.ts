@@ -1,10 +1,16 @@
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
-import { COLLECTIONS_ORIGIN } from './src/support/collections';
+import { COLLECTIONS_ORIGIN, TOPIC_MAP } from './src/support/collections';
 
 const PORT = 3040;
+const topicMap = join(tmpdir(), 'library-hall-e2e-topic-map.md');
+writeFileSync(topicMap, TOPIC_MAP);
 const externalServer = process.env['BASE_URL'];
 const baseURL = externalServer ?? `http://127.0.0.1:${PORT}`;
 
@@ -40,6 +46,7 @@ export default defineConfig({
           LIBRARY_BOOKS_URL: `${COLLECTIONS_ORIGIN}/books`,
           LIBRARY_NOTEBOOKS_URL: `${COLLECTIONS_ORIGIN}/notebooks`,
           LIBRARY_RACK_URL: `${COLLECTIONS_ORIGIN}/rack`,
+          LIBRARY_TOPIC_MAP: topicMap,
         },
       },
   projects: [

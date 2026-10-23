@@ -1,8 +1,10 @@
 import { spawn } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { SHELVES, startCollections } from './collections.mjs';
+import { SHELVES, startCollections, TOPIC_MAP } from './collections.mjs';
 
 /**
  * Starts the fictional collections, then the hall's production build in front of them. The e2e
@@ -20,6 +22,11 @@ const { origin, server } = await startCollections();
 const env = { ...process.env };
 for (const collection of Object.keys(SHELVES))
   env[`LIBRARY_${collection.toUpperCase()}_URL`] = `${origin}/${collection}`;
+env.LIBRARY_TOPIC_MAP = join(
+  mkdtempSync(join(tmpdir(), 'hall-agents-')),
+  'Topic-Map.md',
+);
+writeFileSync(env.LIBRARY_TOPIC_MAP, TOPIC_MAP);
 
 const next = spawn(
   resolve(hall, 'node_modules/.bin/next'),
