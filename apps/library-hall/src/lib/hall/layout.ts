@@ -11,6 +11,8 @@ const MAX_COLUMNS = 4;
 const FRONT_OFFSET = 0.75;
 const WALL_MARGIN = 1.4;
 const ENTRANCE_DEPTH = 5;
+/** How far a wing's sign stands in from the left wall. */
+const SIGN_INSET = 0.6;
 
 export const BOOK_STEP = 0.075;
 const BOOK_INSET = 0.08;
@@ -44,7 +46,7 @@ export interface WingPlacement {
   /** Index of the wing's first case in `HallLayout.cases`. */
   first: number;
   count: number;
-  /** The wing's name sign, at the left end of its first row. */
+  /** The wing's name sign, in the left aisle beside its first row. */
   sign: { x: number; z: number };
 }
 
@@ -124,18 +126,9 @@ export function layoutHall(
       const z = -(row + r) * pitchZ;
       cases.push({ x, z, front: { x, z: z + CASE_DEPTH / 2 + FRONT_OFFSET } });
     }
-    const inFirstRow = Math.min(MAX_COLUMNS, Math.max(1, count));
-    placed.push({
-      first,
-      count,
-      sign: {
-        x: Math.max(
-          -halfWidth + 0.6,
-          -((inFirstRow - 1) / 2) * pitchX - CASE_WIDTH / 2 - 0.55,
-        ),
-        z: z0,
-      },
-    });
+    // Every sign stands in the left aisle, clear of the cases: a short wing's cases are
+    // centred, and a sign beside them would sit among the name plates of the rows around it.
+    placed.push({ first, count, sign: { x: -halfWidth + SIGN_INSET, z: z0 } });
     row += rowsOf(count);
   }
   const room: Room = {

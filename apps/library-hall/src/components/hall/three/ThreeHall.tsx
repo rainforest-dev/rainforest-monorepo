@@ -54,9 +54,11 @@ import {
   type HallBook,
   type HallLayout,
   hexToRgb,
+  liftClear,
   nearestOpen,
   placeBooks,
   RESORT_MS,
+  type ScreenBox,
   type Slot,
   takeoffOrder,
   type Wing,
@@ -616,36 +618,70 @@ function HallScene({
     state.camera.updateMatrixWorld();
     if (state.camera.position.distanceTo(goal) > 0.01) busy = true;
 
-    // Name plates follow their bookcases on screen.
+    // Name plates follow their bookcases on screen, and each wing's sign stands clear of the
+    // plates in front of it. Sizes are read before any write so a frame lays out once.
     const plates = labels.current?.children;
+    const boards = signs.current?.children;
+    const { width, height } = state.size;
+    const toScreen = (x: number, y: number, z: number) => {
+      const p = new Vector3(x, y, z).project(state.camera);
+      return {
+        x: ((p.x + 1) / 2) * width,
+        y: ((1 - p.y) / 2) * height,
+        hidden: p.z > 1,
+      };
+    };
+    const plateBoxes: (ScreenBox & { z: number; hidden: boolean })[] = [];
     if (plates) {
-      const { width, height } = state.size;
       layout.cases.forEach((placement, i) => {
         const plate = plates[i] as HTMLElement | undefined;
         if (!plate) return;
-        const p = new Vector3(
-          placement.x,
-          CASE_HEIGHT + 0.3,
-          placement.z,
-        ).project(state.camera);
-        const behind = p.z > 1;
-        plate.style.visibility = behind ? 'hidden' : 'visible';
-        plate.style.transform = `translate(-50%, -100%) translate(${((p.x + 1) / 2) * width}px, ${((1 - p.y) / 2) * height}px)`;
+        const at = toScreen(placement.x, CASE_HEIGHT + 0.3, placement.z);
+        const w = plate.offsetWidth;
+        const h = plate.offsetHeight;
+        plateBoxes[i] = {
+          x: at.x - w / 2,
+          y: at.y - h,
+          w,
+          h,
+          z: placement.z,
+          hidden: at.hidden || !plate.textContent,
+        };
       });
     }
-    const boards = signs.current?.children;
+    const boardBoxes: (ScreenBox & { hidden: boolean })[] = [];
     if (boards) {
-      const { width, height } = state.size;
       layout.wings.forEach((wing, i) => {
         const board = boards[i] as HTMLElement | undefined;
         if (!board) return;
-        const p = new Vector3(wing.sign.x, 1.6, wing.sign.z).project(
-          state.camera,
-        );
-        board.style.visibility = p.z > 1 ? 'hidden' : 'visible';
-        board.style.transform = `translate(-50%, -50%) translate(${((p.x + 1) / 2) * width}px, ${((1 - p.y) / 2) * height}px)`;
+        const at = toScreen(wing.sign.x, 1.6, wing.sign.z);
+        const w = board.offsetWidth;
+        const h = board.offsetHeight;
+        const box = { x: at.x - w / 2, y: at.y - h / 2, w, h };
+        // Wings run front to back, so the signs placed so far are all nearer than this one.
+        const nearer: ScreenBox[] = [
+          ...plateBoxes.filter((b) => b && !b.hidden && b.z > wing.sign.z),
+          ...boardBoxes.filter((b) => b && !b.hidden),
+        ];
+        boardBoxes[i] = {
+          ...box,
+          y: liftClear(box, nearer),
+          hidden: at.hidden,
+        };
       });
     }
+    plateBoxes.forEach((box, i) => {
+      const plate = plates?.[i] as HTMLElement | undefined;
+      if (!plate || !box) return;
+      plate.style.visibility = box.hidden ? 'hidden' : 'visible';
+      plate.style.transform = `translate(${box.x}px, ${box.y}px)`;
+    });
+    boardBoxes.forEach((box, i) => {
+      const board = boards?.[i] as HTMLElement | undefined;
+      if (!board || !box) return;
+      board.style.visibility = box.hidden ? 'hidden' : 'visible';
+      board.style.transform = `translate(${box.x}px, ${box.y}px)`;
+    });
 
     if (busy || keys.current.size > 0) invalidate();
   });

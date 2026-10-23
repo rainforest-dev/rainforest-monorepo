@@ -14,6 +14,7 @@ import {
 import { buildHall, buildWings, CASES_PER_WING } from './model';
 import { buildGrid, canStand, clearLine, findPath, nearestOpen } from './path';
 import { flightPose, flightProgress, placeBooks, RESORT_MS } from './resort';
+import { liftClear } from './screen';
 
 const item = (
   kind: HallItem['kind'],
@@ -207,6 +208,16 @@ describe('layoutHall', () => {
 });
 
 describe('layoutHall with wings', () => {
+  it('stands every sign in the left aisle, clear of the cases', () => {
+    const { cases, wings, room } = layoutHall([1, 2, 4]);
+    const left = Math.min(...cases.map((c) => c.x - CASE_WIDTH / 2));
+    for (const wing of wings) {
+      expect(wing.sign.x).toBe(wings[0]?.sign.x);
+      expect(wing.sign.x).toBeGreaterThan(room.minX);
+      expect(wing.sign.x).toBeLessThan(left - 1);
+    }
+  });
+
   it('starts each wing on a row of its own', () => {
     const { cases, wings } = layoutHall([2, 1, 4]);
     expect(wings.map((w) => [w.first, w.count])).toEqual([
@@ -301,5 +312,21 @@ describe('re-sort', () => {
     expect(flightProgress(RESORT_MS * 0.2, 0)).toBeGreaterThan(0);
     expect(flightProgress(RESORT_MS * 0.2, 0.9)).toBe(0);
     expect(flightProgress(RESORT_MS, 0.999)).toBe(1);
+  });
+});
+
+describe('liftClear', () => {
+  const plate = { x: 100, y: 100, w: 80, h: 20 };
+
+  it('leaves a box that overlaps nothing where it is', () => {
+    expect(liftClear({ x: 0, y: 100, w: 50, h: 30 }, [plate])).toBe(100);
+  });
+
+  it('lifts a box above a plate it overlaps, and above the next one up', () => {
+    expect(liftClear({ x: 120, y: 110, w: 50, h: 30 }, [plate])).toBe(68);
+    const higher = { x: 110, y: 60, w: 80, h: 20 };
+    expect(liftClear({ x: 120, y: 110, w: 50, h: 30 }, [plate, higher])).toBe(
+      28,
+    );
   });
 });
