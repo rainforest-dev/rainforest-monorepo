@@ -4,6 +4,7 @@ export * from './hooks';
 export * from './i18n';
 export * from './i18n-provider';
 export * from './ids';
+export * from './library-bar';
 export * from './locale-switch';
 export * from './prefs';
 export * from './shared-state';

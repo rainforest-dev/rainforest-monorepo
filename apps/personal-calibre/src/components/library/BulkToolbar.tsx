@@ -133,7 +133,7 @@ export function BulkToolbar({
       ref={toolbarRef}
       role="toolbar"
       aria-label={t('bulk.label')}
-      className="bg-card fixed inset-x-2 bottom-2 z-40 flex flex-wrap items-center gap-2 rounded-xl border p-2 shadow-lg lg:static lg:z-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+      className="bg-card fixed inset-x-2 bottom-[calc(var(--library-tab-bar,0px)+0.5rem)] z-40 flex flex-wrap items-center gap-2 rounded-xl border p-2 shadow-lg lg:static lg:z-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
     >
       <Button
         variant="ghost"

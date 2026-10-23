@@ -1,5 +1,6 @@
 /** The shell's own strings. Traditional Chinese is the source; `en.ts` must match its keys. */
 export const zh = {
+  brand: 'Rainforest 圖書館',
   collections: '館藏',
   search: {
     label: '搜尋整座圖書館',

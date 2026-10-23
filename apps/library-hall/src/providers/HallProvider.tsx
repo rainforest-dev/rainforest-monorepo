@@ -22,7 +22,7 @@ import {
 import { useIsFinePointerDesktop } from '@/hooks/useIsDesktop';
 import {
   type Bookcase,
-  buildHall,
+  buildWings,
   DEFAULT_GROUP_BY,
   type HallBook,
   type HallGroupBy,
@@ -33,6 +33,7 @@ import {
   type Renderer,
   rendererPref,
   type StudyBackend,
+  type Wing,
   writeLibraryPrefs,
 } from '@/lib';
 import { HALL_NAMESPACE } from '@/locales';
@@ -52,6 +53,8 @@ interface HallContextValue {
   groupBy: HallGroupBy;
   setGroupBy: (groupBy: HallGroupBy) => void;
   cases: readonly Bookcase[];
+  /** The same cases, one wing per collection, as the hall stands them. */
+  wings: readonly Wing[];
   /** The bookcase open in the Study, or `null` in the hall. */
   bookcase: Bookcase | null;
   page: number;
@@ -154,10 +157,11 @@ export function HallProvider({
 
   const groupParam = searchParams.get('group');
   const groupBy = isHallGroupBy(groupParam) ? groupParam : DEFAULT_GROUP_BY;
-  const cases = useMemo(
-    () => buildHall(books, groupBy, locale),
+  const wings = useMemo(
+    () => buildWings(books, groupBy, locale),
     [books, groupBy, locale],
   );
+  const cases = useMemo(() => wings.flatMap((w) => w.cases), [wings]);
   const bookById = useMemo(
     () => new Map(books.map((book) => [book.id, book])),
     [books],
@@ -276,6 +280,7 @@ export function HallProvider({
       groupBy,
       setGroupBy,
       cases,
+      wings,
       bookcase,
       page,
       pageCount: pages,
@@ -305,6 +310,7 @@ export function HallProvider({
       groupBy,
       setGroupBy,
       cases,
+      wings,
       bookcase,
       page,
       pages,

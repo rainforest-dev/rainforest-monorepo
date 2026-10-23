@@ -7,7 +7,6 @@ export const en: Translation<typeof zh> = {
     title: 'Rainforest Library',
     description: 'Walk between the bookcases and browse every collection',
   },
-  header: { name: 'Rainforest Library' },
   items_one: '{{count}} item',
   items_other: '{{count}} items',
   groupBy: {
@@ -35,7 +34,10 @@ export const en: Translation<typeof zh> = {
     browseList: 'Browse as a list',
     missing: '{{names}} could not load and is left off the shelves for now.',
     canvas:
-      'The library hall. Walk with W A S D or the arrow keys, or click the floor or a bookcase to walk there.',
+      'The library hall. Walk with W A S D or the arrow keys, or click the floor or a bookcase to walk there. Drag or press Q and E to turn the view; pinch, or scroll once the hall has focus, to zoom.',
+    turnLeft: 'Turn the view left',
+    turnRight: 'Turn the view right',
+    resetView: 'Reset the view',
     enter3d: 'Enter the 3D hall',
     phone3dHint:
       'Phones skip 3D by default to save battery and memory. Once inside, tap the floor to walk.',

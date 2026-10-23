@@ -44,6 +44,7 @@ describe('GET /api/hall-items', () => {
     expect(NOTEBOOK_COLORS).toContain(item?.color);
     expect(item?.groups).toContain('status:active');
     expect(item?.groups.some((g) => /^year:\d{4}$/.test(g))).toBe(true);
+    expect(item?.groups.some((g) => /^month:\d{4}-\d{2}$/.test(g))).toBe(true);
     expect(items.find((i) => i.id === String(archived.id))?.groups).toContain(
       'status:archived',
     );

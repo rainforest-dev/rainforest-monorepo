@@ -6,11 +6,12 @@ import { toHallBooks } from '@/lib/items';
 import {
   CASE_DEPTH,
   CASE_WIDTH,
+  frameFor,
   layoutHall,
   slotOf,
   SLOTS_PER_CASE,
 } from './layout';
-import { buildHall } from './model';
+import { buildHall, buildWings, CASES_PER_WING } from './model';
 import { buildGrid, canStand, clearLine, findPath, nearestOpen } from './path';
 import { flightPose, flightProgress, placeBooks, RESORT_MS } from './resort';
 
@@ -59,12 +60,29 @@ describe('toHallBooks', () => {
 });
 
 describe('buildHall', () => {
-  it('puts each group on its own bookcase, biggest first, ungrouped last', () => {
+  it('gives each collection its own wing, groups biggest first, ungrouped last', () => {
     const cases = buildHall(BOOKS, 'series', 'zh');
-    expect(cases.map((c) => [c.label, c.bookIds])).toEqual([
-      ['Earthsea', [idOf(1), idOf(2), idOf(3)]],
-      ['Hainish', [idOf(4)]],
-      ['無系列', [idOf(5)]],
+    expect(cases.map((c) => [c.wing, c.label, c.bookIds])).toEqual([
+      ['books', 'Earthsea', [idOf(1), idOf(2), idOf(3)]],
+      ['books', 'Hainish', [idOf(4)]],
+      // Notebooks have no series, so they stay together under their collection's name.
+      ['notebooks', '筆記本', [idOf(5)]],
+    ]);
+  });
+
+  it('keeps a small collection on the floor beside a big one', () => {
+    const many = toHallBooks([
+      ...Array.from({ length: 40 }, (_, i) =>
+        item('article', `a${i}`, [`tag:t${i}`]),
+      ),
+      item('book', 'b1', ['tag:Fiction']),
+      item('notebook', 'n1', []),
+    ]);
+    const wings = buildWings(many, 'tag', 'zh');
+    expect(wings.map((w) => [w.id, w.cases.length])).toEqual([
+      ['books', 1],
+      ['notebooks', 1],
+      ['rack', CASES_PER_WING],
     ]);
   });
 
@@ -72,6 +90,7 @@ describe('buildHall', () => {
     expect(buildHall(BOOKS, 'tag', 'zh').map((c) => c.label)).toEqual([
       'Fiction',
       '未分類',
+      'Fiction',
     ]);
     expect(buildHall(BOOKS, 'collection', 'zh').map((c) => c.label)).toEqual([
       '書',
@@ -79,24 +98,39 @@ describe('buildHall', () => {
     ]);
   });
 
+  it('gives every case a key no other wing uses', () => {
+    const keys = buildHall(BOOKS, 'tag', 'zh').map((c) => c.key);
+    expect(keys).toEqual([
+      'books-tag-Fiction',
+      'books-none',
+      'notebooks-tag-Fiction',
+    ]);
+  });
+
   it('names the bookcases in English for an en page', () => {
-    expect(buildHall(BOOKS, 'series', 'en').at(-1)?.label).toBe('No series');
+    expect(buildHall(BOOKS, 'tag', 'en')[1]?.label).toBe('Untagged');
     expect(buildHall(BOOKS, 'collection', 'en').map((c) => c.label)).toEqual([
       'Books',
       'Notebooks',
     ]);
   });
 
-  it('merges the smallest groups into one case past the limit', () => {
-    const cases = buildHall(BOOKS, 'series', 'zh', 2);
-    expect(cases.map((c) => [c.key, c.bookIds])).toEqual([
-      ['series-Earthsea', [idOf(1), idOf(2), idOf(3)]],
-      ['other', [idOf(4), idOf(5)]],
+  it('merges the smallest groups of a wing into one case past the limit', () => {
+    const series = toHallBooks([
+      item('book', '1', ['series:A']),
+      item('book', '2', ['series:A']),
+      item('book', '3', ['series:B']),
+      item('book', '4', ['series:C']),
+    ]);
+    const cases = buildHall(series, 'series', 'zh', 2);
+    expect(cases.map((c) => [c.key, c.bookIds.length])).toEqual([
+      ['books-series-A', 2],
+      ['books-other', 2],
     ]);
   });
 
   it('keeps every item exactly once', () => {
-    const cases = buildHall(BOOKS, 'series', 'zh', 2);
+    const cases = buildHall(BOOKS, 'series', 'zh', 1);
     expect(cases.flatMap((c) => c.bookIds).sort()).toEqual(
       BOOKS.map((b) => b.id).sort(),
     );
@@ -128,6 +162,40 @@ describe('layoutHall', () => {
     expect(second.y).toBe(first.y);
     expect(slotOf(placement, SLOTS_PER_CASE - 1, 1).y).toBeLessThan(first.y);
     expect(slotOf(placement, SLOTS_PER_CASE, 1).visible).toBe(false);
+  });
+});
+
+describe('layoutHall with wings', () => {
+  it('starts each wing on a row of its own', () => {
+    const { cases, wings } = layoutHall([2, 1, 4]);
+    expect(wings.map((w) => [w.first, w.count])).toEqual([
+      [0, 2],
+      [2, 1],
+      [3, 4],
+    ]);
+    const rows = [...new Set(cases.map((c) => c.z))];
+    expect(rows).toHaveLength(3);
+    expect(cases[2]?.z).toBeLessThan(cases[1]?.z ?? 0);
+  });
+
+  it('keeps the room the size of its frame whatever stands in it', () => {
+    const frame = frameFor([
+      [4, 4, 4, 4],
+      [1, 1],
+    ]);
+    const big = layoutHall([4, 4, 4, 4], frame);
+    const small = layoutHall([1, 1], frame);
+    expect(small.room).toEqual(big.room);
+  });
+
+  it('keeps the furniture off the walkways', () => {
+    const layout = layoutHall([4, 4, 4, 4]);
+    const grid = buildGrid(layout);
+    for (const f of layout.furniture)
+      expect(canStand(grid, { x: f.x, z: f.z })).toBe(false);
+    expect(canStand(grid, layout.spawn)).toBe(true);
+    for (const placement of layout.cases)
+      expect(findPath(grid, layout.spawn, placement.front)).not.toBeNull();
   });
 });
 
