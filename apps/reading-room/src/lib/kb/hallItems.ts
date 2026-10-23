@@ -11,7 +11,18 @@ const SOURCE_COLORS: Record<KbDoc['source'], string> = {
   readwise: '#b97a9c',
 };
 
-/** The knowledge base's shelf for the hall: every visible page, linked to itself. */
+/** Who wrote a wiki page: the wiki is the owner's own synthesis. */
+export const WIKI_AUTHOR = 'Rainforest';
+
+const authorGroup = (doc: KbDoc): string[] => {
+  const author = doc.source === 'wiki' ? WIKI_AUTHOR : doc.author?.trim();
+  return author ? [`author:${author}`] : [];
+};
+
+/**
+ * The knowledge base's shelf for the hall: every visible page, linked to itself. A Readwise
+ * document's author is its writer's; the month is when the page was last updated.
+ */
 export function kbHallItems(docs: readonly KbDoc[]): HallItem[] {
   return docs.map((doc) => ({
     kind: 'kb',
@@ -23,6 +34,10 @@ export function kbHallItems(docs: readonly KbDoc[]): HallItem[] {
       `shelf:${doc.shelf}`,
       ...(doc.status ? [`status:${doc.status}`] : []),
       ...doc.tags.map((tag) => `tag:${tag}`),
+      ...authorGroup(doc),
+      ...(/^\d{4}-\d{2}/.test(doc.updated ?? '')
+        ? [`month:${doc.updated?.slice(0, 7)}`]
+        : []),
     ],
     href: doc.href,
   }));

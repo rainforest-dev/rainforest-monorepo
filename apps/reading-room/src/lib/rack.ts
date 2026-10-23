@@ -54,22 +54,43 @@ const TIER_COLORS: Record<number, string> = {
 };
 const FALLBACK_COLOR = '#a9c1e3';
 
-/** The rack's shelf for the hall: every queued article, linked to its card on `/rack`. */
+const DAY_MS = 86_400_000;
+
+/** `YYYY-MM` of the day an article was saved, counted back from when the queue was generated. */
+export function savedMonth(
+  generated: string,
+  savedDaysAgo: number,
+): string | null {
+  const at = Date.parse(generated);
+  if (Number.isNaN(at)) return null;
+  return new Date(at - savedDaysAgo * DAY_MS).toISOString().slice(0, 7);
+}
+
+/**
+ * The rack's shelf for the hall: every queued article, linked to its card on `/rack`. The site
+ * stands in for the author, and the month is when the article was saved to Reader.
+ */
 export function rackHallItems(queue: ReadingQueue | null): HallItem[] {
   if (!queue) return [];
-  return queue.queue.map((item) => ({
-    kind: 'article',
-    id: item.id,
-    title: item.title,
-    color: TIER_COLORS[item.tier] ?? FALLBACK_COLOR,
-    groups: [
-      `tier:${item.tier}`,
-      `decay:${item.decay}`,
-      ...(item.siteName ? [`site:${item.siteName}`] : []),
-      ...item.tags.map((tag) => `tag:${tag}`),
-    ],
-    href: articleHref(item.id),
-  }));
+  return queue.queue.map((item) => {
+    const month = savedMonth(queue.generated, item.sort.savedDaysAgo);
+    return {
+      kind: 'article',
+      id: item.id,
+      title: item.title,
+      color: TIER_COLORS[item.tier] ?? FALLBACK_COLOR,
+      groups: [
+        `tier:${item.tier}`,
+        `decay:${item.decay}`,
+        ...(item.siteName
+          ? [`site:${item.siteName}`, `author:${item.siteName}`]
+          : []),
+        ...item.tags.map((tag) => `tag:${tag}`),
+        ...(month ? [`month:${month}`] : []),
+      ],
+      href: articleHref(item.id),
+    };
+  });
 }
 
 /**
