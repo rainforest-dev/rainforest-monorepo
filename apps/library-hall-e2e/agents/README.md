@@ -1,4 +1,4 @@
-# library-agents-e2e
+# Agent e2e (library-hall-e2e/agents)
 
 These are agent-driven end-to-end tests for the library. They run on
 [TesterArmy's open-source `e2e` runner](https://e2e.tester.army/docs). Each test mixes
@@ -20,14 +20,16 @@ won't turn.
 
 ## Run it
 
-The runner needs Node 24.8 or newer, and an Anthropic key in `ANTHROPIC_API_KEY`.
+The runner needs Node 24.8 or newer, and an Anthropic key in `ANTHROPIC_API_KEY`. Locally,
+keep it in `apps/library-hall-e2e/.env.local` (gitignored); Nx loads that file for this project's
+targets. These targets are separate from `e2e`, so `nx affected -t e2e` never runs them.
 `E2E_MODEL` overrides the model, which defaults to `claude-sonnet-5-5`.
 
 ```bash
-pnpm nx run library-agents-e2e:agent-e2e                     # builds the hall, runs tests/
-pnpm nx run library-agents-e2e:agent-e2e-live                # needs LIBRARY_URL and CF_ACCESS_CLIENT_*
-pnpm nx run library-agents-e2e:bug-bash -- "Explore the hall on a phone and report anything broken"
-cd apps/library-agents-e2e && pnpm exec e2e run --headed     # watch it
+pnpm nx run library-hall-e2e:agent-e2e                     # builds the hall, runs tests/
+pnpm nx run library-hall-e2e:agent-e2e-live                # needs LIBRARY_URL and CF_ACCESS_CLIENT_*
+pnpm nx run library-hall-e2e:bug-bash -- "Explore the hall on a phone and report anything broken"
+cd apps/library-hall-e2e/agents && pnpm exec e2e run --headed     # watch it
 ```
 
 Verified `agent.act` steps are recorded in `.e2e/cache/` and replay later without a model

@@ -211,27 +211,6 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.3)(@vitest/coverage-v8@4.1.4)(@vitest/ui@4.1.4)(jsdom@27.0.1)(vite@8.0.16(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
 
-  apps/library-agents-e2e:
-    devDependencies:
-      '@ai-sdk/anthropic':
-        specifier: ^4.0.85
-        version: 4.0.85(zod@4.6.5)
-      '@e2e-dev/github':
-        specifier: ^0.4.2
-        version: 0.4.2(e2e@0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5)))
-      '@e2e-dev/web':
-        specifier: ^0.15.2
-        version: 0.15.2(e2e@0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5)))
-      '@types/node':
-        specifier: 'catalog:'
-        version: 25.9.7
-      ai:
-        specifier: ^7.0.148
-        version: 7.0.148(zod@4.6.5)
-      e2e:
-        specifier: ^0.21.2
-        version: 0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5))
-
   apps/library-hall:
     dependencies:
       '@rainforest-dev/library-contract':
@@ -310,12 +289,27 @@ importers:
 
   apps/library-hall-e2e:
     devDependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^4.0.85
+        version: 4.0.85(zod@4.6.5)
+      '@e2e-dev/github':
+        specifier: ^0.4.2
+        version: 0.4.2(e2e@0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5)))
+      '@e2e-dev/web':
+        specifier: ^0.15.2
+        version: 0.15.2(e2e@0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5)))
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.63.0
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.7
+      ai:
+        specifier: ^7.0.148
+        version: 7.0.148(zod@4.6.5)
+      e2e:
+        specifier: ^0.21.2
+        version: 0.21.2(@ai-sdk/anthropic@4.0.85(zod@4.6.5))(ai@7.0.148(zod@4.6.5))
 
   apps/personal-calibre:
     dependencies:

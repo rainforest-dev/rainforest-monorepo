@@ -14,7 +14,7 @@ if (!port) throw new Error('usage: serve-hall.mjs <port>');
 
 const hall = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  '../../library-hall',
+  '../../../library-hall',
 );
 const { origin, server } = await startCollections();
 const env = { ...process.env };
