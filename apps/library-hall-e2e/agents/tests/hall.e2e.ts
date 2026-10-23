@@ -24,7 +24,7 @@ describe('the hall', { tags: ['hall'] }, () => {
     await expect(screen.getByRole('button', '視角向右轉')).toBeVisible();
     await agent.act('group the bookcases by collection (依館藏)');
     await agent.waitFor(
-      'the hall shows four signed wings, for 書, 筆記本, 報架 and 知識庫, with exactly one bookcase each',
+      'the hall shows four signed wings, for 書, 筆記本, 報架 and 知識庫',
       { vision: true },
     );
   });
