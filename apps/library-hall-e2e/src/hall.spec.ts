@@ -16,10 +16,14 @@ test.describe('the hall', () => {
       page.locator('[data-hall-case="topics-topic-winter"]'),
     ).toBeAttached();
     await expect(page.locator('[data-hall-missing]')).toContainText('報架');
-    // One untagged book and both notebooks have no topic, and the sign says so.
+    // One untagged book and one notebook have no topic, and the sign says so. The other
+    // notebook's `ocean` stands with the books under `sea`, through the topic map.
     await expect(page.locator('[data-hall-sign="topics"]')).toHaveText(
-      '主題3 件沒有主題',
+      '主題2 件沒有主題',
     );
+    await expect(
+      page.locator('[data-hall-case="topics-topic-ocean"]'),
+    ).toHaveCount(0);
     await expect(page.locator('[data-hall-case="topics-none"]')).toBeAttached();
     // By collection, each collection stands in a wing of its own, under its name.
     await page.locator('[data-group-by="collection"]').click();

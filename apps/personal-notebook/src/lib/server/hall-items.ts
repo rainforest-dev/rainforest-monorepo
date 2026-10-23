@@ -1,6 +1,6 @@
 import { type HallItem } from '@rainforest-dev/library-contract';
 import { fnv1a } from '@rainforest-dev/search';
-import { isNotNull, min } from 'drizzle-orm';
+import { isNotNull, like, min } from 'drizzle-orm';
 
 import { db, notebookPages } from '@/db';
 import { withBase } from '@/lib/base-path';
@@ -44,9 +44,42 @@ const dateOfNotebook = (notebook: NotebookSummary, firstPageDate?: string) =>
   monthInName(notebook.name) ??
   notebook.createdAt;
 
+/**
+ * A `#tag` written on a page: `#` after a space or the start of a line, then a letter or digit.
+ * A Markdown heading (`# Title`), `C#` and a URL's `#fragment` are not tags, nor is `#3`.
+ */
+const TAG = /(?<![\p{L}\p{N}_&/#])#([\p{L}\p{N}][\p{L}\p{N}_\-/]*)/gu;
+
+/** The most topics a notebook sends; the hall shelves it under the first. */
+const MAX_TOPICS = 8;
+
+/**
+ * The topics a notebook's pages name with `#tags`, most used first; a tie keeps the order they
+ * were first written in. Case does not split a tag: the first spelling names it.
+ */
+export function notebookTopics(
+  transcriptions: readonly (string | null)[],
+): string[] {
+  const counts = new Map<string, { tag: string; count: number }>();
+  for (const text of transcriptions) {
+    for (const [, tag = ''] of text?.matchAll(TAG) ?? []) {
+      if (/^\d+$/.test(tag)) continue;
+      const key = tag.toLowerCase();
+      const seen = counts.get(key);
+      if (seen) seen.count++;
+      else counts.set(key, { tag, count: 1 });
+    }
+  }
+  return [...counts.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, MAX_TOPICS)
+    .map(({ tag }) => tag);
+}
+
 export function toHallItem(
   notebook: NotebookSummary,
   firstPageDate?: string,
+  topics: readonly string[] = [],
 ): HallItem {
   const date = dateOfNotebook(notebook, firstPageDate);
   return {
@@ -54,8 +87,9 @@ export function toHallItem(
     id: String(notebook.id),
     title: notebook.name,
     color: notebookColor(notebook.name),
-    // No `topic:` yet: the hall shelves notebooks as unsorted by topic until page tags are read.
     groups: [
+      // The `#tags` on its pages; with none, the hall shelves it as having no topic.
+      ...topics.map((topic) => `topic:${topic}`),
       `status:${notebook.status}`,
       // A notebook is the owner's own handwriting.
       `creator:${NOTEBOOK_AUTHOR}`,
@@ -80,7 +114,22 @@ export async function notebookHallItems(): Promise<HallItem[]> {
       .all()
       .map(({ notebookId, first }) => [notebookId, first ?? undefined]),
   );
+  const tagged = new Map<number, (string | null)[]>();
+  for (const { notebookId, transcription } of db
+    .select({
+      notebookId: notebookPages.notebookId,
+      transcription: notebookPages.transcription,
+    })
+    .from(notebookPages)
+    .where(like(notebookPages.transcription, '%#%'))
+    .all()) {
+    tagged.set(notebookId, [...(tagged.get(notebookId) ?? []), transcription]);
+  }
   return (await listNotebooks()).map((notebook) =>
-    toHallItem(notebook, firstPageDates.get(notebook.id)),
+    toHallItem(
+      notebook,
+      firstPageDates.get(notebook.id),
+      notebookTopics(tagged.get(notebook.id) ?? []),
+    ),
   );
 }

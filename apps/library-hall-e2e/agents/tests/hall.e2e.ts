@@ -10,7 +10,7 @@ describe('the hall', { tags: ['hall'] }, () => {
     await expect(screen.getByRole('button', '視角向右轉')).toBeVisible();
     await expect(screen.getByRole('button', '依主題')).toBeVisible();
     await agent.assert(
-      'the hall shows one signed wing named 主題, and its sign says 2 件沒有主題',
+      'the hall shows one signed wing named 主題, and its sign says 1 件沒有主題',
       { vision: true },
     );
   });
@@ -73,6 +73,23 @@ describe('the hall', { tags: ['hall'] }, () => {
     );
     await agent.act('go back to the hall');
     await expect(screen.getByRole('button', '視角向右轉')).toBeVisible();
+  });
+
+  test('files a notebook under the topic the topic map gives its tag', async ({
+    app,
+    agent,
+    screen,
+  }) => {
+    await app.open('/');
+    // The notebook says `garden`, the article says `nature`, and the map makes them one topic.
+    await agent.act(
+      'in the 3D room, click the bookcase labelled "nature" to open it (if it is out of view, turn the view first)',
+    );
+    await expect(screen.getByRole('button', '回到大廳')).toBeVisible();
+    await agent.waitFor(
+      'the bookcase holds the article Notes on Slow Rivers and the notebook Garden Plans 2026-09',
+      { vision: true },
+    );
   });
 
   test('searches every collection at once', async ({ app, agent }) => {
