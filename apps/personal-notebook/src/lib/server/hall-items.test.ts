@@ -5,7 +5,7 @@ import { db, notebookPages } from '@/db';
 import { pagePng, setUpNotebookShelf } from '@/test';
 
 import { notebookHallItems, notebookTopics } from './hall-items';
-import { appendPages, createNotebook } from './notebooks';
+import { appendPages, createNotebook, reorderPages } from './notebooks';
 
 describe('notebookTopics', () => {
   it('reads #tags, most used first, ties in writing order', () => {
@@ -72,5 +72,32 @@ describe('notebookHallItems', () => {
     expect(groups(untagged.id)?.some((g) => g.startsWith('topic:'))).toBe(
       false,
     );
+  });
+
+  it('breaks a tie between two tags by page order, not by when a page was added', async () => {
+    const { id } = await createNotebook('Hall topic tie');
+    const { added } = await appendPages(id, [
+      { name: 'c.png', type: 'image/png', bytes: await pagePng(31) },
+      { name: 'd.png', type: 'image/png', bytes: await pagePng(47) },
+    ]);
+    const [first = 0, second = 0] = added;
+    db.update(notebookPages)
+      .set({ transcription: '#rain' })
+      .where(eq(notebookPages.id, first))
+      .run();
+    db.update(notebookPages)
+      .set({ transcription: '#garden' })
+      .where(eq(notebookPages.id, second))
+      .run();
+    // The page added last now comes first, so its tag was written first.
+    await reorderPages(id, [second, first]);
+
+    const item = (await notebookHallItems()).find(
+      (entry) => entry.id === String(id),
+    );
+    expect(item?.groups.filter((g) => g.startsWith('topic:'))).toEqual([
+      'topic:garden',
+      'topic:rain',
+    ]);
   });
 });
