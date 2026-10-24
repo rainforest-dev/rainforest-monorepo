@@ -47,6 +47,22 @@ describe('loadWeather', () => {
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the last reading through a failed refresh, for up to an hour', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ current: { weather_code: 63 } }))
+      .mockResolvedValue(new Response('down', { status: 503 }));
+    const f = fetcher as unknown as typeof fetch;
+    await loadWeather({}, f, 0);
+    expect(await loadWeather({}, f, WEATHER_TTL_MS)).toMatchObject({
+      kind: 'rain',
+    });
+    expect(await loadWeather({}, f, 59 * 60_000)).toMatchObject({
+      kind: 'rain',
+    });
+    expect(await loadWeather({}, f, 65 * 60_000)).toBeNull();
+  });
+
   it('takes another source, and can be turned off', async () => {
     const fetcher = reply({ weather_code: 3 });
     const f = fetcher as typeof fetch;
