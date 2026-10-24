@@ -65,6 +65,15 @@ function search(items: Item[], q: string) {
     .map(({ kind, id, title, href }) => ({ kind, id, title, href }));
 }
 
+/**
+ * Taipei's weather, shaped like Open-Meteo's current conditions: overcast at 22 °C. Not rain,
+ * which redraws the scene 30 times a second and slows every other test in the software
+ * renderer; `?hallWeather=rain` covers it.
+ */
+export const WEATHER = {
+  current: { weather_code: 3, cloud_cover: 100, temperature_2m: 22.4 },
+};
+
 export function startCollections(): Promise<() => Promise<void>> {
   const server = createServer((req, res) => {
     const send = (status: number, body: unknown) => {
@@ -81,6 +90,7 @@ export function startCollections(): Promise<() => Promise<void>> {
       return send(200, { results: search(BOOKS, q) });
     if (url.pathname === '/notebooks/api/library-search')
       return send(200, { results: search(NOTEBOOKS, q) });
+    if (url.pathname === '/weather') return send(200, WEATHER);
     // The rack is down, so the hall shows the rest and says which collection is missing.
     return send(500, { error: 'down' });
   });

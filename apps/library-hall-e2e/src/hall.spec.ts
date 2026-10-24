@@ -73,6 +73,41 @@ test.describe('the hall', () => {
     });
   }
 
+  test("says Taipei's time and weather, from the hall's weather source", async ({
+    page,
+  }) => {
+    await page.goto('/?hallTime=09:05');
+    await expect(page.locator('[data-hall-conditions]')).toHaveText(
+      '台北 09:05 · 陰 22°C',
+    );
+    await expect(page.locator('[data-hall-conditions]')).toHaveAttribute(
+      'data-hall-conditions',
+      'overcast',
+    );
+  });
+
+  for (const weather of ['rain', 'storm', 'fog', 'clear']) {
+    test(`draws the hall in ${weather} weather`, async ({ page }) => {
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await page.goto(`/?hallTime=16:00&hallWeather=${weather}`);
+      await expect(page.locator('[data-hall-conditions]')).toHaveAttribute(
+        'data-hall-conditions',
+        weather,
+      );
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () =>
+              (window as { __libraryHall?: { firstFrameAt: number | null } })
+                .__libraryHall?.firstFrameAt ?? null,
+          ),
+        )
+        .not.toBeNull();
+      expect(errors).toEqual([]);
+    });
+  }
+
   test('raises and sinks bookcases as the grouping needs', async ({ page }) => {
     await page.goto('/');
     const standing = page.locator('[data-hall-canvas] [data-hall-label]');

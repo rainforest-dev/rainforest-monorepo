@@ -47,6 +47,7 @@ export default defineConfig({
           LIBRARY_NOTEBOOKS_URL: `${COLLECTIONS_ORIGIN}/notebooks`,
           LIBRARY_RACK_URL: `${COLLECTIONS_ORIGIN}/rack`,
           LIBRARY_TOPIC_MAP: topicMap,
+          LIBRARY_WEATHER_URL: `${COLLECTIONS_ORIGIN}/weather`,
         },
       },
   projects: [
