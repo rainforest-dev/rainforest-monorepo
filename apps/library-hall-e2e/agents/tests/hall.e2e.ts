@@ -92,6 +92,19 @@ describe('the hall', { tags: ['hall'] }, () => {
     );
   });
 
+  test("shows Taipei's time and weather in the sky and in words", async ({
+    app,
+    agent,
+    screen,
+  }) => {
+    await app.open('/?hallTime=14:00');
+    await expect(screen.getByRole('button', '視角向右轉')).toBeVisible();
+    await agent.assert(
+      'a small label in the top-left corner of the hall reads 台北 14:00 · 雷雨 24°C, and the sky behind the hall is grey and overcast rather than blue',
+      { vision: true },
+    );
+  });
+
   test('searches every collection at once', async ({ app, agent }) => {
     await app.open('/');
     await agent.act('search the whole library for "tide"');

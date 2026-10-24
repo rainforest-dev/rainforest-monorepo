@@ -51,6 +51,20 @@ export const en: Translation<typeof zh> = {
       'Phones skip 3D by default to save battery and memory. Once inside, tap the floor to walk.',
     no3d: 'This device cannot show 3D, so the CSS book wall is used instead',
   },
+  conditions: {
+    label: 'The time and weather in Taipei now',
+    place: 'Taipei',
+    temperature: '{{value}}°C',
+    weather: {
+      clear: 'Clear',
+      cloudy: 'Cloudy',
+      overcast: 'Overcast',
+      fog: 'Fog',
+      drizzle: 'Drizzle',
+      rain: 'Rain',
+      storm: 'Thunderstorm',
+    },
+  },
   empty: {
     failed: 'The hall could not get the collection list',
     missing: '{{names}} could not load, so the bookcases are still empty',

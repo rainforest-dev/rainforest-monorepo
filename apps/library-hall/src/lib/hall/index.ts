@@ -4,3 +4,4 @@ export * from './path';
 export * from './resort';
 export * from './screen';
 export * from './sky';
+export * from './weather';

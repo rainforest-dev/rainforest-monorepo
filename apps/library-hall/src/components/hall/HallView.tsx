@@ -6,13 +6,19 @@ import { Box } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { canUseWebGL2 } from '@/components/study/capabilities';
-import { useIsPhone, useReducedMotion } from '@/hooks';
+import {
+  useHallTime,
+  useHallWeather,
+  useIsPhone,
+  useReducedMotion,
+} from '@/hooks';
 import { buildWings, cn, frameFor, HALL_GROUP_BYS, layoutHall } from '@/lib';
 import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
 import { CssHall } from './CssHall';
 import { HallBoundary } from './HallBoundary';
+import { HallConditions } from './HallConditions';
 import { HallSkeleton } from './HallSkeleton';
 import { readHallMemory } from './memory';
 import { LoadThreeHall } from './three/loadThreeHall';
@@ -31,6 +37,8 @@ export function HallView() {
   const { books, cases, wings, enterBookcase, hallReturn, studyFallback } =
     useHall();
   const reducedMotion = useReducedMotion();
+  const now = useHallTime();
+  const weather = useHallWeather();
   const locale = useLibraryLocale();
   const t = useLibraryT(HALL_NAMESPACE);
   const phone = useIsPhone();
@@ -83,7 +91,7 @@ export function HallView() {
       data-hall
       data-hall-mode={three === null ? undefined : three ? '3d' : 'css'}
     >
-      {three === null ? (
+      {three === null || now === null ? (
         <HallSkeleton />
       ) : three ? (
         <HallBoundary
@@ -99,6 +107,8 @@ export function HallView() {
               startKey={hallReturn?.key ?? null}
               memory={resume}
               reducedMotion={reducedMotion}
+              now={now}
+              weather={weather}
               onEnter={enterBookcase}
               onFirstFrame={onFirstFrame}
             />
@@ -117,10 +127,16 @@ export function HallView() {
                 )}
               />
             )}
+            <HallConditions
+              now={now}
+              weather={weather}
+              className="pointer-events-none absolute left-2 top-2"
+            />
           </div>
         </HallBoundary>
       ) : (
         <div className="flex flex-col gap-3">
+          <HallConditions now={now} weather={weather} />
           {webgl && (
             <Button
               size="lg"

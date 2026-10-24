@@ -53,6 +53,7 @@ import {
   type FloorPoint,
   type HallBook,
   type HallLayout,
+  type HallWeather,
   hexToRgb,
   liftClear,
   nearestOpen,
@@ -86,6 +87,9 @@ export interface ThreeHallProps {
   /** Where the reader stood when this page was last left, if the browser did not keep it. */
   memory: HallMemory | null;
   reducedMotion: boolean;
+  /** The time the sky shows, and the weather in it (none: a clear sky). */
+  now: Date;
+  weather: HallWeather | null;
   onFirstFrame?: () => void;
   onEnter: (bookcase: Bookcase) => void;
 }
@@ -255,6 +259,8 @@ function HallScene({
   startKey,
   memory,
   reducedMotion,
+  now,
+  weather,
   onEnter,
   tokens,
   labels,
@@ -703,7 +709,12 @@ function HallScene({
 
   return (
     <>
-      <HallSky layout={layout} />
+      <HallSky
+        layout={layout}
+        now={now}
+        weather={weather}
+        reducedMotion={reducedMotion}
+      />
       <mesh
         rotation-x={-Math.PI / 2}
         position={[roomX, 0, roomZ]}
