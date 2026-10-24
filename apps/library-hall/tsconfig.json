@@ -51,10 +51,19 @@
       "path": "../../libs/rainforest-react"
     },
     {
+      "path": "../../libs/notebook-tools"
+    },
+    {
+      "path": "../../libs/mcp-kit"
+    },
+    {
       "path": "../../libs/library-shell"
     },
     {
       "path": "../../libs/library-contract"
+    },
+    {
+      "path": "../../libs/book-tools"
     }
   ]
 }
