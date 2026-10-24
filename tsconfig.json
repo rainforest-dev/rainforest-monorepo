@@ -74,6 +74,9 @@
     },
     {
       "path": "./apps/personal-notebook-e2e"
+    },
+    {
+      "path": "./libs/book-tools"
     }
   ],
   "compilerOptions": {
