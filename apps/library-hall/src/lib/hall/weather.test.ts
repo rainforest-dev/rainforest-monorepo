@@ -66,4 +66,23 @@ describe('weatherSky', () => {
     expect(rain.fogFar).toBeLessThan(clear.fogFar);
     expect(fog.fogFar).toBeLessThan(rain.fogFar);
   });
+
+  it('keeps a cloudy night dark, and leaves its lamps as they were', () => {
+    const night = skyLight(-30 * RAD);
+    const sky = weatherSky(night, typicalWeather('overcast'));
+    const brightness = (c: readonly number[]) => c[0]! + c[1]! + c[2]!;
+    expect(brightness(sky.zenith)).toBeLessThan(brightness(noon.zenith) / 3);
+    expect(sky.lampIntensity).toBeCloseTo(night.lampIntensity);
+  });
+
+  it('darkens the sky and the fill light as the rain grows', () => {
+    const drizzle = weatherSky(noon, typicalWeather('drizzle'));
+    const rain = weatherSky(noon, typicalWeather('rain'));
+    const storm = weatherSky(noon, typicalWeather('storm'));
+    const brightness = (c: readonly number[]) => c[0]! + c[1]! + c[2]!;
+    expect(brightness(rain.zenith)).toBeLessThan(brightness(drizzle.zenith));
+    expect(brightness(storm.zenith)).toBeLessThan(brightness(rain.zenith));
+    expect(rain.fill).toBeLessThan(drizzle.fill);
+    expect(storm.fill).toBeLessThan(rain.fill);
+  });
 });

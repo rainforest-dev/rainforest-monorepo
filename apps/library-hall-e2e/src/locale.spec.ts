@@ -3,6 +3,22 @@ import { expect, test } from '@playwright/test';
 test.describe('the hall’s language', () => {
   test.use({ locale: 'en-US' });
 
+  test("says Taipei's time and weather in English, and only the time when there is no weather", async ({
+    page,
+  }) => {
+    await page.goto('/?hallTime=09:05');
+    await expect(page.locator('[data-hall-conditions]')).toHaveText(
+      'Taipei 09:05 · Overcast 22°C',
+    );
+    await page.route('**/api/weather', (route) =>
+      route.fulfill({ json: { weather: null } }),
+    );
+    await page.reload();
+    await expect(page.locator('[data-hall-conditions="none"]')).toHaveText(
+      'Taipei 09:05',
+    );
+  });
+
   test('follows the browser, then the reader’s pick, at the same URL', async ({
     page,
     context,
