@@ -100,7 +100,13 @@ describe('the hall', { tags: ['hall'] }, () => {
     await app.open('/?hallTime=14:00');
     await expect(screen.getByRole('button', '視角向右轉')).toBeVisible();
     await agent.assert(
-      'a small label in the top-left corner of the hall reads 台北 14:00 · 雷雨 24°C, and the sky behind the hall is grey and overcast rather than blue',
+      'a small label in the top-left corner of the hall reads 台北 14:00 · 雷雨 24°C',
+      { vision: true },
+    );
+    // The button shows before the canvas paints its first frame, so wait for the room. Only a
+    // strip of sky shows above the walls from the entrance; the windows show it too.
+    await agent.waitFor(
+      'the 3D room is drawn, and the sky seen above its walls and through its windows is grey rather than blue',
       { vision: true },
     );
   });
