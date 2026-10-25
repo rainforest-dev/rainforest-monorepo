@@ -20,6 +20,7 @@ import {
 import {
   type Group,
   type InstancedMesh,
+  type LineSegments,
   MathUtils,
   Object3D,
   Vector3,
@@ -53,6 +54,7 @@ import {
   type FloorPoint,
   type HallBook,
   type HallLayout,
+  type HallWeather,
   hexToRgb,
   liftClear,
   nearestOpen,
@@ -74,6 +76,7 @@ import {
   hallPalette,
   surfaceTexture,
 } from './decor';
+import { LIGHTNING_NAME, RAIN_NAME } from './Rain';
 import { HallSky } from './Sky';
 
 export interface ThreeHallProps {
@@ -86,6 +89,9 @@ export interface ThreeHallProps {
   /** Where the reader stood when this page was last left, if the browser did not keep it. */
   memory: HallMemory | null;
   reducedMotion: boolean;
+  /** The time the sky shows, and the weather in it (none: a clear sky). */
+  now: Date;
+  weather: HallWeather | null;
   onFirstFrame?: () => void;
   onEnter: (bookcase: Bookcase) => void;
 }
@@ -150,6 +156,12 @@ interface HallProbe {
   yaw: () => number;
   /** Client coordinates of a bookcase's middle shelf, for clicking it in tests. */
   projectCase: (key: string) => { x: number; y: number } | null;
+  /** What the weather put in the scene: rain streaks, a lightning light and the fog's far edge. */
+  weather: () => {
+    rainDrops: number;
+    lightning: boolean;
+    fogFar: number | null;
+  };
 }
 
 type ProbeWindow = Window & { __libraryHall?: HallProbe };
@@ -255,6 +267,8 @@ function HallScene({
   startKey,
   memory,
   reducedMotion,
+  now,
+  weather,
   onEnter,
   tokens,
   labels,
@@ -475,12 +489,23 @@ function HallScene({
           y: rect.top + ((1 - point.y) / 2) * rect.height,
         };
       },
+      weather: () => {
+        const rain = scene.getObjectByName(RAIN_NAME) as
+          LineSegments | undefined;
+        const fog = scene.fog;
+        return {
+          // Each streak is two points.
+          rainDrops: (rain?.geometry.getAttribute('position')?.count ?? 0) / 2,
+          lightning: scene.getObjectByName(LIGHTNING_NAME) !== undefined,
+          fogFar: fog && 'far' in fog ? fog.far : null,
+        };
+      },
     };
     target.__libraryHall = probe;
     return () => {
       if (target.__libraryHall === probe) delete target.__libraryHall;
     };
-  }, [camera, cases, gl, layout, orbit]);
+  }, [camera, cases, gl, layout, orbit, scene]);
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05);
@@ -703,7 +728,12 @@ function HallScene({
 
   return (
     <>
-      <HallSky layout={layout} />
+      <HallSky
+        layout={layout}
+        now={now}
+        weather={weather}
+        reducedMotion={reducedMotion}
+      />
       <mesh
         rotation-x={-Math.PI / 2}
         position={[roomX, 0, roomZ]}

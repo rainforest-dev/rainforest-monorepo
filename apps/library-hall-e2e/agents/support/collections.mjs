@@ -114,6 +114,16 @@ const search = (items, q) => {
     .map(({ kind, id, title, href }) => ({ kind, id, title, href }));
 };
 
+/** Taipei's weather, shaped like Open-Meteo's current conditions: a thunderstorm at 24 °C. */
+export const WEATHER = {
+  current: {
+    weather_code: 95,
+    cloud_cover: 100,
+    precipitation: 6,
+    temperature_2m: 24,
+  },
+};
+
 /** Serves every shelf on a free loopback port and resolves with its origin. */
 export function startCollections() {
   const server = createServer((req, res) => {
@@ -122,6 +132,7 @@ export function startCollections() {
       res.end(JSON.stringify(body));
     };
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname === '/weather') return send(200, WEATHER);
     const [, collection, ...rest] = url.pathname.split('/');
     const items = SHELVES[collection];
     const route = rest.join('/');

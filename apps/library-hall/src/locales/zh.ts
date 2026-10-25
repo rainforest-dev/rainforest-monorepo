@@ -47,6 +47,20 @@ export const zh = {
     phone3dHint: '手機預設不載入 3D，省電也省記憶體。進去之後點地板走路。',
     no3d: '這台裝置無法顯示 3D，改用 CSS 書牆',
   },
+  conditions: {
+    label: '台北現在的時間與天氣',
+    place: '台北',
+    temperature: '{{value}}°C',
+    weather: {
+      clear: '晴',
+      cloudy: '多雲',
+      overcast: '陰',
+      fog: '霧',
+      drizzle: '毛毛雨',
+      rain: '雨',
+      storm: '雷雨',
+    },
+  },
   empty: {
     failed: '大廳暫時拿不到館藏清單',
     missing: '{{names}}暫時無法載入，書櫃還是空的',

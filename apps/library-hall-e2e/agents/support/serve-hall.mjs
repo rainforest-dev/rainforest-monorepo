@@ -27,6 +27,7 @@ env.LIBRARY_TOPIC_MAP = join(
   'Topic-Map.md',
 );
 writeFileSync(env.LIBRARY_TOPIC_MAP, TOPIC_MAP);
+env.LIBRARY_WEATHER_URL = `${origin}/weather`;
 
 const next = spawn(
   resolve(hall, 'node_modules/.bin/next'),
