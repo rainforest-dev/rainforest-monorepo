@@ -47,6 +47,16 @@ describe('loadWeather', () => {
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
+  it('has no weather when the source answers 200 with something else', async () => {
+    for (const body of [{ error: true }, { current: { weather_code: 'x' } }]) {
+      resetWeatherCache();
+      vi.mocked(console.warn).mockClear();
+      const fetcher = vi.fn(async () => Response.json(body));
+      expect(await loadWeather({}, fetcher as typeof fetch, 0)).toBeNull();
+      expect(console.warn).toHaveBeenCalledTimes(1);
+    }
+  });
+
   it('waits 5 minutes after a failure before asking again', async () => {
     const fetcher = vi.fn(async () => new Response('nope', { status: 503 }));
     const f = fetcher as typeof fetch;
