@@ -47,6 +47,16 @@ describe('loadWeather', () => {
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
+  it('waits 5 minutes after a failure before asking again', async () => {
+    const fetcher = vi.fn(async () => new Response('nope', { status: 503 }));
+    const f = fetcher as typeof fetch;
+    await loadWeather({}, f, 0);
+    await loadWeather({}, f, 4 * 60_000);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    await loadWeather({}, f, 5 * 60_000);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it('keeps the last reading through a failed refresh, for up to an hour', async () => {
     const fetcher = vi
       .fn()
