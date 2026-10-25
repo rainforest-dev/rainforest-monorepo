@@ -28,6 +28,12 @@ export class EmbedError extends Error {
 
 export const QUERY_EMBED_TIMEOUT_MS = 800;
 export const BREAKER_MS = 30_000;
+/**
+ * How long a query embed that already timed out keeps running before it is aborted. Ollama
+ * cancels a cold model load when its client hangs up, and a cold load takes ~3 s, so aborting
+ * at the query timeout kept the model from ever loading.
+ */
+export const QUERY_EMBED_ABANDON_MS = BREAKER_MS;
 
 export type Breaker = {
   open(now: number): boolean;
@@ -48,20 +54,24 @@ export async function embedQuery(
   embedder: Embedder,
   text: string,
   timeoutMs = QUERY_EMBED_TIMEOUT_MS,
+  abandonMs = QUERY_EMBED_ABANDON_MS,
 ): Promise<Float32Array> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      controller.abort();
       reject(new EmbedError('timeout', 'query embedding timed out'));
     }, timeoutMs);
   });
+  const call = embedder.embed([text], 'query', controller.signal);
+  // The caller stops waiting at timeoutMs; the call runs on so a cold model can finish loading.
+  const abandon = setTimeout(() => controller.abort(), abandonMs);
+  void call.then(
+    () => clearTimeout(abandon),
+    () => clearTimeout(abandon),
+  );
   try {
-    const [vector] = await Promise.race([
-      embedder.embed([text], 'query', controller.signal),
-      timeout,
-    ]);
+    const [vector] = await Promise.race([call, timeout]);
     if (
       !vector ||
       vector.length !== embedder.dims ||

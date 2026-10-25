@@ -42,7 +42,7 @@ describe('embedQuery', () => {
     ).rejects.toMatchObject({ reason: 'model-mismatch' });
   });
 
-  it('times out and aborts the call', async () => {
+  it('times out, but lets the call run on so a cold model can load', async () => {
     vi.useFakeTimers();
     let signal: AbortSignal | undefined;
     const pending = embedQuery(
@@ -52,11 +52,38 @@ describe('embedQuery', () => {
       }),
       'q',
       100,
+      1000,
     );
     const assertion = expect(pending).rejects.toBeInstanceOf(EmbedError);
     await vi.advanceTimersByTimeAsync(100);
     await assertion;
+    expect(signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(900);
     expect(signal?.aborted).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it('never aborts a call that finished after the timeout', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const pending = embedQuery(
+      embedder(
+        (_t, _k, s) =>
+          new Promise((resolve) => {
+            signal = s;
+            setTimeout(() => resolve([Float32Array.of(1, 0)]), 300);
+          }),
+      ),
+      'q',
+      100,
+      1000,
+    );
+    const assertion = expect(pending).rejects.toMatchObject({
+      reason: 'timeout',
+    });
+    await vi.advanceTimersByTimeAsync(2000);
+    await assertion;
+    expect(signal?.aborted).toBe(false);
     vi.useRealTimers();
   });
 

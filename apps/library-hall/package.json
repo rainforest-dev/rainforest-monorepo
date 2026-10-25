@@ -6,8 +6,12 @@
     "**/*.css"
   ],
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@rainforest-dev/book-tools": "workspace:*",
     "@rainforest-dev/library-contract": "workspace:*",
     "@rainforest-dev/library-shell": "workspace:*",
+    "@rainforest-dev/mcp-kit": "workspace:*",
+    "@rainforest-dev/notebook-tools": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
     "@rainforest-dev/search": "workspace:*",
