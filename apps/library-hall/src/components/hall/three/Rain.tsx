@@ -30,6 +30,10 @@ const STREAK = 0.7;
 /** Rain reads as falling at 30 frames a second; drawing it faster only costs the battery. */
 const RAIN_FPS = 30;
 
+/** Object names, so tests can find the rain and the lightning in the scene. */
+export const RAIN_NAME = 'hall-rain';
+export const LIGHTNING_NAME = 'hall-lightning';
+
 const random = (min: number, max: number) => min + Math.random() * (max - min);
 
 /** A point in the rain's box that is not under the hall's roof or in front of its door. */
@@ -144,11 +148,19 @@ export function Rain({
   return (
     <>
       <lineSegments
+        name={RAIN_NAME}
         geometry={geometry}
         material={material}
         frustumCulled={false}
       />
-      {storm && <ambientLight ref={flash} color={0xdde6ff} intensity={0} />}
+      {storm && (
+        <ambientLight
+          ref={flash}
+          name={LIGHTNING_NAME}
+          color={0xdde6ff}
+          intensity={0}
+        />
+      )}
     </>
   );
 }

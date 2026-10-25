@@ -86,7 +86,15 @@ test.describe('the hall', () => {
     );
   });
 
-  for (const weather of ['rain', 'storm', 'fog', 'clear']) {
+  // What each pinned weather must put in the scene, so a sky that stops following the weather
+  // fails here rather than drawing a clear hall.
+  const SCENES = {
+    rain: { raining: true, lightning: false, fogFar: 80 },
+    storm: { raining: true, lightning: true, fogFar: 65 },
+    fog: { raining: false, lightning: false, fogFar: 24 },
+    clear: { raining: false, lightning: false, fogFar: 110 },
+  };
+  for (const [weather, scene] of Object.entries(SCENES)) {
     test(`draws the hall in ${weather} weather`, async ({ page }) => {
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
@@ -104,6 +112,24 @@ test.describe('the hall', () => {
           ),
         )
         .not.toBeNull();
+      const drawn = await page.evaluate(() =>
+        (
+          window as {
+            __libraryHall?: {
+              weather: () => {
+                rainDrops: number;
+                lightning: boolean;
+                fogFar: number | null;
+              };
+            };
+          }
+        ).__libraryHall?.weather(),
+      );
+      expect({
+        raining: (drawn?.rainDrops ?? 0) > 0,
+        lightning: drawn?.lightning,
+        fogFar: drawn?.fogFar,
+      }).toEqual(scene);
       expect(errors).toEqual([]);
     });
   }
