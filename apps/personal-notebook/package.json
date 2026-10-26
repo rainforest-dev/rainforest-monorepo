@@ -6,7 +6,7 @@
     "**/*.css"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@rainforest-dev/journal-kit": "workspace:*",
     "@rainforest-dev/library-contract": "workspace:*",
     "@rainforest-dev/library-shell": "workspace:*",
@@ -15,22 +15,22 @@
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
     "@rainforest-dev/search": "workspace:*",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^13.0.3",
     "clsx": "^2.1.1",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.4",
     "heic-decode": "^2.1.0",
-    "lucide-react": "^1.8.0",
+    "lucide-react": "^1.61.0",
     "next": "catalog:",
     "pdf-lib": "1.17.1",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sharp": "^0.35.5",
-    "tailwind-merge": "^3.5.0",
-    "zod": "^4.6.5"
+    "tailwind-merge": "catalog:",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.0.0",
-    "@types/better-sqlite3": "^7.6.13",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

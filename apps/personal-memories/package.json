@@ -56,7 +56,7 @@
     }
   },
   "dependencies": {
-    "@astrojs/node": "^11.1.6",
+    "@astrojs/node": "^11.1.9",
     "@astrojs/react": "^7.1.1",
     "@rainforest-dev/journal-kit": "workspace:*",
     "@rainforest-dev/mcp-kit": "workspace:*",
@@ -65,23 +65,23 @@
     "@rainforest-dev/search": "workspace:*",
     "@rainforest-dev/web-ai": "workspace:*",
     "@tailwindcss/vite": "catalog:",
-    "@tanstack/react-query": "5.104.1",
-    "astro": "^7.3.3",
-    "lucide-react": "^1.8.0",
+    "@tanstack/react-query": "5.104.5",
+    "astro": "^7.4.2",
+    "lucide-react": "^1.61.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sharp": "^0.35.5",
     "tailwindcss": "catalog:",
-    "tslib": "^2.3.0",
+    "tslib": "^2.8.1",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vercel/nft": "^1.11.0",
     "typescript": "catalog:",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.5"
   }
 }

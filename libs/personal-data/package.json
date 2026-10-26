@@ -30,11 +30,11 @@
   "dependencies": {
     "@rainforest-dev/search": "workspace:*",
     "fast-glob": "^3.3.3",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "gray-matter": "^4.0.3",
-    "vite-plugin-dts": "^4.5.4"
+    "vite-plugin-dts": "^5.1.2"
   }
 }
