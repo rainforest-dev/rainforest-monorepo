@@ -1,5 +1,6 @@
 'use client';
 
+import { EVENTS_PAGE_HREF } from '@rainforest-dev/library-contract';
 import { useLibraryLocale, useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import { Box } from 'lucide-react';
@@ -7,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { canUseWebGL2 } from '@/components/study/capabilities';
 import {
+  useHallRack,
   useHallTime,
   useHallWeather,
   useIsPhone,
@@ -39,6 +41,7 @@ export function HallView() {
   const reducedMotion = useReducedMotion();
   const now = useHallTime();
   const weather = useHallWeather();
+  const rack = useHallRack();
   const locale = useLibraryLocale();
   const t = useLibraryT(HALL_NAMESPACE);
   const phone = useIsPhone();
@@ -95,9 +98,11 @@ export function HallView() {
         <HallSkeleton />
       ) : three ? (
         <HallBoundary
-          fallback={<CssHall wings={wings} onEnter={enterBookcase} />}
+          fallback={
+            <CssHall wings={wings} onEnter={enterBookcase} rack={rack} />
+          }
         >
-          <CssHall wings={wings} onEnter={enterBookcase} hidden />
+          <CssHall wings={wings} onEnter={enterBookcase} rack={rack} hidden />
           <div className="relative">
             <LoadThreeHall
               books={books}
@@ -109,7 +114,9 @@ export function HallView() {
               reducedMotion={reducedMotion}
               now={now}
               weather={weather}
+              rack={rack}
               onEnter={enterBookcase}
+              onRack={() => window.location.assign(EVENTS_PAGE_HREF)}
               onFirstFrame={onFirstFrame}
             />
             {resume?.poster && poster !== 'gone' && (
@@ -159,7 +166,7 @@ export function HallView() {
               {t('hall.phone3dHint')}
             </p>
           )}
-          <CssHall wings={wings} onEnter={enterBookcase} />
+          <CssHall wings={wings} onEnter={enterBookcase} rack={rack} />
         </div>
       )}
     </div>

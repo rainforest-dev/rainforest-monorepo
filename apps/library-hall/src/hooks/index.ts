@@ -1,4 +1,5 @@
 export { useHallTime, useHallWeather } from './useHallConditions';
+export { useHallRack } from './useHallRack';
 export {
   useIsDesktop,
   useIsFinePointerDesktop,

@@ -18,6 +18,8 @@ import {
   CASE_WIDTH,
   type Furniture,
   type HallLayout,
+  RACK_TIERS,
+  rackTierY,
   SHELF_PITCH,
 } from '@/lib';
 
@@ -177,6 +179,34 @@ function table(p: HallPalette, f: Furniture, out: Part[]) {
   // A book left open and a small stack.
   out.push(box(p.sign, [0.34, 0.02, 0.24], [f.x - 0.25, top + 0.035, f.z]));
   out.push(box(p.rugBorder, [0.2, 0.06, 0.28], [f.x + 0.35, top + 0.055, f.z]));
+}
+
+/**
+ * A magazine rack facing the door: a back board between two posts, and a sloped ledge with a lip
+ * at each tier for the covers to lean on. The covers themselves are drawn by the hall.
+ */
+function magazineRack(p: HallPalette, f: Furniture, out: Part[]) {
+  const height = rackTierY(0) + 0.5;
+  const back = f.z - f.d / 2 + 0.04;
+  for (const side of [-1, 1])
+    out.push(
+      box(
+        p.darkWood,
+        [0.05, height, f.d],
+        [f.x + side * (f.w / 2 - 0.025), height / 2, f.z],
+      ),
+    );
+  out.push(
+    box(p.panel, [f.w - 0.1, height - 0.05, 0.03], [f.x, height / 2, back]),
+  );
+  out.push(box(p.darkWood, [f.w, 0.04, f.d], [f.x, height + 0.02, f.z]));
+  for (let tier = 0; tier < RACK_TIERS; tier++) {
+    const y = rackTierY(tier);
+    out.push(box(p.wood, [f.w - 0.1, 0.025, 0.16], [f.x, y, f.z + 0.02]));
+    out.push(
+      box(p.darkWood, [f.w - 0.1, 0.06, 0.02], [f.x, y + 0.03, f.z + 0.1]),
+    );
+  }
 }
 
 function plant(p: HallPalette, f: Furniture, out: Part[]) {
@@ -592,6 +622,7 @@ export function buildDecor(layout: HallLayout, p: HallPalette): HallDecor {
 
   for (const f of layout.furniture) {
     if (f.kind === 'table') table(p, f, solid);
+    else if (f.kind === 'rack') magazineRack(p, f, solid);
     else if (f.kind === 'plant') plant(p, f, solid);
     else {
       lampStand(p, f, solid);

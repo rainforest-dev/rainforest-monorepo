@@ -47,6 +47,20 @@ export const zh = {
     phone3dHint: '手機預設不載入 3D，省電也省記憶體。進去之後點地板走路。',
     no3d: '這台裝置無法顯示 3D，改用 CSS 書牆',
   },
+  rack: {
+    name: '雜誌架',
+    open: '雜誌架：展覽與市集',
+    count_one: '{{count}} 場',
+    count_other: '{{count}} 場',
+    hint: '你訂閱的展覽與市集，點了到雜誌架挑選',
+    empty: '架上還沒有你訂閱的展覽或市集',
+    shelf: {
+      ending: '即將結束',
+      now: '展出中',
+      market: '市集',
+      soon: '即將開展',
+    },
+  },
   conditions: {
     label: '台北現在的時間與天氣',
     place: '台北',

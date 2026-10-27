@@ -80,9 +80,12 @@ const APPS = {
           ),
           KB_WIKI_PATH: join(kb, 'wiki'),
           KB_READWISE_PATH: join(kb, 'readwise'),
+          EVENTS_SOURCES: 'off',
         },
         checks: [
           { path: '/rack' },
+          { path: '/rack/events' },
+          { path: '/rack/api/events', type: 'application/json' },
           { path: '/rack/sources' },
           { path: '/rack/api/sources', type: 'application/json' },
           { path: '/rack/api/hall-items', type: 'application/json' },

@@ -1,4 +1,5 @@
 export * from './collections';
+export * from './events';
 export * from './hall-items';
 export * from './library-search';
 export * from './locale';

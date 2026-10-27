@@ -1,0 +1,35 @@
+---
+import {
+  eventSubscriptionsFromCookieHeader,
+  parseEventSubscriptions,
+  taipeiDay,
+} from '@rainforest-dev/library-contract';
+
+import { EventsView } from '@/components/rack/EventsView.tsx';
+import RoomLayout from '@/layouts/RoomLayout.astro';
+import { roomT } from '@/locales';
+import { loadEvents } from '@/server';
+
+const result = await loadEvents();
+const subscriptions = parseEventSubscriptions(
+  eventSubscriptionsFromCookieHeader(Astro.request.headers.get('cookie')),
+);
+const { locale } = Astro.locals;
+const t = roomT(locale);
+---
+
+<RoomLayout title={t('events.title')} collection="rack" section="events">
+  <main class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 lg:px-6">
+    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h2 class="text-xl font-semibold">{t('events.title')}</h2>
+      <p class="text-muted-foreground text-sm">{t('events.intro')}</p>
+    </div>
+    <EventsView
+      client:load
+      locale={locale}
+      result={result}
+      initialSubscriptions={subscriptions}
+      today={taipeiDay()}
+    />
+  </main>
+</RoomLayout>
