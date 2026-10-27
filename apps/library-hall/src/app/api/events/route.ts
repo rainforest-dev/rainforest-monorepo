@@ -20,6 +20,8 @@ export async function GET(request: Request) {
   );
   return Response.json(
     { rack: rackOf(events, subscriptions, taipeiDay()) },
-    { headers: { 'Cache-Control': 'private, max-age=60' } },
+    // The answer follows the subscriptions cookie, which the rack page can change at any time;
+    // the events themselves are already cached on the server.
+    { headers: { 'Cache-Control': 'no-store' } },
   );
 }

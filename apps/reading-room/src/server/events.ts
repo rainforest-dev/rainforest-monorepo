@@ -24,10 +24,15 @@ export const TAIPEI_URL =
  * Ministry categories read: 6 exhibitions, whole; 4 family and 15 other, only for what is an
  * exhibition or a market by its title. The rest are performances and talks.
  */
+/** An exhibition or a market by its title; `展演` is a performance. */
+export function looksLikeShowOrMarket(title: string): boolean {
+  return title.includes('市集') || title.replaceAll('展演', '').includes('展');
+}
+
 const MOC_CATEGORIES = [
   { category: 6, keep: () => true },
-  { category: 4, keep: (title: string) => /市集|展/.test(title) },
-  { category: 15, keep: (title: string) => /市集|展/.test(title) },
+  { category: 4, keep: looksLikeShowOrMarket },
+  { category: 15, keep: looksLikeShowOrMarket },
 ] as const;
 
 /** Both sources change a few times a day at most. */

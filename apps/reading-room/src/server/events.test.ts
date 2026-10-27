@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   dayOf,
   EVENTS_TTL_MS,
+  fetchTaipeiEvents,
   loadEvents,
+  looksLikeShowOrMarket,
   mergeEvents,
   mocEvent,
   resetEventsCache,
@@ -111,6 +113,43 @@ describe('taipeiEvent', () => {
   });
 });
 
+describe('looksLikeShowOrMarket', () => {
+  it.each([
+    ['親子玩具特展', true],
+    ['週末手作市集', true],
+    ['年度舞蹈展演', false],
+    ['兒童劇', false],
+  ])('%s', (title, kept) => {
+    expect(looksLikeShowOrMarket(title)).toBe(kept);
+  });
+});
+
+describe('fetchTaipeiEvents', () => {
+  it('reads every page up to the total', async () => {
+    const calls: string[] = [];
+    const page = (n: number) =>
+      Array.from({ length: 30 }, (_, i) => ({
+        ...TAIPEI_ITEM,
+        id: n * 100 + i,
+      }));
+    const fetcher = (async (input: string | URL | Request) => {
+      const url = String(input);
+      calls.push(url);
+      const n = Number(new URL(url).searchParams.get('page'));
+      return Response.json({
+        total: 45,
+        data: n === 1 ? page(1) : page(2).slice(0, 15),
+      });
+    }) as typeof fetch;
+    const events = await fetchTaipeiEvents(fetcher, 'https://t.test/events');
+    expect(events).toHaveLength(45);
+    expect(calls).toEqual([
+      'https://t.test/events?page=1',
+      'https://t.test/events?page=2',
+    ]);
+  });
+});
+
 describe('mergeEvents', () => {
   it('drops what is over and the second copy of the same event', () => {
     const a = mocEvent(MOC_ITEM);
@@ -164,6 +203,19 @@ describe('loadEvents', () => {
     );
     expect(result.failed).toEqual(['taipei']);
     expect(result.events.map((e) => e.id)).toContain('taipei:42');
+  });
+
+  it('asks a failed source again only after 15 minutes, and drops its events after two days', async () => {
+    await loadEvents(env, stubFetch(routes), now);
+    const down = { ...routes, 'Events/Activity': undefined };
+    const failedAt = now + EVENTS_TTL_MS;
+    await loadEvents(env, stubFetch(down), failedAt);
+    const calls: string[] = [];
+    await loadEvents(env, stubFetch(down, calls), failedAt + 14 * 60_000);
+    expect(calls.some((url) => url.includes('Events/Activity'))).toBe(false);
+    const late = await loadEvents(env, stubFetch(down), now + 49 * 3_600_000);
+    expect(late.failed).toContain('taipei');
+    expect(late.events.map((e) => e.id)).not.toContain('taipei:42');
   });
 
   it('reads nothing when switched off', async () => {
