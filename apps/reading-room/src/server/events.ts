@@ -80,12 +80,17 @@ const taipeiPageSchema = z.object({
   data: z.array(z.unknown()),
 });
 
-/** `2026/10/27`, `2026-10-27 09:00:00 +08:00` and the like, as `2026-10-27`. */
+/**
+ * `2026/10/27`, `2026-10-27 09:00:00 +08:00` and the like, as `2026-10-27`; `null` for a day
+ * no calendar has, such as `2026/13/45`.
+ */
 export function dayOf(raw: string | null | undefined): string | null {
   const match = raw?.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
   if (!match) return null;
-  const [, y, m, d] = match;
-  return `${y}-${m?.padStart(2, '0')}-${d?.padStart(2, '0')}`;
+  const [y, m, d] = match.slice(1).map(Number) as [number, number, number];
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) return null;
+  return date.toISOString().slice(0, 10);
 }
 
 function kindOf(title: string): EventKind {
