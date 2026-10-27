@@ -1,0 +1,63 @@
+import { expect, type Page, test } from '@playwright/test';
+
+import { expectNoViolations } from './support/axe';
+import { EVENT_TITLES } from './support/events-fixture';
+import { hideDevToolbar } from './support/phone';
+
+/** An event's card, never its title in the island's serialized props. */
+const card = (page: Page, title: string) =>
+  page.locator('[data-event]').filter({ hasText: title });
+
+const shelf = (page: Page, name: string) =>
+  page.getByRole('region', { name: new RegExp(`^${name} \\d+`) });
+
+test.beforeEach(async ({ page, context }) => {
+  await context.clearCookies();
+  await hideDevToolbar(page);
+});
+
+test.describe('magazine rack', () => {
+  test('shelves every event by when it ends or opens', async ({ page }) => {
+    await page.goto('/rack/events');
+    await expect(shelf(page, 'Ending soon')).toContainText(EVENT_TITLES.ending);
+    await expect(shelf(page, 'On now')).toContainText(EVENT_TITLES.now);
+    await expect(shelf(page, 'On now')).toContainText(EVENT_TITLES.tainan);
+    await expect(shelf(page, 'Markets')).toContainText(EVENT_TITLES.market);
+    await expect(shelf(page, 'Opening soon')).toContainText(EVENT_TITLES.soon);
+    await expectNoViolations(page);
+  });
+
+  test('keeps the reader’s subscriptions across a reload', async ({ page }) => {
+    await page.goto('/rack/events');
+    await page.getByText(/^Subscriptions/).click();
+    // The checkboxes live in an island; a click before it hydrates does nothing.
+    await expect(async () => {
+      await page.getByRole('button', { name: 'Green and meat-free' }).click();
+      await expect(card(page, EVENT_TITLES.ending)).toBeHidden({
+        timeout: 2_000,
+      });
+    }).toPass();
+    await expect(card(page, EVENT_TITLES.now)).toBeVisible();
+    await expect(card(page, EVENT_TITLES.market)).toBeVisible();
+
+    await page.reload();
+    await expect(card(page, EVENT_TITLES.now)).toBeVisible();
+    await expect(card(page, EVENT_TITLES.ending)).toBeHidden();
+
+    await page.getByRole('checkbox', { name: /^臺南市/ }).click();
+    await expect(page.getByText(/Nothing matches/)).toBeVisible();
+  });
+
+  test('serves the events as JSON for the hall', async ({ request }) => {
+    const response = await request.get('/rack/api/events');
+    expect(response.ok()).toBe(true);
+    const body = (await response.json()) as {
+      events: { title: string }[];
+      failed: string[];
+    };
+    expect(body.failed).toEqual([]);
+    expect(body.events.map((e) => e.title)).toEqual(
+      expect.arrayContaining(Object.values(EVENT_TITLES)),
+    );
+  });
+});

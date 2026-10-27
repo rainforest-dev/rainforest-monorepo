@@ -1,5 +1,7 @@
 import { createServer } from 'node:http';
 
+import { MOC_EVENTS, TAIPEI_EVENTS } from './events-fixture';
+
 export const FEED_PORT = 3033;
 export const FEED_ORIGIN = `http://127.0.0.1:${FEED_PORT}`;
 
@@ -53,6 +55,16 @@ const ROUTES: Record<string, Route> = {
     type: 'application/atom+xml',
     body: ATOM,
   },
+  '/events/moc': {
+    status: 200,
+    type: 'application/json',
+    body: JSON.stringify(MOC_EVENTS),
+  },
+  '/events/taipei': {
+    status: 200,
+    type: 'application/json',
+    body: JSON.stringify(TAIPEI_EVENTS),
+  },
   '/feeds/slow.xml': {
     status: 200,
     type: 'application/rss+xml',
@@ -67,6 +79,12 @@ export const FEEDS = {
   html: `${FEED_ORIGIN}/feeds/page.html`,
   missing: `${FEED_ORIGIN}/feeds/missing.xml`,
   slow: `${FEED_ORIGIN}/feeds/slow.xml`,
+} as const;
+
+/** Where the reading room reads its event sources during the suite. */
+export const EVENT_SOURCE_URLS = {
+  EVENTS_MOC_URL: `${FEED_ORIGIN}/events/moc?method=doFindTypeJ`,
+  EVENTS_TAIPEI_URL: `${FEED_ORIGIN}/events/taipei`,
 } as const;
 
 export function startFeedServer(): Promise<() => Promise<void>> {

@@ -2,10 +2,11 @@
 
 import { useLibraryT } from '@rainforest-dev/library-shell';
 
-import { type Bookcase, cn, spineColor, type Wing } from '@/lib';
+import { type Bookcase, cn, type HallRack, spineColor, type Wing } from '@/lib';
 import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
+import { RackCard } from './RackCard';
 import { useUnsortedNote } from './useUnsortedNote';
 
 const PREVIEW_SPINES = 14;
@@ -13,12 +14,14 @@ const PREVIEW_SPINES = 14;
 interface Props {
   wings: readonly Wing[];
   onEnter: (bookcase: Bookcase) => void;
+  /** The magazine rack by the door; `null` while it loads. */
+  rack: HallRack | null;
   /** Visually hidden: the 3D hall's keyboard and screen-reader route to the same bookcases. */
   hidden?: boolean;
 }
 
 /** The hall without 3D: each wing's bookcases under its name, each opening in the Study. */
-export function CssHall({ wings, onEnter, hidden = false }: Props) {
+export function CssHall({ wings, onEnter, rack, hidden = false }: Props) {
   const { bookById } = useHall();
   const unsortedNote = useUnsortedNote();
   const t = useLibraryT(HALL_NAMESPACE);
@@ -29,6 +32,7 @@ export function CssHall({ wings, onEnter, hidden = false }: Props) {
       data-hall-list
       className={cn(hidden ? 'sr-only' : 'flex flex-col gap-5')}
     >
+      <RackCard rack={rack} />
       {wings.map((wing) => {
         const note = unsortedNote(wing);
         return (

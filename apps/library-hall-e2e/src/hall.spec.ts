@@ -192,6 +192,66 @@ test.describe('the hall', () => {
     expect(await yaw()).toBeCloseTo(Math.PI / 4);
   });
 
+  test('stands the magazine rack by the door, with what the reader subscribes to', async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(150_000);
+    await page.goto('/');
+    await expect(page.locator('[data-hall-rack-sign]')).toHaveText(
+      '雜誌架4 場',
+    );
+    await expect(
+      page.locator('[data-hall-list] [data-hall-rack]'),
+    ).toContainText('即將結束 1');
+
+    // The reading room's page writes this cookie; the hall reads the same one.
+    await context.addCookies([
+      {
+        name: 'library-events',
+        value: encodeURIComponent(
+          JSON.stringify({ cities: [], topics: ['toys'], sources: [] }),
+        ),
+        url: page.url(),
+      },
+    ]);
+    await page.reload();
+    await expect(page.locator('[data-hall-rack-sign]')).toHaveText(
+      '雜誌架1 場',
+    );
+
+    // Clicking the rack walks up to it and opens the reading room's rack page.
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as { __libraryHall?: { firstFrameAt: number | null } })
+              .__libraryHall?.firstFrameAt ?? null,
+        ),
+      )
+      .not.toBeNull();
+    const at = await page.evaluate(() =>
+      (
+        window as unknown as {
+          __libraryHall: { projectRack: () => { x: number; y: number } };
+        }
+      ).__libraryHall.projectRack(),
+    );
+    await page.mouse.click(at.x, at.y);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (
+              window as { __libraryHall?: { walking: () => boolean } }
+            ).__libraryHall?.walking() ?? false,
+        ),
+      )
+      .toBe(true);
+    // The software renderer draws a few frames a second, so the walk takes a while.
+    await page.waitForURL('**/rack/events', { timeout: 90_000 });
+  });
+
   test('re-sorts the bookcases by collection', async ({ page }) => {
     await page.goto('/');
     await page.locator('[data-group-by="collection"]').click();

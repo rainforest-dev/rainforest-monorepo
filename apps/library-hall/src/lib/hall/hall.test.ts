@@ -8,11 +8,15 @@ import {
   CASE_WIDTH,
   frameFor,
   layoutHall,
+  RACK_COVERS_PER_TIER,
+  RACK_TIERS,
+  rackCoverSlot,
   slotOf,
   SLOTS_PER_CASE,
 } from './layout';
 import { buildHall, buildWings, CASES_PER_WING } from './model';
 import { buildGrid, canStand, clearLine, findPath, nearestOpen } from './path';
+import { rackOf } from './rack';
 import { flightPose, flightProgress, placeBooks, RESORT_MS } from './resort';
 import { liftClear } from './screen';
 
@@ -249,6 +253,27 @@ describe('layoutHall with wings', () => {
     for (const placement of layout.cases)
       expect(findPath(grid, layout.spawn, placement.front)).not.toBeNull();
   });
+
+  it('stands the magazine rack inside the room, reachable from the door', () => {
+    for (const wings of [[1], [4, 4, 4, 4]]) {
+      const layout = layoutHall(wings);
+      const grid = buildGrid(layout);
+      const { rack, room } = layout;
+      expect(rack.x - rack.w / 2).toBeGreaterThan(room.minX);
+      expect(canStand(grid, rack)).toBe(false);
+      expect(canStand(grid, rack.front)).toBe(true);
+      expect(findPath(grid, layout.spawn, rack.front)).not.toBeNull();
+    }
+  });
+
+  it('lays the rack’s covers out within its width, tiers top to bottom', () => {
+    const { rack } = layoutHall([4]);
+    const first = rackCoverSlot(rack, 0, 0);
+    const last = rackCoverSlot(rack, RACK_TIERS - 1, RACK_COVERS_PER_TIER - 1);
+    expect(first.x).toBeGreaterThan(rack.x - rack.w / 2);
+    expect(last.x).toBeLessThan(rack.x + rack.w / 2);
+    expect(first.y).toBeGreaterThan(last.y);
+  });
 });
 
 describe('walking', () => {
@@ -328,5 +353,59 @@ describe('liftClear', () => {
     expect(liftClear({ x: 120, y: 110, w: 50, h: 30 }, [plate, higher])).toBe(
       28,
     );
+  });
+});
+
+describe('rackOf', () => {
+  const event = (
+    id: string,
+    kind: 'exhibition' | 'market',
+    start: string,
+    end: string,
+    topics: string[] = [],
+  ) => ({
+    id,
+    source: 'moc' as const,
+    kind,
+    title: id,
+    start,
+    end,
+    cities: ['臺北市'],
+    topics,
+  });
+  const events = [
+    event('a', 'exhibition', '2026-10-01', '2026-10-29', ['toys']),
+    event('b', 'exhibition', '2026-10-01', '2026-12-31'),
+    event('c', 'market', '2026-11-01', '2026-11-02', ['vegetarian']),
+    event('d', 'exhibition', '2026-11-10', '2026-12-31'),
+    ...Array.from({ length: 6 }, (_, i) =>
+      event(`n${i}`, 'exhibition', '2026-10-01', `2026-12-1${i}`),
+    ),
+  ];
+
+  it('puts each shelf on its tier, with its first few covers', () => {
+    const rack = rackOf(
+      events,
+      { cities: [], topics: [], sources: [] },
+      '2026-10-27',
+    );
+    expect(rack.total).toBe(10);
+    expect(rack.tiers.map((t) => [t.shelf, t.count])).toEqual([
+      ['ending', 1],
+      ['now', 7],
+      ['market', 1],
+      ['soon', 1],
+    ]);
+    expect(rack.tiers[1]?.covers).toHaveLength(RACK_COVERS_PER_TIER);
+  });
+
+  it('shows only what the reader subscribes to', () => {
+    const rack = rackOf(
+      events,
+      { cities: [], topics: ['toys', 'vegetarian'], sources: [] },
+      '2026-10-27',
+    );
+    expect(rack.total).toBe(2);
+    expect(rack.tiers[0]?.covers).toEqual([{ id: 'a', title: 'a' }]);
   });
 });

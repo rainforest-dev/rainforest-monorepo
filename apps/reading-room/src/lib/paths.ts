@@ -11,3 +11,6 @@ export const KB_PATH = getCollection('kb').basePath;
 export const SOURCES_PATH = `${RACK_PATH}/sources`;
 
 export const rackApi = (name: string): string => `${RACK_PATH}/api/${name}`;
+
+/** The magazine rack: exhibitions and markets the reader subscribes to. */
+export const EVENTS_PAGE_PATH = `${RACK_PATH}/events`;

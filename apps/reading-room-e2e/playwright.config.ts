@@ -2,6 +2,7 @@ import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { defineConfig, devices } from '@playwright/test';
 
+import { EVENT_SOURCE_URLS } from './src/support/feed-server';
 import { KB_READWISE_DIR, KB_WIKI_DIR } from './src/support/kb-vault';
 import { VAULT_DIR } from './src/support/vault';
 
@@ -32,6 +33,7 @@ export default defineConfig({
           LIBRARY_NAV: 'on',
           KB_WIKI_PATH: KB_WIKI_DIR,
           KB_READWISE_PATH: KB_READWISE_DIR,
+          ...EVENT_SOURCE_URLS,
         },
       },
   projects: [

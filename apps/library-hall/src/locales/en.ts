@@ -51,6 +51,20 @@ export const en: Translation<typeof zh> = {
       'Phones skip 3D by default to save battery and memory. Once inside, tap the floor to walk.',
     no3d: 'This device cannot show 3D, so the CSS book wall is used instead',
   },
+  rack: {
+    name: 'Magazines',
+    open: 'Magazine rack: exhibitions and markets',
+    count_one: '{{count}} event',
+    count_other: '{{count}} events',
+    hint: 'The exhibitions and markets you subscribe to; open the rack to pick',
+    empty: 'Nothing you subscribe to is on the rack yet',
+    shelf: {
+      ending: 'Ending soon',
+      now: 'On now',
+      market: 'Markets',
+      soon: 'Opening soon',
+    },
+  },
   conditions: {
     label: 'The time and weather in Taipei now',
     place: 'Taipei',

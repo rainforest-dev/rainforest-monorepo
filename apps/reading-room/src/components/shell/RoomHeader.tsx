@@ -5,15 +5,16 @@ import {
 import { LibraryBar, useLibraryT } from '@rainforest-dev/library-shell';
 import { cn } from '@rainforest-dev/rainforest-react';
 
-import { RACK_PATH, SOURCES_PATH } from '@/lib/paths';
+import { EVENTS_PAGE_PATH, RACK_PATH, SOURCES_PATH } from '@/lib/paths';
 import { ROOM_NAMESPACE } from '@/locales';
 
 import { RoomI18n } from './RoomI18n';
 
-export type RoomSection = 'rack' | 'sources';
+export type RoomSection = 'rack' | 'events' | 'sources';
 
 const SECTIONS: { id: RoomSection; href: string }[] = [
   { id: 'rack', href: RACK_PATH },
+  { id: 'events', href: EVENTS_PAGE_PATH },
   { id: 'sources', href: SOURCES_PATH },
 ];
 

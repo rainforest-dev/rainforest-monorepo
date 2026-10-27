@@ -74,6 +74,39 @@ export const WEATHER = {
   current: { weather_code: 3, cloud_cover: 100, temperature_2m: 22.4 },
 };
 
+/** A day `offset` days from today in Taipei, as the events' `YYYY-MM-DD`. */
+function day(offset: number): string {
+  return new Date(Date.now() + 8 * 3_600_000 + offset * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** Fictional exhibitions and a market, dated around today so they always land on the rack. */
+export function rackEvents() {
+  const event = (
+    id: string,
+    kind: 'exhibition' | 'market',
+    start: number,
+    end: number,
+    topics: string[],
+  ) => ({
+    id: `moc:${id}`,
+    source: 'moc',
+    kind,
+    title: id,
+    start: day(start),
+    end: day(end),
+    cities: ['臺北市'],
+    topics,
+  });
+  return [
+    event('Tin Robot Parade', 'exhibition', -10, 3, ['toys']),
+    event('Moss and Stone', 'exhibition', -5, 40, ['environment']),
+    event('Lantern Paper Fair', 'market', 4, 5, ['handmade', 'vegetarian']),
+    event('Clockwork Harbour', 'exhibition', 12, 60, []),
+  ];
+}
+
 export function startCollections(): Promise<() => Promise<void>> {
   const server = createServer((req, res) => {
     const send = (status: number, body: unknown) => {
@@ -91,6 +124,9 @@ export function startCollections(): Promise<() => Promise<void>> {
     if (url.pathname === '/notebooks/api/library-search')
       return send(200, { results: search(NOTEBOOKS, q) });
     if (url.pathname === '/weather') return send(200, WEATHER);
+    // The rack's shelf is down, but its events still answer.
+    if (url.pathname === '/rack/api/events')
+      return send(200, { events: rackEvents(), fetchedAt: null, failed: [] });
     // The rack is down, so the hall shows the rest and says which collection is missing.
     return send(500, { error: 'down' });
   });

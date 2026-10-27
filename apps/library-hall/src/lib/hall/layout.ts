@@ -50,7 +50,7 @@ export interface WingPlacement {
   sign: { x: number; z: number };
 }
 
-export type FurnitureKind = 'table' | 'plant' | 'lamp';
+export type FurnitureKind = 'table' | 'plant' | 'lamp' | 'rack';
 
 /** Something standing on the floor that the avatar walks around. `w` runs along x, `d` along z. */
 export interface Furniture {
@@ -61,10 +61,17 @@ export interface Furniture {
   d: number;
 }
 
+/** The magazine rack by the entrance, facing the door, and where the avatar stands to use it. */
+export interface RackPlacement extends Furniture {
+  kind: 'rack';
+  front: FloorPoint;
+}
+
 export interface HallLayout {
   cases: CasePlacement[];
   wings: WingPlacement[];
   furniture: Furniture[];
+  rack: RackPlacement;
   room: Room;
   spawn: FloorPoint;
 }
@@ -137,32 +144,79 @@ export function layoutHall(
     minZ: -(totalRows - 1) * pitchZ - CASE_DEPTH / 2 - WALL_MARGIN,
     maxZ: CASE_DEPTH / 2 + ENTRANCE_DEPTH,
   };
+  const { furniture, rack } = furnish(room);
   return {
     cases,
     wings: placed,
-    furniture: furnish(room),
+    furniture,
+    rack,
     room,
     spawn: { x: 0, z: room.maxZ - 1.2 },
   };
 }
 
+export const RACK_WIDTH = 1.7;
+export const RACK_DEPTH = 0.55;
+/** Tiers of the magazine rack, top to bottom, and the covers each shows face out. */
+export const RACK_TIERS = 4;
+export const RACK_COVERS_PER_TIER = 4;
+export const RACK_TIER_PITCH = 0.36;
+export const RACK_BOTTOM_TIER = 0.24;
+export const RACK_COVER = { w: 0.3, h: 0.34 } as const;
+const RACK_FRONT_OFFSET = 0.6;
+
+/** Where the ledge of tier `tier` (0 at the top) stands above the floor. */
+export function rackTierY(tier: number): number {
+  return RACK_BOTTOM_TIER + (RACK_TIERS - 1 - tier) * RACK_TIER_PITCH;
+}
+
+/** The centre of cover `index` on tier `tier`, leaning back against the rack. */
+export function rackCoverSlot(
+  rack: Pick<Furniture, 'x' | 'z' | 'w'>,
+  tier: number,
+  index: number,
+): { x: number; y: number; z: number } {
+  const inner = rack.w - 0.2;
+  const step = inner / RACK_COVERS_PER_TIER;
+  return {
+    x: rack.x - inner / 2 + (index + 0.5) * step,
+    y: rackTierY(tier) + RACK_COVER.h / 2 + 0.02,
+    z: rack.z + 0.03,
+  };
+}
+
 /**
- * The reading area by the entrance and the corners: a table with chairs on each side of the
- * way in, a lamp in each front corner, a plant in each back one. Depends on the room only.
+ * The reading area by the entrance and the corners: the magazine rack on the left of the way in
+ * and a table with chairs on the right, a lamp in each front corner, a plant in each back one.
+ * Depends on the room only.
  */
-function furnish(room: Room): Furniture[] {
+function furnish(room: Room): {
+  furniture: Furniture[];
+  rack: RackPlacement;
+} {
   const half = room.maxX;
   const front = CASE_DEPTH / 2 + FRONT_OFFSET + 0.9;
   const tableZ = (front + room.maxZ) / 2;
   const tableX = Math.max(2.2, half - 1.9);
-  return [
-    { kind: 'table', x: -tableX, z: tableZ, w: 1.4, d: 1.7 },
+  // The rack is wider than a table; in a narrow room it moves in from the wall.
+  const rackX = -Math.min(tableX, half - RACK_WIDTH / 2 - 0.15);
+  const rack: RackPlacement = {
+    kind: 'rack',
+    x: rackX,
+    z: tableZ,
+    w: RACK_WIDTH,
+    d: RACK_DEPTH,
+    front: { x: rackX, z: tableZ + RACK_DEPTH / 2 + RACK_FRONT_OFFSET },
+  };
+  const furniture: Furniture[] = [
+    rack,
     { kind: 'table', x: tableX, z: tableZ, w: 1.4, d: 1.7 },
     { kind: 'lamp', x: -half + 0.45, z: room.maxZ - 0.45, w: 0.5, d: 0.5 },
     { kind: 'lamp', x: half - 0.45, z: room.maxZ - 0.45, w: 0.5, d: 0.5 },
     { kind: 'plant', x: -half + 0.55, z: room.minZ + 0.55, w: 0.7, d: 0.7 },
     { kind: 'plant', x: half - 0.55, z: room.minZ + 0.55, w: 0.7, d: 0.7 },
   ];
+  return { furniture, rack };
 }
 
 export interface Slot {

@@ -959,6 +959,9 @@ importers:
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.7
     devDependencies:
       '@types/hast':
         specifier: ^3.0.5
@@ -10932,6 +10935,7 @@ packages:
 
   oidn-web@0.4.0:
     resolution: {integrity: sha512-Qj1pH9Py74hH16bTPENxnpPt+mBcUg6pAYXisfbaZSkTRRIGaqtURKkyE79EWMs8nabP10sFH9EF90eK4qIaKw==}
+    deprecated: This package has been renamed to oidn-webgpu. Install oidn-webgpu and update imports from "oidn-web" to "oidn-webgpu".
 
   on-exit-leak-free@2.1.2:
     resolution: {integrity: sha512-0eJJY6hXLGf1udHwfNftBqH+g73EU4B504nZeKpz1sYRKafAghwxEJunB2O7rDZkL4PGfsMVnTXZ2EjibbqcsA==}
