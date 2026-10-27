@@ -165,6 +165,16 @@ describe('mergeEvents', () => {
     );
     expect(merged.map((e) => e.id)).toEqual(['moc:5b3dd544']);
   });
+
+  it('keeps one source’s same-titled events in different cities', () => {
+    const a = mocEvent(MOC_ITEM);
+    if (!a) throw new Error('fixture did not parse');
+    const merged = mergeEvents(
+      [[a, { ...a, id: 'moc:other-city', cities: ['臺南市'] }]],
+      '2026-10-27',
+    );
+    expect(merged).toHaveLength(2);
+  });
 });
 
 describe('loadEvents', () => {

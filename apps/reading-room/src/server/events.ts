@@ -234,19 +234,24 @@ export async function fetchTaipeiEvents(
   return events;
 }
 
-/** The same event listed by both sources keeps the ministry's copy. */
+/**
+ * The same event listed by both sources keeps the ministry's copy. Within one source, only the
+ * id dedupes: a touring show can list the same title and day once per city.
+ */
 export function mergeEvents(
   lists: readonly (readonly LibraryEvent[])[],
   today: string,
 ): LibraryEvent[] {
-  const seen = new Set<string>();
+  const ids = new Set<string>();
+  const sourceOf = new Map<string, EventSource>();
   const out: LibraryEvent[] = [];
   for (const event of lists.flat()) {
-    if (event.end < today) continue;
+    if (event.end < today || ids.has(event.id)) continue;
     const key = `${event.title.replace(/\s+/g, '')}|${event.start}`;
-    if (seen.has(key) || seen.has(event.id)) continue;
-    seen.add(key);
-    seen.add(event.id);
+    const seenIn = sourceOf.get(key);
+    if (seenIn && seenIn !== event.source) continue;
+    sourceOf.set(key, event.source);
+    ids.add(event.id);
     out.push(event);
   }
   return out;
