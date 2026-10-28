@@ -11,7 +11,9 @@ test.describe('the library’s language', () => {
   }) => {
     await gotoLibrary(page);
     await expect(page.locator('html')).toHaveAttribute('lang', 'zh-Hant');
-    await expect(page.getByPlaceholder('搜尋書')).toBeVisible();
+    await expect(
+      page.getByPlaceholder('搜尋書', { exact: true }),
+    ).toBeVisible();
 
     await page.getByRole('button', { name: '切換成英文' }).click();
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');

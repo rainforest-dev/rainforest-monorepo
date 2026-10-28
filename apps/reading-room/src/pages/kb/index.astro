@@ -33,8 +33,8 @@ const hits = q ? searchKb(index.entries, q) : [];
 const mounted = index.mounted[source];
 ---
 
-<RoomLayout collection="kb">
-  <KbFrame source={source} counts={kbCounts(index.docs)} shelves={shelves}>
+<RoomLayout collection="kb" section={source} kbCounts={kbCounts(index.docs)}>
+  <KbFrame source={source} shelves={shelves}>
     <main class="flex flex-col gap-6 px-4 py-6 sm:px-8 lg:px-14 lg:py-8">
       <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 class="text-xl font-semibold">{t('kb.title')}</h2>

@@ -37,7 +37,6 @@ export const zh = {
     trash: '垃圾桶',
   },
   notebook: {
-    back: '筆記本',
     pages_one: '{{count}} 頁',
     pages_other: '{{count}} 頁',
     archived: ' · 已封存',

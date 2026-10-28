@@ -183,7 +183,11 @@ test.describe('library shell', () => {
       '/books',
     );
 
-    const sections = banner.getByRole('navigation', { name: '閱覽室' });
+    // The rack's own pages sit in the row under the bar, not in it.
+    await expect(
+      banner.getByRole('navigation', { name: '報架分區' }),
+    ).toHaveCount(0);
+    const sections = page.getByRole('navigation', { name: '報架分區' });
     await expect(sections.getByRole('link', { name: '報架' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -192,7 +196,7 @@ test.describe('library shell', () => {
     await expect(page).toHaveURL(/\/rack\/sources$/);
     await expect(
       page
-        .getByRole('navigation', { name: '閱覽室' })
+        .getByRole('navigation', { name: '報架分區' })
         .getByRole('link', { name: '來源' }),
     ).toHaveAttribute('aria-current', 'page');
   });

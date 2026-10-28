@@ -133,9 +133,9 @@ export function QueueView({ data, params, navigate, keys }: QueueViewProps) {
   return (
     <section
       aria-labelledby="queue-heading"
-      className="flex min-h-[calc(100dvh-3.5rem)] min-w-0 flex-col px-4 pb-6 lg:px-6"
+      className="flex min-h-[calc(100dvh-var(--library-top))] min-w-0 flex-col px-4 pb-6 lg:px-6"
     >
-      <div className="bg-background z-[5] flex flex-col gap-3 py-4 lg:sticky lg:top-14">
+      <div className="bg-background lg:top-(--library-top) z-[5] flex flex-col gap-3 py-4 lg:sticky">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2
             id="queue-heading"

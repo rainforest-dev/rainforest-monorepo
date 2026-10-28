@@ -177,7 +177,9 @@ test.describe('Study', () => {
     page,
   }) => {
     await gotoLibrary(page, '/?groupBy=series');
-    const views = page.getByRole('group', { name: 'View' }).getByRole('button');
+    const views = page
+      .getByRole('navigation', { name: 'View' })
+      .getByRole('button');
     await expect(views).toHaveCount(3);
     await expect(
       page.getByRole('button', { name: 'Study view' }),

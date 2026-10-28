@@ -50,7 +50,7 @@ export function LibraryToolbar({
         });
 
   return (
-    <div className="bg-background z-20 flex flex-col gap-2 border-b py-3 lg:sticky lg:top-14">
+    <div className="bg-background lg:top-(--library-top) z-20 flex flex-col gap-2 border-b py-3 lg:sticky">
       <div className="flex items-center gap-2 lg:hidden">
         <Button
           variant="outline"

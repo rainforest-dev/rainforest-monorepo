@@ -1,45 +1,22 @@
 ---
-import {
-  KB_SOURCES,
-  type KbShelf,
-  type KbSource,
-  kbSourceLabel,
-} from '@/lib/kb';
+import { type KbShelf, type KbSource } from '@/lib/kb';
 import { KB_PATH } from '@/lib/paths';
 import { roomT } from '@/locales';
 
 interface Props {
   source: KbSource;
-  counts: Record<KbSource, number>;
   shelves: KbShelf[];
   /** The open document, highlighted in its shelf. */
   currentId?: string;
 }
 
-const { source, counts, shelves, currentId } = Astro.props;
+const { source, shelves, currentId } = Astro.props;
 const t = roomT(Astro.locals.locale);
-const sourceHref = (s: KbSource) => `${KB_PATH}?source=${s}`;
 const shelfHref = (shelf: string) =>
   `${KB_PATH}?source=${source}&shelf=${encodeURIComponent(shelf)}`;
 ---
 
 <nav aria-label={t('kb.toc')} class="flex flex-col gap-1 p-4">
-  <div class="bg-background mb-3 flex rounded-md border p-0.5">
-    {
-      KB_SOURCES.map((s) => (
-        <a
-          href={sourceHref(s)}
-          aria-current={s === source ? 'true' : undefined}
-          class:list={[
-            'flex h-9 flex-1 items-center justify-center rounded-[calc(var(--radius)-2px)] text-sm',
-            s === source ? 'bg-accent font-semibold' : 'hover:bg-accent/60',
-          ]}
-        >
-          {kbSourceLabel(s, t)} {counts[s]}
-        </a>
-      ))
-    }
-  </div>
   {
     shelves.map((shelf) => (
       <div class="mt-2">

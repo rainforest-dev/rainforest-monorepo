@@ -20,7 +20,7 @@ const COLUMNS = {
 } as const;
 
 const SIDE_COLUMN =
-  'hidden lg:sticky lg:top-14 lg:block lg:h-[calc(100dvh-3.5rem)] lg:overflow-y-auto';
+  'hidden lg:sticky lg:top-(--library-top) lg:block lg:h-[calc(100dvh-var(--library-top))] lg:overflow-y-auto';
 
 export interface ShellLabels {
   filters: string;

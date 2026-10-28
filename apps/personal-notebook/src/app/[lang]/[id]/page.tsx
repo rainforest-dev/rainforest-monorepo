@@ -8,11 +8,10 @@ import {
   NotebookBody,
   PageUploader,
 } from '@/components/notebooks';
+import { NotebookBreadcrumb } from '@/components/shell';
 import { daysLeftInTrash } from '@/lib/notebook';
 import { getNotebook } from '@/lib/server';
 import { notebookT, pageLocale } from '@/locales';
-
-import { BackLink } from './BackLink';
 
 interface Props {
   params: Promise<{ lang: string; id: string }>;
@@ -29,7 +28,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default function NotebookPage({ params }: Props) {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
-      <BackLink />
       <Suspense
         fallback={<div className="bg-muted h-40 animate-pulse rounded-md" />}
       >
@@ -49,6 +47,7 @@ async function NotebookContent({ params }: Props) {
 
   return (
     <>
+      <NotebookBreadcrumb name={notebook.name} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-semibold tracking-tight">

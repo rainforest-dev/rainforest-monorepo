@@ -69,11 +69,6 @@ export const en: Translation<typeof zh> = {
     study: 'Study',
     label: 'View',
     region: '{{name}} view',
-    tooltip: {
-      shelf: 'Shelf: covers in a grid',
-      catalogue: 'Catalogue: one book per row',
-      study: 'Study: spines on shelves',
-    },
   },
   empty: {
     filtered: 'No books match these filters.',
@@ -202,7 +197,6 @@ export const en: Translation<typeof zh> = {
     rating: 'Rated {{stars}} of 5',
     loading: 'Loading book',
     notFound: 'Book not found.',
-    back: 'Library',
   },
   loadError: {
     book: "Couldn't load this book",

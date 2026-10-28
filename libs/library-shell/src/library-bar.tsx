@@ -30,11 +30,10 @@ export interface LibraryBarProps {
   /** The current collection's own controls, after the switcher. */
   children?: ReactNode;
   /**
-   * The library-wide search. Turn it off where the collection's own search field sits in
-   * `children`, so the bar never shows two search boxes. Never shown without `collections`:
-   * an old hostname does not serve it.
+   * The collection's second level, a `SectionNav`: the row right under the bar. A search
+   * within the collection goes there too, so the bar's search is always the whole library.
    */
-  search?: boolean;
+  sections?: ReactNode;
   /**
    * Whether the other collections are reachable. Off on an app's old hostname, where only that
    * app is served: the bar then names the collection and links nowhere else.
@@ -45,7 +44,8 @@ export interface LibraryBarProps {
 /**
  * The one top bar every collection shows, in the same order everywhere: the library's name
  * (back to the hall), the collection switcher, the collection's own controls, the library-wide
- * search and the language switch. Below `sm` the switcher moves to the bottom tab bar. Every
+ * search and the language switch. The library-wide search is never swapped for a narrower one,
+ * and is left out only on an old hostname, which does not serve it. Below `sm` the switcher moves to the bottom tab bar. Every
  * collection link opens that collection's front page, so a tab is always the same place; where
  * this tab left the collection is still remembered, for a "carry on" link to offer.
  */
@@ -54,7 +54,7 @@ export function LibraryBar({
   renderLink,
   leading,
   children,
-  search = true,
+  sections,
   collections = true,
 }: LibraryBarProps) {
   useReturnPoint(current);
@@ -78,13 +78,12 @@ export function LibraryBar({
           <CollectionNav current={current} renderLink={renderLink} />
         )}
         {children}
-        {search && collections && (
+        {collections && (
           <ShellSearch className="order-last w-full lg:order-none lg:ml-auto lg:w-80" />
         )}
-        <LocaleSwitch
-          className={search && collections ? 'ml-auto lg:ml-0' : 'ml-auto'}
-        />
+        <LocaleSwitch className={collections ? 'ml-auto lg:ml-0' : 'ml-auto'} />
       </ShellHeader>
+      {sections}
       {collections && (
         <CollectionTabBar current={current} renderLink={renderLink} />
       )}
