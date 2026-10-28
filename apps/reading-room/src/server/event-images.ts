@@ -6,9 +6,13 @@ import { type LibraryEvent } from '@rainforest-dev/library-contract';
  * site; an event gets its picture on a render after its page has been read.
  */
 
-/** A page's picture rarely changes; one that had none is asked again a day later. */
+/**
+ * A page's picture rarely changes; one that had none is asked again a day later, and one that
+ * could not be read (a timeout, an error status) an hour later.
+ */
 const FOUND_TTL_MS = 7 * 24 * 60 * 60_000;
 const MISSING_TTL_MS = 24 * 60 * 60_000;
+const FAILED_TTL_MS = 60 * 60_000;
 const TIMEOUT_MS = 8_000;
 /** `<head>` is near the top; never read more of a page than this. */
 const MAX_BYTES = 256 * 1024;
@@ -22,16 +26,20 @@ const SKIP_HOSTS =
 interface Entry {
   image: string | null;
   at: number;
+  failed: boolean;
 }
 
 const pages = new Map<string, Entry>();
 const queue = new Set<string>();
+/** Pages being read now, so a render meanwhile does not queue them again. */
+const reading = new Set<string>();
 let running = 0;
 
 /** Forgets every page read; for tests. */
 export function resetEventImages() {
   pages.clear();
   queue.clear();
+  reading.clear();
   running = 0;
 }
 
@@ -96,7 +104,8 @@ async function readHead(fetcher: typeof fetch, url: string): Promise<string> {
         'rainforest-library/1.0 (+https://library.rainforest.tools)',
     },
   });
-  if (!response.ok || !response.body) return '';
+  if (!response.ok) throw new Error(`HTTP ${response.status} from ${url}`);
+  if (!response.body) return '';
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let html = '';
@@ -116,12 +125,14 @@ function pump(fetcher: typeof fetch, now: number) {
   while (running < CONCURRENCY && queue.size > 0) {
     const url = queue.values().next().value as string;
     queue.delete(url);
+    reading.add(url);
     running++;
     readHead(fetcher, url)
-      .then((html) => ogImageOf(html, url) ?? null)
-      .catch(() => null)
-      .then((image) => {
-        pages.set(url, { image, at: now });
+      .then((html) => ({ image: ogImageOf(html, url) ?? null, failed: false }))
+      .catch(() => ({ image: null, failed: true }))
+      .then(({ image, failed }) => {
+        pages.set(url, { image, at: now, failed });
+        reading.delete(url);
         running--;
         pump(fetcher, now);
       });
@@ -142,8 +153,13 @@ export function withPageImages(
     const page = pageOf(event);
     if (!page) continue;
     const entry = pages.get(page);
-    const ttl = entry?.image ? FOUND_TTL_MS : MISSING_TTL_MS;
-    if (!entry || now - entry.at >= ttl) queue.add(page);
+    const ttl = entry?.image
+      ? FOUND_TTL_MS
+      : entry?.failed
+        ? FAILED_TTL_MS
+        : MISSING_TTL_MS;
+    if (!reading.has(page) && (!entry || now - entry.at >= ttl))
+      queue.add(page);
     if (entry?.image) found.set(event.id, entry.image);
   }
   pump(fetcher, now);

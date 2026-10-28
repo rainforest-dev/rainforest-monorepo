@@ -229,13 +229,14 @@ describe('loadEvents', () => {
     ]);
     expect(first.failed).toEqual([]);
     expect(first.fetchedAt).toBe('2026-10-27T04:00:00.000Z');
-    // The Taipei event's page is read once in the background, for its picture.
-    await settleEventImages();
-    const count = calls.length;
+    // Event pages are also read, in the background, for pictures; count the sources only.
+    const sourceCalls = () =>
+      calls.filter((url) => /category=|Events\/Activity/.test(url)).length;
+    const count = sourceCalls();
     await loadEvents(env, fetcher, now + EVENTS_TTL_MS - 1);
-    expect(calls.length).toBe(count);
+    expect(sourceCalls()).toBe(count);
     await loadEvents(env, fetcher, now + EVENTS_TTL_MS);
-    expect(calls.length).toBeGreaterThan(count);
+    expect(sourceCalls()).toBeGreaterThan(count);
   });
 
   it('keeps a failing source’s last events and says it failed', async () => {

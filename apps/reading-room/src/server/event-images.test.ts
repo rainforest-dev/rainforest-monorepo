@@ -126,10 +126,40 @@ describe('withPageImages', () => {
     ]);
   });
 
-  it('asks a page with no picture again only after a day', async () => {
+  it('reads a page once while it is being read', async () => {
+    const calls: string[] = [];
+    const fetcher = stubPages(
+      { 'https://museum.test/1': page('https://museum.test/1.jpg') },
+      calls,
+    );
+    const events = [event('a', 'https://museum.test/1')];
+    withPageImages(events, fetcher, now);
+    withPageImages(events, fetcher, now);
+    await settleEventImages();
+    expect(calls).toHaveLength(1);
+  });
+
+  it('asks a page that failed again after an hour', async () => {
     const calls: string[] = [];
     const fetcher = stubPages({}, calls);
-    const events = [event('a', 'https://museum.test/missing')];
+    const events = [event('a', 'https://museum.test/down')];
+    withPageImages(events, fetcher, now);
+    await settleEventImages();
+    withPageImages(events, fetcher, now + 59 * 60_000);
+    await settleEventImages();
+    expect(calls).toHaveLength(1);
+    withPageImages(events, fetcher, now + 60 * 60_000);
+    await settleEventImages();
+    expect(calls).toHaveLength(2);
+  });
+
+  it('asks a page with no picture again only after a day', async () => {
+    const calls: string[] = [];
+    const fetcher = stubPages(
+      { 'https://museum.test/plain': '<html><head></head>' },
+      calls,
+    );
+    const events = [event('a', 'https://museum.test/plain')];
     withPageImages(events, fetcher, now);
     await settleEventImages();
     withPageImages(events, fetcher, now + 23 * 3_600_000);
