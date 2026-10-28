@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 
-import { MOC_EVENTS, TAIPEI_EVENTS } from './events-fixture';
+import { EVENT_PAGE_IMAGE, MOC_EVENTS, TAIPEI_EVENTS } from './events-fixture';
 
 export const FEED_PORT = 3033;
 export const FEED_ORIGIN = `http://127.0.0.1:${FEED_PORT}`;
@@ -34,6 +34,8 @@ const HTML = `<!doctype html>
 <html><head><title>Not a feed</title></head><body><p>Just a page.</p></body></html>
 `;
 
+const POSTER = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 30"><rect width="40" height="30" fill="#3a7"/></svg>`;
+
 interface Route {
   status: number;
   type: string;
@@ -65,6 +67,17 @@ const ROUTES: Record<string, Route> = {
     type: 'application/json',
     body: JSON.stringify(TAIPEI_EVENTS),
   },
+  '/events/poster.svg': { status: 200, type: 'image/svg+xml', body: POSTER },
+  '/events/page-cover.svg': {
+    status: 200,
+    type: 'image/svg+xml',
+    body: POSTER,
+  },
+  '/events/page.html': {
+    status: 200,
+    type: 'text/html',
+    body: `<!doctype html><html><head><meta property="og:image" content="${EVENT_PAGE_IMAGE}"></head><body></body></html>`,
+  },
   '/feeds/slow.xml': {
     status: 200,
     type: 'application/rss+xml',
@@ -85,6 +98,8 @@ export const FEEDS = {
 export const EVENT_SOURCE_URLS = {
   EVENTS_MOC_URL: `${FEED_ORIGIN}/events/moc?method=doFindTypeJ`,
   EVENTS_TAIPEI_URL: `${FEED_ORIGIN}/events/taipei`,
+  /** The event pages read for pictures are on this loopback server too. */
+  EVENTS_PAGES_PRIVATE: 'allow',
 } as const;
 
 export function startFeedServer(): Promise<() => Promise<void>> {

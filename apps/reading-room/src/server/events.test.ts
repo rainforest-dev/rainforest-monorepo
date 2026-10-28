@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { resetEventImages, settleEventImages } from './event-images.js';
 import {
   dayOf,
   EVENTS_TTL_MS,
@@ -8,9 +9,14 @@ import {
   looksLikeShowOrMarket,
   mergeEvents,
   mocEvent,
+  mocImage,
   resetEventsCache,
   taipeiEvent,
 } from './events.js';
+
+vi.mock('node:dns/promises', () => ({
+  lookup: async () => [{ address: '93.184.216.34', family: 4 }],
+}));
 
 const MOC_ITEM = {
   UID: '5b3dd544',
@@ -102,6 +108,31 @@ describe('mocEvent', () => {
   });
 });
 
+describe('mocImage', () => {
+  it.each([
+    [
+      'https://cloud.culture.tw/e_new_upload/a.jpg',
+      'https://cloud.culture.tw/e_new_upload/a.jpg',
+    ],
+    [
+      'https://cloud.culture.twhttps://cloud.culture.tw/e_new_upload/b.jpeg',
+      'https://cloud.culture.tw/e_new_upload/b.jpeg',
+    ],
+    ['/e_new_upload/c.png', 'https://cloud.culture.tw/e_new_upload/c.png'],
+    ['', undefined],
+    [undefined, undefined],
+    ['javascript:alert(1)', undefined],
+  ])('reads %s', (raw, url) => {
+    expect(mocImage(raw)).toBe(url);
+  });
+
+  it('gives the event its picture', () => {
+    expect(
+      mocEvent({ ...MOC_ITEM, imageUrl: '/e_new_upload/c.png' })?.image,
+    ).toBe('https://cloud.culture.tw/e_new_upload/c.png');
+  });
+});
+
 describe('taipeiEvent', () => {
   it('reads a Taipei market', () => {
     expect(taipeiEvent(TAIPEI_ITEM)).toMatchObject({
@@ -112,6 +143,26 @@ describe('taipeiEvent', () => {
       cities: ['臺北市'],
       topics: ['handmade', 'vegetarian'],
     });
+  });
+});
+
+describe('taipeiEvent pictures', () => {
+  it.each([
+    [
+      [{ src: 'https://www.travel.taipei/a.jpg' }],
+      'https://www.travel.taipei/a.jpg',
+    ],
+    [
+      [{ src: null }, { src: 'https://www.travel.taipei/b.jpg' }],
+      'https://www.travel.taipei/b.jpg',
+    ],
+    [[{ src: '/relative.jpg' }], undefined],
+    ['not a list', undefined],
+    [null, undefined],
+  ])('reads images %j', (images, image) => {
+    const event = taipeiEvent({ ...TAIPEI_ITEM, images });
+    expect(event?.id).toBe('taipei:42');
+    expect(event?.image).toBe(image);
   });
 });
 
@@ -178,7 +229,11 @@ describe('mergeEvents', () => {
 });
 
 describe('loadEvents', () => {
-  afterEach(() => resetEventsCache());
+  afterEach(async () => {
+    await settleEventImages();
+    resetEventsCache();
+    resetEventImages();
+  });
   const env = {};
   const now = Date.parse('2026-10-27T04:00:00Z');
   const routes = {
@@ -198,11 +253,14 @@ describe('loadEvents', () => {
     ]);
     expect(first.failed).toEqual([]);
     expect(first.fetchedAt).toBe('2026-10-27T04:00:00.000Z');
-    const count = calls.length;
+    // Event pages are also read, in the background, for pictures; count the sources only.
+    const sourceCalls = () =>
+      calls.filter((url) => /category=|Events\/Activity/.test(url)).length;
+    const count = sourceCalls();
     await loadEvents(env, fetcher, now + EVENTS_TTL_MS - 1);
-    expect(calls.length).toBe(count);
+    expect(sourceCalls()).toBe(count);
     await loadEvents(env, fetcher, now + EVENTS_TTL_MS);
-    expect(calls.length).toBeGreaterThan(count);
+    expect(sourceCalls()).toBeGreaterThan(count);
   });
 
   it('keeps a failing source’s last events and says it failed', async () => {
@@ -228,6 +286,32 @@ describe('loadEvents', () => {
     const late = await loadEvents(env, stubFetch(down), now + 49 * 3_600_000);
     expect(late.failed).toContain('taipei');
     expect(late.events.map((e) => e.id)).not.toContain('taipei:42');
+  });
+
+  it('reads an event page on a private address only when told to', async () => {
+    const lan = {
+      ...routes,
+      'category=6': [
+        { ...MOC_ITEM, sourceWebPromote: 'http://192.168.1.10/event' },
+      ],
+    };
+    const read = async (pagesPrivate?: string) => {
+      resetEventsCache();
+      resetEventImages();
+      const calls: string[] = [];
+      await loadEvents(
+        pagesPrivate === undefined
+          ? {}
+          : { EVENTS_PAGES_PRIVATE: pagesPrivate },
+        stubFetch(lan, calls),
+        now,
+      );
+      await settleEventImages();
+      return calls.includes('http://192.168.1.10/event');
+    };
+    expect(await read()).toBe(false);
+    expect(await read('yes')).toBe(false);
+    expect(await read('allow')).toBe(true);
   });
 
   it('reads nothing when switched off', async () => {

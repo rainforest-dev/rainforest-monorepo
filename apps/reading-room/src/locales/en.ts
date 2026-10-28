@@ -43,6 +43,12 @@ export const en: Translation<typeof zh> = {
     placesHint: 'None picked means all of Taiwan',
     topics: 'Topics',
     topicsHint: 'None picked means every topic',
+    topicFilter: 'By topic',
+    allTopics: 'All topics',
+    kind: {
+      exhibition: 'Exhibition',
+      market: 'Market',
+    },
     sources: 'Sources',
     presets: 'Quick picks',
     clear: 'Clear all',
