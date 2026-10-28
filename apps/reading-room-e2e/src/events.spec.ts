@@ -57,15 +57,18 @@ test.describe('magazine rack', () => {
   }) => {
     await page.goto('/rack/events');
     const topics = page.getByRole('group', { name: 'By topic' });
+    const toys = topics.getByRole('button', { name: /^Toys/ });
+    // A click before the island hydrates does nothing, so retry it, but only while the chip is
+    // still off: a second click that lands would turn it off again.
     await expect(async () => {
-      await topics.getByRole('button', { name: /^Toys/ }).click();
-      await expect(card(page, EVENT_TITLES.now)).toBeHidden({ timeout: 2_000 });
+      if ((await toys.getAttribute('aria-pressed')) !== 'true')
+        await toys.click();
+      await expect(toys).toHaveAttribute('aria-pressed', 'true', {
+        timeout: 2_000,
+      });
     }).toPass();
+    await expect(card(page, EVENT_TITLES.now)).toBeHidden();
     await expect(card(page, EVENT_TITLES.soon)).toBeVisible();
-    await expect(topics.getByRole('button', { name: /^Toys/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
 
     await topics.getByRole('button', { name: 'All topics' }).click();
     await expect(card(page, EVENT_TITLES.now)).toBeVisible();
