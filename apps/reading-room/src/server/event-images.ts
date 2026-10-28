@@ -32,7 +32,11 @@ const MAX_REDIRECTS = 3;
  * Names that resolve to a private address are not caught; literals and local names are.
  */
 export function isPublicHost(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  // `localhost.` and `nas.local.` are the same hosts as without the dot.
+  const host = hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '')
+    .replace(/\.+$/, '');
   if (!host.includes('.') && !host.includes(':')) return false;
   if (/(^|\.)(localhost|local|internal|lan|home\.arpa)$/.test(host))
     return false;
