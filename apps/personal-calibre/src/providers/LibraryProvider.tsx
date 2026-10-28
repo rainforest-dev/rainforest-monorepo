@@ -1,6 +1,6 @@
 'use client';
 
-import { useLibraryT } from '@rainforest-dev/library-shell';
+import { useLibrarySidebar, useLibraryT } from '@rainforest-dev/library-shell';
 import { toast } from '@rainforest-dev/rainforest-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -52,6 +52,7 @@ interface LibraryContextValue {
   fallBackToCss: () => void;
   backend: StudyBackend | null;
   setBackend: (backend: StudyBackend | null) => void;
+  /** The shared left column, opened and closed across the library. */
   panelOpen: boolean;
   togglePanel: () => void;
   filtersOpen: boolean;
@@ -232,9 +233,10 @@ export function LibraryProvider({
     toast(t('study.fallback'));
   }, [t]);
 
+  const [panelOpen, setPanelOpen] = useLibrarySidebar();
   const togglePanel = useCallback(
-    () => savePrefs({ panel: !prefs.panel }),
-    [prefs.panel, savePrefs],
+    () => setPanelOpen(!panelOpen),
+    [panelOpen, setPanelOpen],
   );
   const toggle = useCallback(
     (id: number) => setSelected((s) => toggleId(s, id)),
@@ -302,7 +304,7 @@ export function LibraryProvider({
       fallBackToCss,
       backend,
       setBackend,
-      panelOpen: prefs.panel,
+      panelOpen,
       togglePanel,
       filtersOpen,
       setFiltersOpen,
@@ -339,7 +341,7 @@ export function LibraryProvider({
       studyFallback,
       fallBackToCss,
       backend,
-      prefs.panel,
+      panelOpen,
       togglePanel,
       filtersOpen,
       selected,

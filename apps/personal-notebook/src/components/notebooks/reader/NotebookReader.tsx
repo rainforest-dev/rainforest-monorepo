@@ -1,8 +1,13 @@
 'use client';
 
-import { useLibraryT } from '@rainforest-dev/library-shell';
+import {
+  SHELL_IDS,
+  SIDEBAR_GRID,
+  useLibraryT,
+} from '@rainforest-dev/library-shell';
 import {
   Button,
+  cn,
   Sheet,
   SheetBody,
   SheetContent,
@@ -113,8 +118,12 @@ export function NotebookReader({
   const pageLabel = openPages.map((page) => pageNumberOf(page)).join('–');
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)_20rem]">
-      <nav aria-label={t('reader.outline')} className="hidden lg:block">
+    <div className={cn('grid gap-6', SIDEBAR_GRID.aside)}>
+      <nav
+        id={SHELL_IDS.sidebar}
+        aria-label={t('reader.outline')}
+        className="lg:sidebar-closed:hidden hidden lg:block"
+      >
         <h2 className="px-2 pb-3 text-sm font-semibold">
           {t('reader.outline')}
         </h2>

@@ -1,15 +1,15 @@
 import {
   type CollectionId,
+  collectionLabel,
+  getCollection,
   type LibraryLocale,
 } from '@rainforest-dev/library-contract';
 import {
   LibraryBar,
   type SectionItem,
   SectionNav,
-  useLibraryT,
+  useLibraryLocale,
 } from '@rainforest-dev/library-shell';
-
-import { ROOM_NAMESPACE } from '@/locales';
 
 import { RoomI18n } from './RoomI18n';
 
@@ -50,7 +50,7 @@ function RoomBar({
   sections,
   collections,
 }: Omit<RoomHeaderProps, 'locale'>) {
-  const t = useLibraryT(ROOM_NAMESPACE);
+  const locale = useLibraryLocale();
   return (
     <LibraryBar
       current={collection}
@@ -59,11 +59,7 @@ function RoomBar({
     >
       {/* The bar names the library; the page's own name is for assistive tech. */}
       <h1 className="sr-only">
-        {collection === 'kb'
-          ? t('header.kb')
-          : collection === 'magazines'
-            ? t('events.title')
-            : t('header.room')}
+        {collectionLabel(getCollection(collection), locale)}
       </h1>
     </LibraryBar>
   );

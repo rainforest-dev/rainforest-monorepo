@@ -42,7 +42,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function RootLayout({ children, params }: Props) {
   const locale = await localeOf(params);
   return (
-    <html lang={HTML_LANG[locale]} className="font-sans">
+    <html
+      lang={HTML_LANG[locale]}
+      className="font-sans"
+      // The shell's head script marks a closed sidebar before React hydrates.
+      suppressHydrationWarning
+    >
       <body className="bg-background text-foreground min-h-screen">
         <ShellHead />
         <LibraryI18nProvider

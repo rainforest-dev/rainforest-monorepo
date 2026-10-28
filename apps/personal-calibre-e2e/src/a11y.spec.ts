@@ -12,7 +12,7 @@ import {
   studyOptions,
 } from './support/study';
 
-const panel = (page: Page) => page.locator('#library-filters');
+const panel = (page: Page) => page.locator('#library-sidebar');
 
 // Roving arrow nav plus scrollIntoView already reach every tile in a group's
 // horizontally-scrolling row, so it needs no tab stop of its own.

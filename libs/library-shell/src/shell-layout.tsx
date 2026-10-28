@@ -11,16 +11,10 @@ import {
 import { type ComponentProps, type ReactNode } from 'react';
 
 import { SHELL_IDS } from './ids';
+import { SIDE_COLUMN, SIDEBAR_COLUMN, SIDEBAR_GRID } from './layout';
 
-const COLUMNS = {
-  both: 'lg:grid-cols-[248px_minmax(0,1fr)_420px]',
-  filters: 'lg:grid-cols-[248px_minmax(0,1fr)]',
-  pane: 'lg:grid-cols-[minmax(0,1fr)_420px]',
-  none: 'lg:grid-cols-1',
-} as const;
-
-const SIDE_COLUMN =
-  'hidden lg:sticky lg:top-(--library-top) lg:block lg:h-[calc(100dvh-var(--library-top))] lg:overflow-y-auto';
+// From `lg` up. A page without a left column lays out content and pane alone.
+const PANE_ONLY = 'lg:grid lg:grid-cols-[minmax(0,1fr)_var(--library-pane)]';
 
 export interface ShellLabels {
   filters: string;
@@ -49,8 +43,6 @@ export interface ShellLayoutProps extends Omit<
   pane?: ReactNode;
   /** At `lg` and up the filters and pane are columns; below it they are sheets. */
   isDesktop: boolean;
-  /** Desktop: whether the filter column shows. */
-  filtersVisible?: boolean;
   /** Whether something is selected for the pane, on every width. */
   paneOpen?: boolean;
   /** Below `lg`: whether the filter sheet is open. */
@@ -73,7 +65,6 @@ export function ShellLayout({
   filters,
   pane,
   isDesktop,
-  filtersVisible = false,
   paneOpen = false,
   filtersSheetOpen = false,
   onFiltersSheetOpenChange,
@@ -86,14 +77,13 @@ export function ShellLayout({
   const browse = mode === 'browse';
   const hasFilters = filters !== undefined;
   const hasPane = pane !== undefined;
-  const columns =
-    hasFilters && filtersVisible
-      ? hasPane && paneOpen
-        ? 'both'
-        : 'filters'
-      : hasPane && paneOpen
-        ? 'pane'
-        : 'none';
+  const showPane = hasPane && paneOpen;
+  // The left column opens and closes with the shared sidebar toggle, through CSS.
+  const columns = hasFilters
+    ? SIDEBAR_GRID[showPane ? 'pane' : 'main']
+    : showPane
+      ? PANE_ONLY
+      : undefined;
 
   return (
     <div
@@ -106,15 +96,14 @@ export function ShellLayout({
     >
       {header}
       {browse ? (
-        <div className={cn('lg:grid', COLUMNS[columns])}>
+        <div className={columns}>
           {isDesktop && hasFilters && (
             <aside
-              id={SHELL_IDS.filters}
+              id={SHELL_IDS.sidebar}
               aria-label={labels.filters}
-              hidden={!filtersVisible}
               className={cn(
                 'bg-sidebar text-sidebar-foreground border-r',
-                SIDE_COLUMN,
+                SIDEBAR_COLUMN,
               )}
             >
               {filters}
@@ -126,7 +115,7 @@ export function ShellLayout({
           >
             {children}
           </main>
-          {isDesktop && hasPane && paneOpen && (
+          {isDesktop && showPane && (
             <aside
               aria-label={labels.pane}
               className={cn('bg-card border-l', SIDE_COLUMN)}

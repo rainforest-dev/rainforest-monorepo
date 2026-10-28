@@ -18,7 +18,6 @@ describe('ShellLayout on desktop', () => {
         isDesktop
         filters={<p>filters</p>}
         pane={<p>pane</p>}
-        filtersVisible
         paneOpen
         labels={{ pane: 'Book details' }}
       >
@@ -26,10 +25,10 @@ describe('ShellLayout on desktop', () => {
       </ShellLayout>,
     );
     expect(columnsClass(container)).toContain(
-      'lg:grid-cols-[248px_minmax(0,1fr)_420px]',
+      'lg:grid-cols-[var(--library-sidebar)_minmax(0,1fr)_var(--library-pane)]',
     );
     expect(screen.getByRole('complementary', { name: 'Filters' }).id).toBe(
-      SHELL_IDS.filters,
+      SHELL_IDS.sidebar,
     );
     expect(
       screen.getByRole('complementary', { name: 'Book details' }).textContent,
@@ -37,16 +36,17 @@ describe('ShellLayout on desktop', () => {
     expect(screen.getByRole('main').id).toBe(SHELL_IDS.main);
   });
 
-  it('keeps the hidden filter column in the DOM for aria-controls', () => {
+  it('leaves closing the filter column to the shared sidebar toggle', () => {
     const { container } = render(
       <ShellLayout header={header} isDesktop filters={<p>filters</p>}>
         list
       </ShellLayout>,
     );
-    const aside = container.querySelector(`#${SHELL_IDS.filters}`);
-    expect(aside).not.toBeNull();
-    expect(aside?.hasAttribute('hidden')).toBe(true);
-    expect(columnsClass(container)).toContain('lg:grid-cols-1');
+    const aside = container.querySelector(`#${SHELL_IDS.sidebar}`);
+    expect(aside?.className).toContain('lg:sidebar-closed:hidden');
+    expect(columnsClass(container)).toContain(
+      'lg:sidebar-closed:grid-cols-[minmax(0,1fr)]',
+    );
   });
 
   it('drops the pane column until something is open', () => {
@@ -56,14 +56,13 @@ describe('ShellLayout on desktop', () => {
         isDesktop
         filters={<p>filters</p>}
         pane={<p>pane</p>}
-        filtersVisible
       >
         list
       </ShellLayout>,
     );
     expect(screen.queryByText('pane')).toBeNull();
     expect(columnsClass(container)).toContain(
-      'lg:grid-cols-[248px_minmax(0,1fr)]',
+      'lg:grid-cols-[var(--library-sidebar)_minmax(0,1fr)]',
     );
   });
 });
@@ -115,7 +114,6 @@ describe('ShellLayout page mode', () => {
         mode="page"
         isDesktop
         filters={<p>filters</p>}
-        filtersVisible
       >
         reader
       </ShellLayout>,

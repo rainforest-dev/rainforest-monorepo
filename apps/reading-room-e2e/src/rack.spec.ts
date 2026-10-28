@@ -164,7 +164,7 @@ test.describe('library shell', () => {
     await page.goto('/rack');
     const banner = page.getByRole('banner');
     await expect(
-      banner.getByRole('heading', { level: 1, name: '閱覽室' }),
+      banner.getByRole('heading', { level: 1, name: '報架' }),
     ).toBeVisible();
     const collections = banner.getByRole('navigation', { name: '館藏' });
     await expect(collections.getByRole('link')).toHaveText([

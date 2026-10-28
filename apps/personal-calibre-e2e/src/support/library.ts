@@ -38,11 +38,23 @@ export async function readPrefs(
     : null;
 }
 
+/** The library-wide prefs cookie every app shares, such as whether the sidebar is open. */
+export async function readLibraryPrefs(
+  context: BrowserContext,
+): Promise<Record<string, unknown> | null> {
+  const cookie = (await context.cookies()).find(
+    (c) => c.name === 'library-prefs',
+  );
+  return cookie
+    ? (JSON.parse(decodeURIComponent(cookie.value)) as Record<string, unknown>)
+    : null;
+}
+
 export async function setPrefs(
   context: BrowserContext,
-  prefs: { view?: string; panel?: boolean; renderer?: string },
+  prefs: { view?: string; renderer?: string },
 ): Promise<void> {
-  const value = { view: 'shelf', panel: true, renderer: 'three-tsl', ...prefs };
+  const value = { view: 'shelf', renderer: 'three-tsl', ...prefs };
   await context.addCookies([
     {
       name: PREFS_COOKIE,

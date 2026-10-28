@@ -1,8 +1,6 @@
 /** The reading room's strings. Traditional Chinese is the source; `en.ts` must match its keys. */
 export const zh = {
   header: {
-    room: '閱覽室',
-    kb: '知識庫',
     sections: '報架分區',
     rack: '報架',
     sources: '來源',

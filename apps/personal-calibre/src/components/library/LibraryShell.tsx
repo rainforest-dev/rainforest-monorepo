@@ -23,7 +23,7 @@ export function LibraryShell({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isDesktop = useIsDesktop();
-  const { panelOpen, filtersOpen, setFiltersOpen, closeBook } = useLibrary();
+  const { filtersOpen, setFiltersOpen, closeBook } = useLibrary();
   const [ready, setReady] = useState(false);
   const t = useLibraryT(CALIBRE_NAMESPACE);
   useEffect(() => setReady(true), []);
@@ -40,7 +40,6 @@ export function LibraryShell({
       filters={filters}
       pane={pane}
       isDesktop={isDesktop}
-      filtersVisible={panelOpen}
       paneOpen={bookOpen}
       filtersSheetOpen={filtersOpen}
       onFiltersSheetOpenChange={setFiltersOpen}

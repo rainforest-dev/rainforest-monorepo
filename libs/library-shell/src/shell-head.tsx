@@ -1,4 +1,5 @@
 import { SHELL_ASSETS } from './assets';
+import { sidebarScript } from './layout';
 import { speculationRulesJson } from './speculation';
 
 interface ShellHeadProps {
@@ -7,8 +8,9 @@ interface ShellHeadProps {
 }
 
 /**
- * The shared `<head>` additions: the font preload and stylesheet from `/_shell`, and the
- * Speculation Rules. React 19 hoists the links into `<head>` wherever this renders.
+ * The shared `<head>` additions: the font preload and stylesheet from `/_shell`, the script
+ * that closes the left column before paint when the reader closed it, and the Speculation
+ * Rules. The `<html>` element needs `suppressHydrationWarning` for that script's attribute. React 19 hoists the links into `<head>` wherever this renders.
  */
 export function ShellHead({ prerender = true }: ShellHeadProps) {
   const assets = SHELL_ASSETS;
@@ -22,6 +24,7 @@ export function ShellHead({ prerender = true }: ShellHeadProps) {
         crossOrigin="anonymous"
       />
       <link rel="stylesheet" href={assets.stylesheet} precedence="default" />
+      <script dangerouslySetInnerHTML={{ __html: sidebarScript() }} />
       {prerender && (
         <script
           type="speculationrules"

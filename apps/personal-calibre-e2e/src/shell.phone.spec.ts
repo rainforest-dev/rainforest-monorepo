@@ -17,8 +17,8 @@ test.describe('shell on phone', () => {
       page.getByRole('banner').getByRole('button', { name: 'Catalogue view' }),
     ).toHaveCount(0);
     await expect(
-      page.getByRole('button', { name: 'Hide filters' }),
+      page.getByRole('button', { name: 'Hide sidebar' }),
     ).toBeHidden();
-    await expect(page.locator('#library-filters')).toHaveCount(0);
+    await expect(page.locator('#library-sidebar')).toHaveCount(0);
   });
 });

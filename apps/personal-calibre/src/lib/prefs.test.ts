@@ -19,7 +19,6 @@ describe('parsePrefs', () => {
   it('defaults the renderer to three-tsl', () => {
     expect(DEFAULT_PREFS).toEqual({
       view: 'shelf',
-      panel: true,
       renderer: 'three-tsl',
     });
   });
@@ -29,7 +28,6 @@ describe('parsePrefs', () => {
       parsePrefs('{"view":"attic","panel":false,"renderer":"webgl9"}'),
     ).toEqual({
       view: 'shelf',
-      panel: false,
       renderer: 'three-tsl',
     });
   });
@@ -40,7 +38,6 @@ describe('parsePrefs', () => {
     );
     expect(parsePrefs(raw)).toEqual({
       view: 'catalogue',
-      panel: false,
       renderer: 'css',
     });
   });
@@ -84,7 +81,7 @@ describe('resolveView', () => {
 describe('parsePrefs after the hall moved out', () => {
   it('reads a saved hall view as the default view', () => {
     const raw = JSON.stringify({ view: 'hall', panel: false });
-    expect(parsePrefs(raw)).toMatchObject({ view: 'shelf', panel: false });
+    expect(parsePrefs(raw)).toMatchObject({ view: 'shelf' });
   });
 });
 
@@ -101,7 +98,6 @@ describe('serializePrefs', () => {
   it('writes a one-year Lax cookie on /', () => {
     const cookie = serializePrefs({
       view: 'catalogue',
-      panel: false,
       renderer: 'three-tsl',
     });
     expect(cookie.startsWith(`${PREFS_COOKIE}=`)).toBe(true);
@@ -110,7 +106,6 @@ describe('serializePrefs', () => {
       parsePrefs(cookie.split(';')[0]?.slice(PREFS_COOKIE.length + 1)),
     ).toEqual({
       view: 'catalogue',
-      panel: false,
       renderer: 'three-tsl',
     });
   });

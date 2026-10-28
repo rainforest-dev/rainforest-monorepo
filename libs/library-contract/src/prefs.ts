@@ -23,6 +23,8 @@ const prefsSchema = z.object({
   renderer: z.string().min(1).max(64).nullable().catch(null),
   /** The language the reader picked; `null` follows the browser's `Accept-Language`. */
   locale: z.enum(LIBRARY_LOCALES).nullable().catch(null),
+  /** Whether a collection's left column (filters, contents, outline) shows on desktop. */
+  sidebar: z.boolean().catch(true),
 });
 export type LibraryPrefs = z.infer<typeof prefsSchema>;
 
@@ -30,6 +32,7 @@ export const DEFAULT_LIBRARY_PREFS: LibraryPrefs = {
   scheme: 'system',
   renderer: null,
   locale: null,
+  sidebar: true,
 };
 
 function parseJson(text: string): unknown {

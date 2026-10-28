@@ -6,6 +6,7 @@ import {
 } from '@rainforest-dev/library-contract';
 import {
   SHELL_ASSETS,
+  sidebarScript,
   speculationRulesJson,
 } from '@rainforest-dev/library-shell';
 
@@ -71,6 +72,7 @@ const sections: RoomSections | undefined =
       crossorigin="anonymous"
     />
     <link rel="stylesheet" href={SHELL_ASSETS.stylesheet} />
+    <script is:inline set:html={sidebarScript()} />
     <script
       is:inline
       type="speculationrules"
