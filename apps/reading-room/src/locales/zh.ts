@@ -38,6 +38,12 @@ export const zh = {
     placesHint: '不勾就是全台灣',
     topics: '主題',
     topicsHint: '不勾就是所有主題',
+    topicFilter: '依主題',
+    allTopics: '全部主題',
+    kind: {
+      exhibition: '展覽',
+      market: '市集',
+    },
     sources: '來源',
     presets: '快速選擇',
     clear: '全部清除',

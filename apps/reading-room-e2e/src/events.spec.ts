@@ -1,7 +1,11 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoViolations } from './support/axe';
-import { EVENT_TITLES } from './support/events-fixture';
+import {
+  EVENT_PAGE_IMAGE,
+  EVENT_POSTER,
+  EVENT_TITLES,
+} from './support/events-fixture';
 import { hideDevToolbar } from './support/phone';
 
 /** An event's card, never its title in the island's serialized props. */
@@ -46,6 +50,44 @@ test.describe('magazine rack', () => {
 
     await page.getByRole('checkbox', { name: /^臺南市/ }).click();
     await expect(page.getByText(/Nothing matches/)).toBeVisible();
+  });
+
+  test('filters by topic from the chips above the shelves', async ({
+    page,
+  }) => {
+    await page.goto('/rack/events');
+    const topics = page.getByRole('group', { name: 'By topic' });
+    await expect(async () => {
+      await topics.getByRole('button', { name: /^Toys/ }).click();
+      await expect(card(page, EVENT_TITLES.now)).toBeHidden({ timeout: 2_000 });
+    }).toPass();
+    await expect(card(page, EVENT_TITLES.soon)).toBeVisible();
+    await expect(topics.getByRole('button', { name: /^Toys/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await topics.getByRole('button', { name: 'All topics' }).click();
+    await expect(card(page, EVENT_TITLES.now)).toBeVisible();
+  });
+
+  test('shows each event’s poster, or a drawn cover without one', async ({
+    page,
+  }) => {
+    await page.goto('/rack/events');
+    await expect(
+      card(page, EVENT_TITLES.now).locator('[data-cover="image"] img'),
+    ).toHaveAttribute('src', EVENT_POSTER);
+    await expect(
+      card(page, EVENT_TITLES.ending).locator('[data-cover="drawn"]'),
+    ).toBeVisible();
+    // The page's own picture is read in the background, for a later visit.
+    await expect(async () => {
+      await page.reload();
+      await expect(
+        card(page, EVENT_TITLES.soon).locator('[data-cover="image"] img'),
+      ).toHaveAttribute('src', EVENT_PAGE_IMAGE, { timeout: 1_000 });
+    }).toPass({ timeout: 30_000 });
   });
 
   test('serves the events as JSON for the hall', async ({ request }) => {

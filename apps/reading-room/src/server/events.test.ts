@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { resetEventImages, settleEventImages } from './event-images.js';
 import {
   dayOf,
   EVENTS_TTL_MS,
@@ -8,6 +9,7 @@ import {
   looksLikeShowOrMarket,
   mergeEvents,
   mocEvent,
+  mocImage,
   resetEventsCache,
   taipeiEvent,
 } from './events.js';
@@ -102,6 +104,31 @@ describe('mocEvent', () => {
   });
 });
 
+describe('mocImage', () => {
+  it.each([
+    [
+      'https://cloud.culture.tw/e_new_upload/a.jpg',
+      'https://cloud.culture.tw/e_new_upload/a.jpg',
+    ],
+    [
+      'https://cloud.culture.twhttps://cloud.culture.tw/e_new_upload/b.jpeg',
+      'https://cloud.culture.tw/e_new_upload/b.jpeg',
+    ],
+    ['/e_new_upload/c.png', 'https://cloud.culture.tw/e_new_upload/c.png'],
+    ['', undefined],
+    [undefined, undefined],
+    ['javascript:alert(1)', undefined],
+  ])('reads %s', (raw, url) => {
+    expect(mocImage(raw)).toBe(url);
+  });
+
+  it('gives the event its picture', () => {
+    expect(
+      mocEvent({ ...MOC_ITEM, imageUrl: '/e_new_upload/c.png' })?.image,
+    ).toBe('https://cloud.culture.tw/e_new_upload/c.png');
+  });
+});
+
 describe('taipeiEvent', () => {
   it('reads a Taipei market', () => {
     expect(taipeiEvent(TAIPEI_ITEM)).toMatchObject({
@@ -178,7 +205,11 @@ describe('mergeEvents', () => {
 });
 
 describe('loadEvents', () => {
-  afterEach(() => resetEventsCache());
+  afterEach(async () => {
+    await settleEventImages();
+    resetEventsCache();
+    resetEventImages();
+  });
   const env = {};
   const now = Date.parse('2026-10-27T04:00:00Z');
   const routes = {
@@ -198,6 +229,8 @@ describe('loadEvents', () => {
     ]);
     expect(first.failed).toEqual([]);
     expect(first.fetchedAt).toBe('2026-10-27T04:00:00.000Z');
+    // The Taipei event's page is read once in the background, for its picture.
+    await settleEventImages();
     const count = calls.length;
     await loadEvents(env, fetcher, now + EVENTS_TTL_MS - 1);
     expect(calls.length).toBe(count);

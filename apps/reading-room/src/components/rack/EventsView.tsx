@@ -32,6 +32,8 @@ import { useMemo, useState } from 'react';
 
 import { roomT } from '@/locales';
 
+import { EventCover } from './EventCover';
+
 type T = ReturnType<typeof roomT>;
 
 export interface EventsViewProps {
@@ -88,32 +90,37 @@ function EventCard({
     .join(' · ');
   const body = (
     <>
-      <span className="text-muted-foreground text-xs tabular-nums">
-        {dateRange(event, today)}
-        {shelf === 'ending' &&
-          ` · ${left === 0 ? t('events.lastDay') : t('events.daysLeft', { count: left })}`}
-        {(shelf === 'soon' || shelf === 'market') &&
-          untilStart > 0 &&
-          ` · ${t('events.startsIn', { count: untilStart })}`}
-      </span>
-      <span className="font-semibold leading-snug">{event.title}</span>
-      {place && <span className="text-muted-foreground text-xs">{place}</span>}
-      {event.topics.length > 0 && (
-        <span className="mt-auto flex flex-wrap gap-1">
-          {event.topics.map((key) => {
-            const topic = EVENT_TOPICS.find((x) => x.key === key);
-            return topic ? (
-              <Badge key={key} variant="secondary">
-                {topic.labels[locale]}
-              </Badge>
-            ) : null;
-          })}
+      <EventCover event={event} label={t(`events.kind.${event.kind}`)} />
+      <span className="flex flex-1 flex-col gap-1.5 p-3">
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {dateRange(event, today)}
+          {shelf === 'ending' &&
+            ` · ${left === 0 ? t('events.lastDay') : t('events.daysLeft', { count: left })}`}
+          {(shelf === 'soon' || shelf === 'market') &&
+            untilStart > 0 &&
+            ` · ${t('events.startsIn', { count: untilStart })}`}
         </span>
-      )}
+        <span className="font-semibold leading-snug">{event.title}</span>
+        {place && (
+          <span className="text-muted-foreground text-xs">{place}</span>
+        )}
+        {event.topics.length > 0 && (
+          <span className="mt-auto flex flex-wrap gap-1">
+            {event.topics.map((key) => {
+              const topic = EVENT_TOPICS.find((x) => x.key === key);
+              return topic ? (
+                <Badge key={key} variant="secondary">
+                  {topic.labels[locale]}
+                </Badge>
+              ) : null;
+            })}
+          </span>
+        )}
+      </span>
     </>
   );
   const className = cn(
-    'bg-card text-card-foreground flex min-h-32 w-full flex-col gap-1.5 rounded-md border border-t-4 p-3',
+    'bg-card text-card-foreground flex w-full flex-col overflow-hidden rounded-md border border-t-4',
     shelf === 'ending' && 'border-t-destructive',
     shelf === 'now' && 'border-t-chart-2',
     shelf === 'market' && 'border-t-success',
@@ -310,6 +317,45 @@ export function EventsView({
           />
         </div>
       </details>
+
+      <div
+        role="group"
+        aria-label={t('events.topicFilter')}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <span className="text-muted-foreground text-xs">
+          {t('events.topicFilter')}
+        </span>
+        <Button
+          size="sm"
+          variant={subs.topics.length === 0 ? 'secondary' : 'ghost'}
+          aria-pressed={subs.topics.length === 0}
+          onClick={() => update({ ...subs, topics: [] })}
+        >
+          {t('events.allTopics')}
+        </Button>
+        {topicOptions
+          .filter((o) => o.count > 0 || subs.topics.includes(o.value))
+          .map((option) => {
+            const on = subs.topics.includes(option.value);
+            return (
+              <Button
+                key={option.value}
+                size="sm"
+                variant={on ? 'secondary' : 'outline'}
+                aria-pressed={on}
+                onClick={() =>
+                  update({ ...subs, topics: toggle(subs.topics, option.value) })
+                }
+              >
+                {option.label}
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  {option.count}
+                </span>
+              </Button>
+            );
+          })}
+      </div>
 
       {result.failed.length > 0 && (
         <Alert>

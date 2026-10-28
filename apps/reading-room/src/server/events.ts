@@ -10,6 +10,8 @@ import {
 } from '@rainforest-dev/library-contract';
 import { z } from 'zod';
 
+import { webImageUrl, withPageImages } from './event-images.js';
+
 /**
  * The magazine rack's events, read from two public sources with no key: the Ministry of
  * Culture's arts-events open data (every city, mostly exhibitions) and Taipei's travel API,
@@ -58,6 +60,7 @@ const mocItemSchema = z.object({
   title: z.string().min(1),
   showInfo: z.array(mocShowSchema).optional().default([]),
   descriptionFilterHtml: z.string().optional(),
+  imageUrl: z.string().optional(),
   sourceWebPromote: z.string().optional(),
   webSales: z.string().optional(),
   startDate: z.string().optional(),
@@ -73,6 +76,10 @@ const taipeiItemSchema = z.object({
   address: z.string().nullish(),
   url: z.string().nullish(),
   ticket: z.string().nullish(),
+  images: z
+    .array(z.object({ src: z.string().nullish() }))
+    .nullish()
+    .catch(undefined),
 });
 
 const taipeiPageSchema = z.object({
@@ -107,6 +114,17 @@ const clip = (text: string | null | undefined, max: number) => {
   const trimmed = text?.replace(/\s+/g, ' ').trim();
   return trimmed ? trimmed.slice(0, max) : undefined;
 };
+
+const MOC_ORIGIN = 'https://cloud.culture.tw';
+
+/**
+ * The ministry's picture. Some entries carry its origin twice
+ * (`https://cloud.culture.twhttps://cloud.culture.tw/...`) and some none (`/e_new_upload/...`).
+ */
+export function mocImage(raw: string | undefined): string | undefined {
+  const once = raw?.trim().replace(/^https?:\/\/[^/]+(?=https?:\/\/)/i, '');
+  return webImageUrl(once, MOC_ORIGIN);
+}
 
 /** One ministry item as an event, or `null` when it has no usable dates. */
 export function mocEvent(raw: unknown): LibraryEvent | null {
@@ -153,6 +171,7 @@ export function mocEvent(raw: unknown): LibraryEvent | null {
       item.sourceWebPromote,
       `https://cloud.culture.tw/frontsite/inquiry/eventInquiryAction.do?method=showEventDetail&uid=${encodeURIComponent(item.UID)}`,
     ),
+    image: mocImage(item.imageUrl),
   };
   const checked = libraryEventSchema.safeParse(event);
   return checked.success ? checked.data : null;
@@ -178,6 +197,7 @@ export function taipeiEvent(raw: unknown): LibraryEvent | null {
     topics: matchEventTopics(`${item.title} ${item.description ?? ''}`),
     price: clip(item.ticket, 300),
     url: webUrl(item.url),
+    image: webImageUrl(item.images?.find((i) => i.src)?.src),
   };
   const checked = libraryEventSchema.safeParse(event);
   return checked.success ? checked.data : null;
@@ -344,9 +364,13 @@ export async function loadEvents(
       taipei?.readAt ?? -Infinity,
     );
     return {
-      events: mergeEvents(
-        [moc?.events ?? [], taipei?.events ?? []],
-        taipeiDay(new Date(now)),
+      events: withPageImages(
+        mergeEvents(
+          [moc?.events ?? [], taipei?.events ?? []],
+          taipeiDay(new Date(now)),
+        ),
+        fetcher,
+        now,
       ),
       fetchedAt: Number.isFinite(readAt)
         ? new Date(readAt).toISOString()

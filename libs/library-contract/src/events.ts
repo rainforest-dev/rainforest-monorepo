@@ -42,6 +42,8 @@ export const libraryEventSchema = z.object({
   price: z.string().max(300).optional(),
   /** The event's own page at its source or organiser. */
   url: webUrl.optional(),
+  /** A poster or photo: the source's own, or the `og:image` of the event's page. */
+  image: webUrl.optional(),
 });
 export type LibraryEvent = z.infer<typeof libraryEventSchema>;
 
