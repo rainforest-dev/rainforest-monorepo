@@ -8,7 +8,6 @@ export const en: Translation<typeof zh> = {
     kb: 'Knowledge base',
     sections: 'Reading room',
     rack: 'Rack',
-    events: 'Magazines',
     sources: 'Sources',
   },
   rack: {

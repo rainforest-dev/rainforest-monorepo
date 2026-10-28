@@ -172,6 +172,7 @@ test.describe('library shell', () => {
       '書',
       '筆記本',
       '報架',
+      '雜誌架',
       '知識庫',
     ]);
     await expect(

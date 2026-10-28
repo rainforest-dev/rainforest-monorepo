@@ -9,6 +9,7 @@ export const COLLECTION_IDS = [
   'books',
   'notebooks',
   'rack',
+  'magazines',
   'kb',
 ] as const;
 export type CollectionId = (typeof COLLECTION_IDS)[number];
@@ -24,7 +25,7 @@ export interface Collection {
   /** The app that serves the collection. */
   app: string;
   /** Seed-theme token for spines, badges and legends; `null` for the hall. */
-  colorToken: 'primary' | 'chart-2' | 'chart-3' | 'chart-4' | null;
+  colorToken: 'primary' | 'chart-2' | 'chart-3' | 'chart-4' | 'chart-5' | null;
   /** Second key of the `G` then key shortcut. */
   shortcut: string;
 }
@@ -65,6 +66,16 @@ export const COLLECTIONS: readonly Collection[] = [
     app: 'reading-room',
     colorToken: 'chart-2',
     shortcut: 'r',
+  },
+  {
+    // The rack's events, kept on their own shelf: the reading room serves both.
+    id: 'magazines',
+    labels: { zh: '雜誌架', en: 'Magazines' },
+    basePath: '/rack/events',
+    aliases: [],
+    app: 'reading-room',
+    colorToken: 'chart-5',
+    shortcut: 'm',
   },
   {
     id: 'kb',

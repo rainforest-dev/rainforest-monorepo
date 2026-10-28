@@ -4,9 +4,9 @@ import { collectionForPath } from '@rainforest-dev/library-contract';
 import { RoomNotFound } from '@/components/shell/RoomNotFound.tsx';
 import RoomLayout from '@/layouts/RoomLayout.astro';
 
-// The rack and the knowledge base are the only collections this app serves.
-const collection =
-  collectionForPath(Astro.url.pathname).id === 'kb' ? 'kb' : 'rack';
+// The rack, its magazines and the knowledge base are the collections this app serves.
+const own = collectionForPath(Astro.url.pathname).id;
+const collection = own === 'kb' || own === 'magazines' ? own : 'rack';
 Astro.response.status = 404;
 ---
 

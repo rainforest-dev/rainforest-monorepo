@@ -12,6 +12,7 @@ describe('CollectionNav', () => {
       '/books',
       '/notebooks',
       '/rack',
+      '/rack/events',
       '/kb',
     ]);
     expect(

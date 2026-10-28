@@ -24,9 +24,18 @@ test.describe('a page the notebooks do not have', () => {
   });
 });
 
-test('the front page is titled Notebooks, then the library', async ({
+test('titles name the notebook, then Notebooks, then the library', async ({
   page,
+  request,
 }) => {
   await page.goto('/notebooks');
   await expect(page).toHaveTitle('Notebooks · Rainforest Library');
+  const name = `Titled ${Date.now()}`;
+  const res = await request.post('/notebooks/api/notebooks', {
+    data: { name },
+  });
+  expect(res.status()).toBe(201);
+  const { notebook } = (await res.json()) as { notebook: { id: number } };
+  await page.goto(`/notebooks/${notebook.id}`);
+  await expect(page).toHaveTitle(`${name} · Notebooks · Rainforest Library`);
 });

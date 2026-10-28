@@ -34,4 +34,7 @@ test('titles name the page, then Books, then the library', async ({ page }) => {
   await expect(page).toHaveTitle('Books · Rainforest Library');
   await page.goto(appPath('/books/1'));
   await expect(page).toHaveTitle(/^.+ · Books · Rainforest Library$/);
+  const book = (await page.title()).split(' · ')[0];
+  await page.goto(appPath('/read/1'));
+  await expect(page).toHaveTitle(`${book} · Books · Rainforest Library`);
 });
