@@ -1,7 +1,6 @@
 import { MONTH_RE } from '@rainforest-dev/journal-kit';
 import type { LibraryLocale } from '@rainforest-dev/library-contract';
 import type { LibraryT } from '@rainforest-dev/library-shell';
-import { CalendarDays, LayoutGrid, ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
@@ -43,27 +42,6 @@ interface Props {
   }>;
 }
 
-const VIEWS: readonly {
-  value: View;
-  key: string;
-  Icon: typeof LayoutGrid;
-  href: string;
-}[] = [
-  { value: 'shelf', key: 'view.shelf', Icon: LayoutGrid, href: '/' },
-  {
-    value: 'calendar',
-    key: 'view.calendar',
-    Icon: CalendarDays,
-    href: '/?view=calendar',
-  },
-  {
-    value: 'tasks',
-    key: 'view.tasks',
-    Icon: ListTodo,
-    href: '/?view=tasks',
-  },
-];
-
 export default async function NotebooksPage({ params, searchParams }: Props) {
   const t = notebookT(await pageLocale(params));
   return (
@@ -98,28 +76,6 @@ async function NotebooksView({ params: lang, searchParams }: Props) {
 
   return (
     <>
-      <nav
-        aria-label={t('view.label')}
-        className="bg-muted flex w-fit gap-0.5 rounded-lg p-0.5"
-      >
-        {VIEWS.map(({ value, key, Icon, href }) => (
-          <Link
-            key={value}
-            href={href}
-            prefetch={false}
-            aria-current={!q && view === value ? 'page' : undefined}
-            className={cn(
-              'focus-visible:outline-ring flex h-8 items-center gap-1.5 rounded-md px-3 text-sm outline-offset-1 focus-visible:outline-2',
-              !q && view === value
-                ? 'bg-background font-semibold shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            <Icon className="size-4" aria-hidden />
-            {t(key)}
-          </Link>
-        ))}
-      </nav>
       <NotebookSearchForm q={typed} options={options} locale={locale} />
       {typed && !q && (
         <p role="status" className="text-muted-foreground text-sm">

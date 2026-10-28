@@ -3,7 +3,7 @@ export const zh = {
   header: {
     room: '閱覽室',
     kb: '知識庫',
-    sections: '閱覽室',
+    sections: '報架分區',
     rack: '報架',
     sources: '來源',
   },
@@ -80,6 +80,7 @@ export const zh = {
   },
   kb: {
     title: '知識庫',
+    sources: '知識庫來源',
     intro: 'vault 的 wiki 與 Readwise 摘錄，唯讀',
     searchLabel: '搜尋知識庫',
     searchPlaceholder: '搜尋 wiki 與 Readwise',

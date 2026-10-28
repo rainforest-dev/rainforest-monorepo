@@ -235,7 +235,7 @@ export function SourcesView({
     >
       <aside
         aria-label={t('desk.filters.title')}
-        className="bg-sidebar text-sidebar-foreground max-lg:hidden lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:border-r"
+        className="bg-sidebar text-sidebar-foreground lg:top-(--library-top) max-lg:hidden lg:sticky lg:h-[calc(100dvh-var(--library-top))] lg:border-r"
       >
         <ScrollArea className="h-full">
           <FilterPanel
@@ -256,7 +256,7 @@ export function SourcesView({
           bulk && 'max-lg:pb-36',
         )}
       >
-        <div className="bg-background z-[5] flex flex-col gap-2 py-4 lg:sticky lg:top-14">
+        <div className="bg-background lg:top-(--library-top) z-[5] flex flex-col gap-2 py-4 lg:sticky">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h2
               id="sources-heading"
@@ -464,7 +464,7 @@ export function SourcesView({
         <aside
           id={SOURCE_DETAIL_ID}
           aria-label={t('desk.sources.details')}
-          className="bg-card text-card-foreground max-lg:hidden lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:overflow-y-auto lg:border-l"
+          className="bg-card text-card-foreground lg:top-(--library-top) max-lg:hidden lg:sticky lg:h-[calc(100dvh-var(--library-top))] lg:overflow-y-auto lg:border-l"
         >
           <SourceDetail
             name={openName}

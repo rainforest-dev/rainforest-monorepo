@@ -1,10 +1,12 @@
-import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
-import { BookDetail, BookDetailSkeleton } from '@/components/detail';
+import {
+  BookBreadcrumb,
+  BookDetail,
+  BookDetailSkeleton,
+} from '@/components/detail';
 import {
   getBook,
   getFilterOptions,
@@ -38,7 +40,6 @@ export default function BookPage(props: Props) {
 async function BookPageContent({ params }: Props) {
   const { id } = await params;
   const locale = await pageLocale(params);
-  const t = calibreT(locale);
   const bookId = Number(id);
   if (!Number.isInteger(bookId) || bookId < 1) notFound();
 
@@ -53,13 +54,7 @@ async function BookPageContent({ params }: Props) {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <Link
-        href="/"
-        className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        {t('detail.back')}
-      </Link>
+      <BookBreadcrumb title={book.title} />
       <BookDetail
         variant="page"
         book={book}

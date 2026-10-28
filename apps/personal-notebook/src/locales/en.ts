@@ -40,7 +40,6 @@ export const en: Translation<typeof zh> = {
     trash: 'Trash',
   },
   notebook: {
-    back: 'Notebooks',
     pages_one: '{{count}} page',
     pages_other: '{{count}} pages',
     archived: ' · Archived',

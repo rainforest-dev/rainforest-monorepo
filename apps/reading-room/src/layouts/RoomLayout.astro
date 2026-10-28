@@ -11,8 +11,11 @@ import {
 
 import {
   RoomHeader,
-  type RoomSection,
+  type RoomSections,
 } from '@/components/shell/RoomHeader.tsx';
+import { KB_SOURCES, type KbSource, kbSourceLabel } from '@/lib/kb';
+import { KB_PATH, RACK_PATH, SOURCES_PATH } from '@/lib/paths';
+import { roomT } from '@/locales';
 import { showsCollections } from '@/server';
 import '@/styles/global.css';
 
@@ -20,12 +23,37 @@ interface Props {
   /** The page within its collection; a collection's front page leaves it out. */
   title?: string;
   collection: CollectionId;
-  section?: RoomSection;
+  /** The current page among the collection's sections: `rack` or `sources`, or a KB source. */
+  section?: string;
+  /** Each knowledge-base source's page count, shown on its section. */
+  kbCounts?: Record<KbSource, number>;
 }
 
-const { title, collection, section } = Astro.props;
+const { title, collection, section, kbCounts } = Astro.props;
 const collections = showsCollections(Astro.url);
 const { locale } = Astro.locals;
+const t = roomT(locale);
+const sections: RoomSections | undefined =
+  collection === 'rack'
+    ? {
+        label: t('header.sections'),
+        current: section,
+        items: [
+          { id: 'rack', label: t('header.rack'), href: RACK_PATH },
+          { id: 'sources', label: t('header.sources'), href: SOURCES_PATH },
+        ],
+      }
+    : collection === 'kb' && kbCounts
+      ? {
+          label: t('kb.sources'),
+          current: section,
+          items: KB_SOURCES.map((s) => ({
+            id: s,
+            label: `${kbSourceLabel(s, t)} ${kbCounts[s]}`,
+            href: `${KB_PATH}?source=${s}`,
+          })),
+        }
+      : undefined;
 ---
 
 <!doctype html>
@@ -61,7 +89,7 @@ const { locale } = Astro.locals;
       client:idle
       locale={locale}
       collection={collection}
-      section={section}
+      sections={sections}
       collections={collections}
     />
     <slot />

@@ -158,11 +158,11 @@ export function TopicsView({
     <section
       aria-labelledby="topics-heading"
       className={cn(
-        'flex min-h-[calc(100dvh-3.5rem)] min-w-0 flex-col px-4 pb-6 lg:px-6',
+        'flex min-h-[calc(100dvh-var(--library-top))] min-w-0 flex-col px-4 pb-6 lg:px-6',
         bulk && 'max-lg:pb-36',
       )}
     >
-      <div className="bg-background z-[5] flex flex-col gap-3 py-4 lg:sticky lg:top-14">
+      <div className="bg-background lg:top-(--library-top) z-[5] flex flex-col gap-3 py-4 lg:sticky">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2
             id="topics-heading"

@@ -13,6 +13,8 @@ import { KB_PATH } from '@/lib/paths';
 import { roomT } from '@/locales';
 import { getKbIndex, renderKbDoc } from '@/server';
 
+import { RoomBreadcrumb } from '@/components/shell/RoomBreadcrumb.tsx';
+
 import KbFrame from './KbFrame.astro';
 
 interface Props {
@@ -38,10 +40,14 @@ const notes = outbound.flatMap((l) => (l.kind === 'obsidian' ? [l] : []));
 const shown = doc?.source ?? source;
 ---
 
-<RoomLayout title={doc?.title ?? t('kb.notFound')} collection="kb">
+<RoomLayout
+  title={doc?.title ?? t('kb.notFound')}
+  collection="kb"
+  section={shown}
+  kbCounts={kbCounts(index.docs)}
+>
   <KbFrame
     source={shown}
-    counts={kbCounts(index.docs)}
     shelves={kbShelves(index.docs, shown, t)}
     currentId={doc?.id}
     aside={!!doc && html !== null}
@@ -50,6 +56,18 @@ const shown = doc?.source ?? source;
       {
         doc && html !== null ? (
           <article class="max-w-[42rem]">
+            <RoomBreadcrumb
+              locale={Astro.locals.locale}
+              current="kb"
+              trail={[
+                {
+                  label: kbSourceLabel(doc.source, t),
+                  href: `${KB_PATH}?source=${doc.source}`,
+                },
+              ]}
+              page={doc.title}
+              className="mb-4"
+            />
             <div class="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
               <Badge variant="secondary">{kbSourceLabel(doc.source, t)}</Badge>
               <span>{doc.tags[0] ?? shelfLabel(doc.source, doc.shelf, t)}</span>

@@ -70,5 +70,17 @@ test.describe('shell', () => {
     await expect(page.getByRole('button', { name: 'Shelf view' })).toHaveCount(
       0,
     );
+    const crumbs = page.getByRole('navigation', { name: 'You are here' });
+    await expect(crumbs.getByRole('link', { name: 'Books' })).toHaveAttribute(
+      'href',
+      '/books',
+    );
+    await expect(crumbs).toContainText(bookById(1).title);
+    // The bar's search is the library-wide one on every page.
+    await expect(
+      page
+        .getByRole('banner')
+        .getByRole('combobox', { name: 'Search the whole library' }),
+    ).toBeVisible();
   });
 });

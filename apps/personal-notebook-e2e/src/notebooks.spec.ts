@@ -47,6 +47,22 @@ const pageTiles = (page: Page) =>
   page.getByRole('button', { name: /^Page \d+/ });
 
 test.describe('notebooks', () => {
+  test('a notebook leads back to the shelf through its breadcrumb', async ({
+    page,
+  }) => {
+    const name = `Crumb Run ${Date.now()}`;
+    await createNotebook(page, name);
+    const crumbs = page.getByRole('navigation', { name: 'You are here' });
+    await expect(crumbs).toContainText(name);
+    await crumbs.getByRole('link', { name: 'Notebooks' }).click();
+    await expect(page).toHaveURL(/\/notebooks\/?$/);
+    await expect(
+      page
+        .getByRole('navigation', { name: 'View' })
+        .getByRole('link', { name: 'Shelf' }),
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
   test('a cropped spread becomes two pages, exports as a PDF and archives', async ({
     page,
   }) => {

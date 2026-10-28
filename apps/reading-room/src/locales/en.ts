@@ -6,7 +6,7 @@ export const en: Translation<typeof zh> = {
   header: {
     room: 'Reading room',
     kb: 'Knowledge base',
-    sections: 'Reading room',
+    sections: 'Rack sections',
     rack: 'Rack',
     sources: 'Sources',
   },
@@ -84,6 +84,7 @@ export const en: Translation<typeof zh> = {
     other: 'Tier {{tier}}',
   },
   kb: {
+    sources: 'Knowledge sources',
     title: 'Knowledge base',
     intro: 'The vault’s wiki and Readwise highlights, read-only',
     searchLabel: 'Search the knowledge base',

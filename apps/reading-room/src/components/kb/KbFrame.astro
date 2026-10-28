@@ -6,7 +6,6 @@ import KbNav from './KbNav.astro';
 
 interface Props {
   source: KbSource;
-  counts: Record<KbSource, number>;
   shelves: KbShelf[];
   currentId?: string;
   /** Whether the page has a related-content column. */
@@ -16,7 +15,7 @@ interface Props {
 const { aside = false, ...nav } = Astro.props;
 const t = roomT(Astro.locals.locale);
 const SIDE =
-  'lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:overflow-y-auto';
+  'lg:sticky lg:top-(--library-top) lg:h-[calc(100dvh-var(--library-top))] lg:overflow-y-auto';
 ---
 
 <div
@@ -49,7 +48,7 @@ const SIDE =
         aria-label={t('kb.related')}
         class:list={[
           'border-t p-5 lg:col-start-2 xl:col-start-auto xl:border-l xl:border-t-0',
-          'xl:sticky xl:top-14 xl:h-[calc(100dvh-3.5rem)] xl:overflow-y-auto',
+          'xl:top-(--library-top) xl:sticky xl:h-[calc(100dvh-var(--library-top))] xl:overflow-y-auto',
         ]}
       >
         <slot name="aside" />

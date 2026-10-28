@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 
 import { LibraryBar } from './library-bar';
+import { SectionNav } from './section-nav';
 
 describe('LibraryBar', () => {
   it('leads with the library, then the switcher, the search and the language', () => {
@@ -27,9 +28,31 @@ describe('LibraryBar', () => {
     expect(within(bar).getByRole('combobox')).toBeTruthy();
   });
 
-  it('leaves the search out where the collection brings its own', () => {
-    render(<LibraryBar current="books" search={false} />);
-    expect(screen.queryByRole('combobox')).toBeNull();
+  it('keeps the library-wide search and puts the sections under the bar', () => {
+    render(
+      <LibraryBar
+        current="books"
+        sections={
+          <SectionNav
+            label="Views"
+            items={[{ id: 'shelf', label: 'Shelf' }]}
+            current="shelf"
+          >
+            <input type="search" aria-label="Search books" />
+          </SectionNav>
+        }
+      />,
+    );
+    const bar = screen.getByRole('banner');
+    expect(within(bar).getByRole('combobox')).toBeTruthy();
+    const views = screen.getByRole('navigation', { name: 'Views' });
+    expect(bar.contains(views)).toBe(false);
+    expect(
+      within(views)
+        .getByRole('button', { name: 'Shelf' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(within(bar).queryByRole('searchbox')).toBeNull();
   });
 
   it('names only its own collection on an old hostname', () => {

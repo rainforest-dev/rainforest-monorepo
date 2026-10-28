@@ -66,11 +66,6 @@ export const zh = {
     study: '書房',
     label: '檢視',
     region: '{{name}}檢視',
-    tooltip: {
-      shelf: '書架：封面一格一格排',
-      catalogue: '目錄：一本一列',
-      study: '書房：書背排在書架上',
-    },
   },
   empty: {
     filtered: '沒有書符合這些篩選。',
@@ -199,7 +194,6 @@ export const zh = {
     rating: '評分 {{stars}}／5',
     loading: '正在載入書籍',
     notFound: '找不到這本書。',
-    back: '書庫',
   },
   loadError: {
     book: '無法載入這本書',

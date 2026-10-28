@@ -1,4 +1,5 @@
 export * from './assets';
+export * from './breadcrumb';
 export * from './collection-nav';
 export * from './hooks';
 export * from './i18n';
@@ -8,6 +9,7 @@ export * from './library-bar';
 export * from './locale-switch';
 export * from './not-found';
 export * from './prefs';
+export * from './section-nav';
 export * from './shared-state';
 export * from './shell-head';
 export * from './shell-header';

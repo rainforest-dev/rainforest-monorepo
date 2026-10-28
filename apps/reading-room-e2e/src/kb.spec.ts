@@ -26,10 +26,12 @@ test.describe('knowledge base', () => {
     await expect(
       main.getByRole('heading', { level: 2, name: '知識庫' }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'wiki 4' })).toHaveAttribute(
-      'aria-current',
-      'true',
-    );
+    // The sources are the knowledge base's sections, in the row under the bar.
+    await expect(
+      page
+        .getByRole('navigation', { name: '知識庫來源' })
+        .getByRole('link', { name: 'wiki 4' }),
+    ).toHaveAttribute('aria-current', 'page');
     for (const title of ['Kites', 'Wind', 'String', 'Client portal'])
       await expect(
         main.getByRole('link', { name: new RegExp(`^${title}`) }),
@@ -53,6 +55,13 @@ test.describe('knowledge base', () => {
     ).toBeVisible();
     await expect(article(page)).toContainText('Kites ride the wind.');
     await expectNoHiddenMarkers(page);
+
+    const crumbs = page.getByRole('navigation', { name: '目前位置' });
+    await expect(crumbs.getByRole('link')).toHaveText(['知識庫', 'wiki']);
+    await expect(crumbs.getByRole('link', { name: 'wiki' })).toHaveAttribute(
+      'href',
+      '/kb?source=wiki',
+    );
 
     const related = page.getByRole('complementary', { name: '相關內容' });
     await expect(related.getByRole('link', { name: 'String' })).toBeVisible();

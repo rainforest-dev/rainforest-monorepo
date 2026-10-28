@@ -1,3 +1,15 @@
 /* Import from an app's Tailwind entry so the shell's classes are generated:
    @import '@rainforest-dev/library-shell/tailwind.css'; */
 @source './';
+
+/* How far below the viewport's top a sticky column starts: the library bar, plus the
+   section row (SectionNav) on pages that have one. Only read from `lg` up, where both are
+   a fixed height. */
+@layer base {
+  :root {
+    --library-top: 3.5rem;
+  }
+  :root:has([data-section-nav]) {
+    --library-top: 6.5rem;
+  }
+}
