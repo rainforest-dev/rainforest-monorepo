@@ -34,12 +34,18 @@ const HTML = `<!doctype html>
 <html><head><title>Not a feed</title></head><body><p>Just a page.</p></body></html>
 `;
 
+/** One green pixel: a raster picture the room will serve from its own origin. */
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMwXlUOAAJoAVVKio2KAAAAAElFTkSuQmCC',
+  'base64',
+);
+
 const POSTER = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 30"><rect width="40" height="30" fill="#3a7"/></svg>`;
 
 interface Route {
   status: number;
   type: string;
-  body: string;
+  body: string | Buffer;
   delayMs?: number;
 }
 
@@ -68,11 +74,7 @@ const ROUTES: Record<string, Route> = {
     body: JSON.stringify(TAIPEI_EVENTS),
   },
   '/events/poster.svg': { status: 200, type: 'image/svg+xml', body: POSTER },
-  '/events/page-cover.svg': {
-    status: 200,
-    type: 'image/svg+xml',
-    body: POSTER,
-  },
+  '/events/page-cover.png': { status: 200, type: 'image/png', body: PNG },
   '/events/page.html': {
     status: 200,
     type: 'text/html',

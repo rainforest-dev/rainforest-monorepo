@@ -93,6 +93,27 @@ test.describe('magazine rack', () => {
     }).toPass({ timeout: 30_000 });
   });
 
+  test('serves an event’s raster picture from its own origin, and never an SVG', async ({
+    request,
+  }) => {
+    await expect(async () => {
+      // Requesting the events queues the page read that finds this picture.
+      await request.get('/rack/api/events');
+      const response = await request.get(
+        `/rack/api/events/cover/${encodeURIComponent('moc:e2e-soon')}`,
+      );
+      expect(response.status()).toBe(200);
+      expect(response.headers()['content-type']).toBe('image/png');
+      expect(response.headers()['x-content-type-options']).toBe('nosniff');
+    }).toPass({ timeout: 30_000 });
+    const svg = await request.get(
+      `/rack/api/events/cover/${encodeURIComponent('moc:e2e-now')}`,
+    );
+    expect(svg.status()).toBe(404);
+    const unknown = await request.get('/rack/api/events/cover/nope');
+    expect(unknown.status()).toBe(404);
+  });
+
   test('draws a cover when a poster fails to load', async ({ page }) => {
     await page.route('**/events/poster.svg', (route) =>
       route.fulfill({ status: 404, body: 'gone' }),
