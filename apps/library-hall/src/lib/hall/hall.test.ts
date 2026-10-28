@@ -403,6 +403,17 @@ describe('papersOf', () => {
     });
     expect(stand.papers[1]?.masthead).toBeNull();
   });
+
+  it("prints an article's cover on its paper", () => {
+    const [pictured, plain] = papersOf(
+      toHallBooks([
+        { ...item('article', 'a', []), cover: '/rack/api/articles/cover/a' },
+        item('article', 'b', []),
+      ]),
+    ).papers;
+    expect(pictured?.image).toBe('/rack/api/articles/cover/a');
+    expect(plain && 'image' in plain).toBe(false);
+  });
 });
 
 describe('rackOf', () => {

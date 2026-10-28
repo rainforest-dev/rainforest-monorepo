@@ -57,6 +57,37 @@ test.describe('rack', () => {
     await expect(card).toContainText('Time-sensitive');
   });
 
+  test("a card shows the article's picture from the rack's origin, or a drawn cover", async ({
+    page,
+    request,
+  }) => {
+    await page.goto('/rack');
+    const [first, second] = [0, 1].map((i) =>
+      page.getByRole('link', { name: new RegExp(QUEUE.titles[i][1]) }),
+    );
+    const picture = first.locator('[data-cover="image"] img');
+    await expect(picture).toHaveAttribute(
+      'src',
+      '/rack/api/articles/cover/e2e-0001',
+    );
+    await expect
+      .poll(() => picture.evaluate((img: HTMLImageElement) => img.naturalWidth))
+      .toBeGreaterThan(0);
+    await expect(second.locator('[data-cover="drawn"]')).toBeVisible();
+    await expect(second.locator('img')).toHaveCount(0);
+
+    const cover = await request.get('/rack/api/articles/cover/e2e-0001');
+    expect(cover.status()).toBe(200);
+    expect(cover.headers()['content-type']).toBe('image/png');
+    expect(cover.headers()['x-content-type-options']).toBe('nosniff');
+    expect(
+      (await request.get('/rack/api/articles/cover/e2e-0002')).status(),
+    ).toBe(404);
+    expect((await request.get('/rack/api/articles/cover/nope')).status()).toBe(
+      404,
+    );
+  });
+
   test('the hall API shelves every queued article and links it to its card', async ({
     page,
     request,
@@ -64,11 +95,21 @@ test.describe('rack', () => {
     const res = await request.get('/rack/api/hall-items');
     expect(res.ok()).toBe(true);
     const { items } = (await res.json()) as {
-      items: { kind: string; title: string; href: string; groups: string[] }[];
+      items: {
+        kind: string;
+        title: string;
+        href: string;
+        groups: string[];
+        cover?: string;
+      }[];
     };
     expect(items.map((i) => i.title)).toEqual(QUEUE.titles.map(([, t]) => t));
     expect(items.every((i) => i.kind === 'article')).toBe(true);
     expect(items[0].groups).toContain('tier:1');
+    expect(items[0]).toHaveProperty(
+      'cover',
+      '/rack/api/articles/cover/e2e-0001',
+    );
 
     await page.goto(items[0].href);
     await expect(page).toHaveURL(/\/rack#article-e2e-0001$/);

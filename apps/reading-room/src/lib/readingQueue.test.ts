@@ -130,6 +130,30 @@ describe('parseReadingQueue — malformed input', () => {
     );
   });
 
+  it("keeps an article's picture only when it is an http(s) URL", () => {
+    const doc = baseDocument({
+      queue: [
+        baseQueueItem({ id: 'a', imageUrl: 'https://cdn.example/a.jpg' }),
+        baseQueueItem({ id: 'b', imageUrl: 'javascript:alert(1)' }),
+        baseQueueItem({ id: 'c', imageUrl: '' }),
+        baseQueueItem({ id: 'd', imageUrl: null }),
+        baseQueueItem({ id: 'e' }),
+      ],
+    });
+    expect(parseReadingQueue(doc).queue.map((i) => i.imageUrl)).toEqual([
+      'https://cdn.example/a.jpg',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(() =>
+      parseReadingQueue(
+        baseDocument({ queue: [baseQueueItem({ imageUrl: 3 })] }),
+      ),
+    ).toThrow(/queue\[0\]\.imageUrl/);
+  });
+
   it('names the offending path for a wrong-type field', () => {
     const doc = baseDocument({ queue: [baseQueueItem({ rank: 'first' })] });
     expect(() => parseReadingQueue(doc)).toThrow(/queue\[0\]\.rank/);

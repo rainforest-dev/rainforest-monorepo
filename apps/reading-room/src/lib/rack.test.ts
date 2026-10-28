@@ -69,6 +69,21 @@ describe('rackHallItems', () => {
     expect(items.every((i) => i.kind === 'article')).toBe(true);
   });
 
+  it('gives an article with a picture a cover from the rack, and one without none', () => {
+    const [first] = QUEUE.queue;
+    const [pictured, plain] = rackHallItems(
+      withItems([
+        { ...first, id: 'a/b', imageUrl: 'https://cdn.example/a.jpg' },
+        { ...first, id: 'c' },
+      ]),
+    );
+    expect(pictured.cover).toBe('/rack/api/articles/cover/a%2Fb');
+    expect(plain.cover).toBeUndefined();
+    expect(
+      hallItemsResponseSchema.parse({ items: [pictured, plain] }).items,
+    ).toHaveLength(2);
+  });
+
   it('links each article to its card on the rack', () => {
     const [item] = rackHallItems(QUEUE);
     expect(item.href).toBe(`/rack#${articleAnchor(QUEUE.queue[0].id)}`);
