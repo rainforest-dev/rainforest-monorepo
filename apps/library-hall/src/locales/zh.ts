@@ -47,6 +47,11 @@ export const zh = {
     phone3dHint: '手機預設不載入 3D，省電也省記憶體。進去之後點地板走路。',
     no3d: '這台裝置無法顯示 3D，改用 CSS 書牆',
   },
+  papers: {
+    name: '報架',
+    count_one: '{{count}} 篇待讀',
+    count_other: '{{count}} 篇待讀',
+  },
   rack: {
     name: '雜誌架',
     open: '雜誌架：展覽與市集',

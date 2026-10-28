@@ -50,7 +50,7 @@ export interface WingPlacement {
   sign: { x: number; z: number };
 }
 
-export type FurnitureKind = 'table' | 'plant' | 'lamp' | 'rack';
+export type FurnitureKind = 'papers' | 'plant' | 'lamp' | 'rack';
 
 /** Something standing on the floor that the avatar walks around. `w` runs along x, `d` along z. */
 export interface Furniture {
@@ -67,11 +67,18 @@ export interface RackPlacement extends Furniture {
   front: FloorPoint;
 }
 
+/** The newspaper stand across the entrance from the magazine rack, also facing the door. */
+export interface PapersPlacement extends Furniture {
+  kind: 'papers';
+  front: FloorPoint;
+}
+
 export interface HallLayout {
   cases: CasePlacement[];
   wings: WingPlacement[];
   furniture: Furniture[];
   rack: RackPlacement;
+  papers: PapersPlacement;
   room: Room;
   spawn: FloorPoint;
 }
@@ -144,12 +151,13 @@ export function layoutHall(
     minZ: -(totalRows - 1) * pitchZ - CASE_DEPTH / 2 - WALL_MARGIN,
     maxZ: CASE_DEPTH / 2 + ENTRANCE_DEPTH,
   };
-  const { furniture, rack } = furnish(room);
+  const { furniture, rack, papers } = furnish(room);
   return {
     cases,
     wings: placed,
     furniture,
     rack,
+    papers,
     room,
     spawn: { x: 0, z: room.maxZ - 1.2 },
   };
@@ -185,38 +193,79 @@ export function rackCoverSlot(
   };
 }
 
+export const PAPERS_WIDTH = RACK_WIDTH;
+export const PAPERS_DEPTH = RACK_DEPTH;
+/** Rods of the newspaper stand, top to bottom, and the papers each holds. */
+export const PAPERS_ROWS = 2;
+export const PAPERS_PER_ROW = 4;
+export const PAPER = { w: 0.34, h: 0.46 } as const;
+export const PAPERS_HEIGHT = 1.58;
+const PAPERS_ROD_Y = [1.44, 0.88] as const;
+
+/** The height of rod `row` of the newspaper stand. */
+export function papersRodY(row: number): number {
+  return PAPERS_ROD_Y[row] ?? PAPERS_ROD_Y[PAPERS_ROD_Y.length - 1];
+}
+
+/** The centre of paper `index` hanging over rod `row`, its fold at the rod. */
+export function paperSlot(
+  papers: Pick<Furniture, 'x' | 'z' | 'w'>,
+  row: number,
+  index: number,
+): { x: number; y: number; z: number } {
+  const inner = papers.w - 0.16;
+  const step = inner / PAPERS_PER_ROW;
+  return {
+    x: papers.x - inner / 2 + (index + 0.5) * step,
+    y: papersRodY(row) - PAPER.h / 2 - 0.01,
+    z: papers.z + 0.05,
+  };
+}
+
 /**
  * The reading area by the entrance and the corners: the magazine rack on the left of the way in
- * and a table with chairs on the right, a lamp in each front corner, a plant in each back one.
+ * and the newspaper stand on the right, a lamp in each front corner, a plant in each back one.
  * Depends on the room only.
  */
 function furnish(room: Room): {
   furniture: Furniture[];
   rack: RackPlacement;
+  papers: PapersPlacement;
 } {
   const half = room.maxX;
   const front = CASE_DEPTH / 2 + FRONT_OFFSET + 0.9;
-  const tableZ = (front + room.maxZ) / 2;
-  const tableX = Math.max(2.2, half - 1.9);
-  // The rack is wider than a table; in a narrow room it moves in from the wall.
-  const rackX = -Math.min(tableX, half - RACK_WIDTH / 2 - 0.15);
+  const standZ = (front + room.maxZ) / 2;
+  // In a narrow room the stands move in from the walls, far enough that the spot in front of
+  // each stays clear of the lamp in its corner.
+  const standX = Math.min(
+    Math.max(2.2, half - 1.9),
+    half - RACK_WIDTH / 2 - 0.3,
+  );
   const rack: RackPlacement = {
     kind: 'rack',
-    x: rackX,
-    z: tableZ,
+    x: -standX,
+    z: standZ,
     w: RACK_WIDTH,
     d: RACK_DEPTH,
-    front: { x: rackX, z: tableZ + RACK_DEPTH / 2 + RACK_FRONT_OFFSET },
+    front: { x: -standX, z: standZ + RACK_DEPTH / 2 + RACK_FRONT_OFFSET },
+  };
+  const papers: PapersPlacement = {
+    kind: 'papers',
+    x: standX,
+    z: standZ,
+    w: PAPERS_WIDTH,
+    d: PAPERS_DEPTH,
+    front: { x: standX, z: standZ + PAPERS_DEPTH / 2 + RACK_FRONT_OFFSET },
   };
   const furniture: Furniture[] = [
     rack,
-    { kind: 'table', x: tableX, z: tableZ, w: 1.4, d: 1.7 },
+    papers,
     { kind: 'lamp', x: -half + 0.45, z: room.maxZ - 0.45, w: 0.5, d: 0.5 },
     { kind: 'lamp', x: half - 0.45, z: room.maxZ - 0.45, w: 0.5, d: 0.5 },
     { kind: 'plant', x: -half + 0.55, z: room.minZ + 0.55, w: 0.7, d: 0.7 },
     { kind: 'plant', x: half - 0.55, z: room.minZ + 0.55, w: 0.7, d: 0.7 },
   ];
-  return { furniture, rack };
+  return { furniture, rack, papers };
 }
 
 export interface Slot {

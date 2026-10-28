@@ -176,67 +176,91 @@ function pageOf(event: LibraryEvent): string | undefined {
   }
 }
 
-/** Reads a page's head, giving up on the whole read, lookups included, after `TIMEOUT_MS`. */
-async function readHead(fetcher: typeof fetch, url: string): Promise<string> {
+/**
+ * Runs `read` with a signal that aborts after `ms`, so every step of it, lookups included, is
+ * given up on together.
+ */
+export async function withTimeout<T>(
+  ms: number,
+  label: string,
+  read: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(
-    () => controller.abort(new Error(`${url} took too long`)),
-    TIMEOUT_MS,
+    () => controller.abort(new Error(`${label} took too long`)),
+    ms,
   );
   try {
-    return await readHeadWithin(fetcher, url, controller.signal);
+    return await read(controller.signal);
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function readHeadWithin(
+/**
+ * Fetches `url`, following redirects by hand so each hop's host is checked to be public, and
+ * returns the final response once it is a success; anything else throws.
+ */
+export async function openPublic(
   fetcher: typeof fetch,
   url: string,
-  signal: AbortSignal,
-): Promise<string> {
+  options: { signal: AbortSignal; accept: string; allowPrivate?: boolean },
+): Promise<Response> {
+  const { signal, accept } = options;
   let target = url;
-  let response: Response | undefined;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     if (
-      !allowPrivate &&
+      !options.allowPrivate &&
       !(await resolvesPublic(new URL(target).hostname, signal))
     )
       throw new Error(`${target} is not on a public address`);
-    response = await fetcher(target, {
+    const response = await fetcher(target, {
       signal,
       redirect: 'manual',
       headers: {
-        accept: 'text/html',
+        accept,
         'user-agent':
           'rainforest-library/1.0 (+https://library.rainforest.tools)',
       },
     });
     const location = response.headers.get('location');
-    if (response.status < 300 || response.status >= 400 || !location) break;
+    if (response.status < 300 || response.status >= 400 || !location) {
+      if (response.ok) return response;
+      await response.body?.cancel().catch(() => undefined);
+      throw new Error(`HTTP ${response.status} from ${url}`);
+    }
     const next = new URL(location, target);
     if (!/^https?:$/.test(next.protocol))
       throw new Error(`redirect from ${url} to ${next.protocol}`);
     await response.body?.cancel().catch(() => undefined);
     target = next.href;
-    response = undefined;
   }
-  if (!response) throw new Error(`too many redirects from ${url}`);
-  if (!response.ok) throw new Error(`HTTP ${response.status} from ${url}`);
-  if (!response.body) return '';
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let html = '';
-  let bytes = 0;
-  while (bytes < MAX_BYTES) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    bytes += value.byteLength;
-    html += decoder.decode(value, { stream: true });
-    if (/<\/head>/i.test(html)) break;
-  }
-  await reader.cancel().catch(() => undefined);
-  return html;
+  throw new Error(`too many redirects from ${url}`);
+}
+
+/** Reads a page's head, giving up on the whole read, lookups included, after `TIMEOUT_MS`. */
+function readHead(fetcher: typeof fetch, url: string): Promise<string> {
+  return withTimeout(TIMEOUT_MS, url, async (signal) => {
+    const response = await openPublic(fetcher, url, {
+      signal,
+      accept: 'text/html',
+      allowPrivate,
+    });
+    if (!response.body) return '';
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let html = '';
+    let bytes = 0;
+    while (bytes < MAX_BYTES) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      html += decoder.decode(value, { stream: true });
+      if (/<\/head>/i.test(html)) break;
+    }
+    await reader.cancel().catch(() => undefined);
+    return html;
+  });
 }
 
 function pump(fetcher: typeof fetch, now: number) {

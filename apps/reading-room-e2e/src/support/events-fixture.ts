@@ -9,7 +9,7 @@ const ORIGIN = 'http://127.0.0.1:3033';
 /** A poster the ministry gives, and the event page whose og:image the room reads. */
 export const EVENT_POSTER = `${ORIGIN}/events/poster.svg`;
 export const EVENT_PAGE = `${ORIGIN}/events/page.html`;
-export const EVENT_PAGE_IMAGE = `${ORIGIN}/events/page-cover.svg`;
+export const EVENT_PAGE_IMAGE = `${ORIGIN}/events/page-cover.png`;
 
 /** A day `offset` days from today in Taipei, in the ministry's `YYYY/MM/DD`. */
 function day(offset: number, sep = '/'): string {

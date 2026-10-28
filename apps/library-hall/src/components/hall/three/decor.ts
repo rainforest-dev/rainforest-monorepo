@@ -18,6 +18,9 @@ import {
   CASE_WIDTH,
   type Furniture,
   type HallLayout,
+  PAPERS_HEIGHT,
+  PAPERS_ROWS,
+  papersRodY,
   RACK_TIERS,
   rackTierY,
   SHELF_PITCH,
@@ -149,36 +152,27 @@ function merge(parts: Part[]): BufferGeometry {
   return merged;
 }
 
-function table(p: HallPalette, f: Furniture, out: Part[]) {
-  const top = 0.74;
-  out.push(box(p.wood, [f.w, 0.05, 0.8], [f.x, top, f.z]));
-  for (const dx of [-1, 1])
-    for (const dz of [-1, 1])
-      out.push(
-        box(
-          p.darkWood,
-          [0.06, top, 0.06],
-          [f.x + dx * (f.w / 2 - 0.1), top / 2, f.z + dz * 0.3],
-        ),
-      );
-  // A chair on each long side, facing the table.
+/**
+ * A newspaper stand facing the door: two posts on feet, a top rail, and a rod across at each row
+ * for the papers to hang over. The papers themselves are drawn by the hall.
+ */
+function papersStand(p: HallPalette, f: Furniture, out: Part[]) {
   for (const side of [-1, 1]) {
-    const z = f.z + side * 0.62;
-    out.push(box(p.darkWood, [0.46, 0.05, 0.44], [f.x, 0.46, z]));
-    out.push(box(p.darkWood, [0.46, 0.5, 0.05], [f.x, 0.72, z + side * 0.2]));
-    for (const dx of [-1, 1])
-      for (const dz of [-1, 1])
-        out.push(
-          box(
-            p.darkWood,
-            [0.04, 0.46, 0.04],
-            [f.x + dx * 0.19, 0.23, z + dz * 0.18],
-          ),
-        );
+    const x = f.x + side * (f.w / 2 - 0.03);
+    out.push(
+      box(p.darkWood, [0.05, PAPERS_HEIGHT, 0.06], [x, PAPERS_HEIGHT / 2, f.z]),
+    );
+    out.push(box(p.darkWood, [0.08, 0.04, f.d], [x, 0.02, f.z]));
   }
-  // A book left open and a small stack.
-  out.push(box(p.sign, [0.34, 0.02, 0.24], [f.x - 0.25, top + 0.035, f.z]));
-  out.push(box(p.rugBorder, [0.2, 0.06, 0.28], [f.x + 0.35, top + 0.055, f.z]));
+  out.push(
+    box(p.darkWood, [f.w, 0.05, 0.08], [f.x, PAPERS_HEIGHT + 0.025, f.z]),
+  );
+  for (let row = 0; row < PAPERS_ROWS; row++)
+    out.push(
+      cylinder(p.wood, [0.014, 0.014, f.w - 0.06], [0, 0, 0], 8)
+        .rotateZ(Math.PI / 2)
+        .translate(f.x, papersRodY(row), f.z + 0.05),
+    );
 }
 
 /**
@@ -621,7 +615,7 @@ export function buildDecor(layout: HallLayout, p: HallPalette): HallDecor {
   }
 
   for (const f of layout.furniture) {
-    if (f.kind === 'table') table(p, f, solid);
+    if (f.kind === 'papers') papersStand(p, f, solid);
     else if (f.kind === 'rack') magazineRack(p, f, solid);
     else if (f.kind === 'plant') plant(p, f, solid);
     else {

@@ -51,6 +51,11 @@ export const en: Translation<typeof zh> = {
       'Phones skip 3D by default to save battery and memory. Once inside, tap the floor to walk.',
     no3d: 'This device cannot show 3D, so the CSS book wall is used instead',
   },
+  papers: {
+    name: 'Newspapers',
+    count_one: '{{count}} to read',
+    count_other: '{{count}} to read',
+  },
   rack: {
     name: 'Magazines',
     open: 'Magazine rack: exhibitions and markets',

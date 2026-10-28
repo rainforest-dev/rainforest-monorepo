@@ -1,6 +1,9 @@
 'use client';
 
-import { EVENTS_PAGE_HREF } from '@rainforest-dev/library-contract';
+import {
+  EVENTS_PAGE_HREF,
+  getCollection,
+} from '@rainforest-dev/library-contract';
 import { useLibraryLocale, useLibraryT } from '@rainforest-dev/library-shell';
 import { Button } from '@rainforest-dev/rainforest-react';
 import { Box } from 'lucide-react';
@@ -14,7 +17,14 @@ import {
   useIsPhone,
   useReducedMotion,
 } from '@/hooks';
-import { buildWings, cn, frameFor, HALL_GROUP_BYS, layoutHall } from '@/lib';
+import {
+  buildWings,
+  cn,
+  frameFor,
+  HALL_GROUP_BYS,
+  layoutHall,
+  papersOf,
+} from '@/lib';
 import { HALL_NAMESPACE } from '@/locales';
 import { useHall } from '@/providers';
 
@@ -42,6 +52,7 @@ export function HallView() {
   const now = useHallTime();
   const weather = useHallWeather();
   const rack = useHallRack();
+  const papers = useMemo(() => papersOf(books), [books]);
   const locale = useLibraryLocale();
   const t = useLibraryT(HALL_NAMESPACE);
   const phone = useIsPhone();
@@ -115,8 +126,12 @@ export function HallView() {
               now={now}
               weather={weather}
               rack={rack}
+              papers={papers}
               onEnter={enterBookcase}
               onRack={() => window.location.assign(EVENTS_PAGE_HREF)}
+              onPapers={() =>
+                window.location.assign(getCollection('rack').basePath)
+              }
               onFirstFrame={onFirstFrame}
             />
             {resume?.poster && poster !== 'gone' && (

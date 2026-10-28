@@ -1,4 +1,5 @@
 export * from './deskData.js';
+export * from './event-covers.js';
 export * from './events.js';
 export * from './feedCheck.js';
 export * from './kb/index.js';

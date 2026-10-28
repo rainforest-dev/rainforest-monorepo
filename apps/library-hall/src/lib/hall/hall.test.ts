@@ -8,6 +8,10 @@ import {
   CASE_WIDTH,
   frameFor,
   layoutHall,
+  PAPER,
+  PAPERS_PER_ROW,
+  PAPERS_ROWS,
+  paperSlot,
   RACK_COVERS_PER_TIER,
   RACK_TIERS,
   rackCoverSlot,
@@ -15,6 +19,7 @@ import {
   SLOTS_PER_CASE,
 } from './layout';
 import { buildHall, buildWings, CASES_PER_WING } from './model';
+import { papersOf } from './papers';
 import { buildGrid, canStand, clearLine, findPath, nearestOpen } from './path';
 import { rackOf } from './rack';
 import { flightPose, flightProgress, placeBooks, RESORT_MS } from './resort';
@@ -266,6 +271,30 @@ describe('layoutHall with wings', () => {
     }
   });
 
+  it('stands the newspaper stand across the door from the rack, reachable', () => {
+    for (const wings of [[1], [4, 4, 4, 4]]) {
+      const layout = layoutHall(wings);
+      const grid = buildGrid(layout);
+      const { papers, rack, room } = layout;
+      expect(papers.x).toBeCloseTo(-rack.x);
+      expect(papers.x + papers.w / 2).toBeLessThan(room.maxX);
+      expect(canStand(grid, papers)).toBe(false);
+      expect(canStand(grid, papers.front)).toBe(true);
+      expect(findPath(grid, layout.spawn, papers.front)).not.toBeNull();
+    }
+  });
+
+  it('hangs the papers within the stand, rows apart', () => {
+    const { papers } = layoutHall([4]);
+    const first = paperSlot(papers, 0, 0);
+    const last = paperSlot(papers, PAPERS_ROWS - 1, PAPERS_PER_ROW - 1);
+    expect(first.x - PAPER.w / 2).toBeGreaterThan(papers.x - papers.w / 2);
+    expect(last.x + PAPER.w / 2).toBeLessThan(papers.x + papers.w / 2);
+    // The top row's foot clears the rod below it.
+    expect(first.y - PAPER.h / 2).toBeGreaterThan(last.y + PAPER.h / 2);
+    expect(last.y - PAPER.h / 2).toBeGreaterThan(0);
+  });
+
   it('lays the rack’s covers out within its width, tiers top to bottom', () => {
     const { rack } = layoutHall([4]);
     const first = rackCoverSlot(rack, 0, 0);
@@ -356,6 +385,26 @@ describe('liftClear', () => {
   });
 });
 
+describe('papersOf', () => {
+  it('puts the first articles on the stand, under their site', () => {
+    const books = toHallBooks([
+      item('book', 'b', ['creator:Le Guin']),
+      ...Array.from({ length: 10 }, (_, i) =>
+        item('article', `a${i}`, i === 0 ? ['creator:Lantern Notes'] : []),
+      ),
+    ]);
+    const stand = papersOf(books);
+    expect(stand.total).toBe(10);
+    expect(stand.papers).toHaveLength(PAPERS_ROWS * PAPERS_PER_ROW);
+    expect(stand.papers[0]).toEqual({
+      key: 'article:a0',
+      headline: 'Item a0',
+      masthead: 'Lantern Notes',
+    });
+    expect(stand.papers[1]?.masthead).toBeNull();
+  });
+});
+
 describe('rackOf', () => {
   const event = (
     id: string,
@@ -407,5 +456,25 @@ describe('rackOf', () => {
     );
     expect(rack.total).toBe(2);
     expect(rack.tiers[0]?.covers).toEqual([{ id: 'a', title: 'a' }]);
+  });
+
+  it('points a cover with a picture at its copy on the library’s origin', () => {
+    const rack = rackOf(
+      [
+        {
+          ...event('moc:x 1', 'exhibition', '2026-10-01', '2026-10-29'),
+          image: 'https://museum.test/x.jpg',
+        },
+      ],
+      { cities: [], topics: [], sources: [] },
+      '2026-10-27',
+    );
+    expect(rack.tiers[0]?.covers).toEqual([
+      {
+        id: 'moc:x 1',
+        title: 'moc:x 1',
+        image: '/rack/api/events/cover/moc%3Ax%201',
+      },
+    ]);
   });
 });

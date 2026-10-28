@@ -252,6 +252,33 @@ test.describe('the hall', () => {
     await page.waitForURL('**/rack/events', { timeout: 90_000 });
   });
 
+  test('stands the newspaper stand across the door, and opens the reading room', async ({
+    page,
+  }) => {
+    test.setTimeout(150_000);
+    await page.goto('/');
+    // The rack's shelf is down in this suite, so the stand has no papers to count.
+    await expect(page.locator('[data-hall-papers-sign]')).toHaveText('報架');
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as { __libraryHall?: { firstFrameAt: number | null } })
+              .__libraryHall?.firstFrameAt ?? null,
+        ),
+      )
+      .not.toBeNull();
+    const at = await page.evaluate(() =>
+      (
+        window as unknown as {
+          __libraryHall: { projectPapers: () => { x: number; y: number } };
+        }
+      ).__libraryHall.projectPapers(),
+    );
+    await page.mouse.click(at.x, at.y);
+    await page.waitForURL(/\/rack$/, { timeout: 90_000 });
+  });
+
   test('re-sorts the bookcases by collection', async ({ page }) => {
     await page.goto('/');
     await page.locator('[data-group-by="collection"]').click();

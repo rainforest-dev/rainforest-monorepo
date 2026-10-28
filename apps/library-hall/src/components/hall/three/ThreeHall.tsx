@@ -21,7 +21,6 @@ import {
   type Group,
   type InstancedMesh,
   type LineSegments,
-  type Material,
   MathUtils,
   Object3D,
   Vector3,
@@ -32,7 +31,6 @@ import {
   type HallMemory,
   writeHallMemory,
 } from '@/components/hall/memory';
-import { RACK_TIER_TOKEN } from '@/components/hall/RackCard';
 import { useUnsortedNote } from '@/components/hall/useUnsortedNote';
 import {
   mixRgb,
@@ -56,16 +54,14 @@ import {
   type FloorPoint,
   type HallBook,
   type HallLayout,
+  type HallPapers,
   type HallRack,
   type HallWeather,
   hexToRgb,
   liftClear,
   nearestOpen,
+  PAPERS_HEIGHT,
   placeBooks,
-  RACK_COVER,
-  RACK_COVERS_PER_TIER,
-  RACK_TIERS,
-  rackCoverSlot,
   rackTierY,
   RESORT_MS,
   type ScreenBox,
@@ -84,6 +80,7 @@ import {
   hallPalette,
   surfaceTexture,
 } from './decor';
+import { RackCovers, StandPapers } from './Printed';
 import { LIGHTNING_NAME, RAIN_NAME } from './Rain';
 import { HallSky } from './Sky';
 
@@ -102,11 +99,18 @@ export interface ThreeHallProps {
   weather: HallWeather | null;
   /** The magazine rack's tiers; `null` while they load. */
   rack: HallRack | null;
+  /** The newspaper stand's papers: the reading queue's first articles. */
+  papers: HallPapers;
   onFirstFrame?: () => void;
   onEnter: (bookcase: Bookcase) => void;
   /** The reader walked up to the magazine rack. */
   onRack: () => void;
+  /** The reader walked up to the newspaper stand. */
+  onPapers: () => void;
 }
+
+/** What a walk ends by opening: a bookcase by index, the magazine rack or the newspaper stand. */
+type Arrival = number | 'rack' | 'papers' | null;
 
 const SPEED = 2.4;
 const TURN_RATE = 10;
@@ -147,9 +151,6 @@ const CASE_RISE_MS = 900;
 const CASE_SINK_START_MS = 1150;
 const CASE_SINK_MS = 800;
 const BOOK_THICKNESS = 0.06;
-const RACK_CAPACITY = RACK_TIERS * RACK_COVERS_PER_TIER;
-/** Covers lean back against the rack, top away from the reader. */
-const COVER_LEAN = -0.2;
 const BOOK_DEPTH = 0.3;
 const KEY_DIRECTIONS: Record<string, FloorPoint> = {
   w: { x: 0, z: -1 },
@@ -173,6 +174,8 @@ interface HallProbe {
   projectCase: (key: string) => { x: number; y: number } | null;
   /** Client coordinates of the magazine rack's middle, likewise. */
   projectRack: () => { x: number; y: number };
+  /** Client coordinates of the newspaper stand's middle, likewise. */
+  projectPapers: () => { x: number; y: number };
   /** What the weather put in the scene: rain streaks, a lightning light and the fog's far edge. */
   weather: () => {
     rainDrops: number;
@@ -272,6 +275,7 @@ interface SceneProps extends ThreeHallProps {
   labels: RefObject<HTMLDivElement | null>;
   signs: RefObject<HTMLDivElement | null>;
   rackSign: RefObject<HTMLDivElement | null>;
+  papersSign: RefObject<HTMLDivElement | null>;
   keys: RefObject<Set<string>>;
   orbit: RefObject<Orbit>;
   /** Set to the scene's invalidate, so a key press can wake the on-demand render loop. */
@@ -288,12 +292,15 @@ function HallScene({
   now,
   weather,
   rack,
+  papers,
   onEnter,
   onRack,
+  onPapers,
   tokens,
   labels,
   signs,
   rackSign,
+  papersSign,
   keys,
   orbit,
   kick,
@@ -314,15 +321,14 @@ function HallScene({
     z: startAt.current.z,
     heading: startKey === null && memory ? memory.heading : Math.PI,
     path: [] as FloorPoint[],
-    /** What to open on arrival: a bookcase by index, or the magazine rack. */
-    enter: null as number | 'rack' | null,
+    /** What to open on arrival: a bookcase by index, the magazine rack or the newspaper stand. */
+    enter: null as Arrival,
     arrivedAt: null as number | null,
   });
   const motion = useRef<AvatarMotion>({ phase: 0, stride: 0 });
   const avatar = useRef<Group>(null);
   const bookMesh = useRef<InstancedMesh>(null);
   const caseMesh = useRef<InstancedMesh>(null);
-  const coverMesh = useRef<InstancedMesh>(null);
   const caseGeo = useMemo(caseGeometry, []);
   const caseOfBook = useMemo(() => {
     const out = new Map<number, number>();
@@ -339,13 +345,15 @@ function HallScene({
   const firstFrame = useRef<number | null>(null);
   const onEnterRef = useRef(onEnter);
   const onRackRef = useRef(onRack);
+  const onPapersRef = useRef(onPapers);
   const onFirstFrameRef = useRef(onFirstFrame);
 
   useEffect(() => {
     onEnterRef.current = onEnter;
     onRackRef.current = onRack;
+    onPapersRef.current = onPapers;
     onFirstFrameRef.current = onFirstFrame;
-  }, [onEnter, onRack, onFirstFrame]);
+  }, [onEnter, onRack, onPapers, onFirstFrame]);
 
   // Leaving the page keeps the spot and a small picture of it for a rebuilt Back. pagehide, not
   // unload: an unload listener alone would bar the page from the bfcache.
@@ -469,35 +477,7 @@ function HallScene({
     invalidate();
   }, [slots, books, reducedMotion, invalidate]);
 
-  // The rack's covers: one per event at the front of each tier, coloured by tier.
-  useLayoutEffect(() => {
-    const mesh = coverMesh.current;
-    if (!mesh) return;
-    const hadColors = mesh.instanceColor !== null;
-    for (let tier = 0; tier < RACK_TIERS; tier++) {
-      const row = rack?.tiers[tier];
-      const shown = Math.min(row?.count ?? 0, RACK_COVERS_PER_TIER);
-      const base = row ? tokens[RACK_TIER_TOKEN[row.shelf]] : tokens.muted;
-      for (let k = 0; k < RACK_COVERS_PER_TIER; k++) {
-        const i = tier * RACK_COVERS_PER_TIER + k;
-        const at = rackCoverSlot(layout.rack, tier, k);
-        scratch.position.set(at.x, at.y, at.z);
-        scratch.rotation.set(COVER_LEAN, 0, 0);
-        const s = k < shown ? 1 : 0.0001;
-        scratch.scale.set(RACK_COVER.w * s, RACK_COVER.h * s, 0.012 * s);
-        scratch.updateMatrix();
-        mesh.setMatrixAt(i, scratch.matrix);
-        mesh.setColorAt(i, toColor(mixRgb(base, tokens.card, 0.9 - k * 0.12)));
-      }
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    // The first colours arrive after the mesh has drawn; recompile so its shader reads them.
-    if (!hadColors) (mesh.material as Material).needsUpdate = true;
-    invalidate();
-  }, [rack, layout, tokens, invalidate]);
-
-  const walkTo = (target: FloorPoint, enter: number | 'rack' | null) => {
+  const walkTo = (target: FloorPoint, enter: Arrival) => {
     const w = walker.current;
     const goal = canStand(grid, target) ? target : nearestOpen(grid, target);
     if (!goal) return;
@@ -518,6 +498,14 @@ function HallScene({
 
   useEffect(() => {
     const target = window as ProbeWindow;
+    const toClient = (world: Vector3) => {
+      const point = world.project(camera);
+      const rect = gl.domElement.getBoundingClientRect();
+      return {
+        x: rect.left + ((point.x + 1) / 2) * rect.width,
+        y: rect.top + ((1 - point.y) / 2) * rect.height,
+      };
+    };
     const probe: HallProbe = {
       get firstFrameAt() {
         return firstFrame.current;
@@ -527,18 +515,12 @@ function HallScene({
         walker.current.path.length > 0 || walker.current.enter !== null,
       resorting: () => flight.current !== null || caseFlight.current !== null,
       yaw: () => orbit.current.yaw,
-      projectRack: () => {
-        const point = new Vector3(
-          layout.rack.x,
-          rackTierY(1),
-          layout.rack.z,
-        ).project(camera);
-        const rect = gl.domElement.getBoundingClientRect();
-        return {
-          x: rect.left + ((point.x + 1) / 2) * rect.width,
-          y: rect.top + ((1 - point.y) / 2) * rect.height,
-        };
-      },
+      projectRack: () =>
+        toClient(new Vector3(layout.rack.x, rackTierY(1), layout.rack.z)),
+      projectPapers: () =>
+        toClient(
+          new Vector3(layout.papers.x, PAPERS_HEIGHT / 2, layout.papers.z),
+        ),
       projectCase: (key) => {
         const index = cases.findIndex((c) => c.key === key);
         const placement = layout.cases[index];
@@ -674,6 +656,7 @@ function HallScene({
         w.enter = null;
         w.arrivedAt = null;
         if (enter === 'rack') onRackRef.current();
+        else if (enter === 'papers') onPapersRef.current();
         else {
           const bookcase = cases[enter];
           if (bookcase) onEnterRef.current(bookcase);
@@ -772,6 +755,16 @@ function HallScene({
       sign.style.visibility = at.hidden ? 'hidden' : 'visible';
       sign.style.transform = `translate(-50%, -50%) translate(${at.x}px, ${at.y}px)`;
     }
+    const stand = papersSign.current;
+    if (stand) {
+      const at = toScreen(
+        layout.papers.x,
+        PAPERS_HEIGHT + 0.3,
+        layout.papers.z,
+      );
+      stand.style.visibility = at.hidden ? 'hidden' : 'visible';
+      stand.style.transform = `translate(-50%, -50%) translate(${at.x}px, ${at.y}px)`;
+    }
     plateBoxes.forEach((box, i) => {
       const plate = plates?.[i] as HTMLElement | undefined;
       if (!plate || !box) return;
@@ -799,6 +792,11 @@ function HallScene({
     e.stopPropagation();
     if (e.delta > DRAG_SLOP) return;
     walkTo(layout.rack.front, 'rack');
+  };
+  const walkToPapers = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    if (e.delta > DRAG_SLOP) return;
+    walkTo(layout.papers.front, 'papers');
   };
   const walkOnFloor = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
@@ -896,15 +894,12 @@ function HallScene({
         <boxGeometry />
         <meshStandardMaterial roughness={0.8} />
       </instancedMesh>
-      <instancedMesh
-        ref={coverMesh}
-        args={[undefined, undefined, RACK_CAPACITY]}
-        castShadow
+      <RackCovers
+        rack={rack}
+        layout={layout}
+        tokens={tokens}
         onClick={walkToRack}
-      >
-        <boxGeometry />
-        <meshStandardMaterial roughness={0.6} />
-      </instancedMesh>
+      />
       {/* The whole rack takes a click, not just its covers. */}
       <mesh
         position={[layout.rack.x, rackTierY(0) / 2 + 0.25, layout.rack.z]}
@@ -913,6 +908,15 @@ function HallScene({
         <boxGeometry
           args={[layout.rack.w, rackTierY(0) + 0.5, layout.rack.d]}
         />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      <StandPapers papers={papers} layout={layout} onClick={walkToPapers} />
+      {/* The whole stand takes a click, not just its papers. */}
+      <mesh
+        position={[layout.papers.x, PAPERS_HEIGHT / 2, layout.papers.z]}
+        onClick={walkToPapers}
+      >
+        <boxGeometry args={[layout.papers.w, PAPERS_HEIGHT, layout.papers.d]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       <group ref={avatar}>
@@ -935,6 +939,7 @@ export default function ThreeHall(props: ThreeHallProps) {
   const labels = useRef<HTMLDivElement>(null);
   const signs = useRef<HTMLDivElement>(null);
   const rackSign = useRef<HTMLDivElement>(null);
+  const papersSign = useRef<HTMLDivElement>(null);
   const keys = useRef(new Set<string>());
   const orbit = useRef<Orbit>({ ...DEFAULT_ORBIT });
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
@@ -1020,6 +1025,7 @@ export default function ThreeHall(props: ThreeHallProps) {
             labels={labels}
             signs={signs}
             rackSign={rackSign}
+            papersSign={papersSign}
             keys={keys}
             orbit={orbit}
             kick={kick}
@@ -1090,6 +1096,20 @@ export default function ThreeHall(props: ThreeHallProps) {
         {props.rack ? (
           <span className="ms-1.5 font-normal opacity-90">
             {t('rack.count', { count: props.rack.total })}
+          </span>
+        ) : null}
+      </div>
+      <div
+        ref={papersSign}
+        aria-hidden
+        data-hall-papers-sign
+        className="bg-primary text-primary-foreground pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded px-2 py-0.5 text-sm font-semibold shadow"
+        style={{ visibility: 'hidden' }}
+      >
+        {t('papers.name')}
+        {props.papers.total > 0 ? (
+          <span className="ms-1.5 font-normal opacity-90">
+            {t('papers.count', { count: props.papers.total })}
           </span>
         ) : null}
       </div>

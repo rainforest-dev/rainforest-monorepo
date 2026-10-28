@@ -1,5 +1,6 @@
 import {
   EVENT_SHELVES,
+  eventCoverHref,
   type EventShelf,
   type EventSubscriptions,
   type LibraryEvent,
@@ -9,11 +10,18 @@ import {
 
 import { RACK_COVERS_PER_TIER } from './layout';
 
+/** A cover on the rack; `image` is the event's picture on the library's own origin, if any. */
+export interface RackCover {
+  id: string;
+  title: string;
+  image?: string;
+}
+
 /** One tier of the magazine rack: how many events are on that shelf, and the first few. */
 export interface RackTier {
   shelf: EventShelf;
   count: number;
-  covers: { id: string; title: string }[];
+  covers: RackCover[];
 }
 
 /** What the hall's magazine rack shows: the reader's subscribed events, one tier per shelf. */
@@ -37,7 +45,9 @@ export function rackOf(
     count: shelves[shelf].length,
     covers: shelves[shelf]
       .slice(0, RACK_COVERS_PER_TIER)
-      .map(({ id, title }) => ({ id, title })),
+      .map(({ id, title, image }) =>
+        image ? { id, title, image: eventCoverHref(id) } : { id, title },
+      ),
   }));
   return { total: tiers.reduce((n, t) => n + t.count, 0), tiers };
 }

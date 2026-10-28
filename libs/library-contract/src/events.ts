@@ -10,6 +10,14 @@ import { type LibraryLocale } from './locale';
 export const EVENTS_PATH = '/api/events';
 /** The magazine rack's page in the reading room, where the reader picks what to subscribe to. */
 export const EVENTS_PAGE_HREF = '/rack/events';
+/**
+ * An event's picture, served by the reading room from the library's own origin, so the hall can
+ * draw it into its 3D scene; a picture on another site cannot be read back into WebGL.
+ */
+export const EVENT_COVER_PATH = '/api/events/cover';
+export function eventCoverHref(id: string): string {
+  return `/rack${EVENT_COVER_PATH}/${encodeURIComponent(id)}`;
+}
 
 export const EVENT_SOURCES = ['moc', 'taipei'] as const;
 export type EventSource = (typeof EVENT_SOURCES)[number];
