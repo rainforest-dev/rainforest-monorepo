@@ -1,3 +1,5 @@
+import { lookup } from 'node:dns/promises';
+
 import { type LibraryEvent } from '@rainforest-dev/library-contract';
 
 /**
@@ -63,6 +65,22 @@ export function isPublicHost(hostname: string): boolean {
       host.startsWith('::ffff:')
     );
   return true;
+}
+
+/**
+ * Whether a host, once its name is resolved, is on the internet: every address the name
+ * resolves to must be public, so a public-looking name pointed at the home network is refused.
+ * The fetch resolves the name again, so a name that changes its answer in between still slips
+ * through; that is left to the network.
+ */
+async function resolvesPublic(hostname: string): Promise<boolean> {
+  if (!isPublicHost(hostname)) return false;
+  const host = hostname.replace(/^\[|\]$/g, '');
+  if (host.includes(':') || /^[\d.]+$/.test(host)) return true;
+  const addresses = await lookup(host, { all: true }).catch(() => []);
+  return (
+    addresses.length > 0 && addresses.every((a) => isPublicHost(a.address))
+  );
 }
 
 interface Entry {
@@ -150,6 +168,8 @@ async function readHead(fetcher: typeof fetch, url: string): Promise<string> {
   let target = url;
   let response: Response | undefined;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if (!allowPrivate && !(await resolvesPublic(new URL(target).hostname)))
+      throw new Error(`${target} is not on a public address`);
     response = await fetcher(target, {
       signal,
       redirect: 'manual',
@@ -162,11 +182,8 @@ async function readHead(fetcher: typeof fetch, url: string): Promise<string> {
     const location = response.headers.get('location');
     if (response.status < 300 || response.status >= 400 || !location) break;
     const next = new URL(location, target);
-    if (
-      !/^https?:$/.test(next.protocol) ||
-      (!allowPrivate && !isPublicHost(next.hostname))
-    )
-      throw new Error(`redirect from ${url} to a host it may not read`);
+    if (!/^https?:$/.test(next.protocol))
+      throw new Error(`redirect from ${url} to ${next.protocol}`);
     await response.body?.cancel().catch(() => undefined);
     target = next.href;
     response = undefined;

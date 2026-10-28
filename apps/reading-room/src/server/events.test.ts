@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { resetEventImages, settleEventImages } from './event-images.js';
 import {
@@ -13,6 +13,10 @@ import {
   resetEventsCache,
   taipeiEvent,
 } from './events.js';
+
+vi.mock('node:dns/promises', () => ({
+  lookup: async () => [{ address: '93.184.216.34', family: 4 }],
+}));
 
 const MOC_ITEM = {
   UID: '5b3dd544',
@@ -282,6 +286,32 @@ describe('loadEvents', () => {
     const late = await loadEvents(env, stubFetch(down), now + 49 * 3_600_000);
     expect(late.failed).toContain('taipei');
     expect(late.events.map((e) => e.id)).not.toContain('taipei:42');
+  });
+
+  it('reads an event page on a private address only when told to', async () => {
+    const lan = {
+      ...routes,
+      'category=6': [
+        { ...MOC_ITEM, sourceWebPromote: 'http://192.168.1.10/event' },
+      ],
+    };
+    const read = async (pagesPrivate?: string) => {
+      resetEventsCache();
+      resetEventImages();
+      const calls: string[] = [];
+      await loadEvents(
+        pagesPrivate === undefined
+          ? {}
+          : { EVENTS_PAGES_PRIVATE: pagesPrivate },
+        stubFetch(lan, calls),
+        now,
+      );
+      await settleEventImages();
+      return calls.includes('http://192.168.1.10/event');
+    };
+    expect(await read()).toBe(false);
+    expect(await read('yes')).toBe(false);
+    expect(await read('allow')).toBe(true);
   });
 
   it('reads nothing when switched off', async () => {

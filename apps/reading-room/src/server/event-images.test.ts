@@ -1,5 +1,5 @@
 import { type LibraryEvent } from '@rainforest-dev/library-contract';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   isPublicHost,
@@ -9,6 +9,16 @@ import {
   webImageUrl,
   withPageImages,
 } from './event-images.js';
+
+vi.mock('node:dns/promises', () => ({
+  // Every test name is public, except one pointed at the home network.
+  lookup: async (host: string) => [
+    {
+      address: host === 'nas-alias.test' ? '192.168.1.20' : '93.184.216.34',
+      family: 4,
+    },
+  ],
+}));
 
 const event = (id: string, url?: string, image?: string): LibraryEvent => ({
   id,
@@ -239,6 +249,27 @@ describe('withPageImages', () => {
       event('hop', 'https://museum.test/hop'),
     ];
     withPageImages(events, fetcher, now);
+    await settleEventImages();
+    expect(calls).toEqual(['https://museum.test/hop']);
+  });
+
+  it('never reads a public-looking name that resolves to a private address', async () => {
+    const calls: string[] = [];
+    const fetcher = (async (input: string | URL | Request) => {
+      calls.push(String(input));
+      return new Response(null, {
+        status: 302,
+        headers: { location: 'https://nas-alias.test/admin' },
+      });
+    }) as typeof fetch;
+    withPageImages(
+      [
+        event('alias', 'https://nas-alias.test/event'),
+        event('hop', 'https://museum.test/hop'),
+      ],
+      fetcher,
+      now,
+    );
     await settleEventImages();
     expect(calls).toEqual(['https://museum.test/hop']);
   });
