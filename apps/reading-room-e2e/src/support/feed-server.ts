@@ -98,6 +98,8 @@ export const FEEDS = {
 export const EVENT_SOURCE_URLS = {
   EVENTS_MOC_URL: `${FEED_ORIGIN}/events/moc?method=doFindTypeJ`,
   EVENTS_TAIPEI_URL: `${FEED_ORIGIN}/events/taipei`,
+  /** The event pages read for pictures are on this loopback server too. */
+  EVENTS_PAGES_PRIVATE: 'allow',
 } as const;
 
 export function startFeedServer(): Promise<() => Promise<void>> {

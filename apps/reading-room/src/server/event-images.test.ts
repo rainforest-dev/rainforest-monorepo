@@ -2,6 +2,7 @@ import { type LibraryEvent } from '@rainforest-dev/library-contract';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  isPublicHost,
   ogImageOf,
   resetEventImages,
   settleEventImages,
@@ -68,6 +69,29 @@ describe('webImageUrl', () => {
     expect(webImageUrl('https://x.test/a.jpg?q=&amp;quot;')).toBe(
       'https://x.test/a.jpg?q=&quot;',
     );
+  });
+});
+
+describe('isPublicHost', () => {
+  it.each([
+    ['www.chimeimuseum.org', true],
+    ['8.8.8.8', true],
+    ['[2001:db8::1]', true],
+    ['localhost', false],
+    ['homelab-n8n', false],
+    ['host.docker.internal', false],
+    ['nas.local', false],
+    ['127.0.0.1', false],
+    ['10.0.0.5', false],
+    ['172.20.1.1', false],
+    ['192.168.1.10', false],
+    ['169.254.169.254', false],
+    ['100.100.1.1', false],
+    ['[::1]', false],
+    ['[fd00::1]', false],
+    ['[::ffff:192.168.1.1]', false],
+  ])('%s → %s', (host, ok) => {
+    expect(isPublicHost(host)).toBe(ok);
   });
 });
 
@@ -171,6 +195,40 @@ describe('withPageImages', () => {
     await settleEventImages();
     expect(withPageImages(events, fetcher, now + week)[0]?.image).toBe(
       'https://museum.test/1.jpg',
+    );
+  });
+
+  it('never reads a page on a private address, nor follows a redirect to one', async () => {
+    const calls: string[] = [];
+    const fetcher = (async (input: string | URL | Request) => {
+      calls.push(String(input));
+      return new Response(null, {
+        status: 302,
+        headers: { location: 'http://192.168.1.10/admin' },
+      });
+    }) as typeof fetch;
+    const events = [
+      event('lan', 'http://192.168.1.10/event'),
+      event('hop', 'https://museum.test/hop'),
+    ];
+    withPageImages(events, fetcher, now);
+    await settleEventImages();
+    expect(calls).toEqual(['https://museum.test/hop']);
+  });
+
+  it('follows a redirect to a public page', async () => {
+    const fetcher = (async (input: string | URL | Request) =>
+      String(input) === 'http://museum.test/old'
+        ? new Response(null, {
+            status: 301,
+            headers: { location: 'https://museum.test/new' },
+          })
+        : new Response(page('https://museum.test/new.jpg'))) as typeof fetch;
+    const events = [event('a', 'http://museum.test/old')];
+    withPageImages(events, fetcher, now);
+    await settleEventImages();
+    expect(withPageImages(events, fetcher, now)[0]?.image).toBe(
+      'https://museum.test/new.jpg',
     );
   });
 

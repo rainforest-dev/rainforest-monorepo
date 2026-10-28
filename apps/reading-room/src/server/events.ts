@@ -330,7 +330,8 @@ async function refresh(
 /**
  * Every current or coming event from both sources, each read at most every six hours.
  * `EVENTS_SOURCES=off` turns reading off, for tests and the artifact smoke run; `EVENTS_MOC_URL`
- * and `EVENTS_TAIPEI_URL` point a source somewhere else.
+ * and `EVENTS_TAIPEI_URL` point a source somewhere else, and `EVENTS_PAGES_PRIVATE=allow` lets
+ * event pages on private addresses be read for pictures, for the e2e suite's loopback server.
  */
 export async function loadEvents(
   env: Record<string, string | undefined> = process.env,
@@ -371,6 +372,7 @@ export async function loadEvents(
         ),
         fetcher,
         now,
+        { allowPrivate: env['EVENTS_PAGES_PRIVATE']?.trim() === 'allow' },
       ),
       fetchedAt: Number.isFinite(readAt)
         ? new Date(readAt).toISOString()
