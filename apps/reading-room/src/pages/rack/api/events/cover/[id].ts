@@ -7,12 +7,22 @@ const MISSING = {
   headers: { 'Cache-Control': 'public, max-age=3600' },
 };
 
+/** Astro hands the segment over still percent-encoded, as `eventCoverHref` wrote it. */
+function decodedId(raw: string | undefined): string | null {
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * An event's picture, from the library's own origin so the hall can draw it in 3D. Only an
  * event's own picture is served, never an arbitrary URL, and it is served as an inert image.
  */
 export const GET: APIRoute = async ({ params }) => {
-  const id = params['id'];
+  const id = decodedId(params['id']);
   if (!id) return new Response(null, MISSING);
   try {
     const { events } = await loadEvents();

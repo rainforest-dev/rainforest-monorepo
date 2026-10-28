@@ -98,7 +98,7 @@ function drawCovering(
 }
 
 /**
- * A magazine cover: the event's picture with its title along the foot, or, without a picture,
+ * A magazine cover: the event's picture with its title across the head, or, without a picture,
  * the title large on the shelf's colour.
  */
 export function drawCover(
@@ -115,16 +115,16 @@ export function drawCover(
   ctx.textBaseline = 'alphabetic';
   if (image && image.width > 0) {
     drawCovering(ctx, image, w, h);
-    const foot = ctx.createLinearGradient(0, h * 0.5, 0, h);
-    foot.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    foot.addColorStop(1, 'rgba(0, 0, 0, 0.82)');
-    ctx.fillStyle = foot;
-    ctx.fillRect(0, h * 0.5, w, h * 0.5);
-    ctx.font = `600 22px ${family}`;
+    // The rack's lip hides a cover's foot, so the title runs along the head.
+    const head = ctx.createLinearGradient(0, 0, 0, h * 0.5);
+    head.addColorStop(0, 'rgba(0, 0, 0, 0.82)');
+    head.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = head;
+    ctx.fillRect(0, 0, w, h * 0.5);
+    ctx.font = `700 26px ${family}`;
     ctx.fillStyle = '#ffffff';
-    const lines = wrapLines(ctx, title, w - 28, 2);
-    lines.forEach((line, i) =>
-      ctx.fillText(line, 14, h - 16 - (lines.length - 1 - i) * 27),
+    wrapLines(ctx, title, w - 28, 2).forEach((line, i) =>
+      ctx.fillText(line, 14, 38 + i * 31),
     );
     return;
   }
@@ -158,18 +158,18 @@ export function drawPaper(
   ctx.fillStyle = INK;
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'center';
-  ctx.font = `700 24px Georgia, 'Noto Serif TC', serif`;
+  ctx.font = `700 26px Georgia, 'Noto Serif TC', serif`;
   const [name = ''] = wrapLines(ctx, masthead ?? '', w - pad * 2, 1);
   ctx.fillText(name, w / 2, 38);
   ctx.textAlign = 'start';
   ctx.fillRect(pad, 48, w - pad * 2, 3);
   ctx.fillRect(pad, 54, w - pad * 2, 1);
-  ctx.font = `700 22px ${family}`;
+  ctx.font = `700 26px ${family}`;
   const lines = wrapLines(ctx, headline, w - pad * 2, 4);
-  lines.forEach((line, i) => ctx.fillText(line, pad, 84 + i * 28));
+  lines.forEach((line, i) => ctx.fillText(line, pad, 88 + i * 32));
   // The columns, as lines of grey type.
   ctx.fillStyle = GREY_INK;
-  const top = 84 + lines.length * 28;
+  const top = 88 + lines.length * 32;
   const column = (w - pad * 3) / 2;
   for (let c = 0; c < 2; c++)
     for (let y = top; y < h - pad; y += 11) {
