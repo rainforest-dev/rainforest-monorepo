@@ -45,8 +45,9 @@ export interface LibraryBarProps {
 /**
  * The one top bar every collection shows, in the same order everywhere: the library's name
  * (back to the hall), the collection switcher, the collection's own controls, the library-wide
- * search and the language switch. Below `sm` the switcher moves to the bottom tab bar. It also
- * remembers where this tab left the collection, so the switcher elsewhere can return here.
+ * search and the language switch. Below `sm` the switcher moves to the bottom tab bar. Every
+ * collection link opens that collection's front page, so a tab is always the same place; where
+ * this tab left the collection is still remembered, for a "carry on" link to offer.
  */
 export function LibraryBar({
   current,
@@ -74,7 +75,7 @@ export function LibraryBar({
           {collections ? t('brand') : collectionLabel(own, locale)}
         </a>
         {collections && (
-          <CollectionNav current={current} renderLink={renderLink} resume />
+          <CollectionNav current={current} renderLink={renderLink} />
         )}
         {children}
         {search && collections && (
@@ -85,7 +86,7 @@ export function LibraryBar({
         />
       </ShellHeader>
       {collections && (
-        <CollectionTabBar current={current} renderLink={renderLink} resume />
+        <CollectionTabBar current={current} renderLink={renderLink} />
       )}
     </>
   );

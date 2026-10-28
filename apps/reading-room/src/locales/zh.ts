@@ -1,8 +1,5 @@
 /** The reading room's strings. Traditional Chinese is the source; `en.ts` must match its keys. */
 export const zh = {
-  meta: {
-    site: '雨林圖書館',
-  },
   header: {
     room: '閱覽室',
     kb: '知識庫',

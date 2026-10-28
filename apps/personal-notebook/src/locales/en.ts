@@ -4,7 +4,6 @@ import type { zh } from './zh';
 
 export const en: Translation<typeof zh> = {
   meta: {
-    title: 'Notebooks',
     description: 'Scanned pages of paper Bullet Journals',
   },
   home: {

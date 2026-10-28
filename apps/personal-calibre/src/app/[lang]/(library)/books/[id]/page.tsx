@@ -24,8 +24,7 @@ export async function generateMetadata({
   const { id } = await params;
   const t = calibreT(await pageLocale(params));
   const book = await getBook(Number(id));
-  if (!book) return { title: t('meta.bookNotFound') };
-  return { title: t('meta.book', { title: book.title }) };
+  return { title: book ? book.title : t('meta.bookNotFound') };
 }
 
 export default function BookPage(props: Props) {

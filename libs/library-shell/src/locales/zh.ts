@@ -18,4 +18,10 @@ export const zh = {
   list: {
     separator: '、',
   },
+  notFound: {
+    title: '館裡沒有這一頁',
+    body: '連結可能過期了，或是打錯了。可以用上方的搜尋找找看，或從這裡回去。',
+    toCollection: '回{{name}}',
+    toHall: '回大廳',
+  },
 };

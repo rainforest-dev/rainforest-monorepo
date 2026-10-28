@@ -1,7 +1,6 @@
 /** Notebook's strings. Traditional Chinese is the source; `en.ts` must match its keys. */
 export const zh = {
   meta: {
-    title: '筆記本',
     description: '紙本子彈筆記的掃描頁面',
   },
   home: {

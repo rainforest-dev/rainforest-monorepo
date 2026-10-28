@@ -208,10 +208,8 @@ export const zh = {
     retry: '重試',
   },
   meta: {
-    title: '書 — Calibre 書庫',
     description: '瀏覽 Calibre 電子書庫',
-    book: '{{title}} — Calibre 書庫',
-    bookNotFound: '找不到書 — Calibre 書庫',
+    bookNotFound: '找不到書',
   },
   study: {
     pulled: '抽出的書',

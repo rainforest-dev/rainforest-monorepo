@@ -6,6 +6,7 @@ export * from './i18n-provider';
 export * from './ids';
 export * from './library-bar';
 export * from './locale-switch';
+export * from './not-found';
 export * from './prefs';
 export * from './shared-state';
 export * from './shell-head';

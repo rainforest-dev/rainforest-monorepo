@@ -1,7 +1,6 @@
 /** The hall's strings. Traditional Chinese is the source; `en.ts` must match its keys. */
 export const zh = {
   meta: {
-    title: 'Rainforest 圖書館',
     description: '走進書櫃之間，瀏覽每個館藏',
   },
   items_one: '{{count}} 件',

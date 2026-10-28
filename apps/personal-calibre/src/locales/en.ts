@@ -212,10 +212,8 @@ export const en: Translation<typeof zh> = {
     retry: 'Retry',
   },
   meta: {
-    title: 'Books — Calibre Library',
     description: 'Browse the Calibre ebook library',
-    book: '{{title}} — Calibre Library',
-    bookNotFound: 'Book not found — Calibre Library',
+    bookNotFound: 'Book not found',
   },
   study: {
     pulled: 'Pulled book',

@@ -1,6 +1,10 @@
 import '@/app/globals.css';
 
-import { HTML_LANG, LIBRARY_LOCALES } from '@rainforest-dev/library-contract';
+import {
+  HTML_LANG,
+  LIBRARY_LOCALES,
+  pageTitleTemplate,
+} from '@rainforest-dev/library-contract';
 import { LibraryI18nProvider, ShellHead } from '@rainforest-dev/library-shell';
 import { Toaster } from '@rainforest-dev/rainforest-react';
 import type { Metadata } from 'next';
@@ -18,8 +22,11 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const t = calibreT(await pageLocale(params));
-  return { title: t('meta.title'), description: t('meta.description') };
+  const locale = await pageLocale(params);
+  return {
+    title: pageTitleTemplate(locale, 'books'),
+    description: calibreT(locale)('meta.description'),
+  };
 }
 
 export default async function RootLayout({ children, params }: Props) {

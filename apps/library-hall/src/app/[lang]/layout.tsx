@@ -5,6 +5,7 @@ import {
   isLibraryLocale,
   LIBRARY_LOCALES,
   type LibraryLocale,
+  pageTitle,
 } from '@rainforest-dev/library-contract';
 import { LibraryI18nProvider, ShellHead } from '@rainforest-dev/library-shell';
 import { Toaster } from '@rainforest-dev/rainforest-react';
@@ -33,8 +34,9 @@ async function localeOf(params: Props['params']): Promise<LibraryLocale> {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { meta } = hallMessages(await localeOf(params));
-  return { title: meta.title, description: meta.description };
+  const locale = await localeOf(params);
+  const { meta } = hallMessages(locale);
+  return { title: pageTitle(locale, 'hall'), description: meta.description };
 }
 
 export default async function RootLayout({ children, params }: Props) {

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -6,6 +7,11 @@ import { getBook } from '@/lib/server';
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const book = await getBook(Number((await params).id));
+  return book ? { title: book.title } : {};
 }
 
 export default function ReadPage({ params }: Props) {
