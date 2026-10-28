@@ -65,6 +65,9 @@ describe('webImageUrl', () => {
     expect(webImageUrl('data:image/png;base64,AAA')).toBeUndefined();
     expect(webImageUrl('not a url')).toBeUndefined();
     expect(webImageUrl('http://x.test/a.jpg')).toBe('http://x.test/a.jpg');
+    expect(webImageUrl('https://x.test/a.jpg?q=&amp;quot;')).toBe(
+      'https://x.test/a.jpg?q=&quot;',
+    );
   });
 });
 

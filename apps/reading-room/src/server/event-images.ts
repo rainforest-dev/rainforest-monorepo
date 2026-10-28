@@ -43,13 +43,17 @@ export function resetEventImages() {
   running = 0;
 }
 
+const ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&lt;': '<',
+  '&gt;': '>',
+};
+
+/** One pass, so `&amp;quot;` stays `&quot;`. */
 function decode(text: string): string {
-  return text
-    .replaceAll('&amp;', '&')
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'")
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>');
+  return text.replace(/&(?:amp|quot|#39|lt|gt);/g, (m) => ENTITIES[m] ?? m);
 }
 
 /** An http(s) URL, resolved against `base`, or `undefined`. */
