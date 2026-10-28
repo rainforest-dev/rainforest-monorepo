@@ -12,12 +12,16 @@ import {
 
 vi.mock('node:dns/promises', () => ({
   // Every test name is public, except one pointed at the home network.
-  lookup: async (host: string) => [
-    {
-      address: host === 'nas-alias.test' ? '192.168.1.20' : '93.184.216.34',
-      family: 4,
-    },
-  ],
+  lookup: (host: string) =>
+    host === 'silent.test'
+      ? new Promise(() => undefined)
+      : Promise.resolve([
+          {
+            address:
+              host === 'nas-alias.test' ? '192.168.1.20' : '93.184.216.34',
+            family: 4,
+          },
+        ]),
 }));
 
 const event = (id: string, url?: string, image?: string): LibraryEvent => ({
@@ -188,6 +192,42 @@ describe('withPageImages', () => {
       undefined,
       undefined,
     ]);
+  });
+
+  it('keeps a site’s pictures while its pages are read again', async () => {
+    const week = 7 * 24 * 3_600_000;
+    let hold = false;
+    const { promise: gate, resolve: release } = Promise.withResolvers<void>();
+    const fetcher = (async (input: string | URL | Request) => {
+      if (hold) await gate;
+      return new Response(page(`${String(input)}.jpg`));
+    }) as typeof fetch;
+    const events = [1, 2].map((n) => event(`e${n}`, `https://gov.test/${n}`));
+    withPageImages(events, fetcher, now);
+    await settleEventImages();
+    hold = true;
+    withPageImages(events, fetcher, now + week);
+    expect(
+      withPageImages(events, fetcher, now + week).map((e) => e.image),
+    ).toEqual(['https://gov.test/1.jpg', 'https://gov.test/2.jpg']);
+    release();
+  });
+
+  it('gives up on a name that never resolves, with the read', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    try {
+      const calls: string[] = [];
+      withPageImages(
+        [event('a', 'https://silent.test/1')],
+        stubPages({}, calls),
+        now,
+      );
+      await vi.advanceTimersByTimeAsync(8_000);
+      expect(calls).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+    await settleEventImages();
   });
 
   it('reads a page once while it is being read', async () => {

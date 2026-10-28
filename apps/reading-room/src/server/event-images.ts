@@ -73,11 +73,24 @@ export function isPublicHost(hostname: string): boolean {
  * The fetch resolves the name again, so a name that changes its answer in between still slips
  * through; that is left to the network.
  */
-async function resolvesPublic(hostname: string): Promise<boolean> {
+async function resolvesPublic(
+  hostname: string,
+  signal: AbortSignal,
+): Promise<boolean> {
   if (!isPublicHost(hostname)) return false;
   const host = hostname.replace(/^\[|\]$/g, '');
   if (host.includes(':') || /^[\d.]+$/.test(host)) return true;
-  const addresses = await lookup(host, { all: true }).catch(() => []);
+  // `lookup` takes no signal, so a name that never answers is given up on with the read.
+  const abandoned = new Promise<never>((_, reject) => {
+    if (signal.aborted) reject(signal.reason);
+    signal.addEventListener('abort', () => reject(signal.reason), {
+      once: true,
+    });
+  });
+  const addresses = await Promise.race([
+    lookup(host, { all: true }),
+    abandoned,
+  ]).catch(() => []);
   return (
     addresses.length > 0 && addresses.every((a) => isPublicHost(a.address))
   );
@@ -163,12 +176,32 @@ function pageOf(event: LibraryEvent): string | undefined {
   }
 }
 
+/** Reads a page's head, giving up on the whole read, lookups included, after `TIMEOUT_MS`. */
 async function readHead(fetcher: typeof fetch, url: string): Promise<string> {
-  const signal = AbortSignal.timeout(TIMEOUT_MS);
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(new Error(`${url} took too long`)),
+    TIMEOUT_MS,
+  );
+  try {
+    return await readHeadWithin(fetcher, url, controller.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function readHeadWithin(
+  fetcher: typeof fetch,
+  url: string,
+  signal: AbortSignal,
+): Promise<string> {
   let target = url;
   let response: Response | undefined;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    if (!allowPrivate && !(await resolvesPublic(new URL(target).hostname)))
+    if (
+      !allowPrivate &&
+      !(await resolvesPublic(new URL(target).hostname, signal))
+    )
       throw new Error(`${target} is not on a public address`);
     response = await fetcher(target, {
       signal,
@@ -259,16 +292,19 @@ export function withPageImages(
   pump(fetcher, now);
 
   // A logo is told apart by how many pages share it, so count every page read, and give a site
-  // no pictures while its pages are still waiting to be read.
+  // no pictures while some of its pages have never been read. A page read again does not count:
+  // its last answer is already in `sharing`.
   const sharing = new Map<string, number>();
   for (const { image } of pages.values())
     if (image) sharing.set(image, (sharing.get(image) ?? 0) + 1);
-  const pending = new Set([...queue, ...reading].map(hostOf));
+  const unread = new Set(
+    [...queue, ...reading].filter((url) => !pages.has(url)).map(hostOf),
+  );
   return events.map((event) => {
     const image = found.get(event.id);
     return image &&
       (sharing.get(image) ?? 0) < LOGO_PAGES &&
-      !pending.has(hostOf(event.url ?? ''))
+      !unread.has(hostOf(event.url ?? ''))
       ? { ...event, image }
       : event;
   });
