@@ -142,6 +142,26 @@ describe('taipeiEvent', () => {
   });
 });
 
+describe('taipeiEvent pictures', () => {
+  it.each([
+    [
+      [{ src: 'https://www.travel.taipei/a.jpg' }],
+      'https://www.travel.taipei/a.jpg',
+    ],
+    [
+      [{ src: null }, { src: 'https://www.travel.taipei/b.jpg' }],
+      'https://www.travel.taipei/b.jpg',
+    ],
+    [[{ src: '/relative.jpg' }], undefined],
+    ['not a list', undefined],
+    [null, undefined],
+  ])('reads images %j', (images, image) => {
+    const event = taipeiEvent({ ...TAIPEI_ITEM, images });
+    expect(event?.id).toBe('taipei:42');
+    expect(event?.image).toBe(image);
+  });
+});
+
 describe('looksLikeShowOrMarket', () => {
   it.each([
     ['親子玩具特展', true],

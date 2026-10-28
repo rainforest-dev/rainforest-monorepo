@@ -90,6 +90,16 @@ test.describe('magazine rack', () => {
     }).toPass({ timeout: 30_000 });
   });
 
+  test('draws a cover when a poster fails to load', async ({ page }) => {
+    await page.route('**/events/poster.svg', (route) =>
+      route.fulfill({ status: 404, body: 'gone' }),
+    );
+    await page.goto('/rack/events');
+    await expect(
+      card(page, EVENT_TITLES.now).locator('[data-cover="drawn"]'),
+    ).toBeVisible();
+  });
+
   test('serves the events as JSON for the hall', async ({ request }) => {
     const response = await request.get('/rack/api/events');
     expect(response.ok()).toBe(true);
