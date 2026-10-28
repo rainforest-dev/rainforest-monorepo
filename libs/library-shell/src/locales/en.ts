@@ -20,4 +20,10 @@ export const en: Translation<typeof zh> = {
   list: {
     separator: ', ',
   },
+  notFound: {
+    title: 'This page is not in the library',
+    body: 'The link may be out of date or mistyped. Try the search above, or go back from here.',
+    toCollection: 'Back to {{name}}',
+    toHall: 'Back to the hall',
+  },
 };

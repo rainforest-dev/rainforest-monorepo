@@ -4,7 +4,6 @@ import type { zh } from './zh';
 
 export const en: Translation<typeof zh> = {
   meta: {
-    title: 'Rainforest Library',
     description: 'Walk between the bookcases and browse every collection',
   },
   items_one: '{{count}} item',

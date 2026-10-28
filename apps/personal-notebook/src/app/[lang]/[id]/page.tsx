@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
@@ -15,6 +16,14 @@ import { BackLink } from './BackLink';
 
 interface Props {
   params: Promise<{ lang: string; id: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  await connection();
+  const id = Number((await params).id);
+  const notebook =
+    Number.isSafeInteger(id) && id > 0 ? await getNotebook(id) : null;
+  return notebook ? { title: notebook.name } : {};
 }
 
 export default function NotebookPage({ params }: Props) {

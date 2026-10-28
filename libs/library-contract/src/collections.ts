@@ -120,3 +120,42 @@ export function collectionForPath(pathname: string): Collection {
 export function isSameApp(from: CollectionId, to: CollectionId): boolean {
   return getCollection(from).app === getCollection(to).app;
 }
+
+/** The library's own name, in each locale. Every page title ends with it. */
+export const LIBRARY_NAMES: Record<LibraryLocale, string> = {
+  zh: 'Rainforest 圖書館',
+  en: 'Rainforest Library',
+};
+
+const TITLE_SEPARATOR = ' · ';
+
+/**
+ * A page's document title, from the narrowest name to the widest: the page, its collection,
+ * then the library. A collection's front page passes no `page`, and the hall has no collection
+ * part, so its title is the library's name alone.
+ */
+export function pageTitle(
+  locale: LibraryLocale,
+  collection: CollectionId,
+  page?: string,
+): string {
+  return [
+    page,
+    collection === 'hall' ? undefined : collectionLabel(collection, locale),
+    LIBRARY_NAMES[locale],
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(TITLE_SEPARATOR);
+}
+
+/**
+ * The same titles as a Next.js title template, for a collection's root layout: its front page
+ * gets `default`, and a page that sets its own title gets that title in front of it.
+ */
+export function pageTitleTemplate(
+  locale: LibraryLocale,
+  collection: CollectionId,
+): { default: string; template: string } {
+  const own = pageTitle(locale, collection);
+  return { default: own, template: `%s${TITLE_SEPARATOR}${own}` };
+}

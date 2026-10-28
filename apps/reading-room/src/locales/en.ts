@@ -3,9 +3,6 @@ import type { Translation } from '@rainforest-dev/library-shell';
 import type { zh } from './zh';
 
 export const en: Translation<typeof zh> = {
-  meta: {
-    site: 'Rainforest Library',
-  },
   header: {
     room: 'Reading room',
     kb: 'Knowledge base',

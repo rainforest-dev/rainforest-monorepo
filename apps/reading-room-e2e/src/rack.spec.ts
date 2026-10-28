@@ -220,7 +220,7 @@ test.describe('library shell', () => {
     );
   });
 
-  test('remembers where the rack was left, for the other collections to link back', async ({
+  test('the rack tab opens the rack front page, wherever the rack was left', async ({
     page,
   }) => {
     await page.goto('/rack/sources?tab=topics');
@@ -231,7 +231,7 @@ test.describe('library shell', () => {
       page
         .getByRole('navigation', { name: '館藏' })
         .getByRole('link', { name: '報架' }),
-    ).toHaveAttribute('href', '/rack/sources?tab=topics');
+    ).toHaveAttribute('href', '/rack');
   });
 
   test('the knowledge base opens under the shell with its own tab current', async ({
