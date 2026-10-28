@@ -3,11 +3,11 @@ import { RackShelves } from '@/components/rack/RackShelves.tsx';
 import RoomLayout from '@/layouts/RoomLayout.astro';
 import { loadFailure } from '@/lib/desk';
 import { roomT } from '@/locales';
-import { readReadingQueue } from '@/server';
+import { readReadingQueueWithImages } from '@/server';
 
 function readQueue() {
   try {
-    return { ok: true as const, data: readReadingQueue() };
+    return { ok: true as const, data: readReadingQueueWithImages() };
   } catch (err) {
     return loadFailure(err);
   }

@@ -36,6 +36,8 @@ export type QueueItem = {
   readerUrl: string;
   sourceUrl: string;
   siteName: string;
+  /** The article's picture: Reader's own, or the `og:image` of its page once that is read. */
+  imageUrl?: string;
   tags: string[];
   why: string;
   decay: Decay;
@@ -175,8 +177,24 @@ function parseSort(value: unknown, path: string): QueueSort {
   };
 }
 
+/** An http(s) URL, or `undefined` for a missing, empty or unusable one. */
+function asOptionalWebUrl(value: unknown, path: string): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  const text = asString(value, path).trim();
+  if (!text) return undefined;
+  try {
+    const url = new URL(text);
+    return url.protocol === 'http:' || url.protocol === 'https:'
+      ? url.href
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function parseQueueItem(value: unknown, path: string): QueueItem {
   const raw = asObject(value, path);
+  const imageUrl = asOptionalWebUrl(raw.imageUrl, `${path}.imageUrl`);
   return {
     rank: asInteger(raw.rank, `${path}.rank`, { min: 0 }),
     tier: asInteger(raw.tier, `${path}.tier`, { min: 0 }),
@@ -185,6 +203,7 @@ function parseQueueItem(value: unknown, path: string): QueueItem {
     readerUrl: asNonEmptyString(raw.readerUrl, `${path}.readerUrl`),
     sourceUrl: asNonEmptyString(raw.sourceUrl, `${path}.sourceUrl`),
     siteName: asString(raw.siteName, `${path}.siteName`),
+    ...(imageUrl ? { imageUrl } : {}),
     tags: asStringArray(raw.tags, `${path}.tags`),
     why: asString(raw.why, `${path}.why`),
     decay: asDecay(raw.decay, `${path}.decay`),

@@ -21,6 +21,8 @@ import {
 import { type FileLoad } from '@/lib/desk';
 import { roomT } from '@/locales';
 
+import { ArticleCover } from './ArticleCover';
+
 export interface RackShelvesProps {
   queue: FileLoad<ReadingQueue | null>;
   locale: LibraryLocale;
@@ -36,21 +38,24 @@ function ArticleCard({ item, t }: { item: QueueItem; t: T }) {
         href={item.readerUrl}
         target="_blank"
         rel="noreferrer"
-        className="bg-card text-card-foreground border-t-chart-2 hover:bg-accent focus-visible:ring-ring flex min-h-36 w-full flex-col gap-2 rounded-md border border-t-4 p-3 outline-none focus-visible:ring-2 [li:target>&]:ring-2"
+        className="bg-card text-card-foreground border-t-chart-2 hover:bg-accent focus-visible:ring-ring flex w-full flex-col overflow-hidden rounded-md border border-t-4 outline-none focus-visible:ring-2 [li:target>&]:ring-2"
       >
-        <span className="text-muted-foreground text-xs">
-          {item.siteName}
-          {minutes > 0 && t('rack.minutes', { count: minutes })}
+        <ArticleCover item={item} />
+        <span className="flex min-h-36 flex-1 flex-col gap-2 p-3">
+          <span className="text-muted-foreground text-xs">
+            {item.siteName}
+            {minutes > 0 && t('rack.minutes', { count: minutes })}
+          </span>
+          <span className="font-semibold leading-snug">{item.title}</span>
+          <span className="text-muted-foreground mt-auto text-xs">
+            {item.why}
+          </span>
+          {item.decay === 'time-sensitive' && (
+            <Badge variant="warning" className="self-start">
+              {t('rack.timeSensitive')}
+            </Badge>
+          )}
         </span>
-        <span className="font-semibold leading-snug">{item.title}</span>
-        <span className="text-muted-foreground mt-auto text-xs">
-          {item.why}
-        </span>
-        {item.decay === 'time-sensitive' && (
-          <Badge variant="warning" className="self-start">
-            {t('rack.timeSensitive')}
-          </Badge>
-        )}
       </a>
     </li>
   );

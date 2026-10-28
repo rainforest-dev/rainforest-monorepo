@@ -444,6 +444,8 @@ export function readingQueueJson(): string {
       readerUrl: `${FEED_ORIGIN}/read/e2e-${i + 1}`,
       sourceUrl: `${FEED_ORIGIN}/articles/${slug(title)}`,
       siteName: 'example.test',
+      // The first article carries Reader's picture; the others have none.
+      ...(i === 0 ? { imageUrl: `${FEED_ORIGIN}/events/page-cover.png` } : {}),
       tags: ['domain/frontend'],
       why: `fixture reason ${i + 1}`,
       sort: {

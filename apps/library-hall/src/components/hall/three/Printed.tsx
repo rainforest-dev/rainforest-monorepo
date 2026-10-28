@@ -167,16 +167,19 @@ export function RackCovers({
 function Paper({
   masthead,
   headline,
+  image,
   at,
   onClick,
 }: {
   masthead: string | null;
   headline: string;
+  image?: string;
   at: { x: number; y: number; z: number };
   onClick: Click;
 }) {
   const draw = useMemo(
-    () => (ctx: CanvasRenderingContext2D) => drawPaper(ctx, masthead, headline),
+    () => (ctx: CanvasRenderingContext2D, picture: HTMLImageElement | null) =>
+      drawPaper(ctx, masthead, headline, picture),
     [masthead, headline],
   );
   return (
@@ -186,6 +189,7 @@ function Paper({
       position={at}
       tilt={PAPER_HANG}
       draw={draw}
+      image={image}
       onClick={onClick}
     />
   );
@@ -208,6 +212,7 @@ export function StandPapers({
           key={paper.key}
           masthead={paper.masthead}
           headline={paper.headline}
+          image={paper.image}
           at={paperSlot(
             layout.papers,
             Math.floor(i / PAPERS_PER_ROW),

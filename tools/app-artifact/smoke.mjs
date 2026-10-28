@@ -1,4 +1,5 @@
 import { execFileSync, spawn } from 'node:child_process';
+import { request } from 'node:http';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -93,6 +94,19 @@ const APPS = {
             path: '/rack/api/library-search?q=the',
             type: 'application/json',
           },
+          // Astro trusts the Host header only for `security.allowedDomains`; without it every
+          // page thought it was on localhost and dropped the links to the other collections.
+          {
+            path: '/rack',
+            headers: { host: 'library.rainforest.tools' },
+            contains: 'href="/books"',
+          },
+          {
+            path: '/rack',
+            headers: { host: 'rss.rainforest.tools' },
+            status: 301,
+            location: 'https://library.rainforest.tools/rack',
+          },
           { path: '/kb' },
           { path: '/kb/pages/tech-kites' },
           { path: '/kb/api/hall-items', type: 'application/json' },
@@ -177,6 +191,29 @@ const APPS = {
   },
 };
 
+/**
+ * One GET without following redirects. `fetch` drops a `Host` header, which the old and
+ * library hostname checks need.
+ */
+const get = (url, headers = {}) =>
+  new Promise((done, fail) => {
+    const req = request(url, { headers }, (res) => {
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => (body += chunk));
+      res.on('end', () =>
+        done({
+          status: res.statusCode ?? 0,
+          type: res.headers['content-type'] ?? '',
+          location: res.headers.location ?? null,
+          body,
+        }),
+      );
+    });
+    req.on('error', fail);
+    req.end();
+  });
+
 const name = process.argv[2];
 const app = APPS[name];
 if (!app) {
@@ -235,12 +272,17 @@ const waitForServer = async () => {
 let failed = !(await waitForServer());
 if (failed) console.log(`FAIL ${name} did not start on ${base}`);
 for (const check of failed ? [] : checks) {
-  const res = await fetch(base + check.path, { redirect: 'manual' });
-  const type = res.headers.get('content-type') ?? '';
-  const ok = res.status === 200 && (!check.type || type.startsWith(check.type));
+  const res = await get(base + check.path, check.headers);
+  const type = res.type;
+  const ok =
+    res.status === (check.status ?? 200) &&
+    (!check.type || type.startsWith(check.type)) &&
+    (!check.location || res.location === check.location) &&
+    (!check.contains || res.body.includes(check.contains));
   if (!ok) failed = true;
+  const host = check.headers?.host ? ` (Host: ${check.headers.host})` : '';
   console.log(
-    `${ok ? 'OK  ' : 'FAIL'} ${res.status} ${type || '-'} ${check.path}`,
+    `${ok ? 'OK  ' : 'FAIL'} ${res.status} ${type || '-'} ${check.path}${host}`,
   );
 }
 

@@ -3,9 +3,9 @@ import { lookup } from 'node:dns/promises';
 import { type LibraryEvent } from '@rainforest-dev/library-contract';
 
 /**
- * Pictures for events whose source gives none: the `og:image` of the event's own page. Pages are
- * read in the background, a few at a time, so a page render never waits on an organiser's
- * site; an event gets its picture on a render after its page has been read.
+ * Pictures for events and articles whose source gives none: the `og:image` of their own page. Pages are
+ * read in the background, a few at a time, so a page render never waits on another
+ * site; an item gets its picture on a render after its page has been read.
  */
 
 /**
@@ -19,7 +19,7 @@ const TIMEOUT_MS = 8_000;
 /** `<head>` is near the top; never read more of a page than this. */
 const MAX_BYTES = 256 * 1024;
 const CONCURRENCY = 4;
-/** One picture on this many pages is a site's logo, not the event's. */
+/** One picture on this many pages is a site's logo, not the item's. */
 const LOGO_PAGES = 3;
 /** Hosts whose pages need a login or a script before they show a picture. */
 const SKIP_HOSTS =
@@ -164,13 +164,13 @@ export function ogImageOf(html: string, pageUrl: string): string | undefined {
   return undefined;
 }
 
-/** The page worth reading for an event's picture, or `undefined`. */
-function pageOf(event: LibraryEvent): string | undefined {
-  if (event.image || !event.url) return undefined;
+/** `url` when it is a page worth reading for a picture, or `undefined`. */
+function readablePage(url: string | undefined): string | undefined {
+  if (!url) return undefined;
   try {
-    const { hostname } = new URL(event.url);
+    const { hostname } = new URL(url);
     if (SKIP_HOSTS.test(hostname)) return undefined;
-    return allowPrivate || isPublicHost(hostname) ? event.url : undefined;
+    return allowPrivate || isPublicHost(hostname) ? url : undefined;
   } catch {
     return undefined;
   }
@@ -283,25 +283,35 @@ function pump(fetcher: typeof fetch, now: number) {
   }
 }
 
+/** Something whose picture may come from its page: an event, a queued article. */
+export interface PagedItem {
+  id: string;
+  /** The page to read, when the item has no picture of its own. */
+  page?: string | undefined;
+}
+
 /**
- * The events with each one's picture from its page, when that page has been read. Pages not
- * read yet, or read too long ago, are queued to be read in the background.
+ * Each item's picture from its page, by id, when that page has been read. Pages not read yet,
+ * or read too long ago, are queued to be read in the background.
  */
-export function withPageImages(
-  events: readonly LibraryEvent[],
+export function pagePictures(
+  items: readonly PagedItem[],
   fetcher: typeof fetch = fetch,
   now = Date.now(),
   options: { allowPrivate?: boolean } = {},
-): LibraryEvent[] {
+): Map<string, string> {
   allowPrivate = options.allowPrivate ?? false;
-  // Forget pages no current event links to, once they would be read again anyway.
-  const current = new Set(events.map(pageOf));
+  const paged = items.map((item) => ({
+    id: item.id,
+    page: readablePage(item.page),
+  }));
+  // Forget pages no current item links to, once they would be read again anyway.
+  const current = new Set(paged.map((item) => item.page));
   for (const [url, entry] of pages)
     if (!current.has(url) && now - entry.at >= FOUND_TTL_MS) pages.delete(url);
 
   const found = new Map<string, string>();
-  for (const event of events) {
-    const page = pageOf(event);
+  for (const { id, page } of paged) {
     if (!page) continue;
     const entry = pages.get(page);
     const ttl = entry?.failed
@@ -311,7 +321,7 @@ export function withPageImages(
         : MISSING_TTL_MS;
     if (!reading.has(page) && (!entry || now - entry.at >= ttl))
       queue.add(page);
-    if (entry?.image) found.set(event.id, entry.image);
+    if (entry?.image) found.set(id, entry.image);
   }
   pump(fetcher, now);
 
@@ -324,13 +334,39 @@ export function withPageImages(
   const unread = new Set(
     [...queue, ...reading].filter((url) => !pages.has(url)).map(hostOf),
   );
-  return events.map((event) => {
-    const image = found.get(event.id);
-    return image &&
+  const pictures = new Map<string, string>();
+  for (const { id, page } of paged) {
+    const image = found.get(id);
+    if (
+      image &&
+      page &&
       (sharing.get(image) ?? 0) < LOGO_PAGES &&
-      !unread.has(hostOf(event.url ?? ''))
-      ? { ...event, image }
-      : event;
+      !unread.has(hostOf(page))
+    )
+      pictures.set(id, image);
+  }
+  return pictures;
+}
+
+/** The events with each one's picture from its page, for those that have none of their own. */
+export function withPageImages(
+  events: readonly LibraryEvent[],
+  fetcher: typeof fetch = fetch,
+  now = Date.now(),
+  options: { allowPrivate?: boolean } = {},
+): LibraryEvent[] {
+  const pictures = pagePictures(
+    events.map((event) => ({
+      id: event.id,
+      page: event.image ? undefined : event.url,
+    })),
+    fetcher,
+    now,
+    options,
+  );
+  return events.map((event) => {
+    const image = pictures.get(event.id);
+    return image ? { ...event, image } : event;
   });
 }
 

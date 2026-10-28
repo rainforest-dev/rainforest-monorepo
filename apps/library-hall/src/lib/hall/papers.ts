@@ -7,6 +7,8 @@ export interface HallPaper {
   key: string;
   headline: string;
   masthead: string | null;
+  /** The article's picture, same-origin, printed under the headline. */
+  image?: string;
 }
 
 /** What the hall's newspaper stand shows: how many articles wait, and the first few. */
@@ -24,6 +26,7 @@ export function papersOf(books: readonly HallBook[]): HallPapers {
       key: book.key,
       headline: book.title,
       masthead: book.groups.creator ?? book.subtitle,
+      ...(book.cover ? { image: book.cover } : {}),
     })),
   };
 }

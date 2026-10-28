@@ -142,12 +142,13 @@ export function drawCover(
 
 /**
  * A newspaper: its site's name as the masthead over a double rule, the article's title as the
- * headline, and grey lines for the columns below.
+ * headline, the article's picture when it has one, and grey lines for the columns below.
  */
 export function drawPaper(
   ctx: CanvasRenderingContext2D,
   masthead: string | null,
   headline: string,
+  image: HTMLImageElement | null = null,
 ) {
   const { w, h } = PAPER_PX;
   const family = fontFamily();
@@ -165,11 +166,21 @@ export function drawPaper(
   ctx.fillRect(pad, 48, w - pad * 2, 3);
   ctx.fillRect(pad, 54, w - pad * 2, 1);
   ctx.font = `700 26px ${family}`;
-  const lines = wrapLines(ctx, headline, w - pad * 2, 4);
+  const lines = wrapLines(ctx, headline, w - pad * 2, image ? 3 : 4);
   lines.forEach((line, i) => ctx.fillText(line, pad, 88 + i * 32));
+  let top = 88 + lines.length * 32;
+  if (image && image.width > 0) {
+    // The picture spans the columns, a little more than a third of the page.
+    const photo = { w: w - pad * 2, h: Math.round(h * 0.38) };
+    const y = top - 18;
+    ctx.save();
+    ctx.translate(pad, y);
+    drawCovering(ctx, image, photo.w, photo.h);
+    ctx.restore();
+    top = y + photo.h + 14;
+  }
   // The columns, as lines of grey type.
   ctx.fillStyle = GREY_INK;
-  const top = 88 + lines.length * 32;
   const column = (w - pad * 3) / 2;
   for (let c = 0; c < 2; c++)
     for (let y = top; y < h - pad; y += 11) {

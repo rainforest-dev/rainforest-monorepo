@@ -42,6 +42,10 @@ export const articleAnchor = (id: string): string => `article-${id}`;
 const articleHref = (id: string): string =>
   `${RACK_PATH}#${encodeURIComponent(articleAnchor(id))}`;
 
+/** An article's picture from the library's own origin, for the hall's 3D stand and its cards. */
+export const articleCoverHref = (id: string): string =>
+  `${RACK_PATH}/api/articles/cover/${encodeURIComponent(id)}`;
+
 /**
  * Spine colours for the hall, one per tier. The hall needs hex, so these are fixed shades
  * around the rack's `chart-2` blue, darker for the tiers to read first.
@@ -89,6 +93,7 @@ export function rackHallItems(queue: ReadingQueue | null): HallItem[] {
         ...(month ? [`month:${month}`] : []),
       ],
       href: articleHref(item.id),
+      ...(item.imageUrl ? { cover: articleCoverHref(item.id) } : {}),
     };
   });
 }
