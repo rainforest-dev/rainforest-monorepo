@@ -153,6 +153,29 @@ describe('withPageImages', () => {
     ]);
   });
 
+  it('gives a site no pictures until all its pages are read, so a logo is never shown early', async () => {
+    const logo = 'https://gov.test/logo.png';
+    const { promise: gate, resolve: release } = Promise.withResolvers<void>();
+    const fetcher = (async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url !== 'https://gov.test/1') await gate;
+      return new Response(page(logo));
+    }) as typeof fetch;
+    const events = [1, 2, 3].map((n) =>
+      event(`e${n}`, `https://gov.test/${n}`),
+    );
+    withPageImages(events, fetcher, now);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(withPageImages(events, fetcher, now)[0]?.image).toBeUndefined();
+    release();
+    await settleEventImages();
+    expect(withPageImages(events, fetcher, now).map((e) => e.image)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
   it('reads a page once while it is being read', async () => {
     const calls: string[] = [];
     const fetcher = stubPages(

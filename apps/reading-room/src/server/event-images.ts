@@ -237,20 +237,28 @@ export function withPageImages(
   }
   pump(fetcher, now);
 
-  const pagesOf = new Map<string, Set<string>>();
-  for (const event of events) {
-    const image = found.get(event.id);
-    if (!image || !event.url) continue;
-    const set = pagesOf.get(image) ?? new Set<string>();
-    set.add(event.url);
-    pagesOf.set(image, set);
-  }
+  // A logo is told apart by how many pages share it, so count every page read, and give a site
+  // no pictures while its pages are still waiting to be read.
+  const sharing = new Map<string, number>();
+  for (const { image } of pages.values())
+    if (image) sharing.set(image, (sharing.get(image) ?? 0) + 1);
+  const pending = new Set([...queue, ...reading].map(hostOf));
   return events.map((event) => {
     const image = found.get(event.id);
-    return image && (pagesOf.get(image)?.size ?? 0) < LOGO_PAGES
+    return image &&
+      (sharing.get(image) ?? 0) < LOGO_PAGES &&
+      !pending.has(hostOf(event.url ?? ''))
       ? { ...event, image }
       : event;
   });
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
 }
 
 /** Resolves once every queued page has been read; for tests. */
