@@ -8,6 +8,7 @@ import {
 } from '@rainforest-dev/library-contract';
 import { cn } from '@rainforest-dev/rainforest-react';
 import {
+  BookImage,
   BookOpen,
   Landmark,
   LibraryBig,
@@ -26,6 +27,7 @@ export const COLLECTION_ICONS: Record<CollectionId, LucideIcon> = {
   books: BookOpen,
   notebooks: NotebookPen,
   rack: Newspaper,
+  magazines: BookImage,
   kb: LibraryBig,
 };
 

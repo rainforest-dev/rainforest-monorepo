@@ -5,7 +5,6 @@ export const zh = {
     kb: '知識庫',
     sections: '閱覽室',
     rack: '報架',
-    events: '雜誌架',
     sources: '來源',
   },
   rack: {

@@ -6,6 +6,7 @@ import {
   pageTitle,
   pageTitleTemplate,
 } from './collections';
+import { EVENTS_PAGE_HREF } from './events';
 
 describe('collectionForPath', () => {
   it.each([
@@ -53,8 +54,8 @@ describe('pageTitle', () => {
     expect(pageTitle('en', 'books', 'Dune')).toBe(
       'Dune · Books · Rainforest Library',
     );
-    expect(pageTitle('zh', 'rack', '雜誌架')).toBe(
-      '雜誌架 · 報架 · Rainforest 圖書館',
+    expect(pageTitle('zh', 'rack', '來源')).toBe(
+      '來源 · 報架 · Rainforest 圖書館',
     );
   });
 
@@ -68,5 +69,15 @@ describe('pageTitle', () => {
       default: 'Books · Rainforest Library',
       template: '%s · Books · Rainforest Library',
     });
+  });
+});
+
+describe('the magazine rack', () => {
+  it('is its own collection, under the rack’s path', () => {
+    expect(collectionForPath('/rack/events').id).toBe('magazines');
+    expect(collectionForPath('/rack/events/x').id).toBe('magazines');
+    expect(collectionForPath('/rack/eventsx').id).toBe('rack');
+    expect(getCollection('magazines').basePath).toBe(EVENTS_PAGE_HREF);
+    expect(isSameApp('rack', 'magazines')).toBe(true);
   });
 });

@@ -7,6 +7,7 @@ test.describe('a page the reading room does not have', () => {
   for (const [path, name, href] of [
     ['/rack/no-such-shelf', 'Back to Rack', '/rack'],
     ['/kb/no/such/note', 'Back to Knowledge', '/kb'],
+    ['/rack/events/no-such-issue', 'Back to Magazines', '/rack/events'],
   ] as const) {
     test(`${path} answers 404 under the bar, with a way back`, async ({
       page,
@@ -30,7 +31,7 @@ test('titles name the page, then its collection, then the library', async ({
   await page.goto('/rack');
   await expect(page).toHaveTitle('Rack · Rainforest Library');
   await page.goto('/rack/events');
-  await expect(page).toHaveTitle('Magazine rack · Rack · Rainforest Library');
+  await expect(page).toHaveTitle('Magazines · Rainforest Library');
   await page.goto('/kb');
   await expect(page).toHaveTitle('Knowledge · Rainforest Library');
 });

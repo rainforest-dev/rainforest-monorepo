@@ -21,6 +21,19 @@ test.beforeEach(async ({ page, context }) => {
 });
 
 test.describe('magazine rack', () => {
+  test('has its own tab in the library bar', async ({ page }) => {
+    await page.goto('/rack/events');
+    const collections = page
+      .getByRole('banner')
+      .getByRole('navigation', { name: /^(Collections|館藏)$/ });
+    await expect(
+      collections.getByRole('link', { name: /^(Magazines|雜誌架)$/ }),
+    ).toHaveAttribute('aria-current', 'page');
+    await expect(
+      collections.getByRole('link', { name: /^(Rack|報架)$/ }),
+    ).not.toHaveAttribute('aria-current');
+  });
+
   test('shelves every event by when it ends or opens', async ({ page }) => {
     await page.goto('/rack/events');
     await expect(shelf(page, 'Ending soon')).toContainText(EVENT_TITLES.ending);
