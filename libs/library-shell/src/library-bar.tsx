@@ -18,6 +18,7 @@ import { useLibraryLocale, useLibraryT } from './i18n-provider';
 import { LocaleSwitch } from './locale-switch';
 import { ShellHeader } from './shell-header';
 import { ShellSearch } from './shell-search';
+import { SidebarToggle } from './sidebar';
 
 const HallIcon = COLLECTION_ICONS.hall;
 
@@ -25,7 +26,7 @@ export interface LibraryBarProps {
   current: CollectionId;
   /** Renders this app's own collection links with its router; others stay plain anchors. */
   renderLink?: RenderShellLink;
-  /** Before the library's name, such as a sidebar toggle. */
+  /** Before the library's name, after the sidebar toggle. */
   leading?: ReactNode;
   /** The current collection's own controls, after the switcher. */
   children?: ReactNode;
@@ -65,6 +66,8 @@ export function LibraryBar({
   return (
     <>
       <ShellHeader data-library-bar={current}>
+        {/* Shown only on a page whose left column is in the DOM; see tailwind.css. */}
+        <SidebarToggle />
         {leading}
         <a
           href={collections ? '/' : own.basePath}

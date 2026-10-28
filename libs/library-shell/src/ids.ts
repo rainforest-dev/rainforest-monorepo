@@ -1,7 +1,8 @@
 /** Element ids the shell renders, for `aria-controls` and skip links in the apps. */
 export const SHELL_IDS = {
   main: 'library-main',
-  filters: 'library-filters',
+  /** The left column: filters, contents or an outline, whichever the page has. */
+  sidebar: 'library-sidebar',
 } as const;
 
 /**

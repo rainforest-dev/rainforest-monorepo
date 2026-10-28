@@ -4,8 +4,6 @@ import type { zh } from './zh';
 
 export const en: Translation<typeof zh> = {
   header: {
-    room: 'Reading room',
-    kb: 'Knowledge base',
     sections: 'Rack sections',
     rack: 'Rack',
     sources: 'Sources',

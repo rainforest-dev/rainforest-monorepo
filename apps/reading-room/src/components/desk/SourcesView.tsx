@@ -1,4 +1,8 @@
-import { useLibraryT } from '@rainforest-dev/library-shell';
+import {
+  SHELL_IDS,
+  SIDEBAR_GRID,
+  useLibraryT,
+} from '@rainforest-dev/library-shell';
 import {
   Badge,
   Button,
@@ -228,14 +232,12 @@ export function SourcesView({
 
   return (
     <div
-      className={cn(
-        'flex flex-col lg:grid lg:grid-cols-[248px_minmax(0,1fr)]',
-        paneOpen && 'lg:grid-cols-[248px_minmax(0,1fr)_400px]',
-      )}
+      className={cn('flex flex-col', SIDEBAR_GRID[paneOpen ? 'pane' : 'main'])}
     >
       <aside
+        id={SHELL_IDS.sidebar}
         aria-label={t('desk.filters.title')}
-        className="bg-sidebar text-sidebar-foreground lg:top-(--library-top) max-lg:hidden lg:sticky lg:h-[calc(100dvh-var(--library-top))] lg:border-r"
+        className="bg-sidebar text-sidebar-foreground lg:top-(--library-top) lg:sidebar-closed:hidden max-lg:hidden lg:sticky lg:h-[calc(100dvh-var(--library-top))] lg:border-r"
       >
         <ScrollArea className="h-full">
           <FilterPanel

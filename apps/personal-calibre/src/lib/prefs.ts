@@ -18,19 +18,16 @@ const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 export interface Prefs {
   view: View;
-  panel: boolean;
   renderer: Renderer;
 }
 
 export const DEFAULT_PREFS: Prefs = {
   view: 'shelf',
-  panel: true,
   renderer: 'three-tsl',
 };
 
 const prefsSchema = z.object({
   view: z.enum(VIEWS).catch(DEFAULT_PREFS.view),
-  panel: z.boolean().catch(DEFAULT_PREFS.panel),
   renderer: z.enum(RENDERERS).catch(DEFAULT_PREFS.renderer),
 });
 

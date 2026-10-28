@@ -23,7 +23,7 @@ test.describe('shell', () => {
     await gotoTab(page, 'sources');
     const banner = page.getByRole('banner');
     await expect(
-      banner.getByRole('heading', { level: 1, name: 'Reading room' }),
+      banner.getByRole('heading', { level: 1, name: 'Rack' }),
     ).toBeVisible();
     await expect(page.getByText('RSS-Source-Registry.md')).toBeVisible();
 

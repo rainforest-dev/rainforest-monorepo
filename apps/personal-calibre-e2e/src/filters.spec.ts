@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { gotoLibrary } from './support/library';
 
-const panel = (page: Page) => page.locator('#library-filters');
+const panel = (page: Page) => page.locator('#library-sidebar');
 
 test.describe('filters', () => {
   test('a facet filters the list, titles the scope and adds a chip', async ({

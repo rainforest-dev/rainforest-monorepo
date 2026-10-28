@@ -36,8 +36,6 @@ export const zh = {
     title: '篩選',
     titleCount: '篩選 · {{count}}',
     collapse: '收合篩選',
-    show: '顯示篩選',
-    hide: '隱藏篩選',
     badge_one: '{{count}} 個篩選',
     badge_other: '{{count}} 個篩選',
     delivery: '傳送',

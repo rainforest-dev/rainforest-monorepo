@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-import { gotoLibrary, readPrefs, setPrefs } from './support/library';
+import {
+  gotoLibrary,
+  readLibraryPrefs,
+  readPrefs,
+  setPrefs,
+} from './support/library';
 import { bookById } from './support/seed';
 
 test.describe('shell', () => {
@@ -49,13 +54,15 @@ test.describe('shell', () => {
     context,
   }) => {
     await gotoLibrary(page);
-    await expect(page.locator('#library-filters')).toBeVisible();
-    await page.getByRole('button', { name: 'Hide filters' }).click();
-    await expect(page.locator('#library-filters')).toBeHidden();
-    expect(await readPrefs(context)).toMatchObject({ panel: false });
+    await expect(page.locator('#library-sidebar')).toBeVisible();
+    await page.getByRole('button', { name: 'Hide sidebar' }).click();
+    await expect(page.locator('#library-sidebar')).toBeHidden();
+    expect(await readLibraryPrefs(context)).toMatchObject({ sidebar: false });
     await gotoLibrary(page);
+    // Closed before the first paint, from the shared cookie.
+    await expect(page.locator('#library-sidebar')).toBeHidden();
     await expect(
-      page.getByRole('button', { name: 'Show filters' }),
+      page.getByRole('button', { name: 'Show sidebar' }),
     ).toHaveAttribute('aria-expanded', 'false');
   });
 
@@ -66,7 +73,7 @@ test.describe('shell', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       bookById(1).title,
     );
-    await expect(page.locator('#library-filters')).toHaveCount(0);
+    await expect(page.locator('#library-sidebar')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Shelf view' })).toHaveCount(
       0,
     );

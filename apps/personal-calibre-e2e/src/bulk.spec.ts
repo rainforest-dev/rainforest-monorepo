@@ -85,7 +85,7 @@ test.describe('bulk', () => {
     await gotoLibrary(page, '/?series=2');
     const hidden = await selectOption(page, 2);
     await page
-      .locator('#library-filters')
+      .locator('#library-sidebar')
       .getByRole('button', { name: 'Tidewater Cycle', exact: true })
       .click();
     await expect(page).toHaveURL(/series=4/);

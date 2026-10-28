@@ -12,6 +12,12 @@ describe('ShellHead', () => {
     expect(html).toContain('<script type="speculationrules">{"prerender"');
   });
 
+  it('closes the left column before paint when the cookie says so', () => {
+    expect(renderToStaticMarkup(<ShellHead />)).toContain(
+      'data-library-sidebar',
+    );
+  });
+
   it('can leave prerendering off', () => {
     expect(renderToStaticMarkup(<ShellHead prerender={false} />)).not.toContain(
       'speculationrules',

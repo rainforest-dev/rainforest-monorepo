@@ -177,4 +177,31 @@ test.describe('knowledge base', () => {
     await page.goto('/kb/pages/tech-kites');
     await expectNoViolations(page);
   });
+  test('the sidebar closes on every page and stays closed', async ({
+    page,
+  }) => {
+    await page.goto('/kb');
+    const sidebar = page.locator('#library-sidebar');
+    await expect(sidebar).toBeVisible();
+    // The toggle lives in the bar's island; a click before it hydrates does nothing.
+    await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+    await page.getByRole('button', { name: '收起側欄' }).click();
+    await expect(sidebar).toBeHidden();
+
+    // The choice is the library's, so the rack's registry desk opens with its filters closed.
+    await page.goto('/rack/sources');
+    await expect(page.locator('#library-sidebar')).toBeHidden();
+    await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+    const reopen = page.getByRole('button', { name: '展開側欄' });
+    await expect(reopen).toHaveAttribute('aria-expanded', 'false');
+    await reopen.click();
+    await expect(page.locator('#library-sidebar')).toBeVisible();
+  });
+
+  test('the bar has no sidebar toggle on a page without a sidebar', async ({
+    page,
+  }) => {
+    await page.goto('/rack');
+    await expect(page.getByRole('button', { name: '收起側欄' })).toBeHidden();
+  });
 });

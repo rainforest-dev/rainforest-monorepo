@@ -2,14 +2,28 @@
    @import '@rainforest-dev/library-shell/tailwind.css'; */
 @source './';
 
+/* A collection's left column is closed: `:root` carries the attribute `sidebar.tsx` sets. */
+@custom-variant sidebar-closed (:root[data-library-sidebar='closed'] &);
+
 /* How far below the viewport's top a sticky column starts: the library bar, plus the
    section row (SectionNav) on pages that have one. Only read from `lg` up, where both are
    a fixed height. */
 @layer base {
   :root {
     --library-top: 3.5rem;
+    /* Column widths every app shares: the left column (filters, contents, an outline), a
+       detail pane on the right, and a narrower reading column on the right. */
+    --library-sidebar: 248px;
+    --library-pane: 400px;
+    --library-aside: 320px;
   }
   :root:has([data-section-nav]) {
     --library-top: 6.5rem;
   }
+}
+
+/* The sidebar toggle has nothing to do on a page without a left column. Outside any layer,
+   and as specific as an id, so it beats the button's own display utilities. */
+:root:not(:has(#library-sidebar)) [data-library-sidebar-toggle] {
+  display: none;
 }

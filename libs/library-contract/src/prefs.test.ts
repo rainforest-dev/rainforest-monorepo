@@ -15,6 +15,7 @@ describe('library prefs cookie', () => {
       scheme: 'dark',
       renderer: 'three-tsl',
       locale: 'en',
+      sidebar: false,
     } as const;
     expect(parseLibraryPrefs(serializeLibraryPrefs(prefs))).toEqual(prefs);
   });
@@ -31,6 +32,7 @@ describe('library prefs cookie', () => {
       scheme: 'system',
       renderer: 'css',
       locale: null,
+      sidebar: true,
     });
   });
 
@@ -39,7 +41,13 @@ describe('library prefs cookie', () => {
       scheme: 'light',
       renderer: null,
       locale: null,
+      sidebar: true,
     });
+  });
+
+  it('keeps a closed sidebar and drops a bad value', () => {
+    expect(parseLibraryPrefs('{"sidebar":false}').sidebar).toBe(false);
+    expect(parseLibraryPrefs('{"sidebar":"no"}').sidebar).toBe(true);
   });
 });
 

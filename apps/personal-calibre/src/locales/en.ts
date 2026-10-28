@@ -39,8 +39,6 @@ export const en: Translation<typeof zh> = {
     title: 'Filters',
     titleCount: 'Filters · {{count}}',
     collapse: 'Collapse filters',
-    show: 'Show filters',
-    hide: 'Hide filters',
     badge_one: '{{count}} filter',
     badge_other: '{{count}} filters',
     delivery: 'Delivery',

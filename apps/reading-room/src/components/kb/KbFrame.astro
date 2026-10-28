@@ -1,4 +1,6 @@
 ---
+import { SHELL_IDS } from '@rainforest-dev/library-shell';
+
 import { type KbShelf, type KbSource } from '@/lib/kb';
 import { roomT } from '@/locales';
 
@@ -21,12 +23,20 @@ const SIDE =
 <div
   class:list={[
     'grid grid-cols-1',
-    aside
-      ? 'lg:grid-cols-[248px_minmax(0,1fr)] xl:grid-cols-[248px_minmax(0,1fr)_320px]'
-      : 'lg:grid-cols-[248px_minmax(0,1fr)]',
+    // The related column sits under the article until `xl`, then beside it. Widths are the
+    // shell's; a closed sidebar drops its track.
+    'lg:sidebar-closed:grid-cols-[minmax(0,1fr)] lg:grid-cols-[var(--library-sidebar)_minmax(0,1fr)]',
+    aside &&
+      'xl:sidebar-closed:grid-cols-[minmax(0,1fr)_var(--library-aside)] xl:grid-cols-[var(--library-sidebar)_minmax(0,1fr)_var(--library-aside)]',
   ]}
 >
-  <div class:list={['bg-muted/40 hidden border-r lg:block', SIDE]}>
+  <div
+    id={SHELL_IDS.sidebar}
+    class:list={[
+      'bg-muted/40 lg:sidebar-closed:hidden hidden border-r lg:block',
+      SIDE,
+    ]}
+  >
     <KbNav {...nav} />
   </div>
   <div class="min-w-0">
@@ -47,7 +57,7 @@ const SIDE =
       <aside
         aria-label={t('kb.related')}
         class:list={[
-          'border-t p-5 lg:col-start-2 xl:col-start-auto xl:border-l xl:border-t-0',
+          'lg:sidebar-closed:col-start-1 xl:sidebar-closed:col-start-auto border-t p-5 lg:col-start-2 xl:col-start-auto xl:border-l xl:border-t-0',
           'xl:top-(--library-top) xl:sticky xl:h-[calc(100dvh-var(--library-top))] xl:overflow-y-auto',
         ]}
       >
