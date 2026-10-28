@@ -156,6 +156,24 @@ describe('withPageImages', () => {
     expect(calls).toHaveLength(2);
   });
 
+  it('keeps a page’s picture when a later read fails', async () => {
+    let up = true;
+    const fetcher = (async () =>
+      up
+        ? new Response(page('https://museum.test/1.jpg'))
+        : new Response('down', { status: 503 })) as unknown as typeof fetch;
+    const events = [event('a', 'https://museum.test/1')];
+    withPageImages(events, fetcher, now);
+    await settleEventImages();
+    up = false;
+    const week = 7 * 24 * 3_600_000;
+    withPageImages(events, fetcher, now + week);
+    await settleEventImages();
+    expect(withPageImages(events, fetcher, now + week)[0]?.image).toBe(
+      'https://museum.test/1.jpg',
+    );
+  });
+
   it('asks a page with no picture again only after a day', async () => {
     const calls: string[] = [];
     const fetcher = stubPages(

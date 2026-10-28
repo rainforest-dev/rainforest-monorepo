@@ -135,7 +135,9 @@ function pump(fetcher: typeof fetch, now: number) {
       .then((html) => ({ image: ogImageOf(html, url) ?? null, failed: false }))
       .catch(() => ({ image: null, failed: true }))
       .then(({ image, failed }) => {
-        pages.set(url, { image, at: now, failed });
+        // A page that fails to answer keeps the picture it last gave.
+        const kept = failed ? (pages.get(url)?.image ?? null) : image;
+        pages.set(url, { image: kept, at: now, failed });
         reading.delete(url);
         running--;
         pump(fetcher, now);
@@ -152,15 +154,20 @@ export function withPageImages(
   fetcher: typeof fetch = fetch,
   now = Date.now(),
 ): LibraryEvent[] {
+  // Forget pages no current event links to, once they would be read again anyway.
+  const current = new Set(events.map(pageOf));
+  for (const [url, entry] of pages)
+    if (!current.has(url) && now - entry.at >= FOUND_TTL_MS) pages.delete(url);
+
   const found = new Map<string, string>();
   for (const event of events) {
     const page = pageOf(event);
     if (!page) continue;
     const entry = pages.get(page);
-    const ttl = entry?.image
-      ? FOUND_TTL_MS
-      : entry?.failed
-        ? FAILED_TTL_MS
+    const ttl = entry?.failed
+      ? FAILED_TTL_MS
+      : entry?.image
+        ? FOUND_TTL_MS
         : MISSING_TTL_MS;
     if (!reading.has(page) && (!entry || now - entry.at >= ttl))
       queue.add(page);
