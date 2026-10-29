@@ -122,6 +122,8 @@ describe('readByRules', () => {
       text: 'garden',
       collections: ['notebooks'],
     });
+    for (const words of ['書法', '讀書心得', '筆記型電腦', '知識管理'])
+      expect(readByRules(words, '2026-10-29')).toEqual({ text: words });
     expect(readByRules('lord of the rings 2', '2026-10-29')).toEqual({
       text: 'lord of the rings 2',
     });
@@ -204,6 +206,21 @@ describe('parseLibraryQuery', () => {
     ).toEqual({
       text: '',
       collections: ['notebooks'],
+      from: '2026-09-01',
+      to: '2026-09-30',
+    });
+  });
+
+  it('keeps the typed words for days in a collection that does not date its items', async () => {
+    const ai = controller(
+      { kind: 'ready' },
+      { text: '', collections: ['books'] },
+    );
+    expect(
+      (await parseLibraryQuery('books last month', '2026-10-29', ai)).value,
+    ).toEqual({
+      text: 'books last month',
+      collections: ['books'],
       from: '2026-09-01',
       to: '2026-09-30',
     });

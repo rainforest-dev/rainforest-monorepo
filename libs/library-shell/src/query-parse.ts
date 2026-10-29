@@ -1,6 +1,7 @@
 import {
   COLLECTION_OF_KIND,
   type CollectionId,
+  DATED_COLLECTIONS,
   isLibraryDay,
   LIBRARY_SEARCH_MAX_QUERY,
   LIBRARY_SEARCH_SCOPE_PARAM,
@@ -39,12 +40,19 @@ const schema = z.object({
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
+/**
+ * A Chinese collection word, counted only where it frames the search: not inside a longer word
+ * (書法, 筆記型電腦, 知識管理), but next to a particle or a time (上個月的筆記本, 書裡的).
+ */
+const zh = (words: string) =>
+  String.raw`(?<=^|[^\u4e00-\u9fff]|[的裡里中在我月週周天年])(?:${words})(?=$|[^\u4e00-\u9fff]|[的裡里中])`;
+
 /** The words that name each collection. The model may narrow to a collection only when the search says one of them. */
 const COLLECTION_WORDS: Partial<Record<CollectionId, string>> = {
-  books: String.raw`\bbooks?\b|書`,
-  notebooks: String.raw`\bnotebooks?\b|\bjournals?\b|筆記本|筆記|手帳|日記`,
-  rack: String.raw`\brack\b|\barticles?\b|報架|文章`,
-  kb: String.raw`\bkb\b|\bwiki\b|\bknowledge\b|\bhighlights?\b|知識庫|知識|劃線|畫線`,
+  books: String.raw`\bbooks?\b|${zh('書籍|藏書|書')}`,
+  notebooks: String.raw`\bnotebooks?\b|\bjournals?\b|${zh('筆記本|筆記|手帳|日記')}`,
+  rack: String.raw`\brack\b|\barticles?\b|${zh('報架|文章')}`,
+  kb: String.raw`\bkb\b|\bwiki\b|\bknowledge\b|\bhighlights?\b|${zh('知識庫|劃線|畫線')}`,
 };
 
 /** Words that only frame a search; left in the search words they match nothing. */
@@ -253,8 +261,13 @@ export async function parseLibraryQuery(
   );
   const value =
     ready && outcome.status !== 'ai' ? readByRules(raw, today) : outcome.value;
-  // No words left: everything in the days, or the words as typed when no days were named.
-  const text = value.text.trim() || (value.from || value.to ? '' : raw);
+  // No words left: everything in the days, when the scope holds a collection that dates its
+  // items; otherwise the words as typed.
+  const browse =
+    Boolean(value.from || value.to) &&
+    (!value.collections ||
+      value.collections.some((c) => DATED_COLLECTIONS.includes(c)));
+  const text = value.text.trim() || (browse ? '' : raw);
   return { ...outcome, value: { ...value, text } };
 }
 
