@@ -1,6 +1,7 @@
 import {
   clipSnippet,
   LIBRARY_SEARCH_MAX_QUERY,
+  librarySearchDates,
   librarySearchHitSchema,
   librarySearchQuery,
   librarySearchScope,
@@ -51,6 +52,15 @@ describe('librarySearchScope', () => {
   it('means every collection when absent or unknown', () => {
     expect(librarySearchScope(new URLSearchParams())).toBeUndefined();
     expect(librarySearchScope(new URLSearchParams('in=nope'))).toBeUndefined();
+  });
+});
+
+describe('librarySearchDates', () => {
+  it('keeps well-formed days and drops the rest', () => {
+    expect(
+      librarySearchDates(new URLSearchParams('from=2026-09-01&to=2026-13-01')),
+    ).toEqual({ from: '2026-09-01' });
+    expect(librarySearchDates(new URLSearchParams())).toEqual({});
   });
 });
 

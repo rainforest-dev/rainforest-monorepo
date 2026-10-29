@@ -90,7 +90,7 @@ describe('library MCP', () => {
       name: 'search_library',
       arguments: { query: '  rust ' },
     });
-    expect(search).toHaveBeenCalledWith('rust', undefined);
+    expect(search).toHaveBeenCalledWith('rust', {});
     expect(result.isError).toBeFalsy();
     expect(result.content).toEqual([
       {
@@ -117,9 +117,17 @@ describe('library MCP', () => {
     const client = await connect(libraryMcpHandler(ENV, { search }));
     const result = await client.callTool({
       name: 'search_library',
-      arguments: { query: 'rust', collections: ['books'], limit: 2 },
+      arguments: {
+        query: 'rust',
+        collections: ['notebooks'],
+        from: '2026-09-01',
+        limit: 2,
+      },
     });
-    expect(search).toHaveBeenCalledWith('rust', ['books']);
+    expect(search).toHaveBeenCalledWith('rust', {
+      scope: ['notebooks'],
+      from: '2026-09-01',
+    });
     const [content] = result.content as { text: string }[];
     expect(
       (JSON.parse(content?.text ?? '') as MergedSearchResponse).results.map(

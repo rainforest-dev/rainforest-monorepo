@@ -1,6 +1,7 @@
 import {
   clipSnippet,
   LIBRARY_SEARCH_LIMIT,
+  librarySearchDates,
   type LibrarySearchHit,
   librarySearchQuery,
 } from '@rainforest-dev/library-contract';
@@ -27,11 +28,15 @@ function pageSearchHit(hit: PageHit): LibrarySearchHit {
   };
 }
 
-/** `GET /notebooks/api/library-search?q=`: transcribed pages for the library-wide search. */
+/**
+ * `GET /notebooks/api/library-search?q=`: transcribed pages for the library-wide search, kept to
+ * the page dates between `from` and `to` when either is given.
+ */
 export async function GET(request: Request) {
   await connection();
-  const q = librarySearchQuery(new URL(request.url).searchParams);
-  const { hits } = await searchNotebookPages(q);
+  const params = new URL(request.url).searchParams;
+  const q = librarySearchQuery(params);
+  const { hits } = await searchNotebookPages(q, librarySearchDates(params));
   return NextResponse.json({
     results: hits.slice(0, LIBRARY_SEARCH_LIMIT).map(pageSearchHit),
   });

@@ -28,6 +28,17 @@ describe('searchUrl', () => {
     );
   });
 
+  it('passes the days on', () => {
+    expect(
+      searchUrl(
+        'notebooks',
+        'x',
+        { LIBRARY_NOTEBOOKS_URL: 'http://nb' },
+        { from: '2026-09-01', to: '2026-09-30' },
+      ),
+    ).toBe('http://nb/api/library-search?q=x&from=2026-09-01&to=2026-09-30');
+  });
+
   it('skips a collection with no URL', () => {
     expect(searchUrl('kb', 'x', {})).toBeNull();
   });
@@ -118,7 +129,7 @@ describe('searchLibrary', () => {
       { LIBRARY_BOOKS_URL: 'http://books', LIBRARY_KB_URL: 'http://kb' },
       fetcher,
       undefined,
-      ['kb', 'hall'],
+      { scope: ['kb', 'hall'] },
     );
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(String(vi.mocked(fetcher).mock.calls[0]?.[0])).toMatch(

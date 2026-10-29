@@ -17,15 +17,27 @@ export const MERGED_SEARCH_LIMIT = 30;
 
 const hitKey = (hit: LibrarySearchHit) => `${hit.kind}:${hit.id}`;
 
+/** What narrows a search beyond its words: the collections to ask, and the days to keep to. */
+export interface LibrarySearchFilters {
+  scope?: readonly CollectionId[];
+  from?: string;
+  to?: string;
+}
+
 /** A collection's search URL for `q`, or null when the collection has no URL configured. */
 export function searchUrl(
   collection: SourceCollection,
   q: string,
   env: Record<string, string | undefined> = process.env,
+  { from, to }: LibrarySearchFilters = {},
 ): string | null {
   const base = env[`LIBRARY_${collection.toUpperCase()}_URL`]?.trim();
   if (!base) return null;
-  const params = new URLSearchParams({ q });
+  const params = new URLSearchParams({
+    q,
+    ...(from && { from }),
+    ...(to && { to }),
+  });
   return `${base.replace(/\/+$/, '')}${LIBRARY_SEARCH_PATH}?${params}`;
 }
 
@@ -59,22 +71,24 @@ async function searchSource(
  * Every configured collection searched in parallel, their rankings merged by reciprocal rank
  * fusion. Each collection ranks by its own measure, so only the places count. A collection
  * that fails, answers out of shape or takes longer than `timeoutMs` is reported and left out;
- * the rest still answer. A `scope` asks only the collections it names.
+ * the rest still answer. A `scope` asks only the collections it names; `from` and `to` are
+ * passed on, and the collections that date their items keep to them.
  */
 export async function searchLibrary(
   q: string,
   env: Record<string, string | undefined> = process.env,
   fetcher: typeof fetch = fetch,
   timeoutMs = TIMEOUT_MS,
-  scope?: readonly CollectionId[],
+  filters: LibrarySearchFilters = {},
 ): Promise<MergedSearchResponse> {
   if (!q.trim()) return { results: [], sources: [] };
+  const { scope } = filters;
   const collections = scope
     ? SOURCE_COLLECTIONS.filter((c) => scope.includes(c))
     : SOURCE_COLLECTIONS;
   const answers = await Promise.all(
     collections.flatMap((collection) => {
-      const url = searchUrl(collection, q, env);
+      const url = searchUrl(collection, q, env, filters);
       return url ? [searchSource(collection, url, fetcher, timeoutMs)] : [];
     }),
   );

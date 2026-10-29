@@ -105,6 +105,42 @@ describe('ShellSearch', () => {
     ).toEqual([['在知識庫裡搜尋', '/kb?q=kites']]);
   });
 
+  it('lets the on-device model narrow the search, and undoes it on request', async () => {
+    vi.stubGlobal('LanguageModel', {
+      availability: async () => 'available',
+      create: async () => ({
+        prompt: async () =>
+          JSON.stringify({ text: 'react', collections: ['notebooks'] }),
+        destroy: () => undefined,
+      }),
+    });
+    const fetchMock = vi.fn(() =>
+      respond({
+        results: [{ kind: 'notebook', id: 'p', title: 'P', href: '/n/p' }],
+        sources: [{ collection: 'notebooks', ok: true, count: 1 }],
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<ShellSearch />);
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: '筆記本裡的 react' },
+    });
+    expect(
+      await screen.findByText('依裝置上的 AI 解讀：「react」 · 筆記本'),
+    ).toBeTruthy();
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      '/api/search?q=react&in=notebooks',
+      expect.anything(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '照原文搜尋' }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        `/api/search?${new URLSearchParams({ q: '筆記本裡的 react' })}`,
+        expect.anything(),
+      ),
+    );
+  });
+
   it('takes focus on ⌘K or Ctrl+K', () => {
     render(<ShellSearch />);
     const input = screen.getByRole('combobox');

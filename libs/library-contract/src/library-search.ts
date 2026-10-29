@@ -54,6 +54,27 @@ export function librarySearchScope(
   return scope.length ? scope : undefined;
 }
 
+const DAY = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+/** A day as `YYYY-MM-DD`, the form `from` and `to` take. */
+export const isLibraryDay = (value: string): boolean => DAY.test(value);
+
+/**
+ * The days `from=` and `to=` bound the search to, each `YYYY-MM-DD` and either one optional; a
+ * malformed one is dropped. Only a collection whose items carry a date (notebook pages) narrows by
+ * them; the rest answer as if they were absent.
+ */
+export function librarySearchDates(params: URLSearchParams): {
+  from?: string;
+  to?: string;
+} {
+  const day = (key: 'from' | 'to') => {
+    const value = params.get(key)?.trim();
+    return value && isLibraryDay(value) ? { [key]: value } : {};
+  };
+  return { ...day('from'), ...day('to') };
+}
+
 /** A snippet cut to fit the schema, on a character boundary. */
 export function clipSnippet(text: string, max = 400): string {
   const flat = text.replace(/\s+/g, ' ').trim();

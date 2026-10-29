@@ -1,6 +1,6 @@
 import { BOOK_TOOL_DEFINITIONS } from '@rainforest-dev/book-tools';
 import {
-  type CollectionId,
+  isLibraryDay,
   LIBRARY_ORIGIN,
   LIBRARY_SEARCH_MAX_QUERY,
   type MergedSearchResponse,
@@ -20,7 +20,11 @@ import { NOTEBOOK_TOOL_DEFINITIONS } from '@rainforest-dev/notebook-tools';
 import { z } from 'zod';
 
 import { SOURCE_COLLECTIONS } from './collections';
-import { MERGED_SEARCH_LIMIT, searchLibrary } from './search';
+import {
+  type LibrarySearchFilters,
+  MERGED_SEARCH_LIMIT,
+  searchLibrary,
+} from './search';
 
 type Env = Record<string, string | undefined>;
 
@@ -80,8 +84,15 @@ export function forwardedTools(
 
 type LibrarySearch = (
   q: string,
-  scope?: readonly CollectionId[],
+  filters?: LibrarySearchFilters,
 ) => Promise<MergedSearchResponse>;
+
+const day = () =>
+  z
+    .string()
+    .refine(isLibraryDay, 'a day as YYYY-MM-DD')
+    .optional()
+    .describe('YYYY-MM-DD; only notebook pages are dated, the rest ignore it');
 
 /** How many hits `search_library` returns unless asked for more. */
 export const MCP_SEARCH_LIMIT = 10;
@@ -91,7 +102,7 @@ export const searchLibraryTool = (search: LibrarySearch): McpTool =>
     name: 'search_library',
     title: 'Search the library',
     description:
-      'Search the whole library at once: books, scanned notebook pages, the reading rack and the knowledge base. Each collection ranks by its own full-text plus semantic search, and the lists are merged by reciprocal rank fusion, best first. collections narrows the search to some of them; limit caps the hits (default 10). A hit has kind (book | notebook | article | kb), id, title, an optional subtitle and snippet, and href, a full URL on library.rainforest.tools to give the reader. sources says which collections answered and how many hits each had; one that is down is left out and the rest still answer. Use list_books or get_notebook_pages for more on a book or notebook hit.',
+      'Search the whole library at once: books, scanned notebook pages, the reading rack and the knowledge base. Each collection ranks by its own full-text plus semantic search, and the lists are merged by reciprocal rank fusion, best first. collections narrows the search to some of them; from and to keep notebook pages to those days; limit caps the hits (default 10). A hit has kind (book | notebook | article | kb), id, title, an optional subtitle and snippet, and href, a full URL on library.rainforest.tools to give the reader. sources says which collections answered and how many hits each had; one that is down is left out and the rest still answer. Use list_books or get_notebook_pages for more on a book or notebook hit.',
     input: {
       query: z.string().trim().min(1).max(LIBRARY_SEARCH_MAX_QUERY),
       collections: z
@@ -99,6 +110,8 @@ export const searchLibraryTool = (search: LibrarySearch): McpTool =>
         .min(1)
         .optional()
         .describe('Only these collections; every one when left out'),
+      from: day(),
+      to: day(),
       limit: z
         .number()
         .int()
@@ -107,8 +120,12 @@ export const searchLibraryTool = (search: LibrarySearch): McpTool =>
         .default(MCP_SEARCH_LIMIT),
     },
     annotations: { readOnlyHint: true, openWorldHint: false },
-    run: async ({ query, collections, limit }) => {
-      const { results, sources } = await search(query, collections);
+    run: async ({ query, collections, from, to, limit }) => {
+      const { results, sources } = await search(query, {
+        ...(collections && { scope: collections }),
+        ...(from && { from }),
+        ...(to && { to }),
+      });
       return {
         results: results
           .slice(0, limit)
@@ -122,7 +139,7 @@ export const searchLibraryTool = (search: LibrarySearch): McpTool =>
 export function libraryTools(
   env: Env,
   {
-    search = (q, scope) => searchLibrary(q, env, fetch, undefined, scope),
+    search = (q, filters) => searchLibrary(q, env, fetch, undefined, filters),
     fetch: fetchImpl,
   }: {
     search?: LibrarySearch;
