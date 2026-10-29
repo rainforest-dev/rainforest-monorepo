@@ -27,6 +27,9 @@ export default [
           ignoredFiles: [
             '{projectRoot}/eslint.config.{js,cjs,mjs}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
+            // The story gallery and its specs only run under Playwright, never in the package.
+            '{projectRoot}/playwright.config.ts',
+            '{projectRoot}/playwright/**',
           ],
           ignoredDependencies: ['react-dom'],
         },
