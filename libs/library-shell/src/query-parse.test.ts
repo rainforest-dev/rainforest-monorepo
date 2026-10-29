@@ -80,7 +80,7 @@ describe('parseLibraryQuery', () => {
       buildPrompt(raw, '2026-10-29'),
       expect.objectContaining({ type: 'object' }),
       expect.objectContaining({
-        languages: { input: ['en', 'zh'], output: ['en'] },
+        languages: { input: ['en'], output: ['en'] },
       }),
     );
   });

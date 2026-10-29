@@ -8,9 +8,8 @@ import {
 import {
   type AiController,
   createQueryParser,
-  languagesFor,
+  type LanguageOptions,
   type ParseOutcome,
-  queryLanguage,
 } from '@rainforest-dev/web-ai';
 import { z } from 'zod';
 
@@ -67,15 +66,26 @@ export function buildPrompt(raw: string, today: string): string {
     `Today is ${today}. Turn the library search below into JSON.`,
     'collections: only if it names one of books, notebooks (handwritten journal pages), rack (articles queued to read) or kb (wiki pages and reading highlights).',
     'from, to: the days it refers to, as YYYY-MM-DD; leave them out if it names no date.',
-    'text: the words to look for once the collections and dates are taken out, in the language they were written in.',
+    'text: only the subject to look for, in the language it was written in. Leave out every word that names a collection or a date, and filler such as "about", "pages", "in", "from", 的, 裡, 寫.',
+    'Examples: "books about lantern" -> text "lantern", collections ["books"]. "garden notes in my notebooks from September 2026" -> text "garden", collections ["notebooks"], from "2026-09-01", to "2026-09-30". "筆記本裡寫 react 的" -> text "react", collections ["notebooks"].',
     `Search: ${raw}`,
   ].join('\n');
 }
+
+/**
+ * The model reads Chinese well, but Chrome's built-in model is not offered for `zh` input, so
+ * asking for it would rule the model out for every Chinese query. Ask for English only.
+ */
+const LANGUAGES: LanguageOptions = { input: ['en'], output: ['en'] };
+
+/** A warm on-device prompt takes 0.6–1.4 s and a cold one longer; past this, search as typed. */
+export const LIBRARY_PROMPT_TIMEOUT_MS = 3000;
 
 const parser = createQueryParser<LibraryQuery, { raw: string }>({
   schema: () => schema,
   sanitize: (output) => sanitizeAnswer(output),
   local: (raw) => ({ text: raw }),
+  timeoutMs: LIBRARY_PROMPT_TIMEOUT_MS,
 });
 
 /**
@@ -89,7 +99,7 @@ export async function parseLibraryQuery(
   ai: AiController | undefined,
   signal?: AbortSignal,
 ): Promise<ParseOutcome<LibraryQuery>> {
-  const languages = languagesFor(queryLanguage(raw));
+  const languages = LANGUAGES;
   const ready = ai && (await ai.refresh(languages)).kind === 'ready';
   const outcome = await parser.parse(
     raw,
