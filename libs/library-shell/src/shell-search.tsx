@@ -185,7 +185,7 @@ export function ShellSearch({
       setOpen(true);
       const step = event.key === 'ArrowDown' ? 1 : -1;
       setActive((i) => (i + step + results.length) % results.length);
-    } else if (event.key === 'Enter') {
+    } else if (event.key === 'Enter' && shown) {
       event.preventDefault();
       // A highlighted hit is one the reader chose; the first hit only once it answers this query.
       const hit =

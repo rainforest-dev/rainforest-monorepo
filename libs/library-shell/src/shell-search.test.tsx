@@ -202,7 +202,10 @@ describe('ShellSearch', () => {
     await screen.findByRole('option');
     fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
     fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    fireEvent.keyDown(input, { key: 'Enter' });
     expect(assign).not.toHaveBeenCalled();
+    fireEvent.focus(input);
     fireEvent.change(input, { target: { value: 'dunes' } });
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     fireEvent.keyDown(input, { key: 'Enter' });
