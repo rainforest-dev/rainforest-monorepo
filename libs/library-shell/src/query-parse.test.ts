@@ -6,6 +6,7 @@ import {
   parseLibraryQuery,
   sanitizeAnswer,
   searchParams,
+  warmLibraryModel,
 } from './query-parse';
 
 const controller = (state: AiState, answer?: unknown): AiController => ({
@@ -20,12 +21,15 @@ const controller = (state: AiState, answer?: unknown): AiController => ({
 describe('sanitizeAnswer', () => {
   it('keeps known collections and well-formed days', () => {
     expect(
-      sanitizeAnswer({
-        text: 'react',
-        collections: ['notebooks', 'films', 'notebooks'],
-        from: '2026-09-01',
-        to: 'September',
-      }),
+      sanitizeAnswer(
+        {
+          text: 'react',
+          collections: ['notebooks', 'films', 'notebooks'],
+          from: '2026-09-01',
+          to: 'September',
+        },
+        'react in my notebooks since September',
+      ),
     ).toEqual({
       text: 'react',
       collections: ['notebooks'],
@@ -35,8 +39,42 @@ describe('sanitizeAnswer', () => {
 
   it('drops a range that runs backwards', () => {
     expect(
-      sanitizeAnswer({ text: 'x', from: '2026-10-01', to: '2026-09-01' }),
+      sanitizeAnswer(
+        { text: 'x', from: '2026-10-01', to: '2026-09-01' },
+        'x in 2026',
+      ),
     ).toEqual({ text: 'x' });
+  });
+
+  it('drops a collection or days the search never names', () => {
+    expect(
+      sanitizeAnswer(
+        { text: 'an', collections: ['rack'], from: '2026-09-01' },
+        'an',
+      ),
+    ).toEqual({ text: 'an' });
+    expect(
+      sanitizeAnswer(
+        { text: 'garden', collections: ['notebooks', 'books'] },
+        '筆記本裡的 garden',
+      ),
+    ).toEqual({ text: 'garden', collections: ['notebooks'] });
+  });
+
+  it('takes collection names and filler out of the search words', () => {
+    expect(
+      sanitizeAnswer(
+        { text: 'books about lantern', collections: ['books'] },
+        'books about lantern',
+      ),
+    ).toEqual({ text: 'lantern', collections: ['books'] });
+    expect(sanitizeAnswer({ text: '筆記本 react' }, '筆記本 react')).toEqual({
+      text: 'react',
+    });
+    // Nothing but framing left: the words stay as the model gave them.
+    expect(
+      sanitizeAnswer({ text: 'notebook pages' }, 'notebook pages'),
+    ).toEqual({ text: 'notebook pages' });
   });
 });
 
@@ -96,12 +134,39 @@ describe('parseLibraryQuery', () => {
     });
   });
 
+  it('tries once more when the model throws', async () => {
+    const ai = controller({ kind: 'ready' });
+    vi.mocked(ai.run)
+      .mockRejectedValueOnce(new DOMException('x', 'UnknownError'))
+      .mockResolvedValueOnce({ text: 'garden', collections: ['notebooks'] });
+    expect(
+      await parseLibraryQuery('garden in notebooks', '2026-10-29', ai),
+    ).toEqual({
+      status: 'ai',
+      value: { text: 'garden', collections: ['notebooks'] },
+    });
+    expect(ai.run).toHaveBeenCalledTimes(2);
+  });
+
   it('falls back to the typed words on an answer out of shape', async () => {
     const ai = controller({ kind: 'ready' }, { words: 'react' });
     expect(await parseLibraryQuery('react', '2026-10-29', ai)).toEqual({
       value: { text: 'react' },
       status: 'local',
     });
+  });
+});
+
+describe('warmLibraryModel', () => {
+  it('opens the session once, and only for a model on the device', async () => {
+    const ready = controller({ kind: 'ready' });
+    warmLibraryModel(ready);
+    warmLibraryModel(ready);
+    await vi.waitFor(() => expect(ready.run).toHaveBeenCalledTimes(1));
+    const missing = controller({ kind: 'downloadable' });
+    warmLibraryModel(missing);
+    await Promise.resolve();
+    expect(missing.run).not.toHaveBeenCalled();
   });
 });
 

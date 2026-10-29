@@ -21,6 +21,7 @@ import {
   type LibraryQuery,
   parseLibraryQuery,
   searchParams,
+  warmLibraryModel,
 } from './query-parse';
 
 const DEBOUNCE_MS = 200;
@@ -218,7 +219,10 @@ export function ShellSearch({
           setQ(event.target.value);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setOpen(true);
+          if (ai) warmLibraryModel(ai);
+        }}
         onKeyDown={onKeyDown}
         className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border pl-8 pr-3 text-sm outline-none focus-visible:ring-2"
       />
