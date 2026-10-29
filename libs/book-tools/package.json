@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@rainforest-dev/mcp-kit": "workspace:*",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
