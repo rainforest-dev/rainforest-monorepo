@@ -194,8 +194,11 @@ export function buildPrompt(raw: string, today: string): string {
  */
 const LANGUAGES: LanguageOptions = { input: ['en'], output: ['en'] };
 
-/** A warm on-device prompt takes 0.6–1.4 s and a cold one longer; past this, search as typed. */
-export const LIBRARY_PROMPT_TIMEOUT_MS = 3000;
+/**
+ * A warm on-device prompt answers in 0.6–1.4 s; when it is slower it rarely answers at all, and
+ * the rules read the search instead. Past this, stop waiting for it.
+ */
+export const LIBRARY_PROMPT_TIMEOUT_MS = 2000;
 
 const parser = createQueryParser<LibraryQuery, { raw: string; today: string }>({
   schema: () => schema,
