@@ -118,13 +118,18 @@ const EDGES = /^[\s的裡里寫写中]+|[\s的裡里寫写中]+$/g;
 
 /** `text` without the collection names, relative days and filler in it; `''` if nothing else is left. */
 function subject(text: string): string {
-  const words = [
-    ...Object.values(COLLECTION_WORDS),
-    ...RELATIVE_DAYS.map(([w]) => w),
-    FILLER,
-  ].join('|');
+  const framing = new RegExp(
+    [...Object.values(COLLECTION_WORDS), ...RELATIVE_DAYS.map(([w]) => w)].join(
+      '|',
+    ),
+    'gi',
+  );
+  // Filler only frames a search that names a collection or a day; in a title such as
+  // "lord of the rings" it is part of the subject.
+  if (!framing.test(text)) return text.trim();
   return text
-    .replace(new RegExp(words, 'gi'), ' ')
+    .replace(framing, ' ')
+    .replace(new RegExp(FILLER, 'gi'), ' ')
     .replace(/\s+/g, ' ')
     .replace(EDGES, '');
 }

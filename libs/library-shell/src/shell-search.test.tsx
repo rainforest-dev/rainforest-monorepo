@@ -180,6 +180,47 @@ describe('ShellSearch', () => {
     expect(screen.queryAllByRole('option')).toHaveLength(0);
   });
 
+  it('opens the first hit on Enter, but not mid-composition or while a new search loads', async () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    let answer: (response: Response) => void = () => undefined;
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        respond({
+          results: [{ kind: 'kb', id: 'a', title: 'Dune', href: '/kb/a' }],
+          sources: [{ collection: 'kb', ok: true, count: 1 }],
+        }),
+      )
+      .mockImplementationOnce(
+        () => new Promise<Response>((resolve) => (answer = resolve)),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<ShellSearch />);
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'dune' } });
+    await screen.findByRole('option');
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 });
+    expect(assign).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: 'dunes' } });
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(assign).not.toHaveBeenCalled();
+    answer(
+      new Response(
+        JSON.stringify({
+          results: [{ kind: 'kb', id: 'b', title: 'Dunes', href: '/kb/b' }],
+          sources: [{ collection: 'kb', ok: true, count: 1 }],
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    await screen.findByText('Dunes');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(assign).toHaveBeenCalledWith('/kb/b');
+  });
+
   it('says so when the search fails', async () => {
     vi.stubGlobal('fetch', () => respond({}, 502));
     render(<ShellSearch />);

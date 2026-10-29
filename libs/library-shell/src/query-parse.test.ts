@@ -122,6 +122,9 @@ describe('readByRules', () => {
       text: 'garden',
       collections: ['notebooks'],
     });
+    expect(readByRules('lord of the rings 2', '2026-10-29')).toEqual({
+      text: 'lord of the rings 2',
+    });
     expect(readByRules('上個月的筆記本', '2026-10-29')).toEqual({
       text: '',
       collections: ['notebooks'],

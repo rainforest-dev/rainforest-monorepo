@@ -171,6 +171,9 @@ export function ShellSearch({
 
   const optionId = (i: number) => `${listId}-${i}`;
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    // Keys that pick an IME candidate belong to the IME. Safari reports the Enter that ends a
+    // composition with isComposing false, but keyCode 229.
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     if (event.key === 'Escape') {
       if (shown) setOpen(false);
       else setQ('');
@@ -184,7 +187,13 @@ export function ShellSearch({
       setActive((i) => (i + step + results.length) % results.length);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      const hit = results[Math.max(active, 0)];
+      // A highlighted hit is one the reader chose; the first hit only once it answers this query.
+      const hit =
+        active >= 0
+          ? results[active]
+          : state.status === 'done'
+            ? results[0]
+            : undefined;
       if (hit) window.location.assign(hit.href);
     }
   };
