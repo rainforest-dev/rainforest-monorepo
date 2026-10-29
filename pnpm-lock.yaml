@@ -1078,7 +1078,7 @@ importers:
         specifier: ^1.8.0
         version: 1.61.0(@types/react@19.2.9)(react@19.2.3)
       zod:
-        specifier: ^4.6.5
+        specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
       '@fontsource-variable/inter':
