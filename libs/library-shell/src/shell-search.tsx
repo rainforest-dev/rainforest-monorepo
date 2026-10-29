@@ -237,7 +237,7 @@ export function ShellSearch({
               <span>
                 {t('search.read', {
                   terms: [
-                    `「${read.text.trim()}」`,
+                    read.text.trim() && `「${read.text.trim()}」`,
                     read.collections
                       ?.map((c) => collectionLabel(c, locale))
                       .join(t('list.separator')),

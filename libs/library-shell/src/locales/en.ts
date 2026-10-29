@@ -14,7 +14,7 @@ export const en: Translation<typeof zh> = {
     missing: '{{names}} did not answer',
     more: 'Search {{name}}',
     moreLabel: 'Search one collection',
-    read: 'Read by on-device AI as {{terms}}',
+    read: 'Read as {{terms}}',
     literal: 'Search the words as typed',
   },
   locale: {

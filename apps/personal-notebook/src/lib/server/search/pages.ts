@@ -151,12 +151,27 @@ const inRange = (date: string | null, { from, to }: PageSearchOptions) =>
   (!from && !to) ||
   (date !== null && (!from || date >= from) && (!to || date <= to));
 
+/** With days and no words: every transcribed page in those days, oldest first. */
+function datedPages(options: PageSearchOptions): PageSearch {
+  const hits = transcribedPages()
+    .filter((row) => inRange(row.pageDate, options))
+    .sort((a, b) => (a.pageDate ?? '').localeCompare(b.pageDate ?? ''))
+    .map(({ transcription, ...page }) => ({
+      ...page,
+      heading: pageHeading(transcription),
+      match: 'words' as const,
+      snippet: pageSnippet(transcription, []),
+    }));
+  return { hits: hits.slice(0, PAGE_HITS), semantic: 'off' };
+}
+
 /** Notebook pages whose text contains the query's words, fused with pages close in meaning. */
 export async function searchNotebookPages(
   q: string,
   options: PageSearchOptions = {},
 ): Promise<PageSearch> {
   const text = q.trim();
+  if (!text && (options.from || options.to)) return datedPages(options);
   if (!pageQueryReady(text)) return { hits: [], semantic: 'off' };
   const rows = transcribedPages();
   ensurePageIndex(rows.map(pageDoc));

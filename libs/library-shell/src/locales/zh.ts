@@ -12,7 +12,7 @@ export const zh = {
     missing: '{{names}}暫時沒有回應',
     more: '在{{name}}裡搜尋',
     moreLabel: '在單一館藏裡搜尋',
-    read: '依裝置上的 AI 解讀：{{terms}}',
+    read: '解讀為：{{terms}}',
     literal: '照原文搜尋',
   },
   locale: {

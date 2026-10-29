@@ -4,6 +4,8 @@ import {
   buildPrompt,
   isNarrowed,
   parseLibraryQuery,
+  readByRules,
+  relativeDays,
   sanitizeAnswer,
   searchParams,
   warmLibraryModel,
@@ -71,10 +73,61 @@ describe('sanitizeAnswer', () => {
     expect(sanitizeAnswer({ text: '筆記本 react' }, '筆記本 react')).toEqual({
       text: 'react',
     });
-    // Nothing but framing left: the words stay as the model gave them.
     expect(
       sanitizeAnswer({ text: 'notebook pages' }, 'notebook pages'),
-    ).toEqual({ text: 'notebook pages' });
+    ).toEqual({ text: '' });
+  });
+});
+
+describe('relativeDays', () => {
+  it('reads days relative to today', () => {
+    const today = '2026-10-29'; // a Thursday
+    expect(relativeDays('上個月的筆記本', today)).toEqual({
+      from: '2026-09-01',
+      to: '2026-09-30',
+    });
+    expect(relativeDays('notes from last week', today)).toEqual({
+      from: '2026-10-19',
+      to: '2026-10-25',
+    });
+    expect(relativeDays('本月', today)).toEqual({
+      from: '2026-10-01',
+      to: '2026-10-31',
+    });
+    expect(relativeDays('昨天', today)).toEqual({
+      from: '2026-10-28',
+      to: '2026-10-28',
+    });
+    expect(relativeDays('去年', '2026-01-15')).toEqual({
+      from: '2025-01-01',
+      to: '2025-12-31',
+    });
+    expect(relativeDays('lantern', today)).toBeUndefined();
+  });
+
+  it('wins over the days the model gave', () => {
+    expect(
+      sanitizeAnswer(
+        { text: '', from: '2026-10-01' },
+        '上個月的筆記本',
+        '2026-10-29',
+      ),
+    ).toEqual({ text: '', from: '2026-09-01', to: '2026-09-30' });
+  });
+});
+
+describe('readByRules', () => {
+  it('reads the collection and day words without a model', () => {
+    expect(readByRules('筆記本裡的 garden', '2026-10-29')).toEqual({
+      text: 'garden',
+      collections: ['notebooks'],
+    });
+    expect(readByRules('上個月的筆記本', '2026-10-29')).toEqual({
+      text: '',
+      collections: ['notebooks'],
+      from: '2026-09-01',
+      to: '2026-09-30',
+    });
   });
 });
 
@@ -88,7 +141,11 @@ describe('parseLibraryQuery', () => {
 
   it('never asks a model that is not on the device yet', async () => {
     const ai = controller({ kind: 'downloadable' });
-    const outcome = await parseLibraryQuery('react', '2026-10-29', ai);
+    const outcome = await parseLibraryQuery(
+      'react in notebooks',
+      '2026-10-29',
+      ai,
+    );
     expect(outcome.status).toBe('local');
     expect(ai.run).not.toHaveBeenCalled();
   });
@@ -123,7 +180,7 @@ describe('parseLibraryQuery', () => {
     );
   });
 
-  it('keeps the typed words when the model leaves none', async () => {
+  it('keeps the typed words when the model leaves none and names no days', async () => {
     const ai = controller(
       { kind: 'ready' },
       { text: ' ', collections: ['kb'] },
@@ -132,6 +189,33 @@ describe('parseLibraryQuery', () => {
       text: 'kb',
       collections: ['kb'],
     });
+  });
+
+  it('asks for everything in the days when no words are left', async () => {
+    const ai = controller(
+      { kind: 'ready' },
+      { text: '', collections: ['notebooks'], from: '', to: '' },
+    );
+    expect(
+      (await parseLibraryQuery('上個月的筆記本', '2026-10-29', ai)).value,
+    ).toEqual({
+      text: '',
+      collections: ['notebooks'],
+      from: '2026-09-01',
+      to: '2026-09-30',
+    });
+  });
+
+  it('does not ask the model about plain words', async () => {
+    const ai = controller(
+      { kind: 'ready' },
+      { text: 'an', collections: ['rack'] },
+    );
+    expect(await parseLibraryQuery('an', '2026-10-29', ai)).toEqual({
+      value: { text: 'an' },
+      status: 'local',
+    });
+    expect(ai.run).not.toHaveBeenCalled();
   });
 
   it('tries once more when the model throws', async () => {
@@ -148,10 +232,12 @@ describe('parseLibraryQuery', () => {
     expect(ai.run).toHaveBeenCalledTimes(2);
   });
 
-  it('falls back to the typed words on an answer out of shape', async () => {
+  it('reads the words itself on an answer out of shape', async () => {
     const ai = controller({ kind: 'ready' }, { words: 'react' });
-    expect(await parseLibraryQuery('react', '2026-10-29', ai)).toEqual({
-      value: { text: 'react' },
+    expect(
+      await parseLibraryQuery('react in notebooks', '2026-10-29', ai),
+    ).toEqual({
+      value: { text: 'react', collections: ['notebooks'] },
       status: 'local',
     });
   });

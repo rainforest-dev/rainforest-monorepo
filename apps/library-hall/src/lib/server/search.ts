@@ -1,5 +1,6 @@
 import {
   type CollectionId,
+  DATED_COLLECTIONS,
   LIBRARY_SEARCH_LIMIT,
   LIBRARY_SEARCH_PATH,
   type LibrarySearchHit,
@@ -72,7 +73,8 @@ async function searchSource(
  * fusion. Each collection ranks by its own measure, so only the places count. A collection
  * that fails, answers out of shape or takes longer than `timeoutMs` is reported and left out;
  * the rest still answer. A `scope` asks only the collections it names; `from` and `to` are
- * passed on, and the collections that date their items keep to them.
+ * passed on, and the collections that date their items keep to them. With days and no words,
+ * only those collections are asked, for everything in the days.
  */
 export async function searchLibrary(
   q: string,
@@ -81,11 +83,14 @@ export async function searchLibrary(
   timeoutMs = TIMEOUT_MS,
   filters: LibrarySearchFilters = {},
 ): Promise<MergedSearchResponse> {
-  if (!q.trim()) return { results: [], sources: [] };
-  const { scope } = filters;
-  const collections = scope
-    ? SOURCE_COLLECTIONS.filter((c) => scope.includes(c))
-    : SOURCE_COLLECTIONS;
+  const { scope, from, to } = filters;
+  const browse = !q.trim();
+  if (browse && !from && !to) return { results: [], sources: [] };
+  const collections = SOURCE_COLLECTIONS.filter(
+    (c) =>
+      (!scope || scope.includes(c)) &&
+      (!browse || DATED_COLLECTIONS.includes(c)),
+  );
   const answers = await Promise.all(
     collections.flatMap((collection) => {
       const url = searchUrl(collection, q, env, filters);

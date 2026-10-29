@@ -145,4 +145,22 @@ describe('searchLibrary', () => {
     ).toEqual({ results: [], sources: [] });
     expect(fetcher).not.toHaveBeenCalled();
   });
+
+  it('asks only the dated collections for days with no words', async () => {
+    const fetcher = vi.fn(() =>
+      respond({ results: [hit('notebook', 'page-1')] }),
+    ) as unknown as typeof fetch;
+    const result = await searchLibrary(
+      '',
+      { LIBRARY_BOOKS_URL: 'http://books', LIBRARY_NOTEBOOKS_URL: 'http://nb' },
+      fetcher,
+      undefined,
+      { from: '2026-09-01', to: '2026-09-30' },
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(vi.mocked(fetcher).mock.calls[0]?.[0])).toMatch(
+      /^http:\/\/nb\/.*from=2026-09-01/,
+    );
+    expect(result.sources.map((s) => s.collection)).toEqual(['notebooks']);
+  });
 });

@@ -75,6 +75,9 @@ export function librarySearchDates(params: URLSearchParams): {
   return { ...day('from'), ...day('to') };
 }
 
+/** The collections whose items carry a date. A search with days and no words asks only these. */
+export const DATED_COLLECTIONS: readonly CollectionId[] = ['notebooks'];
+
 /** A snippet cut to fit the schema, on a character boundary. */
 export function clipSnippet(text: string, max = 400): string {
   const flat = text.replace(/\s+/g, ' ').trim();

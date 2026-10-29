@@ -125,9 +125,7 @@ describe('ShellSearch', () => {
     fireEvent.change(screen.getByRole('combobox'), {
       target: { value: '筆記本裡的 react' },
     });
-    expect(
-      await screen.findByText('依裝置上的 AI 解讀：「react」 · 筆記本'),
-    ).toBeTruthy();
+    expect(await screen.findByText('解讀為：「react」 · 筆記本')).toBeTruthy();
     expect(fetchMock).toHaveBeenLastCalledWith(
       '/api/search?q=react&in=notebooks',
       expect.anything(),

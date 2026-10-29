@@ -59,21 +59,92 @@ const names = (raw: string, collection: CollectionId) => {
   return words ? new RegExp(words, 'i').test(raw) : false;
 };
 
-/** `text` without the collection names and filler the model left in, or as it was if nothing else is left. */
-function subject(text: string): string {
-  const words = [...Object.values(COLLECTION_WORDS), FILLER].join('|');
-  const left = text
-    .replace(new RegExp(words, 'gi'), ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return left || text;
+const DAY_MS = 86_400_000;
+const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+/** The days of the calendar period `today` falls in, moved back `back` periods. */
+function period(
+  today: string,
+  unit: 'day' | 'week' | 'month' | 'year',
+  back: number,
+) {
+  const now = Date.parse(`${today}T00:00:00Z`);
+  const d = new Date(now);
+  const [y, m] = [d.getUTCFullYear(), d.getUTCMonth()];
+  if (unit === 'day')
+    return { from: dayOf(now - back * DAY_MS), to: dayOf(now - back * DAY_MS) };
+  if (unit === 'week') {
+    const monday = now - (((d.getUTCDay() + 6) % 7) + 7 * back) * DAY_MS;
+    return { from: dayOf(monday), to: dayOf(monday + 6 * DAY_MS) };
+  }
+  if (unit === 'month')
+    return {
+      from: dayOf(Date.UTC(y, m - back, 1)),
+      to: dayOf(Date.UTC(y, m - back + 1, 0)),
+    };
+  return { from: `${y - back}-01-01`, to: `${y - back}-12-31` };
 }
 
 /**
- * Drops what the model made up: collections the search never names, days it never mentions,
- * malformed days, a range that runs back, and collection names left in the search words.
+ * Days the search names relative to today. The on-device model gets these wrong more often than
+ * right, so they are read here and win over its answer. Longer phrases come first.
  */
-export function sanitizeAnswer(output: unknown, raw: string): unknown {
+const RELATIVE_DAYS = [
+  [String.raw`上個?月|\blast month\b`, 'month', 1],
+  [String.raw`這個?月|这个?月|本月|\bthis month\b`, 'month', 0],
+  [String.raw`上個?(?:週|周|禮拜|礼拜|星期)|\blast week\b`, 'week', 1],
+  [
+    String.raw`這個?(?:週|周|禮拜|礼拜|星期)|这个?(?:周|礼拜|星期)|本(?:週|周)|\bthis week\b`,
+    'week',
+    0,
+  ],
+  [String.raw`去年|\blast year\b`, 'year', 1],
+  [String.raw`今年|\bthis year\b`, 'year', 0],
+  [String.raw`昨天|昨日|\byesterday\b`, 'day', 1],
+  [String.raw`今天|今日|\btoday\b`, 'day', 0],
+] as const;
+
+export function relativeDays(
+  raw: string,
+  today: string,
+): { from: string; to: string } | undefined {
+  for (const [words, unit, back] of RELATIVE_DAYS)
+    if (new RegExp(words, 'i').test(raw)) return period(today, unit, back);
+  return undefined;
+}
+
+/** Chinese particles left at either end once the collection and date words are gone. */
+const EDGES = /^[\s的裡里寫写中]+|[\s的裡里寫写中]+$/g;
+
+/** `text` without the collection names, relative days and filler in it; `''` if nothing else is left. */
+function subject(text: string): string {
+  const words = [
+    ...Object.values(COLLECTION_WORDS),
+    ...RELATIVE_DAYS.map(([w]) => w),
+    FILLER,
+  ].join('|');
+  return text
+    .replace(new RegExp(words, 'gi'), ' ')
+    .replace(/\s+/g, ' ')
+    .replace(EDGES, '');
+}
+
+const namedIn = (raw: string) => SEARCHED.filter((c) => names(raw, c));
+
+/** Whether the search says anything a reading could narrow by: a collection or a time. */
+const readable = (raw: string) =>
+  namedIn(raw).length > 0 || TIME_WORDS.test(raw);
+
+/**
+ * Drops what the model made up: collections the search never names, days it never mentions,
+ * malformed days, a range that runs back, and collection names left in the search words. Days
+ * relative to today are read here instead of taken from the model.
+ */
+export function sanitizeAnswer(
+  output: unknown,
+  raw: string,
+  today?: string,
+): unknown {
   if (!isRecord(output)) return output;
   const { text, collections, from, to } = output;
   const named = Array.isArray(collections)
@@ -85,13 +156,24 @@ export function sanitizeAnswer(output: unknown, raw: string): unknown {
   const valid = (d: unknown): d is string =>
     typeof d === 'string' && isLibraryDay(d) && TIME_WORDS.test(raw);
   const range =
-    valid(from) && valid(to) && from > to
+    (today && relativeDays(raw, today)) ||
+    (valid(from) && valid(to) && from > to
       ? {}
-      : { ...(valid(from) && { from }), ...(valid(to) && { to }) };
+      : { ...(valid(from) && { from }), ...(valid(to) && { to }) });
   return {
     text: typeof text === 'string' ? subject(text) : text,
     ...(named.length > 0 && { collections: [...new Set(named)] }),
     ...range,
+  };
+}
+
+/** The reading made without the model: the collections named, the relative days, the rest. */
+export function readByRules(raw: string, today: string): LibraryQuery {
+  const collections = namedIn(raw);
+  return {
+    text: subject(raw),
+    ...(collections.length > 0 && { collections }),
+    ...relativeDays(raw, today),
   };
 }
 
@@ -115,17 +197,20 @@ const LANGUAGES: LanguageOptions = { input: ['en'], output: ['en'] };
 /** A warm on-device prompt takes 0.6–1.4 s and a cold one longer; past this, search as typed. */
 export const LIBRARY_PROMPT_TIMEOUT_MS = 3000;
 
-const parser = createQueryParser<LibraryQuery, { raw: string }>({
+const parser = createQueryParser<LibraryQuery, { raw: string; today: string }>({
   schema: () => schema,
-  sanitize: (output, { raw }) => sanitizeAnswer(output, raw),
+  sanitize: (output, { raw, today }) => sanitizeAnswer(output, raw, today),
   local: (raw) => ({ text: raw }),
   timeoutMs: LIBRARY_PROMPT_TIMEOUT_MS,
 });
 
 /**
  * Reads `raw` with the browser's own model when one is already on this device, so a search such
- * as "notebooks last month about react" asks only the notebooks, for those days. Without a ready
- * model, or when it is slow or wrong, the words are searched as typed. Never starts a download.
+ * as "notebooks last month about react" asks only the notebooks, for those days. The model is
+ * asked only when the search names a collection or a time; plain words are searched as typed at
+ * once. When the model is ready but slow or wrong, the collection and relative-day words are
+ * read without it. Without a ready model the words are searched as typed. Never starts a
+ * download. A reading with days and no words left asks for everything in those days.
  */
 export async function parseLibraryQuery(
   raw: string,
@@ -134,10 +219,11 @@ export async function parseLibraryQuery(
   signal?: AbortSignal,
 ): Promise<ParseOutcome<LibraryQuery>> {
   const languages = LANGUAGES;
-  const ready = ai && (await ai.refresh(languages)).kind === 'ready';
+  const ready =
+    ai && readable(raw) && (await ai.refresh(languages)).kind === 'ready';
   const outcome = await parser.parse(
     raw,
-    { raw },
+    { raw, today },
     ready
       ? async (jsonSchema, inner) => {
           const run = () =>
@@ -157,10 +243,11 @@ export async function parseLibraryQuery(
       : undefined,
     signal,
   );
-  // A reading that kept no words searches the words as typed, still narrowed.
-  return outcome.value.text.trim()
-    ? outcome
-    : { ...outcome, value: { ...outcome.value, text: raw } };
+  const value =
+    ready && outcome.status !== 'ai' ? readByRules(raw, today) : outcome.value;
+  // No words left: everything in the days, or the words as typed when no days were named.
+  const text = value.text.trim() || (value.from || value.to ? '' : raw);
+  return { ...outcome, value: { ...value, text } };
 }
 
 const warmed = new WeakSet<AiController>();
