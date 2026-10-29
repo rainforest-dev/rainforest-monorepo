@@ -10,6 +10,8 @@ export const zh = {
     error: '搜尋暫時無法使用',
     empty: '找不到符合的項目',
     missing: '{{names}}暫時沒有回應',
+    more: '在{{name}}裡搜尋',
+    moreLabel: '在單一館藏裡搜尋',
   },
   locale: {
     label: '語言',

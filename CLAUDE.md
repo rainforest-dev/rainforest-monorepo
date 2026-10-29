@@ -11,7 +11,7 @@ Nx 23.2.1 monorepo using pnpm workspaces (pnpm@11.7.0):
 - **apps/personal-liff-e2e** - Playwright e2e tests
 - **apps/personal-calibre** - Next.js Calibre library browser, shipped as a Docker image
 - **apps/personal-calibre-e2e** - Playwright e2e tests
-- **apps/library-hall** - Next.js 3D hall at the root of `library.rainforest.tools` (dev port 8087), shipped as a Docker image. It also serves the library MCP at `/api/mcp`: `search_library` over every collection, plus the book and notebook tools forwarded to their apps. Its static page gathers every collection's `/api/hall-items` through `/api/items`, so the way back from a book is a bfcache restore; a non-bfcache return shows the last frame as a poster until the scene redraws
+- **apps/library-hall** - Next.js 3D hall at the root of `library.rainforest.tools` (dev port 8087), shipped as a Docker image. It also serves the library MCP at `/api/mcp`: `search_library` over every collection or the ones named (`in=` on `/api/search`), plus the book and notebook tools forwarded to their apps. Its static page gathers every collection's `/api/hall-items` through `/api/items`, so the way back from a book is a bfcache restore; a non-bfcache return shows the last frame as a poster until the scene redraws
 - **apps/library-hall-e2e** - Playwright e2e tests against a production build and a fictional collections server
 - **apps/personal-notebook** - Next.js Bullet Journal notebook app at `/notebooks` (Next `basePath`; dev port 8086), shipped as a Docker image. Owns the notebook DB, page images, OCR and the notebook MCP tools; calibre forwards those tools to it and redirects its old `/notebooks` links
 - **apps/personal-notebook-e2e** - Playwright e2e tests

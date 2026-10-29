@@ -109,6 +109,24 @@ describe('searchLibrary', () => {
     ]);
   });
 
+  it('asks only the collections in scope', async () => {
+    const fetcher = vi.fn(() =>
+      respond({ results: [hit('kb', 'a')] }),
+    ) as unknown as typeof fetch;
+    const result = await searchLibrary(
+      'x',
+      { LIBRARY_BOOKS_URL: 'http://books', LIBRARY_KB_URL: 'http://kb' },
+      fetcher,
+      undefined,
+      ['kb', 'hall'],
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(vi.mocked(fetcher).mock.calls[0]?.[0])).toMatch(
+      /^http:\/\/kb\//,
+    );
+    expect(result.sources.map((s) => s.collection)).toEqual(['kb']);
+  });
+
   it('asks nobody for an empty query', async () => {
     const fetcher = vi.fn() as unknown as typeof fetch;
     expect(

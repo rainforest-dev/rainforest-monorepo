@@ -1,4 +1,5 @@
 import {
+  type CollectionId,
   LIBRARY_SEARCH_LIMIT,
   LIBRARY_SEARCH_PATH,
   type LibrarySearchHit,
@@ -58,17 +59,21 @@ async function searchSource(
  * Every configured collection searched in parallel, their rankings merged by reciprocal rank
  * fusion. Each collection ranks by its own measure, so only the places count. A collection
  * that fails, answers out of shape or takes longer than `timeoutMs` is reported and left out;
- * the rest still answer.
+ * the rest still answer. A `scope` asks only the collections it names.
  */
 export async function searchLibrary(
   q: string,
   env: Record<string, string | undefined> = process.env,
   fetcher: typeof fetch = fetch,
   timeoutMs = TIMEOUT_MS,
+  scope?: readonly CollectionId[],
 ): Promise<MergedSearchResponse> {
   if (!q.trim()) return { results: [], sources: [] };
+  const collections = scope
+    ? SOURCE_COLLECTIONS.filter((c) => scope.includes(c))
+    : SOURCE_COLLECTIONS;
   const answers = await Promise.all(
-    SOURCE_COLLECTIONS.flatMap((collection) => {
+    collections.flatMap((collection) => {
       const url = searchUrl(collection, q, env);
       return url ? [searchSource(collection, url, fetcher, timeoutMs)] : [];
     }),

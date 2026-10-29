@@ -45,7 +45,7 @@ is mounted, because a bind mount cannot leave out `notes/personal/` from under `
 | `/kb/pages/<slug>`       | A wiki page, its backlinks and the sources it links                |
 | `/kb/readwise/<cat>/<n>` | A Readwise document, its original and the pages that cite it       |
 | `/kb/api/hall-items`     | `{ items: HallItem[] }`, one `kb` item per visible page            |
-| `/kb/api/search?q=`      | `{ results }`, lexical, for the library-wide search                |
+| `/kb/api/library-search` | `?q=`: `{ results }`, lexical, for the library-wide search         |
 
 What never shows, checked on every scan and again on every render:
 

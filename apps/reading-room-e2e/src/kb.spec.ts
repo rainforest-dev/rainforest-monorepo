@@ -144,14 +144,14 @@ test.describe('knowledge base', () => {
       page.locator('#kb-results + ul a[href="/kb/pages/tech-kites"]'),
     ).toBeVisible();
     const hits = await (
-      await page.request.get('/kb/api/search?q=kites')
+      await page.request.get('/kb/api/library-search?q=kites')
     ).json();
     expect(hits.results.map((r: { href: string }) => r.href)).toContain(
       '/kb/pages/tech-kites',
     );
 
     for (const marker of HIDDEN_MARKERS) {
-      const res = await page.request.get(`/kb/api/search?q=${marker}`);
+      const res = await page.request.get(`/kb/api/library-search?q=${marker}`);
       expect(await res.json()).toEqual({ results: [] });
     }
   });

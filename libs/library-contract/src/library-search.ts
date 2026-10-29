@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { COLLECTION_IDS } from './collections';
+import { COLLECTION_IDS, type CollectionId } from './collections';
 import { HALL_ITEM_KINDS, sameOriginPath } from './hall-items';
 
 /** Every collection answers the library-wide search at `<basePath>/api/library-search?q=`. */
@@ -37,6 +37,21 @@ export type LibrarySearchResponse = z.infer<typeof librarySearchResponseSchema>;
 /** The query a collection searches for: trimmed and cut to the maximum, `''` when absent. */
 export function librarySearchQuery(params: URLSearchParams): string {
   return (params.get('q') ?? '').trim().slice(0, LIBRARY_SEARCH_MAX_QUERY);
+}
+
+/** The parameter that narrows the hall's search to some collections: `in=books,notebooks`. */
+export const LIBRARY_SEARCH_SCOPE_PARAM = 'in';
+
+/**
+ * The collections `in=` names, in the order given; unknown names are dropped. `undefined` when
+ * the parameter is absent or names nothing known, which means every collection.
+ */
+export function librarySearchScope(
+  params: URLSearchParams,
+): CollectionId[] | undefined {
+  const names = (params.get(LIBRARY_SEARCH_SCOPE_PARAM) ?? '').split(',');
+  const scope = COLLECTION_IDS.filter((id) => names.includes(id));
+  return scope.length ? scope : undefined;
 }
 
 /** A snippet cut to fit the schema, on a character boundary. */

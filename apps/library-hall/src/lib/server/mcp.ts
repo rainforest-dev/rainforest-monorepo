@@ -1,5 +1,7 @@
 import { BOOK_TOOL_DEFINITIONS } from '@rainforest-dev/book-tools';
 import {
+  type CollectionId,
+  LIBRARY_ORIGIN,
   LIBRARY_SEARCH_MAX_QUERY,
   type MergedSearchResponse,
 } from '@rainforest-dev/library-contract';
@@ -17,7 +19,8 @@ import {
 import { NOTEBOOK_TOOL_DEFINITIONS } from '@rainforest-dev/notebook-tools';
 import { z } from 'zod';
 
-import { searchLibrary } from './search';
+import { SOURCE_COLLECTIONS } from './collections';
+import { MERGED_SEARCH_LIMIT, searchLibrary } from './search';
 
 type Env = Record<string, string | undefined>;
 
@@ -75,29 +78,54 @@ export function forwardedTools(
   return forwardTools(tools, call);
 }
 
-export const searchLibraryTool = (
-  search: (q: string) => Promise<MergedSearchResponse>,
-): McpTool =>
+type LibrarySearch = (
+  q: string,
+  scope?: readonly CollectionId[],
+) => Promise<MergedSearchResponse>;
+
+/** How many hits `search_library` returns unless asked for more. */
+export const MCP_SEARCH_LIMIT = 10;
+
+export const searchLibraryTool = (search: LibrarySearch): McpTool =>
   defineTool({
     name: 'search_library',
     title: 'Search the library',
     description:
-      'Search the whole library at once: books, scanned notebook pages, the reading rack and the knowledge base. Each collection ranks by its own full-text plus semantic search, and the lists are merged by reciprocal rank fusion, best first. A hit has kind (book | notebook | article | kb), id, title, an optional subtitle and snippet, and href, a path on library.rainforest.tools. sources says which collections answered; one that is down is left out and the rest still answer. Use list_books or get_notebook_pages for more on a book or notebook hit.',
+      'Search the whole library at once: books, scanned notebook pages, the reading rack and the knowledge base. Each collection ranks by its own full-text plus semantic search, and the lists are merged by reciprocal rank fusion, best first. collections narrows the search to some of them; limit caps the hits (default 10). A hit has kind (book | notebook | article | kb), id, title, an optional subtitle and snippet, and href, a full URL on library.rainforest.tools to give the reader. sources says which collections answered and how many hits each had; one that is down is left out and the rest still answer. Use list_books or get_notebook_pages for more on a book or notebook hit.',
     input: {
       query: z.string().trim().min(1).max(LIBRARY_SEARCH_MAX_QUERY),
+      collections: z
+        .array(z.enum(SOURCE_COLLECTIONS))
+        .min(1)
+        .optional()
+        .describe('Only these collections; every one when left out'),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(MERGED_SEARCH_LIMIT)
+        .default(MCP_SEARCH_LIMIT),
     },
     annotations: { readOnlyHint: true, openWorldHint: false },
-    run: ({ query }) => search(query),
+    run: async ({ query, collections, limit }) => {
+      const { results, sources } = await search(query, collections);
+      return {
+        results: results
+          .slice(0, limit)
+          .map((hit) => ({ ...hit, href: `${LIBRARY_ORIGIN}${hit.href}` })),
+        sources,
+      };
+    },
   });
 
 /** `search_library`, then the book and notebook tools, forwarded to the apps that run them. */
 export function libraryTools(
   env: Env,
   {
-    search = (q: string) => searchLibrary(q, env),
+    search = (q, scope) => searchLibrary(q, env, fetch, undefined, scope),
     fetch: fetchImpl,
   }: {
-    search?: (q: string) => Promise<MergedSearchResponse>;
+    search?: LibrarySearch;
     fetch?: typeof fetch;
   } = {},
 ): McpTool[] {

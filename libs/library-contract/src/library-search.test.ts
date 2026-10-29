@@ -3,6 +3,7 @@ import {
   LIBRARY_SEARCH_MAX_QUERY,
   librarySearchHitSchema,
   librarySearchQuery,
+  librarySearchScope,
 } from './library-search';
 
 describe('librarySearchHitSchema', () => {
@@ -37,6 +38,19 @@ describe('librarySearchQuery', () => {
       librarySearchQuery(new URLSearchParams({ q: 'x'.repeat(500) })),
     ).toHaveLength(LIBRARY_SEARCH_MAX_QUERY);
     expect(librarySearchQuery(new URLSearchParams())).toBe('');
+  });
+});
+
+describe('librarySearchScope', () => {
+  it('reads the known collections and drops the rest', () => {
+    expect(
+      librarySearchScope(new URLSearchParams('in=notebooks,nope,books')),
+    ).toEqual(['books', 'notebooks']);
+  });
+
+  it('means every collection when absent or unknown', () => {
+    expect(librarySearchScope(new URLSearchParams())).toBeUndefined();
+    expect(librarySearchScope(new URLSearchParams('in=nope'))).toBeUndefined();
   });
 });
 

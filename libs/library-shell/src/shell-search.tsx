@@ -3,13 +3,15 @@
 import {
   COLLECTION_OF_KIND,
   collectionLabel,
+  getCollection,
   LIBRARY_SEARCH_ENDPOINT,
   type MergedSearchResponse,
   mergedSearchResponseSchema,
+  sharedHref,
 } from '@rainforest-dev/library-contract';
 import { cn } from '@rainforest-dev/rainforest-react';
 import { Search } from 'lucide-react';
-import { type KeyboardEvent, useEffect, useId, useState } from 'react';
+import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 
 import { COLLECTION_ICONS } from './collection-nav';
 import { useLibraryLocale, useLibraryT } from './i18n-provider';
@@ -68,9 +70,18 @@ interface Props {
   endpoint?: string;
 }
 
+/** ⌘K or Ctrl+K, from anywhere on the page. */
+const isFocusShortcut = (event: globalThis.KeyboardEvent) =>
+  (event.metaKey || event.ctrlKey) &&
+  !event.altKey &&
+  event.key.toLowerCase() === 'k';
+
 /**
  * The library-wide search box: one query across books, notebook pages, the rack and the
  * knowledge base, merged by the hall. Hits are plain links, since each opens another app.
+ * ⌘K or Ctrl+K focuses it anywhere, Enter opens the highlighted hit or else the first, and
+ * under the hits each collection that matched offers its own search for the same query, with
+ * the filters the merged list does not have.
  */
 export function ShellSearch({
   className,
@@ -83,14 +94,29 @@ export function ShellSearch({
   const locale = useLibraryLocale();
   const t = useLibraryT();
   const listId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const response = 'response' in state ? state.response : undefined;
   const results = response?.results ?? NO_RESULTS;
   const missing = (response?.sources ?? [])
     .filter((s) => !s.ok)
     .map((s) => collectionLabel(s.collection, locale));
   const shown = open && q.trim() !== '';
+  const more = (state.status === 'done' ? response?.sources : undefined)
+    ?.filter((s) => s.ok && s.count > 0)
+    .map(({ collection }) => getCollection(collection));
 
   useEffect(() => setActive(-1), [results]);
+
+  useEffect(() => {
+    const onShortcut = (event: globalThis.KeyboardEvent) => {
+      if (!isFocusShortcut(event)) return;
+      event.preventDefault();
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    };
+    window.addEventListener('keydown', onShortcut);
+    return () => window.removeEventListener('keydown', onShortcut);
+  }, []);
 
   const optionId = (i: number) => `${listId}-${i}`;
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -105,9 +131,9 @@ export function ShellSearch({
       setOpen(true);
       const step = event.key === 'ArrowDown' ? 1 : -1;
       setActive((i) => (i + step + results.length) % results.length);
-    } else if (event.key === 'Enter' && active >= 0) {
+    } else if (event.key === 'Enter') {
       event.preventDefault();
-      const hit = results[active];
+      const hit = results[Math.max(active, 0)];
       if (hit) window.location.assign(hit.href);
     }
   };
@@ -127,6 +153,7 @@ export function ShellSearch({
         aria-hidden
       />
       <input
+        ref={inputRef}
         id={`${listId}-input`}
         type="search"
         role="combobox"
@@ -204,6 +231,24 @@ export function ShellSearch({
             {missing.length > 0 &&
               ` ${t('search.missing', { names: missing.join(t('list.separator')) })}`}
           </p>
+          {more && more.length > 0 && (
+            <nav
+              aria-label={t('search.moreLabel')}
+              className="flex flex-wrap gap-x-3 gap-y-1 border-t px-3 py-2 text-xs"
+            >
+              {more.map((collection) => (
+                <a
+                  key={collection.id}
+                  href={sharedHref(collection.basePath, { q: q.trim() })}
+                  className="text-primary hover:underline"
+                >
+                  {t('search.more', {
+                    name: collectionLabel(collection, locale),
+                  })}
+                </a>
+              ))}
+            </nav>
+          )}
         </div>
       )}
     </div>

@@ -80,6 +80,41 @@ describe('ShellSearch', () => {
     expect(input.getAttribute('aria-activedescendant')).toBe(options[1]?.id);
   });
 
+  it('offers each matching collection’s own search for the query', async () => {
+    vi.stubGlobal('fetch', () =>
+      respond({
+        results: [{ kind: 'kb', id: 'a', title: 'A', href: '/kb/a' }],
+        sources: [
+          { collection: 'books', ok: true, count: 0 },
+          { collection: 'kb', ok: true, count: 1 },
+          { collection: 'rack', ok: false, count: 0 },
+        ],
+      }),
+    );
+    render(<ShellSearch />);
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: ' kites ' },
+    });
+    const nav = await screen.findByRole('navigation', {
+      name: '在單一館藏裡搜尋',
+    });
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((a) => [a.textContent, a.getAttribute('href')]),
+    ).toEqual([['在知識庫裡搜尋', '/kb?q=kites']]);
+  });
+
+  it('takes focus on ⌘K or Ctrl+K', () => {
+    render(<ShellSearch />);
+    const input = screen.getByRole('combobox');
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
+    expect(document.activeElement).toBe(input);
+    input.blur();
+    fireEvent.keyDown(window, { key: 'K', ctrlKey: true });
+    expect(document.activeElement).toBe(input);
+  });
+
   it('keeps the last hits on screen while the next query loads', async () => {
     let answer: (response: Response) => void = () => undefined;
     const fetchMock = vi
