@@ -71,13 +71,13 @@ describe('searchNotebookPages', () => {
     ).toEqual(ids.slice(0, 3));
   });
 
-  it('lists the pages of those days, oldest first, when there are no words', async () => {
+  it('lists the pages of those days, newest first, when there are no words', async () => {
     const { hits } = await searchNotebookPages('', {
       from: '2026-09-01',
       to: '2026-09-30',
     });
-    expect(hits.map((h) => h.id)).toEqual([ids[0], ids[1]]);
-    expect(hits[0]).toMatchObject({ heading: 'Harbour walk' });
+    expect(hits.map((h) => h.id)).toEqual([ids[1], ids[0]]);
+    expect(hits[0]).toMatchObject({ heading: 'Reading list' });
     expect((await searchNotebookPages('')).hits).toEqual([]);
   });
 

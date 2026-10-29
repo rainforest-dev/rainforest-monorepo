@@ -151,11 +151,11 @@ const inRange = (date: string | null, { from, to }: PageSearchOptions) =>
   (!from && !to) ||
   (date !== null && (!from || date >= from) && (!to || date <= to));
 
-/** With days and no words: every transcribed page in those days, oldest first. */
+/** With days and no words: every transcribed page in those days, newest first. */
 function datedPages(options: PageSearchOptions): PageSearch {
   const hits = transcribedPages()
     .filter((row) => inRange(row.pageDate, options))
-    .sort((a, b) => (a.pageDate ?? '').localeCompare(b.pageDate ?? ''))
+    .sort((a, b) => (b.pageDate ?? '').localeCompare(a.pageDate ?? ''))
     .map(({ transcription, ...page }) => ({
       ...page,
       heading: pageHeading(transcription),
