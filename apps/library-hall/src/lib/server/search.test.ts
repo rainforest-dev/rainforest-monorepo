@@ -138,6 +138,20 @@ describe('searchLibrary', () => {
     expect(result.sources.map((s) => s.collection)).toEqual(['kb']);
   });
 
+  it('asks every collection when the scope names none it can search', async () => {
+    const fetcher = vi.fn(() =>
+      respond({ results: [] }),
+    ) as unknown as typeof fetch;
+    await searchLibrary(
+      'x',
+      { LIBRARY_BOOKS_URL: 'http://books', LIBRARY_KB_URL: 'http://kb' },
+      fetcher,
+      undefined,
+      { scope: ['hall'] },
+    );
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it('asks nobody for an empty query', async () => {
     const fetcher = vi.fn() as unknown as typeof fetch;
     expect(

@@ -83,13 +83,14 @@ export async function searchLibrary(
   timeoutMs = TIMEOUT_MS,
   filters: LibrarySearchFilters = {},
 ): Promise<MergedSearchResponse> {
-  const { scope, from, to } = filters;
+  const { from, to } = filters;
   const browse = !q.trim();
   if (browse && !from && !to) return { results: [], sources: [] };
-  const collections = SOURCE_COLLECTIONS.filter(
-    (c) =>
-      (!scope || scope.includes(c)) &&
-      (!browse || DATED_COLLECTIONS.includes(c)),
+  // A scope that names no searchable collection (`in=hall`) means every collection.
+  const named = SOURCE_COLLECTIONS.filter((c) => filters.scope?.includes(c));
+  const scope = named.length ? named : SOURCE_COLLECTIONS;
+  const collections = scope.filter(
+    (c) => !browse || DATED_COLLECTIONS.includes(c),
   );
   const answers = await Promise.all(
     collections.flatMap((collection) => {
