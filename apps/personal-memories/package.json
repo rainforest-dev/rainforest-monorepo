@@ -82,6 +82,6 @@
     "@types/react-dom": "catalog:",
     "@vercel/nft": "^1.11.0",
     "typescript": "catalog:",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }
