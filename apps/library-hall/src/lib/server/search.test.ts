@@ -28,6 +28,17 @@ describe('searchUrl', () => {
     );
   });
 
+  it('passes the days on', () => {
+    expect(
+      searchUrl(
+        'notebooks',
+        'x',
+        { LIBRARY_NOTEBOOKS_URL: 'http://nb' },
+        { from: '2026-09-01', to: '2026-09-30' },
+      ),
+    ).toBe('http://nb/api/library-search?q=x&from=2026-09-01&to=2026-09-30');
+  });
+
   it('skips a collection with no URL', () => {
     expect(searchUrl('kb', 'x', {})).toBeNull();
   });
@@ -109,11 +120,61 @@ describe('searchLibrary', () => {
     ]);
   });
 
+  it('asks only the collections in scope', async () => {
+    const fetcher = vi.fn(() =>
+      respond({ results: [hit('kb', 'a')] }),
+    ) as unknown as typeof fetch;
+    const result = await searchLibrary(
+      'x',
+      { LIBRARY_BOOKS_URL: 'http://books', LIBRARY_KB_URL: 'http://kb' },
+      fetcher,
+      undefined,
+      { scope: ['kb', 'hall'] },
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(vi.mocked(fetcher).mock.calls[0]?.[0])).toMatch(
+      /^http:\/\/kb\//,
+    );
+    expect(result.sources.map((s) => s.collection)).toEqual(['kb']);
+  });
+
+  it('asks every collection when the scope names none it can search', async () => {
+    const fetcher = vi.fn(() =>
+      respond({ results: [] }),
+    ) as unknown as typeof fetch;
+    await searchLibrary(
+      'x',
+      { LIBRARY_BOOKS_URL: 'http://books', LIBRARY_KB_URL: 'http://kb' },
+      fetcher,
+      undefined,
+      { scope: ['hall'] },
+    );
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it('asks nobody for an empty query', async () => {
     const fetcher = vi.fn() as unknown as typeof fetch;
     expect(
       await searchLibrary(' ', { LIBRARY_BOOKS_URL: 'http://books' }, fetcher),
     ).toEqual({ results: [], sources: [] });
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('asks only the dated collections for days with no words', async () => {
+    const fetcher = vi.fn(() =>
+      respond({ results: [hit('notebook', 'page-1')] }),
+    ) as unknown as typeof fetch;
+    const result = await searchLibrary(
+      '',
+      { LIBRARY_BOOKS_URL: 'http://books', LIBRARY_NOTEBOOKS_URL: 'http://nb' },
+      fetcher,
+      undefined,
+      { from: '2026-09-01', to: '2026-09-30' },
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(vi.mocked(fetcher).mock.calls[0]?.[0])).toMatch(
+      /^http:\/\/nb\/.*from=2026-09-01/,
+    );
+    expect(result.sources.map((s) => s.collection)).toEqual(['notebooks']);
   });
 });

@@ -38,11 +38,11 @@ afterAll(() => {
   delete process.env['NOTEBOOK_EMBED'];
 });
 
-const search = async (q: string) =>
+const search = async (q: string, dates = '') =>
   (
     await GET(
       new Request(
-        `https://notebook.example.test/api/library-search?q=${encodeURIComponent(q)}`,
+        `https://notebook.example.test/api/library-search?q=${encodeURIComponent(q)}${dates}`,
       ),
     )
   ).json();
@@ -58,6 +58,13 @@ describe('GET /api/library-search', () => {
     });
     expect(body.results[0].subtitle).toContain('Garden Log');
     expect(body.results[0].snippet).toContain('tulips');
+  });
+
+  it('keeps to the page dates in from and to', async () => {
+    expect((await search('tulips', '&from=2026-09-01')).results).toHaveLength(
+      1,
+    );
+    expect((await search('tulips', '&from=2026-09-02')).results).toEqual([]);
   });
 
   it('finds nothing for an empty query', async () => {

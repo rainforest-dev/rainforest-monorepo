@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { COLLECTION_IDS } from './collections';
+import { COLLECTION_IDS, type CollectionId } from './collections';
 import { HALL_ITEM_KINDS, sameOriginPath } from './hall-items';
 
 /** Every collection answers the library-wide search at `<basePath>/api/library-search?q=`. */
@@ -38,6 +38,45 @@ export type LibrarySearchResponse = z.infer<typeof librarySearchResponseSchema>;
 export function librarySearchQuery(params: URLSearchParams): string {
   return (params.get('q') ?? '').trim().slice(0, LIBRARY_SEARCH_MAX_QUERY);
 }
+
+/** The parameter that narrows the hall's search to some collections: `in=books,notebooks`. */
+export const LIBRARY_SEARCH_SCOPE_PARAM = 'in';
+
+/**
+ * The collections `in=` names, in the order given; unknown names are dropped. `undefined` when
+ * the parameter is absent or names nothing known, which means every collection.
+ */
+export function librarySearchScope(
+  params: URLSearchParams,
+): CollectionId[] | undefined {
+  const names = (params.get(LIBRARY_SEARCH_SCOPE_PARAM) ?? '').split(',');
+  const scope = COLLECTION_IDS.filter((id) => names.includes(id));
+  return scope.length ? scope : undefined;
+}
+
+const DAY = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+/** A day as `YYYY-MM-DD`, the form `from` and `to` take. */
+export const isLibraryDay = (value: string): boolean => DAY.test(value);
+
+/**
+ * The days `from=` and `to=` bound the search to, each `YYYY-MM-DD` and either one optional; a
+ * malformed one is dropped. Only a collection whose items carry a date (notebook pages) narrows by
+ * them; the rest answer as if they were absent.
+ */
+export function librarySearchDates(params: URLSearchParams): {
+  from?: string;
+  to?: string;
+} {
+  const day = (key: 'from' | 'to') => {
+    const value = params.get(key)?.trim();
+    return value && isLibraryDay(value) ? { [key]: value } : {};
+  };
+  return { ...day('from'), ...day('to') };
+}
+
+/** The collections whose items carry a date. A search with days and no words asks only these. */
+export const DATED_COLLECTIONS: readonly CollectionId[] = ['notebooks'];
 
 /** A snippet cut to fit the schema, on a character boundary. */
 export function clipSnippet(text: string, max = 400): string {

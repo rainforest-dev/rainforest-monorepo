@@ -90,11 +90,50 @@ describe('library MCP', () => {
       name: 'search_library',
       arguments: { query: '  rust ' },
     });
-    expect(search).toHaveBeenCalledWith('rust');
+    expect(search).toHaveBeenCalledWith('rust', {});
     expect(result.isError).toBeFalsy();
     expect(result.content).toEqual([
-      { type: 'text', text: JSON.stringify(MERGED) },
+      {
+        type: 'text',
+        text: JSON.stringify({
+          results: [
+            {
+              ...MERGED.results[0],
+              href: 'https://library.rainforest.tools/books/b/135',
+            },
+          ],
+          sources: MERGED.sources,
+        }),
+      },
     ]);
+  });
+
+  it('narrows the search and caps the hits', async () => {
+    const hit = MERGED.results[0];
+    const search = vi.fn(async () => ({
+      ...MERGED,
+      results: [hit, { ...hit, id: '136' }, { ...hit, id: '137' }],
+    }));
+    const client = await connect(libraryMcpHandler(ENV, { search }));
+    const result = await client.callTool({
+      name: 'search_library',
+      arguments: {
+        query: 'rust',
+        collections: ['notebooks'],
+        from: '2026-09-01',
+        limit: 2,
+      },
+    });
+    expect(search).toHaveBeenCalledWith('rust', {
+      scope: ['notebooks'],
+      from: '2026-09-01',
+    });
+    const [content] = result.content as { text: string }[];
+    expect(
+      (JSON.parse(content?.text ?? '') as MergedSearchResponse).results.map(
+        (r) => r.id,
+      ),
+    ).toEqual(['135', '136']);
   });
 
   it('forwards a book tool to calibre and a notebook tool to the notebook app, with the login', async () => {

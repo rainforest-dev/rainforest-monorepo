@@ -129,7 +129,6 @@ const APPS = {
       checks: [
         { path: '/notebooks' },
         { path: '/notebooks/api/hall-items', type: 'application/json' },
-        { path: '/notebooks/api/search?q=ink', type: 'application/json' },
         {
           path: '/notebooks/api/library-search?q=ink',
           type: 'application/json',

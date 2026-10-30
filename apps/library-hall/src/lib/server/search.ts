@@ -1,4 +1,6 @@
 import {
+  type CollectionId,
+  DATED_COLLECTIONS,
   LIBRARY_SEARCH_LIMIT,
   LIBRARY_SEARCH_PATH,
   type LibrarySearchHit,
@@ -16,15 +18,27 @@ export const MERGED_SEARCH_LIMIT = 30;
 
 const hitKey = (hit: LibrarySearchHit) => `${hit.kind}:${hit.id}`;
 
+/** What narrows a search beyond its words: the collections to ask, and the days to keep to. */
+export interface LibrarySearchFilters {
+  scope?: readonly CollectionId[];
+  from?: string;
+  to?: string;
+}
+
 /** A collection's search URL for `q`, or null when the collection has no URL configured. */
 export function searchUrl(
   collection: SourceCollection,
   q: string,
   env: Record<string, string | undefined> = process.env,
+  { from, to }: LibrarySearchFilters = {},
 ): string | null {
   const base = env[`LIBRARY_${collection.toUpperCase()}_URL`]?.trim();
   if (!base) return null;
-  const params = new URLSearchParams({ q });
+  const params = new URLSearchParams({
+    q,
+    ...(from && { from }),
+    ...(to && { to }),
+  });
   return `${base.replace(/\/+$/, '')}${LIBRARY_SEARCH_PATH}?${params}`;
 }
 
@@ -58,18 +72,29 @@ async function searchSource(
  * Every configured collection searched in parallel, their rankings merged by reciprocal rank
  * fusion. Each collection ranks by its own measure, so only the places count. A collection
  * that fails, answers out of shape or takes longer than `timeoutMs` is reported and left out;
- * the rest still answer.
+ * the rest still answer. A `scope` asks only the collections it names; `from` and `to` are
+ * passed on, and the collections that date their items keep to them. With days and no words,
+ * only those collections are asked, for everything in the days.
  */
 export async function searchLibrary(
   q: string,
   env: Record<string, string | undefined> = process.env,
   fetcher: typeof fetch = fetch,
   timeoutMs = TIMEOUT_MS,
+  filters: LibrarySearchFilters = {},
 ): Promise<MergedSearchResponse> {
-  if (!q.trim()) return { results: [], sources: [] };
+  const { from, to } = filters;
+  const browse = !q.trim();
+  if (browse && !from && !to) return { results: [], sources: [] };
+  // A scope that names no searchable collection (`in=hall`) means every collection.
+  const named = SOURCE_COLLECTIONS.filter((c) => filters.scope?.includes(c));
+  const scope = named.length ? named : SOURCE_COLLECTIONS;
+  const collections = scope.filter(
+    (c) => !browse || DATED_COLLECTIONS.includes(c),
+  );
   const answers = await Promise.all(
-    SOURCE_COLLECTIONS.flatMap((collection) => {
-      const url = searchUrl(collection, q, env);
+    collections.flatMap((collection) => {
+      const url = searchUrl(collection, q, env, filters);
       return url ? [searchSource(collection, url, fetcher, timeoutMs)] : [];
     }),
   );

@@ -12,6 +12,10 @@ export const en: Translation<typeof zh> = {
     error: 'Search is unavailable right now',
     empty: 'Nothing matches',
     missing: '{{names}} did not answer',
+    more: 'Search {{name}}',
+    moreLabel: 'Search one collection',
+    read: 'Read as {{terms}}',
+    literal: 'Search the words as typed',
   },
   locale: {
     label: 'Language',
