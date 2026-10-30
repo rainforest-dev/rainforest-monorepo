@@ -20,6 +20,12 @@ Leave architecture, security exposure, tests and docs to the other reviewers.
 
 ## How to work
 
+Read files with Read, and search with Grep and Glob. Use Bash only for
+`git diff`, `git show`, `git log` and `git blame`, run from the checkout root
+exactly as written. Never `cd`, and never chain with `&&`, `;` or pipes, expand
+braces, or use shell variables: the review's permissions refuse those, and a
+refused command can stop the review before it reports.
+
 You get a PR number, a BASE and HEAD, the PR's title and body, and the changed
 files that matter to you. Read the diff with `git diff BASE...HEAD -- <files>`,
 then read enough of the surrounding code at HEAD to know what the change does.
