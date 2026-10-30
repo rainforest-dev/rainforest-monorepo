@@ -1078,6 +1078,15 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
+      '@playwright/test':
+        specifier: ^1.64.1
+        version: 1.64.1
+      '@rainforest-dev/rainforest-ui':
+        specifier: workspace:*
+        version: link:../rainforest-ui
+      '@tailwindcss/vite':
+        specifier: 'catalog:'
+        version: 4.2.2(vite@8.3.5(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1))
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -1096,6 +1105,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.2.3(react@19.2.3)
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.2.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

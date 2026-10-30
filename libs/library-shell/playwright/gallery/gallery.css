@@ -1,0 +1,6 @@
+/* The same Tailwind entry a library app has, so stories render with the shell's real CSS. */
+@import 'tailwindcss';
+@import '@rainforest-dev/rainforest-react/tailwind.css';
+@import '../../src/tailwind.css';
+
+@plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
