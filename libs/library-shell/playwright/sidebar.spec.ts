@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { LIBRARY_PREFS_COOKIE } from '@rainforest-dev/library-contract';
 
+import { SIDEBAR_ATTRIBUTE } from '../src/layout';
 import type { WithColumn } from '../src/sidebar.story';
 
 test.describe('SidebarToggle', () => {
@@ -14,13 +16,13 @@ test.describe('SidebarToggle', () => {
     await component.getByRole('button', { name: 'Hide sidebar' }).click();
     await expect(column).toBeHidden();
     await expect(page.locator('html')).toHaveAttribute(
-      'data-library-sidebar',
+      SIDEBAR_ATTRIBUTE,
       'closed',
     );
     const cookies = await page.context().cookies();
     expect(
       decodeURIComponent(
-        cookies.find((c) => c.name === 'library-prefs')?.value ?? '',
+        cookies.find((c) => c.name === LIBRARY_PREFS_COOKIE)?.value ?? '',
       ),
     ).toContain('"sidebar":false');
 
