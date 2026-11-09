@@ -56,8 +56,8 @@
     }
   },
   "dependencies": {
-    "@astrojs/node": "^11.1.6",
-    "@astrojs/react": "^7.1.1",
+    "@astrojs/node": "^11.1.11",
+    "@astrojs/react": "^7.1.4",
     "@rainforest-dev/journal-kit": "workspace:*",
     "@rainforest-dev/mcp-kit": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
@@ -65,23 +65,23 @@
     "@rainforest-dev/search": "workspace:*",
     "@rainforest-dev/web-ai": "workspace:*",
     "@tailwindcss/vite": "catalog:",
-    "@tanstack/react-query": "5.104.1",
-    "astro": "^7.3.3",
-    "lucide-react": "^1.8.0",
+    "@tanstack/react-query": "5.107.1",
+    "astro": "^7.4.7",
+    "lucide-react": "^1.70.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sharp": "^0.35.5",
     "tailwindcss": "catalog:",
-    "tslib": "^2.3.0",
+    "tslib": "^2.9.1",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@vercel/nft": "^1.11.0",
+    "@vercel/nft": "^1.11.1",
     "typescript": "catalog:",
-    "vitest": "^4.1.12"
+    "vitest": "^5.1.0"
   }
 }

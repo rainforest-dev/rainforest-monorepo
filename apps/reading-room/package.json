@@ -60,17 +60,17 @@
     }
   },
   "dependencies": {
-    "@astrojs/node": "^11.1.6",
-    "@astrojs/react": "^7.1.1",
+    "@astrojs/node": "^11.1.11",
+    "@astrojs/react": "^7.1.4",
     "@rainforest-dev/library-contract": "workspace:*",
     "@rainforest-dev/library-shell": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/rainforest-ui": "workspace:*",
     "@rainforest-dev/search": "workspace:*",
     "@tailwindcss/vite": "catalog:",
-    "astro": "^7.3.3",
-    "lucide-react": "^1.8.0",
-    "mdast-util-find-and-replace": "^3.0.2",
+    "astro": "^7.4.7",
+    "lucide-react": "^1.70.0",
+    "mdast-util-find-and-replace": "^3.0.4",
     "mdast-util-to-string": "^4.0.0",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -90,8 +90,8 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@vercel/nft": "^1.11.0",
+    "@vercel/nft": "^1.11.1",
     "typescript": "catalog:",
-    "vitest": "^4.1.12"
+    "vitest": "^5.1.0"
   }
 }
