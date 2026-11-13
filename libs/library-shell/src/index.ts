@@ -1,6 +1,7 @@
 export * from './assets';
 export * from './breadcrumb';
 export * from './collection-nav';
+export * from './fold';
 export * from './hooks';
 export * from './i18n';
 export * from './i18n-provider';
