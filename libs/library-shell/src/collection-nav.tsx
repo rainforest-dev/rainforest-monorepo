@@ -138,7 +138,12 @@ export function CollectionNav({
   );
 }
 
-/** The phone's bottom tab bar: one 64px row of icon-and-label tabs, below `sm`. */
+/**
+ * The phone's bottom tab bar: one 64px row of icon-and-label tabs, below `sm`. Each tab is a
+ * size container: once it is too narrow for a label (a foldable's cover screen, six tabs at
+ * under ~400px), the other tabs drop to icons and only the current one keeps its label. Chinese
+ * labels are short enough to stay.
+ */
 export function CollectionTabBar({
   current,
   collections,
@@ -170,7 +175,7 @@ export function CollectionTabBar({
                 href: hrefs[collection.id] ?? collection.basePath,
                 'aria-current': active ? 'page' : undefined,
                 className: cn(
-                  'flex min-w-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs',
+                  '@container flex min-w-11 flex-1 flex-col items-center justify-center gap-0.5 text-xs',
                   active
                     ? 'text-primary font-semibold'
                     : 'text-muted-foreground',
@@ -178,7 +183,15 @@ export function CollectionTabBar({
                 children: (
                   <>
                     <Icon className="size-5" aria-hidden />
-                    {collectionLabel(collection, locale)}
+                    <span
+                      className={cn(
+                        'max-w-full truncate px-0.5',
+                        // A three-character CJK label fits any tab; an English one needs ~4rem.
+                        !active && locale !== 'zh' && '@max-[4.25rem]:sr-only',
+                      )}
+                    >
+                      {collectionLabel(collection, locale)}
+                    </span>
                   </>
                 ),
               },
