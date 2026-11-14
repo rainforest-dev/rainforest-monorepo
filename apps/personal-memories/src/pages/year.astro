@@ -1,0 +1,67 @@
+---
+import { getLiveCollection } from 'astro:content';
+
+import EmptyState from '@/components/EmptyState.astro';
+import Heatmap from '@/components/Heatmap.astro';
+import Layout from '@/layouts/Layout.astro';
+import {
+  dayCells,
+  heatLevels,
+  levelHrefs,
+  monthRows,
+  morphFromRequest,
+} from '@/lib';
+import {
+  getDayIndex,
+  getMarkerViews,
+  getTimeline,
+  isInsideOut,
+  notesStore,
+} from '@/lib/server';
+
+if (!isInsideOut()) return Astro.redirect('/', 302);
+
+const state = await getTimeline();
+const { entries: days = [] } = await getLiveCollection('days');
+const { entries: notes = [] } = await getLiveCollection('memoryNotes');
+const totals = new Map(days.map((d) => [d.id, d.data.summary.total]));
+const rows = days.length
+  ? monthRows(days[0].id, days[days.length - 1].id, totals)
+  : [];
+const level = heatLevels([...totals.values()]);
+const noted = new Set(notes.map((n) => n.id));
+const morph = morphFromRequest(Astro.request, Astro.url);
+const store = notesStore();
+const [index, markers] = await Promise.all([getDayIndex(), getMarkerViews()]);
+const previews = index
+  ? dayCells(index, noted, (d) => store?.read(d), markers)
+  : new Map();
+---
+
+<Layout
+  title="Memories"
+  wide
+  bar={{
+    place: { level: 'year' },
+    hrefs: levelHrefs(
+      { level: 'year' },
+      days.map((d) => d.id),
+    ),
+  }}
+>
+  <h1 class="sr-only">回憶</h1>
+  {
+    state.status === 'missing' ? (
+      <EmptyState path={state.path} />
+    ) : (
+      <Heatmap
+        rows={rows}
+        level={level}
+        noted={noted}
+        morph={morph}
+        previews={previews}
+        markers={markers}
+      />
+    )
+  }
+</Layout>

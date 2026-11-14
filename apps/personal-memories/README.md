@@ -332,6 +332,43 @@ MEMORIES_AUTHORS="alice@example.com=Alice,bob@example.com=Bob"
 
 With neither configured, the panel falls back to a free-text name.
 
+## Inside Out variant
+
+`MEMORIES_UI=inside-out` switches the same server to a second UI on the same data: every day,
+and every photo someone picks, is a memory orb. The theme toggle in the header flips between the
+night (夢境) and day (總部) palettes, which live in `src/styles/inside-out-palette.json`. The
+variant adds:
+
+- `/orbs/<month>`: the month's orbs with emotion filter chips and a sidebar of counts.
+- `/day/<date>`: the usual day page plus a year strip and the 記憶球 button, where each person
+  picks an emotion, an island and a star for the day or one of its photos.
+- `/islands`: every orb grouped by the island either person put it on.
+- `/core/<year>`: orbs both people starred, out of 20, and `/core/<year>.csv`, the print list of
+  their photo paths (a day's cover photo, or the photo itself).
+
+`/` redirects to the latest month's shelf and the year heatmap moves to `/year`. Without the
+variable none of these routes exist.
+
+The picks go to `$MEMORIES_V2_DIR/orbs.json`, the only file the variant writes:
+
+```json
+{
+  "version": 1,
+  "orbs": {
+    "day:2026-11-13": {
+      "alice": { "emotion": "joy", "island": "home", "core": true, "at": "…" }
+    },
+    "photo:<event id>": { "bob": { "emotion": "sad", "at": "…" } }
+  }
+}
+```
+
+Entries are keyed by `day:<date>` or `photo:<event id>`, then by person id. A person only writes
+their own entry, identified the way 眉批 identifies its author: by the Access email header,
+matched against `emails` in `people.json`. `MEMORIES_IDENTITIES` (`email=personId,…`) adds emails
+without editing `people.json`, which suits a read-only data mount. The owner is the first person
+of the pair and the left half of every orb.
+
 ## Deployment
 
 The homelab runs `ghcr.io/rainforest-dev/personal-memories:latest`, published by

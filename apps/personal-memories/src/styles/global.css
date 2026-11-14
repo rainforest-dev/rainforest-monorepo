@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '@rainforest-dev/rainforest-react/tailwind.css';
 @plugin "@rainforest-dev/rainforest-ui/tailwindcss/shadcn";
+@import './inside-out.css';
 
 /* Inter when the system has it — the album is local-only, so no webfont is
    fetched; CJK falls through to the system stack either way. */

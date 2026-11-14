@@ -1,0 +1,80 @@
+---
+import { orbBackground } from '@/lib';
+
+type Props = {
+  halves: [string, string];
+  size?: number;
+  core?: boolean;
+  thumb?: string | undefined;
+  label?: string | undefined;
+  class?: string;
+};
+
+const {
+  halves,
+  size = 56,
+  core = false,
+  thumb,
+  label,
+  class: extra,
+} = Astro.props;
+const split = `linear-gradient(135deg, ${halves[0]} 0 50%, ${halves[1]} 50% 100%)`;
+---
+
+<span
+  data-orb
+  data-crystal={thumb ? '' : undefined}
+  data-shader-a={halves[0]}
+  data-shader-b={halves[1]}
+  data-shader-photo={thumb}
+  data-core={core ? '' : undefined}
+  role={label ? 'img' : undefined}
+  aria-label={label}
+  class:list={[
+    'relative inline-grid shrink-0 place-items-center overflow-hidden',
+    extra,
+  ]}
+  style={{
+    width: `${size}px`,
+    height: `${size}px`,
+    background: thumb ? split : orbBackground(halves),
+  }}
+>
+  {
+    thumb && (
+      <>
+        <img
+          src={thumb}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          data-crystal-photo
+          class="absolute inset-0 size-full object-cover"
+        />
+        <span
+          aria-hidden="true"
+          data-crystal-tint
+          class="absolute inset-0"
+          style={{ background: split }}
+        />
+        <span
+          aria-hidden="true"
+          data-crystal-rim
+          class="absolute inset-0"
+          style={{ background: split }}
+        />
+        <span
+          aria-hidden="true"
+          data-crystal-glass
+          class="absolute inset-0 rounded-full"
+        />
+      </>
+    )
+  }
+  <canvas
+    aria-hidden="true"
+    data-orb-canvas
+    hidden
+    class="absolute inset-0 size-full rounded-full"></canvas>
+  <span class="relative"><slot /></span>
+</span>
