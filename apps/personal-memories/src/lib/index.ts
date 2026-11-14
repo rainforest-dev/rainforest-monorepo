@@ -13,6 +13,7 @@ export * from './month-view.ts';
 export * from './months.ts';
 export * from './natural-date.ts';
 export * from './nav.ts';
+export * from './orbs.ts';
 export * from './people.ts';
 export * from './range.ts';
 export * from './reveal.ts';

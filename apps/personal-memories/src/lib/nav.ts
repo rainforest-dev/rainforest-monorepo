@@ -8,7 +8,7 @@ export type Place =
 
 // Serialised into a blocking head script by reveal.ts, so it must not reference anything outside itself.
 export function placeOf(pathname: string): Place | undefined {
-  if (pathname === '/') return { level: 'year' };
+  if (pathname === '/' || pathname === '/year') return { level: 'year' };
   const date = /^\/day\/(\d{4}-\d{2}-\d{2})\/?$/.exec(pathname)?.[1];
   if (date) return { level: 'day', date };
   const month = /^\/month\/(\d{4}-(?:0[1-9]|1[0-2]))\/?$/.exec(pathname)?.[1];

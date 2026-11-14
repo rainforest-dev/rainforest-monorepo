@@ -1,0 +1,122 @@
+---
+import EmptyState from '@/components/EmptyState.astro';
+import Orb from '@/components/orbs/Orb.astro';
+import Layout from '@/layouts/Layout.astro';
+import {
+  ISLANDS,
+  isCore,
+  levelHrefs,
+  onIsland,
+  orbHalves,
+  thumbUrl,
+} from '@/lib';
+import { getDayIndex, isInsideOut, orbContext, orbItems } from '@/lib/server';
+
+if (!isInsideOut()) return new Response('Not found', { status: 404 });
+
+const ctx = await orbContext(Astro.request.headers);
+const index = await getDayIndex();
+const ids = ctx.pair.map((p) => p.id);
+const items = orbItems(ctx.file, ctx.state);
+const islands = ISLANDS.map((island) => ({
+  ...island,
+  items: items.filter((i) => onIsland(i.entry, island.id, ids)).reverse(),
+}));
+const bar = {
+  place: { level: 'year' as const },
+  hrefs: levelHrefs({ level: 'year' }, index?.dates ?? []),
+};
+---
+
+<Layout title="島嶼 · Memories" wide bar={bar}>
+  {
+    ctx.state.status === 'missing' ? (
+      <EmptyState path={ctx.state.path} />
+    ) : (
+      <>
+        <header class="mb-6">
+          <p class="text-muted-foreground text-sm">個性島</p>
+          <h1 class="text-3xl font-semibold">島嶼</h1>
+        </header>
+        <div class="grid gap-5 md:grid-cols-2">
+          {islands.map((island) => (
+            <section
+              id={island.id}
+              class="bg-card scroll-mt-[calc(var(--app-bar-h)+1rem)] rounded-3xl border p-5"
+              aria-labelledby={`${island.id}-title`}
+            >
+              <header class="mb-4 flex items-center gap-3">
+                <span
+                  class="bg-muted grid size-12 place-items-center rounded-2xl text-2xl"
+                  aria-hidden="true"
+                >
+                  {island.glyph}
+                </span>
+                <div>
+                  <h2 id={`${island.id}-title`} class="text-xl font-semibold">
+                    {island.label}
+                  </h2>
+                  <p class="text-muted-foreground text-sm tabular-nums">
+                    {island.items.length} 顆記憶球
+                  </p>
+                </div>
+              </header>
+              {island.items.length === 0 ? (
+                <p class="text-muted-foreground text-sm">
+                  還沒有記憶球。在日記頁替一天選這座島。
+                </p>
+              ) : (
+                <ol class="flex flex-wrap gap-3">
+                  {island.items.slice(0, 40).map((item) => (
+                    <li>
+                      <a
+                        href={
+                          item.kind === 'day'
+                            ? `/day/${item.date}`
+                            : `/day/${item.date}#ev-${item.eventId}`
+                        }
+                        class="flex w-16 flex-col items-center gap-1"
+                      >
+                        <Orb
+                          halves={orbHalves(item.entry, ids)}
+                          size={48}
+                          core={isCore(item.entry, ids)}
+                          thumb={
+                            item.eventId
+                              ? thumbUrl(item.eventId, 0, 240)
+                              : undefined
+                          }
+                        />
+                        <span class="text-muted-foreground text-[11px] tabular-nums">
+                          {item.date.slice(2).replaceAll('-', '/')}
+                        </span>
+                        <span
+                          class="flex gap-0.5"
+                          aria-label={`放在這座島：${ctx.pair
+                            .filter(
+                              (p) => item.entry[p.id]?.island === island.id,
+                            )
+                            .map((p) => p.name)
+                            .join('、')}`}
+                        >
+                          {ctx.pair.map((p) =>
+                            item.entry[p.id]?.island === island.id ? (
+                              <span
+                                class="size-1.5 rounded-full"
+                                style={{ background: p.color }}
+                              />
+                            ) : null,
+                          )}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          ))}
+        </div>
+      </>
+    )
+  }
+</Layout>

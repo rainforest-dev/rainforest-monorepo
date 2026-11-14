@@ -38,6 +38,7 @@ type Props = {
   onStep?: ((delta: -1 | 1) => void) | undefined;
   stepHrefs?:
     { prev?: string | undefined; next?: string | undefined } | undefined;
+  trailing?: ReactNode;
 };
 
 function IconTip({
@@ -95,6 +96,7 @@ export function TopBar({
   onKeys,
   onStep,
   stepHrefs,
+  trailing,
 }: Props) {
   return (
     <header
@@ -197,9 +199,15 @@ export function TopBar({
       >
         <SearchIcon />
       </IconTip>
-      <IconTip label="鍵盤快速鍵" tip="按 ? 看所有快速鍵" onClick={onKeys}>
+      <IconTip
+        label="鍵盤快速鍵"
+        tip="按 ? 看所有快速鍵"
+        onClick={onKeys}
+        className={trailing ? 'max-sm:hidden' : undefined}
+      >
         <KeyboardIcon />
       </IconTip>
+      {trailing}
     </header>
   );
 }

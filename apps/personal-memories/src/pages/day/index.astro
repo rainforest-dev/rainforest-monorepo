@@ -1,0 +1,7 @@
+---
+import { getDayIndex } from '@/lib/server';
+
+const index = await getDayIndex();
+const last = index?.dates.filter((d) => index.byDate.get(d)?.length).at(-1);
+return Astro.redirect(last ? `/day/${last}` : '/', 302);
+---

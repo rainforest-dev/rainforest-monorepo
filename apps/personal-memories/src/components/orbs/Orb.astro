@@ -1,0 +1,52 @@
+---
+import { orbBackground } from '@/lib';
+
+type Props = {
+  halves: [string, string];
+  size?: number;
+  core?: boolean;
+  thumb?: string | undefined;
+  label?: string | undefined;
+  class?: string;
+};
+
+const {
+  halves,
+  size = 56,
+  core = false,
+  thumb,
+  label,
+  class: extra,
+} = Astro.props;
+const ring = Math.max(3, Math.round(size / 12));
+---
+
+<span
+  data-orb
+  data-core={core ? '' : undefined}
+  role={label ? 'img' : undefined}
+  aria-label={label}
+  class:list={['relative inline-grid shrink-0 place-items-center', extra]}
+  style={{
+    width: `${size}px`,
+    height: `${size}px`,
+    background: orbBackground(halves),
+  }}
+>
+  {
+    thumb && (
+      <img
+        src={thumb}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        class="rounded-full object-cover opacity-90 mix-blend-luminosity"
+        style={{
+          width: `${size - ring * 2}px`,
+          height: `${size - ring * 2}px`,
+        }}
+      />
+    )
+  }
+  <slot />
+</span>

@@ -1,0 +1,9 @@
+---
+import { monthOf } from '@/lib';
+import { getDayIndex, isInsideOut } from '@/lib/server';
+
+if (!isInsideOut()) return new Response('Not found', { status: 404 });
+const index = await getDayIndex();
+const last = index?.dates.filter((d) => index.byDate.get(d)?.length).at(-1);
+return Astro.redirect(last ? `/orbs/${monthOf(last)}` : '/year', 302);
+---

@@ -1,0 +1,92 @@
+---
+import { EMOTIONS, ISLANDS, monthLabel, type OrbTally } from '@/lib';
+import type { OrbPerson } from '@/lib/server';
+
+type Props = {
+  pair: OrbPerson[];
+  tally: OrbTally;
+  months: { month: string; days: number; picked: number }[];
+  current: string;
+  class?: string;
+};
+
+const { pair, tally, months, current, class: extra } = Astro.props;
+---
+
+<aside
+  class:list={[
+    'flex flex-col gap-6 lg:sticky lg:top-[calc(var(--app-bar-h)+1rem)] lg:self-start',
+    extra,
+  ]}
+>
+  <section class="bg-card rounded-3xl border p-4">
+    <h2 class="mb-3 text-base font-semibold">誰的顏色</h2>
+    <ul class="flex flex-col gap-2 text-sm">
+      {
+        pair.map((p, i) => (
+          <li class="flex items-center gap-2">
+            <span class="size-3 rounded-full" style={{ background: p.color }} />
+            {p.name}
+            <span class="text-muted-foreground ms-auto text-xs">
+              {i === 0 ? '左上半球' : '右下半球'}
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+  <section class="bg-card rounded-3xl border p-4">
+    <h2 class="mb-3 text-base font-semibold">情緒</h2>
+    <ul class="flex flex-col gap-2 text-sm">
+      {
+        EMOTIONS.map((e) => (
+          <li class="flex items-center gap-2">
+            <span class="size-3 rounded-full" style={{ background: e.color }} />
+            {e.label}
+            <span class="ms-auto tabular-nums">{tally.emotions[e.id]}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+  <section class="bg-card rounded-3xl border p-4">
+    <h2 class="mb-3 text-base font-semibold">島嶼</h2>
+    <ul class="flex flex-col gap-2 text-sm">
+      {
+        ISLANDS.map((i) => (
+          <li>
+            <a
+              href={`/islands#${i.id}`}
+              class="hover:text-primary flex items-center gap-2"
+            >
+              <span aria-hidden="true">{i.glyph}</span>
+              {i.label}
+              <span class="ms-auto tabular-nums">{tally.islands[i.id]}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+  <section class="bg-card rounded-3xl border p-4">
+    <h2 class="mb-3 text-base font-semibold">月份</h2>
+    <ul class="flex max-h-72 flex-col gap-1 overflow-y-auto text-sm">
+      {
+        [...months].reverse().map((m) => (
+          <li>
+            <a
+              href={`/orbs/${m.month}`}
+              aria-current={m.month === current ? 'page' : undefined}
+              class="hover:bg-muted aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground flex items-center gap-2 rounded-xl px-2 py-1"
+            >
+              {monthLabel(m.month)}
+              <span class="ms-auto text-xs tabular-nums opacity-80">
+                {m.picked}/{m.days}
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</aside>

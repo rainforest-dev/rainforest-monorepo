@@ -1,0 +1,161 @@
+---
+import EmptyState from '@/components/EmptyState.astro';
+import Orb from '@/components/orbs/Orb.astro';
+import Layout from '@/layouts/Layout.astro';
+import {
+  CORE_GOAL,
+  dayHeading,
+  emotionOf,
+  isCore,
+  islandOf,
+  levelHrefs,
+  orbHalves,
+  thumbUrl,
+} from '@/lib';
+import { getDayIndex, isInsideOut, orbContext, orbItems } from '@/lib/server';
+
+if (!isInsideOut()) return new Response('Not found', { status: 404 });
+
+const { year = '' } = Astro.params;
+if (!/^\d{4}$/.test(year)) return new Response('Not found', { status: 404 });
+const ctx = await orbContext(Astro.request.headers);
+const index = await getDayIndex();
+const ids = ctx.pair.map((p) => p.id);
+const starred = orbItems(ctx.file, ctx.state).filter(
+  (i) => i.date.startsWith(`${year}-`) && ids.some((id) => i.entry[id]?.core),
+);
+const core = starred.filter((i) => isCore(i.entry, ids));
+const pending = starred.filter((i) => !isCore(i.entry, ids));
+const progress = Math.min(1, core.length / CORE_GOAL);
+const bar = {
+  place: { level: 'year' as const },
+  hrefs: levelHrefs({ level: 'year' }, index?.dates ?? []),
+};
+const lists = [
+  { title: '核心記憶', hint: '兩個人都摘星了', items: core },
+  { title: '等另一半摘星', hint: '只有一個人摘星，還不算', items: pending },
+];
+---
+
+<Layout title={`${year} 核心記憶 · Memories`} wide bar={bar}>
+  {
+    ctx.state.status === 'missing' ? (
+      <EmptyState path={ctx.state.path} />
+    ) : (
+      <>
+        <header class="bg-card mb-8 flex flex-wrap items-center gap-6 rounded-3xl border p-6">
+          <div
+            class="grid size-28 shrink-0 place-items-center rounded-full"
+            style={{
+              background: `conic-gradient(var(--io-joy) ${progress * 360}deg, var(--muted) 0)`,
+            }}
+          >
+            <div class="bg-card size-22 grid place-items-center rounded-full">
+              <p data-io-display class="text-center leading-tight">
+                <span class="text-3xl font-semibold tabular-nums">
+                  {core.length}
+                </span>
+                <span class="text-muted-foreground block text-sm tabular-nums">
+                  / {CORE_GOAL}
+                </span>
+              </p>
+            </div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-muted-foreground text-sm">{year}</p>
+            <h1 class="text-3xl font-semibold">核心記憶</h1>
+            <p class="text-muted-foreground mt-1 text-sm">
+              兩個人都摘星的記憶才算數。今年目標 {CORE_GOAL} 顆。
+            </p>
+          </div>
+          <a
+            href={`/core/${year}.csv`}
+            download
+            class="bg-primary text-primary-foreground rounded-full px-5 py-2.5 text-sm font-medium"
+          >
+            匯出列印清單 CSV
+          </a>
+        </header>
+        {lists.map((list) => (
+          <section class="mb-10" aria-labelledby={`list-${list.title}`}>
+            <h2 id={`list-${list.title}`} class="text-xl font-semibold">
+              {list.title}
+              <span class="text-muted-foreground ms-2 text-sm font-normal tabular-nums">
+                {list.items.length}
+              </span>
+            </h2>
+            <p class="text-muted-foreground mb-4 text-sm">{list.hint}</p>
+            {list.items.length === 0 ? (
+              <p class="text-muted-foreground text-sm">還沒有。</p>
+            ) : (
+              <ol class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {list.items.map((item) => (
+                  <li>
+                    <a
+                      href={
+                        item.kind === 'day'
+                          ? `/day/${item.date}`
+                          : `/day/${item.date}#ev-${item.eventId}`
+                      }
+                      class="bg-card hover:border-primary flex items-center gap-4 rounded-2xl border p-3"
+                    >
+                      <Orb
+                        halves={orbHalves(item.entry, ids)}
+                        size={56}
+                        core={isCore(item.entry, ids)}
+                        thumb={
+                          item.eventId
+                            ? thumbUrl(item.eventId, 0, 240)
+                            : undefined
+                        }
+                      />
+                      <div class="min-w-0 flex-1">
+                        <p class="font-medium">{dayHeading(item.date)}</p>
+                        <p class="text-muted-foreground truncate text-xs">
+                          {item.kind === 'photo' ? '照片' : '一整天'}
+                          {ctx.pair.map((p) => {
+                            const pick = item.entry[p.id];
+                            const label = [
+                              emotionOf(pick?.emotion)?.label,
+                              islandOf(pick?.island)?.label,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ');
+                            return label ? ` · ${p.name}：${label}` : '';
+                          })}
+                        </p>
+                      </div>
+                      <span
+                        class="flex gap-1"
+                        aria-label={ctx.pair
+                          .map(
+                            (p) =>
+                              `${p.name}${item.entry[p.id]?.core ? '已摘星' : '未摘星'}`,
+                          )
+                          .join('，')}
+                      >
+                        {ctx.pair.map((p) => (
+                          <span
+                            class="text-lg leading-none"
+                            style={{
+                              color: item.entry[p.id]?.core
+                                ? p.color
+                                : 'var(--muted-foreground)',
+                              opacity: item.entry[p.id]?.core ? 1 : 0.35,
+                            }}
+                          >
+                            ★
+                          </span>
+                        ))}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        ))}
+      </>
+    )
+  }
+</Layout>
