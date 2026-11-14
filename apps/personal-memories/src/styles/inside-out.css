@@ -88,3 +88,22 @@ a:focus-visible > [data-orb] {
     inset 0 0 0 1.5px rgb(10 12 30 / 0.35),
     inset -5px -7px 12px rgb(10 12 30 / 0.3);
 }
+
+[data-orb][data-gl] {
+  background: transparent !important;
+  box-shadow: 0 4px 14px var(--io-glow);
+}
+
+[data-orb][data-gl]
+  > :is(
+    [data-crystal-photo],
+    [data-crystal-tint],
+    [data-crystal-rim],
+    [data-crystal-glass]
+  ) {
+  display: none;
+}
+
+[data-orb][data-gl] > [data-orb-canvas] {
+  display: block;
+}
