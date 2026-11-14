@@ -18,35 +18,55 @@ const {
   label,
   class: extra,
 } = Astro.props;
-const ring = Math.max(3, Math.round(size / 12));
+const split = `linear-gradient(135deg, ${halves[0]} 0 50%, ${halves[1]} 50% 100%)`;
 ---
 
 <span
   data-orb
+  data-crystal={thumb ? '' : undefined}
   data-core={core ? '' : undefined}
   role={label ? 'img' : undefined}
   aria-label={label}
-  class:list={['relative inline-grid shrink-0 place-items-center', extra]}
+  class:list={[
+    'relative inline-grid shrink-0 place-items-center overflow-hidden',
+    extra,
+  ]}
   style={{
     width: `${size}px`,
     height: `${size}px`,
-    background: orbBackground(halves),
+    background: thumb ? split : orbBackground(halves),
   }}
 >
   {
     thumb && (
-      <img
-        src={thumb}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        class="rounded-full object-cover opacity-90 mix-blend-luminosity"
-        style={{
-          width: `${size - ring * 2}px`,
-          height: `${size - ring * 2}px`,
-        }}
-      />
+      <>
+        <img
+          src={thumb}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          data-crystal-photo
+          class="absolute inset-0 size-full object-cover"
+        />
+        <span
+          aria-hidden="true"
+          data-crystal-tint
+          class="absolute inset-0"
+          style={{ background: split }}
+        />
+        <span
+          aria-hidden="true"
+          data-crystal-rim
+          class="absolute inset-0"
+          style={{ background: split }}
+        />
+        <span
+          aria-hidden="true"
+          data-crystal-glass
+          class="absolute inset-0 rounded-full"
+        />
+      </>
     )
   }
-  <slot />
+  <span class="relative"><slot /></span>
 </span>

@@ -12,7 +12,14 @@ import {
   orbHalves,
   thumbUrl,
 } from '@/lib';
-import { getDayIndex, isInsideOut, orbContext, orbItems } from '@/lib/server';
+import {
+  dayCovers,
+  getDayIndex,
+  isInsideOut,
+  notesStore,
+  orbContext,
+  orbItems,
+} from '@/lib/server';
 
 if (!isInsideOut()) return new Response('Not found', { status: 404 });
 
@@ -24,6 +31,15 @@ const ids = ctx.pair.map((p) => p.id);
 const starred = orbItems(ctx.file, ctx.state).filter(
   (i) => i.date.startsWith(`${year}-`) && ids.some((id) => i.entry[id]?.core),
 );
+const covers = dayCovers(
+  starred.filter((i) => i.kind === 'day').map((i) => i.date),
+  ctx.state,
+  notesStore(),
+);
+const coverThumb = (item: (typeof starred)[number]) => {
+  const id = item.eventId ?? covers.get(item.date);
+  return id ? thumbUrl(id, 0, 240) : undefined;
+};
 const core = starred.filter((i) => isCore(i.entry, ids));
 const pending = starred.filter((i) => !isCore(i.entry, ids));
 const progress = Math.min(1, core.length / CORE_GOAL);
@@ -103,11 +119,7 @@ const lists = [
                         halves={orbHalves(item.entry, ids)}
                         size={56}
                         core={isCore(item.entry, ids)}
-                        thumb={
-                          item.eventId
-                            ? thumbUrl(item.eventId, 0, 240)
-                            : undefined
-                        }
+                        thumb={coverThumb(item)}
                       />
                       <div class="min-w-0 flex-1">
                         <p class="font-medium">{dayHeading(item.date)}</p>

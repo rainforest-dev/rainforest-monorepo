@@ -15,7 +15,14 @@ import {
   tallyOrbs,
   thumbUrl,
 } from '@/lib';
-import { getDayIndex, isInsideOut, orbContext, orbItems } from '@/lib/server';
+import {
+  dayCovers,
+  getDayIndex,
+  isInsideOut,
+  notesStore,
+  orbContext,
+  orbItems,
+} from '@/lib/server';
 
 if (!isInsideOut()) return new Response('Not found', { status: 404 });
 
@@ -29,6 +36,11 @@ if (!MONTH_RE.test(month) || !months.includes(month)) {
   if (index) Astro.response.status = 404;
 }
 const days = active.filter((d) => monthOf(d) === month);
+const covers = dayCovers(days, ctx.state, notesStore());
+const dayThumb = (d: string) => {
+  const id = covers.get(d);
+  return id ? thumbUrl(id, 0, 240) : undefined;
+};
 const items = orbItems(ctx.file, ctx.state);
 const photos = items.filter(
   (i) => i.kind === 'photo' && monthOf(i.date) === month,
@@ -134,7 +146,12 @@ const bar = {
                     href={`/day/${d}`}
                     class="focus-visible:ring-ring flex flex-col items-center gap-1.5 rounded-2xl p-1 outline-none focus-visible:ring-2"
                   >
-                    <Orb halves={orbHalves(entry, ids)} size={64} core={core}>
+                    <Orb
+                      halves={orbHalves(entry, ids)}
+                      size={72}
+                      core={core}
+                      thumb={dayThumb(d)}
+                    >
                       <span
                         data-io-display
                         class="text-(--io-on-orb) text-xl font-semibold [text-shadow:0_1px_3px_rgb(0_0_0/0.45)]"

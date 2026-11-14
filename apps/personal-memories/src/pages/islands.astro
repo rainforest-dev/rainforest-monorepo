@@ -10,7 +10,14 @@ import {
   orbHalves,
   thumbUrl,
 } from '@/lib';
-import { getDayIndex, isInsideOut, orbContext, orbItems } from '@/lib/server';
+import {
+  dayCovers,
+  getDayIndex,
+  isInsideOut,
+  notesStore,
+  orbContext,
+  orbItems,
+} from '@/lib/server';
 
 if (!isInsideOut()) return new Response('Not found', { status: 404 });
 
@@ -18,6 +25,15 @@ const ctx = await orbContext(Astro.request.headers);
 const index = await getDayIndex();
 const ids = ctx.pair.map((p) => p.id);
 const items = orbItems(ctx.file, ctx.state);
+const covers = dayCovers(
+  items.filter((i) => i.kind === 'day').map((i) => i.date),
+  ctx.state,
+  notesStore(),
+);
+const coverThumb = (item: (typeof items)[number]) => {
+  const id = item.eventId ?? covers.get(item.date);
+  return id ? thumbUrl(id, 0, 240) : undefined;
+};
 const islands = ISLANDS.map((island) => ({
   ...island,
   items: items.filter((i) => onIsland(i.entry, island.id, ids)).reverse(),
@@ -81,11 +97,7 @@ const bar = {
                           halves={orbHalves(item.entry, ids)}
                           size={48}
                           core={isCore(item.entry, ids)}
-                          thumb={
-                            item.eventId
-                              ? thumbUrl(item.eventId, 0, 240)
-                              : undefined
-                          }
+                          thumb={coverThumb(item)}
                         />
                         <span class="text-muted-foreground text-[11px] tabular-nums">
                           {item.date.slice(2).replaceAll('-', '/')}

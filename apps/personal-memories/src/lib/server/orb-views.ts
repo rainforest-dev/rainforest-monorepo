@@ -91,3 +91,21 @@ export function printRows(
   }
   return rows;
 }
+
+export function dayCovers(
+  dates: readonly string[],
+  state: TimelineState,
+  notes: NotesStore | undefined,
+): Map<string, string> {
+  const out = new Map<string, string>();
+  if (state.status !== 'ready') return out;
+  const byDate = indexDays(state.timeline.events).byDate;
+  for (const date of dates) {
+    const id = pickCover(
+      byDate.get(date) ?? [],
+      notes?.read(date).note.cover,
+    )?.id;
+    if (id) out.set(date, id);
+  }
+  return out;
+}

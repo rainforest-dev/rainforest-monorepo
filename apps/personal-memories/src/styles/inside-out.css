@@ -43,3 +43,48 @@ a:focus-visible > [data-orb] {
   white-space: nowrap;
   font-size: 0.8125rem;
 }
+
+[data-crystal] [data-crystal-photo] {
+  transform: scale(1.22);
+  filter: saturate(1.08) contrast(1.04);
+  mask-image: radial-gradient(
+    circle,
+    black 55%,
+    rgb(0 0 0 / 0.85) 70%,
+    transparent 74%
+  );
+}
+
+[data-crystal] [data-crystal-tint] {
+  opacity: 0.28;
+  mix-blend-mode: soft-light;
+}
+
+[data-crystal] [data-crystal-rim] {
+  opacity: 0.95;
+  mask-image: radial-gradient(
+    circle,
+    transparent 56%,
+    rgb(0 0 0 / 0.55) 66%,
+    black 74%
+  );
+}
+
+[data-crystal] [data-crystal-glass] {
+  background:
+    radial-gradient(
+      circle at 32% 24%,
+      rgb(255 255 255 / 0.85) 0 5%,
+      rgb(255 255 255 / 0.3) 13%,
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 70% 82%,
+      rgb(255 255 255 / 0.18) 0 8%,
+      transparent 22%
+    ),
+    radial-gradient(circle, transparent 60%, rgb(10 12 30 / 0.45) 100%);
+  box-shadow:
+    inset 0 0 0 1.5px rgb(10 12 30 / 0.35),
+    inset -5px -7px 12px rgb(10 12 30 / 0.3);
+}
