@@ -59,10 +59,10 @@ void main() {
 
   vec2 q = p * 0.72 + refr.xy * 0.3;
   vec2 flow = vec2(
-    fbm(q * 2.2 + vec2(t * 0.11, -t * 0.07)),
-    fbm(q * 2.2 + vec2(-t * 0.09, t * 0.12) + 4.3)
+    fbm(q * 2.2 + vec2(t * 0.22, -t * 0.15)),
+    fbm(q * 2.2 + vec2(-t * 0.18, t * 0.24) + 4.3)
   ) - 0.5;
-  q += flow * 0.09;
+  q += flow * 0.2;
 
   vec2 uv = q * 0.5 + 0.5;
   uv.y = 1.0 - uv.y;
@@ -70,14 +70,14 @@ void main() {
   else uv.y = (uv.y - 0.5) * uAspect + 0.5;
   vec3 photo = texture2D(uPhoto, clamp(uv, 0.0, 1.0)).rgb;
 
-  float swirl = fbm(p * 1.6 + vec2(cos(t * 0.13), sin(t * 0.1)) * 0.9 + flow * 1.5);
+  float swirl = fbm(p * 1.6 + vec2(cos(t * 0.35), sin(t * 0.28)) * 1.1 + flow * 1.5);
   float side = smoothstep(-0.45, 0.45, (p.x - p.y) * 0.75 + (swirl - 0.5) * 1.4);
   vec3 fog = mix(uA, uB, side);
-  float wisps = smoothstep(0.35, 0.8, fbm(p * 2.4 - vec2(t * 0.08, t * 0.05) + side));
+  float wisps = smoothstep(0.35, 0.8, fbm(p * 2.4 - vec2(t * 0.22, t * 0.16) + side));
 
   vec3 col;
   if (uHasPhoto > 0.5) {
-    col = mix(photo, photo * 0.55 + fog * 0.6, 0.22 + 0.25 * wisps);
+    col = mix(photo, photo * 0.55 + fog * 0.6, 0.16 + 0.42 * wisps);
   } else {
     col = mix(fog * 0.75, fog * 1.15, wisps);
   }

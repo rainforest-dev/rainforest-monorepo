@@ -18,8 +18,9 @@ type OrbState = {
   hover: boolean;
 };
 
-const SLOW = 0.35;
-const FAST = 1.6;
+const SLOW = 1;
+const FAST = 2.6;
+const CALM = 0.25;
 const REDUCE = '(prefers-reduced-motion: reduce)';
 
 function compile(gl: WebGLRenderingContext, type: number, source: string) {
@@ -43,28 +44,73 @@ function program(gl: WebGLRenderingContext) {
   return prog;
 }
 
+type Status = {
+  mode: 'webgl' | 'css';
+  reason: string;
+  fps: number;
+  orbs: number;
+  workMs: number;
+};
+
+function debugBadge(status: Status) {
+  if (!new URLSearchParams(location.search).has('debug'))
+    return () => undefined;
+  const badge = document.createElement('div');
+  badge.setAttribute('data-orb-debug', '');
+  badge.className =
+    'bg-card text-foreground fixed bottom-3 left-3 z-50 rounded-full border px-3 py-1 font-mono text-xs shadow';
+  document.body.append(badge);
+  const paint = () => {
+    badge.textContent =
+      status.mode === 'webgl'
+        ? `orbs: WebGL · ${status.reason} · ${status.fps} fps · ${status.orbs} visible · ${status.workMs} ms`
+        : `orbs: CSS fallback · ${status.reason}`;
+  };
+  paint();
+  return paint;
+}
+
 export function startOrbShader() {
-  if (matchMedia(REDUCE).matches) return;
+  const status: Status = {
+    mode: 'css',
+    reason: 'starting',
+    fps: 0,
+    orbs: 0,
+    workMs: 0,
+  };
+  (window as unknown as { __orbShader: Status }).__orbShader = status;
+  const paint = debugBadge(status);
+  const fallback = (reason: string) => {
+    status.mode = 'css';
+    status.reason = reason;
+    paint();
+  };
+
+  const reduced = matchMedia(REDUCE).matches;
   const orbs = [
     ...document.querySelectorAll<HTMLElement>('[data-orb][data-shader-a]'),
   ];
-  if (orbs.length === 0) return;
+  if (orbs.length === 0) return fallback('no orbs on this page');
 
   const glCanvas = document.createElement('canvas');
   const gl = glCanvas.getContext('webgl', {
     premultipliedAlpha: true,
+    preserveDrawingBuffer: true,
     alpha: true,
     antialias: false,
   });
-  if (!gl) return;
+  if (!gl) return fallback('WebGL unavailable');
 
   let prog: WebGLProgram;
   try {
     prog = program(gl);
   } catch (error) {
     console.warn('[orbs] shader unavailable, keeping CSS orbs', error);
-    return;
+    return fallback('shader failed to compile');
   }
+  status.mode = 'webgl';
+  status.reason = reduced ? 'reduced motion: slow' : 'flowing';
+  paint();
   gl.useProgram(prog);
   const buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -145,7 +191,7 @@ export function startOrbShader() {
           el.dataset['shaderPhoto'] ??
           '',
       ),
-      speed: SLOW,
+      speed: reduced ? CALM : SLOW,
       time: 0,
       hover: false,
     };
@@ -180,6 +226,7 @@ export function startOrbShader() {
   glCanvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
     lost = true;
+    fallback('WebGL context lost');
     for (const s of states.values()) {
       s.el.removeAttribute('data-gl');
       s.canvas.hidden = true;
@@ -190,9 +237,8 @@ export function startOrbShader() {
   let last = 0;
   let frames = 0;
   let fpsStart = performance.now();
-  const stats = { fps: 0, orbs: 0, workMs: 0 };
+  const stats = status;
   let work = 0;
-  (window as unknown as { __orbShader: typeof stats }).__orbShader = stats;
 
   const frame = (now: number) => {
     if (lost) return;
@@ -207,6 +253,7 @@ export function startOrbShader() {
       stats.fps = Math.round((frames * 1000) / (now - fpsStart));
       stats.orbs = visible.size;
       stats.workMs = Math.round((work / frames) * 100) / 100;
+      paint();
       work = 0;
       frames = 0;
       fpsStart = now;
@@ -226,7 +273,7 @@ export function startOrbShader() {
         s.canvas.width = size;
         s.canvas.height = size;
       }
-      s.speed = approach(s.speed, s.hover ? FAST : SLOW, dt);
+      s.speed = approach(s.speed, reduced ? CALM : s.hover ? FAST : SLOW, dt);
       s.time += dt * s.speed;
       const photoUrl = s.el.dataset['shaderPhoto'];
       const tex = photoUrl ? texture(photoUrl) : undefined;
