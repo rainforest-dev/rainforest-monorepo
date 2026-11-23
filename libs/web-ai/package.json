@@ -23,8 +23,8 @@
     "name": "web-ai"
   },
   "devDependencies": {
-    "@types/dom-chromium-ai": "0.0.17",
+    "@types/dom-chromium-ai": "0.0.18",
     "@types/node": "catalog:",
-    "vite-plugin-dts": "^4.5.4"
+    "vite-plugin-dts": "^5.1.2"
   }
 }
