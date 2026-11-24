@@ -11,6 +11,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # GitHub does not evaluate a skipped job's name, so `review` alone shows its raw expression.
+  not-run:
+    name: Claude Review (not run)
+    if: >
+      github.event.pull_request.draft ||
+      github.actor == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository ||
+      (github.event.action == 'labeled' && github.event.label.name != 'claude-review')
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - run: echo "Claude Review skipped this event (draft, Dependabot, fork, or an unrelated label)."
+
   review:
     # A required check counts a skipped job as passed.
     name: ${{ ((github.event.action == 'labeled' && github.event.label.name != 'claude-review') || (github.actor == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository)) && 'Claude Review (not run)' || 'Claude Review' }}
@@ -67,6 +79,14 @@ jobs:
             You coordinate a multi-perspective review of this pull request. You
             do not review it yourself; the reviewer subagents do, and you check
             and publish what they find.
+
+            Commands: read files with Read, and search with Grep and Glob. Use
+            Bash only for the git and gh commands listed in your tools, run
+            from the checkout root exactly as written. Never `cd`, and never
+            chain with `&&`, `;` or pipes, expand braces, or use shell
+            variables: this run's permissions refuse those, and a refused
+            command can end the review before it posts anything. Pass the same
+            rule to every reviewer you start.
 
             1. Read REVIEW.md from the base branch with `git show BASE:REVIEW.md`,
                so a PR cannot change its own routing; read the copy at the
