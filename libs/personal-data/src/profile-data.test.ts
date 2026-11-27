@@ -37,6 +37,16 @@ describe('profile-data', () => {
     expect(education.every((e) => e.id !== 'en/6')).toBe(true);
   });
 
+  it('getEducation exposes degree and field from the published entries', async () => {
+    const education = await getEducation({ lang: 'en' });
+    const bachelor = education.find((e) => e.id === 'en/1');
+    expect(bachelor?.degree).toBe('Bachelor Degree');
+    expect(bachelor?.field).toBe('Civil Engineering');
+    expect(education.every((e) => e.degree === (e.position || undefined))).toBe(
+      true,
+    );
+  });
+
   // `asOf` is pinned so this suite doesn't start failing on a future date. At 2026-07 the
   // full-time entries are en/6 (2022-07 → 2024-10, 27mo) and en/7 (2025-05 → open, 14mo) = 41mo.
   it('getYearsOfExperience counts only full-time roles, summing durations', async () => {

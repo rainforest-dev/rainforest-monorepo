@@ -18,7 +18,6 @@ import {
   guardRecord,
   type JsonRpcResponse,
   listedToolNames,
-  MANUAL_ONLY,
   NEUTRAL_SYSTEM_PROMPT,
   parseAgyJson,
   parseClaudeJson,
@@ -28,6 +27,7 @@ import {
   QUESTION,
   renderChecklist,
   saveRun,
+  selectAssistants,
   selfTrafficUrl,
   type SiteSnapshot,
   taipeiDate,
@@ -270,13 +270,7 @@ const RUNNERS: Record<AssistantId, Runner> = {
   },
 };
 
-const selected = (
-  values.only
-    ? values.only.split(',')
-    : Object.keys(RUNNERS).filter(
-        (id) => !MANUAL_ONLY.includes(id as AssistantId),
-      )
-) as AssistantId[];
+const selected = selectAssistants(Object.keys(RUNNERS), values.only);
 
 const site = values['no-site'] ? undefined : await snapshotSite();
 const records: AssistantRecord[] = [];

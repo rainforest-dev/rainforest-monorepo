@@ -3,6 +3,7 @@ export { getProjectGallery } from './galleries';
 export type { Entry } from './loader';
 export type {
   ProfileSummary,
+  ResolvedEducation,
   ResolvedExperience,
   ResolvedOrganization,
   ResolvedProject,

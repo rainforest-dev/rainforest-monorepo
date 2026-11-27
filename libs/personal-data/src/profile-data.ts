@@ -6,6 +6,7 @@ import type { EmploymentType, ExperienceType, Locale, SkillTag } from './vocab';
 export interface ResolvedOrganization {
   id: string;
   name: string;
+  department?: string;
   link?: string;
 }
 
@@ -25,7 +26,12 @@ export interface ResolvedExperience {
 async function resolveOrganization(id: string): Promise<ResolvedOrganization> {
   const org = await getEntry('organizations', id);
   if (!org) throw new Error(`Organization not found: ${id}`);
-  return { id: org.id, name: org.data.name, link: org.data.link };
+  return {
+    id: org.id,
+    name: org.data.name,
+    department: org.data.department,
+    link: org.data.link,
+  };
 }
 
 /**
@@ -126,15 +132,28 @@ export async function getYearsOfExperience(
   return Math.floor(totalMonths / 12);
 }
 
+export interface ResolvedEducation extends ResolvedExperience {
+  degree?: string;
+  field?: string;
+}
+
 export async function getEducation(
   options: { lang?: Locale } = {},
-): Promise<ResolvedExperience[]> {
+): Promise<ResolvedEducation[]> {
   const { lang = 'en' } = options;
   const entries = await getExperiencesByType('education', lang);
   return Promise.all(
-    entries.map(async (entry) =>
-      resolveExperience(entry, await experienceTechnologies(entry)),
-    ),
+    entries.map(async (entry) => {
+      const resolved = await resolveExperience(
+        entry,
+        await experienceTechnologies(entry),
+      );
+      return {
+        ...resolved,
+        degree: resolved.position || undefined,
+        field: resolved.organization.department,
+      };
+    }),
   );
 }
 

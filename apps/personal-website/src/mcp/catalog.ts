@@ -16,6 +16,8 @@ import type { ToolDescriptor } from '@utils/ai';
 import { tags } from '@utils/constants';
 import { z } from 'zod';
 
+import { getProfileIdentity } from './identity';
+
 const langSchema = z.enum(['en', 'zh']).optional();
 const technologySchema = z
   .enum(tags.skills as unknown as [SkillTag, ...SkillTag[]])
@@ -47,9 +49,13 @@ function defineProfileTool<I extends z.ZodRawShape, R>(tool: {
 export const PROFILE_TOOLS: ProfileTool[] = [
   defineProfileTool({
     name: 'get_profile_summary',
-    description: 'Professional profile overview: counts and top technologies',
+    description:
+      'Professional profile overview: headline, location, public links, counts and top technologies',
     input: { lang: langSchema },
-    run: ({ lang }) => getProfileSummary({ lang }),
+    run: async ({ lang }) => ({
+      ...(await getProfileIdentity(lang)),
+      ...(await getProfileSummary({ lang })),
+    }),
     summarise: (result) =>
       `${plural(result.experienceCount, 'role', 'roles')} and ${plural(result.projectCount, 'project', 'projects')} on record.`,
   }),
@@ -65,7 +71,8 @@ export const PROFILE_TOOLS: ProfileTool[] = [
   }),
   defineProfileTool({
     name: 'get_education',
-    description: 'Academic background',
+    description:
+      'Academic background: degree, field of study, institution and dates',
     input: { lang: langSchema },
     run: ({ lang }) => getEducation({ lang }),
     summarise: (result) =>
