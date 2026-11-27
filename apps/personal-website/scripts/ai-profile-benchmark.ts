@@ -264,6 +264,16 @@ export type ManualStep = { assistant: string; how: string };
 
 export const MANUAL_ONLY: readonly AssistantId[] = ['gemini-agy-web'];
 
+export function selectAssistants(
+  available: readonly string[],
+  only?: string,
+): AssistantId[] {
+  const ids = only
+    ? only.split(',')
+    : available.filter((id) => !MANUAL_ONLY.includes(id as AssistantId));
+  return ids as AssistantId[];
+}
+
 export const MANUAL_STEPS: readonly ManualStep[] = [
   {
     assistant: 'Gemini via Antigravity CLI (gemini-agy-web)',

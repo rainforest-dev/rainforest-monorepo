@@ -1,7 +1,7 @@
 [
   {
     "name": "get_profile_summary",
-    "description": "Professional profile overview: counts and top technologies",
+    "description": "Professional profile overview: headline, location, public links, counts and top technologies",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -58,7 +58,7 @@
   },
   {
     "name": "get_education",
-    "description": "Academic background",
+    "description": "Academic background: degree, field of study, institution and dates",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
