@@ -1,11 +1,11 @@
-import { getGitHubUrl, getLinkedInUrl } from '@utils';
+import { getGitHubUrl } from '@utils';
 import { info } from '@utils/constants';
 import { useTranslation } from '@utils/i18n';
 
 export interface ProfileIdentity {
   headline: string;
   location: { city: string; country: string };
-  links: { website: string; linkedin: string; github: string };
+  links: { website: string; github: string };
 }
 
 export async function getProfileIdentity(
@@ -20,7 +20,6 @@ export async function getProfileIdentity(
     },
     links: {
       website: info.links.website,
-      linkedin: getLinkedInUrl(info.links.linkedin),
       github: getGitHubUrl(info.links.github),
     },
   };

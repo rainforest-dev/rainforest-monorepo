@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { info } from '@utils/constants';
 import { describe, expect, it } from 'vitest';
 
 import { PROFILE_TOOLS } from './catalog';
@@ -19,16 +20,18 @@ describe('getProfileIdentity', () => {
     expect((await getProfileIdentity('zh')).headline).toBe('資深前端工程師');
   });
 
-  it('lists the website, LinkedIn and GitHub links the footer shows', async () => {
+  it('lists the website and GitHub links', async () => {
     expect((await getProfileIdentity()).links).toEqual({
       website: 'https://rainforest.tools',
-      linkedin: 'https://www.linkedin.com/in/yulin-cheng',
       github: 'https://github.com/rainforest-dev',
     });
   });
 
   it('does not expose a name', async () => {
-    expect(JSON.stringify(await getProfileIdentity())).not.toMatch(/name/i);
+    const json = JSON.stringify(await getProfileIdentity()).toLowerCase();
+    expect(json).not.toMatch(/name/);
+    expect(json).not.toContain('linkedin');
+    expect(json).not.toContain(info.links.linkedin.toLowerCase());
   });
 });
 
