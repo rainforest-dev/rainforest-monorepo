@@ -1,21 +1,30 @@
 import { execFile } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
   AGY_ISOLATION_PREAMBLE,
+  assertPrivacyConfig,
   type AssistantId,
   type AssistantRecord,
   guardRecord,
   type JsonRpcResponse,
   listedToolNames,
+  MANUAL_ONLY,
   NEUTRAL_SYSTEM_PROMPT,
   parseAgyJson,
   parseClaudeJson,
   parseMcpResponse,
   parseOllamaChat,
+  parsePrivacyConfig,
   QUESTION,
   renderChecklist,
   saveRun,
@@ -30,9 +39,17 @@ const OLLAMA_URL = (process.env.OLLAMA_URL ?? 'http://localhost:11434').replace(
 );
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? 'gemma4:12b-mlx';
 const AGY_MODEL = process.env.AGY_MODEL ?? '';
-const EXTRA_MARKERS = (process.env.AI_BENCH_PRIVATE_MARKERS ?? '')
-  .split(',')
-  .filter(Boolean);
+const BENCHMARK_ROOT = join(
+  import.meta.dirname,
+  '../../../docs/ai-profile-benchmark',
+);
+const PRIVACY_FILE = join(BENCHMARK_ROOT, '.private-markers.json');
+const PRIVACY = parsePrivacyConfig(
+  process.env,
+  existsSync(PRIVACY_FILE) ? readFileSync(PRIVACY_FILE, 'utf8') : undefined,
+);
+assertPrivacyConfig(PRIVACY);
+const RUN_FAILED_NOTE = 'Assistant run failed; details were printed locally.';
 const TIMEOUT_MS = 10 * 60 * 1000;
 
 const { values } = parseArgs({
@@ -45,9 +62,7 @@ const { values } = parseArgs({
 
 const now = new Date();
 const date = taipeiDate(now);
-const outDir =
-  values.out ??
-  join(import.meta.dirname, '../../../docs/ai-profile-benchmark', date);
+const outDir = values.out ?? join(BENCHMARK_ROOT, date);
 
 const run = (
   command: string,
@@ -193,6 +208,7 @@ const RUNNERS: Record<AssistantId, Runner> = {
         '--output-format',
         'json',
         '--disable-slash-commands',
+        '--sandbox',
         ...(AGY_MODEL ? ['--model', AGY_MODEL] : []),
         '--print',
         `${AGY_ISOLATION_PREAMBLE}${QUESTION}`,
@@ -255,7 +271,11 @@ const RUNNERS: Record<AssistantId, Runner> = {
 };
 
 const selected = (
-  values.only ? values.only.split(',') : Object.keys(RUNNERS)
+  values.only
+    ? values.only.split(',')
+    : Object.keys(RUNNERS).filter(
+        (id) => !MANUAL_ONLY.includes(id as AssistantId),
+      )
 ) as AssistantId[];
 
 const site = values['no-site'] ? undefined : await snapshotSite();
@@ -269,21 +289,27 @@ for (const id of selected) {
     records.push(
       guardRecord(
         { id, label: runner.label, tools: runner.tools, ...result },
-        EXTRA_MARKERS,
+        PRIVACY,
       ),
     );
   } catch (error) {
-    records.push({
-      id,
-      label: runner.label,
-      tools: runner.tools,
-      question: QUESTION,
-      askedAt: new Date().toISOString(),
-      model: 'unknown',
-      status: 'error',
-      answer: '',
-      note: error instanceof Error ? error.message : String(error),
-    });
+    console.error(`${id} failed:`, error);
+    records.push(
+      guardRecord(
+        {
+          id,
+          label: runner.label,
+          tools: runner.tools,
+          question: QUESTION,
+          askedAt: new Date().toISOString(),
+          model: 'unknown',
+          status: 'error',
+          answer: '',
+          note: RUN_FAILED_NOTE,
+        },
+        PRIVACY,
+      ),
+    );
   }
 }
 

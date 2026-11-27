@@ -13,7 +13,7 @@ Who is Rainforest Cheng?
 
 ## Answer
 
-**Rainforest Cheng** (also known as **Yu-Lin Cheng** / **鄭羽霖**) is a Senior Frontend Software Engineer based in Taipei, Taiwan, and a graduate of National Taiwan University (NTU).
+**Rainforest Cheng** (also known as **[redacted-name]** / **[redacted-name]**) is a Senior Frontend Software Engineer based in Taipei, Taiwan, and a graduate of National Taiwan University (NTU).
 
 ### Experience & Notable Work
 
@@ -30,5 +30,5 @@ His public portfolio highlights experience with TypeScript, JavaScript (Node.js)
 ### Public Profiles
 
 - **Website / Portfolio:** [rainforest.tools](https://rainforest.tools/)
-- **GitHub:** [github.com/rainforest-dev](https://github.com/rainforest-dev)
-- **LinkedIn:** [linkedin.com/in/yulin-cheng](https://www.linkedin.com/in/yulin-cheng)
+- **GitHub:** [[redacted-link]]([redacted-link])
+- **LinkedIn:** [[redacted-link]]([redacted-link])

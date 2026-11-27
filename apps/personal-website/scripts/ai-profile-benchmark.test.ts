@@ -5,19 +5,26 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  assertPrivacyConfig,
   type AssistantRecord,
   findPrivateMarkers,
   guardRecord,
   listedToolNames,
+  MANUAL_ONLY,
   parseAgyJson,
   parseClaudeJson,
   parseMcpResponse,
   parseOllamaChat,
+  parsePrivacyConfig,
   QUESTION,
+  REDACTED_LINK,
+  REDACTED_NAME,
+  redactText,
   renderChecklist,
   saveRun,
   selfTrafficUrl,
   taipeiDate,
+  WITHHELD_NOTE,
 } from './ai-profile-benchmark.ts';
 
 const record = (answer: string): AssistantRecord => ({
@@ -147,18 +154,82 @@ describe('findPrivateMarkers', () => {
   });
 });
 
+const CONFIG = { names: ['Jane Q Example', '範例'], markers: ['secret-host'] };
+
+describe('privacy config', () => {
+  it('merges env and file lists', () => {
+    expect(
+      parsePrivacyConfig(
+        { AI_BENCH_PRIVATE_NAMES: 'A, B', AI_BENCH_PRIVATE_MARKERS: 'm' },
+        '{"names":["C"],"markers":["n"]}',
+      ),
+    ).toEqual({ names: ['A', 'B', 'C'], markers: ['m', 'n'] });
+  });
+
+  it('fails closed with no names', () => {
+    expect(() => assertPrivacyConfig({ names: [], markers: ['m'] })).toThrow(
+      /No real-name variants/,
+    );
+    expect(() =>
+      guardRecord(record('ok'), { names: [], markers: [] }),
+    ).toThrow();
+  });
+});
+
+describe('redactText', () => {
+  it('replaces name variants and profile links', () => {
+    expect(
+      redactText(
+        'jane q example (範例), see [LinkedIn](https://www.linkedin.com/in/someone) and github.com/someone, site https://rainforest.tools, netflix.com/x',
+        CONFIG.names,
+      ),
+    ).toBe(
+      `${REDACTED_NAME} (${REDACTED_NAME}), see [LinkedIn](${REDACTED_LINK}) and ${REDACTED_LINK}, site https://rainforest.tools, netflix.com/x`,
+    );
+  });
+});
+
 describe('guardRecord', () => {
   it('keeps a clean answer', () => {
-    expect(guardRecord(record('A frontend engineer.'))).toEqual(
+    expect(guardRecord(record('A frontend engineer.'), CONFIG)).toEqual(
       record('A frontend engineer.'),
     );
   });
 
+  it('redacts names in every free-text field', () => {
+    const guarded = guardRecord(
+      { ...record('Jane Q Example builds sites.'), note: 'Asked 範例' },
+      CONFIG,
+    );
+    expect(guarded.status).toBe('ok');
+    expect(guarded.answer).toBe(`${REDACTED_NAME} builds sites.`);
+    expect(guarded.note).toBe(`Asked ${REDACTED_NAME}`);
+  });
+
   it('withholds an answer that read local context', () => {
-    const guarded = guardRecord(record('From /Users/me/vault/Profile.md'));
+    const guarded = guardRecord(
+      record('From /Users/me/vault/Profile.md'),
+      CONFIG,
+    );
     expect(guarded.status).toBe('withheld');
     expect(guarded.answer).toBe('');
+    expect(guarded.note).toBe(WITHHELD_NOTE);
     expect(guarded.privateMarkers).toEqual(['local file link']);
+  });
+
+  it('checks the note of an error record', () => {
+    const guarded = guardRecord(
+      { ...record(''), status: 'error', note: 'failed on secret-host' },
+      CONFIG,
+    );
+    expect(guarded.status).toBe('withheld');
+    expect(guarded.note).toBe(WITHHELD_NOTE);
+  });
+});
+
+describe('MANUAL_ONLY', () => {
+  it('keeps the agy run out of the default selection', () => {
+    expect(MANUAL_ONLY).toContain('gemini-agy-web');
   });
 });
 

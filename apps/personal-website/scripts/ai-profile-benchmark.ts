@@ -149,6 +149,55 @@ const PRIVATE_PATTERNS: readonly { name: string; re: RegExp }[] = [
   },
 ];
 
+export const REDACTED_NAME = '[redacted-name]';
+export const REDACTED_LINK = '[redacted-link]';
+
+const PROFILE_LINK =
+  /(?<![\w.-])(?:https?:\/\/)?(?:www\.)?(?:linkedin\.com|github\.com|cakeresume\.com|cake\.me|x\.com|twitter\.com|facebook\.com|instagram\.com)\/[^\s)\]>"'`]*[^\s)\]>"'`.,;:!?]/gi;
+
+export type PrivacyConfig = {
+  names: readonly string[];
+  markers: readonly string[];
+};
+
+export function parsePrivacyConfig(
+  env: Record<string, string | undefined>,
+  fileText?: string,
+): PrivacyConfig {
+  const list = (value: string | undefined) =>
+    (value ?? '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  const file = fileText
+    ? (JSON.parse(fileText) as { names?: string[]; markers?: string[] })
+    : {};
+  return {
+    names: [...list(env.AI_BENCH_PRIVATE_NAMES), ...(file.names ?? [])],
+    markers: [...list(env.AI_BENCH_PRIVATE_MARKERS), ...(file.markers ?? [])],
+  };
+}
+
+export function assertPrivacyConfig(config: PrivacyConfig): void {
+  if (config.names.length === 0) {
+    throw new Error(
+      'No real-name variants configured: set AI_BENCH_PRIVATE_NAMES or the local markers file.',
+    );
+  }
+}
+
+const escapeRegExp = (text: string) =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export function redactText(text: string, names: readonly string[]): string {
+  const byLength = [...names].sort((a, b) => b.length - a.length);
+  let out = text.replace(PROFILE_LINK, REDACTED_LINK);
+  for (const name of byLength) {
+    out = out.replace(new RegExp(escapeRegExp(name), 'gi'), REDACTED_NAME);
+  }
+  return out;
+}
+
 export function findPrivateMarkers(
   text: string,
   extraMarkers: readonly string[] = [],
@@ -164,18 +213,41 @@ export function findPrivateMarkers(
   return [...new Set([...hits, ...extra])];
 }
 
+const TEXT_FIELDS = [
+  'question',
+  'label',
+  'model',
+  'tools',
+  'answer',
+  'note',
+] as const;
+
+export const WITHHELD_NOTE =
+  'Answer withheld: it matched private-data patterns, which suggests it read local context rather than the public web.';
+
 export function guardRecord(
   record: AssistantRecord,
-  extraMarkers: readonly string[] = [],
+  config: PrivacyConfig,
 ): AssistantRecord {
-  const markers = findPrivateMarkers(record.answer, extraMarkers);
-  if (markers.length === 0) return record;
+  assertPrivacyConfig(config);
+  const redacted: AssistantRecord = { ...record };
+  for (const field of TEXT_FIELDS) {
+    const value = redacted[field];
+    if (typeof value === 'string') {
+      redacted[field] = redactText(value, config.names);
+    }
+  }
+  const markers = findPrivateMarkers(
+    TEXT_FIELDS.map((field) => redacted[field] ?? '').join('\n'),
+    [...config.names, ...config.markers],
+  );
+  if (markers.length === 0) return redacted;
   return {
-    ...record,
+    ...redacted,
     status: 'withheld',
     answer: '',
     privateMarkers: markers,
-    note: 'Answer withheld: it matched private-data patterns, which suggests it read local context rather than the public web.',
+    note: WITHHELD_NOTE,
   };
 }
 
@@ -190,7 +262,13 @@ export function taipeiDate(now: Date): string {
 
 export type ManualStep = { assistant: string; how: string };
 
+export const MANUAL_ONLY: readonly AssistantId[] = ['gemini-agy-web'];
+
 export const MANUAL_STEPS: readonly ManualStep[] = [
+  {
+    assistant: 'Gemini via Antigravity CLI (gemini-agy-web)',
+    how: 'Opt in with --only gemini-agy-web, then read the redacted answer before committing it.',
+  },
   {
     assistant: 'Gemini (gemini.google.com, personal account)',
     how: 'New chat, ask the question, paste the answer.',
