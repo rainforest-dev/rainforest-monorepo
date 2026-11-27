@@ -220,6 +220,7 @@ ESLint enforces Nx module boundaries with `@nx/enforce-module-boundaries` rule. 
 - Tests use `.test.ts` or `.spec.ts` suffixes
 - Coverage outputs to `coverage/<project-name>/`
 - rainforest-ui uses jsdom environment
+- Some tests read built `dist` output: `apps/personal-website` tests import `@rainforest-dev/personal-data`, whose package `exports` point at `dist/`. A stale `dist` makes them fail locally; rebuild with `pnpm nx build personal-data`. CI is unaffected because `test` has `dependsOn: ["^build"]` in `nx.json`
 
 ## Storybook
 
