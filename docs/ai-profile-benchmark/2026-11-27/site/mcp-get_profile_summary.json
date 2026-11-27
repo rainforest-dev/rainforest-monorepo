@@ -1,0 +1,35 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"experienceCount\":5,\"projectCount\":4,\"skillCount\":13,\"topTechnologies\":[\"nextjs\",\"tailwindcss\",\"react\",\"vitest\",\"auth0\",\"playwright\",\"vue\",\"mui\",\"swift\",\"flutter\",\"typescript\",\"nx\",\"fastapi\",\"docker\",\"terraform\",\"github-actions\"]}"
+      }
+    ],
+    "structuredContent": {
+      "experienceCount": 5,
+      "projectCount": 4,
+      "skillCount": 13,
+      "topTechnologies": [
+        "nextjs",
+        "tailwindcss",
+        "react",
+        "vitest",
+        "auth0",
+        "playwright",
+        "vue",
+        "mui",
+        "swift",
+        "flutter",
+        "typescript",
+        "nx",
+        "fastapi",
+        "docker",
+        "terraform",
+        "github-actions"
+      ]
+    }
+  },
+  "jsonrpc": "2.0",
+  "id": 2
+}

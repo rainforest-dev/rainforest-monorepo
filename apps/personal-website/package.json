@@ -142,6 +142,14 @@
           "cwd": "{projectRoot}"
         }
       },
+      "ai-profile-benchmark": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node scripts/run-ai-profile-benchmark.ts",
+          "cwd": "{projectRoot}"
+        }
+      },
       "check-output": {
         "dependsOn": [
           "build"
