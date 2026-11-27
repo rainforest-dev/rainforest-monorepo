@@ -60,7 +60,7 @@
     }
   },
   "dependencies": {
-    "@astrojs/node": "^11.1.6",
+    "@astrojs/node": "^11.1.12",
     "@astrojs/react": "^7.1.1",
     "@rainforest-dev/library-contract": "workspace:*",
     "@rainforest-dev/library-shell": "workspace:*",

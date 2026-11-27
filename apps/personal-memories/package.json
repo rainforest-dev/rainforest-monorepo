@@ -56,7 +56,7 @@
     }
   },
   "dependencies": {
-    "@astrojs/node": "^11.1.6",
+    "@astrojs/node": "^11.1.12",
     "@astrojs/react": "^7.1.1",
     "@rainforest-dev/journal-kit": "workspace:*",
     "@rainforest-dev/mcp-kit": "workspace:*",
