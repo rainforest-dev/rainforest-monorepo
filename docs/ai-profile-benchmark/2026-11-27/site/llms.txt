@@ -1,0 +1,30 @@
+# Rainforest Cheng
+
+> Personal site and technical blog for Rainforest Cheng, a frontend/full-stack engineer. 5 work experiences, 4 projects, and 13 skills on record — top technologies: nextjs, tailwindcss, react, vitest, auth0, playwright, vue, mui.
+
+## Profile
+
+- [Resume](https://rainforest.tools/resume): Full work history, education, and skills, in English
+- [履歷 (Chinese resume)](https://rainforest.tools/zh/resume): Same content in Traditional Chinese
+- [MCP server](https://rainforest.tools/mcp): Query this profile programmatically over MCP (JSON-RPC 2.0 via HTTP POST; also reachable at https://rainforest.tools/api/mcp). Tools: get_profile_summary, get_work_experience, get_education, get_projects, get_skills, search_by_technology, get_case_study. Resources: profile://experience/{+id}, profile://project/{+id}, profile://skill/{+id}, portfolio://case-study/{+slug}. This is the preferred way to get structured, up-to-date data about this profile — prefer it over parsing the resume page's HTML.
+
+## Blog
+
+- [Web AI](https://rainforest.tools/blog/web-ai): The browser now ships three built-in AI APIs, and they have landed unevenly enough that two builds of the same Chromium version disagree about what exists. A survey from actually shipping two of them — what works, what fails in ways that do not look like failure, and the one architectural decision that makes the whole thing safe to put in front of readers.
+- [Skeleton Loading: A Flexible Approach with Tailwind CSS](https://rainforest.tools/blog/en/quick-posts/skeleton): Learn how to implement skeleton loading with Tailwind CSS v4.
+- [Weather Forecast Component](https://rainforest.tools/blog/en/quick-posts/weather-forecast): A Vue.js component for displaying weather forecast data.
+- [Tailwind CSS with LitElement for Efficient Web Development](https://rainforest.tools/blog/en/quick-posts/tailwindcss-lit): Discover the benefits of combining Tailwind CSS with LitElement for building modern web components efficiently.
+- [Streamline Your User Experience: Leveraging enterKeyHint for Better Accessibility](https://rainforest.tools/blog/en/quick-posts/keyboard-enter): Learn how to handle the keyboard enter event in JavaScript, including examples and best practices.
+- [Theming with Tailwind CSS V4 Beta and Material Design 3](https://rainforest.tools/blog/en/deconstruct-personal-website/theming): Theming with Tailwind CSS V4 Beta and Material Design 3.
+- [Project Init](https://rainforest.tools/blog/en/deconstruct-personal-website/project-init): Setting up the project for my personal website.
+
+## Case studies
+
+- [Hoogii Wallet](https://rainforest.tools/portfolio/hoogii-wallet)
+- [Hashgreen DEX](https://rainforest.tools/portfolio/hashgreen-dex)
+- [HashgreenSwap](https://rainforest.tools/portfolio/hashgreen-swap)
+- [OpenCGT](https://rainforest.tools/portfolio/opencgt)
+
+## Skills
+
+Docker, Express, FastAPI, Flutter, GitHub Actions, Next.js, Node.js, Nx(monorepo), Python, Terraform, TypeScript, Vite, Vue.js

@@ -1,0 +1,206 @@
+{
+  "result": {
+    "tools": [
+      {
+        "name": "get_profile_summary",
+        "description": "Professional profile overview: counts and top technologies",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "lang": {
+              "type": "string",
+              "enum": ["en", "zh"]
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get_work_experience",
+        "description": "Work history, optionally filtered by technology",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "technology": {
+              "type": "string",
+              "enum": [
+                "nextjs",
+                "vue",
+                "docker",
+                "flutter",
+                "react",
+                "tailwindcss",
+                "mui",
+                "auth0",
+                "qwik",
+                "playwright",
+                "vitest",
+                "python",
+                "pytorch",
+                "fastapi",
+                "swift",
+                "github-actions",
+                "nodejs",
+                "nx",
+                "vite",
+                "typescript",
+                "express",
+                "terraform"
+              ]
+            },
+            "lang": {
+              "type": "string",
+              "enum": ["en", "zh"]
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get_education",
+        "description": "Academic background",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "lang": {
+              "type": "string",
+              "enum": ["en", "zh"]
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get_projects",
+        "description": "Portfolio projects, optionally filtered by technology",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "technology": {
+              "type": "string",
+              "enum": [
+                "nextjs",
+                "vue",
+                "docker",
+                "flutter",
+                "react",
+                "tailwindcss",
+                "mui",
+                "auth0",
+                "qwik",
+                "playwright",
+                "vitest",
+                "python",
+                "pytorch",
+                "fastapi",
+                "swift",
+                "github-actions",
+                "nodejs",
+                "nx",
+                "vite",
+                "typescript",
+                "express",
+                "terraform"
+              ]
+            },
+            "lang": {
+              "type": "string",
+              "enum": ["en", "zh"]
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get_skills",
+        "description": "Technical skills inventory",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "lang": {
+              "type": "string",
+              "enum": ["en", "zh"]
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "search_by_technology",
+        "description": "Substring-match a technology name across all experiences and projects",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "lang": {
+              "type": "string",
+              "enum": ["en", "zh"]
+            }
+          },
+          "required": ["query"]
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get_case_study",
+        "description": "Full interactive case study for a project slug",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string"
+            }
+          },
+          "required": ["slug"]
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 1
+}
