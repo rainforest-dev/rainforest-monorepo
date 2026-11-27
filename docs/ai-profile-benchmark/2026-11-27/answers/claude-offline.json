@@ -1,0 +1,12 @@
+{
+  "id": "claude-offline",
+  "label": "Claude (no tools, training knowledge only)",
+  "tools": "none",
+  "question": "Who is Rainforest Cheng?",
+  "askedAt": "2026-11-27T03:49:17.165Z",
+  "model": "claude-opus-5-5",
+  "status": "ok",
+  "answer": "I don't have reliable information about anyone named **Rainforest Cheng**. The name doesn't match any widely known public figure I can identify with confidence, and I'd rather not guess and risk attributing false details to a real person.\n\nSome possibilities:\n\n- **A private individual or independent professional.** Many people, such as developers, designers, or small business owners, have an online presence that isn't covered well in general knowledge sources.\n- **An online handle or brand name.** \"Rainforest\" may be a nickname or username used on platforms like GitHub, X/Twitter, LinkedIn, or a personal website.\n- **Someone notable in a niche or local community** whose work isn't widely documented.\n\nTo find out more, you could:\n\n1. Search the full name in quotes (\"Rainforest Cheng\") on a search engine.\n2. Check professional or developer platforms like LinkedIn, GitHub, or Medium.\n3. Look for a personal website or project page linked from those profiles.\n\nIf you can tell me where you came across the name, such as a project, article, or field, I can help you work out the context or what to look for.",
+  "durationMs": 9316,
+  "costUsd": 0.018963999999999998
+}

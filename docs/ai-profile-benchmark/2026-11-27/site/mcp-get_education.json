@@ -1,0 +1,12 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[{\"id\":\"en/1\",\"type\":\"education\",\"employment\":\"full-time\",\"language\":\"en\",\"position\":\"Bachelor Degree\",\"startAt\":\"2015-09-01T00:00:00.000Z\",\"endAt\":\"2019-06-01T00:00:00.000Z\",\"technologies\":[],\"organization\":{\"id\":\"en/bachelor\",\"name\":\"National Taiwan University\",\"link\":\"https://www.ce.ntu.edu.tw\"},\"content\":\"\"},{\"id\":\"en/3\",\"type\":\"education\",\"employment\":\"full-time\",\"language\":\"en\",\"position\":\"\",\"startAt\":\"2019-09-01T00:00:00.000Z\",\"endAt\":\"2022-08-01T00:00:00.000Z\",\"technologies\":[\"python\",\"pytorch\",\"fastapi\"],\"organization\":{\"id\":\"en/master\",\"name\":\"National Taiwan University\",\"link\":\"https://www.caece.net\"},\"content\":\"Conducted research on Generative Adversarial Networks (GANs) applied to microstructure materials during my graduate studies, and explored MLOps to understand the deployment of machine learning models.\"}]"
+      }
+    ]
+  },
+  "jsonrpc": "2.0",
+  "id": 4
+}
