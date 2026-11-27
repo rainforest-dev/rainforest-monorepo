@@ -60,7 +60,7 @@
     "@rainforest-dev/library-contract": "workspace:*",
     "@rainforest-dev/rainforest-react": "workspace:*",
     "@rainforest-dev/web-ai": "workspace:*",
-    "i18next": "^25.8.0",
+    "i18next": "^26.3.4",
     "lucide-react": "^1.8.0",
     "zod": "^4.6.7"
   },
