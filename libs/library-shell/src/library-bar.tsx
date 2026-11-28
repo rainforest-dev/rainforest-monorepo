@@ -13,6 +13,7 @@ import {
   CollectionTabBar,
   type RenderShellLink,
 } from './collection-nav';
+import { useFoldAnchor } from './fold';
 import { useReturnPoint } from './hooks';
 import { useLibraryLocale, useLibraryT } from './i18n-provider';
 import { LocaleSwitch } from './locale-switch';
@@ -59,6 +60,7 @@ export function LibraryBar({
   collections = true,
 }: LibraryBarProps) {
   useReturnPoint(current);
+  useFoldAnchor();
   const t = useLibraryT();
   const locale = useLibraryLocale();
   const own = getCollection(current);

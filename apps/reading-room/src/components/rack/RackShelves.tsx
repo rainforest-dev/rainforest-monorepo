@@ -33,7 +33,11 @@ type T = ReturnType<typeof roomT>;
 function ArticleCard({ item, t }: { item: QueueItem; t: T }) {
   const minutes = item.sort.readingMinutes;
   return (
-    <li id={articleAnchor(item.id)} className="flex scroll-mt-20">
+    <li
+      id={articleAnchor(item.id)}
+      className="flex scroll-mt-20"
+      data-fold-anchor
+    >
       <a
         href={item.readerUrl}
         target="_blank"

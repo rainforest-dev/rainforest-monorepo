@@ -127,7 +127,7 @@ function EventCard({
     shelf === 'soon' && 'border-t-muted-foreground',
   );
   return (
-    <li className="flex" data-event={event.id}>
+    <li className="flex scroll-mt-20" data-event={event.id} data-fold-anchor>
       {event.url ? (
         <a
           href={event.url}
