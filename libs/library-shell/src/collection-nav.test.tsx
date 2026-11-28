@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 
 import { CollectionNav, CollectionTabBar } from './collection-nav';
+import { LibraryI18nProvider } from './i18n-provider';
 
 describe('CollectionNav', () => {
   it('links every collection and marks the current one', () => {
@@ -70,6 +71,27 @@ describe('CollectionTabBar', () => {
     expect(current.querySelector('svg')?.hasAttribute('aria-hidden')).toBe(
       true,
     );
+  });
+
+  it('keeps only the current English label once a tab is too narrow for one', () => {
+    render(
+      <LibraryI18nProvider locale="en" resources={{ zh: {}, en: {} }}>
+        <CollectionTabBar current="kb" />
+      </LibraryI18nProvider>,
+    );
+    const nav = screen.getByRole('navigation');
+    const label = (name: string) =>
+      within(nav).getByRole('link', { name }).querySelector('span');
+    expect(label('Knowledge')?.className).not.toContain('sr-only');
+    expect(label('Notebooks')?.className).toContain('@max-[4.25rem]:sr-only');
+  });
+
+  it('keeps every Chinese label, which fits any tab', () => {
+    render(<CollectionTabBar current="kb" />);
+    const nav = screen.getByRole('navigation');
+    for (const span of within(nav).getAllByRole('link')) {
+      expect(span.querySelector('span')?.className).not.toContain('sr-only');
+    }
   });
 });
 
