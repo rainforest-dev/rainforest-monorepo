@@ -1,8 +1,18 @@
 import { anthropic } from '@ai-sdk/anthropic';
+import { claudeCode } from '@e2e-dev/acp';
 import type { E2EConfig } from 'e2e';
 
-/** Model calls go straight to Anthropic with `ANTHROPIC_API_KEY`. */
+/**
+ * Model calls go straight to Anthropic with `ANTHROPIC_API_KEY`. With `E2E_EXECUTOR=claude-code`
+ * the steps run on the local Claude Code login instead, and `waitFor` and `extract` are
+ * unavailable because they need a model.
+ */
 const model = anthropic(process.env['E2E_MODEL'] ?? 'claude-sonnet-5-5');
+const viaClaudeCode = process.env['E2E_EXECUTOR'] === 'claude-code';
+const runner = (system?: string) =>
+  viaClaudeCode
+    ? { executor: claudeCode({ model: 'sonnet', ...(system && { system }) }) }
+    : { model, ...(system && { system }) };
 
 /** Words every model call reads, judges included. */
 const context = `
@@ -20,13 +30,13 @@ Traditional Chinese unless the reader switches to English with the language butt
 `;
 
 export const agents: E2EConfig['agents'] = {
-  default: { model, context },
+  default: { ...runner(), context },
   // A bug-bash persona: `e2e explore --agent newcomer '<goal>'`.
   newcomer: {
-    model,
-    context,
-    system:
+    ...runner(
       'You are opening this library for the first time. Report anything confusing, broken or ' +
-      'inconsistent between pages, with the steps that show it.',
+        'inconsistent between pages, with the steps that show it.',
+    ),
+    context,
   },
 };
