@@ -25,6 +25,14 @@ keep it in `apps/library-hall-e2e/.env.local` (gitignored); Nx loads that file f
 targets. These targets are separate from `e2e`, so `nx affected -t e2e` and CI never run them.
 `E2E_MODEL` overrides the model, which defaults to `claude-sonnet-5-5`.
 
+`E2E_EXECUTOR=claude-code` runs `agent.act` and `agent.assert` on the local Claude Code login
+instead, with no key. `waitFor` and `extract` need a model, so only tests without them run
+that way, such as `tests/search.e2e.ts`:
+
+```bash
+cd apps/library-hall-e2e/agents && E2E_EXECUTOR=claude-code ../node_modules/.bin/e2e run tests/search.e2e.ts
+```
+
 ```bash
 pnpm nx run library-hall-e2e:agent-e2e                     # builds the hall, runs tests/
 pnpm nx run library-hall-e2e:agent-e2e-live                # needs LIBRARY_URL and CF_ACCESS_CLIENT_*
