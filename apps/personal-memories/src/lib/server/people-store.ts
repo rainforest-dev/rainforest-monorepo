@@ -90,13 +90,43 @@ function legacyPeople(env: Record<string, string | undefined>): PeopleConfig {
 const peoplePath = (root: string | undefined) =>
   root && join(root, 'people.json');
 
+export function withIdentities(
+  config: PeopleConfig,
+  raw: string | undefined,
+): PeopleConfig {
+  const extra = new Map<string, string[]>();
+  for (const pair of (raw ?? '').split(',')) {
+    const at = pair.indexOf('=');
+    if (at < 1) continue;
+    const email = pair.slice(0, at).trim().toLowerCase();
+    const id = pair.slice(at + 1).trim();
+    if (!email.includes('@') || !id) continue;
+    if (config.people.some((p) => p.id !== id && p.emails.includes(email)))
+      continue;
+    extra.set(id, [...(extra.get(id) ?? []), email]);
+  }
+  if (extra.size === 0) return config;
+  return {
+    ...config,
+    people: config.people.map((p) => {
+      const emails = extra.get(p.id);
+      return emails
+        ? { ...p, emails: [...new Set([...p.emails, ...emails])] }
+        : p;
+    }),
+  };
+}
+
 const readPeople = (
   contents: string | undefined,
   env: Record<string, string | undefined>,
 ): PeopleConfig =>
-  contents === undefined
-    ? legacyPeople(env)
-    : parsePeople(JSON.parse(contents));
+  withIdentities(
+    contents === undefined
+      ? legacyPeople(env)
+      : parsePeople(JSON.parse(contents)),
+    env['MEMORIES_IDENTITIES'],
+  );
 
 export function loadPeople(
   root: string | undefined,

@@ -1,0 +1,63 @@
+{
+  "brand": {
+    "joy": "#FFD84D",
+    "sad": "#4A7BEA",
+    "anger": "#E8503A",
+    "fear": "#9B6BE0",
+    "disgust": "#57B85C",
+    "anxiety": "#F28C28",
+    "person-1": "#4A7BEA",
+    "person-2": "#F2A6C2",
+    "empty": "#9C99B5",
+    "ink": "#15172E",
+    "on-orb": "#FFFFFF"
+  },
+  "themes": {
+    "night": {
+      "background": "#15172E",
+      "foreground": "#F4F2FF",
+      "card": "#1E2142",
+      "card-foreground": "#F4F2FF",
+      "popover": "#1E2142",
+      "popover-foreground": "#F4F2FF",
+      "primary": "#FFD84D",
+      "primary-foreground": "#15172E",
+      "secondary": "#272A52",
+      "secondary-foreground": "#F4F2FF",
+      "muted": "#272A52",
+      "muted-foreground": "#B9B6D9",
+      "accent": "#2C3060",
+      "accent-foreground": "#F4F2FF",
+      "border": "#33376A",
+      "input": "#33376A",
+      "ring": "#FFD84D",
+      "sidebar": "#1E2142",
+      "io-glow": "#FFD84D2E",
+      "io-sky-1": "#9B6BE038",
+      "io-sky-2": "#4A7BEA33"
+    },
+    "day": {
+      "background": "#FFF7EA",
+      "foreground": "#1E1B3A",
+      "card": "#FFFFFF",
+      "card-foreground": "#1E1B3A",
+      "popover": "#FFFFFF",
+      "popover-foreground": "#1E1B3A",
+      "primary": "#4A7BEA",
+      "primary-foreground": "#FFFFFF",
+      "secondary": "#F6ECDA",
+      "secondary-foreground": "#1E1B3A",
+      "muted": "#F6ECDA",
+      "muted-foreground": "#5D5878",
+      "accent": "#F1E4CC",
+      "accent-foreground": "#1E1B3A",
+      "border": "#EADCC4",
+      "input": "#EADCC4",
+      "ring": "#4A7BEA",
+      "sidebar": "#FFFFFF",
+      "io-glow": "#4A7BEA1F",
+      "io-sky-1": "#FFD84D47",
+      "io-sky-2": "#F2A6C240"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+---
+import { taipeiDate } from '@/lib';
+import { isInsideOut, toTaipeiIso } from '@/lib/server';
+
+if (!isInsideOut()) return new Response('Not found', { status: 404 });
+return Astro.redirect(
+  `/core/${taipeiDate(toTaipeiIso(Date.now())).slice(0, 4)}`,
+  302,
+);
+---

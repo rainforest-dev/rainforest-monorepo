@@ -6,6 +6,8 @@ export * from './note-vectors.ts';
 export * from './notes-format.ts';
 export * from './notes-payload.ts';
 export * from './notes-store.ts';
+export * from './orb-views.ts';
+export * from './orbs-store.ts';
 export * from './people-store.ts';
 export * from './search-files.ts';
 export * from './search-index.ts';

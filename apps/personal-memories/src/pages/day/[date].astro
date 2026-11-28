@@ -9,23 +9,35 @@ import { SourceFilter } from '@/components/day/SourceFilter.tsx';
 import { StreamMenu } from '@/components/day/StreamMenu.tsx';
 import EmptyState from '@/components/EmptyState.astro';
 import { NotePanel } from '@/components/NotePanel.tsx';
+import { OrbPicker } from '@/components/orbs/OrbPicker.tsx';
+import YearStrip from '@/components/orbs/YearStrip.astro';
 import Layout from '@/layouts/Layout.astro';
 import {
   authorAccents,
   dayHeading,
+  dayKey,
+  heatLevels,
+  isCoverCandidate,
   levelHrefs,
   morphFromRequest,
   nearestDate,
+  type OrbEntry,
+  photoKey,
   scrubberMonths,
   summarize,
+  taipeiTime,
+  thumbUrl,
 } from '@/lib';
 import { viewerName } from '@/lib/notes';
 import {
   getDayIndex,
   getPeople,
   getTimeline,
+  isInsideOut,
   notePayload,
   notesStore,
+  orbContext,
+  orbsStore,
   publicPeople,
 } from '@/lib/server';
 
@@ -60,6 +72,32 @@ const accents =
 const months = index ? scrubberMonths(summarize(index)) : [];
 const nearest = !day?.events ? nearestDate(dates, date) : undefined;
 const jumped = Astro.url.searchParams.has('nearest') && !!day?.events;
+const insideOut = isInsideOut();
+const orbs = insideOut ? await orbContext(Astro.request.headers) : undefined;
+const yearTotals = new Map(
+  (index?.dates ?? [])
+    .filter((d) => d.startsWith(date.slice(0, 4)))
+    .map((d) => [d, index?.byDate.get(d)?.length ?? 0]),
+);
+const orbTargets = day?.events
+  ? [
+      { key: dayKey(date), label: '這一整天' },
+      ...day.events
+        .filter(isCoverCandidate)
+        .slice(0, 80)
+        .map((e) => ({
+          key: photoKey(e.id),
+          label: `${taipeiTime(e.at)} 的照片`,
+          thumb: thumbUrl(e.id, 0, 240),
+        })),
+    ]
+  : [];
+const orbInitial: Record<string, OrbEntry> = Object.fromEntries(
+  orbTargets.flatMap((t) => {
+    const entry = orbs?.file.orbs[t.key];
+    return entry ? [[t.key, entry]] : [];
+  }),
+);
 const bar = {
   place: { level: 'day' as const, date },
   hrefs: levelHrefs({ level: 'day', date }, dates),
@@ -89,6 +127,16 @@ const bar = {
             </AlertDescription>
           </Alert>
         )}
+        {orbs && (
+          <YearStrip
+            year={date.slice(0, 4)}
+            current={date}
+            totals={yearTotals}
+            level={heatLevels([...yearTotals.values()])}
+            orbs={orbs.file}
+            ids={orbs.pair.map((p) => p.id)}
+          />
+        )}
         <div class="lg:grid lg:grid-cols-[56px_minmax(0,1fr)_400px] lg:gap-8">
           <aside class="hidden lg:sticky lg:top-[calc(var(--app-bar-h)+1rem)] lg:block lg:max-h-[calc(100vh-var(--app-bar-h)-2rem)]">
             <MonthScrubber client:idle months={months} date={date} />
@@ -109,6 +157,17 @@ const bar = {
           </div>
           <NotePanel client:load initial={initial} accents={accents} />
           <StreamMenu client:idle />
+          {orbs && (
+            <OrbPicker
+              client:load
+              title={`${dayHeading(date)}的記憶球`}
+              pair={orbs.pair}
+              viewer={orbs.viewer}
+              writable={!!orbsStore()?.writable}
+              targets={orbTargets}
+              initial={orbInitial}
+            />
+          )}
         </div>
       </>
     )

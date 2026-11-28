@@ -15,8 +15,11 @@ import {
   getDayIndex,
   getMarkerViews,
   getTimeline,
+  isInsideOut,
   notesStore,
 } from '@/lib/server';
+
+if (isInsideOut()) return Astro.redirect('/orbs', 302);
 
 const state = await getTimeline();
 const { entries: days = [] } = await getLiveCollection('days');

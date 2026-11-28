@@ -1,0 +1,100 @@
+---
+import {
+  dayHeading,
+  dayKey,
+  type OrbsFile,
+  orbBackground,
+  orbHalves,
+} from '@/lib';
+
+type Props = {
+  year: string;
+  current: string;
+  totals: Map<string, number>;
+  level: (total: number) => 0 | 1 | 2 | 3 | 4;
+  orbs: OrbsFile;
+  ids: string[];
+};
+
+const { year, current, totals, level, orbs, ids } = Astro.props;
+
+const LEVEL = [
+  'bg-muted/60',
+  'bg-primary/20',
+  'bg-primary/40',
+  'bg-primary/65',
+  'bg-primary/90',
+];
+const start = Date.UTC(Number(year), 0, 1);
+const lead = new Date(start).getUTCDay();
+const days: string[] = [];
+for (
+  let t = start;
+  new Date(t).getUTCFullYear() === Number(year);
+  t += 86_400_000
+)
+  days.push(new Date(t).toISOString().slice(0, 10));
+const cells: (string | null)[] = [...Array<null>(lead).fill(null), ...days];
+const weeks = Math.ceil(cells.length / 7);
+---
+
+<section
+  aria-label={`${year} 年熱度`}
+  class="bg-card mb-6 rounded-3xl border px-4 py-3"
+>
+  <div class="mb-2 flex items-center gap-2 text-sm">
+    <span data-io-display class="font-semibold">{year}</span>
+    <span class="text-muted-foreground text-xs"
+      >每格一天 · 有情緒的是記憶球</span
+    >
+  </div>
+  <div class="-mx-1 overflow-x-auto px-1 pb-1">
+    <ol
+      class="grid w-max grid-flow-col gap-[3px]"
+      style={{
+        gridTemplateRows: 'repeat(7, 10px)',
+        gridTemplateColumns: `repeat(${weeks}, 10px)`,
+      }}
+    >
+      {
+        cells.map((d) => {
+          if (!d) return <li aria-hidden="true" />;
+          const total = totals.get(d) ?? 0;
+          const entry = orbs.orbs[dayKey(d)];
+          const picked = ids.some((id) => entry?.[id]?.emotion);
+          const body = (
+            <span
+              class:list={[
+                'block size-[10px]',
+                picked ? 'rounded-full' : 'rounded-[3px]',
+                !picked && LEVEL[level(total)],
+                d === current &&
+                  'ring-foreground ring-2 ring-offset-1 ring-offset-[var(--card)]',
+              ]}
+              style={
+                picked
+                  ? { background: orbBackground(orbHalves(entry, ids)) }
+                  : undefined
+              }
+            />
+          );
+          return (
+            <li>
+              {total > 0 ? (
+                <a
+                  href={`/day/${d}`}
+                  title={`${dayHeading(d)} · ${total}`}
+                  aria-current={d === current ? 'date' : undefined}
+                >
+                  {body}
+                </a>
+              ) : (
+                <span title={dayHeading(d)}>{body}</span>
+              )}
+            </li>
+          );
+        })
+      }
+    </ol>
+  </div>
+</section>

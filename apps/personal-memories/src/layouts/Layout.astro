@@ -2,13 +2,17 @@
 import '@/styles/global.css';
 
 import { AppBar } from '@/components/chrome/AppBar.tsx';
+import IoNav from '@/components/orbs/IoNav.astro';
 import {
   HIDDEN_KEY,
+  insideOutStyle,
+  ioThemeScript,
   type Level,
   type Place,
   revealScript,
   SOURCES,
 } from '@/lib';
+import { isInsideOut } from '@/lib/server';
 
 type Props = {
   title: string;
@@ -23,13 +27,38 @@ type Props = {
 };
 
 const { title, wide = false, bar } = Astro.props;
+const insideOut = isInsideOut();
+const hrefs =
+  insideOut && bar?.hrefs.year === '/'
+    ? { ...bar.hrefs, year: '/year' }
+    : bar?.hrefs;
+const dayHref = bar?.hrefs.day ?? '/day';
 ---
 
-<html lang="zh-TW">
+<html
+  lang="zh-TW"
+  data-ui={insideOut ? 'inside-out' : undefined}
+  data-io-theme={insideOut ? 'night' : undefined}
+  data-scheme={insideOut ? 'dark' : undefined}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    {
+      insideOut && (
+        <>
+          <script is:inline set:html={ioThemeScript()} />
+          <style is:inline set:html={insideOutStyle()} />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+          />
+        </>
+      )
+    }
     <script is:inline set:html={revealScript()} />
     <script
       is:inline
@@ -52,11 +81,13 @@ const { title, wide = false, bar } = Astro.props;
           <AppBar
             client:load
             place={bar.place}
-            hrefs={bar.hrefs}
+            hrefs={hrefs ?? bar.hrefs}
             step={bar.step}
+            insideOut={insideOut}
           />
         )
       }
+      {insideOut && <IoNav pathname={Astro.url.pathname} dayHref={dayHref} />}
       <slot />
     </main>
     <script>

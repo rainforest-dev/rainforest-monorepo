@@ -1,7 +1,14 @@
 import { z } from 'astro/zod';
 import { ActionError, defineAction } from 'astro:actions';
 
-import { DATE_RE, indexDays } from '@/lib';
+import {
+  DATE_RE,
+  EMOTION_IDS,
+  indexDays,
+  ISLAND_IDS,
+  parseOrbKey,
+  PERSON_COLORS,
+} from '@/lib';
 import {
   originOf,
   stampAuthors,
@@ -14,9 +21,12 @@ import {
   getTimeline,
   notePayload,
   notesStore,
+  orbPair,
+  orbsStore,
   publicPeople,
   toPayload,
   UnreadableNoteError,
+  viewerId,
 } from '@/lib/server';
 
 const date = z.string().regex(DATE_RE);
@@ -117,6 +127,44 @@ export const server = {
       );
       if (viewer) current.viewer = viewer;
       return { ok: false as const, current };
+    },
+  }),
+  setOrb: defineAction({
+    input: z.object({
+      key: z.string().max(220),
+      emotion: z.enum(EMOTION_IDS).nullable().optional(),
+      island: z.enum(ISLAND_IDS).nullable().optional(),
+      core: z.boolean().optional(),
+    }),
+    handler: async ({ key, ...patch }, context) => {
+      const store = orbsStore();
+      if (!store?.writable)
+        throw new ActionError({
+          code: 'FORBIDDEN',
+          message: 'orbs are read-only',
+        });
+      const people = await getPeople();
+      const person = viewerId(context.request.headers, people);
+      if (
+        !person ||
+        !orbPair(people, PERSON_COLORS).some((p) => p.id === person)
+      )
+        throw new ActionError({
+          code: 'UNAUTHORIZED',
+          message: 'sign in through Access to pick',
+        });
+      const parsed = parseOrbKey(key);
+      const state = await getTimeline();
+      const known =
+        parsed &&
+        state.status === 'ready' &&
+        (parsed.kind === 'day'
+          ? indexDays(state.timeline.events).byDate.has(parsed.date)
+          : state.byId.get(parsed.eventId)?.source === 'photo');
+      if (!known)
+        throw new ActionError({ code: 'NOT_FOUND', message: 'unknown memory' });
+      const file = store.update(key, person, patch);
+      return { entry: file.orbs[key] ?? {} };
     },
   }),
 };

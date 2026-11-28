@@ -1,0 +1,248 @@
+---
+import EmptyState from '@/components/EmptyState.astro';
+import Orb from '@/components/orbs/Orb.astro';
+import OrbSidebar from '@/components/orbs/OrbSidebar.astro';
+import Layout from '@/layouts/Layout.astro';
+import {
+  dayKey,
+  EMOTIONS,
+  levelHrefs,
+  MONTH_RE,
+  monthLabel,
+  monthOf,
+  orbHalves,
+  isCore,
+  tallyOrbs,
+  thumbUrl,
+} from '@/lib';
+import {
+  dayCovers,
+  getDayIndex,
+  isInsideOut,
+  notesStore,
+  orbContext,
+  orbItems,
+} from '@/lib/server';
+
+if (!isInsideOut()) return new Response('Not found', { status: 404 });
+
+const { month = '' } = Astro.params;
+const ctx = await orbContext(Astro.request.headers);
+const index = await getDayIndex();
+const ids = ctx.pair.map((p) => p.id);
+const active = (index?.dates ?? []).filter((d) => index?.byDate.get(d)?.length);
+const months = [...new Set(active.map(monthOf))];
+if (!MONTH_RE.test(month) || !months.includes(month)) {
+  if (index) Astro.response.status = 404;
+}
+const days = active.filter((d) => monthOf(d) === month);
+const covers = dayCovers(days, ctx.state, notesStore());
+const dayThumb = (d: string) => {
+  const id = covers.get(d);
+  return id ? thumbUrl(id, 0, 240) : undefined;
+};
+const items = orbItems(ctx.file, ctx.state);
+const photos = items.filter(
+  (i) => i.kind === 'photo' && monthOf(i.date) === month,
+);
+const monthEntries = [
+  ...days.map((d) => ctx.file.orbs[dayKey(d)]),
+  ...photos.map((p) => p.entry),
+];
+const tally = tallyOrbs(monthEntries, ids);
+const monthCounts = months.map((m) => ({
+  month: m,
+  days: active.filter((d) => monthOf(d) === m).length,
+  picked: items.filter((i) => monthOf(i.date) === m).length,
+}));
+const pos = months.indexOf(month);
+const prev = pos > 0 ? months[pos - 1] : undefined;
+const next = pos >= 0 && pos < months.length - 1 ? months[pos + 1] : undefined;
+const emotionsOf = (entry: (typeof monthEntries)[number]) =>
+  ids
+    .map((id) => entry?.[id]?.emotion)
+    .filter(Boolean)
+    .join(' ');
+const weekday = (d: string) =>
+  '日一二三四五六'[new Date(`${d}T00:00:00Z`).getUTCDay()];
+const bar = {
+  place: { level: 'month' as const, month },
+  hrefs: levelHrefs({ level: 'month', month }, index?.dates ?? []),
+};
+---
+
+<Layout title={`${month} 記憶球 · Memories`} wide bar={bar}>
+  {
+    ctx.state.status === 'missing' ? (
+      <EmptyState path={ctx.state.path} />
+    ) : days.length === 0 ? (
+      <p>
+        這個月沒有記憶球。
+        <a class="underline" href="/orbs">
+          回到最近的月份
+        </a>
+      </p>
+    ) : (
+      <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-8">
+        <section data-orb-shelf aria-labelledby="shelf-title">
+          <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-muted-foreground text-sm">記憶球架</p>
+              <h1 id="shelf-title" class="text-3xl font-semibold">
+                {monthLabel(month)}
+              </h1>
+            </div>
+            <div class="flex items-center gap-1">
+              {prev ? (
+                <a
+                  class="hover:bg-muted rounded-full px-3 py-1.5 text-sm"
+                  href={`/orbs/${prev}`}
+                >
+                  ← 上個月
+                </a>
+              ) : null}
+              {next ? (
+                <a
+                  class="hover:bg-muted rounded-full px-3 py-1.5 text-sm"
+                  href={`/orbs/${next}`}
+                >
+                  下個月 →
+                </a>
+              ) : null}
+            </div>
+          </header>
+          <div
+            class="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1"
+            role="group"
+            aria-label="依情緒篩選"
+          >
+            {EMOTIONS.map((e) => (
+              <button
+                type="button"
+                data-emotion-chip={e.id}
+                aria-pressed="false"
+                class="border-border bg-card aria-pressed:text-(--io-ink) flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm aria-pressed:border-transparent"
+                style={{ '--chip': e.color }}
+              >
+                <span
+                  class="size-3 rounded-full"
+                  style={{ background: e.color }}
+                />
+                {e.label}
+                <span class="tabular-nums opacity-70">
+                  {tally.emotions[e.id]}
+                </span>
+              </button>
+            ))}
+          </div>
+          <ol class="grid grid-cols-[repeat(auto-fill,minmax(76px,1fr))] gap-x-3 gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(92px,1fr))]">
+            {days.map((d) => {
+              const entry = ctx.file.orbs[dayKey(d)];
+              const core = isCore(entry, ids);
+              const count = index?.byDate.get(d)?.length ?? 0;
+              return (
+                <li data-orb-item data-emotions={emotionsOf(entry)}>
+                  <a
+                    href={`/day/${d}`}
+                    class="focus-visible:ring-ring flex flex-col items-center gap-1.5 rounded-2xl p-1 outline-none focus-visible:ring-2"
+                  >
+                    <Orb
+                      halves={orbHalves(entry, ids)}
+                      size={72}
+                      core={core}
+                      thumb={dayThumb(d)}
+                    >
+                      <span
+                        data-io-display
+                        class="text-(--io-on-orb) text-xl font-semibold [text-shadow:0_1px_3px_rgb(0_0_0/0.45)]"
+                      >
+                        {Number(d.slice(8, 10))}
+                      </span>
+                    </Orb>
+                    <span class="text-muted-foreground text-xs tabular-nums">
+                      週{weekday(d)} · {count}
+                      {core && <span aria-label="核心記憶"> ★</span>}
+                    </span>
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
+          {photos.length > 0 && (
+            <>
+              <h2 class="mb-4 mt-10 text-xl font-semibold">照片記憶球</h2>
+              <ol class="grid grid-cols-[repeat(auto-fill,minmax(76px,1fr))] gap-x-3 gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(92px,1fr))]">
+                {photos.map((p) => (
+                  <li data-orb-item data-emotions={emotionsOf(p.entry)}>
+                    <a
+                      href={`/day/${p.date}#ev-${p.eventId}`}
+                      class="flex flex-col items-center gap-1.5 rounded-2xl p-1"
+                    >
+                      <Orb
+                        halves={orbHalves(p.entry, ids)}
+                        size={64}
+                        core={isCore(p.entry, ids)}
+                        thumb={
+                          p.eventId ? thumbUrl(p.eventId, 0, 240) : undefined
+                        }
+                      />
+                      <span class="text-muted-foreground text-xs tabular-nums">
+                        {p.date.slice(5)}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          <p
+            data-empty-filter
+            hidden
+            class="text-muted-foreground mt-6 text-sm"
+          >
+            這個月沒有這種情緒的記憶球。
+          </p>
+        </section>
+        <OrbSidebar
+          class="mt-10 lg:mt-0"
+          pair={ctx.pair}
+          tally={tally}
+          months={monthCounts}
+          current={month}
+        />
+      </div>
+    )
+  }
+</Layout>
+
+<script>
+  const shelf = document.querySelector<HTMLElement>('[data-orb-shelf]');
+  const chips = [
+    ...document.querySelectorAll<HTMLButtonElement>('[data-emotion-chip]'),
+  ];
+  const selected = new Set<string>();
+  const apply = () => {
+    if (!shelf) return;
+    let shown = 0;
+    for (const item of shelf.querySelectorAll<HTMLElement>('[data-orb-item]')) {
+      const emotions = (item.dataset['emotions'] ?? '').split(' ');
+      const match =
+        selected.size === 0 || emotions.some((e) => selected.has(e));
+      item.toggleAttribute('data-match', match);
+      if (match) shown++;
+    }
+    shelf.toggleAttribute('data-filter', selected.size > 0);
+    const empty = shelf.querySelector<HTMLElement>('[data-empty-filter]');
+    if (empty) empty.hidden = shown > 0;
+  };
+  for (const chip of chips) {
+    chip.addEventListener('click', () => {
+      const id = chip.dataset['emotionChip'] ?? '';
+      if (selected.has(id)) selected.delete(id);
+      else selected.add(id);
+      chip.setAttribute('aria-pressed', String(selected.has(id)));
+      chip.style.background = selected.has(id) ? 'var(--chip)' : '';
+      apply();
+    });
+  }
+</script>
