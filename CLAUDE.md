@@ -220,6 +220,7 @@ ESLint enforces Nx module boundaries with `@nx/enforce-module-boundaries` rule. 
 - Tests use `.test.ts` or `.spec.ts` suffixes
 - Coverage outputs to `coverage/<project-name>/`
 - rainforest-ui uses jsdom environment
+- Some tests read built `dist` output: `apps/personal-website` tests import `@rainforest-dev/personal-data`, whose package `exports` point at `dist/`. A missing or stale `dist` makes them fail locally. Run them through Nx (`pnpm nx test personal-website`), which builds the `^build` deps first. To run vitest directly, build the app's libs first: `pnpm nx run-many -t build -p mcp-kit,personal-data,personal-portfolio,rainforest-react,rainforest-ui,search,web-ai` (the `@rainforest-dev/*` deps in `apps/personal-website/package.json`; `personal-data` alone is not enough, `mcp-kit` is also needed). CI is unaffected because `test` has `dependsOn: ["^build"]` in `nx.json`
 
 ## Storybook
 
